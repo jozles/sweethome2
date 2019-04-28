@@ -2,7 +2,7 @@
 #define _SHCONST_H_
 
 
-//#define PERIF
+#define PERIF
 
 #define LENVERSION  4
 #define LENMODEL    6

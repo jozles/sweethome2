@@ -463,22 +463,18 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
             for(int i=0;i<MAXSW;i++){                                           // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
               
               cstRec.swCde |= (*(data+MPOSSWCDE+MAXSW-1-i)-48)<<(2*(i+1)-1);    // bit cde (bits 8,6,4,2)  
-              conv_atoh((data+MPOSINTPAR0+i*9),&cstRec.onCdeI[i]);
-              conv_atoh((data+MPOSINTPAR0+i*9+2),&cstRec.offCdeI[i]);
-              conv_atoh((data+MPOSINTPAR0+i*9+4),&cstRec.onCdeO[i]);
-              conv_atoh((data+MPOSINTPAR0+i*9+6),&cstRec.offCdeO[i]);
-
-//              for(int ctl=DLSWLEN-1;ctl>=0;ctl--){
-//                conv_atoh((data+MPOSPULSCTL+i*(DLSWLEN*2+1)+ctl*2),&cstRec.pulseCtl[i*DLSWLEN+(DLSWLEN-ctl-1)]);
-//                }
-             
+              for(int k=i*NBSWINPUT*SWINPLEN;k<(i+1)*NBSWINPUT*SWINPLEN;k++){
+                conv_atoh((data+MPOSSWINPUT+k*2+i),&cstRec.swInput[k]);}
               cstRec.durPulseOne[i]=(long)convStrToNum(data+MPOSPULSONE+i*(MAXSW*2+1),&sizeRead);
               cstRec.durPulseTwo[i]=(long)convStrToNum(data+MPOSPULSTWO+i*(MAXSW*2+1),&sizeRead);
+              
               conv_atoh((data+MPOSEXTDEN),&cstRec.extDetEn);
               conv_atoh((data+MPOSEXTDEN+2),&cstRec.extDetLev);
               cstRec.portServer=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
               //Serial.print("data ");Serial.print((char*)(data+MPOSPORTSRV));Serial.print(" portServer ");Serial.println(cstRec.portServer);
             }
+            for(int ctl=PCTLLEN;ctl>=0;ctl--){conv_atoh((data+MPOSPULSCTL+ctl*2),&cstRec.pulseMode[ctl]);}
+
             printConstant();
         }
         if(periMess!=MESSOK){

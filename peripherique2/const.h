@@ -296,15 +296,12 @@ typedef struct {
   uint8_t   tempPitch;            //  1   seuil de variation de la temp pour cx au serveur
   int16_t   oldtemp;              //  2
   uint8_t   talkStep;             //  1   pointeur pour l'automate talkServer()
-  byte      onCdeI[MAXSW];        //  4   cdes d'activation (MAXSW=4 1 mot)
-  byte      offCdeI[MAXSW];       //  4   cdes désactivation
-  byte      onCdeO[MAXSW];        //  4   cdes forçage ON
-  byte      offCdeO[MAXSW];       //  4   cdes forçage OFF
   uint32_t  durPulseOne[MAXSW];   // 16   durée pulse 1
   uint32_t  durPulseTwo[MAXSW];   // 16   durée pulse 2
   uint32_t  cntPulseOne[MAXSW];   // 16   temps debut pulse 1
   uint32_t  cntPulseTwo[MAXSW];   // 16   temps debut pulse 2
-  byte      pulseCtl[24];   // 24   ctle pulse   
+  byte      pulseMode[PCTLLEN];    //  2   ctle pulse   
+  byte      swInput[MAXSW*NBSWINPUT*SWINPLEN]; // 96  configuration
   byte      memDetec[MAXDET+MAXDSP+MAXDEX];  //  8  image mem des détecteurs (1 byte par détecteur ; det physiques + spéciaux+externes)
   byte      extDetEn;             //  1   1 bit enable par det externe   
   byte      extDetLev;            //  1   1 bit level  par det externe
@@ -312,7 +309,7 @@ typedef struct {
   uint32_t  cxDurat;              //  4   durée last connexion
   byte      swToggle[MAXSW];      //  4   toogle switch (raz après dataSave)     
   uint16_t  portServer;           //  2   port en mode serveur          
-  byte      filler[69];           //  
+  byte      filler[19];           //  
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer sa position
              // total 240 = 60 mots ; reste 256 dispo (sizeof(constantValues)=size(membres)+4)
 } constantValues;

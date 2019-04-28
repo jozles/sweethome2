@@ -125,11 +125,11 @@ void initConstant()  // inits mise sous tension
   cstRec.tempPitch=0;
   cstRec.talkStep=0;                       // pointeur pour l'automate talkServer()
   cstRec.swCde='\0';                       // cdes inter (4*2bits (periIntVal) ici x0 x=état demandé par le serveur pour le switch)
-  memcpy(cstRec.onCdeI,"\0\0\0\0",4);      // mode sw
-  memcpy(cstRec.offCdeI,"\0\0\0\0",4);      // mode sw
-  memcpy(cstRec.onCdeO,"\0\0\0\0",4);       // mode sw
-  memcpy(cstRec.offCdeO,"\0\0\0\0",4);      // mode sw  
-  memset(cstRec.pulseCtl,0x00,PCTLLEN);   // ctle pulse
+//  memcpy(cstRec.onCdeI,"\0\0\0\0",4);      // mode sw
+//  memcpy(cstRec.offCdeI,"\0\0\0\0",4);      // mode sw
+//  memcpy(cstRec.onCdeO,"\0\0\0\0",4);       // mode sw
+//  memcpy(cstRec.offCdeO,"\0\0\0\0",4);      // mode sw  
+  memset(cstRec.pulseMode,0x00,PCTLLEN);      // ctle pulse
   for(int i=0;i<MAXSW;i++){
   cstRec.durPulseOne[i]=0;       // durée pulses (MAXSW=4*4)
   cstRec.durPulseTwo[i]=0;       // durée pulses (MAXSW=4*4)
@@ -140,6 +140,7 @@ void initConstant()  // inits mise sous tension
   memset(cstRec.memDetec,detDis,MAXDET+MAXDSP+MAXDEX);
   memcpy(cstRec.cstVers,VERSION,LENVERSION);
   memcpy(cstRec.cstModel,model,LENMODEL);
+  memset(cstRec.swInput,0x00,MAXSW*NBSWINPUT*SWINPLEN);
   cstRec.extDetEn=0;
   cstRec.extDetLev=0;
   cstRec.cxDurat=0;

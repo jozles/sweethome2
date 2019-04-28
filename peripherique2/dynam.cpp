@@ -197,12 +197,12 @@ void swAction()         // poling check cde des switchs
     swaoo=0;swaoi=0;swaio=0;swaii=0;
     
     // actions OFF prioritaire  --->>>   si demandé L, si (det/server/pulse)==0 retour ok (swa!=0)   si demandé H ... !=0 retour ok
-    swaoo=rdy(cstRec.offCdeO[sw],sw);
+//    swaoo=rdy(cstRec.offCdeO[sw],sw);
     if(swaoo==0){                       // examen du reste seulement si swaoo inactif
-      swaoi=rdy(cstRec.onCdeO[sw],sw);      
+//      swaoi=rdy(cstRec.onCdeO[sw],sw);      
 
       // actions ON prioritaire
-      swaii=rdy(cstRec.onCdeI[sw],sw);if(swaii==0){swaio=rdy(cstRec.offCdeI[sw],sw);} 
+//      swaii=rdy(cstRec.onCdeI[sw],sw);if(swaii==0){swaio=rdy(cstRec.offCdeI[sw],sw);} 
     }
     
     if (swaoo!=0){digitalWrite(pinSw[sw],OFF);}
