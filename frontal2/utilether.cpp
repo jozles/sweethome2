@@ -5,7 +5,7 @@
 #include <SD.h>
 #include "const.h"
 #include "periph.h"
-#include "shconst.h"
+#include "shconst2.h"
 
 #ifdef UDPUSAGE
 

@@ -2,8 +2,8 @@
 #include <SPI.h>      //bibliothéqe SPI pour W5100
 #include <Ethernet.h>
 #include <SD.h>
-#include <shutil.h>
-#include <shconst.h>
+#include <shutil2.h>
+#include <shconst2.h>
 #include "const.h"
 #include "periph.h"
 #include "utilether.h"

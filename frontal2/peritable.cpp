@@ -2,8 +2,8 @@
 #include <SPI.h>      //bibliothéqe SPI pour W5100
 #include <Ethernet.h>
 #include <SD.h>
-#include <shutil.h>
-#include <shconst.h>
+#include <shutil2.h>
+#include <shconst2.h>
 #include "const.h"
 #include "periph.h"
 #include "utilether.h"
@@ -17,7 +17,7 @@
 extern File      fhisto;      // fichier histo sd card
 extern long      sdpos;
 extern char*     nomserver;
-extern byte      memDetServ;  // image mémoire NBDSRV détecteurs (8)
+extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs (8)
 extern uint16_t  perrefr;
 
 extern char*     userpass;            // mot de passe browser
@@ -85,15 +85,15 @@ extern int  chge_pwd; //=FAUX;
 extern byte mask[];
 
 
-void subDSn(EthernetClient* cli,char* fnc,uint8_t val,uint8_t num) // checkbox transportant 1 bit 
-                                                                   // num le numéro du bit dans le byte
-                                                                   // le caractère LENNOM-1 est le numéro du bit(+PMFNCHAR) dans periDetServ 
+void subDSn(EthernetClient* cli,char* fnc,uint32_t val,uint8_t num) // checkbox transportant 1 bit 
+                                                                    // num le numéro du bit dans le mot
+                                                                    // le caractère LENNOM-1 est le numéro du bit(+PMFNCHAR) dans periDetServ 
 {
   char fonc[LENNOM+1];
   memcpy(fonc,fnc,LENNOM+1);
   fonc[LENNOM-1]=(char)(PMFNCHAR+num);
-  val=(val>>num)&0x01;
-  checkboxTableHtml(cli,&val,fonc,-1,0);
+  uint8_t val0=(val>>num)&0x01;
+  checkboxTableHtml(cli,&val0,fonc,-1,0);
 }
 
 void subModePulseTime(EthernetClient* cli,uint8_t sw,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo)
@@ -145,13 +145,15 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
     boutRetour(cli,"retour",0,0);  
     cli->println("<input type=\"submit\" value=\"MàJ\">");
     
-    cli->print(" détecteurs serveur enable ");
+    cli->print(" détecteurs serveur ");
+    cli->print("<br> enable ");
     for(int k=NBDSRV-1;k>=0;k--){subDSn(cli,"peri_dsv__\0",*periDetServEn,k);}
 
-    cli->print(" état : ");
+    cli->print("<br> état : ");
     char hl[]={"LH"};
-    for(int k=NBDSRV-1;k>=0;k--){cli->print(hl[(memDetServ>>k)&0x01]);cli->print(" ");}cli->print(memDetServ/16,HEX);cli->print(memDetServ%16,HEX);
-    cli->println("<br>");
+    
+    for(int k=NBDSRV-1;k>=0;k--){cli->print(hl[(memDetServ>>k)&0x01]);cli->print(" ");}
+    cli->print(memDetServ,HEX);cli->println("<br>");
 
     cli->println("<table>");
       cli->println("<tr><th>sw</th><th>time One<br>time Two</th><th>f<br>r</th><th>e.t_num a<br>n.y_det c</th></tr>");

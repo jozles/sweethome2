@@ -3,8 +3,8 @@
 #include "const.h"
 #include <Wire.h>
 #include "utilether.h"
-#include "shconst.h"
-#include "shutil.h"
+#include "shconst2.h"
+#include "shutil2.h"
 #include "periph.h"
 
 /* >>>>>>>> fichier config <<<<<<< */
@@ -356,6 +356,24 @@ void  periPrint(uint16_t num)
   serialPrintMac(periMacr,0);Serial.print(" ");serialPrintIp(periIpAddr);Serial.print(" millis=");Serial.print(millis());
   Serial.print(" sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.print(*periDetNb);Serial.print(" ");
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
+
+  for(int ns=0;ns<*periSwNb;ns++){
+    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB+ns*PCTLLEN))&0x01);sp("-",0);    // fr bit
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB+ns*PCTLLEN))&0x01);sp(" ",0);               // time one en
+    Serial.print(*(uint32_t*)(periSwPulseOne+ns*PCTLLEN));sp(" ",0);                             // time one
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB+ns*PCTLLEN)&0x01));sp(" ",0);               // time two en
+    Serial.print(*(uint32_t*)(periSwPulseTwo+ns*PCTLLEN));sp(" ",1);                             // time two
+    for(int ninp=0;ninp<NBSWINPUT;ninp++){  
+      Serial.print((*(uint16_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPEN_PB)&0x01); sp(" ",0);             // en input
+      Serial.print(*(uint8_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPNT_MS); sp(" ",0);                      // type détec
+      Serial.print(*(uint8_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPNVLS_PB);sp(" ",0);                    // n° détec
+      Serial.print(((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB)); sp(" ",0);   // act input
+      for(int binp=7;binp>=0;binp--){
+        Serial.print((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPALLL_PB+binp))&0x01);sp(" ",0);}    // règle
+      sp(" ",1);
+    Serial.println(((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB),HEX);
+    }
+  }
 }
 
 int periLoad(uint16_t num)

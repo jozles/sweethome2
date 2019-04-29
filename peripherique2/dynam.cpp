@@ -1,8 +1,8 @@
 
 #include "const.h"
 #include "Arduino.h"
-#include "shconst.h"
-#include "shutil.h"
+#include "shconst2.h"
+#include "shutil2.h"
 #include "dynam.h"
 #include "util.h"
 
@@ -183,33 +183,59 @@ uint8_t rdy(byte modesw,int sw) // pour les 3 sources, check bit enable puis eta
 
 void swAction()         // poling check cde des switchs
                         // pour chaque switch, 
-                        //            examen si une condition pour off prioritaire est remplie puis examen si on si pas de off
-                        //         et examen si une condition pour on prioritaire est remplie puis examen si off si pas de on                      
-                        // résultat : si off prioritaire -> off (équiv à inter équipement off)
-                        //            sinon (ou logique) entre les deux
-                        // l'examen est effectué par la fonction rdy() qui teste l'état du bit enable et le niveau haut ou bas
-                        //              pour chacune des 3 sources (détecteur, switch du serveur, générateur de pulse)
+                        //      récup valeur détecteur
+                        //      comparaison avec valeur demandée des règles enable dans l'ordre des priorités
+                        //      (disjoncteur, conjoncteur, interrupteur, allumeur)
 { 
   uint8_t swaoo,swaoi,swaio,swaii;
+  uint8_t detecState=0;
   
-  for(int sw=0;sw<NBSW;sw++){
+  for(int ns=0;ns<NBSW;ns++){
+    for(int ninp=0;ninp<NBSWINPUT;ninp++){
+      uint16_t offs=ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN;
+      uint8_t eni=((*(uint16_t*)(cstRec.swInput+1+offs)>>SWINPEN_PB)&0x01);       // enable
+      uint8_t typ=*(uint8_t*)(cstRec.swInput+offs)&SWINPNT_MS;                    // type
+      uint8_t ndet=(*(uint8_t*)(cstRec.swInput+offs)&SWINPV_MS)>>SWINPNVLS_PB;    // n° det
 
-    swaoo=0;swaoi=0;swaio=0;swaii=0;
+      if(eni!=0 && typ==DETYEXT){    
+        detecState=cstRec.extDetec&mDSmaskbit[ndet];  // détecteur externe valide
+        detecFound=1;
+      }
+      else if(eni!=0 && typ==DETYLOC){    
+        detecState=memDetec[ndet];  // détecteur local valide
+        detecFound=1;
+      }
+      else if(eni!=0 && typ==DETYPUL){
+/*      uint8_t vPulse=0;
+        bool lh=0; // valoriser avec etat actif demandé
+        switch(staPulse[sw]){
+          case PM_RUN1: if(!lh){vPulse=1;}break;     // pulse run1=L, demandé L ---> ok
+          case PM_RUN2: if( lh){vPulse=1;}break;     // pulse run2=H, demandé H ---> ok
+          case PM_END1: if(!lh){vPulse=1;}break;     // pulse end1=L, demandé L ---> ok
+          case PM_END2: if( lh){vPulse=1;}break;     // pulse run1=H, demandé H ---> ok
+          case PM_IDLE: if(!lh){                     // pulse idle,   demandé L et cnt1 !=0 ---> ok
+                                                     //                         et cnt1+cnt2=0 > ok
+                                                     //               demandé H et cnt2 !=0 ---> ok
+                          if((cstRec.cntPulseOne[sw]!=0) || ((cstRec.cntPulseOne[sw]+cstRec.cntPulseTwo[sw])==0))
+                            {vPulse=1;}break;}
+                        else {if(cstRec.cntPulseTwo[sw]!=0){vPulse=1;}break;}
+          default: break;
+        }
+        if(vPulse!=0){
+          
+*/
+        }
+        if(detecFound!=0){
+          
     
-    // actions OFF prioritaire  --->>>   si demandé L, si (det/server/pulse)==0 retour ok (swa!=0)   si demandé H ... !=0 retour ok
-//    swaoo=rdy(cstRec.offCdeO[sw],sw);
-    if(swaoo==0){                       // examen du reste seulement si swaoo inactif
-//      swaoi=rdy(cstRec.onCdeO[sw],sw);      
-
-      // actions ON prioritaire
-//      swaii=rdy(cstRec.onCdeI[sw],sw);if(swaii==0){swaio=rdy(cstRec.offCdeI[sw],sw);} 
-    }
     
-    if (swaoo!=0){digitalWrite(pinSw[sw],OFF);}
+/*    if (swaoo!=0){digitalWrite(pinSw[sw],OFF);}
     else if(swaoi!=0 || swaii!=0){digitalWrite(pinSw[sw],ON);}
     else if(swaio!=0){digitalWrite(pinSw[sw],OFF);}                // l'ordre des 3 conditions est critique !
-    // si rien trouvé, switch onchangé
-  } // switchsuivant
+        // si rien trouvé, switch inchangé */
+        }
+    }   // next input
+  }     // next switch
 }
 
 
@@ -351,12 +377,12 @@ void isrPul(uint8_t det)                        // maj staPulse (ou switch) au c
   }
 }
 
-byte levdet(uint8_t det,bool* enable)             // recup level détecteur det
+byte levdet(uint8_t det,bool* enable)             // recup level détecteur det local ?
 {
   byte lev;
   *enable=VRAI;
-  if(det<MAXDET){lev=digitalRead(pinDet[det]);}
-  else if(det<(MAXDET+MAXDSP)){
+  if(det<NBDSRV){lev=digitalRead(pinDet[det]);}
+/*  else if(det<(MAXDET+MAXDSP)){
     switch(det-MAXDET){
         case 0:lev=0;break;
         case 1:lev=1;break;
@@ -364,10 +390,10 @@ byte levdet(uint8_t det,bool* enable)             // recup level détecteur det
         case 3:lev=(cstRec.swCde>>(2+1))&0x01;break;     // bouton 2 commande serveur
         default:lev=0;break;
         }
-  }
+  }*/
   else {
-   if((cstRec.extDetEn>>(det-MAXDET-MAXDSP))&0x01==0){*enable=FAUX;}
-   else {lev=((cstRec.extDetEn & cstRec.extDetLev)>>(det-MAXDET-MAXDSP))&0x01;}
+   if((cstRec.extDetec>>(det-NBDSRV))&0x01==0){*enable=FAUX;}
+   else {lev=((cstRec.extDetEn & cstRec.extDetLev)>>(det-NBDSRV))&0x01;}
   }
   return lev;
 }
@@ -378,7 +404,7 @@ void memdetinit()
   bool enable;
   byte lev;
   
-  for(uint8_t det=0;det<MAXDET+MAXDSP+MAXDEX;det++){
+  for(uint8_t det=0;det<NBDSRV;det++){
     lev=levdet(det,&enable);
 
     cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
@@ -429,7 +455,7 @@ void polDx(uint8_t det)              // poling détecteurs physiques et spéciau
 
 void polAllDet()
 {
- for(uint8_t det=0;det<(MAXDET+MAXDSP+MAXDEX);det++){if(detTime[det]==0){polDx(det);}}    // pas de debounce en cours  
+ for(uint8_t det=0;det<(NBDSRV);det++){if(detTime[det]==0){polDx(det);}}    // pas de debounce en cours  
 }
   
 

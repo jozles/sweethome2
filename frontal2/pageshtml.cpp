@@ -4,8 +4,8 @@
 #include <Wire.h>
 #include "utilether.h"
 #include "utilhtml.h"
-#include "shconst.h"
-#include "shutil.h"
+#include "shconst2.h"
+#include "shutil2.h"
 #include "periph.h"
 #include "pageshtml.h"
 
@@ -65,7 +65,7 @@ extern char*     periNamer;                    // ptr ds buffer : description p�
 
 extern int       fdatasave;
 
-extern byte      memDetServ;  // image mémoire NBDSRV détecteurs (8)
+extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs (8)
 
 int htmlImg(EthernetClient* cli,char* fimgname)    // suffisant pour commande péripheriques
 {

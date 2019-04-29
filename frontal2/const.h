@@ -347,7 +347,7 @@ struct Timers
 
       Un fichier dans la carte SD par ligne avec numéro de ligne dans le nom du fichier
 
-      Principe des opérations :
+      Principe des opérations des switchs :
 
         periSwInput (cstRec.Input dans peripherique) contient l'algorithme
 
@@ -370,9 +370,10 @@ struct Timers
                             le résultat d'une entrée
             numéro        : (6 bits)
             niveau        : 1 bit
-            4 fonctions   : (+ le niveau actif pour valider la fonction)
+            4 fonctions   : (+1bit niveau actif pour valider disj/conj )
                             disjoncteur  - force le switch off
                             conjoncteur  - force le sw on si pas de disjoncteur actif
+                            :::::::::: à voir :::::::::::::::::::
                             interrupteur - force le sw off si ni disjoncteur ni conjoncteur actif
                             allumeur     - force le sw on si ni disjoncteur ni conjoncteur ni interrupteur actif
             actions sur pulses 

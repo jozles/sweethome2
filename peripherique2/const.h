@@ -64,7 +64,7 @@ Modifier :
 
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
-#include <shconst.h>
+#include <shconst2.h>
 
 #define PERIF       // pour compatibilité avec shconst etc
 
@@ -300,16 +300,15 @@ typedef struct {
   uint32_t  durPulseTwo[MAXSW];   // 16   durée pulse 2
   uint32_t  cntPulseOne[MAXSW];   // 16   temps debut pulse 1
   uint32_t  cntPulseTwo[MAXSW];   // 16   temps debut pulse 2
-  byte      pulseMode[PCTLLEN];    //  2   ctle pulse   
+  byte      pulseMode[PCTLLEN];   //  2   ctle pulse   
   byte      swInput[MAXSW*NBSWINPUT*SWINPLEN]; // 96  configuration
-  byte      memDetec[MAXDET+MAXDSP+MAXDEX];  //  8  image mem des détecteurs (1 byte par détecteur ; det physiques + spéciaux+externes)
-  byte      extDetEn;             //  1   1 bit enable par det externe   
-  byte      extDetLev;            //  1   1 bit level  par det externe
+  byte      memDetec[MAXDET];     //  4   image mem des détecteurs physiques (1 byte par détecteur)   
+  uint32_t  extDetec;             //  4   1 bit par detecteur externe
   IPAddress IpLocal;              //  4
   uint32_t  cxDurat;              //  4   durée last connexion
   byte      swToggle[MAXSW];      //  4   toogle switch (raz après dataSave)     
   uint16_t  portServer;           //  2   port en mode serveur          
-  byte      filler[19];           //  
+  byte      filler[31];           //  
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer sa position
              // total 240 = 60 mots ; reste 256 dispo (sizeof(constantValues)=size(membres)+4)
 } constantValues;
