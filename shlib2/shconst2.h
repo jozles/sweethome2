@@ -2,7 +2,7 @@
 #define _SHCONST_H_
 
 
-#define PERIF
+//#define PERIF
 
 #define LENVERSION  4
 #define LENMODEL    6
@@ -131,8 +131,8 @@ enum {OFF,ON};
 
 
 #define MAXSW   4       // nbre maxi switchs par périphérique
-#define MAXDET  4       // nbre maxi détecteurs par périphérique
-#define MAXDSP  4       // nbre maxi détecteurs spéciaux
+#define MAXDET  4       // nbre maxi détecteurs physiques par périphérique
+//#define MAXDSP  4       // nbre maxi détecteurs spéciaux
 //#define MAXDEX  8       // nbre maxi détecteurs externes
 #define MAXSDE  4       // nbre maxi sondes par périphérique
 #define MAXTAC  4       // 4 types actions sur pulses (start/stop/mask/force)
@@ -341,23 +341,12 @@ enum {OFF,ON};
 #define SWINPNTMS_PB 0x01
 #define SWINPNTLS_VB 0x01          // type LSb
 #define SWINPNTLS_PB 0x0
+
 // params
-#define SWINPDISE_VB 0x008000           // disjoncteur enable
-#define SWINPDISE_PB 0x0F
-#define SWINPDISL_VB 0x004000           // disjoncteur level
-#define SWINPDISL_PB 0x0E
-#define SWINPCONE_VB 0x002000           // conjoncteur enable
-#define SWINPCONE_PB 0x0D
-#define SWINPCONL_VB 0x001000           // conjoncteur level
-#define SWINPCONL_PB 0x0C
-#define SWINPINTE_VB 0x000800           // interrupteur enable
-#define SWINPINTE_PB 0x0B
-#define SWINPINTL_VB 0x000400           // interrupteur level
-#define SWINPINTL_PB 0x0A
-#define SWINPALLE_VB 0x000200           // allumeur enable
-#define SWINPALLE_PB 0x09
-#define SWINPALLL_VB 0x000100           // allumeur level
-#define SWINPALLL_PB 0x08
+
+#define SWINPRULESLS_VB 0x000100        // rules LSb
+#define SWINPRULESLS_PB 0x08
+
 #define SWINPACT_MS   0x00E0
 #define SWINPACTMS_VB 0x000080          // action MSb
 #define SWINPACTMS_PB 0x07
@@ -365,5 +354,11 @@ enum {OFF,ON};
 #define SWINPACTLS_PB 0x05
 #define SWINPEN_VB 0x000001             // enable
 #define SWINPEN_PB 0x0
+
+/* bits rules */
+
+#define RULBITDCEN  0X8000      // enable disjoncteur/conjoncteur
+#define RULBITDVAL  0X4000      // actif level conjoncteur
+#define RULBITCVAL  0X2000      // actif level disjoncteur
 
 #endif  _SHCONST_H_

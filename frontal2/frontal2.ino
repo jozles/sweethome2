@@ -1210,7 +1210,7 @@ void commonserver(EthernetClient cli)
               case 34: {uint8_t sw=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (switchs) swinp2__   4*(enable+niv)
                         uint8_t nfct=sw&0x07;sw=sw>>3;
                         uint8_t offs=(periCur-1)*MAXSW*NBSWINPUT*SWINPLEN+sw*NBSWINPUT*SWINPLEN+nuinp*SWINPLEN;
-                        *(uint16_t*)(periSwInput+offs+1)|=(uint16_t)SWINPALLL_VB<<nfct;}break;   
+                        *(uint16_t*)(periSwInput+offs+1)|=(uint16_t)SWINPRULESLS_VB<<nfct;}break;   
               case 35: {int sw=*(libfonctions+2*i)-PMFNCHAR;                                            // (switchs) peri Pulse one (pto)
                         *(periSwPulseOne+sw)=0;*(periSwPulseOne+sw)=(uint32_t)convStrToNum(valf,&j);                              
                        }break;                                                                      

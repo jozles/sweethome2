@@ -369,7 +369,7 @@ void  periPrint(uint16_t num)
       Serial.print(*(uint8_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPNVLS_PB);sp(" ",0);                    // n° détec
       Serial.print(((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB)); sp(" ",0);   // act input
       for(int binp=7;binp>=0;binp--){
-        Serial.print((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPALLL_PB+binp))&0x01);sp(" ",0);}    // règle
+        Serial.print((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPRULESLS_PB+binp))&0x01);sp(" ",0);}    // règle
       sp(" ",1);
     Serial.println(((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB),HEX);
     }

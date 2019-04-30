@@ -17,6 +17,22 @@ void pulseClkisr();             // interrupt ou poling clk @10Hz
 //void isrD3();
 //void initIntPin(uint8_t det);
 //void initPolPin(uint8_t det);
+
+/*
+      pulseClkisr     coup d'horloge des pulses
+ 
+      polAllDet fait le polling des détecteurs avec filtrage des débounce en cours et appelle polDx pour chaque détecteur
+      polDx     si le détecteur a changé, maj memDetec + isrPul
+      isrPul    recherche l'utilisation du détecteur dans les inputs et exécute l'action
+
+      swDebounce maj des compteurs de debounce pour les détecteurs locaux
+      memdetinit initialise détecteurs locaux et pulse à 0 à la mise sous tension
+
+      swAction  fait le polling des inputs pour positionner les switchs selon les règles
+ */
+
+
+
 void polDx(uint8_t det);
 void polAllDet();
 void swDebounce();

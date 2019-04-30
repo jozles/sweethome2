@@ -86,7 +86,7 @@ WiFiServer server(9999); // PORTSERVPERI);
   long  debTime=millis();   // pour mesurer la durée power on
   long  debConv=millis();   // pour attendre la fin du délai de conversion
   int   tconversion=0;
-  long  detTime[MAXDET+MAXDSP+MAXDEX]={millis(),millis(),millis(),millis()};    // temps pour debounce
+  long  detTime[MAXDET]={millis(),millis(),millis(),millis()};    // temps pour debounce
 
 
   uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};    // les switchs
@@ -477,7 +477,7 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
               //Serial.print("data ");Serial.print((char*)(data+MPOSPORTSRV));Serial.print(" portServer ");Serial.println(cstRec.portServer);
             }
             for(int k=0;k<MDSLEN;k++){
-              conv_atoh((data+MPOSMDETSRV+k*2),&cstRec.extDetec+k);}              // détecteurs externes
+              conv_atoh((data+MPOSMDETSRV+k*2),(byte*)(&cstRec.extDetec)+k);}              // détecteurs externes
             for(int ctl=PCTLLEN;ctl>=0;ctl--){conv_atoh((data+MPOSPULSCTL+ctl*2),&cstRec.pulseMode[ctl]);}
 
             printConstant();

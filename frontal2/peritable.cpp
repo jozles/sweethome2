@@ -212,7 +212,7 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
 
             for(int mode=7;mode>=0;mode--){                                                                           // 4*2bits (enable+niv)
                 cli->print(" ");             
-                vv=(*(uint16_t*)(binp+1)>>(SWINPALLL_PB+mode))&0x01;swinpfnc(cli,ns,ninp,vv,'c',1,xfonc2,mode);
+                vv=(*(uint16_t*)(binp+1)>>(SWINPRULESLS_PB+mode))&0x01;swinpfnc(cli,ns,ninp,vv,'c',1,xfonc2,mode);
 
             } // mode suivant    
             cli->print("<br>");
