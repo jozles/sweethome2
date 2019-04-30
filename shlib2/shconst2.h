@@ -50,7 +50,7 @@
 #define MPOSPULSONE MPOSINTPAR0+MAXSW*9       // Timers tOne (4bytes)*4
 #define MPOSPULSTWO MPOSPULSONE+MAXSW*9       // Timers tTwo (4bytes+1sep)*4
 #define MPOSPULSCTL MPOSPULSTWO+MAXSW*9       // paramètres timers (4*3 bits=2 bytes)
-#define MPOSSWINPUT MPOSPULSCTL+PCTLLEN+1     // inputs (1 séparateur par sw)
+#define MPOSSWINPUT MPOSPULSCTL+2*PCTLLEN+1           // inputs (1 séparateur par sw)
 #define MPOSMDETSRV MPOSSWINPUT+2*MAXSW*(NBSWINPUT*SWINPLEN+1) // detecteurs serveur
 #define MPOSPORTSRV MPOSMDETSRV+MDSLEN*2+1    // port perif serveur
 #define MPOSMDIAG   MPOSPORTSRV+5   // texte diag
@@ -129,6 +129,7 @@
 enum {FAUX,VRAI};
 enum {OFF,ON};
 
+/* description périphériques */
 
 #define MAXSW   4       // nbre maxi switchs par périphérique
 #define MAXDET  4       // nbre maxi détecteurs physiques par périphérique
@@ -136,6 +137,7 @@ enum {OFF,ON};
 //#define MAXDEX  8       // nbre maxi détecteurs externes
 #define MAXSDE  4       // nbre maxi sondes par périphérique
 #define MAXTAC  4       // 4 types actions sur pulses (start/stop/mask/force)
+#define NBPULSE 4
 
 // messages diag
 
@@ -186,8 +188,8 @@ enum {OFF,ON};
 
 /* description periSwPulseCtl (*/
 
-#define PCTLLEN (MAXSW*PCTLBIT)/8+1 //  4*3 bits =12 -> 2 bytes/perif
-#define PCTLBIT 3                   // 3 bits/sw
+#define PCTLLEN (((NBPULSE*PCTLBIT)/8)+1) //  4*3 bits =12 -> 2 bytes/perif
+#define PCTLBIT 3                     // 3 bits/sw
 
 /* bits controle compteurs (periSwPulseCtl) */
 

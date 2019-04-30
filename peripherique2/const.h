@@ -296,10 +296,10 @@ typedef struct {
   uint8_t   tempPitch;            //  1   seuil de variation de la temp pour cx au serveur
   int16_t   oldtemp;              //  2
   uint8_t   talkStep;             //  1   pointeur pour l'automate talkServer()
-  uint32_t  durPulseOne[MAXSW];   // 16   durée pulse 1
-  uint32_t  durPulseTwo[MAXSW];   // 16   durée pulse 2
-  uint32_t  cntPulseOne[MAXSW];   // 16   temps debut pulse 1
-  uint32_t  cntPulseTwo[MAXSW];   // 16   temps debut pulse 2
+  uint32_t  durPulseOne[NBPULSE]; // 16   durée pulse 1
+  uint32_t  durPulseTwo[NBPULSE]; // 16   durée pulse 2
+  uint32_t  cntPulseOne[NBPULSE]; // 16   temps debut pulse 1
+  uint32_t  cntPulseTwo[NBPULSE]; // 16   temps debut pulse 2
   byte      pulseMode[PCTLLEN];   //  2   ctle pulse   
   byte      swInput[MAXSW*NBSWINPUT*SWINPLEN]; // 96  configuration
   byte      memDetec[MAXDET];     //  4   image mem des détecteurs physiques (1 byte par détecteur)   
@@ -315,7 +315,7 @@ typedef struct {
 
 #define STEPDATASAVE 6            // code pour talkstep de dataSave()
 
-#define LENRTC 240
+#define LENRTC 252
 
 
 

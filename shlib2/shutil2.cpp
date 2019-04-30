@@ -55,7 +55,7 @@ int convNumToString(char* str,float num)  // retour string terminée par '\0' ; 
 
 void sp(char* a,bool ln)
 {
-    Serial.print(a);if(ln){Serial.println();}
+    Serial.print(a);if(ln!=0){Serial.println();}
 }
 
 void serialPrintIp(uint8_t* ip)

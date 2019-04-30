@@ -68,9 +68,6 @@ bool readConstant()
 #if CONSTANT==RTCSAVED
   int temp=CONSTANTADDR;
   byte buf[4];
-
-//  system_rtc_mem_read(temp,buf,1); // charge la longueur telle qu'enregistrée
-//  cstRec.cstlen=buf[0];
   system_rtc_mem_read(temp,cstRecA,cstRec.cstlen);  
 #endif
 
@@ -83,9 +80,10 @@ bool readConstant()
 
 for(int k=1;k<=LENVERSION;k++){Serial.print(cstRecA[k]);}          // affichage version ; cstRec.cstVers[k]);}
 Serial.print(" readConstant ");Serial.print((long)cstRecA,HEX);Serial.print(" len=");Serial.print(cstRec.cstlen);
-Serial.print("/");Serial.print(sizeof(cstRec));
+Serial.print("/");Serial.print((uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1);
 Serial.print(" crc=");Serial.print(*(cstRecA+cstRec.cstlen-1),HEX);Serial.print(" calc_crc=");
 byte calc_crc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1);Serial.println(calc_crc,HEX);
+dumpstr((char*)cstRecA,256);
 if(*(cstRecA+cstRec.cstlen-1)==calc_crc){return 1;}
 return 0;
 }
@@ -113,14 +111,14 @@ Serial.print("writeConstant ");for(int h=0;h<4;h++){Serial.print(cstRec.cstVers[
 Serial.print((long)cstRecA,HEX);
 Serial.print(" len=");Serial.print((char*)&cstRec.cstcrc-cstRecA+1);
 Serial.print("/");Serial.print(cstRec.cstlen);
-Serial.print(" crc=");Serial.println(cstRec.cstcrc,HEX);
+Serial.print(" crc=");Serial.print(cstRec.cstcrc,HEX);Serial.print(" ");Serial.println((long)&cstRec.cstcrc,HEX);
 }
 
 void initConstant()  // inits mise sous tension
 {
-  cstRec.cstlen=sizeof(cstRec);
+  cstRec.cstlen=(uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1;    //sizeof(cstRec);
   memcpy(cstRec.numPeriph,"00",2);
-  cstRec.serverTime=PERSERV+1;            // forçage talkserver à l'init
+  cstRec.serverTime=PERSERV+1;             // forçage talkserver à l'init
   cstRec.serverPer=PERSERV;
   cstRec.oldtemp=0;
   cstRec.tempPer=PERTEMP;
@@ -144,16 +142,10 @@ void initConstant()  // inits mise sous tension
   cstRec.cxDurat=0;
   memset(cstRec.swToggle,0x00,MAXSW);
   cstRec.portServer=9999;
+  memcpy(cstRec.filler,"AA550123456755AA557654321055A",31);
   Serial.println("Init Constant done");
   writeConstant();
-}
-
-void subprintConstant(byte swmode,char a)
-{
-  Serial.print("     ");Serial.print(a);Serial.print("  ");
-//  Serial.print((swmode>>SWMDLNULS_PB));Serial.print("  ");
-//  for(int w=5;w>=0;w-=2){Serial.print((swmode>>w)&0x01);Serial.print((swmode>>(w-1))&0x01);Serial.print("  ");}
-  Serial.println();
+  dumpstr((char*)cstRecA,256);
 }
 
 void printConstant()
@@ -163,7 +155,8 @@ void printConstant()
   Serial.print("\nnumPeriph=");Serial.print(buf);Serial.print(" IpLocal=");Serial.print(IPAddress(cstRec.IpLocal));
   Serial.print(" serverTime=");Serial.print(cstRec.serverTime);Serial.print(" serverPer=");Serial.println(cstRec.serverPer);
   Serial.print("oldtemp=");Serial.print(cstRec.oldtemp);Serial.print(" tempPer=");Serial.print(cstRec.tempPer);
-  Serial.print(" tempPitch=");Serial.print(cstRec.tempPitch);Serial.print("  last durat=");Serial.println(cstRec.cxDurat);
+  Serial.print(" tempPitch=");Serial.print(cstRec.tempPitch);Serial.print("  last durat=");Serial.print(cstRec.cxDurat);
+  Serial.print("  port=");Serial.println(cstRec.portServer);
   Serial.print("staPulse=");for(int s=0;s<MAXSW;s++){Serial.print(s);Serial.print("-");Serial.print(staPulse[s],HEX);
   Serial.print(" ");}Serial.println("  C=DIS 0=IDLE 5=RUN1 7=RUN2 4=END1 6=END2");
   Serial.print("memDetec (0-n)=");for(int s=0;s<(MAXDET);s++){Serial.print(s);Serial.print("-");
@@ -174,19 +167,23 @@ void printConstant()
   Serial.print("detTime =    ");for(int s=MAXDET-1;s>=0;s--){Serial.print(detTime[s]);Serial.print("  -  ");}Serial.println();
   Serial.print("detect  =    ");for(int s=MAXDET-1;s>=0;s--){Serial.print(digitalRead(pinDet[s]));Serial.print("   -   ");}Serial.println();  
   Serial.print("ext det =    ");for(int s=NBDSRV-1;s>=0;s--){Serial.print((cstRec.extDetec>>s)&0x01);Serial.print(" ");}Serial.println();
+  Serial.print("pulses(f-e 1 e 2)  ");
+  for(int pu=0;pu<NBPULSE;pu++){
+    Serial.print((*(uint16_t*)cstRec.pulseMode>>(PMFRO_VB+pu*PCTLLEN))&0x01);sp("-",0);      // fr bit
+    Serial.print(((*(uint16_t*)cstRec.pulseMode)>>(PMTOE_VB+pu*PCTLLEN))&0x01);sp(" ",0);    // time one en
+    Serial.print(*(uint32_t*)(cstRec.cntPulseOne+pu));sp(" ",0);                             // time one
+    Serial.print(((*(uint16_t*)cstRec.pulseMode)>>(PMTTE_VB+pu*PCTLLEN)&0x01));sp(" ",0);    // time two en
+    Serial.print(*(uint32_t*)(cstRec.cntPulseTwo+pu));if(pu<NBPULSE-1){sp("  |  ",0);}       // time two
+  }Serial.println();
   for(int ns=0;ns<NBSW;ns++){
-    Serial.print("sw=");Serial.print(ns+1);Serial.print("-");Serial.print(digitalRead(pinSw[ns]),HEX);
-    Serial.print(" F/O=");Serial.print(((byte)(swctl+ns*PCTLLEN)>>PMFRO_PB)&0x01);
-    Serial.print("  dur1(");Serial.print(((byte)(swctl+ns*PCTLLEN)>>PMTOE_PB)&0x01);Serial.print(")=");Serial.print(cstRec.cntPulseOne[ns]);Serial.print("/");Serial.print(cstRec.durPulseOne[ns]);
-    Serial.print("  dur2(");Serial.print(((byte)(swctl+ns*PCTLLEN)>>PMTTE_PB)&0x01);Serial.print(")=");Serial.print(cstRec.cntPulseTwo[ns]);Serial.print("/");Serial.print(cstRec.durPulseTwo[ns]);
     Serial.println("     codes actions 0=reset 1=raz 2=stop 3=start 4=short 5=end 6=imp");
     for(int ninp=0;ninp<NBSWINPUT;ninp++){  
-      Serial.print((*(uint16_t*)(&cstRec.swInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPEN_PB)&0x01); sp(" ",0);             // en input
-      Serial.print(*(uint8_t*)(&cstRec.swInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPNT_MS); sp(" ",0);                      // type détec
-      Serial.print(*(uint8_t*)(&cstRec.swInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPNVLS_PB);sp(" ",0);                    // n° détec
+      Serial.print((*(uint16_t*)(&cstRec.swInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPEN_PB)&0x01); sp(" ",0);                      // en input
+      Serial.print(*(uint8_t*)(&cstRec.swInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPNT_MS); sp(" ",0);                               // type détec
+      Serial.print(*(uint8_t*)(&cstRec.swInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPNVLS_PB);sp(" ",0);                             // n° détec
       Serial.print(((*(uint16_t*)(&cstRec.swInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB)&0x01); sp(" ",0);   // act input
       for(int binp=7;binp>=0;binp--){
-        Serial.print((*(uint16_t*)(&cstRec.swInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPRULESLS_PB+binp))&0x01);sp(" ",0);}    // règle
+        Serial.print((*(uint16_t*)(&cstRec.swInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPRULESLS_PB+binp))&0x01);sp(" ",0);}      // règle
       sp(" ",1);
     }
   }

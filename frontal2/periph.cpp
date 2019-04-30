@@ -357,21 +357,25 @@ void  periPrint(uint16_t num)
   Serial.print(" sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.print(*periDetNb);Serial.print(" ");
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
 
+  Serial.print("pulses(f-e 1 e 2)  ");
+  for(int pu=0;pu<NBPULSE;pu++){
+    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB+pu*PCTLLEN))&0x01);sp("-",0);         // fr bit
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB+pu*PCTLLEN))&0x01);sp(" ",0);       // time one en
+    Serial.print(*(uint32_t*)(periSwPulseOne+pu));sp(" ",0);                                  // time one
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB+pu*PCTLLEN)&0x01));sp(" ",0);       // time two en
+    Serial.print(*(uint32_t*)(periSwPulseTwo+pu));if(pu<NBPULSE-1){sp("  |  ",0);}            // time two
+  }Serial.println();
+
   for(int ns=0;ns<*periSwNb;ns++){
-    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB+ns*PCTLLEN))&0x01);sp("-",0);    // fr bit
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB+ns*PCTLLEN))&0x01);sp(" ",0);               // time one en
-    Serial.print(*(uint32_t*)(periSwPulseOne+ns*PCTLLEN));sp(" ",0);                             // time one
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB+ns*PCTLLEN)&0x01));sp(" ",0);               // time two en
-    Serial.print(*(uint32_t*)(periSwPulseTwo+ns*PCTLLEN));sp(" ",1);                             // time two
     for(int ninp=0;ninp<NBSWINPUT;ninp++){  
       Serial.print((*(uint16_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPEN_PB)&0x01); sp(" ",0);             // en input
       Serial.print(*(uint8_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPNT_MS); sp(" ",0);                      // type détec
       Serial.print(*(uint8_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPNVLS_PB);sp(" ",0);                    // n° détec
       Serial.print(((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB)); sp(" ",0);   // act input
       for(int binp=7;binp>=0;binp--){
-        Serial.print((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPRULESLS_PB+binp))&0x01);sp(" ",0);}    // règle
-      sp(" ",1);
-    Serial.println(((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB),HEX);
+//        Serial.print((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPRULESLS_PB+binp))&0x01);sp(" ",0);    // règle
+      }sp(" ",1);
+    //Serial.println(((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB),HEX);
     }
   }
 }
@@ -470,17 +474,17 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   periSwInput=(byte*)temp;
   temp +=MAXSW*NBSWINPUT*SWINPLEN*sizeof(byte);
   periSwPulseOne=(uint32_t*)temp;
-  temp +=MAXSW*sizeof(uint32_t);
+  temp +=NBPULSE*sizeof(uint32_t);
   periSwPulseTwo=(uint32_t*)temp;
-  temp +=MAXSW*sizeof(uint32_t);  
+  temp +=NBPULSE*sizeof(uint32_t);  
   periSwPulseCurrOne=(uint32_t*)temp;
-  temp +=MAXSW*sizeof(uint32_t);
+  temp +=NBPULSE*sizeof(uint32_t);
   periSwPulseCurrTwo=(uint32_t*)temp;
-  temp +=MAXSW*sizeof(uint32_t);  
+  temp +=NBPULSE*sizeof(uint32_t);  
   periSwPulseCtl=(byte*)temp;
   temp +=PCTLLEN*sizeof(byte);  
   periSwPulseSta=(byte*)temp;
-  temp +=MAXSW*sizeof(byte);
+  temp +=NBPULSE*sizeof(byte);
   periSondeNb=(uint8_t*)temp;
   temp +=sizeof(uint8_t);
   periProg=(boolean*)temp;
@@ -759,12 +763,9 @@ Serial.print(" save ");
 
 void remPrint(uint8_t num)
 {
-  periLoad(remoteT[num].pernum);
   Serial.print("   ");Serial.print(num);Serial.print("/");Serial.print(remoteT[num].num);Serial.print(" ");
-  Serial.print(remoteT[num].pernum);Serial.print(" ");Serial.print(remoteT[num].persw);Serial.print(" ");
+  Serial.print(remoteT[num].detec);Serial.print(" ");
   Serial.print(remoteT[num].enable);Serial.print(" ");
-  int v=remoteT[num].persw;
-  Serial.print((*periSwVal>>((2*v)+1))&0x01);
   Serial.println();
 }
 
@@ -772,9 +773,9 @@ void remotePrint()
 {
   for(uint8_t num=0;num<NBREMOTE;num++){
     Serial.print(num+1);Serial.print(" ");Serial.print(remoteN[num].nam);for(int nr=LENREMNAM-strlen(remoteN[num].nam);nr>=0;nr--){Serial.print(" ");}
-    for(uint8_t numswr=0;numswr<MAXREMLI;numswr++){
-      if(remoteT[numswr].num==num+1){
-        remPrint(numswr);  
+    for(uint8_t numd=0;numd<MAXREMLI;numd++){
+      if(remoteT[numd].num==num){
+        remPrint(numd);  
       }
     }
   }

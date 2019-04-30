@@ -143,8 +143,7 @@
 struct SwRemote
 {
   uint8_t  num;           // remote number
-  uint16_t pernum;        // periph number
-  uint8_t  persw;         // periph sw
+  uint8_t  detec;         // detecteur
   bool     enable;        // remote enable
 };
 

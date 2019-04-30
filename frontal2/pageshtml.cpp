@@ -265,11 +265,11 @@ void cfgRemoteHtml(EthernetClient* cli)
               }
             cli->println("</table><br>");
 
-/* table switchs */
+/* table détecteurs */
 
             cli->println("<table>");
               cli->println("<tr>");
-              cli->println("<th>  </th><th> rem </th><th>  </th><th> per </th><th>  </th><th>I/O</th><th> sw </th><th>   </th>");
+              cli->println("<th>  </th><th> rem </th><th>  </th><th> per </th><th>  </th><th>I/O</th><th> det </th>");
               cli->println("</tr>");
               
               for(int nb=0;nb<MAXREMLI;nb++){
@@ -279,17 +279,17 @@ void cfgRemoteHtml(EthernetClient* cli)
                 memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
                 numTableHtml(cli,'b',&remoteT[nb].num,nf,1,1,0);
                 
-                cli->print("<td>");if(remoteT[nb].num!=0){cli->print(remoteN[remoteT[nb].num-1].nam);}else {cli->print(" ");}cli->print("</td>");
+/*                cli->print("<td>");if(remoteT[nb].num!=0){cli->print(remoteN[remoteT[nb].num-1].nam);}else {cli->print(" ");}cli->print("</td>");
                 memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
-                numTableHtml(cli,'b',&remoteT[nb].pernum,nf,2,1,0);
+                numTableHtml(cli,'b',&remoteT[nb].pernum,nf,2,1,0);*/
                 
-                cli->print("<td>");
+/*                cli->print("<td>");
                 if(remoteT[nb].pernum!=0){periLoad(remoteT[nb].pernum);cli->print(periNamer);cli->print("</td><td>");if((*periSwVal>>(2*remoteT[nb].persw)+1)&0x01!=0){cli->print("I");}else{cli->print("O");}}
                 else {cli->print(" </td><td>");}
-                cli->print("</td>");
+                cli->print("</td>");*/
 
-                memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
-                numTableHtml(cli,'b',&remoteT[nb].persw,nf,1,1,0);
+                memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
+                numTableHtml(cli,'b',&remoteT[nb].detec,nf,1,1,0);
                 
                 memcpy(nf,"remotecfx_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
                 uint8_t ren=(uint8_t)remoteT[nb].enable;

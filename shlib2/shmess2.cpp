@@ -297,21 +297,21 @@ void assySet(char* message,int periCur,char* diag,char* date14)
 
                 v1+=MAXSW+1;
 
-                for(int k=0;k<MAXSW*2;k++){                  // 2 compteurs/sw (8*9bytes)
+                for(int k=0;k<NBPULSE*2;k++){                  // 2 compteurs/sw (8*9bytes)
                     sprintf(message+v1+k*(8+1),"%08u",*(periSwPulseOne+k));
                     memcpy(message+v1+(k+1)*8+k,"_\0",2);
                 }
 
-                v1+=MAXSW*2*(8+1);
-                for(int k=0;k<PCTLLEN;k++){conv_htoa(message+v1,(byte*)(periSwPulseCtl+k));}
-                memcpy(message+v1+PCTLLEN,"_\0",2);
+                v1+=NBPULSE*2*(8+1);                           // bits OTF * 4sw = 2*2+1 bytes
+                for(int k=0;k<PCTLLEN;k++){conv_htoa(message+v1+k*2,(byte*)(periSwPulseCtl+k));}
+                memcpy(message+v1+2*PCTLLEN,"_\0",2);   // 2*PCTLLEN ne fonctionne pas ????
 
-                v1+=PCTLLEN+1;
+                v1+=2*PCTLLEN+1;
                 uint16_t ptr=0,ptr2=0;
                 for(int ns=0;ns<MAXSW;ns++){
                     for(int k=0;k<NBSWINPUT*SWINPLEN;k++){          // 3*8=24*2=48+1 par sw
-                        *(message+v1+ptr+2*k)=chexa[*(periSwInput+ptr2+k)>>4];
-                        *(message+v1+ptr+2*k+1)=chexa[*(periSwInput+ptr2+k)&0x0F];
+                        *(message+v1+ptr+2*k)=chexa[*(periSwInput+ptr2)>>4];
+                        *(message+v1+ptr+2*k+1)=chexa[*(periSwInput+ptr2)&0x0F];
                         ptr2++;
                     }
                     ptr+=NBSWINPUT*SWINPLEN*2;
@@ -321,8 +321,8 @@ void assySet(char* message,int periCur,char* diag,char* date14)
 
                 v1+=ptr;
                 for(int mds=MDSLEN-1;mds>=0;mds--){
-                    conv_htoa(message+v1+2+MDSLEN-mds-1,(byte*)(&memDetServ+mds));}
-                memcpy(message+v1+MDSLEN*2,"_\0",2);
+                    conv_htoa(message+v1+2*(MDSLEN-mds-1),(byte*)(&memDetServ+mds));}
+                memcpy(message+v1+2*MDSLEN,"_\0",2);
 
                 v1+=MDSLEN*2+1;
                 v2=*periPort;

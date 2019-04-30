@@ -114,6 +114,8 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint32_t  pertemp=PTEMP;                 // période ech temp sur le serveur
   uint16_t  perrefr=0;                     // periode rafraichissement de l'affichage
 
+  long      remotetime=0;                  // mesure scans remote
+
   long      timerstime=0;                  // last millis pour timers
 #define PTIMERS 10;                        // secondes
   uint32_t  pertimers=PTIMERS;             // période ctle timers
@@ -181,7 +183,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   byte      lastIpAddr[4]; 
 
-byte   periRemoteStatus[NBPERIF];            // etat de la mise à jour des périphériques depuis le remote ctl (si 0 faire periload/perisend - voir remoteUpdate)
+uint8_t tablePerToSend[NBPERIF];            // liste des périphériques à mettre à jour après modif de détecteur (timers ou remote)
 
 struct SwRemote remoteT[MAXREMLI];
 char*  remoteTA=(char*)&remoteT;
@@ -282,6 +284,7 @@ void bitvSwCtl(byte* data,uint8_t sw,uint8_t datalen,uint8_t shift,byte msk);
 void test2Switchs();
 void periserver();
 void pilotserver();
+void scanTimers();
 
 
 
@@ -460,7 +463,7 @@ void loop()
 
             scantemp();
 
-            scantimers();
+            scanTimers();
 }
 
  
@@ -483,8 +486,8 @@ void scantemp()
 }
 
 
-void poolperif(uint8_t nt,int* tablePerToSend,uint8_t detec,char* onoff)
-{
+void poolperif(uint8_t nt,uint8_t* tablePerToSend,uint8_t detec,char* onoff)           // recherche des périphériques ayant une input sur le détec
+{                                                                                  // et màj de tablePerToSend
   Serial.print("poolperif(timer=");Serial.print(nt);Serial.print(" ");Serial.print(onoff);Serial.println(")");
   for(uint16_t np=1;np<=NBPERIF;np++){                                             // boucle périf
     periLoad(np);
@@ -508,11 +511,20 @@ void poolperif(uint8_t nt,int* tablePerToSend,uint8_t detec,char* onoff)
   }
 }
 
-void scantimers()
+void perToSend(uint8_t* tablePerToSend,long begTime)
+{
+      if((millis()-begTime)>1){Serial.print("durée scan      =");Serial.print(millis()-begTime);}
+      for(uint16_t np=1;np<=NBPERIF;np++){if(tablePerToSend[np-1]!=0){periSend(np);}}
+      if((millis()-begTime)>1){Serial.print("durée scan+send =");Serial.print(millis()-begTime);
+        Serial.print(" ");
+        for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);}Serial.println();}
+}
+
+void scanTimers()
 {
     if((millis()-timerstime)>pertimers*1000){
 
-      int tablePerToSend[NBPERIF];memset(tablePerToSend,0x00,NBPERIF*sizeof(int));      // !=0 si periSend à faire sur le perif
+      memset(tablePerToSend,0x00,NBPERIF);      // !=0 si periSend à faire sur le perif
       timerstime=millis();
       char now[LNOW];
       alphaNow(now);
@@ -533,12 +545,8 @@ void scantimers()
             timersN[nt].curstate=0;memDetServ &= ~mDSmaskbit[timersN[nt].detec];
             poolperif(nt,tablePerToSend,timersN[nt].detec,"off");}
         }
-      }     
-      if((millis()-timerstime)>1){Serial.print("durée scan timers =");Serial.println(millis()-timerstime);}
-      for(uint16_t np=1;np<=NBPERIF;np++){if(tablePerToSend[np-1]!=0){periSend(np);}}
-      if((millis()-timerstime)>1){Serial.print("durée scan+send timers =");Serial.print(millis()-timerstime);
-        Serial.print(" ");
-        for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);}Serial.println();}
+      }
+      perToSend(tablePerToSend,timerstime);
     }
 }
 
@@ -873,31 +881,28 @@ void switchCtl(uint8_t sw,byte val)
   }
 }
 
-void periRemoteUpdate()
-{
-  Serial.print("periRemoteUpdate() ");
-  for(uint16_t pp=1;pp<=NBPERIF;pp++){
-    if(periRemoteStatus[pp-1]==0){periSend(pp);periRemoteStatus[pp-1]=1;Serial.print(pp);Serial.print(" ");}
-  }
-  Serial.println();
-}
 
-void periRecRemoteUpdate()
+void periRecRemoteUpdate()                     //   recherche remote ayant changé d'état (onoff!=newonoff)
+                                               //     polling table des détecteurs pour trouver les détecteurs concernés
+                                               //       màj de memDetServ et poolperif() pour trouver les périf concernés via tablePerToSend
 /* traitement et mise à jour lorsque toutes les fonctions ont été vues */
-{
+{  
+  remotetime=millis();
+  memset(tablePerToSend,0x00,NBPERIF);         // périphériques !=0 si periSend à faire via pertoSend())
   Serial.println("periRecRemoteUpdate() ");
-  memset(periRemoteStatus,0x01,NBPERIF);   // effacement
+
   for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){
-    if(remoteN[nbr].onoff + remoteN[nbr].newonoff==1){
-      Serial.print(" chges ");Serial.print(nbr);
+    if(remoteN[nbr].onoff + remoteN[nbr].newonoff==1){                              // remote changée
+      Serial.print(" chge ");Serial.print(nbr);
       remoteN[nbr].onoff=remoteN[nbr].newonoff;
-      for(uint8_t nbs=0;nbs<MAXREMLI;nbs++){
-        if(remoteT[nbs].num==nbr+1){
-          periCur=remoteT[nbs].pernum;periRemoteStatus[periCur-1]=0;periLoad(periCur);switchCtl(remoteT[nbs].persw,remoteN[nbr].newonoff);
-          periSave(periCur,PERISAVESD);
-          Serial.print(" ");Serial.print(periCur);Serial.print("/");Serial.print(remoteT[nbs].persw);
-          //Serial.print(remoteT[nbs].num);Serial.print(" ");Serial.print(remoteT[nbs].pernum);Serial.print(" ");Serial.print(remoteT[nbs].persw);Serial.print(" ");
-          //Serial.println(*periSwVal,HEX);
+      for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                                        
+        if(remoteT[nbd].num==nbr+1){                                                // détecteur concerné  
+          uint32_t msk=mDSmaskbit[remoteT[nbd].detec];                                                                        
+          uint32_t mem=memDetServ & msk                           ;                 // current detec value
+          if(remoteN[nbr].onoff==1){memDetServ |= msk;}                             // set to 1
+          else {memDetServ &= ~msk;}                                                // clr to 0
+          if(memDetServ & msk != mem){                                              // detec chge => poolperif
+            poolperif(nbd,tablePerToSend,remoteT[nbd].detec," ");}  
         }
       }
     }
@@ -1173,20 +1178,17 @@ void commonserver(EthernetClient cli)
                            *(periSwInput+ss*NBSWINPUT*SWINPLEN+inp*SWINPLEN)&=~SWINPEN_VB;}}
                           memset(periSwPulseCtl,0x00,PCTLLEN);          // bits enable pulse et free run 
                        }break;  
-              case 32: {uint8_t sw=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);             // (switchs) periSwPulseCtl (otf) bits généraux (FOT)
+              case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);             // (pulses) periSwPulseCtl (otf) bits généraux (FOT)
                        uint16_t sh=0;
-                       Serial.print("Pulse en sw=");Serial.println(sw);
+                       Serial.print("Pulse en =");Serial.println(pu);
                         switch (b){
                            case 'F':sh=PMFRO_PB;break;
                            case 'O':sh=PMTOE_PB;break;
                            case 'T':sh=PMTTE_PB;break;
                            default:break;
                         }
-                        dumpstr((char*)&sh,2);
-                        sh=sh<<sw*PCTLBIT;
-                        dumpstr((char*)&sh,2);
+                        sh=sh<<pu*PCTLBIT;
                         *(uint16_t*)periSwPulseCtl|=sh;
-                        dumpstr((char*)periSwPulseCtl,2);
                        }break;       
               case 33: {uint8_t sw=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;  // (switchs) swinp1__   (enable/type/num detec/action)
                         uint8_t nfct=sw&0x07;sw=sw>>3;
@@ -1211,12 +1213,12 @@ void commonserver(EthernetClient cli)
                         uint8_t nfct=sw&0x07;sw=sw>>3;
                         uint8_t offs=(periCur-1)*MAXSW*NBSWINPUT*SWINPLEN+sw*NBSWINPUT*SWINPLEN+nuinp*SWINPLEN;
                         *(uint16_t*)(periSwInput+offs+1)|=(uint16_t)SWINPRULESLS_VB<<nfct;}break;   
-              case 35: {int sw=*(libfonctions+2*i)-PMFNCHAR;                                            // (switchs) peri Pulse one (pto)
-                        *(periSwPulseOne+sw)=0;*(periSwPulseOne+sw)=(uint32_t)convStrToNum(valf,&j);                              
+              case 35: {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri Pulse one (pto)
+                        *(periSwPulseOne+pu)=0;*(periSwPulseOne+pu)=(uint32_t)convStrToNum(valf,&j);                              
                        }break;                                                                      
-              case 36: {int sw=*(libfonctions+2*i)-PMFNCHAR;
-                        *(periSwPulseTwo+sw)=0;*(periSwPulseTwo+sw)=(uint32_t)convStrToNum(valf,&j); 
-                       }break;                                                                          // (switchs) peri Pulse two (ptt)
+              case 36: {int pu=*(libfonctions+2*i)-PMFNCHAR;
+                        *(periSwPulseTwo+pu)=0;*(periSwPulseTwo+pu)=(uint32_t)convStrToNum(valf,&j); 
+                       }break;                                                                          // (pulses) peri Pulse two (ptt)
               case 37: *periThmin=0;*periThmin=convStrToNum(valf,&j);break;                             // (ligne peritable) Th min
               case 38: *periThmax=0;*periThmax=convStrToNum(valf,&j);break;                             // (ligne peritable) Th max
               case 39: *periVmin=0;*periVmin=(float)convStrToNum(valf,&j);break;                        // (ligne peritable) V min
@@ -1259,11 +1261,8 @@ void commonserver(EthernetClient cli)
                             case 'o': remoteN[nb].onoff=*valf-48;break;                                   // (remotecfg) on on/off remote courante
                             case 'u': remoteT[nb].num=*valf-48;                                           // (remotecfg) un N° remote table sw
                                       remoteT[nb].enable=0;break;                                         // (remotecfg) effacement cb
-                            case 'p': remoteT[nb].pernum=0;                                               // (remotecfg) pn N° periph table sw
-                                      conv_atob(valf,&remoteT[nb].pernum);
-                                      if(remoteT[nb].pernum>NBPERIF){remoteT[nb].pernum=NBPERIF;}break;
-                            case 's': remoteT[nb].persw=*valf-48;                                         // (remotecfg) n° sw dans le peri
-                                      if(remoteT[nb].persw>MAXSW){remoteT[nb].persw=MAXSW;}break;       
+                            case 'd': remoteT[nb].detec=*valf-48;                                         // (remotecfg) n° detecteur
+                                      if(remoteT[nb].detec>NBDSRV){remoteT[nb].detec=NBDSRV;}break;       
                             case 'x': remoteT[nb].enable=*valf-48;break;                                  // (remotecfg) xe enable table sw
                             default:break;
                           }
@@ -1374,8 +1373,8 @@ void commonserver(EthernetClient cli)
           case 8:remoteSave();cfgRemoteHtml(&cli);break;      // bouton remotecfg puis submit
           case 9:periRecRemoteUpdate();remoteHtml(&cli);      // bouton remotehtml ou remote ctl puis submit
                   cli.stop();
-                  periRemoteUpdate();break;                   // remoteHtml nécessite la mise à jour de perirec et la connexion cli ; 
-                                                              // perisend nécessite qu'elle soit arrêtée ; donc mise à jour en 2 étape via periRemoteStatus
+                  perToSend(tablePerToSend,remotetime);break; // remoteHtml nécessite la connexion cli ; 
+                                                              // perisend nécessite qu'elle soit arrêtée ; donc mise à jour en 2 étape via tablePerToSend
             
 
           default:accueilHtml(&cli);break;

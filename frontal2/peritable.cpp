@@ -103,7 +103,7 @@ void subModePulseTime(EthernetClient* cli,uint8_t sw,uint32_t* pulse,uint32_t* d
   uint8_t val=(((*(uint16_t*)periSwPulseCtl)>>pbit)&0x01)+PMFNCVAL;                                        
   cli->print("<font size=\"2\">");
   fonc1[LENNOM-1]=onetwo;
-  Serial.print(sw);Serial.print(" OT=");Serial.print(onetwo);Serial.print(" fonc1=");Serial.print(fonc1);Serial.print(" val=");Serial.println(val);
+  //Serial.print(sw);Serial.print(" OT=");Serial.print(onetwo);Serial.print(" fonc1=");Serial.print(fonc1);Serial.print(" val=");Serial.println(val);
   checkboxTableHtml(cli,&val,fonc1,-1,0);                       // bit enable pulse
 Serial.println(fonc2);
   if(*(pulse+sw)<0){*(pulse+sw)=0;}
@@ -145,56 +145,56 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
     boutRetour(cli,"retour",0,0);  
     cli->println("<input type=\"submit\" value=\"MàJ\">");
     
-    cli->print(" détecteurs serveur ");
-    cli->print("<br> enable ");
-    for(int k=NBDSRV-1;k>=0;k--){subDSn(cli,"peri_dsv__\0",*periDetServEn,k);}
-
-    cli->print("<br> état : ");
+    cli->print("<br> détecteurs serveur ");
     char hl[]={"LH"};
     
     for(int k=NBDSRV-1;k>=0;k--){cli->print(hl[(memDetServ>>k)&0x01]);cli->print(" ");}
     cli->print(memDetServ,HEX);cli->println("<br>");
 
-    cli->println("<table>");
-      cli->println("<tr><th>sw</th><th>time One<br>time Two</th><th>f<br>r</th><th>e.t_num a<br>n.y_det c</th></tr>");
-  
+    cli->println("<table>Pulses");                  // pulses
+      cli->println("<tr><th></th><th>time One<br>time Two</th><th>f<br>r</th>");
+
       char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
       char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
       char rfonc[]="peri_otf__\0";            // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
 
+      cli->println("<tr>");
+
+      for(int pu=0;pu<NBPULSE;pu++){          // boucle des pulses
+
+        cli->print("<td>");cli->print(pu);cli->print("</td>");
+        
+        pfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
+        qfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
+        rfonc[LENNOM-2]=(char)(pu+PMFNCHAR);        
+        
+        cli->print("<td>");
+        subModePulseTime(cli,pu,periSwPulseOne,periSwPulseCurrOne,rfonc,pfonc,'O');          // bit et valeur pulse one
+        cli->print("<br>");
+        subModePulseTime(cli,pu,periSwPulseTwo,periSwPulseCurrTwo,rfonc,qfonc,'T');          // bit et valeur pulse two
+      
+        cli->print("</td><td>");
+        uint8_t val=(*(uint16_t*)periSwPulseCtl>>(PCTLBIT*pu+PMFRO_VB))&0x01;rfonc[LENNOM-1]='F';   // bit freerun
+        checkboxTableHtml(cli,&val,rfonc,-1,0);                  
+        cli->print("<br>");cli->print((char)periSwPulseSta[pu]);cli->print("</td>");         // staPulse 
+
+      } // pulse suivant
+  cli->print("</tr></table>");
+
+    cli->println("<table>Règles");
+      cli->println("<th></th><th>e.t_num a l<br>n.y_det c h O I</th></tr>");
+
       char xfonc1[]="swinp1____\0";
       char xfonc2[]="swinp2____\0";
-
-      char nac[]="IOIO";                      // nom du type d'acttion (activ/désactiv/ON/OFF)
 
       // offset dans periSwInput
       uint16_t offsetPeri=(periCur-1)*MAXSW*SWINPLEN*NBSWINPUT;
       uint16_t offsetSw=0;
       uint16_t offsetInp=0;
    
-      for(int ns=0;ns<nbsw;ns++){                                           // ns n° de switch
+      for(int ns=0;ns<nbsw;ns++){              // ns n° de switch
 
         cli->print("<tr><td>");cli->print(ns);cli->print("</td>");
-        
-        pfonc[LENNOM-2]=(char)(ns+PMFNCHAR);
-        qfonc[LENNOM-2]=(char)(ns+PMFNCHAR);
-        rfonc[LENNOM-2]=(char)(ns+PMFNCHAR);        
-      
-// colonne des durées de pulses
-
-        cli->print("<td>");
-        subModePulseTime(cli,ns,periSwPulseOne,periSwPulseCurrOne,rfonc,pfonc,'O');          // bit et valeur pulse one
-        cli->print("<br>");
-        subModePulseTime(cli,ns,periSwPulseTwo,periSwPulseCurrTwo,rfonc,qfonc,'T');          // bit et valeur pulse two
-
-// colonne freerun
-
-        cli->print("</td><td>");
-        uint8_t val=(*(uint16_t*)periSwPulseCtl>>(PCTLBIT*ns+PMFRO_VB))&0x01;rfonc[LENNOM-1]='F';                    // bit freerun
-        checkboxTableHtml(cli,&val,rfonc,-1,0);                  
-        cli->print("<br>");cli->print((char)periSwPulseSta[ns]);cli->print("</td>");          // staPulse 
-
-// colonne input
  
         offsetInp=0;
         cli->print("<td>");    
@@ -209,6 +209,7 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
             vv=(binp[0]>>SWINPNVLS_PB);swinpfnc(cli,ns,ninp,vv,'n',2,xfonc1,3);                                       // num detec
             cli->print(" ");
             vv=((*(uint16_t*)(binp+1)&SWINPACT_MS)>>SWINPACTLS_PB);swinpfnc(cli,ns,ninp,vv,'n',1,xfonc1,4);           // action
+            cli->println();
 
             for(int mode=7;mode>=0;mode--){                                                                           // 4*2bits (enable+niv)
                 cli->print(" ");             
