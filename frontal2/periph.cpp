@@ -13,6 +13,8 @@ File fconfig;     // fichier config
 
 extern uint16_t perrefr;
 
+extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs 
+
 extern char configRec[CONFIGRECLEN];
   
 extern byte* mac;
@@ -350,34 +352,74 @@ void periFname(uint16_t num,char* fname)
   fname[6]='\0';
 }
 
+void periInputPrint(byte* input,int nbns)
+{
+  Serial.println("switchs/inputs       codes actions 0=reset 1=raz 2=stop 3=start 4=short 5=end 6=imp");
+#define LBINP 12  
+  char binput[LBINP];
+  byte inp[3];
+  byte a;
+  char typ[]="__exlopu??";
+  for(int ninp=0;ninp<NBSWINPUT;ninp++){  
+    for(int ns=0;ns<nbns;ns++){
+      
+      for(int in=0;in<3;in++){
+        inp[in]=(byte)*(input+in+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN);
+        if((inp[in]&0xF0)==0){Serial.print("0");}Serial.print(inp[in],HEX);}
+        Serial.print("  ");
+      
+      memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
+      binput[0]=((*(uint8_t*)(input+2+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPEN_PB)&0x01)+48;                       // en input
+      a=*(uint8_t*)(input+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPNT_MS;
+      if(a>3){a=4;}binput[2]=typ[a*2];binput[3]=typ[a*2+1];                                                             // type détec
+      a=*(uint8_t*)(input+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPNVLS_PB;conv_htoa(binput+5,&a);                    // n° détec
+      a=(*(uint8_t*)(input+2+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB;conv_htoa(binput+8,&a);   // act input
+      Serial.print(binput);
+      for(int binp=7;binp>=0;binp--){
+        Serial.print((*(uint8_t*)(input+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPRULESLS_PB+binp))&0x01);          // règle
+      }
+      sp("   ",0);
+    }
+    Serial.println();
+  }
+}
+
+void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo)
+{
+  Serial.print("pulses(f-e 1 e 2)  ");
+  for(int pu=0;pu<NBPULSE;pu++){
+    Serial.print((*(uint16_t*)pulseCtl>>(PMFRO_VB+pu*PCTLBIT))&0x01);sp("-",0);         // fr bit
+    Serial.print(((*(uint16_t*)pulseCtl)>>(PMTOE_VB+pu*PCTLBIT))&0x01);sp(" ",0);       // time one en
+    Serial.print(*(uint32_t*)(pulseOne+pu));sp(" ",0);                                  // time one
+    Serial.print(((*(uint16_t*)pulseCtl)>>(PMTTE_VB+pu*PCTLBIT)&0x01));sp(" ",0);       // time two en
+    Serial.print(*(uint32_t*)(pulseTwo+pu));if(pu<NBPULSE-1){sp("  |  ",0);}            // time two
+  }Serial.println();
+}
+
 void  periPrint(uint16_t num)
 {
   Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(" ");Serial.print(periNamer);Serial.print(" ");
-  serialPrintMac(periMacr,0);Serial.print(" ");serialPrintIp(periIpAddr);Serial.print(" millis=");Serial.print(millis());
+  serialPrintMac(periMacr,0);Serial.print(" ");serialPrintIp(periIpAddr);Serial.print(" port=");Serial.print(*periPort);
   Serial.print(" sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.print(*periDetNb);Serial.print(" ");
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
+  Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(") ");
+  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((*periSwVal>>(2*s-1))&0x01)+48));}
+  Serial.print("  det=");Serial.print(*periDetNb);Serial.print(" detserv=");
+  for(int d=NBDSRV-1;d>=0;d--){Serial.print((char)(((memDetServ>>d)&0x01)+48));}Serial.print(" millis=");Serial.println(millis());
+  
 
-  Serial.print("pulses(f-e 1 e 2)  ");
+  periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo);
+  
+/*  Serial.print("pulses(f-e 1 e 2)  ");dumpstr((char*)periSwPulseCtl,2);
   for(int pu=0;pu<NBPULSE;pu++){
-    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB+pu*PCTLLEN))&0x01);sp("-",0);         // fr bit
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB+pu*PCTLLEN))&0x01);sp(" ",0);       // time one en
+    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB+pu*PCTLBIT))&0x01);sp("-",0);         // fr bit
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB+pu*PCTLBIT))&0x01);sp(" ",0);       // time one en
     Serial.print(*(uint32_t*)(periSwPulseOne+pu));sp(" ",0);                                  // time one
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB+pu*PCTLLEN)&0x01));sp(" ",0);       // time two en
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB+pu*PCTLBIT)&0x01));sp(" ",0);       // time two en
     Serial.print(*(uint32_t*)(periSwPulseTwo+pu));if(pu<NBPULSE-1){sp("  |  ",0);}            // time two
-  }Serial.println();
+  }Serial.println();*/
 
-  for(int ns=0;ns<*periSwNb;ns++){
-    for(int ninp=0;ninp<NBSWINPUT;ninp++){  
-      Serial.print((*(uint16_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPEN_PB)&0x01); sp(" ",0);             // en input
-      Serial.print(*(uint8_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPNT_MS); sp(" ",0);                      // type détec
-      Serial.print(*(uint8_t*)(periSwInput+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPNVLS_PB);sp(" ",0);                    // n° détec
-      Serial.print(((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB)); sp(" ",0);   // act input
-      for(int binp=7;binp>=0;binp--){
-//        Serial.print((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPRULESLS_PB+binp))&0x01);sp(" ",0);    // règle
-      }sp(" ",1);
-    //Serial.println(((*(uint16_t*)(periSwInput+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB),HEX);
-    }
-  }
+  periInputPrint(periSwInput,MAXSW);
 }
 
 int periLoad(uint16_t num)

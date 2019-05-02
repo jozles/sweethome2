@@ -2,7 +2,7 @@
 #define _SHCONST_H_
 
 
-//#define PERIF
+#define PERIF
 
 #define LENVERSION  4
 #define LENMODEL    6
@@ -36,22 +36,21 @@
 
     // messages
 
-#define LENMESS     406+1           // longueur buffer message v1.3
-#define MPOSFONC    0               // position fonction
-#define MPOSLEN     11              // position longueur (longueur fonction excluse)
-#define MPOSNUMPER  MPOSLEN+5       // position num périphérique
-#define MPOSMAC     MPOSNUMPER+3    // position adr Mac
-#define MPOSDH      MPOSMAC+18      // Date/Heure
-#define MPOSPERREFR MPOSDH+15       // période refr
-#define MPOSTEMPPER MPOSPERREFR+6   // période check température
-#define MPOSPITCH   MPOSTEMPPER+6             // pitch
-#define MPOSSWCDE   MPOSPITCH+5               // 4 commandes sw 0/1 (periSwVal)
-#define MPOSINTPAR0 MPOSSWCDE+5               // paramétres sw (4*HH+1sep)*4
-#define MPOSPULSONE MPOSINTPAR0+MAXSW*9       // Timers tOne (4bytes)*4
-#define MPOSPULSTWO MPOSPULSONE+MAXSW*9       // Timers tTwo (4bytes+1sep)*4
-#define MPOSPULSCTL MPOSPULSTWO+MAXSW*9       // paramètres timers (4*3 bits=2 bytes)
+#define LENMESS     406+1               // longueur buffer message v1.3
+#define MPOSFONC    0                   // position fonction
+#define MPOSLEN     11                  // position longueur (longueur fonction excluse)
+#define MPOSNUMPER  MPOSLEN+5           // position num périphérique
+#define MPOSMAC     MPOSNUMPER+3        // position adr Mac
+#define MPOSDH      MPOSMAC+18          // Date/Heure
+#define MPOSPERREFR MPOSDH+15           // période refr
+#define MPOSTEMPPER MPOSPERREFR+6       // période check température
+#define MPOSPITCH   MPOSTEMPPER+6       // pitch
+#define MPOSSWCDE   MPOSPITCH+5         // MAXSW commandes sw 0/1 + 1sep (periSwVal)
+#define MPOSPULSONE MPOSSWCDE+MAXSW+1    // Timers tOne (4bytes)*4
+#define MPOSPULSTWO MPOSPULSONE+NBPULSE*(LENVALPULSE+1)       // Timers tTwo (4bytes+1sep)*4
+#define MPOSPULSCTL MPOSPULSTWO+NBPULSE*(LENVALPULSE+1)       // paramètres timers (4*3 bits=2 bytes)
 #define MPOSSWINPUT MPOSPULSCTL+2*PCTLLEN+1           // inputs (1 séparateur par sw)
-#define MPOSMDETSRV MPOSSWINPUT+2*MAXSW*(NBSWINPUT*SWINPLEN+1) // detecteurs serveur
+#define MPOSMDETSRV MPOSSWINPUT+MAXSW*(NBSWINPUT*SWINPLEN*2+1) // detecteurs serveur
 #define MPOSPORTSRV MPOSMDETSRV+MDSLEN*2+1    // port perif serveur
 #define MPOSMDIAG   MPOSPORTSRV+5   // texte diag
 #define MLMSET      MPOSMDIAG+5     // longueur message fonction incluse
@@ -186,29 +185,8 @@ enum {OFF,ON};
 #define MDSLEN NBDSRV/8         // type memDetServ
 //#define MAXDL  32               // valeur maxi pour num détecteur
 
-/* description periSwPulseCtl (*/
-
-#define PCTLLEN (((NBPULSE*PCTLBIT)/8)+1) //  4*3 bits =12 -> 2 bytes/perif
-#define PCTLBIT 3                     // 3 bits/sw
-
-/* bits controle compteurs (periSwPulseCtl) */
-
-#define PMTOE_PB 0x04           // time one enable numéro du bit
-#define PMTOE_VB 0x02           //                 valeur du bit
-#define PMTTE_PB 0x02           // time two enable
-#define PMTTE_VB 0x01
-#define PMFRO_PB 0x01           // freeRun/OneShoot
-#define PMFRO_VB 0x00
 
 
-/* bits détecteurs logiques */
-
-#define NBDTYP 4
-
-#define DETYEXT 1
-#define DETYLOC 2
-#define DETYPUL 3
-#define DETYNUL 0
 /*
 #define DLSWLEN   (DLNB*DLBITLEN/8+1) // nbre bytes par sw
 #define DLNBSWCB   DLNB*DLNBCB        // nbre checkbox par switch
@@ -260,18 +238,7 @@ enum {OFF,ON};
 #define  DETDIS       0x00 // valeur         si disable (LH invalide)
 
 
-/* codes actions detecteurs logiques sur pulse */
 
-#define PMDCA_RESET 0x00       // reset
-#define PMDCA_RAZ   0x01       // raz
-#define PMDCA_STOP  0x02       // stop  clk
-#define PMDCA_START 0x03       // start clk
-#define PMDCA_SHORT 0x04       // short pulse
-#define PMDCA_END   0x05       // end pulse
-#define PMDCA_IMP   0x06       // start/stop impulsionnel
-#define PMDCA_TGL   0x07       // toggle switch
-
-#define MAXACT 7
 
 /* codes etats générateur (bit droite=valeur) */
 
@@ -325,42 +292,88 @@ enum {OFF,ON};
 #define NBDBPTS 4
 #define NBDBOC  5
 
-//#define DLNB 4  // pour compiler... à virer
+/* description pulses */
+
+#define LENVALPULSE 8
+
+
+/* periSwPulseCtl (*/
+
+#define PCTLLEN (((NBPULSE*PCTLBIT)/8)+1) //  4*3 bits =12 -> 2 bytes/perif
+#define PCTLBIT 3                     // 3 bits/sw
+
+/* bits controle compteurs (periSwPulseCtl) */
+
+#define PMTOE_PB 0x04           // time one enable numéro du bit
+#define PMTOE_VB 0x02           //                 valeur du bit
+#define PMTTE_PB 0x02           // time two enable
+#define PMTTE_VB 0x01
+#define PMFRO_PB 0x01           // freeRun/OneShoot
+#define PMFRO_VB 0x00
 
 
 /* définition table inputs */
 
 #define NBSWINPUT 8
 #define SWINPLEN  3
-// valeur
+
+// byte 0 -- num détecteur + type
+
 #define SWINPV_MS    0xFC
-#define SWINPNVMS_VB 0x80          // value MSb
+#define SWINPNVMS_VB 0x80          // détec MSb
 #define SWINPNVMS_PB 0x07
-#define SWINPNVLS_VB 0x04          // value LSb
+#define SWINPNVLS_VB 0x04          // détec LSb
 #define SWINPNVLS_PB 0x02
 #define SWINPNT_MS   0x03
 #define SWINPNTMS_VB 0x02          // type MSb
 #define SWINPNTMS_PB 0x01
 #define SWINPNTLS_VB 0x01          // type LSb
-#define SWINPNTLS_PB 0x0
+#define SWINPNTLS_PB 0x00
 
-// params
+// byte 1 -- règles
 
-#define SWINPRULESLS_VB 0x000100        // rules LSb
-#define SWINPRULESLS_PB 0x08
+#define SWINPRULESLS_VB 0x01       // rules LSb
+#define SWINPRULESLS_PB 0x00
 
-#define SWINPACT_MS   0x00E0
-#define SWINPACTMS_VB 0x000080          // action MSb
+// byte 2 -- act+enable
+
+#define SWINPACT_MS   0xE0
+#define SWINPACTMS_VB 0x80          // action MSb
 #define SWINPACTMS_PB 0x07
-#define SWINPACTLS_VB 0x000020          // action LSb
+#define SWINPACTLS_VB 0x20          // action LSb
 #define SWINPACTLS_PB 0x05
-#define SWINPEN_VB 0x000001             // enable
-#define SWINPEN_PB 0x0
+#define SWINPEN_VB 0x01             // enable
+#define SWINPEN_PB 0x00
+
+
+/* types détecteurs */
+
+#define NBDTYP 4
+
+#define DETYEXT 1
+#define DETYLOC 2
+#define DETYPUL 3
+#define DETYNUL 0
+
 
 /* bits rules */
 
-#define RULBITDCEN  0X8000      // enable disjoncteur/conjoncteur
-#define RULBITDVAL  0X4000      // actif level conjoncteur
-#define RULBITCVAL  0X2000      // actif level disjoncteur
+#define RULBITDCEN  0X80      // enable disjoncteur/conjoncteur
+#define RULBITDVAL  0X40      // actif level conjoncteur
+#define RULBITCVAL  0X20      // actif level disjoncteur
+
+
+/* codes actions */
+
+#define PMDCA_RESET 0x00       // reset
+#define PMDCA_RAZ   0x01       // raz
+#define PMDCA_STOP  0x02       // stop  clk
+#define PMDCA_START 0x03       // start clk
+#define PMDCA_SHORT 0x04       // short pulse
+#define PMDCA_END   0x05       // end pulse
+#define PMDCA_IMP   0x06       // start/stop impulsionnel
+#define PMDCA_TGL   0x07       // toggle switch
+
+#define MAXACT 7
 
 #endif  _SHCONST_H_

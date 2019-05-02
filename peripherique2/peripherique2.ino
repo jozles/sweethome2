@@ -448,7 +448,7 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
                                         //    si ok -> tfr params
                                         // retour periMess
 {
-  int  ddata=16;                                  // position du numéro de périphérique  
+  int  ddata=16;                        // position du numéro de périphérique  
   byte fromServerMac[6];
   byte hh,ll;
   
@@ -458,27 +458,34 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
         else if(!compMac(mac,fromServerMac)){periMess=MESSMAC;}
         else {
                              // si ok transfert des données
-            memcpy(cstRec.numPeriph,data+MPOSNUMPER,2);                        // num périph
+            memcpy(cstRec.numPeriph,data+MPOSNUMPER,2);                         // num périph
 
             int sizeRead;
             cstRec.serverPer=(long)convStrToNum(data+MPOSPERREFR,&sizeRead);    // per refresh server
             cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
             cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure
             cstRec.swCde='\0';
-            for(int i=0;i<MAXSW;i++){                                           // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
-              
+            for(int i=0;i<NBSW;i++){                                            // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
               cstRec.swCde |= (*(data+MPOSSWCDE+MAXSW-1-i)-48)<<(2*(i+1)-1);    // bit cde (bits 8,6,4,2)  
-              for(int k=i*NBSWINPUT*SWINPLEN;k<(i+1)*NBSWINPUT*SWINPLEN;k++){
+              for(int k=i*NBSWINPUT*SWINPLEN;k<(i+1)*NBSWINPUT*SWINPLEN;k++){   // inputs switchs 
                 conv_atoh((data+MPOSSWINPUT+k*2+i),&cstRec.swInput[k]);}
-              cstRec.durPulseOne[i]=(long)convStrToNum(data+MPOSPULSONE+i*(MAXSW*2+1),&sizeRead);
-              cstRec.durPulseTwo[i]=(long)convStrToNum(data+MPOSPULSTWO+i*(MAXSW*2+1),&sizeRead);
-              
-              cstRec.portServer=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
-              //Serial.print("data ");Serial.print((char*)(data+MPOSPORTSRV));Serial.print(" portServer ");Serial.println(cstRec.portServer);
             }
+
+            for(int i=0;i<NBPULSE;i++){                                         // pulses values NBPULSE*ONE
+              cstRec.durPulseOne[i]=(long)convStrToNum(data+MPOSPULSONE+i*(LENVALPULSE+1),&sizeRead);}
+              
+            for(int i=0;i<NBPULSE;i++){                                         // pulses values NBPULSE*TWO
+              cstRec.durPulseTwo[i]=(long)convStrToNum(data+MPOSPULSTWO+i*(LENVALPULSE+1),&sizeRead);}
+
+            for(int ctl=PCTLLEN-1;ctl>=0;ctl--){                                // pulses control
+              conv_atoh((data+MPOSPULSCTL+ctl*2),&cstRec.pulseMode[ctl]);}
+   
             for(int k=0;k<MDSLEN;k++){
-              conv_atoh((data+MPOSMDETSRV+k*2),(byte*)(&cstRec.extDetec)+k);}              // détecteurs externes
-            for(int ctl=PCTLLEN;ctl>=0;ctl--){conv_atoh((data+MPOSPULSCTL+ctl*2),&cstRec.pulseMode[ctl]);}
+              conv_atoh((data+MPOSMDETSRV+k*2),((byte*)&cstRec.extDetec)+k);
+              Serial.print("detServ=");Serial.println(data+MPOSMDETSRV+k*2);
+              }   // détecteurs externes
+
+            cstRec.portServer=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
 
             printConstant();
         }

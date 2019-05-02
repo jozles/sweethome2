@@ -149,7 +149,7 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
     char hl[]={"LH"};
     
     for(int k=NBDSRV-1;k>=0;k--){cli->print(hl[(memDetServ>>k)&0x01]);cli->print(" ");}
-    cli->print(memDetServ,HEX);cli->println("<br>");
+    cli->println("<br>");
 
     cli->println("<table>Pulses");                  // pulses
       cli->println("<tr><th></th><th>time One<br>time Two</th><th>f<br>r</th>");
@@ -200,20 +200,20 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
         cli->print("<td>");    
         for(int ninp=0;ninp<NBSWINPUT;ninp++){
 
-            uint16_t vv;
+            uint8_t vv;
             byte binp[SWINPLEN];memcpy(binp,periSwInput+offsetPeri+offsetSw+offsetInp,SWINPLEN);
             offsetInp+=SWINPLEN;
            
-            vv=(*(uint16_t*)(binp+1) & SWINPEN_VB);swinpfnc(cli,ns,ninp,vv,'c',1,xfonc1,1);                           // bit enable
-            vv=(*(uint16_t*)(binp)   &  (SWINPNTMS_VB | SWINPNTLS_VB));swinpfnc(cli,ns,ninp,vv,'n',1,xfonc1,2);       // type  
-            vv=(binp[0]>>SWINPNVLS_PB);swinpfnc(cli,ns,ninp,vv,'n',2,xfonc1,3);                                       // num detec
+            vv=(binp[2]  & SWINPEN_VB);swinpfnc(cli,ns,ninp,vv,'c',1,xfonc1,1);                           // bit enable
+            vv=(binp[0]  & (SWINPNTMS_VB | SWINPNTLS_VB));swinpfnc(cli,ns,ninp,vv,'n',1,xfonc1,2);        // type  
+            vv=(binp[0]>>SWINPNVLS_PB);swinpfnc(cli,ns,ninp,vv,'n',2,xfonc1,3);                           // num detec
             cli->print(" ");
-            vv=((*(uint16_t*)(binp+1)&SWINPACT_MS)>>SWINPACTLS_PB);swinpfnc(cli,ns,ninp,vv,'n',1,xfonc1,4);           // action
+            vv=(binp[2]&SWINPACT_MS)>>SWINPACTLS_PB;swinpfnc(cli,ns,ninp,vv,'n',1,xfonc1,4);              // action
             cli->println();
 
-            for(int mode=7;mode>=0;mode--){                                                                           // 4*2bits (enable+niv)
+            for(int mode=7;mode>=0;mode--){                                                               // 8 bits
                 cli->print(" ");             
-                vv=(*(uint16_t*)(binp+1)>>(SWINPRULESLS_PB+mode))&0x01;swinpfnc(cli,ns,ninp,vv,'c',1,xfonc2,mode);
+                vv=(binp[1]>>(SWINPRULESLS_PB+mode))&0x01;swinpfnc(cli,ns,ninp,vv,'c',1,xfonc2,mode);
 
             } // mode suivant    
             cli->print("<br>");

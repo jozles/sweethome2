@@ -269,7 +269,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
             cli->println("<table>");
               cli->println("<tr>");
-              cli->println("<th>  </th><th> rem </th><th>  </th><th> per </th><th>  </th><th>I/O</th><th> det </th>");
+              cli->println("<th>  </th><th> rem </th><th>det</th><th>I/O</th>");
               cli->println("</tr>");
               
               for(int nb=0;nb<MAXREMLI;nb++){

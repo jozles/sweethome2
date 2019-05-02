@@ -193,7 +193,7 @@ void swAction()         // poling check cde des switchs
   for(int ns=0;ns<NBSW;ns++){
     for(int ninp=0;ninp<NBSWINPUT;ninp++){
       uint16_t offs=ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN;
-      uint8_t eni=((*(uint16_t*)(cstRec.swInput+1+offs)>>SWINPEN_PB)&0x01);       // enable
+      uint8_t eni=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPEN_PB)&0x01);       // enable
       uint8_t typ=*(uint8_t*)(cstRec.swInput+offs)&SWINPNT_MS;                    // type
       uint8_t ndet=(*(uint8_t*)(cstRec.swInput+offs)&SWINPV_MS)>>SWINPNVLS_PB;    // n° det
 
@@ -225,9 +225,9 @@ void swAction()         // poling check cde des switchs
           default:break;
         }
         if(detecFound!=0){
-            uint8_t rules=(*(uint16_t*)(cstRec.swInput+1+offs)>>SWINPRULESLS_PB);
+            uint8_t rules=(*(uint8_t*)(cstRec.swInput+1+offs)>>SWINPRULESLS_PB);
             if((rules&RULBITDCEN)!=0 && (rules&RULBITDVAL)==detecState){digitalWrite(pinSw[ns],OFF);}      // OFF
-            else if((rules&RULBITDCEN)!=0 && (rules&RULBITDVAL)==detecState){digitalWrite(pinSw[ns],ON);} // ON
+            else if((rules&RULBITDCEN)!=0 && (rules&RULBITDVAL)==detecState){digitalWrite(pinSw[ns],ON);}  // ON
         }   // found
       }     // eni  
     }       // next input

@@ -93,7 +93,7 @@ void dumpstr0(char* data,uint8_t len)
 {
     char a[]={0x00,0x00,0x00};
     uint8_t c;
-    Serial.print((long)data,HEX);Serial.print("   ");
+    Serial.print("   ");Serial.print((long)data,HEX);Serial.print("   ");
     for(int k=0;k<len;k++){conv_htoa(a,(byte*)&data[k]);Serial.print(a);Serial.print(" ");}
     Serial.print("    ");
     for(int k=0;k<len;k++){

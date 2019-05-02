@@ -486,7 +486,7 @@ void scantemp()
 }
 
 
-void poolperif(uint8_t nt,uint8_t* tablePerToSend,uint8_t detec,char* onoff)           // recherche des périphériques ayant une input sur le détec
+void poolperif(uint8_t nt,uint8_t* tablePerToSend,uint8_t detec,char* onoff)       // recherche des périphériques ayant une input sur le détec
 {                                                                                  // et màj de tablePerToSend
   Serial.print("poolperif(timer=");Serial.print(nt);Serial.print(" ");Serial.print(onoff);Serial.println(")");
   for(uint16_t np=1;np<=NBPERIF;np++){                                             // boucle périf
@@ -520,8 +520,10 @@ void perToSend(uint8_t* tablePerToSend,long begTime)
         for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);}Serial.println();}
 }
 
-void scanTimers()
-{
+void scanTimers()                                             //   recherche timer ayant changé d'état 
+{                                                             //      si (en.perm.dh.js) (ON) et état OFF -> état ON, det ON, poolperif
+                                                              //      sinon              (OFF) et état ON -> état OFF, det OFF, poolperif
+                                                              //      à la fin perToSend
     if((millis()-timerstime)>pertimers*1000){
 
       memset(tablePerToSend,0x00,NBPERIF);      // !=0 si periSend à faire sur le perif
@@ -548,6 +550,35 @@ void scanTimers()
       }
       perToSend(tablePerToSend,timerstime);
     }
+}
+
+
+void periRecRemoteUpdate()                     //   recherche remote ayant changé d'état (onoff!=newonoff)
+                                               //     polling table des détecteurs pour trouver les détecteurs concernés
+                                               //       màj de memDetServ et poolperif() pour trouver les périf concernés via tablePerToSend
+/* traitement et mise à jour lorsque toutes les fonctions ont été vues */
+{  
+  remotetime=millis();
+  memset(tablePerToSend,0x00,NBPERIF);         // périphériques !=0 si periSend à faire via pertoSend())
+  Serial.println("periRecRemoteUpdate() ");
+
+  for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){
+    if(remoteN[nbr].onoff + remoteN[nbr].newonoff==1){                              // remote changée
+      Serial.print(" chge ");Serial.print(nbr);
+      remoteN[nbr].onoff=remoteN[nbr].newonoff;
+      for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                                        
+        if(remoteT[nbd].num==nbr+1){                                                // détecteur concerné 
+          uint32_t msk=mDSmaskbit[remoteT[nbd].detec];                                                                        
+          uint32_t mem=memDetServ & msk                           ;                 // current detec value
+          if(remoteN[nbr].onoff==1){memDetServ |= msk;}                             // set to 1
+          else {memDetServ &= ~msk;}                                                // clr to 0
+          if(memDetServ & msk != mem){                                              // detec chge => poolperif
+            poolperif(nbd,tablePerToSend,remoteT[nbd].detec," ");}  
+        }
+      }
+    }
+  }
+  remoteSave();
 }
 
 
@@ -882,34 +913,6 @@ void switchCtl(uint8_t sw,byte val)
 }
 
 
-void periRecRemoteUpdate()                     //   recherche remote ayant changé d'état (onoff!=newonoff)
-                                               //     polling table des détecteurs pour trouver les détecteurs concernés
-                                               //       màj de memDetServ et poolperif() pour trouver les périf concernés via tablePerToSend
-/* traitement et mise à jour lorsque toutes les fonctions ont été vues */
-{  
-  remotetime=millis();
-  memset(tablePerToSend,0x00,NBPERIF);         // périphériques !=0 si periSend à faire via pertoSend())
-  Serial.println("periRecRemoteUpdate() ");
-
-  for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){
-    if(remoteN[nbr].onoff + remoteN[nbr].newonoff==1){                              // remote changée
-      Serial.print(" chge ");Serial.print(nbr);
-      remoteN[nbr].onoff=remoteN[nbr].newonoff;
-      for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                                        
-        if(remoteT[nbd].num==nbr+1){                                                // détecteur concerné  
-          uint32_t msk=mDSmaskbit[remoteT[nbd].detec];                                                                        
-          uint32_t mem=memDetServ & msk                           ;                 // current detec value
-          if(remoteN[nbr].onoff==1){memDetServ |= msk;}                             // set to 1
-          else {memDetServ &= ~msk;}                                                // clr to 0
-          if(memDetServ & msk != mem){                                              // detec chge => poolperif
-            poolperif(nbd,tablePerToSend,remoteT[nbd].detec," ");}  
-        }
-      }
-    }
-  }
-  remoteSave();
-}
-
 void textfonc(char* nf,int len)
 {
   memset(nf,0x00,len);
@@ -1180,7 +1183,6 @@ void commonserver(EthernetClient cli)
                        }break;  
               case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);             // (pulses) periSwPulseCtl (otf) bits généraux (FOT)
                        uint16_t sh=0;
-                       Serial.print("Pulse en =");Serial.println(pu);
                         switch (b){
                            case 'F':sh=PMFRO_PB;break;
                            case 'O':sh=PMTOE_PB;break;
@@ -1189,6 +1191,7 @@ void commonserver(EthernetClient cli)
                         }
                         sh=sh<<pu*PCTLBIT;
                         *(uint16_t*)periSwPulseCtl|=sh;
+                         Serial.print(b);Serial.print(" Pulse n°=");Serial.print(pu);dumpstr((char*)periSwPulseCtl,2);
                        }break;       
               case 33: {uint8_t sw=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;  // (switchs) swinp1__   (enable/type/num detec/action)
                         uint8_t nfct=sw&0x07;sw=sw>>3;
@@ -1209,7 +1212,7 @@ void commonserver(EthernetClient cli)
                           default:break;
                         }
                        }break;                                                                      
-              case 34: {uint8_t sw=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (switchs) swinp2__   4*(enable+niv)
+              case 34: {uint8_t sw=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (switchs) swinp2__   8 bits
                         uint8_t nfct=sw&0x07;sw=sw>>3;
                         uint8_t offs=(periCur-1)*MAXSW*NBSWINPUT*SWINPLEN+sw*NBSWINPUT*SWINPLEN+nuinp*SWINPLEN;
                         *(uint16_t*)(periSwInput+offs+1)|=(uint16_t)SWINPRULESLS_VB<<nfct;}break;   

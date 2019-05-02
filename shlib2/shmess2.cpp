@@ -297,9 +297,9 @@ void assySet(char* message,int periCur,char* diag,char* date14)
 
                 v1+=MAXSW+1;
 
-                for(int k=0;k<NBPULSE*2;k++){                  // 2 compteurs/sw (8*9bytes)
-                    sprintf(message+v1+k*(8+1),"%08u",*(periSwPulseOne+k));
-                    memcpy(message+v1+(k+1)*8+k,"_\0",2);
+                for(int k=0;k<NBPULSE*2;k++){                  // 2 compteurs/sw (8*(8+1)bytes)
+                    sprintf(message+v1+k*(LENVALPULSE+1),"%08u",*(periSwPulseOne+k));
+                    memcpy(message+v1+(k+1)*LENVALPULSE+k,"_\0",2);
                 }
 
                 v1+=NBPULSE*2*(8+1);                           // bits OTF * 4sw = 2*2+1 bytes
