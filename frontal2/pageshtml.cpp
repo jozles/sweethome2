@@ -67,6 +67,8 @@ extern int       fdatasave;
 
 extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs (8)
 
+
+
 int htmlImg(EthernetClient* cli,char* fimgname)    // suffisant pour commande péripheriques
 {
         Serial.print(fimgname);
@@ -159,8 +161,9 @@ void sscb(EthernetClient* cli,bool val,char* nomfonct,int nuf,int etat,uint8_t t
 
 void sscfgt(EthernetClient* cli,char* nom,uint8_t nb,void* value,int len,uint8_t type)  // type=0 value ok ; type =1 (char)value modulo len*nt ; type =2 (uint16_t)value modulo nb
 {
+  int sizbx=len-2;if(sizbx<=0){sizbx=1;}
   cli->print("<td><input type=\"text\" name=\"");cli->print(nom);cli->print((char)(nb+PMFNCHAR));cli->print("\" value=\"");
-  if(type==0){cli->print((char*)value);cli->print("\" size=\"");cli->print(len);cli->print("\" maxlength=\"");cli->print(len);cli->println("\" ></td>");}
+  if(type==0){cli->print((char*)value);cli->print("\" size=\"");cli->print(sizbx);cli->print("\" maxlength=\"");cli->print(len);cli->println("\" ></td>");}
   if(type==2){cli->print(*((int16_t*)value+nb));cli->println("\" size=\"1\" maxlength=\"2\" ></td>");}
   if(type==1){cli->print((char*)(((char*)value+(nb*(len+1)))));cli->print("\" size=\"");cli->print(len);cli->print("\" maxlength=\"");cli->print(len);cli->println("\" ></td>");}
   if(type==3){cli->print(*((int8_t*)value));cli->println("\" size=\"1\" maxlength=\"2\" ></td>");}
@@ -247,17 +250,17 @@ void cfgRemoteHtml(EthernetClient* cli)
               for(int nb=0;nb<NBREMOTE;nb++){
                 cli->println("<tr>");
                 
-                cli->print("<td>");cli->print(nb+1);cli->print("</td>");
+                cli->print("<td>");cli->print(nb+1);cli->print("</td>");                       // n° remote
                 cli->print("<td><input type=\"text\" name=\"remotecfn");cli->print((char)(nb+PMFNCHAR));cli->print("\" value=\"");
                         cli->print(remoteN[nb].nam);cli->print("\" size=\"12\" maxlength=\"");cli->print(LENREMNAM-1);cli->println("\" ></td>");
 
                 //sliderHtml(cli,(uint8_t*)(&remoteN[nb].onoff),"remotecfo_",nb,0,1);
 
-                memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
+                memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // état on/off
                 val=(uint8_t)remoteN[nb].onoff;
                 checkboxTableHtml(cli,&val,nf,-1,1);         
                 
-                memcpy(nf,"remotecfe_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
+                memcpy(nf,"remotecfe_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
                 val=(uint8_t)remoteN[nb].enable;
                 checkboxTableHtml(cli,&val,nf,-1,1);         
                    
@@ -269,29 +272,22 @@ void cfgRemoteHtml(EthernetClient* cli)
 
             cli->println("<table>");
               cli->println("<tr>");
-              cli->println("<th>  </th><th> rem </th><th>det</th><th>I/O</th>");
+              cli->println("<th>  </th><th> rem </th><th>det</th><th></th><th>en</th>");
               cli->println("</tr>");
               
               for(int nb=0;nb<MAXREMLI;nb++){
                 cli->println("<tr>");
-                cli->print("<td>");cli->print(nb+1);cli->print("</td>");
+                cli->print("<td>");cli->print(nb+1);cli->print("</td>");                       // n° ligne de table
                 
-                memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
+                memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° remote
                 numTableHtml(cli,'b',&remoteT[nb].num,nf,1,1,0);
-                
-/*                cli->print("<td>");if(remoteT[nb].num!=0){cli->print(remoteN[remoteT[nb].num-1].nam);}else {cli->print(" ");}cli->print("</td>");
-                memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
-                numTableHtml(cli,'b',&remoteT[nb].pernum,nf,2,1,0);*/
-                
-/*                cli->print("<td>");
-                if(remoteT[nb].pernum!=0){periLoad(remoteT[nb].pernum);cli->print(periNamer);cli->print("</td><td>");if((*periSwVal>>(2*remoteT[nb].persw)+1)&0x01!=0){cli->print("I");}else{cli->print("O");}}
-                else {cli->print(" </td><td>");}
-                cli->print("</td>");*/
 
-                memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
+                memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° detec
                 numTableHtml(cli,'b',&remoteT[nb].detec,nf,1,1,0);
+
+                cli->print("<td> ");if(remoteT[nb].num!=0){cli->print((char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}cli->println("</td>");
                 
-                memcpy(nf,"remotecfx_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
+                memcpy(nf,"remotecfx_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
                 uint8_t ren=(uint8_t)remoteT[nb].enable;
                 checkboxTableHtml(cli,&ren,nf,-1,1);         
                 
@@ -326,7 +322,12 @@ void remoteHtml(EthernetClient* cli)
                 
                 cli->print("<td>");cli->print(nb+1);cli->println("</td>");
                 cli->print("<td>");
-                // l'input hidden assure que toutes les lignes génèrent une fonction dans 'GET /' pour assurer l'effacement des cb
+                // chaque ligne de slider envoie 2 commandes : remote_cnx et remote ctx (x n° de ligne)
+                // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
+                // l'input remote_ctx renseigne le passage à 1 éventuel après l'effacement. La variable newonoff stocke le résultat
+                // et la comparaison avec onoff permet de connaitre la transition (ou non transition) 
+                // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
+                // pour la maj via PerToSend des périphériques concernés
                 cli->print("<input type=\"hidden\" name=\"remote_cn");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
                 cli->print(" <font size=\"7\">");cli->print(remoteN[nb].nam);cli->println("</font></td>");
 
@@ -528,7 +529,8 @@ void timersHtml(EthernetClient* cli)
             boutFonction(cli,"timershtml","","refresh",0,0,1,0);cli->print(" ");
 
             for(int zz=0;zz<14;zz++){cli->print(bufdate[zz]);if(zz==7){cli->print("-");}}cli->print("-");cli->print((char)(bufdate[14]+48));
-            cli->println(" GMT");
+            cli->println(" GMT <br>");
+            cliPrintDetServ(cli,&memDetServ);
 
          cli->println("<table>");
               cli->println("<tr>");
@@ -576,6 +578,12 @@ void timersHtml(EthernetClient* cli)
         cli->println("</body></html>");
 }
 
+void cliPrintDetServ(EthernetClient* cli,uint32_t* mds)
+{
+          dumpfield((char*)mds,4);
+          cli->println(" détecteurs serveur (n->0):");
+          for(int k=NBDSRV-1;k>=0;k--){subDSn(cli,"mem_dsrv__\0",*mds,k);}
+}
 
 void testHtml(EthernetClient* cli)
 {

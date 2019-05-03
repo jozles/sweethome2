@@ -30,6 +30,7 @@ extern int*  nbssid;
 extern char* usrnames;  
 extern char* usrpass;     
 extern long* usrtime;
+extern long* usrpretime;
 extern char* thermonames;
 extern int16_t* thermoperis;
 extern uint16_t* toPassword;
@@ -250,6 +251,8 @@ byte* temp=(byte*)configRec;
   temp+=NBTHERMO*sizeof(int16_t);
   toPassword=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
+  usrpretime=(long*)temp;
+  temp+=NBUSR*sizeof(long);
 
   configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
 
@@ -274,6 +277,7 @@ memcpy(passssid,PWDSSID1,strlen(PWDSSID1));memcpy(passssid+LPWSSID+1,PWDSSID2,st
 memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
 memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
 memset(usrtime,0x00,NBUSR*sizeof(long));
+memset(usrpretime,0x00,NBUSR*sizeof(long));
 memset(thermonames,0x00,340); //NBTHERMO*(LENTHNAME+1));
 memset(thermoperis,0x00,NBTHERMO*sizeof(int16_t));
 *toPassword=TO_PASSWORD;
@@ -363,10 +367,10 @@ void periInputPrint(byte* input,int nbns)
   for(int ninp=0;ninp<NBSWINPUT;ninp++){  
     for(int ns=0;ns<nbns;ns++){
       
-      for(int in=0;in<3;in++){
+/*      for(int in=0;in<3;in++){
         inp[in]=(byte)*(input+in+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN);
         if((inp[in]&0xF0)==0){Serial.print("0");}Serial.print(inp[in],HEX);}
-        Serial.print("  ");
+        Serial.print("  ");*/
       
       memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
       binput[0]=((*(uint8_t*)(input+2+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPEN_PB)&0x01)+48;                       // en input
@@ -396,6 +400,13 @@ void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo)
   }Serial.println();
 }
 
+void periDetServPrint(uint32_t* detserv)
+{
+  Serial.print(" detserv=");
+  for(int d=NBDSRV-1;d>=0;d--){Serial.print((char)(((*detserv>>d)&0x01)+48));} 
+}  
+
+
 void  periPrint(uint16_t num)
 {
   Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(" ");Serial.print(periNamer);Serial.print(" ");
@@ -403,22 +414,9 @@ void  periPrint(uint16_t num)
   Serial.print(" sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.print(*periDetNb);Serial.print(" ");
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
   Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(") ");
-  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((*periSwVal>>(2*s-1))&0x01)+48));}
-  Serial.print("  det=");Serial.print(*periDetNb);Serial.print(" detserv=");
-  for(int d=NBDSRV-1;d>=0;d--){Serial.print((char)(((memDetServ>>d)&0x01)+48));}Serial.print(" millis=");Serial.println(millis());
-  
-
+  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((*periSwVal>>(2*s-1))&0x01)+48));}Serial.print("  det=");Serial.println(*periDetNb);
+  periDetServPrint(&memDetServ);Serial.print(" millis=");Serial.println(millis());
   periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo);
-  
-/*  Serial.print("pulses(f-e 1 e 2)  ");dumpstr((char*)periSwPulseCtl,2);
-  for(int pu=0;pu<NBPULSE;pu++){
-    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB+pu*PCTLBIT))&0x01);sp("-",0);         // fr bit
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB+pu*PCTLBIT))&0x01);sp(" ",0);       // time one en
-    Serial.print(*(uint32_t*)(periSwPulseOne+pu));sp(" ",0);                                  // time one
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB+pu*PCTLBIT)&0x01));sp(" ",0);       // time two en
-    Serial.print(*(uint32_t*)(periSwPulseTwo+pu));if(pu<NBPULSE-1){sp("  |  ",0);}            // time two
-  }Serial.println();*/
-
   periInputPrint(periSwInput,MAXSW);
 }
 
@@ -845,7 +843,12 @@ int remSave(char* remF,uint16_t remL,char* remA)
 
 void remInit()
 {
-    for(int nb=0;nb<NBREMOTE;nb++){memset(remoteN[nb].nam,'\0',LENNOM);remoteN[nb].enable=0;remoteN[nb].onoff=0;}
+    for(int nb=0;nb<NBREMOTE;nb++){
+      //memset(remoteN[nb].nam,'\0',LENNOM);
+      remoteN[nb].enable=0;
+      remoteN[nb].onoff=0;
+      remoteN[nb].newonoff=0;
+    }
 }
 
 void remoteLoad()
@@ -859,7 +862,7 @@ void remoteSave()
 {
   remSave(REMOTETFNAME,remoteTlen,remoteTA);
   remSave(REMOTENFNAME,remoteNlen,remoteNA);
-  remotePrint();
+  //remotePrint();
 }
 
 /*********** timers ************/

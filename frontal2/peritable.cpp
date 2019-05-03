@@ -85,16 +85,6 @@ extern int  chge_pwd; //=FAUX;
 extern byte mask[];
 
 
-void subDSn(EthernetClient* cli,char* fnc,uint32_t val,uint8_t num) // checkbox transportant 1 bit 
-                                                                    // num le numéro du bit dans le mot
-                                                                    // le caractère LENNOM-1 est le numéro du bit(+PMFNCHAR) dans periDetServ 
-{
-  char fonc[LENNOM+1];
-  memcpy(fonc,fnc,LENNOM+1);
-  fonc[LENNOM-1]=(char)(PMFNCHAR+num);
-  uint8_t val0=(val>>num)&0x01;
-  checkboxTableHtml(cli,&val0,fonc,-1,0);
-}
 
 void subModePulseTime(EthernetClient* cli,uint8_t sw,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo)
 {
@@ -268,8 +258,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           numTableHtml(cli,'i',(uint32_t*)&sdpos,"sd_pos____",9,0,0);cli->println("<input type=\"submit\" value=\"ok\"> ");
           boutFonction(cli,"dump_sd___","","dump SD",0,0,0,0);
           
-          cli->println(" détecteurs serveur :");
-          for(int k=0;k<NBDSRV;k++){subDSn(cli,"mem_dsrv__\0",memDetServ,k);}
+          cliPrintDetServ(cli,&memDetServ);
         
         cli->println("</form>");
 

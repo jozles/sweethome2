@@ -320,7 +320,7 @@ void assySet(char* message,int periCur,char* diag,char* date14)
                 }
 
                 v1+=ptr;
-                for(int mds=MDSLEN-1;mds>=0;mds--){
+                for(int mds=0;mds<MDSLEN;mds++){
                     conv_htoa(message+v1+2*(MDSLEN-mds-1),(byte*)(&memDetServ+mds));}
                 memcpy(message+v1+2*MDSLEN,"_\0",2);
 

@@ -358,9 +358,9 @@ enum {OFF,ON};
 
 /* bits rules */
 
-#define RULBITDCEN  0X80      // enable disjoncteur/conjoncteur
-#define RULBITDVAL  0X40      // actif level conjoncteur
-#define RULBITCVAL  0X20      // actif level disjoncteur
+#define RULBITICVAL 0X80      // active level interrupteur/conjoncteur
+#define RULBITIEN  0X40      // enable interrupteur
+#define RULBITCEN  0X20      // enable conjoncteur
 
 
 /* codes actions */

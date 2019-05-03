@@ -308,6 +308,16 @@ void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,
   cli->println();
 }
 
+void subDSn(EthernetClient* cli,char* fnc,uint32_t val,uint8_t num) // checkbox transportant 1 bit 
+                                                                    // num le numéro du bit dans le mot
+                                                                    // le caractère LENNOM-1 est le numéro du bit(+PMFNCHAR) dans periDetServ 
+{
+  char fonc[LENNOM+1];
+  memcpy(fonc,fnc,LENNOM+1);
+  fonc[LENNOM-1]=(char)(PMFNCHAR+num);
+  uint8_t val0=(val>>num)&0x01;
+  checkboxTableHtml(cli,&val0,fonc,-1,0);
+}
 
 void sliderHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int nb,int sqr,uint8_t td)
 {
@@ -330,4 +340,5 @@ void printPeriDate(EthernetClient* cli,char* periDate)
   int j;
   unpackDate(dateascii,periDate);for(j=0;j<12;j++){cli->print(dateascii[j]);if(j==5){cli->print(" ");}}cli->println("<br>");
 }
+
 

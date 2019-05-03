@@ -465,25 +465,24 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
             cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
             cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure
             cstRec.swCde='\0';
-            for(int i=0;i<NBSW;i++){                                            // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
-              cstRec.swCde |= (*(data+MPOSSWCDE+MAXSW-1-i)-48)<<(2*(i+1)-1);    // bit cde (bits 8,6,4,2)  
-              for(int k=i*NBSWINPUT*SWINPLEN;k<(i+1)*NBSWINPUT*SWINPLEN;k++){   // inputs switchs 
-                conv_atoh((data+MPOSSWINPUT+k*2+i),&cstRec.swInput[k]);}
-            }
+            uint8_t i0=0,i1=NBSWINPUT*SWINPLEN;                                                       // indices pointeurs inputs
+            for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
+              cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);      // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
 
-            for(int i=0;i<NBPULSE;i++){                                         // pulses values NBPULSE*ONE
-              cstRec.durPulseOne[i]=(long)convStrToNum(data+MPOSPULSONE+i*(LENVALPULSE+1),&sizeRead);}
-              
-            for(int i=0;i<NBPULSE;i++){                                         // pulses values NBPULSE*TWO
+              for(uint8_t k=0;k<i1;k++){                                        // inputs switchs 
+                  conv_atoh((data+MPOSSWINPUT+2*(k+i0)+i),&cstRec.swInput[i0+k]);}
+              i0+=i1;}
+
+            for(int i=0;i<NBPULSE;i++){                                         // pulses values NBPULSE*ONE+NBPULSE*TWO
+              cstRec.durPulseOne[i]=(long)convStrToNum(data+MPOSPULSONE+i*(LENVALPULSE+1),&sizeRead);
               cstRec.durPulseTwo[i]=(long)convStrToNum(data+MPOSPULSTWO+i*(LENVALPULSE+1),&sizeRead);}
 
             for(int ctl=PCTLLEN-1;ctl>=0;ctl--){                                // pulses control
               conv_atoh((data+MPOSPULSCTL+ctl*2),&cstRec.pulseMode[ctl]);}
    
-            for(int k=0;k<MDSLEN;k++){
-              conv_atoh((data+MPOSMDETSRV+k*2),((byte*)&cstRec.extDetec)+k);
-              Serial.print("detServ=");Serial.println(data+MPOSMDETSRV+k*2);
-              }   // détecteurs externes
+            for(int k=0;k<MDSLEN;k++){                                          // détecteurs externes
+              conv_atoh((data+MPOSMDETSRV+k*2),((byte*)&cstRec.extDetec)+MDSLEN-1-k);
+              }   
 
             cstRec.portServer=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
 

@@ -21,6 +21,7 @@ int  dateCmp(char* olddate,char* newdate,uint32_t offset,uint8_t skip1,uint8_t s
 void serialPrintDate(char* datein);
 void ledblink(uint8_t nbBlk);
 void dumpstr(char* data,uint16_t len);
+void dumpfield(char* fd,uint8_t ll);
 bool ctlpass(char* data,char* model);
 int  searchusr(char* usrname);
 bool ctlto(long time,uint16_t to);

@@ -110,6 +110,11 @@ void dumpstr(char* data,uint16_t len)
     if(len!=0){dumpstr0(data,len);}
 }
 
+void dumpfield(char* fd,uint8_t ll)
+{
+    for(int ff=ll-1;ff>=0;ff--){if((fd[ff]&0xF0)==0){Serial.print("0");}Serial.print(fd[ff],HEX);}
+    Serial.print(" ");
+}
 
 byte calcBitCrc (byte shiftReg, byte data_bit)
 {

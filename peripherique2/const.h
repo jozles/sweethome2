@@ -286,7 +286,7 @@ Modifier :
 
 typedef struct {
   uint8_t   cstlen;               //  1
-  byte      swCde;                //  1   2 bits par sw cde/état = *periIntVal = bits 8(sw4), 6(sw3), 4(sw2), 2(sw1) commande
+  byte      swCde;                //  1   2 bits par sw cde/état (*periSwVal) bits 8(sw4), 6(sw3), 4(sw2), 2(sw1)
   char      cstVers[LENVERSION];  //  4  
   char      cstModel[LENMODEL];   //  6
   char      numPeriph[2];         //  2
