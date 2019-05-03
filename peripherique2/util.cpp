@@ -83,7 +83,7 @@ Serial.print(" readConstant ");Serial.print((long)cstRecA,HEX);Serial.print(" le
 Serial.print("/");Serial.print((uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1);
 Serial.print(" crc=");Serial.print(*(cstRecA+cstRec.cstlen-1),HEX);Serial.print(" calc_crc=");
 byte calc_crc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1);Serial.println(calc_crc,HEX);
-dumpstr((char*)cstRecA,256);
+//dumpstr((char*)cstRecA,256);
 if(*(cstRecA+cstRec.cstlen-1)==calc_crc){return 1;}
 return 0;
 }
@@ -220,9 +220,11 @@ void printConstant()
   Serial.println(" 3-TRIG 2-WAIT 1-IDLE 0-DIS");
   Serial.print("detTime =    ");for(int s=MAXDET-1;s>=0;s--){Serial.print(detTime[s]);Serial.print("  -  ");}Serial.println();
   Serial.print("detect  =    ");for(int s=MAXDET-1;s>=0;s--){Serial.print(digitalRead(pinDet[s]));Serial.print("   -   ");}Serial.println();  
+#if POWER_MODE==NO_MODE
   periDetServPrint(&cstRec.extDetec);  
   periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo);
   periInputPrint((byte*)&cstRec.swInput,NBSW);
+#endif NO_MODE  
 }
 
 

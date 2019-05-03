@@ -367,17 +367,21 @@ delay(100);
 
   Serial.print("durée ");Serial.print(millis());Serial.print(" - ");
   Serial.print(dateon);Serial.print(" = ");Serial.print(millis()-dateon);
-  Serial.print("   talkStep=");Serial.println(cstRec.talkStep);
+  Serial.print("   talkStep=");Serial.print(cstRec.talkStep);
   delay(10); // purge serial
 
 
   #if POWER_MODE==DS_MODE
   /* deep sleep */
+    Serial.println(" deep sleep");
+    delay(100);
     system_deep_sleep_set_option(4);
     ESP.deepSleep(cstRec.tempPer*1e6); // microseconds
   #endif PM==DS_MODE
   #if POWER_MODE==PO_MODE
   /* power off */
+    Serial.println(" power down");
+    delay(100);
     digitalWrite(PINPOFF,HIGH);        // power down
     pinMode(PINPOFF,OUTPUT);
   #endif PM==PO_MODE

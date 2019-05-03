@@ -203,10 +203,14 @@ void swAction()         // poling des switchs pour maj selon règles et disjonte
 
         if(eni!=0){
           switch(typ){
-            case DETYEXT:detecState=cstRec.extDetec&mDSmaskbit[ndet];               // détecteur externe valide
+            case DETYEXT:detecState=(cstRec.extDetec>>ndet)&0x01;                   // détecteur externe valide
                  detecFound=1;break;
-            case DETYLOC:detecState=cstRec.memDetec[ndet];                          // détecteur local valide
-                 detecFound=1;break;
+            case DETYLOC:
+                 if(cstRec.memDetec[ndet]>>DETBITST_PB != DETDIS) {                 // detecteur pas disable
+                    detecState=(cstRec.memDetec[ndet]>>DETBITLH_PB)&0x01;           // détecteur local valide
+                    detecFound=1;
+                 }
+                 break;
             case DETYPUL:break;                                                     // pulse valide ?
 /*      uint8_t vPulse=0;
         bool lh=0; // valoriser avec etat actif demandé
@@ -230,7 +234,7 @@ void swAction()         // poling des switchs pour maj selon règles et disjonte
           if(detecFound!=0){
 
             uint8_t rules=(*(uint8_t*)(cstRec.swInput+1+offs)>>SWINPRULESLS_PB);
-            if(detecState!=0){detecState=1;}
+            //if(detecState!=0){detecState=1;}
             rulbitState=0;
             if((rules&RULBITICVAL)!=0){rulbitState=1;}
             if((rules&RULBITIEN)!=0 && (rulbitState==detecState)){
@@ -393,24 +397,18 @@ void isrPul(uint8_t det)                        // maj staPulse (ou switch) au c
   }
 }
 
-byte levdet(uint8_t det,bool* enable)             // recup level détecteur det (local 0-(MAXDET-1) ou externe MAXDET-x)
+byte levdet(uint8_t det)              // recup level détecteur local det
 {
-  byte lev;
-  *enable=VRAI;
-  if(det<MAXDET){lev=digitalRead(pinDet[det]);}   // détecteur physique
-  else {                                          // détecteur externe
-    det-=MAXDET;lev=(cstRec.extDetec>>det)&0x01;}
-  return lev;
+  return digitalRead(pinDet[det]);    // détecteur physique
 }
 
 void memdetinit()                         // init détecteurs locaux et pulse à 0 à la mise sous tension
 {
   Serial.println("init détecteurs");
-  bool enable;
   byte lev;
   
   for(uint8_t det=0;det<MAXDET;det++){
-    lev=levdet(det,&enable);
+    lev=levdet(det);
 
     cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
     cstRec.memDetec[det] |= lev<<DETBITLH_PB;                       // set bit LH 
@@ -426,20 +424,22 @@ void memdetinit()                         // init détecteurs locaux et pulse à
 }
 
 
-void polDx(uint8_t det)              // maj memDetec selon état détecteur + isrPul
-{ 
-  if(cstRec.memDetec[det]>>DETBITST_PB != DETDIS) {
+void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur det ; isrPul
+{                                    // memDetec :
+                                     //    bits DETBITST_  status (disable/idle/wait/trig
+                                     //    bit  DETBITLH_  dernier état
+                                     //    bit  DETBITUD_  prochain flanc valide 
+                                     //                   (le détecteur passe en mode trig-déclenché pour la màj de staPulse puis revient à idle)
+                                     
+  if(cstRec.memDetec[det]>>DETBITST_PB != DETDIS) {                     // detecteur pas disable
     
-    bool enable;
-    byte lev=levdet(det,&enable);
-
-    if(enable){
-      if( ((byte)(cstRec.memDetec[det]>>DETBITLH_PB)&0x01) != lev ){    // niveau lu != niveau actuel de memDetec ?
+    byte lev=levdet(det);
+    if( ((byte)(cstRec.memDetec[det]>>DETBITLH_PB)&0x01) != lev ){    // niveau lu != niveau actuel de memDetec ?
       // level change -> update memDetec
-        cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
-        cstRec.memDetec[det] |= lev<<DETBITLH_PB;                       // set bit LH 
-        detTime[det]=millis();                                          // arme debounce
-        Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.print(lev);Serial.print(" - ");
+      cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
+      cstRec.memDetec[det] |= lev<<DETBITLH_PB;                       // set bit LH 
+      detTime[det]=millis();                                          // arme debounce
+      Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.print(lev);Serial.print(" - ");
 /*    
       if( ((byte)(cstRec.memDetec[det]>>DETBITUD_PB)&0x01) == lev ){
         // waited edge
@@ -447,19 +447,18 @@ void polDx(uint8_t det)              // maj memDetec selon état détecteur + is
         cstRec.memDetec[det] &= ~DETBITST_VB;                           // raz bits ST
         cstRec.memDetec[det] |= DETTRIG<<DETBITST_PB;                   // set bits ST (déclenché)
  */
-        isrPul(det);                                                    // staPulse setup : exploration si ce flanc est prévu dans un dl 
+        //isrPul(det);                                                    // staPulse setup : exploration si ce flanc est prévu dans un dl 
 /*
         cstRec.memDetec[det] &= ~DETBITST_VB;                           // raz bits ST    
         cstRec.memDetec[det] |= DETIDLE<<DETBITST_PB;                   // retour Idle
 */
-        Serial.println();printConstant();
-        }
-      }
+      Serial.println();printConstant();
+    }
   }
 }
 
-void polAllDet()
-{
+void polAllDet()                                        // maj de memDetec (via polDx) pour tous les détecteurs locaux
+{                                                       // la tempo de debouce masque polDx
  for(uint8_t det=0;det<(MAXDET);det++){if(detTime[det]==0){polDx(det);}}    // pas de debounce en cours  
 }
   
