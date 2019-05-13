@@ -301,7 +301,7 @@ typedef struct {
   uint32_t  cntPulseOne[NBPULSE]; // 16   temps debut pulse 1
   uint32_t  cntPulseTwo[NBPULSE]; // 16   temps debut pulse 2
   byte      pulseMode[PCTLLEN];   //  2   ctle pulse   
-  byte      swInput[MAXSW*NBSWINPUT*SWINPLEN]; // 96  configuration
+  byte      perInput[NBPERINPUT*PERINPLEN]; // 96  configuration (24*4)
   byte      memDetec[MAXDET];     //  4   image mem des détecteurs physiques (1 byte par détecteur)   
   uint32_t  extDetec;             //  4   1 bit par detecteur externe
   IPAddress IpLocal;              //  4

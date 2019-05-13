@@ -137,7 +137,7 @@ void initConstant()  // inits mise sous tension
   memset(cstRec.memDetec,detDis,MAXDET);
   memcpy(cstRec.cstVers,VERSION,LENVERSION);
   memcpy(cstRec.cstModel,model,LENMODEL);
-  memset(cstRec.swInput,0x00,MAXSW*NBSWINPUT*SWINPLEN);
+  memset(cstRec.perInput,0x00,MAXSW*NBPERINPUT*PERINPLEN);
   cstRec.extDetec=0;
   cstRec.cxDurat=0;
   memset(cstRec.swToggle,0x00,MAXSW);
@@ -156,18 +156,18 @@ void periInputPrint(byte* input,int nbns)
   char binput[LBINP];
   byte a;
   char typ[]="__exlopu??";
-  for(int ninp=0;ninp<NBSWINPUT;ninp++){  
+  for(int ninp=0;ninp<NBPERINPUT;ninp++){  
     for(int ns=0;ns<nbns;ns++){      
       memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
-      binput[0]=((*(uint8_t*)(input+2+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPEN_PB)&0x01)+48;                        // en input
-      a=*(uint8_t*)(input+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPNT_MS;
+      binput[0]=((*(uint8_t*)(input+2+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)+48;                        // en input
+      a=*(uint8_t*)(input+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)&PERINPNT_MS;
       if(a>3){a=4;}binput[2]=typ[a*2];binput[3]=typ[a*2+1];                                                              // type détec
-      a=*(uint8_t*)(input+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPNVLS_PB;conv_htoa(binput+5,&a);                     // n° détec
-      a=(*(uint8_t*)(input+2+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB;conv_htoa(binput+8,&a);    // act input
+      a=*(uint8_t*)(input+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+5,&a);                     // n° détec
+      a=(*(uint8_t*)(input+2+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+8,&a);    // act input
       Serial.print(binput);
       
       for(int binp=7;binp>=0;binp--){
-        Serial.print((*(uint8_t*)(input+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPRULESLS_PB+binp))&0x01);    // règle
+        Serial.print((*(uint8_t*)(input+1+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)>>(PERINPRULESLS_PB+binp))&0x01);    // règle
       }
 
 /*      for(int binp=7;binp>=0;binp--){               // exemple plantage alignement
@@ -223,7 +223,7 @@ void printConstant()
 #if POWER_MODE==NO_MODE
   periDetServPrint(&cstRec.extDetec);  
   periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo);
-  periInputPrint((byte*)&cstRec.swInput,NBSW);
+  periInputPrint((byte*)&cstRec.perInput,NBSW);
 #endif NO_MODE  
 }
 

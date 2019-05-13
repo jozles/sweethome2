@@ -182,24 +182,31 @@ uint8_t rdy(byte modesw,int sw) // pour les 3 sources, check bit enable puis eta
   return 0;                                      // disable 
 }
 
+/*
 void swAction()         // poling des switchs pour maj selon règles et disjonteur
-                        // pour chaque switch, 
+                        // pour chaque switch et chaque input, 
                         //      récup valeur détecteur
-                        //      comparaison avec valeur demandée des règles actives (enable) dans l'ordre des priorités
+                        //      comparaison avec valeur demandée (et flanc éventuel) des règles actives (enable) dans l'ordre des priorités
                         //      (disjoncteur, conjoncteur, interrupteur, allumeur)
 { 
-  uint8_t detecFound=0,detecState=0,rulbitState=0;
-
+  uint8_t detecFound=0;     // indic que detecState est valide
+  uint8_t detecState=0;     // valeur trouvée pour l'input (type-n°)
+  uint8_t rulbitState=0;    // valeur active pour la règle conj/int
+  uint8_t rules=8;          // byte des règles dans swInput 
   
   for(int ns=0;ns<NBSW;ns++){
 
+    uint8_t rulesVal=0;                        // valeur finale de la règle (8 OFF par défaut ; 1 ON conj ; 0 OFF inter ; 2 ON allumeur
     if(((cstRec.swCde>>(ns*2+1))&0x01)!=0){                                          // no disjoncteur ?
       for(int ninp=0;ninp<NBSWINPUT;ninp++){
-        
+
         uint16_t offs=ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN;
-        uint8_t eni=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPEN_PB)&0x01);        // enable
-        uint8_t typ=*(uint8_t*)(cstRec.swInput+offs)&SWINPNT_MS;                    // type
-        uint8_t ndet=(*(uint8_t*)(cstRec.swInput+offs)&SWINPV_MS)>>SWINPNVLS_PB;    // n° det
+        uint8_t eni=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPEN_PB)&0x01);         // enable
+        uint8_t edgestat=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPDETES_PB)&0x01); // edge/static
+        uint8_t oldlev=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPOLDLEV_PB)&0x01);  // oldlev        
+        uint8_t typ=*(uint8_t*)(cstRec.swInput+offs)&SWINPNT_MS;                     // type
+        uint8_t ndet=(*(uint8_t*)(cstRec.swInput+offs)&SWINPV_MS)>>SWINPNVLS_PB;     // n° det
+        uint8_t curact=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPACTLS_PB)&0x01);   // action 
 
         if(eni!=0){
           switch(typ){
@@ -229,31 +236,127 @@ void swAction()         // poling des switchs pour maj selon règles et disjonte
         }
         if(vPulse!=0){          
 */
+/*
             default:break;
           }
-          if(detecFound!=0){
+          if(detecFound!=0){                                                                   // detecState valorisé
 
-            uint8_t rules=(*(uint8_t*)(cstRec.swInput+1+offs)>>SWINPRULESLS_PB);
-            //if(detecState!=0){detecState=1;}
-            rulbitState=0;
-            if((rules&RULBITICVAL)!=0){rulbitState=1;}
-            if((rules&RULBITIEN)!=0 && (rulbitState==detecState)){
-                //delay(1000);Serial.print("ns=");Serial.print(ns);Serial.print(" ninp=");Serial.print(ninp);Serial.println("; swoff ");
-                digitalWrite(pinSw[ns],OFF);}                                   // ***** OFF RULE *****
-            else if((rules&RULBITCEN)!=0 && (rulbitState==detecState)){
-                //delay(1000);Serial.print("ns=");Serial.print(ns);Serial.print(" ninp=");Serial.print(ninp);Serial.println("; swon ");
-                digitalWrite(pinSw[ns],ON);}                                    // ***** ON RULE *****
+            rules=(*(uint8_t*)(cstRec.swInput+1+offs)>>SWINPRULESLS_PB);        
+            rulbitState=0;                                                                     
+            if((rules&RULBITICVAL)!=0){rulbitState=1;}                                         // état actif pout inter et conj
+            
+            if(((rules&RULBITCEN)!=0 && (rulbitState==detecState) && edgestat!=0)                                // si conj et état actif et static
+                 || ((rules&RULBITCEN)!=0 && (rulbitState==detecState) && oldlev!=detecState && edgestat==0)     // si conj et flanc actif et edge
+                 ){         
+                //delay(1000);Serial.print("ns=");Serial.print(ns);Serial.print(" ninp=");
+                //Serial.print(ninp);Serial.println("; swon ");
+                rulesVal=1;ninp=NBSWINPUT;}                                                    // conj ok -> rulesVal=1, next switch
+                //digitalWrite(pinSw[ns],ON);ninp=NBSWINPUT;}                                    // ***** ON RULE ***** (next sw)
+            else if(((rules&RULBITIEN)!=0 && (rulbitState==detecState) && edgestat!=0)                           // inter  et état actif et static
+                 || ((rules&RULBITIEN)!=0 && (rulbitState==detecState) && oldlev!=detecState && edgestat==0)     // inter  et flanc actif et edge                                                                       
+                 ){ 
+                //delay(1000);Serial.print("ns=");Serial.print(ns);Serial.print(" ninp=");
+                //Serial.print(ninp);Serial.println("; swoff ");
+                rulesVal=0;}                                                                   // inter ok -> rulesVal=0, next input
+                //digitalWrite(pinSw[ns],OFF);}                                                  // ***** OFF RULE *****
+            else if (rulesVal>2){                                                              // switch ni conj ni int ni allumé
+                rulbitState=0;
+                if((rules&RULBITAVAL)!=0){rulbitState=1;}                                      // état actif pout allumeur
+                if(((rules&RULBITAEN)!=0 && (rulbitState==detecState) && edgestat!=0)          // allumeur  et état actif et static
+                     || ((rules&RULBITAEN)!=0 && (rulbitState==detecState) && oldlev!=detecState && edgestat==0)    // inter  et flanc actif et edge                                                                       
+                     ){rulesVal=2;}
+            }   // rulesVal>2 (input ni conj ni inter ni allumé)
           }     // found
         }       // input enable
+        switch(curact){
+          case 0:if(rulesVal==8 || rulesVal==0){digitalWrite(pinSw[ns],OFF);}
+                 if(rulesVal==2 || rulesVal==1){digitalWrite(pinSw[ns],ON);}
+                 break;
+          default: break; 
+        // rulesVal 8->OFF 2->ON 1->ON 0->OFF  
+        }    
+        *(uint8_t*)(cstRec.perInput+2+offs) &= ~(detecState<<PERINPOLDLEV_PB);                      // mise à jour oldlev ON ou OFF
+        *(uint8_t*)(cstRec.perInput+2+offs) |= (detecState<<PERINPOLDLEV_PB);      
       }         // next input
     }           // no disjoncteur
-    else {
+    else {      // disjoncteur
       //delay(1000);Serial.print("ns=");Serial.print(ns);Serial.print(" ninp=");Serial.print(ninp);Serial.print("; swoff ");
       digitalWrite(pinSw[ns],OFF);}                                             // ***** OFF (disjoncteur) *****
     //Serial.println();
   }             // next switch
 }
+*/
+void action()           // pour chaque input, test enable,
+{                       //      récup valeur détecteur
+                        //      comparaison avec valeur demandée (et flanc éventuel) des règles actives (enable) dans l'ordre des priorités
+                        //      (conjoncteur, interrupteur, allumeur)
+                        //      maj destination selon résultat et archivage oldlev
+  
+  byte*   curinp;           // adresse cur input
+  uint8_t detecState=0;     // valeur trouvée pour le det source (type-n°)
+  uint8_t detecFound=0;     // flag : valeur valide si !=0
+  uint8_t nsrce;            // n° source
+  uint8_t ndest;            // n° destination
 
+  uint32_t locmem=0;        // valeurs intermédiaires d'évaluation
+
+  for(int inp=0;inp<NBPERINPUT;inp++){
+    
+    curinp=&cstRec.perInput[inp*PERINPLEN];
+    nsrce=(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);
+    ndest=(((*curinp+3)&PERINPV_MS)>>PERINPNVLS_PB);
+    
+    if((*(curinp+2)&PERINPEN_VB)!=0){                           // enable
+      switch((*curinp)&PERINPNT_MS){                            // type
+        case DETYEXT:detecState=(cstRec.extDetec>>nsrce)&0x01;  // valeur détecteur externe 
+             detecFound=1;break;
+        case DETYLOC:detecState=digitalRead(pinDet[nsrce]);     // valeur détecteur local
+             detecFound=1;break;
+        case DETYMEM:detecState=(locmem>>nsrce)&0x01;           // valeur intermédiaire
+        case DETYPUL:break;                                     // pulse 
+        default:break;
+      }                                                         
+
+    if(detecFound!=0){
+/*
+ 
+ (flanc ok : detecState!=oldState && detecState==req level)
+ (level ok : detecState==active level)
+
+  setup oldState
+
+  exécution de l'action si 1
+ 
+*/      
+      if(
+          (
+            ((*(curinp+2)&PERINPDETES_VB)==0)                                       // edge
+          &&(detecState!=((*(curinp+2)>>PERINPOLDLEV_VB)&0x01))                     // flanc
+          &&(detecState==((*(curinp+2)>>PERINPVALID_VB) &0x01))                     // flanc ok
+          )
+          ||                                                                        // ou
+          (
+            ((*(curinp+2)&PERINPDETES_VB)!=0)                                       // static
+          &&(detecState==((*(curinp+2)>>PERINPVALID_VB) &0x01))                     // état ok          
+          )
+        ){ 
+            *(curinp+2) &= ~PERINPOLDLEV_VB;                                       // raz bit oldstate
+            detecState << PERINPOLDLEV_PB;                                         
+            *(curinp+2) |= detecState;                                             // setup oldstate
+
+            switch((byte)(*(curinp+2)>>PERINPACTLS_PB)){                           // exécution action
+              case PMDCA_SW0:digitalWrite(pinSw[ndest],OFF);break;
+              case PMDCA_SW1:digitalWrite(pinSw[ndest],ON);break;   
+              case PMDCA_LM0:locmem &= ~mDSmaskbit[ndest];break;
+              case PMDCA_LM1:locmem |= mDSmaskbit[ndest];break;
+              case PMDCA_EX0:break;
+              case PMDCA_EX1:break;
+            }
+      }
+    }   // detecFound   
+    }   // enable
+  }     // next input
+}
 
 /* ------------- gestion pulses ------------- */
 
@@ -326,7 +429,7 @@ void isrPul(uint8_t det)                        // maj staPulse (ou switch) au c
   for(int sw=0;sw<NBSW;sw++){                                                 // explo sw
 
     Serial.print(sw);Serial.print(":");
-    for(int ninp=0;ninp<NBSWINPUT;ninp++){  
+    for(int ninp=0;ninp<NBPERINPUT;ninp++){  
         Serial.print(ninp);Serial.print(" ");
         uint64_t spctl=0;//memcpy(&spctl,cstRec.pulseCtl+sw*DLSWLEN,DLSWLEN);     // les DL d'un switch        
         uint16_t spctlnb;//=(uint16_t)(spctl>>(nb*DLBITLEN))&DLBITMSK;           // spctnb les DLBITLEN bits du descripteur de detecteur logique numéro nb

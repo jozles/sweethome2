@@ -39,13 +39,15 @@
  * 1.2b ajout timers ; periTableHtml() protège periCur ; periSend valorise periCur + periLoad   
  * 1.3  gestion des switchs :      
  *      32 det serveurs
- *      16 inputs par sw (enable, loc/ext/pulse/input, num, niveau, disj+niv, conj+niv, inter+niv, allum+niv, action)
+ *      8 inputs par sw (enable,oldlev, edge/stat, loc/ext/pulse/input, num, niveau, disj+niv, conj+niv, inter+niv, allum+niv, action)
  *      remotes sur det serveur
- *      table des disjonteurs et conjoncteurs (1 ligne par sw 2 inters)
+ *      table des disjonteurs et conjoncteurs (1 ligne par sw 2 inters) pour remote
+ *      pulses indépendants des switchs
  *      
  * à faire :
  *     
  *    timers : ajouter option "1 jour sur n" : dhdebcycle=1ère date... calculer si date courante ok (récupérer un bool inutile - cyclic? )
+ *    pulses : option entrée clock depuis input 
  *    
  *    ajouter alarmes dans peritable : alim+/- temp+/- detecteurs temps non communication et envoi mails
  *    mettre en sub tout le traitement des fonctions (depuis cli.connected jusqu'après what) et ajouter connexion/server spécial browser

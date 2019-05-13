@@ -67,7 +67,7 @@ extern byte*     periIpAddr;                   // ptr ds buffer : Ip address
 extern uint16_t* periPort;                     // ptr ds buffer : port periph server
 extern byte*     periSwNb;                     // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
 extern byte*     periSwVal;                    // ptr ds buffer : état/cde des inter  
-extern byte*     periSwInput;                   // ptr ds buffer : Mode fonctionnement inters (1 par switch)           
+extern byte*     periInput;                    // ptr ds buffer : Mode fonctionnement inters (1 par switch)           
 extern uint32_t* periSwPulseOne;               // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
 extern uint32_t* periSwPulseTwo;               // ptr ds buffer : durée pulses sec OFF(mode astable)
 extern uint32_t* periSwPulseCurrOne;           // ptr ds buffer : temps courant pulses ON
@@ -356,16 +356,15 @@ void periFname(uint16_t num,char* fname)
   fname[6]='\0';
 }
 
-void periInputPrint(byte* input,int nbns)
+void periInputPrint(byte* input)
 {
-  Serial.println("switchs/inputs       codes actions 0=reset 1=raz 2=stop 3=start 4=short 5=end 6=imp");
-#define LBINP 12  
+  Serial.println("inputs       codes actions 0=reset 1=raz 2=stop 3=start 4=short 5=end 6=imp");
+#define LBINP 18
   char binput[LBINP];
   byte inp[3];
   byte a;
   char typ[]="__exlopu??";
-  for(int ninp=0;ninp<NBSWINPUT;ninp++){  
-    for(int ns=0;ns<nbns;ns++){
+  for(int ninp=0;ninp<NBPERINPUT;ninp++){  
       
 /*      for(int in=0;in<3;in++){
         inp[in]=(byte)*(input+in+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN);
@@ -373,19 +372,21 @@ void periInputPrint(byte* input,int nbns)
         Serial.print("  ");*/
       
       memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
-      binput[0]=((*(uint8_t*)(input+2+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPEN_PB)&0x01)+48;                       // en input
-      a=*(uint8_t*)(input+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPNT_MS;
-      if(a>3){a=4;}binput[2]=typ[a*2];binput[3]=typ[a*2+1];                                                             // type détec
-      a=*(uint8_t*)(input+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>SWINPNVLS_PB;conv_htoa(binput+5,&a);                    // n° détec
-      a=(*(uint8_t*)(input+2+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)&SWINPACT_MS)>>SWINPACTLS_PB;conv_htoa(binput+8,&a);   // act input
+      binput[0]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)+48;                           // en input
+      a=*(uint8_t*)(input+ninp*PERINPLEN)&PERINPNT_MS;
+      if(a>3){a=4;}binput[2]=typ[a*2];binput[3]=typ[a*2+1];                                            // type détec src
+      a=*(uint8_t*)(input+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+5,&a);                       // n° détec src
+      a=*(uint8_t*)(input+ninp*PERINPLEN+3)&PERINPNT_MS;
+      if(a>3){a=4;}binput[8]=typ[a*2];binput[9]=typ[a*2+1];                                            // type détec dest
+      a=*(uint8_t*)(input+ninp*PERINPLEN+3)>>PERINPNVLS_PB;conv_htoa(binput+11,&a);                    // n° détec dest
+      a=(*(uint8_t*)(input+2+ninp*PERINPLEN)&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+14,&a);    // act input
       Serial.print(binput);
       for(int binp=7;binp>=0;binp--){
-        Serial.print((*(uint8_t*)(input+1+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN)>>(SWINPRULESLS_PB+binp))&0x01);          // règle
+        Serial.print((*(uint8_t*)(input+1+ninp*PERINPLEN)>>(PERINPRULESLS_PB+binp))&0x01);             // règle
       }
       sp("   ",0);
     }
     Serial.println();
-  }
 }
 
 void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo)
@@ -417,7 +418,7 @@ void  periPrint(uint16_t num)
   for(int s=MAXSW;s>=1;s--){Serial.print((char)(((*periSwVal>>(2*s-1))&0x01)+48));}Serial.print("  det=");Serial.println(*periDetNb);
   periDetServPrint(&memDetServ);Serial.print(" millis=");Serial.println(millis());
   periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo);
-  periInputPrint(periSwInput,MAXSW);
+  periInputPrint(periInput);
 }
 
 int periLoad(uint16_t num)
@@ -511,8 +512,8 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=sizeof(byte);
   periSwVal=(byte*)temp;
   temp +=sizeof(byte);
-  periSwInput=(byte*)temp;
-  temp +=MAXSW*NBSWINPUT*SWINPLEN*sizeof(byte);
+  periInput=(byte*)temp;
+  temp +=NBPERINPUT*PERINPLEN*sizeof(byte);
   periSwPulseOne=(uint32_t*)temp;
   temp +=NBPULSE*sizeof(uint32_t);
   periSwPulseTwo=(uint32_t*)temp;
@@ -577,7 +578,7 @@ void periInitVar()
   *periPort=0;
   *periSwNb=0;
   *periSwVal=0;
-   memset(periSwInput,0x00,MAXSW*NBSWINPUT*SWINPLEN*sizeof(byte));
+   memset(periInput,0x00,NBPERINPUT*PERINPLEN*sizeof(byte));
    memset(periSwPulseOne,0x00,MAXSW*SIZEPULSE);
    memset(periSwPulseTwo,0x00,MAXSW*SIZEPULSE); 
    memset(periSwPulseCurrOne,0x00,MAXSW*SIZEPULSE); 

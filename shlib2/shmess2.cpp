@@ -39,7 +39,7 @@ extern byte*     periIpAddr;                   // ptr ds buffer : Ip address
 extern uint16_t* periPort;                     // ptr ds buffer : port periph server
 extern byte*     periSwNb;                     // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)
 extern byte*     periSwVal;                    // ptr ds buffer : état/cde des inter
-extern byte*     periSwInput;                   // ptr ds buffer : Mode fonctionnement inters (MAXTAC=4 par switch)
+extern byte*     periInput;                    // ptr ds buffer : Mode fonctionnement inters (MAXTAC=4 par switch)
 extern uint32_t* periSwPulseOne;               // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
 extern uint32_t* periSwPulseTwo;               // ptr ds buffer : durée pulses sec OFF(mode astable)
 extern uint32_t* periSwPulseCurrOne;           // ptr ds buffer : temps courant pulses ON
@@ -307,19 +307,14 @@ void assySet(char* message,int periCur,char* diag,char* date14)
                 memcpy(message+v1+2*PCTLLEN,"_\0",2);   // 2*PCTLLEN ne fonctionne pas ????
 
                 v1+=2*PCTLLEN+1;
-                uint16_t ptr=0,ptr2=0;
-                for(int ns=0;ns<MAXSW;ns++){
-                    for(int k=0;k<NBSWINPUT*SWINPLEN;k++){          // 3*8=24*2=48+1 par sw
-                        *(message+v1+ptr+2*k)=chexa[*(periSwInput+ptr2)>>4];
-                        *(message+v1+ptr+2*k+1)=chexa[*(periSwInput+ptr2)&0x0F];
-                        ptr2++;
-                    }
-                    ptr+=NBSWINPUT*SWINPLEN*2;
-                    memcpy((message+v1+ptr),"_\0",2);
-                    ptr++;
+                for(int k=0;k<NBPERINPUT*PERINPLEN;k++){           // 3*8=24*2=48+1 par sw
+                    *(message+v1+2*k)=chexa[*(periInput+k)>>4];
+                    *(message+v1+2*k+1)=chexa[*(periInput+k)&0x0F];
                 }
+                memcpy((message+v1+2*NBPERINPUT*PERINPLEN),"_\0",2);
 
-                v1+=ptr;
+
+                v1+=2*NBPERINPUT*PERINPLEN+1;
                 for(int mds=0;mds<MDSLEN;mds++){
                     conv_htoa(message+v1+2*(MDSLEN-mds-1),(byte*)(&memDetServ+mds));}
                 memcpy(message+v1+2*MDSLEN,"_\0",2);

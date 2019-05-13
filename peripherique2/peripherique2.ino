@@ -318,7 +318,7 @@ delay(100);
           case 2:   break;
           case 3:   timeOvfSet(3);ordreExt();timeOvfCtl(3);break;
           case 4:   break;
-          case 5:   timeOvfSet(5);swAction();timeOvfCtl(5);break;
+          case 5:   timeOvfSet(5);action();timeOvfCtl(5);break;
           case 6:   break;
           case 7:   break;
           case 8:   swDebounce();break;                                 // doit être avant polDx
@@ -469,13 +469,13 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
             cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
             cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure
             cstRec.swCde='\0';
-            uint8_t i0=0,i1=NBSWINPUT*SWINPLEN;                                                       // indices pointeurs inputs
-            for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
-              cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);      // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
 
-              for(uint8_t k=0;k<i1;k++){                                        // inputs switchs 
-                  conv_atoh((data+MPOSSWINPUT+2*(k+i0)+i),&cstRec.swInput[i0+k]);}
-              i0+=i1;}
+            for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
+              cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
+
+            uint8_t i1=NBPERINPUT*PERINPLEN;                                    // size inputs
+            for(uint8_t k=0;k<i1;k++){                                          // inputs switchs 
+              conv_atoh((data+MPOSPERINPUT+2*k),&cstRec.perInput[k]);}
 
             for(int i=0;i<NBPULSE;i++){                                         // pulses values NBPULSE*ONE+NBPULSE*TWO
               cstRec.durPulseOne[i]=(long)convStrToNum(data+MPOSPULSONE+i*(LENVALPULSE+1),&sizeRead);

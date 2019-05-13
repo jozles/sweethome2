@@ -90,7 +90,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchdispo_____peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__swinp1____swinp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_peri_dsv__mem_dsrv__ssid______passssid__usrname___usrpass____cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlthername__therperi__thermohtmlperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldone______last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchdispo_____peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_peri_dsv__mem_dsrv__ssid______passssid__usrname___usrpass____cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlthername__therperi__thermohtmlperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldone______last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
@@ -158,7 +158,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint16_t* periPort;                       // ptr ds buffer : port periph server
   byte*     periSwNb;                       // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
   byte*     periSwVal;                      // ptr ds buffer : état/cde des inter  
-  byte*     periSwInput;                    // ptr ds buffer : table des inputs           
+  byte*     periInput;                      // ptr ds buffer : table des inputs           
   uint32_t* periSwPulseOne;                 // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
   uint32_t* periSwPulseTwo;                 // ptr ds buffer : durée pulses sec OFF(mode astable)
   uint32_t* periSwPulseCurrOne;             // ptr ds buffer : temps courant pulses ON
@@ -493,24 +493,24 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* onoff)      // recher
   for(uint16_t np=1;np<=NBPERIF;np++){                                             // boucle périf
     periLoad(np);
     if(*periSwNb!=0){
-      for(int ns=0;ns<*periSwNb;ns++){                                             // boucle switchs
-        for(int ninp=0;ninp<NBSWINPUT;ninp++){                                     // boucle input
-          Serial.print(" | per=");Serial.print(np);Serial.print(" sw=");Serial.print(ns);Serial.print(" ninp=");Serial.print(ninp);
-          uint16_t offs=ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN;
-          uint8_t eni=((*(uint8_t*)(periSwInput+2+offs)>>SWINPEN_PB)&0x01);        // enable
-          uint8_t typ=*(uint8_t*)(periSwInput+offs)&SWINPNT_MS;                    // type
-          uint8_t ndet=(*(uint8_t*)(periSwInput+offs)&SWINPV_MS)>>SWINPNVLS_PB;    // n° det
+//      for(int ns=0;ns<*periSwNb;ns++){                                             // boucle switchs
+        for(int ninp=0;ninp<NBPERINPUT;ninp++){                                    // boucle input
+          Serial.print(" | per=");Serial.print(np);Serial.print(" ninp=");Serial.print(ninp);
+          uint16_t offs=ninp*PERINPLEN;
+          uint8_t eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);         // enable
+          uint8_t typ=*(uint8_t*)(periInput+offs)&PERINPNT_MS;                     // type
+          uint8_t ndet=(*(uint8_t*)(periInput+offs)&PERINPV_MS)>>PERINPNVLS_PB;    // n° det
           Serial.print(" eni=");Serial.println(eni);
           if(eni!=0 && typ==DETYEXT && memDetServ&mDSmaskbit[ndet]!=0){            
-            ///* trouvé usage du détecteur dans periSwInput 
+            // trouvé usage du détecteur dans periInput 
             Serial.println();
-            Serial.print(" p=");Serial.print(np);Serial.print(" sw=");Serial.print(ns);Serial.print("/");Serial.print(ndet);
+            Serial.print(" p=");Serial.print(np);Serial.print("/");Serial.print(ndet);
             Serial.print(" type=");Serial.print(typ);Serial.print(" d=");Serial.print(ndet);Serial.print(" ");
-            tablePerToSend[np-1]++;                                                     // periSend à faire sur ce périf            
+            tablePerToSend[np-1]++;                                                // periSend à faire sur ce périf            
             for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);Serial.print(" ");}Serial.println();
           }
         }
-      }
+//      }
     }
   }
 }
@@ -1190,10 +1190,10 @@ void commonserver(EthernetClient cli)
               case 31: what=5;periCur=0;conv_atob(valf,&periCur);                                    // submit modifs dans tables sw (peri_t_sw_)
                        if(periCur>NBPERIF){periCur=NBPERIF;}
                        periInitVar();periLoad(periCur);                                              // effacement checkboxs des switchs du periphérique courant
-                       {for(int ss=0;ss<MAXSW;ss++){for(int inp=0;inp<NBSWINPUT;inp++){
-                           *(uint16_t*)(periSwInput+ss*NBSWINPUT*SWINPLEN+inp*SWINPLEN+1)&=(SWINPACTMS_VB|SWINPACTLS_VB);
-                           *(periSwInput+ss*NBSWINPUT*SWINPLEN+inp*SWINPLEN)&=~SWINPEN_VB;}}
-                          memset(periSwPulseCtl,0x00,PCTLLEN);          // bits enable pulse et free run 
+                       {for(int inp=0;inp<NBPERINPUT;inp++){
+                           *(byte*)(periInput+inp*PERINPLEN+1)=0x00;
+                           *(byte*)(periInput+inp*PERINPLEN+2)=0x00;}
+                        memset(periSwPulseCtl,0x00,PCTLLEN);                                         // bits enable pulse et free run 
                        }break;  
               case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);             // (pulses) periSwPulseCtl (otf) bits généraux (FOT)
                        uint16_t sh=0;
@@ -1207,29 +1207,36 @@ void commonserver(EthernetClient cli)
                         *(uint16_t*)periSwPulseCtl|=sh;
                          Serial.print(b);Serial.print(" Pulse n°=");Serial.print(pu);dumpstr((char*)periSwPulseCtl,2);
                        }break;       
-              case 33: {uint8_t sw=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;  // (switchs) swinp1__   (enable/type/num detec/action)
-                        uint8_t nfct=sw&0x07;sw=sw>>3;
-                        uint8_t offs=(periCur-1)*MAXSW*NBSWINPUT*SWINPLEN+sw*NBSWINPUT*SWINPLEN+nuinp*SWINPLEN;
+              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;  // (inputs) p_inp1__   (enable/type/num detec/action)
+                        uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;
                         uint16_t vl=0;
                         switch (nfct){
-                          case 1:*(uint8_t*)(periSwInput+offs+2)|=(uint8_t)SWINPEN_VB;break;           // enable
-                          case 2:vl=(uint16_t)(*valf-48);if(vl>3){vl=1;}
-                                 *(periSwInput+offs)&=~SWINPNT_MS;
-                                 *(uint8_t*)(periSwInput+offs)|=vl<<SWINPNTLS_PB;break;                // type
-                          case 3:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
-                                 *(periSwInput+offs)&=~SWINPV_MS;
-                                 *(periSwInput+offs)|=(uint8_t)(vl<<SWINPNVLS_PB);break;               // num detec
-                          case 4:vl=(uint16_t)(*valf-48);if(vl>MAXACT){vl=MAXACT;}                                 
-                                 *(uint8_t*)(periSwInput+offs+1)&=~SWINPACT_MS;
-                                 *(uint8_t*)(periSwInput+offs+1)|=vl<<SWINPACTLS_PB;
+                          case 1:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPEN_VB;break;           // enable
+                          case 2:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPOLDLEV_VB;break;       // prev level
+                          case 3:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPDETES_VB;break;        // edge/static
+                          case 4:vl=(uint16_t)(*valf-48);if(vl>3){vl=1;}
+                                 *(periInput+offs)&=~PERINPNT_MS;
+                                 *(uint8_t*)(periInput+offs)|=vl<<PERINPNTLS_PB;break;                // type src
+                          case 5:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
+                                 *(periInput+offs)&=~PERINPV_MS;
+                                 *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;               // num detec src
+                          case 6:vl=(uint16_t)(*valf-48);if(vl>3){vl=1;}
+                                 *(periInput+offs)&=~PERINPNT_MS;
+                                 *(uint8_t*)(periInput+offs)|=vl<<PERINPNTLS_PB;break;                // type dest
+                          case 7:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
+                                 *(periInput+offs)&=~PERINPV_MS;
+                                 *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;               // num detec dest                                 
+                          case 8:vl=(uint16_t)(*valf-48);if(vl>MAXACT){vl=MAXACT;}                                 
+                                 *(uint8_t*)(periInput+offs+1)&=~PERINPACT_MS;
+                                 *(uint8_t*)(periInput+offs+1)|=vl<<PERINPACTLS_PB;
                                  break;                                                                // action
+                          case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;         // active level
                           default:break;
                         }
                        }break;                                                                      
-              case 34: {uint8_t sw=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (switchs) swinp2__   8 bits
-                        uint8_t nfct=sw&0x07;sw=sw>>3;
-                        uint8_t offs=(periCur-1)*MAXSW*NBSWINPUT*SWINPLEN+sw*NBSWINPUT*SWINPLEN+nuinp*SWINPLEN;
-                        *(uint8_t*)(periSwInput+offs+1)|=(uint8_t)SWINPRULESLS_VB<<nfct;}break;   
+              case 34: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (perinput) p_inp2__   8 bits
+                        uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;
+                        *(uint8_t*)(periInput+offs+1)|=(uint8_t)PERINPRULESLS_VB<<nfct;}break;
               case 35: {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri Pulse one (pto)
                         *(periSwPulseOne+pu)=0;*(periSwPulseOne+pu)=(uint32_t)convStrToNum(valf,&j);                              
                        }break;                                                                      

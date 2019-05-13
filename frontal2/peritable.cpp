@@ -58,7 +58,7 @@ extern byte*     periIpAddr;                   // ptr ds buffer : Ip address
 extern uint16_t* periPort;                     // ptr ds buffer : port periph server
 extern byte*     periSwNb;                     // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
 extern byte*     periSwVal;                    // ptr ds buffer : état/cde des inter  
-extern byte*     periSwInput;                   // ptr ds buffer : Mode fonctionnement inters (4 bytes par switch)           
+extern byte*     periInput;                    // ptr ds buffer : Mode fonctionnement inters (4 bytes par switch)           
 extern uint32_t* periSwPulseOne;               // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
 extern uint32_t* periSwPulseTwo;               // ptr ds buffer : durée pulses sec OFF(mode astable)
 extern uint32_t* periSwPulseCurrOne;           // ptr ds buffer : temps courant pulses ON
@@ -102,11 +102,11 @@ Serial.println(fonc2);
   cli->print("<br>(");cli->print(a);cli->println(")</font>");
 }
 
-void swinpfnc(EthernetClient* cli,uint8_t sw,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv)           // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
-{                             // type input, num det, valeur, enable, action, 4*2 modes => 2 fonctions de transport avec 3 bits n°variable, 2 bits sw, 5 bits n°input                                                                           
+void perinpfnc(EthernetClient* cli,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
+{      // type input src, num det src,type input dest, num det dest, valeur, enable, action, 4*2 modes => 2 fonctions de transport avec 5 bits n°input (libf-2) et n°de paramètre (libf-1)                                                                          
   uint8_t vv=0;
-  //char fnt[LENNOM+1];memcpy(fnt,ft,LENNOM+1);
-  ft[LENNOM-2]=(char)(nuv+(sw<<3)+PMFNCHAR);
+
+  ft[LENNOM-2]=(char)(nuv+PMFNCHAR);
   ft[LENNOM-1]=(char)(nuinp+PMFNCVAL);
   
   switch (type){
@@ -172,48 +172,42 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
   cli->print("</tr></table>");
 
     cli->println("<table>Règles");
-      cli->println("<th></th><th>e.t_num a l<br>n.y_det c h O I</th></tr>");
+      cli->println("<th></th><th>e.l.e.t_num a l<br>n.v.s.y_det c h O I</th></tr>");
 
-      char xfonc1[]="swinp1____\0";
-      char xfonc2[]="swinp2____\0";
+      char xfonc1[]="p_inp1____\0";
+      char xfonc2[]="p_inp2____\0";
 
-      // offset dans periSwInput
-      uint16_t offsetPeri=(periCur-1)*MAXSW*SWINPLEN*NBSWINPUT;
-      uint16_t offsetSw=0;
+      // offset dans periInput
+      uint16_t offsetPeri=(periCur-1)*PERINPLEN*NBPERINPUT;
       uint16_t offsetInp=0;
-   
-      for(int ns=0;ns<nbsw;ns++){              // ns n° de switch
-
-        cli->print("<tr><td>");cli->print(ns);cli->print("</td>");
  
-        offsetInp=0;
-        cli->print("<td>");    
-        for(int ninp=0;ninp<NBSWINPUT;ninp++){
+      for(int ninp=0;ninp<NBPERINPUT;ninp++){     // boucle des inputs
 
+            cli->print("<tr>");    
             uint8_t vv;
-            byte binp[SWINPLEN];memcpy(binp,periSwInput+offsetPeri+offsetSw+offsetInp,SWINPLEN);
-            offsetInp+=SWINPLEN;
+            byte binp[PERINPLEN];memcpy(binp,periInput+offsetPeri+offsetInp,PERINPLEN);
+            offsetInp+=PERINPLEN;
            
-            vv=(binp[2]  & SWINPEN_VB);swinpfnc(cli,ns,ninp,vv,'c',1,xfonc1,1);                           // bit enable
-            vv=(binp[0]  & (SWINPNTMS_VB | SWINPNTLS_VB));swinpfnc(cli,ns,ninp,vv,'n',1,xfonc1,2);        // type  
-            vv=(binp[0]>>SWINPNVLS_PB);swinpfnc(cli,ns,ninp,vv,'n',2,xfonc1,3);                           // num detec
+            vv=(binp[2]  & PERINPEN_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,1);                           // bit enable
+            vv=(binp[2]  & PERINPVALID_VB);;perinpfnc(cli,ninp,vv,'c',1,xfonc1,9);                       // bit active level
+            vv=(binp[2]  & PERINPOLDLEV_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,2);                       // bit prev lev
+            vv=(binp[2]  & PERINPDETES_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,3);                        // bit edge/static            
+            vv=(binp[0]  & (PERINPNTMS_VB | PERINPNTLS_VB));perinpfnc(cli,ninp,vv,'n',1,xfonc1,4);       // type detec source
+            vv=(binp[0]>>PERINPNVLS_PB);perinpfnc(cli,ninp,vv,'n',2,xfonc1,5);                           // num detec source
             cli->print(" ");
-            vv=(binp[2]&SWINPACT_MS)>>SWINPACTLS_PB;swinpfnc(cli,ns,ninp,vv,'n',1,xfonc1,4);              // action
+            vv=(binp[3]  & (PERINPNTMS_VB | PERINPNTLS_VB));perinpfnc(cli,ninp,vv,'n',1,xfonc1,6);       // type detec dest
+            vv=(binp[3]>>PERINPNVLS_PB);perinpfnc(cli,ninp,vv,'n',2,xfonc1,7);                           // num detec  dest
+            cli->print(" ");            
+            vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;perinpfnc(cli,ninp,vv,'n',1,xfonc1,8);             // action
             cli->println();
 
             for(int mode=7;mode>=0;mode--){                                                               // 8 bits
                 cli->print(" ");             
-                vv=(binp[1]>>(SWINPRULESLS_PB+mode))&0x01;swinpfnc(cli,ns,ninp,vv,'c',1,xfonc2,mode);
-
+                vv=(binp[1]>>(PERINPRULESLS_PB+mode))&0x01;perinpfnc(cli,ninp,vv,'c',1,xfonc2,mode);
             } // mode suivant    
-            cli->print("<br>");
-             
+            cli->print("</tr>");
+                        
         } // input suivant
-        cli->print("</td>"); 
-        cli->print("</tr>");
-        offsetSw+=SWINPLEN*NBSWINPUT; 
-
-      } // switch suivant
   cli->print("</table></form></body></html>");
 }
 
