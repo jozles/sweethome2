@@ -11,9 +11,9 @@
 
 File fconfig;     // fichier config
 
+extern uint32_t memDetServ;  // image mémoire NBDSRV détecteurs
 extern uint16_t perrefr;
 
-extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs 
 
 extern char configRec[CONFIGRECLEN];
   
@@ -92,6 +92,9 @@ extern int8_t    periMess;                     // code diag réception message (
 extern byte      periMacBuf[6]; 
 
 extern byte      lastIpAddr[4];
+
+char inptyps[]="__exlopu??";                  // libellés types sources inputs
+char inptypd[]="__exlosw??";                  // libellés types destinations inputs
 
 extern struct SwRemote remoteT[MAXREMLI];
 extern char*  remoteTA;
@@ -363,7 +366,7 @@ void periInputPrint(byte* input)
   char binput[LBINP];
   byte inp[3];
   byte a;
-  char typ[]="__exlopu??";
+  
   for(int ninp=0;ninp<NBPERINPUT;ninp++){  
       
 /*      for(int in=0;in<3;in++){
@@ -372,12 +375,12 @@ void periInputPrint(byte* input)
         Serial.print("  ");*/
       
       memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
-      binput[0]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)+48;                           // en input
+      binput[0]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)+48;                          // en input
       a=*(uint8_t*)(input+ninp*PERINPLEN)&PERINPNT_MS;
-      if(a>3){a=4;}binput[2]=typ[a*2];binput[3]=typ[a*2+1];                                            // type détec src
+      if(a>3){a=4;}binput[2]=inptyps[a*2];binput[3]=inptyps[a*2+1];                                    // type détec src
       a=*(uint8_t*)(input+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+5,&a);                       // n° détec src
       a=*(uint8_t*)(input+ninp*PERINPLEN+3)&PERINPNT_MS;
-      if(a>3){a=4;}binput[8]=typ[a*2];binput[9]=typ[a*2+1];                                            // type détec dest
+      if(a>3){a=4;}binput[8]=inptypd[a*2];binput[9]=inptypd[a*2+1];                                    // type détec dest
       a=*(uint8_t*)(input+ninp*PERINPLEN+3)>>PERINPNVLS_PB;conv_htoa(binput+11,&a);                    // n° détec dest
       a=(*(uint8_t*)(input+2+ninp*PERINPLEN)&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+14,&a);    // act input
       Serial.print(binput);

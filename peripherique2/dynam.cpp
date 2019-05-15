@@ -310,7 +310,7 @@ void action()           // pour chaque input, test enable,
       switch((*curinp)&PERINPNT_MS){                            // type
         case DETYEXT:detecState=(cstRec.extDetec>>nsrce)&0x01;  // valeur détecteur externe 
              detecFound=1;break;
-        case DETYLOC:detecState=digitalRead(pinDet[nsrce]);     // valeur détecteur local
+        case DETYPHY:detecState=(byte)(cstRec.memDetec[nsrce]>>DETBITLH_PB)&0x01;     // valeur détecteur local
              detecFound=1;break;
         case DETYMEM:detecState=(locmem>>nsrce)&0x01;           // valeur intermédiaire
         case DETYPUL:break;                                     // pulse 
@@ -330,29 +330,62 @@ void action()           // pour chaque input, test enable,
 */      
       if(
           (
-            ((*(curinp+2)&PERINPDETES_VB)==0)                                       // edge
-          &&(detecState!=((*(curinp+2)>>PERINPOLDLEV_VB)&0x01))                     // flanc
-          &&(detecState==((*(curinp+2)>>PERINPVALID_VB) &0x01))                     // flanc ok
+            ((*(curinp+2)&PERINPDETES_VB)==0)                                 // edge
+          &&(detecState!=((*(curinp+2)>>PERINPOLDLEV_VB)&0x01))               // flanc
+          &&(detecState==((*(curinp+2)>>PERINPVALID_VB) &0x01))               // flanc ok
           )
-          ||                                                                        // ou
+          ||                                                                  // ou
           (
-            ((*(curinp+2)&PERINPDETES_VB)!=0)                                       // static
-          &&(detecState==((*(curinp+2)>>PERINPVALID_VB) &0x01))                     // état ok          
+            ((*(curinp+2)&PERINPDETES_VB)!=0)                                 // static
+          &&(detecState==((*(curinp+2)>>PERINPVALID_VB) &0x01))               // état ok          
           )
         ){ 
             *(curinp+2) &= ~PERINPOLDLEV_VB;                                       // raz bit oldstate
             detecState << PERINPOLDLEV_PB;                                         
             *(curinp+2) |= detecState;                                             // setup oldstate
 
+            uint32_t lmbit;
             switch((byte)(*(curinp+2)>>PERINPACTLS_PB)){                           // exécution action
-              case PMDCA_SW0:digitalWrite(pinSw[ndest],OFF);break;
-              case PMDCA_SW1:digitalWrite(pinSw[ndest],ON);break;   
-              case PMDCA_LM0:locmem &= ~mDSmaskbit[ndest];break;
-              case PMDCA_LM1:locmem |= mDSmaskbit[ndest];break;
-              case PMDCA_EX0:break;
-              case PMDCA_EX1:break;
+              case PMDCA_LOR:switch((byte)(*(curinp+2)&PERINPNT_MS)){                     // type dest
+                             case DETYEXT:break;
+                             case DETYMEM:locmem |= mDSmaskbit[ndest];break;              // or locmembit,1
+                             case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
+                                         digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])|ON));}
+                                         else{digitalWrite(pinSw[ndest],OFF);}
+                                         break;
+                             default:break;
+                             }
+                             break;
+              case PMDCA_LAND:switch((byte)(*(curinp+2)&PERINPNT_MS)){                    // type dest
+                             case DETYEXT:break;
+                             case DETYMEM:lmbit=locmem & mDSmaskbit[ndest];               // get anded locmembit,1
+                                          locmem &= ~mDSmaskbit[ndest];                   // raz locmem bit
+                                          locmem |= lmbit;                                // store result
+                                          break;
+                             case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
+                                         digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])&ON));}
+                                         else{digitalWrite(pinSw[ndest],OFF);}
+                                         break;
+                             default:break;
+                             }
+                             break;
+              case PMDCA_TGL:switch((byte)(*(curinp+2)&PERINPNT_MS)){                     // type dest
+                             case DETYEXT:break;
+                             case DETYMEM:lmbit=(locmem ^ 0xffffffff) & mDSmaskbit[ndest];// get eored locmem bit
+                                          locmem &= ~mDSmaskbit[ndest];                   // raz locmem bit
+                                          locmem |= lmbit;                                // store result
+                                          break;
+                             case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
+                                         digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])^ON));}
+                                         else{digitalWrite(pinSw[ndest],OFF);}
+                                         break;
+                             default:break;
+                             }
+                             break;
+              default:break;
             }
-      }
+      }else{} // si condition non validée pas d'action : configurer explicitement pour l'inverse si nécessaire
+       
     }   // detecFound   
     }   // enable
   }     // next input
@@ -382,6 +415,7 @@ void setPulseChg(int sw ,uint64_t* spctl,char timeOT)     // traitement fin de t
 
 void pulseClkisr()     // poling ou interruption ; action horloge sur pulses tous switchs
 {
+/*
   uint8_t sw;
   uint64_t spctl=0;//memcpy(&spctl,cstRec.pulseCtl+sw*DLSWLEN,DLSWLEN);
   
@@ -408,6 +442,7 @@ void pulseClkisr()     // poling ou interruption ; action horloge sur pulses tou
       default:break;
     }
   }
+*/  
 }
 
 void hspr16b(uint16_t hp)
@@ -425,7 +460,7 @@ void isrPul(uint8_t det)                        // maj staPulse (ou switch) au c
                                                 // résult = 15 DL ON => exécuter l'action
                                                 
   Serial.print(det);Serial.print(" ");
-
+/*
   for(int sw=0;sw<NBSW;sw++){                                                 // explo sw
 
     Serial.print(sw);Serial.print(":");
@@ -434,11 +469,11 @@ void isrPul(uint8_t det)                        // maj staPulse (ou switch) au c
         uint64_t spctl=0;//memcpy(&spctl,cstRec.pulseCtl+sw*DLSWLEN,DLSWLEN);     // les DL d'un switch        
         uint16_t spctlnb;//=(uint16_t)(spctl>>(nb*DLBITLEN))&DLBITMSK;           // spctnb les DLBITLEN bits du descripteur de detecteur logique numéro nb
         uint8_t test=0;                                                                                             // si ...
-/*        if( (uint8_t)((spctlnb>>DLNLS_PB)&mask[(DLNMS_PB)-(DLNLS_PB)+1])==det ){ Serial.print("1");test+=1;}        // =det courant
+        if( (uint8_t)((spctlnb>>DLNLS_PB)&mask[(DLNMS_PB)-(DLNLS_PB)+1])==det ){ Serial.print("1");test+=1;}        // =det courant
         if( (spctlnb&DLENA_VB)!=0 ){  Serial.print("2");test+=2;}                                                   // enable
         if( (spctlnb&DLEL_VB)!=0  ){  Serial.print("3");test+=4;}                                                   // local
         if( (byte)((spctlnb>>DLMHL_PB)&0x01)==(byte)((cstRec.memDetec[det]>>DETBITLH_PB)&0x01) ){  Serial.print("4");test+=8;}    // LH ok
-*/        
+        
         if( test==15){                                                                                              // dl déclenché
           byte action;//=(byte)((spctlnb>>DLACLS_PB)&mask[DLACMS_PB-DLACLS_PB+1])+1;                                   // exécuter l'action
           byte actions[]={PMDCA_STOP+1,PMDCA_START+1,PMDCA_SHORT+1,PMDCA_RAZ+1,PMDCA_RESET+1,PMDCA_IMP+1,PMDCA_END+1,PMDCA_TGL,0x00};
@@ -497,13 +532,9 @@ void isrPul(uint8_t det)                        // maj staPulse (ou switch) au c
       Serial.print(" ");      
       
     }
-  }
+  }*/
 }
 
-byte levdet(uint8_t det)              // recup level détecteur local det
-{
-  return digitalRead(pinDet[det]);    // détecteur physique
-}
 
 void memdetinit()                         // init détecteurs locaux et pulse à 0 à la mise sous tension
 {
@@ -511,7 +542,7 @@ void memdetinit()                         // init détecteurs locaux et pulse à
   byte lev;
   
   for(uint8_t det=0;det<MAXDET;det++){
-    lev=levdet(det);
+    lev=digitalRead(pinDet[det]);
 
     cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
     cstRec.memDetec[det] |= lev<<DETBITLH_PB;                       // set bit LH 
@@ -522,21 +553,25 @@ void memdetinit()                         // init détecteurs locaux et pulse à
     cstRec.memDetec[det] |= DETWAIT<<DETBITST_PB;                   // set bits ST
   }
 
-    memset(cstRec.cntPulseOne,0x00,sizeof(cstRec.cntPulseOne));
-    memset(cstRec.cntPulseTwo,0x00,sizeof(cstRec.cntPulseTwo));
+  Serial.println("init pulses");
+  memset(cstRec.cntPulseOne,0x00,sizeof(cstRec.cntPulseOne));
+  memset(cstRec.cntPulseTwo,0x00,sizeof(cstRec.cntPulseTwo));
 }
 
 
-void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur det ; isrPul
-{                                    // memDetec :
+void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur det (polDx masqué par tempo debounce) 
+                                     // memDetec sert uniquement à mettre le débounce en commun si plusieurs inputs
+                                     // utilisent le même détecteur (seul bit utilisé : LH)
+{
+                                     // memDetec :
                                      //    bits DETBITST_  status (disable/idle/wait/trig
                                      //    bit  DETBITLH_  dernier état
                                      //    bit  DETBITUD_  prochain flanc valide 
                                      //                   (le détecteur passe en mode trig-déclenché pour la màj de staPulse puis revient à idle)
                                      
-  if(cstRec.memDetec[det]>>DETBITST_PB != DETDIS) {                     // detecteur pas disable
+//  if(cstRec.memDetec[det]>>DETBITST_PB != DETDIS) {                     // detecteur pas disable
     
-    byte lev=levdet(det);
+    byte lev=digitalRead(pinDet[det]);
     if( ((byte)(cstRec.memDetec[det]>>DETBITLH_PB)&0x01) != lev ){    // niveau lu != niveau actuel de memDetec ?
       // level change -> update memDetec
       cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
@@ -549,30 +584,29 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
         Serial.print(" edge=");Serial.print((byte)((cstRec.memDetec[det]>>DETBITUD_PB)&0x01),HEX);Serial.print(" ");
         cstRec.memDetec[det] &= ~DETBITST_VB;                           // raz bits ST
         cstRec.memDetec[det] |= DETTRIG<<DETBITST_PB;                   // set bits ST (déclenché)
- */
+
         //isrPul(det);                                                    // staPulse setup : exploration si ce flanc est prévu dans un dl 
-/*
+
         cstRec.memDetec[det] &= ~DETBITST_VB;                           // raz bits ST    
         cstRec.memDetec[det] |= DETIDLE<<DETBITST_PB;                   // retour Idle
-*/
+
       Serial.println();printConstant();
     }
+*/    
   }
 }
 
 void polAllDet()                                        // maj de memDetec (via polDx) pour tous les détecteurs locaux
 {                                                       // la tempo de debouce masque polDx
- for(uint8_t det=0;det<(MAXDET);det++){if(detTime[det]==0){polDx(det);}}    // pas de debounce en cours  
+   for(uint8_t det=0;det<(MAXDET);det++){if(detTime[det]==0){polDx(det);}}    // pas de debounce en cours  
 }
-  
+ 
 
 void swDebounce()                     
 {
   for(uint8_t det=0;det<MAXDET;det++){
     if(detTime[det]!=0 && (millis()>(detTime[det]+TDEBOUNCE))){
       detTime[det]=0; 
-      //initIntPin(det);
-      //initPolPin(det);
     }
   }
 }

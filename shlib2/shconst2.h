@@ -2,7 +2,7 @@
 #define _SHCONST_H_
 
 
-#define PERIF
+//#define PERIF
 
 #define LENVERSION  4
 #define LENMODEL    6
@@ -357,8 +357,9 @@ enum {OFF,ON};
 #define NBDTYP 4
 
 #define DETYEXT 1
-#define DETYLOC 2
+#define DETYPHY 2
 #define DETYPUL 3
+#define DETYSW  2
 #define DETYMEM 0
 
 
@@ -381,13 +382,10 @@ enum {OFF,ON};
 #define PMDCA_END   0x05     // end pulse
 #define PMDCA_IMP   0x06     // start/stop impulsionnel
 #define PMDCA_RESET 0x07     // reset
-#define PMDCA_TGL   0x08     // toggle switch
-#define PMDCA_SW0   0x10     // switch update 0
-#define PMDCA_SW1   0x11     // switch update 1
-#define PMDCA_LM0   0x12     // loc mem update 0
-#define PMDCA_LM1   0x13     // loc mem update 1
-#define PMDCA_EX0   0x14     // loc mem update 0
-#define PMDCA_EX1   0x15     // loc mem update 1
+#define PMDCA_TGL   0x08     // toggle dest
+#define PMDCA_LOR   0x09     // logical or dest
+#define PMDCA_LAND  0x0A     // logical and dest
+
 
 #define MAXACT 16
 

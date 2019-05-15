@@ -17,7 +17,7 @@
 extern File      fhisto;      // fichier histo sd card
 extern long      sdpos;
 extern char*     nomserver;
-extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs (8)
+extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
 extern uint16_t  perrefr;
 
 extern char*     userpass;            // mot de passe browser
@@ -79,6 +79,8 @@ extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enabl
 extern int8_t    periMess;                     // code diag réception message (voir MESSxxx shconst.h)
 extern byte      periMacBuf[6]; 
 
+extern char     inptyps[];                     // libellés types sources inputs
+extern char     inptypd[];                     // libellés types destinations inputs
 
 extern int  chge_pwd; //=FAUX;
 
@@ -193,18 +195,20 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
             vv=(binp[2]  & PERINPOLDLEV_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,2);                       // bit prev lev
             vv=(binp[2]  & PERINPDETES_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,3);                        // bit edge/static            
             vv=(binp[0]  & (PERINPNTMS_VB | PERINPNTLS_VB));perinpfnc(cli,ninp,vv,'n',1,xfonc1,4);       // type detec source
+            cli->print("<td>");cli->print(inptyps[vv]);cli->print("</td>");            
             vv=(binp[0]>>PERINPNVLS_PB);perinpfnc(cli,ninp,vv,'n',2,xfonc1,5);                           // num detec source
             cli->print(" ");
             vv=(binp[3]  & (PERINPNTMS_VB | PERINPNTLS_VB));perinpfnc(cli,ninp,vv,'n',1,xfonc1,6);       // type detec dest
+            cli->print("<td>");cli->print(inptypd[vv]);cli->print("</td>");            
             vv=(binp[3]>>PERINPNVLS_PB);perinpfnc(cli,ninp,vv,'n',2,xfonc1,7);                           // num detec  dest
             cli->print(" ");            
             vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;perinpfnc(cli,ninp,vv,'n',1,xfonc1,8);             // action
             cli->println();
 
-            for(int mode=7;mode>=0;mode--){                                                               // 8 bits
+/*            for(int mode=7;mode>=0;mode--){                                                               // 8 bits
                 cli->print(" ");             
                 vv=(binp[1]>>(PERINPRULESLS_PB+mode))&0x01;perinpfnc(cli,ninp,vv,'c',1,xfonc2,mode);
-            } // mode suivant    
+            } // mode suivant    */
             cli->print("</tr>");
                         
         } // input suivant
