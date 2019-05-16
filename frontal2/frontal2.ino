@@ -115,8 +115,8 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint32_t  pertemp=PTEMP;                 // période ech temp sur le serveur
   uint16_t  perrefr=0;                     // periode rafraichissement de l'affichage
 
+  long      cxtime=0;                      // durée connexion client
   long      remotetime=0;                  // mesure scans remote
-
   long      timerstime=0;                  // last millis pour timers
 #define PTIMERS 10;                        // secondes
   uint32_t  pertimers=PTIMERS;             // période ctle timers
@@ -311,7 +311,6 @@ void setup() {                              // =================================
   
 /* >>>>>>     config     <<<<<< */  
   
-  delay(1000);
   Serial.println();Serial.print(VERSION);
   #ifdef _MODE_DEVT || MODE_DEVT2
   Serial.print(" MODE_DEVT");Serial.print(" free=");Serial.println(freeMemory(), DEC);
@@ -325,7 +324,7 @@ void setup() {                              // =================================
   
   Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configRecLength);Serial.print("  ");
   Serial.print("MLMSET/LENMESS=");Serial.print(MLMSET);Serial.print("/");Serial.print(LENMESS);
-  delay(100);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
+  delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
   Serial.print("  nbfonct=");Serial.println(nbfonct);
   //configSave();
   configLoad();configPrint();
@@ -333,7 +332,7 @@ void setup() {                              // =================================
   periInit();long periRecLength=(long)periEndOfRecord-(long)periBegOfRecord+1;
   
   Serial.print("PERIRECLEN=");Serial.print(PERIRECLEN);Serial.print("/");Serial.print(periRecLength);
-  delay(100);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
+  delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
 
   Serial.print(" RECCHAR=");Serial.print(RECCHAR);Serial.print(" LBUFSERVER=");Serial.print(LBUFSERVER);
   Serial.print(" free=");Serial.println(freeMemory(), DEC); 
@@ -403,7 +402,7 @@ while(1){}
   if(cliext.connect(gggg,80)){Serial.print("gggg connected");}
   cliext.stop();*/
   
-  delay(1000);
+  delay(100);
 
 #ifndef WEMOS  
  // wdt_enable(WDTO_4S);                // watch dog init (4 sec)
@@ -486,31 +485,27 @@ void scantemp()
     }       
 }
 
-
 void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* onoff)      // recherche des périphériques ayant une input sur le détec
 {                                                                                  // et màj de tablePerToSend
-  Serial.print(" poolperif (");Serial.print(onoff);Serial.print(")");
-  for(uint16_t np=1;np<=NBPERIF;np++){                                             // boucle périf
+  uint16_t offs;
+  uint8_t eni,ninp;
+  byte model=(detec<<PERINPNVLS_PB)|DETYEXT;
+  
+  Serial.print(" poolperif (detec ");Serial.print(detec);Serial.print(" -> ");Serial.print(onoff);Serial.println(")");
+  for(uint16_t np=1;np<=NBPERIF;np++){                                             // boucle périphérique
     periLoad(np);
     if(*periSwNb!=0){
-//      for(int ns=0;ns<*periSwNb;ns++){                                             // boucle switchs
-        for(int ninp=0;ninp<NBPERINPUT;ninp++){                                    // boucle input
-          Serial.print(" | per=");Serial.print(np);Serial.print(" ninp=");Serial.print(ninp);
-          uint16_t offs=ninp*PERINPLEN;
-          uint8_t eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);         // enable
-          uint8_t typ=*(uint8_t*)(periInput+offs)&PERINPNT_MS;                     // type
-          uint8_t ndet=(*(uint8_t*)(periInput+offs)&PERINPV_MS)>>PERINPNVLS_PB;    // n° det
-          Serial.print(" eni=");Serial.println(eni);
-          if(eni!=0 && typ==DETYEXT && memDetServ&mDSmaskbit[ndet]!=0){            
-            // trouvé usage du détecteur dans periInput 
-            Serial.println();
-            Serial.print(" p=");Serial.print(np);Serial.print("/");Serial.print(ndet);
-            Serial.print(" type=");Serial.print(typ);Serial.print(" d=");Serial.print(ndet);Serial.print(" ");
+
+        for(ninp=0;ninp<NBPERINPUT;ninp++){                                    // boucle input
+          
+          offs=ninp*PERINPLEN;
+          eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);         // enable          
+          if(eni!=0 && model==*(byte*)(periInput+offs)){  // trouvé usage du détecteur dans periInput 
+            Serial.print("  per=");Serial.print(np);Serial.print(" ninp=");Serial.print(ninp);
             tablePerToSend[np-1]++;                                                // periSend à faire sur ce périf            
-            for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);Serial.print(" ");}Serial.println();
+            //for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);Serial.print(" ");}Serial.println();
           }
         }
-//      }
     }
   }
 }
@@ -518,7 +513,9 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* onoff)      // recher
 void perToSend(uint8_t* tablePerToSend,long begTime)
 {
       if((millis()-begTime)>1){Serial.print("  durée scan      =");Serial.print(millis()-begTime);}
-      for(uint16_t np=1;np<=NBPERIF;np++){if(tablePerToSend[np-1]!=0){periSend(np);}}
+      for(uint16_t np=1;np<=NBPERIF;np++){
+        if(tablePerToSend[np-1]!=0){periSend(np);}
+      }
       if((millis()-begTime)>1){Serial.print("  durée scan+send =");Serial.print(millis()-begTime);
         Serial.print(" ");
         for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);}Serial.println();}
@@ -673,7 +670,6 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
 void periSend(uint16_t np)                 // configure periParamsHtml pour envoyer un set_______ au périph serveur de np (avec cb prog cochée)
 {                                          // periCur, periLoad rechargés avec np 
   periCur=np;periLoad(periCur);
-  Serial.print("periSend(peri=");Serial.print(periCur);Serial.print("-port=");Serial.print(*periPort);Serial.println(")");
   if(*periProg!=0 && *periPort!=0){
     checkdate(2);
     char ipaddr[16];memset(ipaddr,'\0',16);
@@ -691,6 +687,9 @@ int periParamsHtml(EthernetClient* cli,char* host,int port)   // fonction set ou
                     // format nomfonction_=nnnndatas...cc                nnnn len mess ; cc crc
                     // datas NN_mm.mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._    NN numpériph ; mm.mm... mac
 {                   
+  
+if((millis()-timerstime)>1){Serial.print("  periPHtml1 durée scan+send =");Serial.println(millis()-timerstime);}
+
   char message[LENMESS]={'\0'};
   char nomfonct[LENNOM+1]={'\0'};
   int8_t zz=MESSOK;
@@ -716,6 +715,7 @@ int periParamsHtml(EthernetClient* cli,char* host,int port)   // fonction set ou
           else {                                        // envoi vers périphérique en mode serveur
             
             zz=messToServer(cli,host,port,bufServer);
+if((millis()-timerstime)>1){Serial.print("  periPHtml2 durée scan+send =");Serial.println(millis()-timerstime);}            
             uint8_t fonct;
             if(zz==MESSOK){
               zz=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct);
@@ -888,44 +888,6 @@ void conv_atobl(char* ascii,uint32_t* bin)
   for(j=0;j<LENVAL;j++){c=ascii[j];if(c>='0' && c<='9'){*bin=*bin*10+c-48;}else{j=LENVAL;}}
 }
 
-/*void frecupptr(char* libfonct,uint8_t* v,uint8_t* b,uint8_t lenpersw)
-{  
-   *v=((*libfonct-48)*lenpersw+(*(libfonct+1)-MAXSW*16)/16)&0x0f;   // num octet de type d'action
-   *b=(*(libfonct+1)-MAXSW*16)%16;                                  // N° de bit dans l'octet de type d'action
-}
-*/
-/*void bitvSwCtl(byte* data,uint8_t sw,uint8_t datalen,uint8_t shift,byte msk)   
-// place le(s) bit(s) de valf position shift, masque msk, dans data de rang sw longeur datalen 
-{
-  //Serial.print("sw=");Serial.print(sw);Serial.print(" datalen=");Serial.print(datalen);Serial.print(" shift=");Serial.print(shift);Serial.print(" msk=");Serial.print(msk,HEX);Serial.print(" *valf=");Serial.println(*valf-PMFNCVAL);
-  //dumpstr(data,datalen);memset(data,0x00,datalen);
-  uint64_t pipm=0;memcpy(&pipm,(char*)(data+sw*datalen),datalen);
-  uint64_t c=((uint64_t)msk)<<shift;
-  pipm &= ~c;
-  c=0;c=((uint64_t)(*valf-PMFNCVAL))<<shift;
-  pipm +=c;
-//  Serial.print(" shift=");Serial.print(shift,HEX);Serial.print(" msk=");Serial.print(msk,HEX);Serial.print(" c=");dumpstr((char*)&c,8);
-  memcpy((char*)(data+sw*datalen),(char*)&pipm,datalen);
-}*/
-
-void switchCtl(uint8_t sw,byte val)
-{
-  switch(sw){
-    case 0:*periSwVal&=0xfd;*periSwVal|=(val&0x01)<<1;break;                           // peri Sw Val 0
-    case 1:*periSwVal&=0xf7;*periSwVal|=(val&0x01)<<3;break;                           // peri Sw Val 1
-    case 2:*periSwVal&=0xdf;*periSwVal|=(val&0x01)<<5;break;                           // peri Sw Val 2
-    case 3:*periSwVal&=0x7f;*periSwVal|=(val&0x01)<<7;break;                           // peri Sw Val 3
-    default:break;
-  }
-}
-
-
-void textfonc(char* nf,int len)
-{
-  memset(nf,0x00,len);
-  memcpy(nf,valf,nvalf[i+1]-nvalf[i]);
-}
-
 void test2Switchs()
 {
 
@@ -962,6 +924,12 @@ void testSwitch(char* command,char* perihost,int periport)
             delay(1);
 }
 
+void textfonc(char* nf,int len)
+{
+  memset(nf,0x00,len);
+  memcpy(nf,valf,nvalf[i+1]-nvalf[i]);
+}
+
 
 void commonserver(EthernetClient cli)
 {
@@ -978,6 +946,7 @@ void commonserver(EthernetClient cli)
       getremote_IP(&cli,remote_IP,remote_MAC);
 
       Serial.print("\n *** serveur actif  IP=");serialPrintIp(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
+      cxtime=millis();
       
       if (cli.connected()) 
         {nbreparams=getnv(&cli);Serial.print("\n---- nbreparams ");Serial.println(nbreparams);
@@ -1188,7 +1157,9 @@ void commonserver(EthernetClient cli)
               case 28: cfgRemoteHtml(&cli);remotePrint();break;                                      // bouton remotecfg_
               case 29: testHtml(&cli);break;                                                         // bouton testhtml
               case 30: {uint8_t sw=*(libfonctions+2*i+1)-48;                                         // (ligne peritable) peri Sw Val 
-                        switchCtl(sw,(byte)*valf);
+                        byte val=2+(sw)*4;
+                        *periSwVal &= maskbit[val];
+                        if((byte)*valf!=0){*periSwVal |= maskbit[val+1];}
 //                       Serial.print(" sw=");Serial.print(sw);Serial.print(" periSwVal=");Serial.println(*periSwVal,HEX);
                        }break;
               case 31: what=5;periCur=0;conv_atob(valf,&periCur);                                    // (input-tête) submit pulses (peri_t_sw_)
@@ -1406,13 +1377,10 @@ void commonserver(EthernetClient cli)
 
           default:accueilHtml(&cli);break;
         }
-Serial.println("what terminé");
         valeurs[0]='\0';
         purgeServer(&cli);
         cli.stop();
-
-        delay(1);
-        Serial.println("---- cli stopped"); 
+        Serial.print(" *** cli stopped - ");Serial.println(millis()-cxtime); 
 
     } // cli.connected
 }

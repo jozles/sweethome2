@@ -580,7 +580,7 @@ void timersHtml(EthernetClient* cli)
 
 void cliPrintDetServ(EthernetClient* cli,uint32_t* mds)
 {
-          dumpfield((char*)mds,4);
+          //dumpfield((char*)mds,4);
           cli->println(" détecteurs serveur (n->0):");
           for(int k=NBDSRV-1;k>=0;k--){subDSn(cli,"mem_dsrv__\0",*mds,k);}
 }

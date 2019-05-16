@@ -28,82 +28,58 @@ extern  int*    int0;
 extern uint32_t  mDSmaskbit[];
 
 
-/*extern  int   cntdebug[NBDBPTS];
-extern  long  timedebug[NBDBPTS*NBDBOC];
-extern  int*  v0debug[NBDBPTS*NBDBOC];
-extern  int*  v1debug[NBDBPTS*NBDBOC];
-extern  char* v2debug[NBDBPTS*NBDBOC];
-extern  char* v3debug[NBDBPTS*NBDBOC];
-extern  int*  int0=&(0x00);*/
-
-
 /* ------------------ généralités -------------------- 
 
   switchs :
 
-  les switchs sont actionnés par poling de la table des ccommandes de switch 
-  via swAction qui utilise les tables pulseCtl, swCde et staPulse
+  les switchs sont actionnés par poling de la table des ccommandes de switch (inputs ou règles)
+  via actions() qui utilise la table perInput des règles
 
-  (actuellement) 2 types : ON et OFF ; OFF est prioritaire
+  dans la limite du nombre d'inputs disponibles (24) une règle peut comporter autant d'actions que désiré
+  elles sont exécutées dans l'ordre ce qui a un effet sur le résultat !
+  via la source/destination "mémoire" le résultat d'une action peut être la source d'une autre
+  les positions de "mémoire" sont le résultat des opérations logiques effectuées par les actions
 
-  3 sources possibles pour chaque type : 1 détecteur logique choisi dans la table des détecteurs logiques
-                                         le bit de commande du serveur
-                                         le générateur d'impulsion du switch
+  Les règles comprennent :
+    La source (type/n°) pour identifier un détecteur (physique, mémoire, externe, pulse) 
+    Les paramètres de fonctionnement (enable/edge-static/active level/old level/action) 
+    la destination (type N°) pour identifier ce sur quoi agir (switch, mémoire, détecteur externe, pulse)
 
-  chaque source a un bit enable et un bit de niveau actif
-
-
-
-  détecteurs :
-
-  3 types : physiques, spéciaux, externes ; (spéciaux : bits serveur, alarmes etc ; externes positionnés par commande serveur)
+  l'action indique ce qui doit être fait lorsque les paramètres appliqués à la source matchent
+  certaines actions concernent exclusivement les générateurs de pulses, 
+  les autres actions pour switchs, mémoire et externes.
   
-  levdet() récupère le niveau de tous types
-
-  les détecteurs (physiques, spéciaux et externes) sont polés et, lorsqu'un changement d'état se produit,
-  leur image mémoire est mise à jour dans memDetec
-
-  le croisement de memDetec et pulseCtl fournit l'état du générateur d'impulsion (staPulse)
-
-  pulseCtl (devrait se nommer detecCtl) paramètre le fonctionnement de 4 détecteurs logiques (internes ou externes)
-  - n° du détecteur
-  - enable 
-  - local/externe
-  - statique/transitionnel (inutilisé)
-  - L/H
-  - n° action à exécuter quand : le détecteur en cours de traitement correspond, enable, local/externe ok, L/H ok
+  détecteurs (sources) :
+  4 types : 
+    physiques (accédés via memDetec), 
+    externes (accédés via cstRec.extDetec), 
+    mémoire (variable locale lors du polling dans actions()), 
+    pulses via staPulse
+  
+  les détecteurs physiques sont pollés et la table memDetec est mise à jour avec gestion du debounce.
+  fonctions swDebounce(), polAllDet() et polDx()
+    
   actions :
-  - start         active le cnt!=0 ou cnt1 si tout==0 ; stapulse devient run1 ou run2 
-  - stop          
-  - raz           les 2 compteurs=0 ; stapulse idle
-  - reset         les 2 compteurs et les 2 durées =0 ; stapulse idle
-  - fin           compteur courant au max puis avance compteur ; si bloqué -> stapulse end1 ou 2 sinon suite normale
-  - short         compteur courant au max ; stapulse inchangé
-  - impulsion     si impDetTime < DETIMP effectue raz sinon sans effet
-  - toogle switch change l'état du(ou des) switch(s) utilisant le détecteur (voir const.h pour les^pb de mise en oeuvre)
-  
-  
-  memDetec contient l'image mémoire des détecteurs locaux (physiques et spéciaux) et externes
-  1 bit indique le niveau L/H (suit en continu le niveau du détecteur)
-  (1 bit indique le flanc UP/DOWN actif -- inutilisé)
-  (2 bits indiquent l'état (DIS/IDLE/WAIT/TRIG) -- inutilisé)
-  polDx, à chaque transition, mets à jour le niveau du détecteur concerné et initialise le compteur de debounce
-  pendant le debounce pas de poling. 
-  le niveau de chaque détecteur est obtenu via levdet
-   
----- inutilisé
-  placé en mode suspendu  (IDLE) au reset et, si (TRIG) après traitement des pulses
-  initialisé en mode armé (WAIT) en fin de débounce si le serveur a le détecteur enable
-  placé en mode déclenché (TRIG) par la détection du flanc actif selon le serveur)
-----
+      (pulses)
+      - start         active le cnt!=0 ou cnt1 si tout==0 ; stapulse devient run1 ou run2 
+      - stop          
+      - raz           les 2 compteurs=0 ; stapulse idle
+      - reset         les 2 compteurs et les 2 durées =0 ; stapulse idle
+      - fin           compteur courant au max puis avance compteur ; si bloqué -> stapulse end1 ou 2 sinon suite normale
+      - short         compteur courant au max ; stapulse inchangé
+      - impulsion     si impDetTime < DETIMP effectue raz sinon sans effet
+      (autres)
+      - toogle        inverse l'état de la destination
+      - OR            force à 1 la destination
+      - NAND          force à 0 la destination 
   
   staPulse est l'état du générateur
-  placé en mode débranché (DISABLE) en cas d'erreur système (action invalide d'un détecteur)
-  placé en mode suspendu  (IDLE) suite à une action STOP d'un détecteur logique ou en fin de oneshot
-  placé en mode comptage  (RUN)  suite à une action START d'un détecteur logique
-  placé en mode fin       (END)  lorsque le comptage d'une phase est terminé et que la phase suivante est débranchée 
+    en mode débranché (DISABLE) en cas d'erreur système (action invalide d'un détecteur)
+    en mode suspendu  (IDLE) suite à une action STOP d'un détecteur logique ou en fin de oneshot
+    en mode comptage  (RUN)  suite à une action START d'un détecteur logique
+    en mode fin       (END)  lorsque le comptage d'une phase est terminé et que la phase suivante est débranchée 
   staPulse est mis à jour par isrPulse
-  l'état des pulses est obtenu par croisement de memDetec et swPulseCtl qui contient le code de l'action à exécuter
+
  
 */
 
@@ -112,9 +88,9 @@ extern  int*  int0=&(0x00);*/
 
 /* -------------- gestion commande switchs ----------------- */
 
-uint8_t rdy(byte modesw,int sw) // pour les 3 sources, check bit enable puis etat source ; retour numéro source valorisé si valide sinon 0
+/*uint8_t rdy(byte modesw,int sw) // pour les 3 sources, check bit enable puis etat source ; retour numéro source valorisé si valide sinon 0
 {
-/*  modesw copie du mot de contrôle du switch (OffCdeO, OnCdeO, OnCdeI, OffCdeI) 2 bits valide par source ;
+  modesw copie du mot de contrôle du switch (OffCdeO, OnCdeO, OnCdeI, OffCdeI) 2 bits valide par source ;
  *  pour chacune des sources, test du bit enable de la source SWxxEN_VB (xx=DL pour détecteur logique, MS pour serveur, MP pour pulse)
    si pas enable, source suivante ; 
 */
@@ -177,115 +153,11 @@ uint8_t rdy(byte modesw,int sw) // pour les 3 sources, check bit enable puis eta
                         {return 3;}break;}
                     else {if(cstRec.cntPulseTwo[sw]!=0){return 3;}break;}
       default: break;
-    }*/
+    }
 //  }
   return 0;                                      // disable 
-}
+}*/
 
-/*
-void swAction()         // poling des switchs pour maj selon règles et disjonteur
-                        // pour chaque switch et chaque input, 
-                        //      récup valeur détecteur
-                        //      comparaison avec valeur demandée (et flanc éventuel) des règles actives (enable) dans l'ordre des priorités
-                        //      (disjoncteur, conjoncteur, interrupteur, allumeur)
-{ 
-  uint8_t detecFound=0;     // indic que detecState est valide
-  uint8_t detecState=0;     // valeur trouvée pour l'input (type-n°)
-  uint8_t rulbitState=0;    // valeur active pour la règle conj/int
-  uint8_t rules=8;          // byte des règles dans swInput 
-  
-  for(int ns=0;ns<NBSW;ns++){
-
-    uint8_t rulesVal=0;                        // valeur finale de la règle (8 OFF par défaut ; 1 ON conj ; 0 OFF inter ; 2 ON allumeur
-    if(((cstRec.swCde>>(ns*2+1))&0x01)!=0){                                          // no disjoncteur ?
-      for(int ninp=0;ninp<NBSWINPUT;ninp++){
-
-        uint16_t offs=ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN;
-        uint8_t eni=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPEN_PB)&0x01);         // enable
-        uint8_t edgestat=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPDETES_PB)&0x01); // edge/static
-        uint8_t oldlev=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPOLDLEV_PB)&0x01);  // oldlev        
-        uint8_t typ=*(uint8_t*)(cstRec.swInput+offs)&SWINPNT_MS;                     // type
-        uint8_t ndet=(*(uint8_t*)(cstRec.swInput+offs)&SWINPV_MS)>>SWINPNVLS_PB;     // n° det
-        uint8_t curact=((*(uint8_t*)(cstRec.swInput+2+offs)>>SWINPACTLS_PB)&0x01);   // action 
-
-        if(eni!=0){
-          switch(typ){
-            case DETYEXT:detecState=(cstRec.extDetec>>ndet)&0x01;                   // détecteur externe valide
-                 detecFound=1;break;
-            case DETYLOC:
-                 if(cstRec.memDetec[ndet]>>DETBITST_PB != DETDIS) {                 // detecteur pas disable
-                    detecState=(cstRec.memDetec[ndet]>>DETBITLH_PB)&0x01;           // détecteur local valide
-                    detecFound=1;
-                 }
-                 break;
-            case DETYPUL:break;                                                     // pulse valide ?
-/*      uint8_t vPulse=0;
-        bool lh=0; // valoriser avec etat actif demandé
-        switch(staPulse[ndet]){
-          case PM_RUN1: if(!lh){vPulse=1;}break;     // pulse run1=L, demandé L ---> ok
-          case PM_RUN2: if( lh){vPulse=1;}break;     // pulse run2=H, demandé H ---> ok
-          case PM_END1: if(!lh){vPulse=1;}break;     // pulse end1=L, demandé L ---> ok
-          case PM_END2: if( lh){vPulse=1;}break;     // pulse run1=H, demandé H ---> ok
-          case PM_IDLE: if(!lh){                     // pulse idle,   demandé L et cnt1 !=0 ---> ok
-                                                     //                         et cnt1+cnt2=0 > ok
-                                                     //               demandé H et cnt2 !=0 ---> ok
-                          if((cstRec.cntPulseOne[ndet]!=0) || ((cstRec.cntPulseOne[ndet]+cstRec.cntPulseTwo[ndet])==0))
-                            {vPulse=1;}break;}
-                        else {if(cstRec.cntPulseTwo[ndet]!=0){vPulse=1;}break;}
-          default: break;
-        }
-        if(vPulse!=0){          
-*/
-/*
-            default:break;
-          }
-          if(detecFound!=0){                                                                   // detecState valorisé
-
-            rules=(*(uint8_t*)(cstRec.swInput+1+offs)>>SWINPRULESLS_PB);        
-            rulbitState=0;                                                                     
-            if((rules&RULBITICVAL)!=0){rulbitState=1;}                                         // état actif pout inter et conj
-            
-            if(((rules&RULBITCEN)!=0 && (rulbitState==detecState) && edgestat!=0)                                // si conj et état actif et static
-                 || ((rules&RULBITCEN)!=0 && (rulbitState==detecState) && oldlev!=detecState && edgestat==0)     // si conj et flanc actif et edge
-                 ){         
-                //delay(1000);Serial.print("ns=");Serial.print(ns);Serial.print(" ninp=");
-                //Serial.print(ninp);Serial.println("; swon ");
-                rulesVal=1;ninp=NBSWINPUT;}                                                    // conj ok -> rulesVal=1, next switch
-                //digitalWrite(pinSw[ns],ON);ninp=NBSWINPUT;}                                    // ***** ON RULE ***** (next sw)
-            else if(((rules&RULBITIEN)!=0 && (rulbitState==detecState) && edgestat!=0)                           // inter  et état actif et static
-                 || ((rules&RULBITIEN)!=0 && (rulbitState==detecState) && oldlev!=detecState && edgestat==0)     // inter  et flanc actif et edge                                                                       
-                 ){ 
-                //delay(1000);Serial.print("ns=");Serial.print(ns);Serial.print(" ninp=");
-                //Serial.print(ninp);Serial.println("; swoff ");
-                rulesVal=0;}                                                                   // inter ok -> rulesVal=0, next input
-                //digitalWrite(pinSw[ns],OFF);}                                                  // ***** OFF RULE *****
-            else if (rulesVal>2){                                                              // switch ni conj ni int ni allumé
-                rulbitState=0;
-                if((rules&RULBITAVAL)!=0){rulbitState=1;}                                      // état actif pout allumeur
-                if(((rules&RULBITAEN)!=0 && (rulbitState==detecState) && edgestat!=0)          // allumeur  et état actif et static
-                     || ((rules&RULBITAEN)!=0 && (rulbitState==detecState) && oldlev!=detecState && edgestat==0)    // inter  et flanc actif et edge                                                                       
-                     ){rulesVal=2;}
-            }   // rulesVal>2 (input ni conj ni inter ni allumé)
-          }     // found
-        }       // input enable
-        switch(curact){
-          case 0:if(rulesVal==8 || rulesVal==0){digitalWrite(pinSw[ns],OFF);}
-                 if(rulesVal==2 || rulesVal==1){digitalWrite(pinSw[ns],ON);}
-                 break;
-          default: break; 
-        // rulesVal 8->OFF 2->ON 1->ON 0->OFF  
-        }    
-        *(uint8_t*)(cstRec.perInput+2+offs) &= ~(detecState<<PERINPOLDLEV_PB);                      // mise à jour oldlev ON ou OFF
-        *(uint8_t*)(cstRec.perInput+2+offs) |= (detecState<<PERINPOLDLEV_PB);      
-      }         // next input
-    }           // no disjoncteur
-    else {      // disjoncteur
-      //delay(1000);Serial.print("ns=");Serial.print(ns);Serial.print(" ninp=");Serial.print(ninp);Serial.print("; swoff ");
-      digitalWrite(pinSw[ns],OFF);}                                             // ***** OFF (disjoncteur) *****
-    //Serial.println();
-  }             // next switch
-}
-*/
 void actions()           // pour chaque input, test enable,
 {                       //      récup valeur détecteur
                         //      comparaison avec valeur demandée (et flanc éventuel) des règles actives (enable) dans l'ordre des priorités
@@ -318,16 +190,6 @@ void actions()           // pour chaque input, test enable,
       }                                                         
 
     if(detecFound!=0){
-/*
- 
- (flanc ok : detecState!=oldState && detecState==req level)
- (level ok : detecState==active level)
-
-  setup oldState
-
-  exécution de l'action si 1
- 
-*/
 
       if(
           (
@@ -341,7 +203,7 @@ void actions()           // pour chaque input, test enable,
           &&(detecState==(((*(curinp+2))>>PERINPVALID_PB) &0x01))               // état ok          
           )
         ){ 
-if(inp<3){Serial.print(" enable=");Serial.print((*(curinp+2))&PERINPEN_VB);Serial.print(" types=");Serial.print((*curinp)&PERINPNT_MS);Serial.print(" num=");Serial.print(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);Serial.print(" detecFound=");Serial.print(detecFound);Serial.print(" detecState=");Serial.print(detecState);Serial.print(" disjonct=");Serial.print((cstRec.swCde>>(ndest*2+1))&0x01);Serial.print("/");Serial.print(cstRec.swCde,HEX);Serial.print("/");Serial.print(ndest,HEX);Serial.print(" typed=");Serial.print((*(curinp+3))&PERINPNT_MS);Serial.print(" action=");Serial.println((*(curinp+2))>>PERINPACTLS_PB);}
+//if(inp<3){Serial.print(" enable=");Serial.print((*(curinp+2))&PERINPEN_VB);Serial.print(" types=");Serial.print((*curinp)&PERINPNT_MS);Serial.print(" num=");Serial.print(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);Serial.print(" detecFound=");Serial.print(detecFound);Serial.print(" detecState=");Serial.print(detecState);Serial.print(" disjonct=");Serial.print((cstRec.swCde>>(ndest*2+1))&0x01);Serial.print("/");Serial.print(cstRec.swCde,HEX);Serial.print("/");Serial.print(ndest,HEX);Serial.print(" typed=");Serial.print((*(curinp+3))&PERINPNT_MS);Serial.print(" action=");Serial.println((*(curinp+2))>>PERINPACTLS_PB);}
             *(curinp+2) &= ~PERINPOLDLEV_VB;                                       // raz bit oldstate
             detecState << PERINPOLDLEV_PB;                                         
             *(curinp+2) |= detecState;                                             // setup oldstate
@@ -401,9 +263,7 @@ if(inp<3){Serial.print(" enable=");Serial.print((*(curinp+2))&PERINPEN_VB);Seria
       }else{} // si condition non validée pas d'action : configurer explicitement pour l'inverse si nécessaire
        
     }   // detecFound   
-    }   // enable
-
-   
+    }   // enable  
   }     // next input
 }
 
@@ -578,37 +438,14 @@ void memdetinit()                         // init détecteurs locaux et pulse à
 void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur det (polDx masqué par tempo debounce) 
                                      // memDetec sert uniquement à mettre le débounce en commun si plusieurs inputs
                                      // utilisent le même détecteur (seul bit utilisé : LH)
-{
-                                     // memDetec :
-                                     //    bits DETBITST_  status (disable/idle/wait/trig
-                                     //    bit  DETBITLH_  dernier état
-                                     //    bit  DETBITUD_  prochain flanc valide 
-                                     //                   (le détecteur passe en mode trig-déclenché pour la màj de staPulse puis revient à idle)
-                                     
-//  if(cstRec.memDetec[det]>>DETBITST_PB != DETDIS) {                     // detecteur pas disable
-    
+{    
     byte lev=digitalRead(pinDet[det]);
     if( ((byte)(cstRec.memDetec[det]>>DETBITLH_PB)&0x01) != lev ){    // niveau lu != niveau actuel de memDetec ?
       // level change -> update memDetec
       cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
       cstRec.memDetec[det] |= lev<<DETBITLH_PB;                       // set bit LH 
       detTime[det]=millis();                                          // arme debounce
-      Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.print(lev);Serial.print(" - ");
-/*    
-      if( ((byte)(cstRec.memDetec[det]>>DETBITUD_PB)&0x01) == lev ){
-        // waited edge
-        Serial.print(" edge=");Serial.print((byte)((cstRec.memDetec[det]>>DETBITUD_PB)&0x01),HEX);Serial.print(" ");
-        cstRec.memDetec[det] &= ~DETBITST_VB;                           // raz bits ST
-        cstRec.memDetec[det] |= DETTRIG<<DETBITST_PB;                   // set bits ST (déclenché)
-
-        //isrPul(det);                                                    // staPulse setup : exploration si ce flanc est prévu dans un dl 
-
-        cstRec.memDetec[det] &= ~DETBITST_VB;                           // raz bits ST    
-        cstRec.memDetec[det] |= DETIDLE<<DETBITST_PB;                   // retour Idle
-
-      Serial.println();printConstant();
-    }
-*/    
+      Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.println(lev);//Serial.print(" - ");
   }
 }
 

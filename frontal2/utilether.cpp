@@ -243,10 +243,9 @@ int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
 
   Udp.begin(localUDPPort);
 
-  sendNTPpacket(timeServer); // send an NTP packet to a time server
-
-  // wait to see if a reply is available
-  delay(1000);
+  sendNTPpacket(timeServer); 
+  
+  delay(1000);                                // wait to see if a reply is available
   if (Udp.parsePacket()) {                    // packet received
     Udp.read(packetBuffer, NTP_PACKET_SIZE);  // get it                 // sec1900- 2208988800UL;
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);

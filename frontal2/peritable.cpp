@@ -31,7 +31,7 @@ extern char*     thermonames;
 extern int16_t*  thermoperis;
 extern uint16_t* toPassword;
 
-
+extern long      cxtime;
 extern char*     chexa;
 
 extern uint8_t   remote_IP[4],remote_IP_cur[4];
@@ -236,7 +236,8 @@ void periTableHtml(EthernetClient* cli)
   int i,j;
   int savePeriCur=periCur;   // save periCur et restore à la fin de periTable
 
-Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.println();
+
+Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.print(" cxtime=");Serial.println(millis()-cxtime); 
 
   htmlIntro(nomserver,cli);
 
@@ -315,7 +316,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
                       numTableHtml(cli,'b',periDetNb,"peri_detnb",1,3,0);
                       cli->println("<td>");
                       xradioTableHtml(cli,*periSwVal,"peri_vsw_\0",2,*periSwNb,3);
-                      
+                     
                       cli->print("<td>");
                       for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){cli->print("<br>");}}
                       cli->println("</td>");
@@ -348,7 +349,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           cli->println("</table>");
         cli->println("</body></html>");
 periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
-Serial.println("fin péritable");
+Serial.print("fin péritable - cxtime=");Serial.println(millis()-cxtime); 
 }
 
 
