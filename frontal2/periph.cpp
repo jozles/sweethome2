@@ -93,8 +93,9 @@ extern byte      periMacBuf[6];
 
 extern byte      lastIpAddr[4];
 
-char inptyps[]="__exlopu??";                  // libellés types sources inputs
-char inptypd[]="__exlosw??";                  // libellés types destinations inputs
+char inptyps[]="meexphpu??";                  // libellés types sources inputs
+char inptypd[]="meexsw__??";                  // libellés types destinations inputs
+char inpact[]={"nop  RAZ  STOP STARTSHORTEND  IMP  RESETTGLE OR   AND  NAND "};      // libellés actions
 
 extern struct SwRemote remoteT[MAXREMLI];
 extern char*  remoteTA;
@@ -361,33 +362,30 @@ void periFname(uint16_t num,char* fname)
 
 void periInputPrint(byte* input)
 {
-  Serial.println("inputs       codes actions 0=reset 1=raz 2=stop 3=start 4=short 5=end 6=imp");
-#define LBINP 18
+  Serial.print("inputs ");
+#define LBINP 23
   char binput[LBINP];
   byte inp[3];
   byte a;
+  char ed[]="de",es[]="es";  
   
   for(int ninp=0;ninp<NBPERINPUT;ninp++){  
-      
-/*      for(int in=0;in<3;in++){
-        inp[in]=(byte)*(input+in+ns*NBSWINPUT*SWINPLEN+ninp*SWINPLEN);
-        if((inp[in]&0xF0)==0){Serial.print("0");}Serial.print(inp[in],HEX);}
-        Serial.print("  ");*/
-      
+
       memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
-      binput[0]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)+48;                          // en input
+      binput[0]=ed[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)];                         // en input
+      binput[2]=es[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPDETES_PB)&0x01)];                      // edge/static input
+      binput[4]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPOLDLEV_PB)&0x01)+48;                      // prev level
+      binput[6]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPVALID_PB)&0x01)+48;                       // valid level
       a=*(uint8_t*)(input+ninp*PERINPLEN)&PERINPNT_MS;
-      if(a>3){a=4;}binput[2]=inptyps[a*2];binput[3]=inptyps[a*2+1];                                    // type détec src
-      a=*(uint8_t*)(input+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+5,&a);                       // n° détec src
+      if(a>3){a=4;}binput[8]=inptyps[a*2];binput[9]=inptyps[a*2+1];                                    // type détec src
+      a=*(uint8_t*)(input+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+11,&a);                      // n° détec src
       a=*(uint8_t*)(input+ninp*PERINPLEN+3)&PERINPNT_MS;
-      if(a>3){a=4;}binput[8]=inptypd[a*2];binput[9]=inptypd[a*2+1];                                    // type détec dest
-      a=*(uint8_t*)(input+ninp*PERINPLEN+3)>>PERINPNVLS_PB;conv_htoa(binput+11,&a);                    // n° détec dest
-      a=(*(uint8_t*)(input+2+ninp*PERINPLEN)&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+14,&a);    // act input
+      if(a>3){a=4;}binput[14]=inptypd[a*2];binput[15]=inptypd[a*2+1];                                  // type détec dest
+      a=*(uint8_t*)(input+ninp*PERINPLEN+3)>>PERINPNVLS_PB;conv_htoa(binput+17,&a);                    // n° détec dest
+      a=(*((uint8_t*)(input+2+ninp*PERINPLEN))&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+20,&a);  // act input
       Serial.print(binput);
-      for(int binp=7;binp>=0;binp--){
-        Serial.print((*(uint8_t*)(input+1+ninp*PERINPLEN)>>(PERINPRULESLS_PB+binp))&0x01);             // règle
-      }
-      sp("   ",0);
+      for(int tact=0;tact<LENTACT;tact++){Serial.print(inpact[a*LENTACT+tact]);}
+      sp("  / ",0);
     }
     Serial.println();
 }
@@ -417,8 +415,9 @@ void  periPrint(uint16_t num)
   serialPrintMac(periMacr,0);Serial.print(" ");serialPrintIp(periIpAddr);Serial.print(" port=");Serial.print(*periPort);
   Serial.print(" sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.print(*periDetNb);Serial.print(" ");
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
-  Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(") ");
-  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((*periSwVal>>(2*s-1))&0x01)+48));}Serial.print("  det=");Serial.println(*periDetNb);
+  Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(")  ");
+  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((*periSwVal>>(2*s-1))&0x01)+48));}Serial.print("  det=");Serial.print(*periDetNb);
+  Serial.print("  server=");
   periDetServPrint(&memDetServ);Serial.print(" millis=");Serial.println(millis());
   periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo);
   periInputPrint(periInput);

@@ -2,7 +2,7 @@
 #define _SHCONST_H_
 
 
-//#define PERIF
+#define PERIF
 
 #define LENVERSION  4
 #define LENMODEL    6
@@ -372,21 +372,44 @@ enum {OFF,ON};
 #define RULBITAEN   0x08     // enable allumeur
 
 
-/* codes actions */
+/* codes et libellés actions */
+
+#define LENTACT 5            // len libellé
 
 //#define PMDCA_SW    0x00     // switch update
+#define PMDCA_NOP   0x00     // nop
+#define ACT0 'n','o','p',' ',' '
 #define PMDCA_RAZ   0x01     // raz
+#define ACT1 'R','A','Z',' ',' '
 #define PMDCA_STOP  0x02     // stop  clk
+#define ACT2 'STOP '
 #define PMDCA_START 0x03     // start clk
+#define ACT3 'START'
 #define PMDCA_SHORT 0x04     // short pulse
+#define ACT4 'SHORT'
 #define PMDCA_END   0x05     // end pulse
+#define ACT5 'END  '
 #define PMDCA_IMP   0x06     // start/stop impulsionnel
+#define ACT6 'IMP  '
 #define PMDCA_RESET 0x07     // reset
+#define ACT7 'RESET'
 #define PMDCA_TGL   0x08     // toggle dest
+#define ACT8 'TGLE '
 #define PMDCA_LOR   0x09     // logical or dest
+#define ACT9 'OR   '
 #define PMDCA_LAND  0x0A     // logical and dest
+#define ACT10 'AND  '
+#define PMDCA_LNAND 0x0B     //
+#define ACT11 'NAND_'
+#define PMDCA_VIDE  0x0C     //
+#define ACT12 '_____'
+#define PMDCA_VIDE  0x0D     //
+#define ACT13 '_____'
+#define PMDCA_VIDE  0x0E     //
+#define ACT14 '_____'
+#define PMDCA_VIDE  0x0F     //
+#define ACT15 '_____'
 
-
-#define MAXACT 16
+#define MAXACT 15
 
 #endif  _SHCONST_H_

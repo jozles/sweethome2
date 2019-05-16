@@ -123,7 +123,7 @@ int messToServer(WiFiClient* cli,const char* host,const int port,char* data)    
     //purgeServer(cli);
 #endif // PERIF
 
-  while(!x && repeat<10){
+  while(!x && repeat<4){
     x=cli->connect(host,port);
     v=MESSOK;
     repeat++;
@@ -239,9 +239,7 @@ int getHttpResponse(WiFiClient* cli, char* data,int lmax,uint8_t* fonction)     
 
   q=waitRefCli(cli,body,strlen(body),bufServer,0);
   if(q==MESSOK){q=waitRefCli(cli,bodyend,strlen(bodyend),data,lmax-strlen(bodyend));}
-  if(q==MESSOK){
-    q=checkHttpData(data,fonction);
-  }
+  if(q==MESSOK){q=checkHttpData(data,fonction);}
   Serial.println();
   return q;
 }

@@ -286,7 +286,7 @@ void swAction()         // poling des switchs pour maj selon règles et disjonte
   }             // next switch
 }
 */
-void action()           // pour chaque input, test enable,
+void actions()           // pour chaque input, test enable,
 {                       //      récup valeur détecteur
                         //      comparaison avec valeur demandée (et flanc éventuel) des règles actives (enable) dans l'ordre des priorités
                         //      (conjoncteur, interrupteur, allumeur)
@@ -306,11 +306,11 @@ void action()           // pour chaque input, test enable,
     nsrce=(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);
     ndest=(((*curinp+3)&PERINPV_MS)>>PERINPNVLS_PB);
     
-    if((*(curinp+2)&PERINPEN_VB)!=0){                           // enable
+    if(((*(curinp+2))&PERINPEN_VB)!=0){                         // enable
       switch((*curinp)&PERINPNT_MS){                            // type
         case DETYEXT:detecState=(cstRec.extDetec>>nsrce)&0x01;  // valeur détecteur externe 
              detecFound=1;break;
-        case DETYPHY:detecState=(byte)(cstRec.memDetec[nsrce]>>DETBITLH_PB)&0x01;     // valeur détecteur local
+        case DETYPHY:detecState=(byte)(cstRec.memDetec[nsrce]>>DETBITLH_PB)&0x01;     // valeur détecteur physique
              detecFound=1;break;
         case DETYMEM:detecState=(locmem>>nsrce)&0x01;           // valeur intermédiaire
         case DETYPUL:break;                                     // pulse 
@@ -327,26 +327,28 @@ void action()           // pour chaque input, test enable,
 
   exécution de l'action si 1
  
-*/      
+*/
+
       if(
           (
-            ((*(curinp+2)&PERINPDETES_VB)==0)                                 // edge
-          &&(detecState!=((*(curinp+2)>>PERINPOLDLEV_VB)&0x01))               // flanc
-          &&(detecState==((*(curinp+2)>>PERINPVALID_VB) &0x01))               // flanc ok
+            (((*(curinp+2))&PERINPDETES_VB)==0)                                 // edge
+          &&(detecState!=(((*(curinp+2))>>PERINPOLDLEV_PB)&0x01))               // flanc
+          &&(detecState==(((*(curinp+2))>>PERINPVALID_PB) &0x01))               // flanc ok
           )
           ||                                                                  // ou
           (
-            ((*(curinp+2)&PERINPDETES_VB)!=0)                                 // static
-          &&(detecState==((*(curinp+2)>>PERINPVALID_VB) &0x01))               // état ok          
+            (((*(curinp+2))&PERINPDETES_VB)!=0)                                 // static
+          &&(detecState==(((*(curinp+2))>>PERINPVALID_PB) &0x01))               // état ok          
           )
         ){ 
+//if(inp<2){Serial.print(" enable=");Serial.print((*(curinp+2))&PERINPEN_VB);Serial.print(" types=");Serial.print((*curinp)&PERINPNT_MS);Serial.print(" num=");Serial.print(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);Serial.print(" detecFound=");Serial.print(detecFound);Serial.print(" detecState=");Serial.print(detecState);Serial.print(" disjonct=");Serial.print((cstRec.swCde>>(ndest*2+1))&0x01);Serial.print(" typed=");Serial.print((*(curinp+3))&PERINPNT_MS);Serial.print(" action=");Serial.println((*(curinp+2))>>PERINPACTLS_PB);}
             *(curinp+2) &= ~PERINPOLDLEV_VB;                                       // raz bit oldstate
             detecState << PERINPOLDLEV_PB;                                         
             *(curinp+2) |= detecState;                                             // setup oldstate
 
             uint32_t lmbit;
-            switch((byte)(*(curinp+2)>>PERINPACTLS_PB)){                           // exécution action
-              case PMDCA_LOR:switch((byte)(*(curinp+2)&PERINPNT_MS)){                     // type dest
+            switch((byte)((*(curinp+2))>>PERINPACTLS_PB)){                           // exécution action
+              case PMDCA_LOR:switch((byte)((*(curinp+3))&PERINPNT_MS)){                     // type dest
                              case DETYEXT:break;
                              case DETYMEM:locmem |= mDSmaskbit[ndest];break;              // or locmembit,1
                              case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
@@ -356,7 +358,7 @@ void action()           // pour chaque input, test enable,
                              default:break;
                              }
                              break;
-              case PMDCA_LAND:switch((byte)(*(curinp+2)&PERINPNT_MS)){                    // type dest
+              case PMDCA_LAND:switch((byte)((*(curinp+3))&PERINPNT_MS)){                    // type dest
                              case DETYEXT:break;
                              case DETYMEM:lmbit=locmem & mDSmaskbit[ndest];               // get anded locmembit,1
                                           locmem &= ~mDSmaskbit[ndest];                   // raz locmem bit
@@ -369,7 +371,19 @@ void action()           // pour chaque input, test enable,
                              default:break;
                              }
                              break;
-              case PMDCA_TGL:switch((byte)(*(curinp+2)&PERINPNT_MS)){                     // type dest
+              case PMDCA_LNAND:switch((byte)((*(curinp+3))&PERINPNT_MS)){                   // type dest
+                             case DETYEXT:break;
+                             case DETYMEM:locmem &= ~mDSmaskbit[ndest];break;             // raz locmem bit
+                             case DETYSW://if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
+                                         //digitalWrite(pinSw[ndest],OFF);}
+                                         //else{
+                                         digitalWrite(pinSw[ndest],OFF);
+                                         //}
+                                         break;
+                             default:break;
+                             }
+                             break;                             
+              case PMDCA_TGL:switch((byte)((*(curinp+3))&PERINPNT_MS)){                     // type dest
                              case DETYEXT:break;
                              case DETYMEM:lmbit=(locmem ^ 0xffffffff) & mDSmaskbit[ndest];// get eored locmem bit
                                           locmem &= ~mDSmaskbit[ndest];                   // raz locmem bit
@@ -388,6 +402,8 @@ void action()           // pour chaque input, test enable,
        
     }   // detecFound   
     }   // enable
+
+   
   }     // next input
 }
 
@@ -397,7 +413,7 @@ void action()           // pour chaque input, test enable,
 void setPulseChg(int sw ,uint64_t* spctl,char timeOT)     // traitement fin de temps 
                                                           // spctl les DLSWLEN bytes d'un switch dans pulseCtl
                                                           // timeOT ='O' fin timeOne ; ='T' fin timeTwo
-{ Serial.print(" sw=");Serial.print(sw);
+{Serial.print(" sw=");Serial.print(sw);
   if(timeOT=='O'){
         if((*spctl&(uint64_t)PMTTE_VB)!=0){                                           // cnt2 enable -> run2
           cstRec.cntPulseOne[sw]=0;cstRec.cntPulseTwo[sw]=1;staPulse[sw]=PM_RUN2;Serial.print(" PM_RUN2 ");}

@@ -318,7 +318,7 @@ delay(100);
           case 2:   break;
           case 3:   timeOvfSet(3);ordreExt();timeOvfCtl(3);break;
           case 4:   break;
-          case 5:   timeOvfSet(5);action();timeOvfCtl(5);break;
+          case 5:   timeOvfSet(5);actions();timeOvfCtl(5);break;
           case 6:   break;
           case 7:   break;
           case 8:   swDebounce();break;                                 // doit être avant polDx
@@ -437,6 +437,7 @@ void fServer(uint8_t fwaited)          // réception du message réponse du serv
                                        // retour periMess  
 {      
         periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction);
+        Serial.print("fserver periMess=");Serial.println(periMess); 
         infos("gHResp",bufServer,0);
         if(periMess==MESSOK){
 

@@ -90,7 +90,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchdispo_____peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_peri_dsv__mem_dsrv__ssid______passssid__usrname___usrpass____cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlthername__therperi__thermohtmlperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldone______last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_peri_dsv__mem_dsrv__ssid______passssid__usrname___usrpass____cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlthername__therperi__thermohtmlperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldone______last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
@@ -1177,7 +1177,11 @@ void commonserver(EthernetClient cli)
               case 21: *periProg=*valf-48;break;                                                     // (ligne peritable) peri prog
               case 22: *periSondeNb=*valf-48;if(*periSondeNb>MAXSDE){*periSondeNb=MAXSDE;}break;     // (ligne peritable) peri sonde
               case 23: *periPitch=0;*periPitch=convStrToNum(valf,&j);break;                          // (ligne peritable) peri pitch
-              case 24: {}break;                                                                      // dispo
+              case 24: what=5;periCur=0;conv_atob(valf,&periCur);                                    // (input-lignes) submit peri_inp__ set periCur raz cb
+                       if(periCur>NBPERIF){periCur=NBPERIF;}
+                       periInitVar();periLoad(periCur);
+                       *(byte*)(periInput+((uint8_t)(*(libfonctions+2*i+1))-PMFNCHAR)*PERINPLEN+2)&=PERINPACT_MS;                            // effacement cb (detec/active/edge/en)
+                       break;                                                                      
               case 25: *periDetNb=*valf-48;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;           // (ligne peritable) peri det Nb  
               case 26: *periSwNb=*valf-48;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;                // (ligne peritable) peri sw Nb                       
               case 27: *periPerTemp=0;conv_atob(valf,periPerTemp);break;                             // periode check température
@@ -1187,12 +1191,11 @@ void commonserver(EthernetClient cli)
                         switchCtl(sw,(byte)*valf);
 //                       Serial.print(" sw=");Serial.print(sw);Serial.print(" periSwVal=");Serial.println(*periSwVal,HEX);
                        }break;
-              case 31: what=5;periCur=0;conv_atob(valf,&periCur);                                    // submit modifs dans tables sw (peri_t_sw_)
+              case 31: what=5;periCur=0;conv_atob(valf,&periCur);                                    // (input-tête) submit pulses (peri_t_sw_)
                        if(periCur>NBPERIF){periCur=NBPERIF;}
                        periInitVar();periLoad(periCur);                                              // effacement checkboxs des switchs du periphérique courant
                        {for(int inp=0;inp<NBPERINPUT;inp++){
-                           *(byte*)(periInput+inp*PERINPLEN+1)=0x00;
-                           *(byte*)(periInput+inp*PERINPLEN+2)=0x00;}
+                           *(byte*)(periInput+inp*PERINPLEN+1)=0x00;}
                         memset(periSwPulseCtl,0x00,PCTLLEN);                                         // bits enable pulse et free run 
                        }break;  
               case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);             // (pulses) periSwPulseCtl (otf) bits généraux (FOT)
@@ -1221,16 +1224,16 @@ void commonserver(EthernetClient cli)
                                  *(periInput+offs)&=~PERINPV_MS;
                                  *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;               // num detec src
                           case 6:vl=(uint16_t)(*valf-48);if(vl>3){vl=1;}
-                                 *(periInput+offs)&=~PERINPNT_MS;
-                                 *(uint8_t*)(periInput+offs)|=vl<<PERINPNTLS_PB;break;                // type dest
+                                 *(periInput+offs+3)&=~PERINPNT_MS;
+                                 *(uint8_t*)(periInput+offs+3)|=vl<<PERINPNTLS_PB;break;              // type dest
                           case 7:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
-                                 *(periInput+offs)&=~PERINPV_MS;
-                                 *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;               // num detec dest                                 
-                          case 8:vl=(uint16_t)(*valf-48);if(vl>MAXACT){vl=MAXACT;}                                 
-                                 *(uint8_t*)(periInput+offs+1)&=~PERINPACT_MS;
-                                 *(uint8_t*)(periInput+offs+1)|=vl<<PERINPACTLS_PB;
-                                 break;                                                                // action
-                          case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;         // active level
+                                 *(periInput+offs+3)&=~PERINPV_MS;
+                                 *(periInput+offs+3)|=(uint8_t)(vl<<PERINPNVLS_PB);break;             // num detec dest                                 
+                          case 8:conv_atob(valf,&vl);if(vl>MAXACT){vl=MAXACT;}                                 
+                                 *(uint8_t*)(periInput+offs+2)&=~PERINPACT_MS;
+                                 *(uint8_t*)(periInput+offs+2)|=vl<<PERINPACTLS_PB;
+                                 break;                                                               // action
+                          case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;        // active level
                           default:break;
                         }
                        }break;                                                                      

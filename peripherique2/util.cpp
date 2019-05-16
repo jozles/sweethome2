@@ -41,6 +41,10 @@ extern uint16_t tempPeriod;
 
 extern float    voltage;
 
+char inptyps[]="meexphpu??";                  // libellés types sources inputs
+char inptypd[]="meexsw__??";                  // libellés types destinations inputs
+char inpact[]={"nop  RAZ  STOP STARTSHORTEND  IMP  RESETTGLE OR   AND   NAND "};      // libellés actions
+
 void checkVoltage()
 {
       voltage=(float)ESP.getVcc()/(float)1024;
@@ -111,7 +115,8 @@ Serial.print("writeConstant ");for(int h=0;h<4;h++){Serial.print(cstRec.cstVers[
 Serial.print((long)cstRecA,HEX);
 Serial.print(" len=");Serial.print((char*)&cstRec.cstcrc-cstRecA+1);
 Serial.print("/");Serial.print(cstRec.cstlen);
-Serial.print(" crc=");Serial.print(cstRec.cstcrc,HEX);Serial.print(" ");Serial.println((long)&cstRec.cstcrc,HEX);
+Serial.print(" crc=");Serial.print(cstRec.cstcrc,HEX);Serial.print(" ");Serial.print((long)&cstRec.cstcrc,HEX);
+Serial.print(" numperiph=");Serial.print((char)cstRec.numPeriph[0]);Serial.println((char)cstRec.numPeriph[1]);
 }
 
 void initConstant()  // inits mise sous tension
@@ -148,36 +153,34 @@ void initConstant()  // inits mise sous tension
   dumpstr((char*)cstRecA,256);
 }
 
-void periInputPrint(byte* input,int nbns)
+void periInputPrint(byte* input)
 {
-  Serial.println("switchs/inputs       codes actions 0=reset 1=raz 2=stop 3=start 4=short 5=end 6=imp");
-
-#define LBINP 12   
+  Serial.print("inputs ");
+#define LBINP 23
   char binput[LBINP];
+  byte inp[3];
   byte a;
-  char typ[]="__exlopu??";
+  char ed[]="de",es[]="es";  
+  
   for(int ninp=0;ninp<NBPERINPUT;ninp++){  
-    for(int ns=0;ns<nbns;ns++){      
-      memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
-      binput[0]=((*(uint8_t*)(input+2+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)+48;                        // en input
-      a=*(uint8_t*)(input+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)&PERINPNT_MS;
-      if(a>3){a=4;}binput[2]=typ[a*2];binput[3]=typ[a*2+1];                                                              // type détec
-      a=*(uint8_t*)(input+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+5,&a);                     // n° détec
-      a=(*(uint8_t*)(input+2+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+8,&a);    // act input
-      Serial.print(binput);
-      
-      for(int binp=7;binp>=0;binp--){
-        Serial.print((*(uint8_t*)(input+1+ns*NBPERINPUT*PERINPLEN+ninp*PERINPLEN)>>(PERINPRULESLS_PB+binp))&0x01);    // règle
-      }
 
-/*      for(int binp=7;binp>=0;binp--){               // exemple plantage alignement
-        Serial.print(*(uint16_t*)(input+1));   
-      }*/
-      
-      sp("   ",0);
+      memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
+      binput[0]=ed[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)];                         // en input
+      binput[2]=es[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPDETES_PB)&0x01)];                      // edge/static input
+      binput[4]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPOLDLEV_PB)&0x01)+48;                       // prev level
+      binput[6]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPVALID_PB)&0x01)+48;                        // valid level
+      a=*(uint8_t*)(input+ninp*PERINPLEN)&PERINPNT_MS;
+      if(a>3){a=4;}binput[8]=inptyps[a*2];binput[9]=inptyps[a*2+1];                                    // type détec src
+      a=*(uint8_t*)(input+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+11,&a);                      // n° détec src
+      a=*(uint8_t*)(input+ninp*PERINPLEN+3)&PERINPNT_MS;
+      if(a>3){a=4;}binput[14]=inptypd[a*2];binput[15]=inptypd[a*2+1];                                  // type détec dest
+      a=*(uint8_t*)(input+ninp*PERINPLEN+3)>>PERINPNVLS_PB;conv_htoa(binput+17,&a);                    // n° détec dest
+      a=(*((uint8_t*)(input+2+ninp*PERINPLEN))&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+20,&a);  // act input
+      Serial.print(binput);
+      for(int tact=0;tact<LENTACT;tact++){Serial.print(inpact[a*LENTACT+tact]);}
+      sp("  / ",0);
     }
     Serial.println();
-  }
 }
 
 void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo)
@@ -214,19 +217,17 @@ void printConstant()
   Serial.print(" staPulse=");for(int s=0;s<MAXSW;s++){Serial.print(s);Serial.print("-");Serial.print(staPulse[s],HEX);
   Serial.print(" ");}Serial.println("  C=DIS 0=IDLE 5=RUN1 7=RUN2 4=END1 6=END2");
   Serial.print("memDetec (0-n)=");for(int s=0;s<(MAXDET);s++){Serial.print(s);Serial.print("-");
-  Serial.print((cstRec.memDetec[s]>>DETBITST_PB)&0x03,HEX);Serial.print(" ");
-  Serial.print((cstRec.memDetec[s]>>DETBITUD_PB)&0x01,HEX);Serial.print(" ");
+  //Serial.print((cstRec.memDetec[s]>>DETBITST_PB)&0x03,HEX);Serial.print(" ");
+  //Serial.print((cstRec.memDetec[s]>>DETBITUD_PB)&0x01,HEX);Serial.print(" ");
   Serial.print((cstRec.memDetec[s]>>DETBITLH_PB)&0x01,HEX);Serial.print("  ");}
-  Serial.println(" 3-TRIG 2-WAIT 1-IDLE 0-DIS");
+  Serial.println(); //" 3-TRIG 2-WAIT 1-IDLE 0-DIS");
   Serial.print("detTime =    ");for(int s=MAXDET-1;s>=0;s--){Serial.print(detTime[s]);Serial.print("  -  ");}Serial.println();
   Serial.print("detect  =    ");for(int s=MAXDET-1;s>=0;s--){Serial.print(digitalRead(pinDet[s]));Serial.print("   -   ");}Serial.println();  
 #if POWER_MODE==NO_MODE
   periDetServPrint(&cstRec.extDetec);  
   periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo);
-  periInputPrint((byte*)&cstRec.perInput,NBSW);
+  periInputPrint((byte*)&cstRec.perInput);
 #endif NO_MODE  
 }
-
-
 
 

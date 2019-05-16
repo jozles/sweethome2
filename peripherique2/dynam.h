@@ -37,7 +37,7 @@ void polDx(uint8_t det);
 void polAllDet();
 void swDebounce();
 void memdetinit();
-void action();
+void actions();
 
 #endif NO_MODE
 
