@@ -304,7 +304,7 @@ void actions()           // pour chaque input, test enable,
     
     curinp=&cstRec.perInput[inp*PERINPLEN];
     nsrce=(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);
-    ndest=(((*curinp+3)&PERINPV_MS)>>PERINPNVLS_PB);
+    ndest=(((*(curinp+3))&PERINPV_MS)>>PERINPNVLS_PB);
     
     if(((*(curinp+2))&PERINPEN_VB)!=0){                         // enable
       switch((*curinp)&PERINPNT_MS){                            // type
@@ -341,7 +341,7 @@ void actions()           // pour chaque input, test enable,
           &&(detecState==(((*(curinp+2))>>PERINPVALID_PB) &0x01))               // état ok          
           )
         ){ 
-//if(inp<2){Serial.print(" enable=");Serial.print((*(curinp+2))&PERINPEN_VB);Serial.print(" types=");Serial.print((*curinp)&PERINPNT_MS);Serial.print(" num=");Serial.print(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);Serial.print(" detecFound=");Serial.print(detecFound);Serial.print(" detecState=");Serial.print(detecState);Serial.print(" disjonct=");Serial.print((cstRec.swCde>>(ndest*2+1))&0x01);Serial.print(" typed=");Serial.print((*(curinp+3))&PERINPNT_MS);Serial.print(" action=");Serial.println((*(curinp+2))>>PERINPACTLS_PB);}
+if(inp<3){Serial.print(" enable=");Serial.print((*(curinp+2))&PERINPEN_VB);Serial.print(" types=");Serial.print((*curinp)&PERINPNT_MS);Serial.print(" num=");Serial.print(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);Serial.print(" detecFound=");Serial.print(detecFound);Serial.print(" detecState=");Serial.print(detecState);Serial.print(" disjonct=");Serial.print((cstRec.swCde>>(ndest*2+1))&0x01);Serial.print("/");Serial.print(cstRec.swCde,HEX);Serial.print("/");Serial.print(ndest,HEX);Serial.print(" typed=");Serial.print((*(curinp+3))&PERINPNT_MS);Serial.print(" action=");Serial.println((*(curinp+2))>>PERINPACTLS_PB);}
             *(curinp+2) &= ~PERINPOLDLEV_VB;                                       // raz bit oldstate
             detecState << PERINPOLDLEV_PB;                                         
             *(curinp+2) |= detecState;                                             // setup oldstate
