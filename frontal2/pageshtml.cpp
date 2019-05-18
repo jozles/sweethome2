@@ -218,7 +218,7 @@ void cfgServerHtml(EthernetClient* cli)
 
             subcfgtable(cli,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
             subcfgtable(cli,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
-dumpstr((char*)thermonames,128);            
+          
             subcfgtable(cli,"THERMO",NBTHERMO,"thername_",thermonames,LENTHNAME,1,"therperi_",thermoperis,-1,"peri",2);
             
             cli->println("</form></body></html>");

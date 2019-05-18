@@ -291,6 +291,30 @@ void xradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,byte nbval,i
     }
 }
 
+void selectTableHtml(EthernetClient* cli,char* val,char* ft,int nbre,int len,int sel,uint8_t v0,uint8_t v1,uint8_t td)
+{
+  char a;
+  int i,j;
+
+  ft[LENNOM-2]=(char)(v0+PMFNCHAR);
+  ft[LENNOM-1]=(char)(v1+PMFNCHAR);
+  
+  if(td==1 || td==2){cli->print("<td>");}
+
+  cli->print("<SELECT name=\"");cli->print(ft);cli->print("\">");
+  for(i=0;i<nbre;i++){
+    cli->print("<OPTION");if(i==sel){cli->print(" selected");};cli->print(">");
+    for(j=0;j<len;j++){
+      a=(char)val[i*len+j];
+      if(a!=' '){cli->print(a);}
+    }
+  }
+  cli->print("</SELECT>");
+
+  if(td==1 || td==3){cli->print("</td>");}
+  cli->println();
+}
+
 void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,uint8_t td)
 {
   if(td==1 || td==2){cli->print("<td>");}

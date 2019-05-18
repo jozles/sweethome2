@@ -184,6 +184,10 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   byte      lastIpAddr[4]; 
 
+extern char inptyps[];                      // libellés types sources inputs
+extern char inptypd[];                      // libellés types destinations inputs
+extern char inpact[];                       // libellés actions  
+
 uint8_t tablePerToSend[NBPERIF];            // liste des périphériques à mettre à jour après modif de détecteur (timers ou remote)
 
 struct SwRemote remoteT[MAXREMLI];
@@ -931,6 +935,24 @@ void textfonc(char* nf,int len)
 }
 
 
+void inpsub(byte* ptr,byte PNT_MS,byte PNTLS_PB,char* inptyp,uint8_t len,uint8_t lreel)
+{
+  for(int i=0;i<8;i++){if(*(valf+i)==0x00){lreel=i;i=8;}}
+  
+  byte v;
+  if(lreel>0 && lreel<8 && len>0 && len<8){
+    char typ[8];memcpy(typ,valf,lreel);typ[lreel]=0x00;
+    v=(byte)(strstr(inptyp,typ)-inptypd)/len;
+    v = v << PNTLS_PB;
+  }
+  else{v=0;}
+  *ptr &= ~PNT_MS;
+  *ptr |= v;
+
+Serial.print("valf=");Serial.print(valf);Serial.print(" len=");
+Serial.print(len);Serial.print(" lreel=");Serial.print(lreel);Serial.print(" v=");Serial.println(v,HEX);
+}
+
 void commonserver(EthernetClient cli)
 {
 /*
@@ -957,7 +979,7 @@ void commonserver(EthernetClient cli)
     la liste des noms de fonctions existantes est dans fonctions* ; ils sont de longueur fixe (LENNOM) ; 
     les 2 derniers caractères peuvent être utilisés pour passer des paramètres, 
     la recherche du nom dans la table se fait sur une longueur raccourcie si rien n'est trouvé sur la longueur LENNOM.
-    (C'est utilisé pour réduire le nombre de noms de fonctions ; par exemple pour periSwMode - 1 car 4 switchs ; 1 car 4 types d'action et 6 bits(sur 16 possibles))
+    (C'est utilisé pour réduire le nombre de noms de fonctions)
     la liste des fonctions trouvées est dans numfonct[]
     les valeurs associées sont dans valeurs[] (LENVAL car max)
     les 2 derniers car de chaque fonction trouvée sont dans libfonctions[]
@@ -1118,14 +1140,14 @@ void commonserver(EthernetClient cli)
               case 7:  *periThOffset=0;*periThOffset=convStrToNum(valf,&j);break;                    // (ligne peritable) Th Offset
               case 8:  periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                       // bouton switchs___ 
                        periInitVar();periLoad(periCur);
-                       SwCtlTableHtml(&cli,*periSwNb,4);
+                       SwCtlTableHtml(&cli);
                        break;                                                                               
               case 9:  autoreset=VRAI;break;                                                         // bouton reset
               case 10: dumpsd(&cli);break;                                                           // bouton dump_sd
               case 11: what=2;sdpos=0;conv_atobl(valf,&sdpos);break;                                 // (en-tete peritable) SD pos
               case 12: if(periPassOk==VRAI){what=1;periDataRead();periPassOk==FAUX;}break;           // data_save
               case 13: if(periPassOk==VRAI){what=3;periDataRead();periPassOk==FAUX;}break;           // data_read
-              case 14: what=5;{                                                                      // (bouton testsw ?) peri swb 
+              case 14: what=5;{                                                                      // (bouton testsw ?duplic ) peri swb 
                        uint8_t sw;sw=*(libfonctions+2*i)-PMFNCHAR;                                   // sw n° switch
                        uint8_t sh;sh=libfonctions[2*i+1]-PMFNCHAR;                                   // sh 0 ou 1 état demandé
                        byte mask=(0x10<<sw*2);
@@ -1146,10 +1168,9 @@ void commonserver(EthernetClient cli)
               case 21: *periProg=*valf-48;break;                                                     // (ligne peritable) peri prog
               case 22: *periSondeNb=*valf-48;if(*periSondeNb>MAXSDE){*periSondeNb=MAXSDE;}break;     // (ligne peritable) peri sonde
               case 23: *periPitch=0;*periPitch=convStrToNum(valf,&j);break;                          // (ligne peritable) peri pitch
-              case 24: what=5;periCur=0;conv_atob(valf,&periCur);                                    // (input-lignes) submit peri_inp__ set periCur raz cb
-                       if(periCur>NBPERIF){periCur=NBPERIF;}
-                       periInitVar();periLoad(periCur);
-                       *(byte*)(periInput+((uint8_t)(*(libfonctions+2*i+1))-PMFNCHAR)*PERINPLEN+2)&=PERINPACT_MS;                            // effacement cb (detec/active/edge/en)
+              case 24: what=4;periCur=0;conv_atob(valf,&periCur);                                    // (input-lignes) submit peri_inp__ set periCur raz cb
+                       if(periCur>NBPERIF){periCur=NBPERIF;}periInitVar();periLoad(periCur);
+                       *(byte*)(periInput+((uint8_t)(*(libfonctions+2*i+1))-PMFNCHAR)*PERINPLEN+2)&=PERINPACT_MS;  // effacement cb (oldlev/active/edge/en)
                        break;                                                                      
               case 25: *periDetNb=*valf-48;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;           // (ligne peritable) peri det Nb  
               case 26: *periSwNb=*valf-48;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;                // (ligne peritable) peri sw Nb                       
@@ -1162,12 +1183,13 @@ void commonserver(EthernetClient cli)
                         if((byte)*valf!=0){*periSwVal |= maskbit[val+1];}
 //                       Serial.print(" sw=");Serial.print(sw);Serial.print(" periSwVal=");Serial.println(*periSwVal,HEX);
                        }break;
-              case 31: what=5;periCur=0;conv_atob(valf,&periCur);                                    // (input-tête) submit pulses (peri_t_sw_)
+              case 31: what=4;periCur=0;conv_atob(valf,&periCur);                                    // (input-tête) submit pulses (peri_t_sw_)
                        if(periCur>NBPERIF){periCur=NBPERIF;}
-                       periInitVar();periLoad(periCur);                                              // effacement checkboxs des switchs du periphérique courant
-                       {for(int inp=0;inp<NBPERINPUT;inp++){
-                           *(byte*)(periInput+inp*PERINPLEN+1)=0x00;}
-                        memset(periSwPulseCtl,0x00,PCTLLEN);                                         // bits enable pulse et free run 
+                       periInitVar();periLoad(periCur);                                             
+                       {
+                       for(int inp=0;inp<NBPERINPUT;inp++){
+                         *(byte*)(periInput+1+inp*PERINPLEN)=0x00;}           // effacement checkboxs inutilisées
+                       memset(periSwPulseCtl,0x00,PCTLLEN);                                          // effact bits otf enable pulses et free run 
                        }break;  
               case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);             // (pulses) periSwPulseCtl (otf) bits généraux (FOT)
                        uint16_t sh=0;
@@ -1185,31 +1207,66 @@ void commonserver(EthernetClient cli)
                         uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;                   // (enable/type/num detec/action)
                         uint16_t vl=0;
                         switch (nfct){
-                          case 1:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPEN_VB;break;           // enable
-                          case 2:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPOLDLEV_VB;break;       // prev level
-                          case 3:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPDETES_VB;break;        // edge/static
-                          case 4:vl=(uint16_t)(*valf-48);if(vl>3){vl=1;}
-                                 *(periInput+offs)&=~PERINPNT_MS;
-                                 *(uint8_t*)(periInput+offs)|=vl<<PERINPNTLS_PB;break;                // type src
+                          case 1:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPEN_VB;break;           // enable
+                          case 2:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPOLDLEV_VB;break;       // prev level
+                          case 3:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPDETES_VB;break;        // edge/static
+                          case 4:inpsub((periInput+offs),PERINPNT_MS,PERINPNTLS_PB,inptyps,2,nvalf[i]);break;    // type src
                           case 5:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
                                  *(periInput+offs)&=~PERINPV_MS;
                                  *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;               // num detec src
-                          case 6:vl=(uint16_t)(*valf-48);if(vl>3){vl=1;}
-                                 *(periInput+offs+3)&=~PERINPNT_MS;
-                                 *(uint8_t*)(periInput+offs+3)|=vl<<PERINPNTLS_PB;break;              // type dest
+                          case 6:inpsub((periInput+3+offs),PERINPNT_MS,PERINPNTLS_PB,inptyps,2,nvalf[i]);break;  // type dest
+                          /*{char typ[3];memcpy(typ,valf,2);typ[2]=0x00;
+                                  
+                                  //byte v1=(byte)(strstr(inptypd,typ)-inptypd)/2;
+                                  //v1=vl<<PERINPNTLS_PB;
+                                                                    
+                                  
+                                  
+                                  Serial.println();Serial.println();Serial.println();Serial.println();   Serial.println();Serial.println();Serial.println();Serial.println();   Serial.println();Serial.println();Serial.println();Serial.println();
+
+
+                                  
+                                  byte* bid;
+                                  byte v=(byte)(strstr(inptypd,typ)-inptypd)/2;
+
+                                  v=v<<PERINPNTLS_PB;
+                                  bid=(periInput+offs+3);
+                                  //*bid &= ~PERINPNT_MS;
+                                  *(periInput+offs+3)&= ~PERINPNT_MS;
+                                  
+                                  //byte bid0= *bid | bidd;
+                                  Serial.print(*bid);Serial.print(" ");Serial.println(v);
+                                  //Serial.print("*bid|bidd bid0=");Serial.println(bid0);
+
+                                  *(periInput+offs+3)|= v;
+                                  //*bid = *bid | v;
+                                  Serial.print("*bid=*bid|v *bid=");Serial.println(*bid);
+                                  //*bid = bid0;
+                                  //Serial.print("*bid=bid0 *bid=");Serial.println(*bid);
+
+
+
+                                  
+                                  Serial.println();Serial.println();Serial.println();Serial.println();   Serial.println();Serial.println();Serial.println();Serial.println();   Serial.println();Serial.println();Serial.println();Serial.println();
+
+                               
+   
+                                 }break;*/                                                              
                           case 7:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
-                                 *(periInput+offs+3)&=~PERINPV_MS;
-                                 *(periInput+offs+3)|=(uint8_t)(vl<<PERINPNVLS_PB);break;             // num detec dest                                 
-                          case 8:conv_atob(valf,&vl);if(vl>MAXACT){vl=MAXACT;}                                 
+                                 *(periInput+3+offs)&=~PERINPV_MS;
+                                 *(periInput+3+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;             // num detec dest                                 
+                          case 8:inpsub((periInput+2+offs),PERINPACT_MS,PERINPACTLS_PB,inpact,LENTACT,nvalf[i]);break;    // action
+                          /*{char act[LENTACT+1];memcpy(act,valf,LENTACT);act[LENTACT]=0x00;int v1=(strstr(inpact,act)-inpact)/LENTACT;
+                                 if(vl>MAXACT){vl=MAXACT;}                                 
                                  *(uint8_t*)(periInput+offs+2)&=~PERINPACT_MS;
                                  *(uint8_t*)(periInput+offs+2)|=vl<<PERINPACTLS_PB;
-                                 break;                                                               // action
+                                 }break;*/                                                              // action
                           case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;        // active level
                           default:break;
                         }
                         Serial.print(" input=");Serial.print(nuinp);Serial.print(" ");dumpfield((char*)(periInput+offs+2),1);
                        }break;                                                                      
-              case 34: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (perinput) p_inp2__   8 bits
+              case 34: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (perinput) p_inp2__  8 bits inutilisés
                         uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;
                         *(uint8_t*)(periInput+offs+1)|=(uint8_t)PERINPRULESLS_VB<<nfct;}break;
               case 35: {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri Pulse one (pto)
@@ -1364,8 +1421,9 @@ void commonserver(EthernetClient cli)
           case 3:Serial.println("pph0");
           periParamsHtml(&cli," ",0);
           Serial.println("pph1");break;                       // data_read
-          case 4:break;                                       // unused                                      
-          case 5:periSave(periCur,PERISAVESD);periTableHtml(&cli); // browser modif ligne de peritable ou switchs
+          case 4:periSave(periCur,PERISAVESD);                // switchs
+                SwCtlTableHtml(&cli);cli.stop();periPrint(periCur);periSend(periCur);break;                                                       
+          case 5:periSave(periCur,PERISAVESD);periTableHtml(&cli); // browser modif ligne de peritable
                   cli.stop();periPrint(periCur);periSend(periCur);break;                
           case 6:configSave();cfgServerHtml(&cli);break;      // config serveur
           case 7:timersSave();timersHtml(&cli);break;         // timers

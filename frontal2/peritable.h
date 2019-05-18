@@ -3,7 +3,7 @@
 
 
 void periTableHtml(EthernetClient* cli);
-void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes);
+void SwCtlTableHtml(EthernetClient* cli);
 
 
 #endif // _PERITABLE_H_

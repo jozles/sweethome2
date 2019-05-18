@@ -129,9 +129,9 @@ void perinpfnc(EthernetClient* cli,uint8_t nuinp,uint16_t val,char type,uint8_t 
   }
 }
 
-void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
+void SwCtlTableHtml(EthernetClient* cli)
 {
-  Serial.print("saisie switchs");Serial.print(" -- periCur=");Serial.println(periCur);
+  Serial.print("controle switchs");Serial.print(" -- periCur=");Serial.println(periCur);
   htmlIntro(nomserver,cli);
 
   cli->println("<body>");            
@@ -184,7 +184,7 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
   cli->print("</tr></table></form>");
 
     cli->println("<table>Règles");
-      cli->println("<tr><th></th><th>e.l.p.e.<br>n.v.r.s</th><th>t_ _num<br>y_ _src </th><th>t_ _num<br>y_ _dest</th><th> action</th></tr>");
+      cli->println("<tr><th></th><th>e.l.p.e.<br>n.v.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
 
       char xfonc1[]="p_inp1____\0";
       char xfonc2[]="p_inp2____\0";
@@ -207,20 +207,22 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
             vv=(binp[2]  & PERINPVALID_VB);;perinpfnc(cli,ninp,vv,'c',1,xfonc1,9);                       // bit active level
             vv=(binp[2]  & PERINPOLDLEV_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,2);                       // bit prev lev
             vv=(binp[2]  & PERINPDETES_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,3);                        // bit edge/static            
-           cli->print("<td>");
-            vv=(binp[0]  & PERINPNT_MS);perinpfnc(cli,ninp,vv,'n',1,xfonc1,4);                           // type detec source
-            cli->print(inptyps[vv*2]);cli->print(inptyps[vv*2+1]);
+           
+            vv=(binp[0]  & PERINPNT_MS);                                                                 // type detec source
+            selectTableHtml(cli,inptyps,xfonc1,4,2,vv,4,ninp,2);
+
             vv=(binp[0]>>PERINPNVLS_PB);perinpfnc(cli,ninp,vv,'n',2,xfonc1,5);                           // num detec source
            cli->println("</td>");            
-           cli->print("<td>");
-            vv=(binp[3]  & PERINPNT_MS);perinpfnc(cli,ninp,vv,'n',1,xfonc1,6);                           // type detec dest
-            cli->print(inptypd[vv*2]);cli->print(inptypd[vv*2+1]);            
+           
+            vv=(binp[3]  & PERINPNT_MS);                                                                 // type detec dest
+            selectTableHtml(cli,inptypd,xfonc1,4,2,vv,6,ninp,2);
+
             vv=(binp[3]>>PERINPNVLS_PB);perinpfnc(cli,ninp,vv,'n',2,xfonc1,7);                           // num detec  dest
            cli->print("</td>");            
-           cli->print("<td>");
-            vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;perinpfnc(cli,ninp,vv,'n',2,xfonc1,8);             // action
-            //Serial.print(vv);Serial.print(" ");Serial.println((char*)inpact);
-            for(int tact=0;tact<LENTACT;tact++){cli->print(inpact[vv*LENTACT+tact]);}
+           //cli->print("<td>");
+            vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                   // action 
+            selectTableHtml(cli,inpact,xfonc1,12,5,vv,8,ninp,2);
+
            cli->println("</td>");
 
 /*            for(int mode=7;mode>=0;mode--){                                                               // 8 bits
