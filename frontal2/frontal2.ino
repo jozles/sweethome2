@@ -1181,7 +1181,7 @@ void commonserver(EthernetClient cli)
                         *(uint16_t*)periSwPulseCtl|=sh;
                          Serial.print((char)b);Serial.print(" Pulse n°=");Serial.print(pu);Serial.print(" ");dumpfield((char*)&sh,2);dumpstr((char*)periSwPulseCtl,2);
                        }break;       
-              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;  // (inputs) p_inp1__  
+              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;  // (inputs) p_inp1__  
                         uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;                   // (enable/type/num detec/action)
                         uint16_t vl=0;
                         switch (nfct){

@@ -120,7 +120,7 @@ void perinpfnc(EthernetClient* cli,uint8_t nuinp,uint16_t val,char type,uint8_t 
   uint8_t vv=0;
 
   ft[LENNOM-2]=(char)(nuv+PMFNCHAR);
-  ft[LENNOM-1]=(char)(nuinp+PMFNCVAL);
+  ft[LENNOM-1]=(char)(nuinp+PMFNCHAR);
   
   switch (type){
     case 'c':if(val!=0){vv=1;};checkboxTableHtml(cli,&vv,ft,-1,0);break;
@@ -207,7 +207,7 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
             vv=(binp[2]  & PERINPVALID_VB);;perinpfnc(cli,ninp,vv,'c',1,xfonc1,9);                       // bit active level
             vv=(binp[2]  & PERINPOLDLEV_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,2);                       // bit prev lev
             vv=(binp[2]  & PERINPDETES_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,3);                        // bit edge/static            
-           cli->println("<td>");
+           cli->print("<td>");
             vv=(binp[0]  & PERINPNT_MS);perinpfnc(cli,ninp,vv,'n',1,xfonc1,4);                           // type detec source
             cli->print(inptyps[vv*2]);cli->print(inptyps[vv*2+1]);
             vv=(binp[0]>>PERINPNVLS_PB);perinpfnc(cli,ninp,vv,'n',2,xfonc1,5);                           // num detec source
