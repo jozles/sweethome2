@@ -654,14 +654,14 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
     k+=1; *periSwVal&=0xAA;for(int i=MAXSW-1;i>=0;i--){*periSwVal |= ((*(k+i)-48)&0x01)<< (2*(MAXSW-i)-2);}        // periSwVal états sw
     k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                       // nbre detec
     k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}  // détecteurs
-    k+=MAXDET+1;for(int i=0;i<MAXSW;i++){periSwPulseSta[i]=*(k+i);}                     // pulse clk status 
-    k+=MAXSW+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}    // model
+    k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=*(k+i)-48;}                    // pulse clk status 
+    k+=NBPULSE+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}      // model
   if(memcmp(periVers,"1.g",3)>=0){
     k+=LENMODEL+1;//for(int i=MAXSW-1;i>=0;i--){if(*(k+i)=='1'){*periSwVal^(0x02<<(i*2));}} // toggle bits
     k+=MAXSW+1; 
   }  
     memcpy(periIpAddr,remote_IP_cur,4);            //for(int i=0;i<4;i++){periIpAddr[i]=remote_IP_cur[i];}      // Ip addr
-    char date14[LNOW];alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);    // maj dates
+    char date14[LNOW];alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);      // maj dates
     Serial.print("periDataRead peri=");periPrint(periCur);
     periSave(periCur,PERISAVESD);checkdate(6);
   }
@@ -1172,17 +1172,17 @@ void commonserver(EthernetClient cli)
               case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);             // (pulses) periSwPulseCtl (otf) bits généraux (FOT)
                        uint16_t sh=0;
                         switch (b){
-                           case 'F':sh=PMFRO_PB;break;
-                           case 'O':sh=PMTOE_PB;break;
-                           case 'T':sh=PMTTE_PB;break;
+                           case 'F':sh=PMFRO_VB;break;
+                           case 'O':sh=PMTOE_VB;break;
+                           case 'T':sh=PMTTE_VB;break;
                            default:break;
                         }
                         sh=sh<<pu*PCTLBIT;
                         *(uint16_t*)periSwPulseCtl|=sh;
-                         Serial.print(b);Serial.print(" Pulse n°=");Serial.print(pu);dumpstr((char*)periSwPulseCtl,2);
+                         Serial.print((char)b);Serial.print(" Pulse n°=");Serial.print(pu);Serial.print(" ");dumpfield((char*)&sh,2);dumpstr((char*)periSwPulseCtl,2);
                        }break;       
-              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;  // (inputs) p_inp1__   (enable/type/num detec/action)
-                        uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;
+              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;  // (inputs) p_inp1__  
+                        uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;                   // (enable/type/num detec/action)
                         uint16_t vl=0;
                         switch (nfct){
                           case 1:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPEN_VB;break;           // enable
@@ -1207,6 +1207,7 @@ void commonserver(EthernetClient cli)
                           case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;        // active level
                           default:break;
                         }
+                        Serial.print(" input=");Serial.print(nuinp);Serial.print(" ");dumpfield((char*)(periInput+offs+2),1);
                        }break;                                                                      
               case 34: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (perinput) p_inp2__   8 bits
                         uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;

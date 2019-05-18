@@ -6,7 +6,7 @@
 
 #define LENVERSION  4
 #define LENMODEL    6
-#define SIZEPULSE   4  // uint32_t
+//#define SIZEPULSE   4  // uint32_t
 #define LENPERIDATE 6
 
 ///* 1er serveur
@@ -183,46 +183,8 @@ enum {OFF,ON};
 
 #define NBDSRV 32               // nombre de det serveur (param "léger" memDetServ défini uint32_t !)
 #define MDSLEN NBDSRV/8         // type memDetServ
-//#define MAXDL  32               // valeur maxi pour num détecteur
 
 
-
-/*
-#define DLSWLEN   (DLNB*DLBITLEN/8+1) // nbre bytes par sw
-#define DLNBSWCB   DLNB*DLNBCB        // nbre checkbox par switch
-
-#define DLNB        4                 // nbre détecteurs logiques par switch
-
-#define DLBITLEN   10                 // longueur (bits) desciption détecteur
-#define DLBITMSK    0x03FF            // mask 10 bits
-
-#define DLNBCB      4                 // nbre checkbox/détecteur
-#define DLNULEN     3                 // nbre bits numéro détecteur
-#define DLACLEN     3                 // nbre bits code action
-
-/* codes mode */
-/*
-#define PMDM_STAT   0                  // statique
-#define PMDM_TRANS  1                  // transitionnel
-#define DLLOCAL     1                  // détecteur local
-
-#define DLNMS_PB   DLNLS_PB+DLNULEN-1  // msb numéro det (3 bits)
-#define DLNMS_VB   0x0200
-#define DLNLS_PB   DLENA_PB+1          // lsb numéro
-#define DLNLS_VB   0x0080
-#define DLENA_PB   DLEL_PB+1           // enable (1 bit)
-#define DLENA_VB   0x0040
-#define DLEL_PB    DLMFE_PB+1          // local/externe (1 bit)
-#define DLEL_VB    0x020
-#define DLMFE_PB   DLMHL_PB+1          // mode flanc/état (1 bit)
-#define DLMFE_VB   0x010
-#define DLMHL_PB   DLACMS_PB+1         // H/L (1 bit)
-#define DLMHL_VB   0x008
-#define DLACMS_PB  DLACLS_PB+DLACLEN-1 // msb action sur pulse (3 bits)
-#define DLACMS_VB  0x004
-#define DLACLS_PB  0                   // lsb action
-#define DLACLS_VB  0x001
-*/
 
 /* bits memDetec */
 
@@ -236,48 +198,6 @@ enum {OFF,ON};
 #define  DETWAIT      0x02 // valeur         si armé      (LH=H falling =L rising)
 #define  DETIDLE      0x01 // valeur         si pas d'interruption (LH valide)
 #define  DETDIS       0x00 // valeur         si disable (LH invalide)
-
-
-
-
-/* codes etats générateur (bit droite=valeur) */
-
-// bit 1 0=stop      1=run
-// bit 2 0=cpt1      1=cpt2
-// bit 3 1=compteur  0=clk
-// bit 4 1=disable   0=enable
-
-#define PM_DISABLE  0x0C
-#define PM_IDLE     0x00
-#define PM_RUN1     0x05
-#define PM_RUN2     0x07
-#define PM_END1     0x04
-#define PM_END2     0x06
-
-#define PM_FREERUN  0
-#define PM_ONESHOOT 1
-#define PM_ACTIF    1
-
-/* SWITCH MODE ON/OFF */
-/*
-#define SWMDLNUMS_PB 0x07  // position ms bit num détecteur
-#define SWMDLNUMS_VB 0x80  // valeur
-#define SWMDLNULS_PB 0x06  // position ms bit num détecteur
-#define SWMDLNULS_VB 0x40
-#define SWMDLEN_PB   0x05  // detecteur enable
-#define SWMDLEN_VB   0x20
-#define SWMDLHL_PB   0x04  // detecteur H/L
-#define SWMDLHL_VB   0x10
-#define SWMSEN_PB    0x03  // serveur enable
-#define SWMSEN_VB    0x08
-#define SWMSHL_PB    0x02  // serveur H/L
-#define SWMSHL_VB    0x04
-#define SWMPEN_PB    0x01  // pulse enable
-#define SWMPEN_VB    0x02
-#define SWMPHL_PB    0x00  // pulse H/L
-#define SWMPHL_VB    0x01
-*/
-
 
 // codage car différenciation de fonction
 
@@ -297,19 +217,41 @@ enum {OFF,ON};
 #define LENVALPULSE 8
 
 
-/* periSwPulseCtl (*/
+
+/* codes staPulse */
+
+#define LENTSP 4
+
+#define PM_DISABLE  0x06
+#define PM6 'DISA'
+#define PM_RUN2     0x05
+#define PM5 'RUN2'
+#define PM_RUN1     0x04
+#define PM4 'RUN1'
+#define PM_END2     0x03
+#define PM3 'END2'
+#define PM_END1     0x02
+#define PM2 'END1'
+#define PM_IDLE     0x01
+#define PM1 'IDLE'
+
+/* pulseMode */
 
 #define PCTLLEN (((NBPULSE*PCTLBIT)/8)+1) //  4*3 bits =12 -> 2 bytes/perif
-#define PCTLBIT 3                     // 3 bits/sw
+#define PCTLBIT 3                         // 3 bits/pulse
 
-/* bits controle compteurs (periSwPulseCtl) */
+#define PMTOE_VB 0x04           // time one enable valeur du bit
+#define PMTOE_PB 0x02           //                 position du bit (nombre shifts)
+#define PMTTE_VB 0x02           // time two enable
+#define PMTTE_PB 0x01
+#define PMFRO_VB 0x01           // freeRun/OneShoot
+#define PMFRO_PB 0x00
 
-#define PMTOE_PB 0x04           // time one enable numéro du bit
-#define PMTOE_VB 0x02           //                 valeur du bit
-#define PMTTE_PB 0x02           // time two enable
-#define PMTTE_VB 0x01
-#define PMFRO_PB 0x01           // freeRun/OneShoot
-#define PMFRO_VB 0x00
+/* bits controle compteurs */
+
+#define PM_FREERUN  0
+#define PM_ONESHOOT 1
+#define PM_ACTIF    1
 
 
 /* définition table inputs */
@@ -330,7 +272,7 @@ enum {OFF,ON};
 #define PERINPNTLS_VB 0x01          // type LSb
 #define PERINPNTLS_PB 0x00
 
-// byte 1 -- règles
+// byte 1 -- règles --- inutilisé
 
 #define PERINPRULESLS_VB 0x01       // rules LSb
 #define PERINPRULESLS_PB 0x00
@@ -361,15 +303,6 @@ enum {OFF,ON};
 #define DETYPUL 3
 #define DETYSW  2
 #define DETYMEM 0
-
-
-/* bits rules */
-
-#define RULBITICVAL 0X80     // active level interrupteur/conjoncteur
-#define RULBITIEN   0X40     // enable interrupteur
-#define RULBITCEN   0X20     // enable conjoncteur
-#define RULBITAVAL  0x10     // active level allumeur
-#define RULBITAEN   0x08     // enable allumeur
 
 
 /* codes et libellés actions */

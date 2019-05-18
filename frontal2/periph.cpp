@@ -94,8 +94,9 @@ extern byte      periMacBuf[6];
 extern byte      lastIpAddr[4];
 
 char inptyps[]="meexphpu??";                  // libellés types sources inputs
-char inptypd[]="meexsw__??";                  // libellés types destinations inputs
+char inptypd[]="meexswpu??";                  // libellés types destinations inputs
 char inpact[]={"nop  RAZ  STOP STARTSHORTEND  IMP  RESETTGLE OR   AND  NAND "};      // libellés actions
+char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                      // libellés staPulse
 
 extern struct SwRemote remoteT[MAXREMLI];
 extern char*  remoteTA;
@@ -581,10 +582,10 @@ void periInitVar()
   *periSwNb=0;
   *periSwVal=0;
    memset(periInput,0x00,NBPERINPUT*PERINPLEN*sizeof(byte));
-   memset(periSwPulseOne,0x00,MAXSW*SIZEPULSE);
-   memset(periSwPulseTwo,0x00,MAXSW*SIZEPULSE); 
-   memset(periSwPulseCurrOne,0x00,MAXSW*SIZEPULSE); 
-   memset(periSwPulseCurrTwo,0x00,MAXSW*SIZEPULSE);       
+   memset(periSwPulseOne,0x00,NBPULSE*sizeof(uint32_t));
+   memset(periSwPulseTwo,0x00,NBPULSE*sizeof(uint32_t)); 
+   memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t)); 
+   memset(periSwPulseCurrTwo,0x00,NBPULSE*sizeof(uint32_t));       
    memset(periSwPulseCtl,0x00,PCTLLEN);
    memset(periSwPulseSta,0x00,MAXSW);   
   *periSondeNb=0;

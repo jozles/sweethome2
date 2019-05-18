@@ -82,6 +82,7 @@ extern byte      periMacBuf[6];
 extern char     inptyps[];                     // libellés types sources inputs
 extern char     inptypd[];                     // libellés types destinations inputs
 extern char     inpact[];                      // libellés actions
+extern char     psps[];                        // libellés staPulse
 
 extern int  chge_pwd; //=FAUX;
 
@@ -89,19 +90,19 @@ extern byte mask[];
 
 
 
-void subModePulseTime(EthernetClient* cli,uint8_t sw,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo)
+void subModePulseTime(EthernetClient* cli,uint8_t npu,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo)
 {
 
-  uint8_t pbit=PMTTE_VB;if(onetwo=='O'){pbit=PMTOE_VB;} pbit+=PCTLBIT*sw;
+  uint8_t pbit=PMTTE_PB;if(onetwo=='O'){pbit=PMTOE_PB;} pbit+=PCTLBIT*npu;
   uint8_t val=(((*(uint16_t*)periSwPulseCtl)>>pbit)&0x01)+PMFNCVAL;                                        
   cli->print("<font size=\"2\">");
   fonc1[LENNOM-1]=onetwo;
   //Serial.print(sw);Serial.print(" OT=");Serial.print(onetwo);Serial.print(" fonc1=");Serial.print(fonc1);Serial.print(" val=");Serial.println(val);
   checkboxTableHtml(cli,&val,fonc1,-1,0);                       // bit enable pulse
 Serial.println(fonc2);
-  if(*(pulse+sw)<0){*(pulse+sw)=0;}
-  numTableHtml(cli,'l',(pulse+sw),fonc2,8,0,2);                 // durée pulse   
-  char a[8];sprintf(a,"%06d",*(dur+sw));a[6]='\0';              // valeur courante
+  if(*(pulse+npu)<0){*(pulse+npu)=0;}
+  numTableHtml(cli,'l',(pulse+npu),fonc2,8,0,2);                 // durée pulse   
+  char a[8];sprintf(a,"%06d",*(dur+npu));a[6]='\0';              // valeur courante
   cli->print("<br>(");cli->print(a);cli->println(")</font>");
 }
 
@@ -141,8 +142,10 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
 
   usrPeriCur(cli,"peri_t_sw_",0,2,0);    
 
-    boutRetour(cli,"retour",0,0);  
-    cli->println("<input type=\"submit\" value=\"MàJ\">");
+    boutRetour(cli,"retour",0,0);cli->print(" ");  
+    cli->println("<input type=\"submit\" value=\" MàJ \">");cli->print(" ");
+    char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
+    boutFonction(cli,swf,"","refresh",0,0,1,0);cli->print(" ");
     
     cli->print("<br> détecteurs serveur ");
     char hl[]={"LH"};
@@ -151,7 +154,7 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
     cli->println("<br>");
 
     cli->println("<table>Pulses");                  // pulses
-      cli->println("<tr><th></th><th>time One<br>time Two</th><th>f<br>r</th>");
+      cli->println("<tr><th></th><th>time One<br>time Two</th><th>free<br>run</th>");
 
       char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
       char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
@@ -172,16 +175,16 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
         cli->print("<br>");
         subModePulseTime(cli,pu,periSwPulseTwo,periSwPulseCurrTwo,rfonc,qfonc,'T');          // bit et valeur pulse two
       
-        cli->print("</td><td>");
-        uint8_t val=(*(uint16_t*)periSwPulseCtl>>(PCTLBIT*pu+PMFRO_VB))&0x01;rfonc[LENNOM-1]='F';   // bit freerun
+        cli->print("</td><td> ");
+        uint8_t val=(*(uint16_t*)periSwPulseCtl>>(PCTLBIT*pu+PMFRO_PB))&0x01;rfonc[LENNOM-1]='F';   // bit freerun
         checkboxTableHtml(cli,&val,rfonc,-1,0);                  
-        cli->print("<br>");cli->print((char)periSwPulseSta[pu]);cli->print("</td>");         // staPulse 
+        cli->print("<br>");for(int tsp=0;tsp<LENTSP;tsp++){cli->print(psps[periSwPulseSta[pu]*LENTSP+tsp]);}cli->print("</td>");         // staPulse 
 
       } // pulse suivant
   cli->print("</tr></table></form>");
 
     cli->println("<table>Règles");
-      cli->println("<th>e.l.p.e.<br>n.v.r.s</td><td>t_ _num<br>y_ _src </td><td>t_ _num<br>y_ _dest</td><td> action</td/th></tr>");
+      cli->println("<tr><th></th><th>e.l.p.e.<br>n.v.r.s</th><th>t_ _num<br>y_ _src </th><th>t_ _num<br>y_ _dest</th><th> action</th></tr>");
 
       char xfonc1[]="p_inp1____\0";
       char xfonc2[]="p_inp2____\0";
@@ -199,7 +202,7 @@ void SwCtlTableHtml(EthernetClient* cli,int nbsw,int nbtypes)
 
            usrPeriCur(cli,"peri_inp__",ninp,2,0);
 
-           cli->print("<td>");
+           cli->print("<td>");cli->print(ninp);cli->print("</td><td>");
             vv=(binp[2]  & PERINPEN_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,1);                           // bit enable
             vv=(binp[2]  & PERINPVALID_VB);;perinpfnc(cli,ninp,vv,'c',1,xfonc1,9);                       // bit active level
             vv=(binp[2]  & PERINPOLDLEV_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,2);                       // bit prev lev

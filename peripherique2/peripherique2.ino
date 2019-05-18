@@ -75,7 +75,7 @@ WiFiServer server(9999); // PORTSERVPERI);
   char  ageSeconds[8];     // secondes 9999999s=115 jours
   long  tempAge=1;         // secondes
   bool  tempchg=FAUX;
-  long timeservbegin;
+  long  timeservbegin;
 
   long  clkTime=millis();   // timer automate rapide
   uint8_t clkFastStep=0;    // stepper automate rapide
@@ -89,12 +89,11 @@ WiFiServer server(9999); // PORTSERVPERI);
   long  detTime[MAXDET]={millis(),millis(),millis(),millis()};    // temps pour debounce
 
 
-  uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};    // les switchs
-  byte    staPulse[MAXSW];                               // état clock pulses
-  long    impDetTime[MAXSW];                             // timer pour gestion commandes impulsionnelles     
-  uint8_t pinDet[MAXDET]={PINDTA,PINDTB,PINDTC,PINDTD};  // les détecteurs
-  byte    pinDir[MAXDET]={LOW,LOW,LOW,LOW};              // flanc pour interruption des détecteurs (0 falling ; 1 rising)
-  bool    pinLev[MAXDET];                                // curr level
+  uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};      // les switchs
+  byte    staPulse[NBPULSE];                               // état clock pulses
+  long    impDetTime[NBPULSE];                             // timer pour gestion commandes impulsionnelles     
+  uint8_t pinDet[MAXDET]={PINDTA,PINDTB,PINDTC,PINDTD};    // les détecteurs
+
   
 //  void (*isrD[4])(void);                                 // tableau de pointeurs de fonctions
 //  long isrTime=0;                                        // durée isr
@@ -115,9 +114,9 @@ char* cstRecA=(char*)&cstRec;
 
   ADC_MODE(ADC_VCC);
 
-  char* chexa="0123456789ABCDEFabcdef\0";
-  byte  mask[]={0x00,0x01,0x03,0x07,0x0F};
-  uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (8)  
+  char*     chexa="0123456789ABCDEFabcdef\0";
+  byte      mask[]={0x00,0x01,0x03,0x07,0x0F};
+  uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
   uint32_t  mDSmaskbit[]={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
                        0x00000100,0x00000200,0x00000400,0x00000800,0x00001000,0x00002000,0x00004000,0x00008000,
                        0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
@@ -273,9 +272,8 @@ delay(100);
   cstRec.serverTime=cstRec.serverPer+1;
   forceTrigTemp();    // force connexion server 
 
-  memdetinit();
-  memset(staPulse,0x00,MAXSW);
-
+  memdetinit();pulsesinit();
+  
   #ifdef  _SERVER_MODE
 //    wifiConnexion("devolo-5d3","JNCJTRONJMGZEEQL");
 /*    timeservbegin=millis();
@@ -294,24 +292,32 @@ delay(100);
   // automate de séquencement : horloge à 50mS et à 500mS ;
   //    10 slots dans chaque ; un traitement peut exister sur plusieurs slots
   //
-  // si une communication avec le serveur est en cours (cstRec.talkStep != 0), l'automate talkServer est actif
+  // si un appel au serveur est en cours (cstRec.talkStep != 0), l'automate talkServer est actif
   // sinon la boucle d'attente tourne : 
-  //                                      - contrôle d'état des switchs 
-  //                                      - test de l'heure de mesure de température (ou autre)
+  //                                    (toutes les 50mS)
+  //                                      - réception d'un ordre extérieur
+  //                                      - exécution des actions
+  //                                      - debounce détecteurs physiques
+  //                                      - polling  détecteurs physiques
   //                                      - test de l'heure de blink
-  //                                      - debounce switchs
+  //                                     (toutes les 100mS)
+  //                                      - clock pulses  
+  //                                     (toutes les 500mS)
+  //                                      - test de l'heure de mesure de température (ou autre)
   //                                      - test de l'heure d'appel du serveur  
+  //
   // (changer cstRec.talkStep déclenche un transfert au serveur (cx wifi/dataRead/Save)
   // Si l'appel n'aboutit pas (pas de cx wifi, erreurs de com, rejet par le serveur-plus de place)
   // le délai d'appel au serveur est doublé à concurence de 7200sec entre les appels.
-  //  
+  //
+  // la période est allongée par les communications avec le serveur (appel ou réception d'ordre)
    
 
   #ifdef  _SERVER_MODE
   
       if(millis()>(clkTime+PERFASTCLK)){        // période 5mS/step
         switch(clkFastStep++){
-/* En 1 toujours talkstep pour le forçage de communication d'acquisitrion du port au reset */
+/* En 1 toujours talkstep pour le forçage de communication d'acquisition du port au reset */
 /* clkFastStep et cstRec.talkStep == 1 */          
           case 1:   timeOvfSet(1);if(cstRec.talkStep!=0){talkServer();}timeOvfCtl(1);
                     break;
@@ -475,9 +481,13 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
               cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
 
             uint8_t i1=NBPERINPUT*PERINPLEN;                                    // size inputs
-            for(uint8_t k=0;k<i1;k++){                                          // inputs switchs 
-              conv_atoh((data+MPOSPERINPUT+2*k),&cstRec.perInput[k]);}
-
+            byte bufoldlev[i1];
+            for(uint8_t k=0;k<i1;k++){                                          // inputs !!! ne pas écraser les bits oldlevel !!!
+              conv_atoh((data+MPOSPERINPUT+2*k),&bufoldlev[k]);
+              if((k%4)==2){bufoldlev[k]&=~PERINPOLDLEV_VB;bufoldlev[k]|=cstRec.perInput[k]&PERINPOLDLEV_VB;}
+            }
+            memcpy(&cstRec.perInput,bufoldlev,i1);
+            
             for(int i=0;i<NBPULSE;i++){                                         // pulses values NBPULSE*ONE+NBPULSE*TWO
               cstRec.durPulseOne[i]=(long)convStrToNum(data+MPOSPULSONE+i*(LENVALPULSE+1),&sizeRead);
               cstRec.durPulseTwo[i]=(long)convStrToNum(data+MPOSPULSTWO+i*(LENVALPULSE+1),&sizeRead);}

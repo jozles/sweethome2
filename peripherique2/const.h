@@ -306,7 +306,7 @@ typedef struct {
   uint32_t  extDetec;             //  4   1 bit par detecteur externe
   IPAddress IpLocal;              //  4
   uint32_t  cxDurat;              //  4   durée last connexion
-  byte      swToggle[MAXSW];      //  4   toogle switch (raz après dataSave)     
+  byte      swToggle[MAXSW];      //  4   toogle switch (raz après dataSave)   ---------- inutilisé  
   uint16_t  portServer;           //  2   port en mode serveur          
   byte      filler[31];           //  
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer sa position

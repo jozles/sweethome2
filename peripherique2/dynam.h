@@ -27,6 +27,7 @@ void pulseClkisr();             // interrupt ou poling clk @10Hz
 
       swDebounce maj des compteurs de debounce pour les détecteurs locaux
       memdetinit initialise détecteurs locaux et pulse à 0 à la mise sous tension
+      pulsesinit initialise les générateurs à 0 mode IDLE
 
       swAction  fait le polling des inputs pour positionner les switchs selon les règles
  */
@@ -37,48 +38,16 @@ void polDx(uint8_t det);
 void polAllDet();
 void swDebounce();
 void memdetinit();
+void pulsesinit();
 void actions();
 
 #endif NO_MODE
 
 
 /*
-Mode d'emploi de la peritable :
-
-  pour chaque switch 3 colonnes : 
-    1) les compteurs avec bit d'enable et de free-run
-    2) le contrôle des détecteurs logiques : 
-        4 lignes pour 4 détecteurs avec : 
-        enable, local, n° physique (local) ou externe, transitionnel ou statiqiue, actif haut/bas, n° action éventuelle
-        (un détecteur est actif si : il est enable, local (externe à dev), son niveau correspond)
-                actions :
-                  0) reset : l'action reset remet les 2 compteurs à 0 en mode idle selon mode/état/flanc programmé 
-                  1) raz : l'action raz remet à 0 le compteur courant sans effet sur l'horloge selon mode/état/flanc programmé
-                  2) stop : l'action stop suspend l'horloge selon l'état/flanc programmé
-                  3) start : l'action start déclenche l'horloge selon l'état/flanc programmé
-                  4) short : l'action short termine le compteur courant sans changer la période totale (le compteur suivant est augmenté)
-                  5) fin : l'action fin termine le compteur courant. 
-                  6) stop impulsionnel : stop si le compteur depuis le début a moins de DETIMP (1,5sec) start sinon 
+       stop impulsionnel : stop si le compteur depuis le début a moins de DETIMP (1,5sec) start sinon 
                         (impDetTime=millis() si start, =0 si stop ou stop impulsionnel)
-                  7) toggle switch change l'état du(ou des) switch(s) utilisant le détecteur (voir const.h pour les^pb de mise en oeuvre)
                         
-    3) le contrôle des switchs :
-        (les lignes A et D sont inutilisées et sans effet)
-        ligne O pour OFF : 3 sources qui peuvent engendrer l'état OFF
-        ligne I pour ON  : 3 sources qui peuvent engendrer l'état ON
-        
-        1ère source : un détecteur logique : numéro (0 à 3) parmi les 4 de la colonne de contrôle des dl, bit enable, bit H/L
-        2nde source : le serveur : bit enable, bit H/L
-        3ème source : le générateur d'impulsion : bit enable, bit H/L
-
-Modification à faire : la source serveur devient la source remote : ajouter 4 bits remote pour 4 switchs (cstRec.remote et ack/set) ; 
-                       les remotes fonctionnent en OU pour l'allumage (plusieurs remotes possibles sur le même switch)
-                       periSwVal devient un disjoncteur qui coupe tout
-                       ajout d'un écran de disjoncteurs et forçages d'allumages pour les switchs (1 ligne avec 2 inters par switch)
-                       3 lignes deviennent valides dans le contrôle des switchs : 
-                            I forçage ON 
-                            O forçage OFF (si pas I)
-                            X On (si pas O)
                             
 exemple : positionner le switch 0 selon l'état du détecteur local 2 (P4 de la carte VR) et switch 1 à l'inverse
           (contrôle des détecteurs / conrôle des switchs)    (contrôle des détecteurs / conrôle des switchs)    (x coché, _ vide)

@@ -42,8 +42,9 @@ extern uint16_t tempPeriod;
 extern float    voltage;
 
 char inptyps[]="meexphpu??";                  // libellés types sources inputs
-char inptypd[]="meexsw__??";                  // libellés types destinations inputs
-char inpact[]={"nop  RAZ  STOP STARTSHORTEND  IMP  RESETTGLE OR   AND   NAND "};      // libellés actions
+char inptypd[]="meexswpu??";                  // libellés types destinations inputs
+char inpact[]={"nop  RAZ  STOP STARTSHORTEND  IMP  RESETTGLE OR   AND  NAND "};      // libellés actions
+char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                       // libellés staPulse
 
 void checkVoltage()
 {
@@ -156,7 +157,7 @@ void initConstant()  // inits mise sous tension
 void periInputPrint(byte* input)
 {
   Serial.print("inputs ");
-#define LBINP 23
+#define LBINP 29
   char binput[LBINP];
   byte inp[3];
   byte a;
@@ -176,9 +177,9 @@ void periInputPrint(byte* input)
       if(a>3){a=4;}binput[14]=inptypd[a*2];binput[15]=inptypd[a*2+1];                                  // type détec dest
       a=*(uint8_t*)(input+ninp*PERINPLEN+3)>>PERINPNVLS_PB;conv_htoa(binput+17,&a);                    // n° détec dest
       a=(*((uint8_t*)(input+2+ninp*PERINPLEN))&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+20,&a);  // act input
+      for(int tact=0;tact<LENTACT;tact++){binput[23+tact]=inpact[a*LENTACT+tact];}
       Serial.print(binput);
-      for(int tact=0;tact<LENTACT;tact++){Serial.print(inpact[a*LENTACT+tact]);}
-      sp("  / ",0);
+      sp("/ ",0);
     }
     Serial.println();
 }
@@ -187,11 +188,13 @@ void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo)
 {
   Serial.print("pulses(f-e 1 e 2)  ");
   for(int pu=0;pu<NBPULSE;pu++){
-    Serial.print((*(uint16_t*)pulseCtl>>(PMFRO_VB+pu*PCTLBIT))&0x01);sp("-",0);         // fr bit
-    Serial.print(((*(uint16_t*)pulseCtl)>>(PMTOE_VB+pu*PCTLBIT))&0x01);sp(" ",0);       // time one en
+    Serial.print((*(uint16_t*)pulseCtl>>(PMFRO_PB+pu*PCTLBIT))&0x01);sp("-",0);         // fr bit
+    Serial.print(((*(uint16_t*)pulseCtl)>>(PMTOE_PB+pu*PCTLBIT))&0x01);sp(" ",0);       // time one en
     Serial.print(*(uint32_t*)(pulseOne+pu));sp(" ",0);                                  // time one
-    Serial.print(((*(uint16_t*)pulseCtl)>>(PMTTE_VB+pu*PCTLBIT)&0x01));sp(" ",0);       // time two en
-    Serial.print(*(uint32_t*)(pulseTwo+pu));if(pu<NBPULSE-1){sp("  |  ",0);}            // time two
+    Serial.print(((*(uint16_t*)pulseCtl)>>(PMTTE_PB+pu*PCTLBIT)&0x01));sp(" ",0);       // time two en
+    Serial.print(*(uint32_t*)(pulseTwo+pu));                                            // time two
+    Serial.print("  ");for(int tsp=0;tsp<LENTSP;tsp++){Serial.print(psps[staPulse[pu]*LENTSP+tsp]);} // staPulse
+    if(pu<NBPULSE-1){sp("  |  ",0);}
   }Serial.println();
 }
 
@@ -214,8 +217,8 @@ void printConstant()
   Serial.print(" serverTime=");Serial.print(cstRec.serverTime);Serial.print(" serverPer=");Serial.print(cstRec.serverPer);
   Serial.print(" oldtemp=");Serial.print(cstRec.oldtemp);Serial.print(" tempPer=");Serial.print(cstRec.tempPer);
   Serial.print(" tempPitch=");Serial.print(cstRec.tempPitch);Serial.print("  last durat=");Serial.print(cstRec.cxDurat);
-  Serial.print(" staPulse=");for(int s=0;s<MAXSW;s++){Serial.print(s);Serial.print("-");Serial.print(staPulse[s],HEX);
-  Serial.print(" ");}Serial.println("  C=DIS 0=IDLE 5=RUN1 7=RUN2 4=END1 6=END2");
+  //Serial.print(" staPulse=");for(int s=0;s<MAXSW;s++){Serial.print(s);Serial.print("-");Serial.print(staPulse[s],HEX);
+  //Serial.print(" ");}Serial.println("  C=DIS 0=IDLE 5=RUN1 7=RUN2 4=END1 6=END2");
   Serial.print("memDetec (0-n)=");for(int s=0;s<(MAXDET);s++){Serial.print(s);Serial.print("-");
   //Serial.print((cstRec.memDetec[s]>>DETBITST_PB)&0x03,HEX);Serial.print(" ");
   //Serial.print((cstRec.memDetec[s]>>DETBITUD_PB)&0x01,HEX);Serial.print(" ");
