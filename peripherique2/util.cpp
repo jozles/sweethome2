@@ -43,8 +43,8 @@ extern float    voltage;
 
 char inptyps[]="meexphpu??";                  // libellés types sources inputs
 char inptypd[]="meexswpu??";                  // libellés types destinations inputs
-char inpact[]={"nop  RAZ  STOP STARTSHORTEND  IMP  RESETTGLE OR   AND  NAND "};      // libellés actions
-char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                       // libellés staPulse
+char inpact[]={"     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR                      "};  // libellés actions
+char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                                      // libellés staPulse
 
 void checkVoltage()
 {

@@ -309,9 +309,8 @@ enum {OFF,ON};
 
 #define LENTACT 5            // len libellé
 
-//#define PMDCA_SW    0x00     // switch update
-#define PMDCA_NOP   0x00     // nop
-#define ACT0 'n','o','p',' ',' '
+#define PMDCA_VIDE  0x00     //
+#define ACT0 '_____'
 #define PMDCA_RAZ   0x01     // raz
 #define ACT1 'R','A','Z',' ',' '
 #define PMDCA_STOP  0x02     // stop  clk
@@ -326,14 +325,14 @@ enum {OFF,ON};
 #define ACT6 'IMP  '
 #define PMDCA_RESET 0x07     // reset
 #define ACT7 'RESET'
-#define PMDCA_TGL   0x08     // toggle dest
-#define ACT8 'TGLE '
+#define PMDCA_LXOR  0x08     // toggle dest
+#define ACT8 'LXOR '
 #define PMDCA_LOR   0x09     // logical or dest
 #define ACT9 'OR   '
 #define PMDCA_LAND  0x0A     // logical and dest
 #define ACT10 'AND  '
-#define PMDCA_LNAND 0x0B     //
-#define ACT11 'NAND_'
+#define PMDCA_LNOR 0x0B     //
+#define ACT11 'N','O','R','_','_'
 #define PMDCA_VIDE  0x0C     //
 #define ACT12 '_____'
 #define PMDCA_VIDE  0x0D     //

@@ -171,7 +171,7 @@ void actions()          // pour chaque input, test enable,
           uint32_t lmbit;
           byte action=(*(curinp+2))>>PERINPACTLS_PB;
           switch(action){                                                        // exécution action
-              case PMDCA_LOR:switch(tdest){                                      // type dest
+              case PMDCA_LOR:switch(tdest){                                               // type dest   *** 0->1 ; 1->1 ***
                              case DETYEXT:break;
                              case DETYMEM:locmem |= mDSmaskbit[ndest];break;              // or locmembit,1
                              case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
@@ -181,7 +181,7 @@ void actions()          // pour chaque input, test enable,
                              default:break;
                              }
                              break;
-              case PMDCA_LAND:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest
+              case PMDCA_LAND:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest   *** 0->0 ; 1->1 *** sans effet !
                              case DETYEXT:break;
                              case DETYMEM:lmbit=locmem & mDSmaskbit[ndest];               // get anded locmembit,1
                                           locmem &= ~mDSmaskbit[ndest];                   // raz locmem bit
@@ -194,14 +194,14 @@ void actions()          // pour chaque input, test enable,
                              default:break;
                              }
                              break;
-              case PMDCA_LNAND:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest
+              case PMDCA_LNOR:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest   *** 0->0 ; 1->0 ***
                              case DETYEXT:break;
                              case DETYMEM:locmem &= ~mDSmaskbit[ndest];break;              // raz locmem bit
                              case DETYSW:digitalWrite(pinSw[ndest],OFF);break;             // no disjoncteur ?
                              default:break;
                              }
                              break;                             
-              case PMDCA_TGL:switch((byte)((*(curinp+3))&PERINPNT_MS)){                     // type dest
+              case PMDCA_LXOR:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest   *** 0->1 ; 1->0 *** equiv NAND 
                              case DETYEXT:break;
                              case DETYMEM:lmbit=(locmem ^ 0xffffffff) & mDSmaskbit[ndest];// get eored locmem bit
                                           locmem &= ~mDSmaskbit[ndest];                   // raz locmem bit
