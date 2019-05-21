@@ -935,22 +935,25 @@ void textfonc(char* nf,int len)
 }
 
 
-void inpsub(byte* ptr,byte PNT_MS,byte PNTLS_PB,char* inptyp,uint8_t len,uint8_t lreel)
+void inpsub(byte* ptr,byte PNT_MS,byte PNTLS_PB,char* libel,uint8_t len)
 {
+  uint8_t lreel;
+  char typ[8];
   for(int i=0;i<8;i++){if(*(valf+i)==0x00){lreel=i;i=8;}}
   
   byte v;
   if(lreel>0 && lreel<8 && len>0 && len<8){
-    char typ[8];memcpy(typ,valf,lreel);typ[lreel]=0x00;
-    v=(byte)(strstr(inptyp,typ)-inptypd)/len;
+    memcpy(typ,valf,lreel);for(int i=lreel;i<len;i++){typ[i]=' ';}typ[len]=0x00;
+    v=(byte)(strstr(libel,typ)-libel)/len;
+    Serial.print(strstr(libel,typ));Serial.print("-");Serial.print(strstr(libel,typ)-libel);
     v = v << PNTLS_PB;
   }
   else{v=0;}
   *ptr &= ~PNT_MS;
   *ptr |= v;
 
-Serial.print("valf=");Serial.print(valf);Serial.print(" len=");
-Serial.print(len);Serial.print(" lreel=");Serial.print(lreel);Serial.print(" v=");Serial.println(v,HEX);
+Serial.print(" valf=");Serial.print(valf);Serial.print(" len=");
+Serial.print(len);Serial.print(" lreel=");Serial.print(lreel);Serial.print(" typ=");Serial.print(typ);Serial.print(" libel=");Serial.print(libel);Serial.print(" v=");Serial.println(v,HEX);
 }
 
 void commonserver(EthernetClient cli)
@@ -1203,68 +1206,26 @@ void commonserver(EthernetClient cli)
                         *(uint16_t*)periSwPulseCtl|=sh;
                          Serial.print((char)b);Serial.print(" Pulse n°=");Serial.print(pu);Serial.print(" ");dumpfield((char*)&sh,2);dumpstr((char*)periSwPulseCtl,2);
                        }break;       
-              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;  // (inputs) p_inp1__  
-                        uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;                   // (enable/type/num detec/action)
+              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;   // (inputs) p_inp1__  
+                        uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;                    // (enable/type/num detec/action)
                         uint16_t vl=0;
                         switch (nfct){
-                          case 1:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPEN_VB;break;           // enable
-                          case 2:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPOLDLEV_VB;break;       // prev level
-                          case 3:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPDETES_VB;break;        // edge/static
-                          case 4:inpsub((periInput+offs),PERINPNT_MS,PERINPNTLS_PB,inptyps,2,nvalf[i]);break;    // type src
+                          case 1:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPEN_VB;break;               // enable
+                          case 2:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPOLDLEV_VB;break;           // prev level
+                          case 3:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPDETES_VB;break;            // edge/static
+                          case 4:inpsub((periInput+offs),PERINPNT_MS,PERINPNTLS_PB,inptyps,2);break;      // type src
                           case 5:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
                                  *(periInput+offs)&=~PERINPV_MS;
-                                 *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;               // num detec src
-                          case 6:inpsub((periInput+3+offs),PERINPNT_MS,PERINPNTLS_PB,inptyps,2,nvalf[i]);break;  // type dest
-                          /*{char typ[3];memcpy(typ,valf,2);typ[2]=0x00;
-                                  
-                                  //byte v1=(byte)(strstr(inptypd,typ)-inptypd)/2;
-                                  //v1=vl<<PERINPNTLS_PB;
-                                                                    
-                                  
-                                  
-                                  Serial.println();Serial.println();Serial.println();Serial.println();   Serial.println();Serial.println();Serial.println();Serial.println();   Serial.println();Serial.println();Serial.println();Serial.println();
-
-
-                                  
-                                  byte* bid;
-                                  byte v=(byte)(strstr(inptypd,typ)-inptypd)/2;
-
-                                  v=v<<PERINPNTLS_PB;
-                                  bid=(periInput+offs+3);
-                                  //*bid &= ~PERINPNT_MS;
-                                  *(periInput+offs+3)&= ~PERINPNT_MS;
-                                  
-                                  //byte bid0= *bid | bidd;
-                                  Serial.print(*bid);Serial.print(" ");Serial.println(v);
-                                  //Serial.print("*bid|bidd bid0=");Serial.println(bid0);
-
-                                  *(periInput+offs+3)|= v;
-                                  //*bid = *bid | v;
-                                  Serial.print("*bid=*bid|v *bid=");Serial.println(*bid);
-                                  //*bid = bid0;
-                                  //Serial.print("*bid=bid0 *bid=");Serial.println(*bid);
-
-
-
-                                  
-                                  Serial.println();Serial.println();Serial.println();Serial.println();   Serial.println();Serial.println();Serial.println();Serial.println();   Serial.println();Serial.println();Serial.println();Serial.println();
-
-                               
-   
-                                 }break;*/                                                              
+                                 *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;                   // num detec src
+                          case 6:inpsub((periInput+3+offs),PERINPNT_MS,PERINPNTLS_PB,inptypd,2);break;    // type dest
                           case 7:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
                                  *(periInput+3+offs)&=~PERINPV_MS;
-                                 *(periInput+3+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;             // num detec dest                                 
-                          case 8:inpsub((periInput+2+offs),PERINPACT_MS,PERINPACTLS_PB,inpact,LENTACT,nvalf[i]);break;    // action
-                          /*{char act[LENTACT+1];memcpy(act,valf,LENTACT);act[LENTACT]=0x00;int v1=(strstr(inpact,act)-inpact)/LENTACT;
-                                 if(vl>MAXACT){vl=MAXACT;}                                 
-                                 *(uint8_t*)(periInput+offs+2)&=~PERINPACT_MS;
-                                 *(uint8_t*)(periInput+offs+2)|=vl<<PERINPACTLS_PB;
-                                 }break;*/                                                              // action
-                          case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;        // active level
+                                 *(periInput+3+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;                 // num detec dest                                 
+                          case 8:inpsub((periInput+2+offs),PERINPACT_MS,PERINPACTLS_PB,inpact,LENTACT);break;    // action
+                          case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;            // active level
                           default:break;
                         }
-                        Serial.print(" input=");Serial.print(nuinp);Serial.print(" ");dumpfield((char*)(periInput+offs+2),1);
+                        //Serial.print(" input=");Serial.print(nuinp);Serial.print(" ");dumpfield((char*)(periInput+offs+2),1);
                        }break;                                                                      
               case 34: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (perinput) p_inp2__  8 bits inutilisés
                         uint8_t offs=(periCur-1)*NBPERINPUT*PERINPLEN+NBPERINPUT*PERINPLEN+nuinp*PERINPLEN;

@@ -210,10 +210,11 @@ int checkHttpData(char* data,uint8_t* fonction)   // checkData et extraction de 
     char noms[LENNOM+1];
     int q=0;
 
-    strncpy(noms,data,LENNOM);noms[LENNOM]='\0';                       //for(i=0;i<LENNOM;i++){noms[i]=data[i];}noms[LENNOM]='\0';
+    memcpy(noms,data,LENNOM);noms[LENNOM]='\0';
     q=checkData(data+LENNOM+1);
     if(q==MESSOK){
         *fonction=(strstr(fonctions,noms)-fonctions)/LENNOM;
+        Serial.print("fonction=");Serial.print((strstr(fonctions,noms)-fonctions));
         if(*fonction>=nbfonct || *fonction<0){q=MESSFON;}
     }
     return q;
