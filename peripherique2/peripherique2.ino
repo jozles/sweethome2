@@ -190,7 +190,7 @@ delay(1);
   model[4]=(char)(NBSW+48);
   model[5]=(char)(NBDET+48);  
 
-  nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;
+  nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;  Serial.print("nbfonct=");Serial.println(nbfonct);
   fset_______=(strstr(fonctions,"set_______")-fonctions)/LENNOM;
   fack_______=(strstr(fonctions,"ack_______")-fonctions)/LENNOM;
   fetat______=(strstr(fonctions,"etat______")-fonctions)/LENNOM;
@@ -253,7 +253,7 @@ delay(1);
 #if POWER_MODE!=DS_MODE
 /* si le crc des variables permanentes est faux, initialiser
    et lancer une conversion */
-
+  Serial.print("nbfonct=");Serial.println(nbfonct);
   cstRec.cstlen=(sizeof(constantValues));
   if(cstRec.cstlen!=LENRTC){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){};}
   if(!readConstant()){
@@ -262,6 +262,7 @@ delay(1);
   }
 #endif PM!=DS_MODE
 
+  Serial.print("nbfonct=");Serial.println(nbfonct);
   Serial.print("CONSTANT=");Serial.print(CONSTANT);Serial.print(" time=");Serial.print(millis()-debTime);Serial.println(" ready !");
   yield();
   printConstant();

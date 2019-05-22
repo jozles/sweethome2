@@ -142,11 +142,12 @@ Modifier :
 /* >>> CARTES <<< */
 
 #define VR      'V'
+#define VRR     'W'
 //#define RELAY   
 #define THESP01 '1'
 #define THESP12 '2'
 
-#define CARTE VR                      // <------------- modèle carte
+#define CARTE VRR                     // <------------- modèle carte
 #define POWER_MODE NO_MODE            // <------------- type d'alimentation 
 
 #if POWER_MODE==NO_MODE
@@ -214,6 +215,37 @@ Modifier :
 #define PINPOFF 3   // power off TPL5111 (RX ESP01)
 #define PERTEMP 20  // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #endif CARTE==VR
+
+#if CARTE==VRR
+
+#define PINXDT 13
+#define WPIN   2       // 1 wire ds1820
+#define NBSW   2       // nbre switchs
+#define PINSWA 4       // pin sortie switch A
+#define CLOSA  HIGH    // relais ON
+#define OPENA  LOW     // relais off
+#define PINSWB 5       // pin sortie switch B
+#define CLOSB  HIGH    // relais ON sortie haute
+#define OPENB  LOW     // relais OFF
+#define PINSWC PINSWA  // pin sortie switch C
+#define CLOSC  CLOSA    
+#define OPENC  OPENA
+#define PINSWD PINSWB  // pin sortie switch D
+#define CLOSD  CLOSB    
+#define OPEND  OPENB
+#define NBDET  4
+#define PINDTA 12   // pin entrée détect bit 0 
+#define PINDTB 14   // pin entrée détect bit 1 
+#define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
+#define PINDTD PINXDT   // pin entrée détect bit 3  sur la même entrée.
+#define PININTA 12  // in interupt
+#define PININTB 14  // in interupt
+#define PININTC PINXDT  // in interupt
+#define MEMDINIT 0x1111 // bits enable
+#define PINPOFF 3   // power off TPL5111 (RX ESP01)
+#define PERTEMP 20  // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#endif CARTE==VRR
+
 
 #if CARTE==THESP01
 #define WPIN   2    // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
