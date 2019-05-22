@@ -38,7 +38,8 @@ int   periRemove(uint16_t num);
 void  periModif();
 void  periConvert();
 void  periInit();
-void  periInitVar(); // le contenu de periRec seul
+void  periInitVar();  // le contenu de periRec seul
+void  periInitVar0(); // pulses et inputs 
 void  periCheck(uint16_t num,char* text);
 void  periPrint(uint16_t num);
 

@@ -99,7 +99,6 @@ void subModePulseTime(EthernetClient* cli,uint8_t npu,uint32_t* pulse,uint32_t* 
   fonc1[LENNOM-1]=onetwo;
   //Serial.print(sw);Serial.print(" OT=");Serial.print(onetwo);Serial.print(" fonc1=");Serial.print(fonc1);Serial.print(" val=");Serial.println(val);
   checkboxTableHtml(cli,&val,fonc1,-1,0);                       // bit enable pulse
-Serial.println(fonc2);
   if(*(pulse+npu)<0){*(pulse+npu)=0;}
   numTableHtml(cli,'l',(pulse+npu),fonc2,8,0,2);                 // durée pulse   
   char a[8];sprintf(a,"%06d",*(dur+npu));a[6]='\0';              // valeur courante
@@ -131,11 +130,12 @@ void perinpfnc(EthernetClient* cli,uint8_t nuinp,uint16_t val,char type,uint8_t 
 
 void SwCtlTableHtml(EthernetClient* cli)
 {
-  Serial.print("controle switchs");Serial.print(" -- periCur=");Serial.println(periCur);
+  Serial.print("début SwCtlTableHtml -- periCur=");Serial.println(periCur);
+
+  // periCur est transféré via les fonctions d'en-tête peri_inp__ et peri_t_sw
+
   htmlIntro(nomserver,cli);
-
   cli->println("<body>");            
-
   cli->println("<form method=\"get\" >");
     cli->print(VERSION);cli->println("  ");
     cli->print(periCur);cli->print("-");cli->print(periNamer);cli->println("<br>");
@@ -146,6 +146,8 @@ void SwCtlTableHtml(EthernetClient* cli)
     cli->println("<input type=\"submit\" value=\" MàJ \">");cli->print(" ");
     char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
     boutFonction(cli,swf,"","refresh",0,0,1,0);cli->print(" ");
+    swf[LENNOM-2]='X';
+    boutFonction(cli,swf,""," erase ",0,0,1,0);cli->print(" ");
     
     cli->print("<br> détecteurs serveur ");
     char hl[]={"LH"};
@@ -189,15 +191,13 @@ void SwCtlTableHtml(EthernetClient* cli)
       char xfonc1[]="p_inp1____\0";
       char xfonc2[]="p_inp2____\0";
 
-      // offset dans periInput
-      uint16_t offsetPeri=(periCur-1)*PERINPLEN*NBPERINPUT;
       uint16_t offsetInp=0;
  
       for(int ninp=0;ninp<NBPERINPUT;ninp++){     // boucle des inputs
 
             cli->print("<tr><form method=\"get\" >");    
             uint8_t vv;
-            byte binp[PERINPLEN];memcpy(binp,periInput+offsetPeri+offsetInp,PERINPLEN);
+            byte binp[PERINPLEN];memcpy(binp,periInput+offsetInp,PERINPLEN);
             offsetInp+=PERINPLEN;
 
            usrPeriCur(cli,"peri_inp__",ninp,2,0);
@@ -234,6 +234,7 @@ void SwCtlTableHtml(EthernetClient* cli)
                         
         } // input suivant
   cli->print("</table></body></html>");
+  Serial.println("fin SwCtlTableHtml");
 }
 
 void periTableHtml(EthernetClient* cli)

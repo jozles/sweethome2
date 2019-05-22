@@ -291,13 +291,13 @@ void xradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,byte nbval,i
     }
 }
 
-void selectTableHtml(EthernetClient* cli,char* val,char* ft,int nbre,int len,int sel,uint8_t v0,uint8_t v1,uint8_t td)
-{
+void selectTableHtml(EthernetClient* cli,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td)
+{            // val=table des libellés ; ft=fonction ; nbre ds table ; len step table ; sel=n°actuel ; nuv=n°param ; n°inp
   char a;
   int i,j;
 
-  ft[LENNOM-2]=(char)(v0+PMFNCHAR);
-  ft[LENNOM-1]=(char)(v1+PMFNCHAR);
+  ft[LENNOM-2]=(char)(nuv+PMFNCHAR);   
+  ft[LENNOM-1]=(char)(ninp+PMFNCHAR);   
   
   if(td==1 || td==2){cli->print("<td>");}
 

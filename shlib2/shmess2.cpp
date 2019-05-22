@@ -214,9 +214,10 @@ int checkHttpData(char* data,uint8_t* fonction)   // checkData et extraction de 
     q=checkData(data+LENNOM+1);
     if(q==MESSOK){
         *fonction=(strstr(fonctions,noms)-fonctions)/LENNOM;
-        Serial.print("fonction=");Serial.print((strstr(fonctions,noms)-fonctions));
+        Serial.print("\nnbfonct=");Serial.print(nbfonct);Serial.print(" fonction=");Serial.print((strstr(fonctions,noms)-fonctions));Serial.print("/");Serial.print(*fonction);
         if(*fonction>=nbfonct || *fonction<0){q=MESSFON;}
     }
+    Serial.print(" mess=");Serial.println(q);
     return q;
 }
 

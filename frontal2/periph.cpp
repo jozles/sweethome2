@@ -561,8 +561,22 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   periInitVar();
 }
 
-void periInitVar()
-{
+void periInitVar0()                  // pour bouton erase
+{   // attention : perInitVar ne concerne que les variables de l'enregistrement de périphérique
+    // lorsque periLoad est effectué periInitVar n'est oas utile
+//Serial.println("erase pulses & inputs");
+   memset(periInput,0x00,NBPERINPUT*PERINPLEN*sizeof(byte));
+   memset(periSwPulseOne,0x00,NBPULSE*sizeof(uint32_t));
+   memset(periSwPulseTwo,0x00,NBPULSE*sizeof(uint32_t)); 
+   memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t)); 
+   memset(periSwPulseCurrTwo,0x00,NBPULSE*sizeof(uint32_t));       
+   memset(periSwPulseCtl,0x00,PCTLLEN);
+   memset(periSwPulseSta,0x00,NBPULSE);      
+}
+
+
+void periInitVar()   // attention : perInitVar ne concerne que les variables de l'enregistrement de périphérique
+{                    // lorsque periLoad est effectué periInitVar n'est pas utile
   *periNum=0;
   *periPerRefr=MAXSERVACCESS;
   *periPerTemp=TEMPERPREF;
@@ -581,13 +595,6 @@ void periInitVar()
   *periPort=0;
   *periSwNb=0;
   *periSwVal=0;
-   memset(periInput,0x00,NBPERINPUT*PERINPLEN*sizeof(byte));
-   memset(periSwPulseOne,0x00,NBPULSE*sizeof(uint32_t));
-   memset(periSwPulseTwo,0x00,NBPULSE*sizeof(uint32_t)); 
-   memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t)); 
-   memset(periSwPulseCurrTwo,0x00,NBPULSE*sizeof(uint32_t));       
-   memset(periSwPulseCtl,0x00,PCTLLEN);
-   memset(periSwPulseSta,0x00,MAXSW);   
   *periSondeNb=0;
   *periProg=FAUX;
   *periDetNb=0;
@@ -598,6 +605,9 @@ void periInitVar()
   *periVmin=3.25;
   *periVmax=3.50;
    memset(periDetServEn,0x00,2);
+   periInitVar0();
+   // attention : perInitVar ne concerne que les variables de l'enregistrement de périphérique
+   // lorsque periLoad est effectué periInitVar n'est oas utile
 }
 
 void periConvert()        
