@@ -3,7 +3,7 @@
 
 //#define WEMOS
 
-#define VERSION "1.3 "
+#define VERSION "1.3a"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
