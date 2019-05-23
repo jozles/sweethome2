@@ -83,8 +83,7 @@ bool readConstant()
   }
 #endif
 
-for(int k=1;k<=LENVERSION;k++){Serial.print(cstRecA[k]);}          // affichage version ; cstRec.cstVers[k]);}
-Serial.print(" readConstant ");Serial.print((long)cstRecA,HEX);Serial.print(" len=");Serial.print(cstRec.cstlen);
+Serial.print("readConstant ");Serial.print((long)cstRecA,HEX);Serial.print(" len=");Serial.print(cstRec.cstlen);
 Serial.print("/");Serial.print((uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1);
 Serial.print(" crc=");Serial.print(*(cstRecA+cstRec.cstlen-1),HEX);Serial.print(" calc_crc=");
 byte calc_crc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1);Serial.println(calc_crc,HEX);
@@ -122,7 +121,8 @@ Serial.print(" numperiph=");Serial.print((char)cstRec.numPeriph[0]);Serial.print
 
 void initConstant()  // inits mise sous tension
 {
-  cstRec.cstlen=(uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1;    //sizeof(cstRec);
+  //cstRec.cstlen=(uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1;    //sizeof(cstRec);
+  cstRec.cstlen=(sizeof(constantValues));  // si le crc est faux, retour à la valeur par défaut
   memcpy(cstRec.numPeriph,"00",2);
   cstRec.serverTime=PERSERV+1;             // forçage talkserver à l'init
   cstRec.serverPer=PERSERV;
@@ -133,22 +133,21 @@ void initConstant()  // inits mise sous tension
   cstRec.swCde='\0';                       // cdes inter (4*2bits (periIntVal) ici x0 x=état demandé par le serveur pour le switch)
   
   memset(cstRec.pulseMode,0x00,PCTLLEN);      // ctle pulse
-  for(int i=0;i<MAXSW;i++){
-  cstRec.durPulseOne[i]=0;       // durée pulses (MAXSW=4*4)
-  cstRec.durPulseTwo[i]=0;       // durée pulses (MAXSW=4*4)
-  cstRec.cntPulseOne[i]=0;       // compt pulses (MAXSW=4*4)
-  cstRec.cntPulseTwo[i]=0;}      // compt pulses (MAXSW=4*4)
-  cstRec.IpLocal=IPAddress(0,0,0,0);
+  for(int i=0;i<NBPULSE;i++){
+    cstRec.durPulseOne[i]=0;
+    cstRec.durPulseTwo[i]=0;
+    cstRec.cntPulseOne[i]=0;
+    cstRec.cntPulseTwo[i]=0;}
+    cstRec.IpLocal=IPAddress(0,0,0,0);
   char detDis=DETDIS<<DETBITST_PB;
   memset(cstRec.memDetec,detDis,MAXDET);
   memcpy(cstRec.cstVers,VERSION,LENVERSION);
   memcpy(cstRec.cstModel,model,LENMODEL);
-  memset(cstRec.perInput,0x00,MAXSW*NBPERINPUT*PERINPLEN);
+  memset(cstRec.perInput,0x00,NBPERINPUT*PERINPLEN);
   cstRec.extDetec=0;
   cstRec.cxDurat=0;
-  memset(cstRec.swToggle,0x00,MAXSW);
   cstRec.portServer=9999;
-  memcpy(cstRec.filler,"AA550123456755AA557654321055A",31);
+  memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
   Serial.println("Init Constant done");
   writeConstant();
   dumpstr((char*)cstRecA,256);

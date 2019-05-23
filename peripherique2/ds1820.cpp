@@ -88,7 +88,7 @@ int Ds1820::romDs(uint8_t pin,uint8_t* framein)   // read rom command
   v=getDs(pin,cmd,1,framein,8);
 
   if(v<=TOPRES){return v;}   // error 
-Serial.print("readRom cd(0x33) ");for(int ds=0;ds<8;ds++){hexprint(framein[ds]);}Serial.println();
+//Serial.print("readRom cd(0x33) ");for(int ds=0;ds<8;ds++){hexprint(framein[ds]);}Serial.println();
   dsmodel=framein[0];
   return framein[0]+256;
 }

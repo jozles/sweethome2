@@ -190,7 +190,7 @@ delay(1);
   model[4]=(char)(NBSW+48);
   model[5]=(char)(NBDET+48);  
 
-  nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;  Serial.print("nbfonct=");Serial.println(nbfonct);
+  nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;  
   fset_______=(strstr(fonctions,"set_______")-fonctions)/LENNOM;
   fack_______=(strstr(fonctions,"ack_______")-fonctions)/LENNOM;
   fetat______=(strstr(fonctions,"etat______")-fonctions)/LENNOM;
@@ -217,7 +217,7 @@ delay(1);
 /* >>>>>> gestion ds18x00 <<<<<< */
 
  byte setds[4]={0,0x7f,0x80,0x3f},readds[8];   // 187mS 10 bits accu 0,25°
- int v=ds1820.setDs(WPIN,setds,readds);if(v==1){Serial.print(" DS1820 version=0x");Serial.println(readds[0],HEX);}
+ int v=ds1820.setDs(WPIN,setds,readds);if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.println();}
  else {Serial.print(" DS1820 error ");Serial.println(v);}
   tconversion=TCONVERSIONB;if(readds[0]==0X10){tconversion=TCONVERSIONS;}
 
@@ -236,7 +236,7 @@ delay(1);
    et initialiser les variables permanentes */
   rst_info *resetInfo;
   resetInfo = ESP.getResetInfoPtr();
-  Serial.print("resetinfo ");Serial.println(resetInfo->reason);
+  Serial.print("\nresetinfo ");Serial.println(resetInfo->reason);
   if((resetInfo->reason)!=5){           // 5 deepsleep awake ; 6 external reset
     ds1820.convertDs(WPIN);
     delay(TCONVERSION);
@@ -253,16 +253,11 @@ delay(1);
 #if POWER_MODE!=DS_MODE
 /* si le crc des variables permanentes est faux, initialiser
    et lancer une conversion */
-  Serial.print("nbfonct=");Serial.println(nbfonct);
-  cstRec.cstlen=(sizeof(constantValues));
+  cstRec.cstlen=(sizeof(constantValues));            // len par défaut de l'enregistrement
   if(cstRec.cstlen!=LENRTC){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){};}
-  if(!readConstant()){
-    Serial.println("initialisation constantes");
-    initConstant();
-  }
+  if(!readConstant()){initConstant();}
 #endif PM!=DS_MODE
 
-  Serial.print("nbfonct=");Serial.println(nbfonct);
   Serial.print("CONSTANT=");Serial.print(CONSTANT);Serial.print(" time=");Serial.print(millis()-debTime);Serial.println(" ready !");
   yield();
   printConstant();

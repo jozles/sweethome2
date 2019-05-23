@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.g_"
+#define VERSION "1.h_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -189,115 +189,115 @@ Modifier :
 #define PINXDT 5
 #endif  def RELAY
 
-#define WPIN   4       // 1 wire ds1820
-#define NBSW   2       // nbre switchs
-#define PINSWA 2       // pin sortie switch A
-#define CLOSA  LOW     // triac ON
-#define OPENA  HIGH    // triac off
-#define PINSWB PINXB   // pin sortie switch B (interrupteur)
-#define CLOSB  HIGH    // triac ON sortie haute
-#define OPENB  LOW     // triac OFF
-#define PINSWC PINSWB  // pin sortie switch C
+#define WPIN   4        // 1 wire ds1820
+#define NBSW   2        // nbre switchs
+#define PINSWA 2        // pin sortie switch A
+#define CLOSA  LOW      // triac ON
+#define OPENA  HIGH     // triac off
+#define PINSWB PINXB    // pin sortie switch B (interrupteur)
+#define CLOSB  HIGH     // triac ON sortie haute
+#define OPENB  LOW      // triac OFF
+#define PINSWC PINSWB   // pin sortie switch C
 #define CLOSC  CLOSA    
 #define OPENC  OPENA
-#define PINSWD 2       // pin sortie switch D
+#define PINSWD 2        // pin sortie switch D
 #define CLOSD  CLOSB    
 #define OPEND  OPENB
 #define NBDET  4
-#define PINDTA 12   // pin entrée détect bit 0 
-#define PINDTB 14   // pin entrée détect bit 1 
+#define PINDTA 12       // pin entrée détect bit 0 
+#define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
 #define PINDTD PINXDT   // pin entrée détect bit 3  sur la même entrée.
-#define PININTA 12  // in interupt
-#define PININTB 14  // in interupt
+#define PININTA 12      // in interupt
+#define PININTB 14      // in interupt
 #define PININTC PINXDT  // in interupt
 #define MEMDINIT 0x1111 // bits enable
-#define PINPOFF 3   // power off TPL5111 (RX ESP01)
-#define PERTEMP 20  // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PINPOFF 3       // power off TPL5111 (RX ESP01)
+#define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #endif CARTE==VR
 
 #if CARTE==VRR
 
 #define PINXDT 13
-#define WPIN   2       // 1 wire ds1820
-#define NBSW   2       // nbre switchs
-#define PINSWA 4       // pin sortie switch A
-#define CLOSA  HIGH    // relais ON
-#define OPENA  LOW     // relais off
-#define PINSWB 5       // pin sortie switch B
-#define CLOSB  HIGH    // relais ON sortie haute
-#define OPENB  LOW     // relais OFF
-#define PINSWC PINSWA  // pin sortie switch C
+#define WPIN   2        // 1 wire ds1820
+#define NBSW   2        // nbre switchs
+#define PINSWA 4        // pin sortie switch A
+#define CLOSA  HIGH     // relais ON
+#define OPENA  LOW      // relais off
+#define PINSWB 5        // pin sortie switch B
+#define CLOSB  HIGH     // relais ON sortie haute
+#define OPENB  LOW      // relais OFF
+#define PINSWC PINSWA   // pin sortie switch C
 #define CLOSC  CLOSA    
 #define OPENC  OPENA
-#define PINSWD PINSWB  // pin sortie switch D
+#define PINSWD PINSWB   // pin sortie switch D
 #define CLOSD  CLOSB    
 #define OPEND  OPENB
 #define NBDET  4
-#define PINDTA 12   // pin entrée détect bit 0 
-#define PINDTB 14   // pin entrée détect bit 1 
+#define PINDTA 12       // pin entrée détect bit 0 
+#define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
 #define PINDTD PINXDT   // pin entrée détect bit 3  sur la même entrée.
-#define PININTA 12  // in interupt
-#define PININTB 14  // in interupt
+#define PININTA 12      // in interupt
+#define PININTB 14      // in interupt
 #define PININTC PINXDT  // in interupt
 #define MEMDINIT 0x1111 // bits enable
-#define PINPOFF 3   // power off TPL5111 (RX ESP01)
-#define PERTEMP 20  // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PINPOFF 3       // power off TPL5111 (RX ESP01)
+#define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #endif CARTE==VRR
 
 
 #if CARTE==THESP01
-#define WPIN   2    // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
-#define NBSW   0    // nbre switchs
-#define PINSWA 5    // pin sortie switch A
-#define CLOSA  1    // valeur pour fermer (ouvert=!CLOSA)
+#define WPIN   2        // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
+#define NBSW   0        // nbre switchs
+#define PINSWA 5        // pin sortie switch A
+#define CLOSA  1        // valeur pour fermer (ouvert=!CLOSA)
 #define OPENA  0
-#define PINSWB 5    // pin sortie switch B
-#define CLOSB  1    // valeur pour fermer (ouvert=!CLOSB)
+#define PINSWB 5        // pin sortie switch B
+#define CLOSB  1        // valeur pour fermer (ouvert=!CLOSB)
 #define OPENB  0
-#define PINSWC 5    // pin sortie switch C
-#define CLOSC  1    // valeur pour fermer (ouvert=!CLOSA)
+#define PINSWC 5        // pin sortie switch C
+#define CLOSC  1        // valeur pour fermer (ouvert=!CLOSA)
 #define OPENC  0
-#define PINSWD 5    // pin sortie switch D
-#define CLOSD  1    // valeur pour fermer (ouvert=!CLOSB)
+#define PINSWD 5        // pin sortie switch D
+#define CLOSD  1        // valeur pour fermer (ouvert=!CLOSB)
 #define OPEND  0
 #define NBDET  0
-#define PINDTA 5    // pin entrée détect bit 0 
-#define PINDTB 5    // pin entrée détect bit 1 
-#define PINDTC 5    // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
-#define PINDTD 5    // pin entrée détect bit 3  sur la même entrée.
-#define PININTA 5   // in interupt
-#define PININTB 5   // in interupt
+#define PINDTA 5        // pin entrée détect bit 0 
+#define PINDTB 5        // pin entrée détect bit 1 
+#define PINDTC 5        // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
+#define PINDTD 5        // pin entrée détect bit 3  sur la même entrée.
+#define PININTA 5       // in interupt
+#define PININTB 5       // in interupt
 #define MEMDINIT 0x0000 // bits enable memDetec
-#define PINPOFF 3   // power off TPL5111 (RX ESP01)
-#define PERTEMP 165    // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PINPOFF 3       // power off TPL5111 (RX ESP01)
+#define PERTEMP 165     // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #endif CARTE==THESP01
 
 #if CARTE==THESP12
-#define WPIN   4    // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
-#define NBSW   2    // nbre switchs
-#define PINSWA 5    // pin sortie switch A
-#define CLOSA  1    // valeur pour fermer (ouvert=!CLOSA)
+#define WPIN   4        // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
+#define NBSW   2        // nbre switchs
+#define PINSWA 5        // pin sortie switch A
+#define CLOSA  1        // valeur pour fermer (ouvert=!CLOSA)
 #define OPENA  0
-#define PINSWB 2    // pin sortie switch B
-#define CLOSB  0    // valeur pour fermer (ouvert=!CLOSB)
+#define PINSWB 2        // pin sortie switch B
+#define CLOSB  0        // valeur pour fermer (ouvert=!CLOSB)
 #define OPENB  1
-#define PINSWC 5    // pin sortie switch C
-#define CLOSC  1    // valeur pour fermer (ouvert=!CLOSA)
+#define PINSWC 5        // pin sortie switch C
+#define CLOSC  1        // valeur pour fermer (ouvert=!CLOSA)
 #define OPENC  0
-#define PINSWD 2    // pin sortie switch D
-#define CLOSD  0    // valeur pour fermer (ouvert=!CLOSB)
+#define PINSWD 2        // pin sortie switch D
+#define CLOSD  0        // valeur pour fermer (ouvert=!CLOSB)
 #define OPEND  1
 #define NBDET  4
-#define PINDTA 12   // pin entrée détect bit 0 
-#define PINDTB 14   // pin entrée détect bit 1 
-#define PINDTC 13   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
-#define PINDTD 13   // pin entrée détect bit 3  sur la même entrée.
-#define PININTA 12  // in interupt
-#define PININTB 14  // in interupt
-#define PINPOFF 3   // power off TPL5111 (RX ESP01)
-#define PERTEMP 60  // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PINDTA 12       // pin entrée détect bit 0 
+#define PINDTB 14       // pin entrée détect bit 1 
+#define PINDTC 13       // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
+#define PINDTD 13       // pin entrée détect bit 3  sur la même entrée.
+#define PININTA 12      // in interupt
+#define PININTB 14      // in interupt
+#define PINPOFF 3       // power off TPL5111 (RX ESP01)
+#define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #endif CARTE==THESP12
 
 
@@ -340,7 +340,8 @@ typedef struct {
   uint32_t  cxDurat;              //  4   durée last connexion
   byte      swToggle[MAXSW];      //  4   toogle switch (raz après dataSave)   ---------- inutilisé  
   uint16_t  portServer;           //  2   port en mode serveur          
-  byte      filler[31];           //  
+#define LENFILLERCST 31
+  byte      filler[LENFILLERCST]; //  
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer sa position
              // total 240 = 60 mots ; reste 256 dispo (sizeof(constantValues)=size(membres)+4)
 } constantValues;
