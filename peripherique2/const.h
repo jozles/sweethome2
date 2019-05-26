@@ -141,8 +141,8 @@ Modifier :
 
 /* >>> CARTES <<< */
 
-#define VR      'V'
-#define VRR     'W'
+#define VR      'V'  // 2 triacs
+#define VRR     'W'  // 2 relais
 //#define RELAY   
 #define THESP01 '1'
 #define THESP12 '2'

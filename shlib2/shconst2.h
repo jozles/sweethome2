@@ -2,7 +2,7 @@
 #define _SHCONST_H_
 
 
-#define PERIF
+//#define PERIF
 
 #define LENVERSION  4
 #define LENMODEL    6
@@ -19,8 +19,6 @@
 #define PORTPILOTSERVER2 1788    // port du serveur de remote
 #define HOSTIPADDR2 "192.168.0.36"
 //*/
-
-
 
 
 #ifdef PERIF
@@ -68,7 +66,7 @@
 #define NBVAL  256    // nbre maxi fonct/valeurs pour getnv() --- les noms de fonctions font 10 caractères + 2 séparateurs + la donnée associée = LENVAL
                       // taille macxi pour GET (IE)=2048  ; pour POST plusieurs mega
                       // avec un arduino Atmel la limitation vient de la taille de la ram
-#define LENVAL 128    // nbre car maxi valeur (vérifier datasave)
+#define LENVAL 196    // nbre car maxi valeur (vérifier datasave)
 #define MEANVAL  6    // pour donner un param de taille à valeurs[]
 #define LENVALEURS NBVAL*MEANVAL+1   // la taille effective de valeurs[]
 //#define LENPSW  16    // nbre car maxi pswd

@@ -653,7 +653,7 @@ void ordreExt()
     if(v0>=0){                            // si commande GET trouvée contrôles et décodage nom fonction 
       int jj=4,ii=convStrToNum(&headerHttp[0]+v0+5+10+1,&jj);   // recup eventuelle longueur
       headerHttp[v0+5+10+1+ii+2]=0x00;    // place une fin ; si long invalide check sera invalide
-      Serial.print("len=");Serial.print(ii);Serial.print(" ");Serial.println(headerHttp+v0);
+      //Serial.print("len=");Serial.print(ii);Serial.print(" ");Serial.println(headerHttp+v0);
     
       if(checkHttpData(&headerHttp[v0+5],&fonction)==MESSOK){
         Serial.print("reçu message fonction=");Serial.println(fonction);
@@ -711,7 +711,7 @@ int buildReadSave(char* nomfonction,char* data,char* toggle)   //   assemble et 
     Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};
 
   char message[LENVAL];
-  int sb=0,i=0;
+  int sb=0,i=0,k;
   char x[2]={'\0','\0'};
   
       strcpy(message,cstRec.numPeriph);                               // N° périf                    - 3
@@ -746,16 +746,26 @@ int buildReadSave(char* nomfonction,char* data,char* toggle)   //   assemble et 
       strcpy(message+sb+1+MAXDET,"_\0");
 
       sb+=MAXDET+2;
-      for(i=(MAXSW-1);i>=0;i--){message[sb+(MAXSW-1)-i]=chexa[staPulse[i]];}
-      strcpy(message+sb+MAXSW,"_\0");                                 // clock pulse status          - 5
+      for(i=0;i<NBPULSE;i++){message[sb+i]=chexa[staPulse[i]];}
+      strcpy(message+sb+NBPULSE,"_\0");                               // clock pulse status          - 5
 
-      sb+=MAXSW+1;
+      sb+=NBPULSE+1;
       memcpy(message+sb,model,LENMODEL);
-      strcpy(message+sb+LENMODEL,"_\0");                                                        //   - 7
+      strcpy(message+sb+LENMODEL,"_\0");                                                      //      - 7
 
       sb+=LENMODEL+1;
-      for(i=(NBSW-1);i>=0;i--){message[sb+(MAXSW-1)-i]=(char)(chexa[toggle[i]]);}
-      strcpy(message+sb+MAXSW,"_\0");                                 // toggle sw                    -5    
+      uint32_t currt;
+      k=sizeof(uint32_t);
+      for(i=0;i<2*NBPULSE;i++){
+        currt=(millis()-cstRec.cntPulseOne[i])/1000;                                           // valeurs courantes pulses
+        for(j=0;j<sizeof(uint32_t);j++){conv_htoa((char*)(sb+2*(i*sizeof(uint32_t)+j)),(byte*)(&currt+j));}  
+      }
+      strcpy(message+sb+k,"_\0");
+
+        sb+=2*2*NBPULSE*sizeof(uint32_t)+1;                                                    //      - 65
+        
+//      for(i=(NBSW-1);i>=0;i--){message[sb+(MAXSW-1)-i]=(char)(chexa[toggle[i]]);}
+//      strcpy(message+sb+MAXSW,"_\0");                                 // toggle sw                    - 5    
 
 if(strlen(message)>LENVAL-4){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
   

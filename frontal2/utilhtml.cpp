@@ -147,6 +147,13 @@ void cliPrintMac(EthernetClient* cli, byte* mac)
   cli->print(macBuff);
 }
 
+void cliPrintDateHeure(EthernetClient* cli,char* pkdate)
+{
+  char bufdate[LNOW];alphaNow(bufdate);packDate(pkdate,bufdate+2); // skip siècle
+  for(int zz=0;zz<14;zz++){cli->print(bufdate[zz]);if(zz==7){cli->print("-");}}
+  cli->print(" GMT ");
+}
+
 void boutonHtml(EthernetClient* cli,byte* valfonct,char* nomfonct,uint8_t sw,uint8_t td)      
 {
   char tonoff[]={'O','F','F','\0'};

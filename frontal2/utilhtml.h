@@ -19,5 +19,6 @@ void textTableHtml(EthernetClient* cli,char type,float* valfonct,float* valmin,f
 void setColour(EthernetClient* cli,char* textColour);
 void sliderHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int nb,int sqr,uint8_t td);
 void printPeriDate(EthernetClient* cli,char* periDate);
+char* cliPrintDateHeure(EthernetClient* cli,char* pkdate);
 
 #endif // _UTILHTML_H_

@@ -272,7 +272,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
             cli->println("<table>");
               cli->println("<tr>");
-              cli->println("<th>  </th><th> rem </th><th>det</th><th></th><th>en</th>");
+              cli->println("<th>  </th><th>remote </th><th>detec </th><th>en</th>");
               cli->println("</tr>");
               
               for(int nb=0;nb<MAXREMLI;nb++){
@@ -280,12 +280,12 @@ void cfgRemoteHtml(EthernetClient* cli)
                 cli->print("<td>");cli->print(nb+1);cli->print("</td>");                       // n° ligne de table
                 
                 memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° remote
-                numTableHtml(cli,'b',&remoteT[nb].num,nf,1,1,0);
+                numTableHtml(cli,'b',&remoteT[nb].num,nf,1,2,0);
+                if(remoteT[nb].num!=0){cli->print(remoteN[remoteT[nb].num-1].nam);}cli->println(" </td>");
 
                 memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° detec
-                numTableHtml(cli,'b',&remoteT[nb].detec,nf,1,1,0);
-
-                cli->print("<td> ");if(remoteT[nb].num!=0){cli->print((char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}cli->println("</td>");
+                numTableHtml(cli,'b',&remoteT[nb].detec,nf,1,2,0);
+                if(remoteT[nb].num!=0){cli->print((char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}cli->println(" </td>");
                 
                 memcpy(nf,"remotecfx_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
                 uint8_t ren=(uint8_t)remoteT[nb].enable;
@@ -322,7 +322,7 @@ void remoteHtml(EthernetClient* cli)
                 
                 cli->print("<td>");cli->print(nb+1);cli->println("</td>");
                 cli->print("<td>");
-                // chaque ligne de slider envoie 2 commandes : remote_cnx et remote ctx (x n° de ligne)
+                // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
                 // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
                 // l'input remote_ctx renseigne le passage à 1 éventuel après l'effacement. La variable newonoff stocke le résultat
                 // et la comparaison avec onoff permet de connaitre la transition (ou non transition) 
@@ -528,8 +528,7 @@ void timersHtml(EthernetClient* cli)
             boutRetour(cli,"retour",0,0);cli->print(" ");
             boutFonction(cli,"timershtml","","refresh",0,0,1,0);cli->print(" ");
 
-            for(int zz=0;zz<14;zz++){cli->print(bufdate[zz]);if(zz==7){cli->print("-");}}cli->print("-");cli->print((char)(bufdate[14]+48));
-            cli->println(" GMT <br>");
+            char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
             cliPrintDetServ(cli,&memDetServ);
 
          cli->println("<table>");

@@ -137,7 +137,9 @@ void SwCtlTableHtml(EthernetClient* cli)
   htmlIntro(nomserver,cli);
   cli->println("<body>");            
   cli->println("<form method=\"get\" >");
-    cli->print(VERSION);cli->println("  ");
+    cli->print(VERSION);cli->print(" ");
+    char pkdate[7]; // ppour couleurs des temps des périphériques
+    cliPrintDateHeure(cli,pkdate);cli->println();
     cli->print(periCur);cli->print("-");cli->print(periNamer);cli->println("<br>");
 
   usrPeriCur(cli,"peri_t_sw_",0,2,0);    
@@ -247,21 +249,18 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
 
   htmlIntro(nomserver,cli);
 
-  
-  char bufdate[LNOW];alphaNow(bufdate);
-  char pkdate[7];packDate(pkdate,bufdate+2); // skip siècle
   float th;                                  // pour temp DS3231
   readDS3231temp(&th);
 
         cli->println("<body>");
         cli->println("<form method=\"GET \">");
 
-          cli->print(VERSION);
+          cli->print(VERSION);cli->print(" ");
           #ifdef _MODE_DEVT
-            cli->print(" _MODE_DEVT ");
+            cli->print("MODE_DEVT ");
           #endif _MODE_DEVT
-          for(int zz=0;zz<14;zz++){cli->print(bufdate[zz]);if(zz==7){cli->print("-");}}
-          cli->println(" GMT ; local IP ");cli->print(Ethernet.localIP());cli->println(" ");
+          char pkdate[7];cliPrintDateHeure(cli,pkdate);
+          cli->println("; local IP ");cli->print(Ethernet.localIP());cli->println(" ");
           cli->print(th);cli->println("°C<br>");
 
           usrFormHtml(cli,1);
