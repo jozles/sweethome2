@@ -170,6 +170,28 @@ void boutonHtml(EthernetClient* cli,byte* valfonct,char* nomfonct,uint8_t sw,uin
 
 }
 
+void numTableHtml(EthernetClient* cli,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol)
+{                          
+  if(td==1 || td==2){cli->print("<td>");}
+  if(pol!=0){cli->print("<font size=\"");cli->print(pol);cli->println("\">");}
+  cli->print("<input type=\"text\" name=\"");cli->print(nomfonct);
+  if(len<=2){cli->print("\" id=\"nt");cli->print(len);}
+  cli->print("\" value=\"");
+  switch (type){
+    case 'b':cli->print(*(byte*)valfonct);break;
+    case 'd':cli->print(*(uint16_t*)valfonct);break;
+    case 'i':cli->print(*(int*)valfonct);break;
+    case 'l':cli->print(*(long*)valfonct);break;
+    case 'f':cli->print(*(float*)valfonct);break;
+    case 'g':cli->print(*(uint32_t*)valfonct);break;    
+    default:break;
+  }
+  int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
+  cli->print("\" size=\"");cli->print(sizeHtml);cli->print("\" maxlength=\"");cli->print(len);cli->print("\" >");
+  if(pol!=0){cli->print("</font>");}
+  if(td==1 || td==3){cli->println("</td>");}
+}
+
 void textTableHtml(EthernetClient* cli,char type,float* valfonct,float* valmin,float* valmax,uint8_t br,uint8_t td)
 {
   memcpy(colour,"black\0",6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,"red\0",4);}
@@ -190,13 +212,32 @@ void textTableHtml(EthernetClient* cli,char type,float* valfonct,float* valmin,f
   if(td==2 || td==3){cli->println("</td>");}
 }
 
-void usrFormHtml(EthernetClient* cli,bool hid)                  // pour mettre en tête des formulaires ("<p hidden> .... </p>")
+void usrFormHtml(EthernetClient* cli,bool hid)                     // pour mettre en tête des formulaires ("<p hidden> .... </p>")
 {
   if(hid){cli->print("<p hidden>");}
   cli->print("<input type=\"text\" name=\"user_ref_");cli->print((char)(usernum+PMFNCHAR));
   cli->print("\" value=\"");cli->print(usrtime[usernum]);cli->print("\">");  
-  if(hid){cli->print("</p>");}
+  if(hid){cli->println("</p>");}
 }
+
+void usrFormInitHtml(EthernetClient* cli,char* nomfonct,bool hid)  // pour mettre en tête des formulaires ("<p hidden> .... </p>")
+{
+    cli->print("<p hidden>");
+      usrFormHtml(cli,0);
+//      char fonc[LENNOM+1];memcpy(fonc,fnct,LENNOM);fonc[LENNOM]='\0';   //fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);
+      cli->print("<input type=\"text\" name=\"");cli->print(nomfonct);cli->print("\">");
+    cli->println("</p>");
+}
+
+void usrPeriCur(EthernetClient* cli,char* fnct,uint8_t ninp,int len,uint8_t td)
+{                                                                  // pour mettre en tête des formulaires ("<p hidden> .... </p>")
+    cli->print("<p hidden>");
+      usrFormHtml(cli,0);
+      char fonc[LENNOM+1];memcpy(fonc,fnct,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
+      numTableHtml(cli,'i',&periCur,fonc,len,td,0); // pericur n'est pas modifiable (fixation pericur, periload, cberase)
+    cli->println("</p>");
+}
+
 
 void boutRetour(EthernetClient* cli,char* lib,uint8_t td,uint8_t br)
 {
@@ -220,7 +261,7 @@ void boutFonction(EthernetClient* cli,char* nomfonct,char* valfonct,char* lib,ui
     cli->print("<input type=\"button\" value=\"");cli->print(lib);cli->print("\"");
     if(sizfnt==7){cli->print(" style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"");}
     if(aligncenter){cli->println("></p></a>");}
-    else{cli->println("></a>");}
+    else{cli->print("></a>");}
 
     if(br!=0){cli->print("<br>");}
     if(td==1 || td==3){cli->print("</td>");}
@@ -257,28 +298,6 @@ void lnkTableHtml(EthernetClient* cli,char* nomfonct,char* lib)
 {
   cli->print("<a href=?");cli->print(nomfonct);cli->print(": target=_self>");
   cli->print(lib);cli->println("</a>");
-}
-
-void numTableHtml(EthernetClient* cli,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol)
-{                          
-  if(td==1 || td==2){cli->print("<td>");}
-  if(pol!=0){cli->print("<font size=\"");cli->print(pol);cli->println("\">");}
-  cli->print("<input type=\"text\" name=\"");cli->print(nomfonct);
-  if(len<=2){cli->print("\" id=\"nt");cli->print(len);}
-  cli->print("\" value=\"");
-  switch (type){
-    case 'b':cli->print(*(byte*)valfonct);break;
-    case 'd':cli->print(*(uint16_t*)valfonct);break;
-    case 'i':cli->print(*(int*)valfonct);break;
-    case 'l':cli->print(*(long*)valfonct);break;
-    case 'f':cli->print(*(float*)valfonct);break;
-    case 'g':cli->print(*(uint32_t*)valfonct);break;    
-    default:break;
-  }
-  int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
-  cli->print("\" size=\"");cli->print(sizeHtml);cli->print("\" maxlength=\"");cli->print(len);cli->print("\" >");
-  if(pol!=0){cli->print("</font>");}
-  if(td==1 || td==3){cli->println("</td>");}
 }
 
 void xradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,byte nbval,int nbli,byte type)

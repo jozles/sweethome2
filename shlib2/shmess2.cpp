@@ -92,7 +92,10 @@ void purgeServer(WiFiClient* cli)
 
 int buildMess(char* fonction,char* data,char* sep)   // concatène un message dans bufServer
 {                                                    // retourne la longueur totale dans bufServer ou 0 si ovf
-
+Serial.print(" bufserver len=");Serial.print(strlen(bufServer));
+Serial.print(" data len=");Serial.print(strlen(data));
+Serial.print(" LBUFSERVER=");Serial.println(LBUFSERVER);
+delay(100);
       if((strlen(bufServer)+strlen(data)+11+5+2+1)>LBUFSERVER)
         {return 0;}
       strcat(bufServer,fonction);
@@ -105,6 +108,7 @@ int buildMess(char* fonction,char* data,char* sep)   // concatène un message da
       setcrc(bufServer+sb,d);
       strcat(bufServer,sep);
       Serial.print("bS=");Serial.println(bufServer);
+Serial.println(" buildmess return");
       return strlen(bufServer);
 }
 

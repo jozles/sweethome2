@@ -167,8 +167,8 @@ void periInputPrint(byte* input)
       memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
       binput[0]=ed[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)];                         // en input
       binput[2]=es[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPDETES_PB)&0x01)];                      // edge/static input
-      binput[4]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPOLDLEV_PB)&0x01)+48;                       // prev level
-      binput[6]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPVALID_PB)&0x01)+48;                        // valid level
+      binput[4]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPOLDLEV_PB)&0x01)+48;                      // prev level
+      binput[6]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPVALID_PB)&0x01)+48;                       // valid level
       a=*(uint8_t*)(input+ninp*PERINPLEN)&PERINPNT_MS;
       if(a>3){a=4;}binput[8]=inptyps[a*2];binput[9]=inptyps[a*2+1];                                    // type détec src
       a=*(uint8_t*)(input+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+11,&a);                      // n° détec src
@@ -176,22 +176,31 @@ void periInputPrint(byte* input)
       if(a>3){a=4;}binput[14]=inptypd[a*2];binput[15]=inptypd[a*2+1];                                  // type détec dest
       a=*(uint8_t*)(input+ninp*PERINPLEN+3)>>PERINPNVLS_PB;conv_htoa(binput+17,&a);                    // n° détec dest
       a=(*((uint8_t*)(input+2+ninp*PERINPLEN))&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+20,&a);  // act input
-      for(int tact=0;tact<LENTACT;tact++){binput[23+tact]=inpact[a*LENTACT+tact];}
+      for(int tact=0;tact<LENTACT;tact++){binput[24+tact]=inpact[a*LENTACT+tact];}
       Serial.print(binput);
       sp("/ ",0);
     }
     Serial.println();
 }
 
-void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo)
+uint32_t sppp(uint32_t cnt)
+{
+  uint32_t cur=0;
+  if(cnt!=0){cur=(millis()-cnt)/1000;}
+  return cur;
+}
+
+void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo,uint32_t* cntOne,uint32_t* cntTwo)
 {
   Serial.print("pulses(f-e 1 e 2)  ");
   for(int pu=0;pu<NBPULSE;pu++){
     Serial.print((*(uint16_t*)pulseCtl>>(PMFRO_PB+pu*PCTLBIT))&0x01);sp("-",0);         // fr bit
     Serial.print(((*(uint16_t*)pulseCtl)>>(PMTOE_PB+pu*PCTLBIT))&0x01);sp(" ",0);       // time one en
-    Serial.print(*(uint32_t*)(pulseOne+pu));sp(" ",0);                                  // time one
+    Serial.print(*(uint32_t*)(pulseOne+pu));sp("/",0);                                  // time one
+    Serial.print(sppp((uint32_t)*(cntOne+pu)));sp(" ",0);                               // time one écoulé
     Serial.print(((*(uint16_t*)pulseCtl)>>(PMTTE_PB+pu*PCTLBIT)&0x01));sp(" ",0);       // time two en
-    Serial.print(*(uint32_t*)(pulseTwo+pu));                                            // time two
+    Serial.print(*(uint32_t*)(pulseTwo+pu));sp("/",0);                                  // time two
+    Serial.print(sppp((uint32_t)*(cntTwo+pu)));                                         // time two écoulé    
     Serial.print("  ");for(int tsp=0;tsp<LENTSP;tsp++){Serial.print(psps[staPulse[pu]*LENTSP+tsp]);} // staPulse
     if(pu<NBPULSE-1){sp("  |  ",0);}
   }Serial.println();
@@ -227,7 +236,7 @@ void printConstant()
   Serial.print("detect (pin/mem)= ");for(int s=MAXDET-1;s>=0;s--){Serial.print(digitalRead(pinDet[s]));Serial.print("/");Serial.print((cstRec.memDetec[s]>>DETBITLH_PB)&0x01,HEX);Serial.print("   -   ");}Serial.println();  
 #if POWER_MODE==NO_MODE
   periDetServPrint(&cstRec.extDetec);  
-  periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo);
+  periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo,(uint32_t*)&cstRec.cntPulseOne,(uint32_t*)&cstRec.cntPulseTwo);
   periInputPrint((byte*)&cstRec.perInput);
 #endif NO_MODE  
 }

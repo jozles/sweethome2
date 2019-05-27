@@ -69,6 +69,21 @@ extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs (8)
 
 
 
+   // Un formulaire ou une page html nécessite dans l'ordre :
+   //      1) une fonction user_ref_ avec ses paramètres pour éviter le retour au mot de passe
+   //      2) une fonction d'en tête hidden pour effectuer 
+   //         les inits éventuels lors du submit de validation (posit what et effacements cb par ex)
+   //         si pas d'inits à faire, elle n'est pas nécessaire
+   //      3) n fonctions pour valoriser des champs
+   //      ... n'importe où après (2) un bouton submit 
+   //       
+   // La fonction user_ref_ est fournie par userFormHtml()
+   // S'il faut passer une fonction d'en-tête utiliser userFormInitHtml()
+   // Si le passage de periCur est nécessaire utiliser usrPeriCur()
+   //
+
+
+
 int htmlImg(EthernetClient* cli,char* fimgname)    // suffisant pour commande péripheriques
 {
         Serial.print(fimgname);
@@ -529,7 +544,7 @@ void timersHtml(EthernetClient* cli)
             boutFonction(cli,"timershtml","","refresh",0,0,1,0);cli->print(" ");
 
             char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
-            cliPrintDetServ(cli,&memDetServ);
+            detServHtml(cli,&memDetServ);
 
          cli->println("<table>");
               cli->println("<tr>");
@@ -577,11 +592,15 @@ void timersHtml(EthernetClient* cli)
         cli->println("</body></html>");
 }
 
-void cliPrintDetServ(EthernetClient* cli,uint32_t* mds)
+void detServHtml(EthernetClient* cli,uint32_t* mds)
 {
-          //dumpfield((char*)mds,4);
-          cli->println(" détecteurs serveur (n->0):");
+          cli->println("<form>");
+          usrFormInitHtml(cli,"dsrv_init_",1);
+          cli->println("<p><span style=\"border: 1px solid #dddddd;\">détecteurs serveur (n->0):");
           for(int k=NBDSRV-1;k>=0;k--){subDSn(cli,"mem_dsrv__\0",*mds,k);}
+          boutFonction(cli,"mem_dsrvx_","","xmit",0,0,0,0);
+          cli->println("<input type=\"submit\" value=\"MàJ\"></span></p></form>");
+          
 }
 
 void testHtml(EthernetClient* cli)

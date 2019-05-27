@@ -38,21 +38,33 @@
  *      ajout periPort et tfr via ack/set ; accés aux périph serveurs débuggé (fermeture connection "cli.stop")
  * 1.2b ajout timers ; periTableHtml() protège periCur ; periSend valorise periCur + periLoad   
  * 1.3  gestion des switchs :      
- *      32 det serveurs
- *      8 inputs par sw (enable,oldlev, edge/stat, loc/ext/pulse/input, num, niveau, disj+niv, conj+niv, inter+niv, allum+niv, action)
+ *      32 det serveur
  *      remotes sur det serveur
- *      table des disjonteurs et conjoncteurs (1 ligne par sw 2 inters) pour remote
- *      pulses indépendants des switchs
+ * 1.3a pulses indépendants des switchs, disjoncteur en amont de tout      
+ *      24 inputs par sw (enable, lev, oldlev, edge/stat, srce (phy/ext/pulse/mem, num), dest (sw/ext/pulse/mem, num), action) *      
+ *      form à part pour les détecteurs du serveur ds peritable ; 2 boutons : maj/xmit(pertosend)
  *      
  * à faire :
+ * 
+ *    bug maj disjoncteur
  *     
+ *    ajouter nbre inputs dans assyset
+ *     
+ *    mettre la ligne de périphérique de péritable dans une page séparée, ne laisser que des affichages avec boutons cfg/switch/maj(?)
+ *     
+ *    détecter les changements à la réception des dataread/save pour effectuer un refresh de l'affichage de peritable
+ *    
+ *    vérifier la stratification (couche contenu des messages/couche protocole/couche physique)
+ *    
  *    timers : ajouter option "1 jour sur n" : dhdebcycle=1ère date... calculer si date courante ok (récupérer un bool inutile - cyclic? )
  *    pulses : option entrée clock depuis input 
  *    
  *    ajouter alarmes dans peritable : alim+/- temp+/- detecteurs temps non communication et envoi mails
- *    mettre en sub tout le traitement des fonctions (depuis cli.connected jusqu'après what) et ajouter connexion/server spécial browser
  *     
- *     
+ *    dans fenetre switchs ; table inputs avec pour chaque ligne boutons poubelle/validation, + (nouv ligne), xmit(pertosend)
+ *                           ajouter visu diag/état des inputs(?)
+ *                           
+ *    ajouter crc sur fichiers config,periphériques,remotes,timers 
  */
 
 /* mac,adressage,port

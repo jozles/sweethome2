@@ -5,6 +5,8 @@ void htmlIntro0(EthernetClient* cli);
 void htmlIntro(char* titre,EthernetClient* cli);
 void cliPrintMac(EthernetClient* cli, byte* mac);
 void usrFormHtml(EthernetClient* cli,bool hid);
+void usrFormInitHtml(EthernetClient* cli,char* nomfonct,bool hid);
+void usrPeriCur(EthernetClient* cli,char* fnct,uint8_t ninp,int len,uint8_t td);
 void boutRetour(EthernetClient* cli,char* lib,uint8_t td,uint8_t br);
 void boutFonction(EthernetClient* cli,char* nomfonct,char* valfonct,char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter);
 void bouTableHtml(EthernetClient* cli,char* nomfonct,char* valfonct,char* lib,uint8_t td,uint8_t br);

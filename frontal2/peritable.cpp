@@ -97,21 +97,12 @@ void subModePulseTime(EthernetClient* cli,uint8_t npu,uint32_t* pulse,uint32_t* 
   uint8_t val=(((*(uint16_t*)periSwPulseCtl)>>pbit)&0x01)+PMFNCVAL;                                        
   cli->print("<font size=\"2\">");
   fonc1[LENNOM-1]=onetwo;
-  //Serial.print(sw);Serial.print(" OT=");Serial.print(onetwo);Serial.print(" fonc1=");Serial.print(fonc1);Serial.print(" val=");Serial.println(val);
   checkboxTableHtml(cli,&val,fonc1,-1,0);                       // bit enable pulse
-  if(*(pulse+npu)<0){*(pulse+npu)=0;}
+  if(*(pulse+npu)<0){*(pulse+npu)=0;}  
   numTableHtml(cli,'l',(pulse+npu),fonc2,8,0,2);                 // durée pulse   
-  char a[8];sprintf(a,"%06d",*(dur+npu));a[6]='\0';              // valeur courante
-  cli->print("<br>(");cli->print(a);cli->println(")</font>");
-}
+//  char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
+  cli->print("<br>(");cli->print(*(dur+npu));cli->println(")</font>");
 
-void usrPeriCur(EthernetClient* cli,char* fnct,uint8_t ninp,int len,uint8_t td)
-{
-    cli->print("<p hidden>");
-      usrFormHtml(cli,0);
-      char fonc[LENNOM+1];memcpy(fonc,fnct,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
-      numTableHtml(cli,'i',&periCur,fonc,len,td,0); // pericur n'est pas modifiable (fixation pericur, periload, cberase)
-    cli->println("</p>");
 }
 
 void perinpfnc(EthernetClient* cli,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
@@ -173,7 +164,7 @@ void SwCtlTableHtml(EthernetClient* cli)
         pfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         qfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         rfonc[LENNOM-2]=(char)(pu+PMFNCHAR);        
-        
+      
         cli->print("<td>");
         subModePulseTime(cli,pu,periSwPulseOne,periSwPulseCurrOne,rfonc,pfonc,'O');          // bit et valeur pulse one
         cli->print("<br>");
@@ -266,21 +257,25 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           usrFormHtml(cli,1);
 
           boutRetour(cli,"refresh",0,0);
-          numTableHtml(cli,'d',&perrefr,"per_refr__",4,0,0);cli->println("<input type=\"submit\" value=\"ok\">");          
+          
+          numTableHtml(cli,'d',&perrefr,"per_refr__",4,0,0);
+
+          cli->print("(");long sdsiz=fhisto.size();cli->print(sdsiz);cli->println(") ");
+          numTableHtml(cli,'i',(uint32_t*)&sdpos,"sd_pos____",9,0,0);
+          
+          cli->println("<input type=\"submit\" value=\"ok\"> ");
+          
+          boutFonction(cli,"dump_sd___","","dump SD",0,0,0,0);    
           boutFonction(cli,"reset_____","","reset",0,0,0,0);
           boutFonction(cli,"cfgserv___","","config",0,0,0,0);
           boutFonction(cli,"remote____","","remote_cfg",0,0,0,0);
           boutFonction(cli,"remotehtml","","remotehtml",0,0,0,0);
           boutFonction(cli,"thermohtml","","thermohtml",0,0,0,0);
-          boutFonction(cli,"timershtml","","timershtml",0,0,0,0);          
-
-          cli->print("(");long sdsiz=fhisto.size();cli->print(sdsiz);cli->println(") ");
-          numTableHtml(cli,'i',(uint32_t*)&sdpos,"sd_pos____",9,0,0);cli->println("<input type=\"submit\" value=\"ok\"> ");
-          boutFonction(cli,"dump_sd___","","dump SD",0,0,0,0);
-          
-          cliPrintDetServ(cli,&memDetServ);
+          boutFonction(cli,"timershtml","","timershtml",0,0,0,0);       
         
         cli->println("</form>");
+
+          detServHtml(cli,&memDetServ);  // détecteurs serveur
 
           cli->println("<table>");
               cli->println("<tr>");

@@ -269,6 +269,7 @@ delay(100);
   forceTrigTemp();    // force connexion server 
 
   memdetinit();pulsesinit();
+  yield();
   
   #ifdef  _SERVER_MODE
 //    wifiConnexion("devolo-5d3","JNCJTRONJMGZEEQL");
@@ -710,6 +711,7 @@ int buildReadSave(char* nomfonction,char* data,char* toggle)   //   assemble et 
   if(!buildMess("peri_pass_",srvpswd,"?")==MESSOK){
     Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};
 
+Serial.println(" buildmess returned");delay(100);
   char message[LENVAL];
   int sb=0,i=0,k;
   char x[2]={'\0','\0'};
@@ -755,19 +757,21 @@ int buildReadSave(char* nomfonction,char* data,char* toggle)   //   assemble et 
 
       sb+=LENMODEL+1;
       uint32_t currt;
-      k=sizeof(uint32_t);
-      for(i=0;i<2*NBPULSE;i++){
-        currt=(millis()-cstRec.cntPulseOne[i])/1000;                                           // valeurs courantes pulses
-        for(j=0;j<sizeof(uint32_t);j++){conv_htoa((char*)(sb+2*(i*sizeof(uint32_t)+j)),(byte*)(&currt+j));}  
+Serial.print("copy pulses time LENVAL=");Serial.print(LENVAL);Serial.print(" sb=");Serial.println(sb);
+      for(i=0;i<NBPULSE*2;i++){                                                                                           // loop compteurs (4*2)
+        currt=0;
+        if(cstRec.cntPulseOne[i]!=0){currt=(millis()-cstRec.cntPulseOne[i])/1000;}
+        Serial.print(i);Serial.print(" écoulé=");Serial.println(currt);       // temps écoulé
+        for(j=0;j<sizeof(uint32_t);j++){conv_htoa((char*)(message+sb+2*(i*sizeof(uint32_t)+j)),(byte*)(&currt+j));}       // loop bytes (4/8)
       }
-      strcpy(message+sb+k,"_\0");
-
-        sb+=2*2*NBPULSE*sizeof(uint32_t)+1;                                                    //      - 65
+      sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
+      strcpy(message+sb-1,"_\0");
+Serial.print("copied sb=");Serial.println(sb);
         
 //      for(i=(NBSW-1);i>=0;i--){message[sb+(MAXSW-1)-i]=(char)(chexa[toggle[i]]);}
-//      strcpy(message+sb+MAXSW,"_\0");                                 // toggle sw                    - 5    
+//      strcpy(message+sb+MAXSW,"_\0");                                 // toggle sw                   - 5    
 
-if(strlen(message)>LENVAL-4){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
+if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
   
   buildMess(nomfonction,message,"");
   infos("buildReadSave",bufServer,port);
