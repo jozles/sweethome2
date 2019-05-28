@@ -547,10 +547,6 @@ switch(cstRec.talkStep){
       
   case 4:         // connecté au wifi
                   // si le numéro de périphérique est 00 ---> récup (dataread), ctle réponse et maj params
-                  
-  Serial.print("durée (talkstep=4)=");Serial.print(millis());Serial.print(" - ");
-  Serial.print(dateon);Serial.print(" = ");Serial.println(millis()-dateon);
-  
       if(memcmp(cstRec.numPeriph,"00",2)==0){
         v=dataRead();infos("  dataRead","",v);
         if(v==MESSOK){cstRec.talkStep=5;}
@@ -686,13 +682,15 @@ void ordreExt()
 
 void talkClient(char* etat) // réponse à une requête
 {
-            /* en-tête réponse HTTP */
+  
+            // en-tête réponse HTTP 
             cliext.println("HTTP/1.1 200 OK");
             cliext.println("Content-type:text/html");
             cliext.println("Connection: close\n");
-            /* page Web */
+            // page Web 
             cliext.println("<!DOCTYPE html><html>");
             //cliext.println("<head></head>");
+            
             cliext.print("<body>");
             cliext.print(etat);Serial.print(etat);
             cliext.println("</body></html>");
@@ -711,7 +709,6 @@ int buildReadSave(char* nomfonction,char* data,char* toggle)   //   assemble et 
   if(!buildMess("peri_pass_",srvpswd,"?")==MESSOK){
     Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};
 
-Serial.println(" buildmess returned");delay(100);
   char message[LENVAL];
   int sb=0,i=0,k;
   char x[2]={'\0','\0'};
@@ -753,20 +750,21 @@ Serial.println(" buildmess returned");delay(100);
 
       sb+=NBPULSE+1;
       memcpy(message+sb,model,LENMODEL);
-      strcpy(message+sb+LENMODEL,"_\0");                                                      //      - 7
 
+      strcpy(message+sb+LENMODEL,"_\0");                                                      //      - 7
       sb+=LENMODEL+1;
       uint32_t currt;
-Serial.print("copy pulses time LENVAL=");Serial.print(LENVAL);Serial.print(" sb=");Serial.println(sb);
+
       for(i=0;i<NBPULSE*2;i++){                                                                                           // loop compteurs (4*2)
         currt=0;
+        byte* pcurr=(byte*)&currt;
         if(cstRec.cntPulseOne[i]!=0){currt=(millis()-cstRec.cntPulseOne[i])/1000;}
-        Serial.print(i);Serial.print(" écoulé=");Serial.println(currt);       // temps écoulé
-        for(j=0;j<sizeof(uint32_t);j++){conv_htoa((char*)(message+sb+2*(i*sizeof(uint32_t)+j)),(byte*)(&currt+j));}       // loop bytes (4/8)
+        //Serial.print(i);Serial.print(" écoulé=");Serial.print(currt);Serial.print(" ");dumpfield((char*)pcurr,16);Serial.println();     // temps écoulé
+        for(j=0;j<sizeof(uint32_t);j++){conv_htoa((char*)(message+sb+2*(i*sizeof(uint32_t)+j)),(byte*)(pcurr+j));}       // loop bytes (4/8)
       }
       sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
       strcpy(message+sb-1,"_\0");
-Serial.print("copied sb=");Serial.println(sb);
+
         
 //      for(i=(NBSW-1);i>=0;i--){message[sb+(MAXSW-1)-i]=(char)(chexa[toggle[i]]);}
 //      strcpy(message+sb+MAXSW,"_\0");                                 // toggle sw                   - 5    

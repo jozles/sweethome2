@@ -598,8 +598,8 @@ void detServHtml(EthernetClient* cli,uint32_t* mds)
           usrFormInitHtml(cli,"dsrv_init_",1);
           cli->println("<p><span style=\"border: 1px solid #dddddd;\">détecteurs serveur (n->0):");
           for(int k=NBDSRV-1;k>=0;k--){subDSn(cli,"mem_dsrv__\0",*mds,k);}
-          boutFonction(cli,"mem_dsrvx_","","xmit",0,0,0,0);
-          cli->println("<input type=\"submit\" value=\"MàJ\"></span></p></form>");
+          
+          cli->println("<input type=\"submit\" value=\"Per Update\"></span></p></form>");
           
 }
 

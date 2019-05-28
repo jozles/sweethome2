@@ -92,10 +92,6 @@ void purgeServer(WiFiClient* cli)
 
 int buildMess(char* fonction,char* data,char* sep)   // concatène un message dans bufServer
 {                                                    // retourne la longueur totale dans bufServer ou 0 si ovf
-Serial.print(" bufserver len=");Serial.print(strlen(bufServer));
-Serial.print(" data len=");Serial.print(strlen(data));
-Serial.print(" LBUFSERVER=");Serial.println(LBUFSERVER);
-delay(100);
       if((strlen(bufServer)+strlen(data)+11+5+2+1)>LBUFSERVER)
         {return 0;}
       strcat(bufServer,fonction);
@@ -108,7 +104,6 @@ delay(100);
       setcrc(bufServer+sb,d);
       strcat(bufServer,sep);
       Serial.print("bS=");Serial.println(bufServer);
-Serial.println(" buildmess return");
       return strlen(bufServer);
 }
 
@@ -148,7 +143,8 @@ int messToServer(WiFiClient* cli,const char* host,const int port,char* data)    
   if(v==MESSOK){
         Serial.println(" ok");
         cli->print(data);
-        cli->print("\r\n HTTP/1.1\r\n Connection:close\r\n\r\n");
+        cli->print("\r\n");
+        cli->print(" HTTP/1.1\r\n Connection:close\r\n\r\n");
   }
   return v;
 }
@@ -218,10 +214,10 @@ int checkHttpData(char* data,uint8_t* fonction)   // checkData et extraction de 
     q=checkData(data+LENNOM+1);
     if(q==MESSOK){
         *fonction=(strstr(fonctions,noms)-fonctions)/LENNOM;
-        Serial.print("\nnbfonct=");Serial.print(nbfonct);Serial.print(" fonction=");Serial.print((strstr(fonctions,noms)-fonctions));Serial.print("/");Serial.print(*fonction);
+        //Serial.print("\nnbfonct=");Serial.print(nbfonct);Serial.print(" fonction=");Serial.print((strstr(fonctions,noms)-fonctions));Serial.print("/");Serial.print(*fonction);
         if(*fonction>=nbfonct || *fonction<0){q=MESSFON;}
     }
-    Serial.print(" mess=");Serial.println(q);
+    //Serial.print(" mess=");Serial.println(q);
     return q;
 }
 

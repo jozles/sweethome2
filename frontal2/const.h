@@ -42,11 +42,10 @@
  *      remotes sur det serveur
  * 1.3a pulses indépendants des switchs, disjoncteur en amont de tout      
  *      24 inputs par sw (enable, lev, oldlev, edge/stat, srce (phy/ext/pulse/mem, num), dest (sw/ext/pulse/mem, num), action) *      
- *      form à part pour les détecteurs du serveur ds peritable ; 2 boutons : maj/xmit(pertosend)
+ *      form à part pour les détecteurs du serveur ds peritable ; 1 bouton "per update"(pertosend)
+ *      bouton refresh des switchs envoie une demande d'état au périphérique
  *      
  * à faire :
- * 
- *    bug maj disjoncteur
  *     
  *    ajouter nbre inputs dans assyset
  *     
@@ -311,7 +310,7 @@ struct Timers
   (dans shmess)   renvoie  0 connexion pas réussie 
                   ou 1 ok, la donnée est transmise, la connexion n'est pas fermée, le client est valide
 
-  void periSend() envoie une page html minimale contenant un message set___ dans <body></body>
+  void periSend() envoie une page html minimale contenant une fonction (set_______/etat______...) dans <body></body>
   (dans frontal)  le client doit être connecté ; pas de contrôle                                
                   periSend utilise periParamsHtml(*client,*host,port) avec port!=0
 
@@ -359,37 +358,31 @@ struct Timers
   STRUCTURE TABLE DES PERIPHERIQUES
 
       Un fichier dans la carte SD par ligne avec numéro de ligne dans le nom du fichier
-
-      Principe des opérations des switchs :
-
-        periSwInput (cstRec.Input dans peripherique) contient l'algorithme
-
-                Toutes les entrées qui déterminent l'état d'un switch sont banalisées : 
-                  un type parmi 4, 
-                  un numéro dans le type, 
-                  des propriétés qui déterminent en combinaison avec les autres entrées l'état du switch
          
         periSwPulseCtl (cstRec.pulseCtl dans périphérique) 
 
-                 le générateur de pulses (enable des 2 compteurs et bit free run/oneshot)
+                 (enable des 2 compteurs et bit free run/oneshot)
 
 
-          détail d'une entrée :
-            enable
-            type variable : (2 bits) 
+          détail d'une entrée de règle :
+            
+            type source   : (2 bits) 
                             détecteur physique local au périphérique
-                            détecteur en provenance du serveur
+                            détecteur du serveur
                             géné pulses
-                            le résultat d'une entrée
-            numéro        : (6 bits)
-            niveau        : 1 bit
-            4 fonctions   : (+1bit niveau actif pour valider disj/conj )
-                            disjoncteur  - force le switch off
-                            conjoncteur  - force le sw on si pas de disjoncteur actif
-                            :::::::::: à voir :::::::::::::::::::
-                            interrupteur - force le sw off si ni disjoncteur ni conjoncteur actif
-                            allumeur     - force le sw on si ni disjoncteur ni conjoncteur ni interrupteur actif
-            actions sur pulses 
+                            mémoire locale
+            numéro srce   : (6 bits)
+            type dest     : (2 bits) 
+                            switch
+                            détecteur du serveur
+                            géné pulses
+                            mémoire locale
+            numéro dest   : (6 bits)            
+            enable        : 1 bit
+            niveau actif  : 1 bit
+            niveau précédent : 1 bit
+            edge/static   : 1 bit
+            actions  
                   0) reset :  l'action reset remet les 2 compteurs à 0 en mode idle selon mode/état/flanc programmé 
                   1) raz :    l'action raz remet à 0 le compteur courant sans effet sur l'horloge selon mode/état/flanc programmé
                   2) stop :   l'action stop suspend l'horloge selon l'état/flanc programmé
@@ -399,19 +392,20 @@ struct Timers
                   6) stop impulsionnel : stop si le compteur depuis le début a moins de DETIMP (1,5sec) start sinon 
                         (impDetTime=millis() si start, =0 si stop ou stop impulsionnel)
                   7) toggle : action sur switch
-
-                  le changement d'état d'une variable ou la modification des paramètres d'une entrée provoque l'évaluation du switch
+                  8) OR
+                  9) NOR
+                  10) XOR
+                  11) AND
            
-         les détecteurs physiques sont représentés dans une variable mémoire
-                  chaque changement d'état provoque la recherche du détecteur dans les entrées et l'évaluation du switch.
-                  le débounce est intégré dans la loop.
-                  la variable mémoire stocke la valeur courante et l'état (DETTRIG/DETWAIT/DETIDLE/DETDIS)
-                      (voir const.h de peripherique pour les détails)
+         les détecteurs physiques sont représentés dans une variable mémoire (débounce est intégré)
+                  
+                  
+
 
                 
          générateur d'impulsion :
 
-                (Un par switch)
+                (4 par périphérique)
                 Le générateur d'impulsion est constitué de 2 compteurs animés par une horloge à 1Hz (10Hz pour les traitements pour assurer la précision)
                 Au reset ils sont à 0. Un seul eet actif à la fois. Lorsqu'un compteur atteint sa valeur maxi il repasse à 0.
                 Lorsque le compteur 1 atteint sa valeur maxi le compteur 2 se déclenche s'il est enable

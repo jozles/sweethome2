@@ -391,15 +391,18 @@ void periInputPrint(byte* input)
     Serial.println();
 }
 
-void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo)
+void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo,uint32_t* currOne,uint32_t* currTwo)
 {
   Serial.print("pulses(f-e 1 e 2)  ");
   for(int pu=0;pu<NBPULSE;pu++){
     Serial.print((*(uint16_t*)pulseCtl>>(PMFRO_VB+pu*PCTLBIT))&0x01);sp("-",0);         // fr bit
     Serial.print(((*(uint16_t*)pulseCtl)>>(PMTOE_VB+pu*PCTLBIT))&0x01);sp(" ",0);       // time one en
-    Serial.print(*(uint32_t*)(pulseOne+pu));sp(" ",0);                                  // time one
+    Serial.print(*(uint32_t*)(pulseOne+pu));sp("/",0);                                  // time one
+    Serial.print(*(uint32_t*)(currOne+pu));sp(" ",0);                                   // curr one    
     Serial.print(((*(uint16_t*)pulseCtl)>>(PMTTE_VB+pu*PCTLBIT)&0x01));sp(" ",0);       // time two en
-    Serial.print(*(uint32_t*)(pulseTwo+pu));if(pu<NBPULSE-1){sp("  |  ",0);}            // time two
+    Serial.print(*(uint32_t*)(pulseTwo+pu));sp("/",0);                                  // time two
+    Serial.print(*(uint32_t*)(currTwo+pu));                                             // curr two    
+    if(pu<NBPULSE-1){sp("  |  ",0);}
   }Serial.println();
 }
 
@@ -416,11 +419,10 @@ void  periPrint(uint16_t num)
   serialPrintMac(periMacr,0);Serial.print(" ");serialPrintIp(periIpAddr);Serial.print(" port=");Serial.print(*periPort);
   Serial.print(" sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.print(*periDetNb);Serial.print(" ");
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
-  Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(")  ");
-  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((*periSwVal>>(2*s-1))&0x01)+48));}Serial.print("  det=");Serial.print(*periDetNb);
-  Serial.print("  server=");
+  Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(") ");
+  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((*periSwVal>>(2*s-1))&0x01)+48));}
   periDetServPrint(&memDetServ);Serial.print(" millis=");Serial.println(millis());
-  periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo);
+  periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo,periSwPulseCurrOne,periSwPulseCurrTwo);
   periInputPrint(periInput);
 }
 
@@ -469,7 +471,7 @@ int periSave(uint16_t num,bool sd)
       for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
     }
     else sta=SDKO;
-    Serial.print("periSave(");Serial.print(num);Serial.print(")status=");Serial.print(sta);Serial.print(" periNum=");Serial.print(*periNum);Serial.print(" NbSw=");Serial.print(*periSwNb);if(num!=NBPERIF+1){Serial.println();}
+    Serial.print("periSave(");Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(")status=");Serial.print(sta);Serial.print(" NbSw=");Serial.print(*periSwNb);if(num!=NBPERIF+1){Serial.println();}
     return sta;
   }
 }
