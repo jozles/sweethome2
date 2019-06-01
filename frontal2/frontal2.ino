@@ -539,24 +539,25 @@ void scanTimers()                                             //   recherche tim
       char now[LNOW];
       alphaNow(now);
       for(int nt=0;nt<NBTIMERS;nt++){
-        if(
-          timersN[nt].enable==1
+        if(                                                     
+          timersN[nt].enable==1                                 // enable & (permanent ou (dans les dates du cycle)
           && (timersN[nt].perm==1 || (memcmp(timersN[nt].dhdebcycle,now,14)<0 && memcmp(timersN[nt].dhfincycle,now,14)>0)) 
-          && memcmp(timersN[nt].hdeb,(now+8),6)<0 
-          && memcmp(timersN[nt].hfin,(now+8),6)>0
-          && (timersN[nt].dw & maskbit[1+now[14]*2])!=0 )
-          {
-          if(timersN[nt].curstate!=1){                    // changement 0->1
-            timersN[nt].curstate=1;memDetServ |= mDSmaskbit[timersN[nt].detec];
-            poolperif(tablePerToSend,timersN[nt].detec,"on");}
+          && memcmp(timersN[nt].hdeb,(now+8),6)<0               // heure deb
+          && memcmp(timersN[nt].hfin,(now+8),6)>0               // heure fin
+          && (timersN[nt].dw & maskbit[1+now[14]*2])!=0 )       // jour semaine
+          {                                                     // si timer déclenché
+          if(timersN[nt].curstate!=1){                          // et état précédent 0, chgt->1
+            timersN[nt].curstate=1;memDetServ |= mDSmaskbit[timersN[nt].detec]; // maj détecteur
+            poolperif(tablePerToSend,timersN[nt].detec,"on");}  // recherche periphérique et mise à jour tablePerToSend
         }
-        else {
-          if(timersN[nt].curstate!=0){                    // changement 1->0
-            timersN[nt].curstate=0;memDetServ &= ~mDSmaskbit[timersN[nt].detec];
-            poolperif(tablePerToSend,timersN[nt].detec,"off");}
+        else {                                                  // si timer pas déclenché
+          if(timersN[nt].curstate!=0){                          // et état précédent 1, chgt->0
+            timersN[nt].curstate=0;memDetServ &= ~mDSmaskbit[timersN[nt].detec];    // maj détecteur
+            if(timersN[nt].perm==0 && timersN[nt].cyclic==0){timersN[nt].enable=0;}; // si pas permanent et pas cyclique disable en fin
+            poolperif(tablePerToSend,timersN[nt].detec,"off");} // recherche periphérique et mise à jour tablePerToSend
         }
       }
-      perToSend(tablePerToSend,timerstime);
+      perToSend(tablePerToSend,timerstime);                     // mise à jour périphériques de tablePerToSend
     }
 }
 
@@ -971,8 +972,8 @@ void inpsub(byte* ptr,byte PNT_MS,byte PNTLS_PB,char* libel,uint8_t len)
   *ptr &= ~PNT_MS;
   *ptr |= v;
 
-Serial.print(" valf=");Serial.print(valf);Serial.print(" len=");
-Serial.print(len);Serial.print(" lreel=");Serial.print(lreel);Serial.print(" typ=");Serial.print(typ);Serial.print(" libel=");Serial.print(libel);Serial.print(" v=");Serial.println(v,HEX);
+//Serial.print(" valf=");Serial.print(valf);Serial.print(" len=");
+//Serial.print(len);Serial.print(" lreel=");Serial.print(lreel);Serial.print(" typ=");Serial.print(typ);Serial.print(" libel=");Serial.print(libel);Serial.print(" v=");Serial.println(v,HEX);
 }
 
 void commonserver(EthernetClient cli)
@@ -1363,8 +1364,8 @@ void commonserver(EthernetClient cli)
                          case 2:timersN[nb].cyclic=*valf-48;
                          //Serial.print(timersN[nb].cyclic);
                          break;
-                         case 3:timersN[nb].forceonoff=*valf-48;//Serial.print(timersN[nb].forceonoff);
-                         break;                        
+                         //case 3:timersN[nb].forceonoff=*valf-48;//Serial.print(timersN[nb].forceonoff);
+                         //break;                        
                          default:break;
                         }
                         /* dw */
@@ -1407,7 +1408,8 @@ void commonserver(EthernetClient cli)
           case 7:timersSave();timersHtml(&cli);break;           // timers
           case 8:remoteSave();cfgRemoteHtml(&cli);break;        // bouton remotecfg puis submit
           case 9:periRemoteUpdate();remoteHtml(&cli);           // bouton remotehtml ou remote ctl puis submit 
-                // la mise à jour des périphériques (perToSend) ne peut pas être faite par periRemoteUpdate car il n'y a plus de connexion dispo
+                // la mise à jour des périphériques (perToSend) ne peut pas être faite par periRemoteUpdate 
+                // car il n'y a plus de socket dispo pour créer la connexion vers les périphériques (periserver/commonserver/cli_a/cliext)
                 // donc remoteHtml d'abord puis perToSend                                                              
                   cli.stop();
                   perToSend(tablePerToSend,remotetime);break; 

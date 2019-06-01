@@ -45,6 +45,11 @@
  *      form à part pour les détecteurs du serveur ds peritable ; 1 bouton "per update"(pertosend)
  *      bouton refresh des switchs envoie une demande d'état au périphérique
  *      
+ * BUGS : 
+ * 
+ *      timer entre 230000 et 010000 regarder ce qui se passe
+ *      règle x00x ex n pul m RAZ   raz défile ?
+ *      
  * à faire :
  *     
  *    ajouter nbre inputs dans assyset
@@ -53,7 +58,7 @@
  *     
  *    détecter les changements à la réception des dataread/save pour effectuer un refresh de l'affichage de peritable
  *    
- *    vérifier la stratification (couche contenu des messages/couche protocole/couche physique)
+ *    vérifier la stratification (couche contenu des messages/couche protocole/couche physique) periParamHtml en particulier
  *    
  *    timers : ajouter option "1 jour sur n" : dhdebcycle=1ère date... calculer si date courante ok (récupérer un bool inutile - cyclic? )
  *    pulses : option entrée clock depuis input 
@@ -64,6 +69,11 @@
  *                           ajouter visu diag/état des inputs(?)
  *                           
  *    ajouter crc sur fichiers config,periphériques,remotes,timers 
+ *    
+ *    ajouter libellés sur détecteurs serveur
+ *    
+ *    ajouter détection "android" dans getnv
+ *    
  */
 
 /* mac,adressage,port
@@ -180,12 +190,10 @@ struct Timers
   char    hdeb[7];       // heure début
   char    hfin[7];       // heure fin
   bool    perm;          // permanent (pas de test sur deb/fin cycle ni cyclic)
-  bool    cyclic;        // cyclique/one time (si one time pas de test de heuredeb/fin)
+  bool    cyclic;        // cyclique/one time (si one time disable en fin de cycle)
   bool    enable;        // 
   bool    curstate;      // etat courant du timer
-  bool    forceonoff;    // forçage on ou off ; 
-                         // le timer force la valeur du détecteur on si forceonoff = 1 et currstate = on 
-                         //                                      off si forceonoff = 0 et currstate = off
+  bool    forceonoff;    // inutilisé devrait être "action" (OR/NOR/XOR/AND)
   byte    dw;            // jours semaine xyyyyyyyy ; x si tout
   char    dhdebcycle[16];
   char    dhfincycle[16];

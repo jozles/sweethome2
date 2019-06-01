@@ -3,8 +3,6 @@
 #include "shutil2.h"
 #include "shconst2.h"
 
-//#define PERIF
-
 #ifdef PERIF
 #include <ESP8266WiFi.h>
 

@@ -293,6 +293,7 @@ void lb0()
 
 void ledblink(uint8_t nbBlk)    // nbre blinks rapides tous les PERBLINK
 {
+
          if(nbreBlink==0 ){
                 if(nbBlk!=BCODEONBLINK){nbreBlink=nbBlk;}                   // une fois nbreBlink chargé, la consigne est ignorée
                 else digitalWrite(PINLED,LEDON);

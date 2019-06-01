@@ -548,7 +548,7 @@ void timersHtml(EthernetClient* cli)
 
          cli->println("<table>");
               cli->println("<tr>");
-                cli->println("<th></th><th>nom</th><th>det</th><th>h_beg</th><th>h_end</th><th></th><th>e_p_c_f_</th><th>7_d_l_m_m_j_v_s</th><th>dh_beg_cycle</th><th>dh_end_cycle</th>");
+                cli->println("<th></th><th>nom</th><th>det</th><th>h_beg</th><th>h_end</th><th>OI det</th><th>e_p_c_</th><th>7_d_l_m_m_j_v_s</th><th>dh_beg_cycle</th><th>dh_end_cycle</th>");
               cli->println("</tr>");
 
               for(int nt=0;nt<NBTIMERS;nt++){
@@ -560,18 +560,20 @@ void timersHtml(EthernetClient* cli)
                       //Serial.print(nt);Serial.print(" ");Serial.print(timersN[nt].nom);Serial.print(" ");Serial.println(timersN[nt].detec);
                       
                       sscfgt(cli,"tim_name_",nt,timersN[nt].nom,LENTIMNAM,0);
-                      sscfgt(cli,"tim_det__",nt,&timersN[nt].detec,1,3);                                            
+                      sscfgt(cli,"tim_det__",nt,&timersN[nt].detec,2,3);                                            
                       sscfgt(cli,"tim_hdf_d",nt,timersN[nt].hdeb,6,0);                                            
                       sscfgt(cli,"tim_hdf_f",nt,timersN[nt].hfin,6,0);                   
                       
                       char oi[]="OI",md=memDetServ>>timersN[nt].detec;
-                      cli->print("<td>");cli->print(oi[timersN[nt].curstate]);cli->print(md/16,HEX);cli->print(md%16,HEX);
+                      cli->print("<td>");cli->print("_");
+                      cli->print(oi[timersN[nt].curstate]);cli->print("__");
+                      cli->print((memDetServ>>timersN[nt].detec)&0x01);
                       cli->println("</td><td>");
                       
                       nucb=0;sscb(cli,timersN[nt].enable,"tim_chkb__",nucb,-1,0,nt);
                       nucb++;sscb(cli,timersN[nt].perm,"tim_chkb__",nucb,-1,0,nt);
                       nucb++;sscb(cli,timersN[nt].cyclic,"tim_chkb__",nucb,-1,0,nt);   
-                      nucb++;sscb(cli,timersN[nt].forceonoff,"tim_chkb__",nucb,-1,0,nt);
+                      //nucb++;sscb(cli,timersN[nt].forceonoff,"tim_chkb__",nucb,-1,0,nt);
                      
                       cli->println("</td><td>");
                       for(int nj=7;nj>=0;nj--){
