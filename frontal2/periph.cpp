@@ -111,6 +111,9 @@ extern char*  timersNA;
 extern long   timersNlen;
 File ftimers;     // fichier timers
 
+extern char   libDetServ[NBDSRV][LENLIBDETSERV];
+File fmemdet;     // fichier détecteurs serveur
+
 extern char strdate[33];
 extern char temp[3],temp0[3],humid[3];
 
@@ -938,4 +941,45 @@ int timersSave()
     return SDOK;
 }
 
+int memDetLoad()
+{
+    Serial.print("Load detServ ");
+    if(sdOpen(FILE_READ,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    fmemdet.seek(0);
+    for(uint8_t i=0;i<MDSLEN;i++){*(&memDetServ+i)=fmemdet.read();}
+    for(uint8_t i=0;i<NBDSRV;i++){
+      for(uint8_t j=0;j<LENLIBDETSERV;j++){libDetServ[i][j]=fmemdet.read();}
+    }
+    fmemdet.close();Serial.println(" OK");
+    return SDOK;
+}
 
+int memDetSave()
+{
+    Serial.print("Save detServ ");
+    if(sdOpen(FILE_WRITE,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    fmemdet.seek(0);
+    for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*(&memDetServ+i));}
+    for(uint8_t i=0;i<NBDSRV;i++){
+      for(uint8_t j=0;j<LENLIBDETSERV;j++){fmemdet.write(libDetServ[i][j]);}
+    }
+    fmemdet.close();Serial.println(" OK");
+    return SDOK;  
+}
+
+
+void memDetInit()
+{
+    memcpy(&libDetServ[31][0],"hcreuses",LENLIBDETSERV);
+    memcpy(&libDetServ[30][0],"chauffe ",LENLIBDETSERV);
+    memcpy(&libDetServ[29][0],"tv      ",LENLIBDETSERV);
+}
+
+void memDetPrint()
+{
+    dumpfield((char*)&memDetServ,4);Serial.print(" ");
+    for(uint8_t i=0;i<NBDSRV;i++){
+      for(uint8_t j=0;j<LENLIBDETSERV;j++){Serial.print(libDetServ[i][j]);}Serial.print("/");
+    }
+    Serial.println();
+}

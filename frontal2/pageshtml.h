@@ -14,7 +14,8 @@ int  htmlImg(EthernetClient* cli,char* fimgname);
 void remoteHtml(EthernetClient* cli);
 void thermoHtml(EthernetClient* cli);
 void timersHtml(EthernetClient* cli);
-void detServHtml(EthernetClient* cli,uint32_t* mds);
+void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib);
+void cfgDetServHtml(EthernetClient* cli);
 
 
 #endif // _PAGESHTML_H_

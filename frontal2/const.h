@@ -199,6 +199,8 @@ struct Timers
   char    dhfincycle[16];
 };
 
+#define MEMDETFNAME "MEM_DETS"
+#define LENLIBDETSERV 9
 
 /* codes fonctions (mettre à jour...)
 00 per_temp__ valorisation période de la mesure et enregistrement de température du serveur

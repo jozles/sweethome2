@@ -8,7 +8,7 @@ enum {FAUX, VRAI};
 /*  I2C  */
 
 //#define SLAVE 0x38 // ade I2C address
-#define SLAVE 0x09 // SPI CS PIN 
+#define SLAVE 0x08 // SPI CS PIN 
 
 /* ADE register */
 
@@ -32,6 +32,7 @@ enum {FAUX, VRAI};
 uint16_t reg8ad[] ={(uint16_t)SAGYC,(uint16_t)DISNOLOAD,(uint16_t)LCYCMODE,(uint16_t)PGA_V,(uint16_t)PGA_IA,(uint16_t)PGA_IB,(uint16_t)WR_PROT,(uint16_t)LAST_OP,ReservFE,(uint16_t)LAST_RW8,(uint16_t)ADE_VERS,(uint16_t)EX_REF};
 char reg8nam[NB8REG][LENRNOM]  ={"SAGYC    ","DISNOLOAD","LCYCMODE ","PGA_V    ","PGA_IA   ","PGA_IB   ","WR_PROT  ","LAST_OP  ","ReservFE ","LAST_RW8 ","ADE_VERS ","EX_REF   "};
 
+
 // 16 bits regs
 #define ZXTOUT    0x0100
 #define LINECYC   0x0101
@@ -52,7 +53,7 @@ char reg8nam[NB8REG][LENRNOM]  ={"SAGYC    ","DISNOLOAD","LCYCMODE ","PGA_V    "
 #define LAST_RW16 0x01FF
 
 #define NB16REG 17
-uint16_t reg16ad[]={(uint16_t)ZXTOUT,(uint16_t)LINECYC,(uint16_t)CONFIG,(uint16_t)CF1DE,(uint16_t)CF2DE,(uint16_t)CFMODE,(uint16_t)PHCALA,(uint16_t)PHCALB,(uint16_t)PFA,(uint16_t)PFB,(uint16_t)ANGLE_A,(uint16_t)ANGLE_B,(uint16_t)PERIOD,(uint16_t)ALT_OUTP,Reserv120,(uint16_t)LAST_ADD,(uint16_t)LAST_RW16};
+uint16_t reg16ad[]={(uint16_t)ZXTOUT,(uint16_t)LINECYC,(uint16_t)CONFIG,(uint16_t)CF1DE,(uint16_t)CF2DE,(uint16_t)CFMODE,(uint16_t)PHCALA,(uint16_t)PHCALB,(uint16_t)PFA,(uint16_t)PFB,(uint16_t)ANGLE_A,(uint16_t)ANGLE_B,(uint16_t)PERIOD,(uint16_t)ALT_OUTP,(uint16_t)Reserv120,(uint16_t)LAST_ADD,(uint16_t)LAST_RW16};
 char     reg16nam[NB16REG][LENRNOM]={"ZXTOUT   ","LINECYC  ","CONFIG   ","CF1DE    ","CF2DE    ","CFMODE   ","PHCALA   ","PHCALB   ","PFA      ","PFB      ","ANGLE_A  ","ANGLE_B  ","PERIOD   ","ALT_OUTP ","Reserv120","LAST_ADD ","LAST_RW16"};
 
 // 32 bits regs
@@ -160,7 +161,7 @@ bool     contCurr=0;
 
 uint8_t adeRead(uint8_t slave, uint8_t reg,byte* data, int len);
 void adeWrite(uint8_t slave, uint8_t reg, byte* data, int len);
-void getReg(int len,char* nam);
+int getReg(int* len,char* nam);
 void readade();
 
 void hexPrint8(byte b);
@@ -169,8 +170,8 @@ void hexPrint16(uint16_t b);
 
 void setup() {
 
-  SerialUSB.begin(115200);delay(2000);
-  SerialUSB.println("ready");
+  Serial.begin(115200);delay(1000);
+  Serial.println("\n\nready");
   
   pinMode(LED, OUTPUT); digitalWrite(LED, OFFLED);
 
@@ -178,12 +179,21 @@ void setup() {
 
   pinMode(SLAVE, OUTPUT); digitalWrite(SLAVE,HIGH);
   SPI.begin();
-  SPI.beginTransaction(SPISettings(2000000, MSBFIRST, SPI_MODE3));
+  SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE3));
 
   /* Wire 
   Wire.begin();
 */
   //  init reg 0x0120 
+
+int len;
+reg=0x00FE;
+data[0]=0xAD;
+adeWrite(slave, reg, data,1); // unlock
+//readRegN(&len,"LAST_OP  ");
+readRegN(&len,"LAST_RW8 ");
+Serial.println();
+
 
 reg=0x00FE;
 data[0]=0xAD;
@@ -192,6 +202,8 @@ reg=0x0120;
 data[0]=0x30;
 data[1]=0x00;
 adeWrite(slave, reg, data,2); // setup
+readRegN(&len,"LAST_RW16");
+Serial.println();
 
 }
 
@@ -202,6 +214,8 @@ void loop() {
 
   /* LED */
 
+  int len;
+
   if (millis() > (tmpBlink + perBlink)) {
     tmpBlink = millis();
     if (digitalRead(LED) == ONLED) {
@@ -211,8 +225,8 @@ void loop() {
     else {
       digitalWrite(LED, ONLED);
       perBlink = TBLINKON;
-      if(contVolt!=0){readRegN("V        ");}
-      if(contCurr!=0){readRegN("IB       ");}
+      if(contVolt!=0){readRegN(&len,"V        ");if(contCurr==0){Serial.println();}}
+      if(contCurr!=0){readRegN(&len,"IB       ");Serial.println();}
     } 
   }
 
@@ -224,14 +238,17 @@ void loop() {
 
   /* commandes Serial */
 
-  if (SerialUSB.available()) {
-    char a=SerialUSB.read();SerialUSB.print("\n");SerialUSB.println((char)a);
+  if (Serial.available()) {
+    char a=Serial.read();Serial.print("\n");Serial.println((char)a);
     switch (a) {
       case 'A': readade();break;
-      case 'B': readRegN("V        ");break;
-      case 'C': contVolt=!contVolt;break;
-      case 'D': readRegN("IB       ");break;
-      case 'E': contCurr=!contCurr;break;
+      case 'B': readRegN(&len,"V        ");readRegN(&len,"VRMS     ");readRegN(&len,"IB       ");readRegN(&len,"IRMSB    ");Serial.println();
+                readRegN(&len,"AENERGYB ");readRegN(&len,"RENERGYB ");readRegN(&len,"APENERGYB");Serial.println();break;
+      case 'C': contVolt=!contVolt;
+                break;
+      case 'D': break;
+      case 'E': contCurr=!contCurr;
+                break;
       
       default: break;
     }
@@ -239,14 +256,24 @@ void loop() {
 }
 /* --------------- fin loop ---------------------- */
 
-void readRegN(char* nam)
+void readRegN(int* len,char* nam)
 {
-SerialUSB.print((char*)nam);
-getReg(4,nam);
-SerialUSB.print(" ");
-char invdata[5];
-for(int k=0;k<4;k++){hexPrint8(data[k]);invdata[3-k]=data[k];}
-SerialUSB.print("/");SerialUSB.println((int32_t)*((int32_t*)invdata));
+
+  int reg=getReg(len,nam);
+  if(reg>=0){
+
+    char pnam[LENRNOM];
+    for(int i=0;i<LENRNOM-1;i++){pnam[i]=nam[i];if(pnam[i]==' '){pnam[i]='\0';break;}}
+    if(i>=LENRNOM-1){pnam[LENRNOM-1]='\0';}
+    Serial.print((char*)pnam);
+    Serial.print("=");
+
+    char invdata[5];
+    for(int k=0;k<4;k++){hexPrint8(data[k]);invdata[3-k]=data[k];}
+    Serial.print("/");Serial.print((int32_t)*((int32_t*)invdata));
+    Serial.print("  ");
+  }
+  else{Serial.print("nom invalide");}
 }
 
 
@@ -270,12 +297,13 @@ void adeRead(uint8_t slave, uint16_t reg, byte* data, int len)
   
   SPI.transfer(data,len);
 
-  //for (int h=-4;h<4;h++){hexPrint8(*(data+h));SerialUSB.println();}
+  //for (int h=-4;h<4;h++){hexPrint8(*(data+h));Serial.println();}
 
   digitalWrite(slave, HIGH);
 }
 
-/*
+/*  I2C
+ 
 void adeWrite(uint8_t slave, uint16_t reg, byte* data, int len)  // I2C
 {
   Wire.beginTransmission(slave);
@@ -298,21 +326,21 @@ uint8_t adeRead(uint8_t slave, uint16_t reg, byte* data, int len)
   uint8_t nb=0;
   while (Wire.available())     // slave may send less (or more) than requested
   {
-    //SerialUSB.print("(");
+    //Serial.print("(");
     nb++;
     len--;if(len<0){len=0;}
     data[len]=Wire.read();
-    //SerialUSB.print(len);SerialUSB.print("=");SerialUSB.print(data[len]);SerialUSB.print(" ");
+    //Serial.print(len);Serial.print("=");Serial.print(data[len]);Serial.print(" ");
   }
-  //SerialUSB.print("#");hexPrint8(data[1]);hexPrint8(data[0]);SerialUSB.print(" ");
+  //Serial.print("#");hexPrint8(data[1]);hexPrint8(data[0]);Serial.print(" ");
   return nb;
 }
 */
 
 void hexPrint8(byte b)
 {
-  if((b&0xF0)==0){SerialUSB.print("0");}
-  SerialUSB.print(b,HEX);
+  if((b&0xF0)==0){Serial.print("0");}
+  Serial.print(b,HEX);
 }
 
 void hexPrint16(uint16_t b)
@@ -327,18 +355,18 @@ void hexPrint16(uint16_t b)
 void readAdeR(uint8_t nb,uint8_t len,char* regxnam,uint16_t* regxadd)
 {   
   char lb[9]={'8','\0',' ','1','6','\0','3','2','\0'};
-  SerialUSB.print((char*)(lb+(len/2)*3));SerialUSB.println(" bits registers");
+  Serial.print((char*)(lb+(len/2)*3));Serial.println(" bits registers");
   for(i=0;i<nb;i++){
     for(j=0;j<LENRNOM;j++){                               // nom
-      SerialUSB.print((char)*(regxnam+(i*LENRNOM)+j));
+      Serial.print((char)*(regxnam+(i*LENRNOM)+j));
     }
-    SerialUSB.print(" 0x");hexPrint16(regxadd[i]);        // adresse
+    Serial.print(" 0x");hexPrint16(regxadd[i]);        // adresse
     adeRead(slave,regxadd[i],data,len);
       for(int r=0;r<len;r++){                             // data
-        SerialUSB.print(" ");hexPrint8(data[r]);}
-    SerialUSB.println();
+        Serial.print(" ");hexPrint8(data[r]);}
+    Serial.println();
   }
-  SerialUSB.println();
+  Serial.println();
 }
 
 void readade()
@@ -354,31 +382,35 @@ int search(char* regnam,char* nam, int nb)
   for(nb;nb>0;nb--){
     k=' ';
     for(j=0;j<LENRNOM-1;j++){
-      if(regnam[nb*LENRNOM+j]!=nam[j]){k='k';break;}
+      if(regnam[(nb-1)*LENRNOM+j]!=nam[j]){k='k';break;}
     }
-    if(k!='k'){return nb;}
+    if(k!='k'){return nb-1;}
   }
   return -1;
 }
 
-void getReg(int len,char* nam)
+int getReg(int* len,char* nam)
 {
   uint16_t reg;
+  int v=-1;
 
-  int v;
-  switch(len){
-    case 1:v=search(&reg8nam[0][0],nam,NB8REG);
-            reg=reg8ad[v];break;
-    case 2:v=search(&reg16nam[0][0],nam,NB16REG);
-            reg=reg16ad[v];break;
-    case 4:v=search(&reg32nam[0][0],nam,NB32REG);
-            reg=reg32ad[v];break;
-         
-    default:break;
+  v=search(&reg8nam[0][0],nam,NB8REG);
+//Serial.print(v);Serial.print(" ");Serial.println(&reg8nam[v][0]);
+  if(v>=0){reg=reg8ad[v];*len=1;}
+  else{
+    v=search(&reg16nam[0][0],nam,NB16REG);
+//Serial.print(v);Serial.print(" ");Serial.println(&reg16nam[v][0]);
+    if(v>=0){reg=reg16ad[v]; *len=2;}
+    else{
+      v=search(&reg32nam[0][0],nam,NB32REG);
+//Serial.print(v);Serial.print(" ");Serial.println(&reg32nam[v][0]);    
+      if(v>=0){reg=reg32ad[v]; *len=4;}
+    }
   }
-
-  
-  SerialUSB.print(" n°");SerialUSB.print(v);SerialUSB.print(" add=");hexPrint16(reg);SerialUSB.print(" ");
-  adeRead(slave,reg,data,len);
+  if(v>=0){
+    hexPrint16(reg);Serial.print(" ");
+    adeRead(slave,reg,data,*len);
+  }
+  return v;
 }
 

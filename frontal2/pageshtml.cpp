@@ -65,8 +65,8 @@ extern char*     periNamer;                    // ptr ds buffer : description p�
 
 extern int       fdatasave;
 
-extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs (8)
-
+extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
+extern char      libDetServ[NBDSRV][LENLIBDETSERV];
 
 
    // Un formulaire ou une page html nécessite dans l'ordre :
@@ -171,12 +171,12 @@ void sscb(EthernetClient* cli,bool val,char* nomfonct,int nuf,int etat,uint8_t t
   nf[LENNOM]='\0';
   nf[LENNOM-1]=(char)(nb+PMFNCHAR);
   nf[LENNOM-2]=(char)(nuf+PMFNCHAR);
-  checkboxTableHtml(cli,(uint8_t*)&val,nf,etat,td);
+  checkboxTableHtml(cli,(uint8_t*)&val,nf,etat,td,"");
 }
 
 void sscfgt(EthernetClient* cli,char* nom,uint8_t nb,void* value,int len,uint8_t type)  // type=0 value ok ; type =1 (char)value modulo len*nt ; type =2 (uint16_t)value modulo nb
 {
-  int sizbx=len-2;if(sizbx<=0){sizbx=1;}
+  int sizbx=len-3;if(sizbx<=0){sizbx=1;}
   cli->print("<td><input type=\"text\" name=\"");cli->print(nom);cli->print((char)(nb+PMFNCHAR));cli->print("\" value=\"");
   if(type==0){cli->print((char*)value);cli->print("\" size=\"");cli->print(sizbx);cli->print("\" maxlength=\"");cli->print(len);cli->println("\" ></td>");}
   if(type==2){cli->print(*((int16_t*)value+nb));cli->println("\" size=\"1\" maxlength=\"2\" ></td>");}
@@ -239,12 +239,10 @@ void cfgServerHtml(EthernetClient* cli)
             cli->println("</form></body></html>");
 }
 
-void cfgRemoteHtml(EthernetClient* cli)
+void cfgDetServHtml(EthernetClient* cli)
 {
-  char nf[LENNOM+1];nf[LENNOM]='\0';
-  uint8_t val;
   
-            Serial.println(" config remote");
+            Serial.println(" config detServ");
             htmlIntro(nomserver,cli);
             
             cli->println("<body><form method=\"get\" >");
@@ -254,6 +252,45 @@ void cfgRemoteHtml(EthernetClient* cli)
             boutRetour(cli,"retour",0,0);
 
             cli->println(" <input type=\"submit\" value=\"MàJ\"><br>");
+
+/* table libellés */
+
+              cli->println("<table>");
+              cli->println("<tr>");
+              cli->println("<th>   </th><th>      Nom      </th>");
+              cli->println("</tr>");
+
+              for(int nb=0;nb<NBDSRV;nb++){
+                uint8_t decal=0;if(nb>=16){decal=16;}
+                cli->println("<tr>");
+                
+                cli->print("<td>");cli->print(nb+1);cli->print("</td>");                       // n° detserv
+                cli->print("<td><input type=\"text\" name=\"libdsrv__");cli->print((char)(nb+decal+PMFNCHAR));cli->print("\" value=\"");
+                        cli->print((char*)&libDetServ[nb][0]);cli->print("\" size=\"12\" maxlength=\"");cli->print(LENLIBDETSERV-1);cli->println("\" ></td>");
+                   
+                cli->println("</tr>");
+              }
+            cli->println("</table><br>");
+            cli->println("</form></body></html>");
+}
+
+
+void cfgRemoteHtml(EthernetClient* cli)
+{
+  char nf[LENNOM+1];nf[LENNOM]='\0';
+  uint8_t val;
+  
+            Serial.println(" config remote");
+            htmlIntro(nomserver,cli);
+            
+            cli->println("<body><form method=\"get\" >");
+            cli->println(VERSION);cli->println();
+            
+            usrFormHtml(cli,1);
+            boutRetour(cli,"retour",0,0);
+            cli->println(" <input type=\"submit\" value=\"MàJ\">");
+            char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
+            //detServHtml(cli,&memDetServ,&libDetServ[0][0]);            
 
 /* table remotes */
 
@@ -273,11 +310,11 @@ void cfgRemoteHtml(EthernetClient* cli)
 
                 memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // état on/off
                 val=(uint8_t)remoteN[nb].onoff;
-                checkboxTableHtml(cli,&val,nf,-1,1);         
+                checkboxTableHtml(cli,&val,nf,-1,1,"");         
                 
                 memcpy(nf,"remotecfe_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
                 val=(uint8_t)remoteN[nb].enable;
-                checkboxTableHtml(cli,&val,nf,-1,1);         
+                checkboxTableHtml(cli,&val,nf,-1,1,"");         
                    
                 cli->println("</tr>");
               }
@@ -299,12 +336,15 @@ void cfgRemoteHtml(EthernetClient* cli)
                 if(remoteT[nb].num!=0){cli->print(remoteN[remoteT[nb].num-1].nam);}cli->println(" </td>");
 
                 memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° detec
-                numTableHtml(cli,'b',&remoteT[nb].detec,nf,1,2,0);
-                if(remoteT[nb].num!=0){cli->print((char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}cli->println(" </td>");
+                numTableHtml(cli,'b',&remoteT[nb].detec,nf,2,2,0);
+                if(remoteT[nb].num!=0){
+                  cli->print((char*)(&libDetServ[remoteT[nb].detec][0]));cli->print(" ");
+                  cli->print((char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}
+                cli->println(" </td>");
                 
                 memcpy(nf,"remotecfx_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
                 uint8_t ren=(uint8_t)remoteT[nb].enable;
-                checkboxTableHtml(cli,&ren,nf,-1,1);         
+                checkboxTableHtml(cli,&ren,nf,-1,1,"");         
                 
                 cli->println("</tr>");
               }
@@ -350,7 +390,7 @@ void remoteHtml(EthernetClient* cli)
                 
                 uint8_t ren=(uint8_t)remoteN[nb].enable;
                 char nf[LENNOM+1]="remote_xe_";nf[LENNOM-1]=(char)(nb+PMFNCHAR);
-                checkboxTableHtml(cli,&ren,nf,-1,1);
+                checkboxTableHtml(cli,&ren,nf,-1,1,"");
                             
                 cli->println("</tr>");
               }
@@ -544,7 +584,7 @@ void timersHtml(EthernetClient* cli)
             boutFonction(cli,"timershtml","","refresh",0,0,1,0);cli->print(" ");
 
             char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
-            detServHtml(cli,&memDetServ);
+            detServHtml(cli,&memDetServ,&libDetServ[0][0]);
 
          cli->println("<table>");
               cli->println("<tr>");
@@ -594,15 +634,18 @@ void timersHtml(EthernetClient* cli)
         cli->println("</body></html>");
 }
 
-void detServHtml(EthernetClient* cli,uint32_t* mds)
+void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
 {
           cli->println("<form>");
           usrFormInitHtml(cli,"dsrv_init_",1);
-          cli->println("<p><span style=\"border: 1px solid #dddddd;\">détecteurs serveur (n->0):");
-          for(int k=NBDSRV-1;k>=0;k--){subDSn(cli,"mem_dsrv__\0",*mds,k);}
-          
-          cli->println("<input type=\"submit\" value=\"Per Update\"></span></p></form>");
-          
+//          cli->println("<p><span style=\"border: 1px solid #dddddd;\">détecteurs serveur (n->0):");
+          cli->println("<fieldset><legend>détecteurs serveur (n->0):</legend>");
+          for(int k=NBDSRV-1;k>=0;k--){
+            char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
+            if(libb[0]=='\0'){convIntToString(libb,k);}
+            subDSn(cli,"mem_dsrv__\0",*mds,k,libb);}          
+          cli->println("<input type=\"submit\" value=\"Per Update\"></fieldset></form>");          
+//          cli->println("<input type=\"submit\" value=\"Per Update\"></span></p></form>");                    
 }
 
 void testHtml(EthernetClient* cli)
