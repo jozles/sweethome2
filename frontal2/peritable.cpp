@@ -282,7 +282,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
 
           cli->println("<table>");
               cli->println("<tr>");
-                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>_i_e<br>_s_v</th><th></th><th>mac_addr<br>ip_addr</th><th>version DS18<br>last out<br>last in</th><th></th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
+                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>mac_addr<br>ip_addr</th><th>version DS18<br>last out<br>last in</th><th></th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
               cli->println("</tr>");
  
               for(i=1;i<=NBPERIF;i++){
@@ -366,7 +366,7 @@ void periLineHtml(EthernetClient* cli,int i)
 
   htmlIntro(nomserver,cli);
   cli->println("<body>");            
-  //cli->println("<form method=\"get\" >");
+  cli->println("<form method=\"get\" >");
     cli->print(VERSION);cli->print(" ");
     char pkdate[7]; // ppour couleurs des temps des périphériques
     cliPrintDateHeure(cli,pkdate);cli->println();
@@ -389,7 +389,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 cli->println("</tr>");
 
                 cli->println("<tr>");
-                  cli->println("<form method=\"GET \">");
+                  //cli->println("<form method=\"GET \">");
                       
                       cli->print("<td>");
                       cli->println(periCur);
@@ -436,8 +436,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       
                       //cli->println("<td><input type=\"submit\" value=\"   MàJ   \"><br>");
 
-                  cli->print("</form>");
-                cli->println("</tr></table>");
+                cli->println("</tr></table></form>");
 }
 
 void showLine(EthernetClient* cli,int i,char* pkdate)

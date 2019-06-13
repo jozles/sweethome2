@@ -3,7 +3,7 @@
 
 //#define WEMOS
 
-#define VERSION "1.3a"
+#define VERSION "1.3b"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -38,23 +38,19 @@
  *      ajout periPort et tfr via ack/set ; accés aux périph serveurs débuggé (fermeture connection "cli.stop")
  * 1.2b ajout timers ; periTableHtml() protège periCur ; periSend valorise periCur + periLoad   
  * 1.3  gestion des switchs :      
- *      32 det serveur
- *      remotes sur det serveur
+ *      32 det serveur  ; remotes sur det serveur
  * 1.3a pulses indépendants des switchs, disjoncteur en amont de tout      
  *      24 inputs par sw (enable, lev, oldlev, edge/stat, srce (phy/ext/pulse/mem, num), dest (sw/ext/pulse/mem, num), action) *      
  *      form à part pour les détecteurs du serveur ds peritable ; 1 bouton "per update"(pertosend)
  *      bouton refresh des switchs envoie une demande d'état au périphérique
+ *      libellé pour detecteurs serveur ; affichage/saisie lignes péritable disjoint
+ * 1.3b      
  *      
  * BUGS : 
- * 
- *      timer entre 230000 et 010000 regarder ce qui se passe
- *      règle x00x ex n pul m RAZ   raz défile ?
- *      
+ *  
  * à faire :
  *     
  *    ajouter nbre inputs dans assyset
- *     
- *    mettre la ligne de périphérique de péritable dans une page séparée, ne laisser que des affichages avec boutons cfg/switch/maj(?)
  *     
  *    détecter les changements à la réception des dataread/save pour effectuer un refresh de l'affichage de peritable
  *    
@@ -69,8 +65,6 @@
  *                           ajouter visu diag/état des inputs(?)
  *                           
  *    ajouter crc sur fichiers config,periphériques,remotes,timers 
- *    
- *    ajouter libellés sur détecteurs serveur
  *    
  *    ajouter détection "android" dans getnv
  *    

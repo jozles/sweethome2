@@ -157,7 +157,7 @@ float Ds1820::readDs(uint8_t pin)
 
     if(r0 != 0){th=-th;}
     //Serial.print("th=");Serial.print(th);Serial.print(" rep[1,0]=");Serial.print(rep[1],HEX);
-    Serial.print(" ");Serial.println(rep[0],HEX);
+    //Serial.print(" ");Serial.println(rep[0],HEX);
   return th;
   }
 }

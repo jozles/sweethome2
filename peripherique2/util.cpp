@@ -233,7 +233,9 @@ void printConstant()
   //Serial.print((cstRec.memDetec[s]>>DETBITLH_PB)&0x01,HEX);Serial.print("  ");}
   Serial.println(); //" 3-TRIG 2-WAIT 1-IDLE 0-DIS");
   Serial.print("detTime         =  ");for(int s=MAXDET-1;s>=0;s--){Serial.print(detTime[s]);if(s!=0){Serial.print("   -   ");}}Serial.println();
-  Serial.print("detect (pin/mem)= ");for(int s=MAXDET-1;s>=0;s--){Serial.print(digitalRead(pinDet[s]));Serial.print("/");Serial.print((cstRec.memDetec[s]>>DETBITLH_PB)&0x01,HEX);Serial.print("   -   ");}Serial.println();  
+  Serial.print("detect (pin/mem)= ");for(int s=MAXDET-1;s>=0;s--){Serial.print(digitalRead(pinDet[s]));Serial.print("/");Serial.print((cstRec.memDetec[s]>>DETBITLH_PB)&0x01,HEX);Serial.print("   -   ");}
+  Serial.print("switchs (pins)  = ");for(int s=MAXSW-1;s>=0;s--){Serial.print(digitalRead(pinSw[s]));Serial.print("   -   ");}
+  Serial.println();  
 #if POWER_MODE==NO_MODE
   periDetServPrint(&cstRec.extDetec);  
   periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo,(uint32_t*)&cstRec.cntPulseOne,(uint32_t*)&cstRec.cntPulseTwo);

@@ -151,17 +151,20 @@ uint8_t savled;
 
 int      i,j;
 byte     data[5];  // 4 bytes maxi
+int      len;
 uint16_t reg;
+uint16_t addr;
 char     nam[LENRNOM];
 bool     contVolt=0;
 bool     contCurr=0;
+bool     contDiag=0;
 
 
 /* prototypes */
 
 uint8_t adeRead(uint8_t slave, uint8_t reg,byte* data, int len);
 void adeWrite(uint8_t slave, uint8_t reg, byte* data, int len);
-int getReg(int* len,char* nam);
+int getReg(int* len,char* nam,uint16_t* addr);
 void readade();
 
 void hexPrint8(byte b);
@@ -184,16 +187,16 @@ void setup() {
   /* Wire 
   Wire.begin();
 */
-  //  init reg 0x0120 
+  //  init registres
 
-int len;
+delay(100); // 100mS at power up
+
 reg=0x00FE;
 data[0]=0xAD;
 adeWrite(slave, reg, data,1); // unlock
 //readRegN(&len,"LAST_OP  ");
 readRegN(&len,"LAST_RW8 ");
 Serial.println();
-
 
 reg=0x00FE;
 data[0]=0xAD;
@@ -205,6 +208,15 @@ adeWrite(slave, reg, data,2); // setup
 readRegN(&len,"LAST_RW16");
 Serial.println();
 
+  /*  init PGA_IB gain 2 
+
+reg=0x0009;                   // PGA_IB
+data[0]=0x01;                 // gain 2
+adeWrite(slave, reg, data,1); 
+readRegN(&len,"LAST_RW8 ");
+Serial.println();
+*/
+
 }
 
 void loop() {
@@ -213,8 +225,6 @@ void loop() {
 
 
   /* LED */
-
-  int len;
 
   if (millis() > (tmpBlink + perBlink)) {
     tmpBlink = millis();
@@ -227,14 +237,10 @@ void loop() {
       perBlink = TBLINKON;
       if(contVolt!=0){readRegN(&len,"V        ");if(contCurr==0){Serial.println();}}
       if(contCurr!=0){readRegN(&len,"IB       ");Serial.println();}
+      if(contDiag!=0){readRegNSync(&len,"VRMS     ");readRegN(&len,"V        ");readRegN(&len,"IRMSB    ");readRegN(&len,"IB       ");readRegN(&len,"BWATT    ");readRegN(&len,"BVA      ");readRegN(&len,"BVAR     ");readRegN(&len,"PFB      ");//readRegN(&len,"AENERGYB ");readRegN(&len,"RENERGYB ");readRegN(&len,"APENERGYB");
+      Serial.println();}
     } 
   }
-
-
-  /* VOLTS/AMP/POW */
-
- 
-
 
   /* commandes Serial */
 
@@ -246,9 +252,9 @@ void loop() {
                 readRegN(&len,"AENERGYB ");readRegN(&len,"RENERGYB ");readRegN(&len,"APENERGYB");Serial.println();break;
       case 'C': contVolt=!contVolt;
                 break;
-      case 'D': break;
-      case 'E': contCurr=!contCurr;
+      case 'D': contCurr=!contCurr;
                 break;
+      case 'E': contDiag=!contDiag;break;
       
       default: break;
     }
@@ -256,10 +262,22 @@ void loop() {
 }
 /* --------------- fin loop ---------------------- */
 
+void readRegNSync(int* len,char* nam)
+{
+  uint16_t reg=reg32ad[search(&reg32nam[0][0],"IRQSTATB ",NB32REG)];
+  while((data[2]&0x10)!=0x00){adeRead(slave,reg,data,4);}   // raz bit
+  while((data[2]&0x10)==0x00){adeRead(slave,reg,data,4);}   // wait zero crossing
+  
+  //hexPrint8(data[2]);Serial.print(" ");
+  readRegN(len,nam);
+}
+
+
 void readRegN(int* len,char* nam)
 {
-
-  int reg=getReg(len,nam);
+  
+  reg=getReg(len,nam,&addr);
+//for(int k=0;k<*len;k++){hexPrint8(data[k]);}Serial.println(" ");
   if(reg>=0){
 
     char pnam[LENRNOM];
@@ -268,10 +286,37 @@ void readRegN(int* len,char* nam)
     Serial.print((char*)pnam);
     Serial.print("=");
 
-    char invdata[5];
-    for(int k=0;k<4;k++){hexPrint8(data[k]);invdata[3-k]=data[k];}
-    Serial.print("/");Serial.print((int32_t)*((int32_t*)invdata));
-    Serial.print("  ");
+    
+    float numdata;
+    switch(*len){
+      case 1:numdata=(int8_t)data[0];break;
+      case 2:numdata=(int8_t)data[0]*256+(uint8_t)data[1];break;
+      case 3:numdata=(int8_t)data[0]*256*256+(uint8_t)data[1]*256+(uint8_t)data[2];break;
+      case 4:numdata=(int8_t)data[0]*256*256*256+(uint8_t)data[1]*256*256+(uint8_t)data[2]*256+data[3];break;      
+    }
+    
+    float fullscale=0;
+    float range=0;
+    char* sep=")  ";
+    if(memcmp(nam,"V   ",4)==0){range=250;fullscale=6500000;sep="V ";}  
+    if(memcmp(nam,"VRMS",4)==0){range=353.5534;fullscale=9032007;sep="V ";}   // 353.5534=500*(V2/2)
+    if(memcmp(nam,"IB  ",4)==0){range=250;fullscale=6500000;sep="mA ";}  
+    if(memcmp(nam,"IRMS",4)==0){range=3535.534;fullscale=9032007;sep="mA ";}    
+    if(memcmp(nam,"BWATT",5)==0){range=1250;fullscale=4862401;sep="W ";}      // 1250=250*(V2/2)^2
+    if(memcmp(nam,"BVAR",4)==0){range=1250;fullscale=4862401;sep="W ";}
+    if(memcmp(nam,"BVA ",4)==0){range=1250;fullscale=4862401;sep="W ";}
+    
+    if(fullscale!=0){
+      Serial.print((float)(numdata*range/fullscale));
+      Serial.print(sep);
+    }else{
+      if(memcmp(nam,"PFB",3)==0){
+        Serial.print((float)(numdata/(float)0x7FFF));
+      }else{
+        for(int k=0;k<*len;k++){if(*len!=4 || k!=0){hexPrint8(data[k]);}}Serial.print("(");Serial.print(numdata);Serial.print(")");
+      }
+      Serial.print(" ");
+    }
   }
   else{Serial.print("nom invalide");}
 }
@@ -297,7 +342,7 @@ void adeRead(uint8_t slave, uint16_t reg, byte* data, int len)
   
   SPI.transfer(data,len);
 
-  //for (int h=-4;h<4;h++){hexPrint8(*(data+h));Serial.println();}
+//  for (int h=-4;h<4;h++){hexPrint8(*(data+h));}Serial.println();
 
   digitalWrite(slave, HIGH);
 }
@@ -389,7 +434,7 @@ int search(char* regnam,char* nam, int nb)
   return -1;
 }
 
-int getReg(int* len,char* nam)
+int getReg(int* len,char* nam,uint16_t* addr)
 {
   uint16_t reg;
   int v=-1;
@@ -410,6 +455,7 @@ int getReg(int* len,char* nam)
   if(v>=0){
     hexPrint16(reg);Serial.print(" ");
     adeRead(slave,reg,data,*len);
+    *addr=reg;
   }
   return v;
 }

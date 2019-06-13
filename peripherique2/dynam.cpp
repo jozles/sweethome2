@@ -132,7 +132,7 @@ void actions()          // pour chaque input, test enable,
     tdest=(byte)((*(curinp+3))&PERINPNT_MS);
     
     if(((*(curinp+2))&PERINPEN_VB)!=0){                          // enable
-      switch((*curinp)&PERINPNT_MS){                             // type
+      switch((*curinp)&PERINPNT_MS){                             // type source
         case DETYEXT:detecState=(cstRec.extDetec>>nsrce)&0x01;   // valeur détecteur externe 
              detecFound=1;break;
         case DETYPHY:detecState=(byte)(cstRec.memDetec[nsrce]>>DETBITLH_PB)&0x01;     // valeur détecteur physique
