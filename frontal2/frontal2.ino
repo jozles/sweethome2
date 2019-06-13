@@ -90,7 +90,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass____cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlthername__therperi__thermohtmlperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___done______last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass____cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlthername__therperi__thermohtmlperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
@@ -1373,7 +1373,10 @@ void commonserver(EthernetClient cli)
                        memset(&libDetServ[nb][0],0x00,LENLIBDETSERV);                                   
                        memcpy(&libDetServ[nb][0],valf,nvalf[i+1]-nvalf[i]);
                        }break;
-              case 66: break;                                                                           // done                        
+              case 66: periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                          // bouton periph periline__ (ligne peritable)
+                       periLoad(periCur);                                                            
+                       periLineHtml(&cli,periCur);break;                                                                                                    
+              case 67: break;                                                                           // done                        
                               
               default:break;
               }

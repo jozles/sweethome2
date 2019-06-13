@@ -61,4 +61,9 @@ void timersInit();
 int  timersLoad();
 int  timersSave();
 
+void memDetPrint();
+void memDetInit();
+int  memDetLoad();
+int  memDetSave();
+
 #endif // _PERIPH_

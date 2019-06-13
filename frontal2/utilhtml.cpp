@@ -341,12 +341,13 @@ void selectTableHtml(EthernetClient* cli,char* val,char* ft,int nbre,int len,int
   cli->println();
 }
 
-void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,uint8_t td)
+void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib)
 {
   if(td==1 || td==2){cli->print("<td>");}
   cli->print("<input type=\"checkbox\" name=\"");cli->print(nomfonct);cli->print("\" id=\"cb1\" value=\"1\"");
   if((*val & 0x01)!=0){cli->print(" checked");}
-  cli->print(">");
+  cli->print(">");cli->print(lib);
+  //cli->print("<label for=\"cb1\">");cli->print(lib);cli->print("</label>");
   if(etat>=0 && !(*val & 0x01)){etat=2;}
       switch(etat){
         case 2 :cli->print("___");break;
@@ -358,15 +359,16 @@ void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,
   cli->println();
 }
 
-void subDSn(EthernetClient* cli,char* fnc,uint32_t val,uint8_t num) // checkbox transportant 1 bit 
+void subDSn(EthernetClient* cli,char* fnc,uint32_t val,uint8_t num,char* lib) // checkbox transportant 1 bit 
                                                                     // num le numéro du bit dans le mot
                                                                     // le caractère LENNOM-1 est le numéro du bit(+PMFNCHAR) dans periDetServ 
-{
+{                                                                   // le numéro est codé 0 à 15 + 0x40 et 16->n + 0x50 !!!! (évite les car [\]^ )
   char fonc[LENNOM+1];
   memcpy(fonc,fnc,LENNOM+1);
-  fonc[LENNOM-1]=(char)(PMFNCHAR+num);
   uint8_t val0=(val>>num)&0x01;
-  checkboxTableHtml(cli,&val0,fonc,-1,0);
+  if(num>=16){num+=16;}
+  fonc[LENNOM-1]=(char)(PMFNCHAR+num);
+  checkboxTableHtml(cli,&val0,fonc,-1,0,lib);
 }
 
 void sliderHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int nb,int sqr,uint8_t td)
