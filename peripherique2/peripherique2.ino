@@ -162,24 +162,29 @@ delay(1);
 #endif PM==PO_MODE
 
   pinMode(PINLED,OUTPUT);
-#if POWER_MODE==NO_MODE
+
+#if CARTE==VR || CARTE==VRR
   digitalWrite(PINSWA,LOW);
   digitalWrite(PINSWB,LOW);
   pinMode(PINSWA,OUTPUT);
   pinMode(PINSWB,OUTPUT);
 
   pinMode(PINDTA,INPUT_PULLUP);
+  pinMode(PINDTB,INPUT_PULLUP);  
+  pinMode(PINDTC,INPUT_PULLUP);  
+#endif VR||VRR
+
+#ifdef PININT_MODE 
   pinMode(PININTA,INPUT_PULLUP);
-  pinMode(PININTB,INPUT_PULLUP);
+  pinMode(PININTB,INPUT_PULLUP); 
+  
   //if(digitalRead(PINDTA==0) || digitalRead(PININTA)==0 || (digitalRead(PININTA)!=0 && digitalRead(PININTB)!=0)){cntIntA=1;}
- 
 // fonctions d'interruption
 // isrD[0]=isrD0;
 // isrD[1]=isrD1;
 // isrD[2]=isrD2;
 // isrD[3]=isrD3;
-          
-#endif PM==NO_MODE
+#endif PININT_MODE
 
 /* >>>>>> inits variables <<<<<< */
 

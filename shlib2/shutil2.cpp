@@ -35,6 +35,7 @@ int convIntToString(char* str,int num)
   t=i;
   for (i;i>0;i--){num0=num%10;num/=10;str[i-1]=chexa[num0];}
   str[t]='\0';
+  if(str[0]=='\0'){str[0]='0';}
   return t;
 }
 

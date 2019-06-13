@@ -150,7 +150,7 @@ void initConstant()  // inits mise sous tension
   memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
   Serial.println("Init Constant done");
   writeConstant();
-  dumpstr((char*)cstRecA,256);
+  //dumpstr((char*)cstRecA,256);
 }
 
 void periInputPrint(byte* input)

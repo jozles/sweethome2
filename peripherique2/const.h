@@ -147,8 +147,9 @@ Modifier :
 #define THESP01 '1'
 #define THESP12 '2'
 
-#define CARTE VRR                     // <------------- modèle carte
+#define CARTE VR                     // <------------- modèle carte
 #define POWER_MODE NO_MODE            // <------------- type d'alimentation 
+//#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 
 #if POWER_MODE==NO_MODE
   #define _SERVER_MODE
@@ -238,11 +239,11 @@ Modifier :
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
 #define PINDTD PINXDT   // pin entrée détect bit 3  sur la même entrée.
-#define PININTA 12      // in interupt
-#define PININTB 14      // in interupt
-#define PININTC PINXDT  // in interupt
+//#define PININTA 12      // in interupt
+//#define PININTB 14      // in interupt
+//#define PININTC PINXDT  // in interupt
 #define MEMDINIT 0x1111 // bits enable
-#define PINPOFF 3       // power off TPL5111 (RX ESP01)
+//#define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #endif CARTE==VRR
 
