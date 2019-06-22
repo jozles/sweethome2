@@ -45,9 +45,7 @@ Modifier :
 
   généraliser l'automate de séquencement pour la totalité du périphérique : aucune attente ni délai ; création d'une fonction de reprise qui
   stocke l'adresse de la fonction suite du traitement en cours et le délai et time out d'attente pour l'executet.
-
-  en fin de séquence dataread/save repasser en mode server systématiquement pour rendre ordreExt opérationnel
-  (vérifier le délai de setup pour server.begin)
+  
   (étudier le traitement/vidage d'une réception non traitée en mode serveur avant d'effectuer une commande read/save)
   
   gestion des alarmes avec message au serveur (tension, niveaux th et autres) ?

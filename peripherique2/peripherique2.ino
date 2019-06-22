@@ -51,7 +51,8 @@ WiFiClient cli;                 // client local du serveur externe (utilisé pou
 WiFiClient cliext;              // client externe du serveur local
 
 #ifdef  _SERVER_MODE
-WiFiServer server(9999); // PORTSERVPERI);
+WiFiServer server(8888); // PORTSERVPERI);
+//bool serverup=0; // si!=0, server.begin a été effectué
 #endif  _SERVER
 
   String headerHttp;
@@ -595,12 +596,11 @@ switch(cstRec.talkStep){
 
   case 9:
        cstRec.talkStep=0;
-
 #ifdef  _SERVER_MODE
-  timeservbegin=millis();
-  server.begin(cstRec.portServer);
-  Serial.print("server.begin(");Serial.print((int)cstRec.portServer);Serial.print(") durée=");Serial.println(millis()-timeservbegin);
-#endif  def_SERVER_MODE
+    timeservbegin=millis();
+    server.begin(cstRec.portServer);
+    Serial.print("server.begin(");Serial.print((int)cstRec.portServer);Serial.print(") durée=");Serial.println(millis()-timeservbegin);
+#endif  def_SERVER_MODE*/
 
        break;
 
