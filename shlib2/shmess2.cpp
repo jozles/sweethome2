@@ -120,21 +120,26 @@ int messToServer(WiFiClient* cli,const char* host,const int port,char* data)    
     //purgeServer(cli);
 #endif // PERIF
 
+
   while(!x && repeat<4){
-    x=cli->connect(host,port);
+
     v=MESSOK;
     repeat++;
+
+    x=cli->connect(host,port);
     Serial.print("connexion serveur (");Serial.print(x);Serial.print(") ");
     Serial.print(host);Serial.print(":");Serial.print(port);
     Serial.print("...");
-    if(!cli->connected()){
-/*        switch(x){
-            case -1:Serial.print("time out");break;
-            case -2:Serial.print("invalid server");break;
-            case -3:Serial.print("truncated");break;
-            case -4:Serial.print("invalid response");break;
-            default:Serial.print("unknown reason");break;
-        }*/
+    x=cli->connected();
+    Serial.print("(");Serial.print(x);Serial.print(")");
+    if(!x){
+        switch(x){
+            case -1:Serial.print("time out ");break;
+            case -2:Serial.print("invalid server ");break;
+            case -3:Serial.print("truncated ");break;
+            case -4:Serial.print("invalid response ");break;
+            default:Serial.print("unknown reason ");break;
+        }
         delay(100);Serial.print(repeat);Serial.println(" échouée");v=MESSCX;
     }
   }
@@ -246,80 +251,4 @@ char* periDiag(uint8_t diag)
   if(diag>NBMESS){diag=MESSSYS;}
   if(diag!=MESSOK){v=LPERIMESS*(diag+1);}
   return periText+v;
-}
-
-void assySet(char* message,int periCur,char* diag,char* date14)
-{
-#ifndef PERIF
-
-  sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
-  strcat(message,"_");
-
-            if(periCur>0){                                          // si periCur >0 macaddr ok -> set
-                unpackMac(message+strlen(message),periMacr);}
-
-            else if(periCur<=0){
-                  unpackMac(message+strlen(message),periMacBuf);    // si periCur>=0 plus de place -> ack
-                  strcat(message,periDiag(periMess));}
-
-            strcat(message,"_");
-
-            memcpy(message+strlen(message),date14,14);
-            //Serial.println(date14);
-            strcat(message,"_");
-
-            long v1,v2=0;
-            if(periCur!=0){                                         // periCur!=0 tfr params
-                v2=*periPerRefr;
-                sprintf((message+strlen(message)),"%05d",v2);       // periPerRefr
-                strcat(message,"_");
-
-                v2=*periPerTemp;
-                sprintf((message+strlen(message)),"%05d",v2);       // periPerTemp
-                strcat(message,"_");
-
-                v2=*periPitch*100;
-                sprintf((message+strlen(message)),"%04d",v2);      // periPitch
-                strcat(message,"_");
-
-                v1=strlen(message);                                 // 4 bits commande (8,6,4,2)
-                for(int k=MAXSW;k>0;k--){
-                    byte a=*periSwVal;
-                    message[v1+MAXSW-k]=(char)( 48+ ((a>>((k*2)-1)) &0x01) );
-                }      // periSw (cdes)
-                memcpy(message+v1+MAXSW,"_\0",2);
-
-                v1+=MAXSW+1;
-
-                for(int k=0;k<NBPULSE*2;k++){                  // 2 compteurs/sw (8*(8+1)bytes)
-                    sprintf(message+v1+k*(LENVALPULSE+1),"%08u",*(periSwPulseOne+k));
-                    memcpy(message+v1+(k+1)*LENVALPULSE+k,"_\0",2);
-                }
-
-                v1+=NBPULSE*2*(8+1);                           // bits OTF * 4sw = 2*2+1 bytes
-                for(int k=0;k<PCTLLEN;k++){conv_htoa(message+v1+k*2,(byte*)(periSwPulseCtl+k));}
-                memcpy(message+v1+2*PCTLLEN,"_\0",2);   // 2*PCTLLEN ne fonctionne pas ????
-
-                v1+=2*PCTLLEN+1;
-                for(int k=0;k<NBPERINPUT*PERINPLEN;k++){           // 3*8=24*2=48+1 par sw
-                    *(message+v1+2*k)=chexa[*(periInput+k)>>4];
-                    *(message+v1+2*k+1)=chexa[*(periInput+k)&0x0F];
-                }
-                memcpy((message+v1+2*NBPERINPUT*PERINPLEN),"_\0",2);
-
-
-                v1+=2*NBPERINPUT*PERINPLEN+1;
-                for(int mds=0;mds<MDSLEN;mds++){
-                    conv_htoa(message+v1+2*(MDSLEN-mds-1),(byte*)(&memDetServ+mds));}
-                memcpy(message+v1+2*MDSLEN,"_\0",2);
-
-                v1+=MDSLEN*2+1;
-                v2=*periPort;
-                sprintf((message+v1),"%04d",v2);     // periPort
-                memcpy(message+v1+4,"_\0",2);
-
-            }  // pericur != 0
-
-            strcat(message,diag);                         // periMess
-#endif  ndef PERIF
 }

@@ -6,7 +6,7 @@
 
 //#define PERIF
 
-void assySet(char* message,int pericur,char* diag,char* date14);
+//void assySet(char* message,int pericur,char* diag,char* date14);
 int buildMess(char* fonction,char* data,char* sep);
 int checkData(char* data);
 int checkHttpData(char* data,uint8_t* fonction);
