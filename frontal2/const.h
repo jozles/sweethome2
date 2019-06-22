@@ -44,7 +44,7 @@
  *      form à part pour les détecteurs du serveur ds peritable ; 1 bouton "per update"(pertosend)
  *      bouton refresh des switchs envoie une demande d'état au périphérique
  *      libellé pour detecteurs serveur ; affichage/saisie lignes péritable disjoint
- * 1.3b      
+ * 1.3b periSend et periParamsHtml disparaissent ... periReq et periAns envoient des messages aux périphériques
  *      
  * BUGS : 
  *  
@@ -53,8 +53,6 @@
  *    ajouter nbre inputs dans assyset
  *     
  *    détecter les changements à la réception des dataread/save pour effectuer un refresh de l'affichage de peritable
- *    
- *    vérifier la stratification (couche contenu des messages/couche protocole/couche physique) periParamHtml en particulier
  *    
  *    timers : ajouter option "1 jour sur n" : dhdebcycle=1ère date... calculer si date courante ok (récupérer un bool inutile - cyclic? )
  *    pulses : option entrée clock depuis input 
@@ -314,12 +312,16 @@ struct Timers
   (dans shmess)   renvoie  0 connexion pas réussie 
                   ou 1 ok, la donnée est transmise, la connexion n'est pas fermée, le client est valide
 
-  void periSend() envoie une page html minimale contenant une fonction (set_______/etat______...) dans <body></body>
-  (dans frontal)  le client doit être connecté ; pas de contrôle                                
-                  periSend utilise periParamsHtml(*client,*host,port) avec port!=0
-
-  int periParamsHtml(client,char* host,int port) assemble et envoie un message set___
-  (dans frontal)  si port=0 dans page html en réponse à une requête GET ou POST ; sinon via une commande GET
+  
+  (dans frontal)
+  periAns() envoie une page html minimale contenant une fonction (set_______/etat______...) dans <body></body>
+  periReq() envoie une cde html via GET / fonction (set_______/etat______...)
+  assyset() assemble le contenu du message
+  //(void periSend() envoie une page html minimale contenant une fonction (set_______/etat______...) dans <body></body>)
+  //(dans frontal)  le client doit être connecté ; pas de contrôle                                
+  //               ( periSend utilise periParamsHtml(*client,*host,port) avec port!=0)
+  //int periParamsHtml(client,char* host,int port) assemble et envoie un message set___
+  //(dans frontal)  si port=0 dans page html en réponse à une requête GET ou POST ; sinon via une commande GET
                   utilise messToServer
 
   int buildReadSave(char* nomfonction,char* data)      assemble et envoie dataread/datasave

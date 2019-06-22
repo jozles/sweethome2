@@ -122,7 +122,7 @@ void perinpfnc(EthernetClient* cli,uint8_t nuinp,uint16_t val,char type,uint8_t 
 
 void SwCtlTableHtml(EthernetClient* cli)
 {
-  Serial.print("début SwCtlTableHtml -- periCur=");Serial.println(periCur);
+  Serial.print("début SwCtlTableHtml -- periCur=");Serial.print(periCur);Serial.print("  cxtime=");Serial.println(millis()-cxtime);
 
   // periCur est transféré via les fonctions d'en-tête peri_inp__ et peri_t_sw
 
@@ -130,9 +130,13 @@ void SwCtlTableHtml(EthernetClient* cli)
   cli->println("<body>");            
   cli->println("<form method=\"get\" >");
     cli->print(VERSION);cli->print(" ");
-    char pkdate[7]; // ppour couleurs des temps des périphériques
+    char pkdate[7]; // pour couleurs des temps des périphériques
     cliPrintDateHeure(cli,pkdate);cli->println();
-    cli->print(periCur);cli->print("-");cli->print(periNamer);cli->println("<br>");
+    cli->print(periCur);cli->print("-");cli->print(periNamer);cli->print(" ");
+    cli->print("<font size=\"2\">");for(int j=0;j<4;j++){cli->print(periIpAddr[j]);if(j<3){cli->print(".");}}
+    if(*periProg!=0){cli->print("/port=");cli->print(*periPort);cli->print(" ");}
+    for(int j=0;j<LENVERSION;j++){cli->print(periVers[j]);}
+    cli->println("<br>");//cli->println("</font><br>");
 
   usrPeriCur(cli,"peri_t_sw_",0,2,0);    
 
@@ -180,7 +184,7 @@ void SwCtlTableHtml(EthernetClient* cli)
   cli->print("</tr></table></form>");
 
     cli->println("<table>Règles");
-      cli->println("<tr><th></th><th>e.l.p.e.<br>n.v.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
+      cli->println("<tr><th></th><th>e. l. p. e<br>n. v. r. s</th><th> source </th><th> destin.</th><th> action</th></tr>");
 
       char xfonc1[]="p_inp1____\0";
       char xfonc2[]="p_inp2____\0";
@@ -228,7 +232,7 @@ void SwCtlTableHtml(EthernetClient* cli)
                         
         } // input suivant
   cli->print("</table></body></html>");
-  Serial.println("fin SwCtlTableHtml");
+  Serial.print("fin SwCtlTableHtml  cxtime=");Serial.println(millis()-cxtime);
 }
 
 void periTableHtml(EthernetClient* cli)
