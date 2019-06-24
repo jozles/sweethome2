@@ -157,13 +157,16 @@ void assySet(char* message,int periCur,char* diag,char* date14)     // assemblag
 
 
                 v1+=2*NBPERINPUT*PERINPLEN+1;
-                for(int mds=0;mds<MDSLEN;mds++){                   // 32 bits memDetServ -> 8 car hexa
-                    conv_htoa(message+v1+2*(MDSLEN-mds-1),(byte*)(&memDetServ+mds));}
+                byte byt;
+                for(int mds=MDSLEN-1;mds>=0;mds--){                   // 32 bits memDetServ -> 8 car hexa
+                    byt=(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
+                    //Serial.print(" memDetServ shifté(");Serial.print(mds);Serial.print(")");Serial.print((uint32_t)(memDetServ>>(mds*8)),HEX);
+                    conv_htoa(message+v1+2*(MDSLEN-mds-1),(byte*)&byt);}//Serial.println();
                 memcpy(message+v1+2*MDSLEN,"_\0",2);
 
                 v1+=MDSLEN*2+1;
                 v2=*periPort;
-                sprintf((message+v1),"%04d",v2);     // periPort
+                sprintf((message+v1),"%04d",v2);          // periPort
                 memcpy(message+v1+4,"_\0",2);
 
             }  // pericur != 0
