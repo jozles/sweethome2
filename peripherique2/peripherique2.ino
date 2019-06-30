@@ -7,7 +7,7 @@
 #include <shconst2.h>
 #include <shutil2.h>
 #include <shmess2.h>
-#include "ds1820.h"
+#include <ds18x20.h>
 #include "util.h"
 #include "dynam.h"
 

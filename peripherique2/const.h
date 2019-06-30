@@ -1,4 +1,4 @@
-#ifndef CONST_H_INCLUDED
+g#ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
 #define VERSION "1.h_"
@@ -38,8 +38,8 @@
  *                                                 actCde onCdeI (On prioritaire) et desCde offCdeI
  *                                                 swAction corrigé
  *     extinction des PO_MODE et DS_MODE si alim insuffisante
- * 1.g ajout de la possibilité de 'toggle sw' : nouvelle action et ajout 4 caractères à dataread/datasave ; le serveur inverse l'état du switch concerné
- *                                              (sans effet sur les pulses)
+ * 1.g ds18x00 passe en lib
+ *     
  * 
 Modifier : 
 

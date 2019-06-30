@@ -2,7 +2,7 @@
 #include "Arduino.h"
 #include "const.h"
 #include <ESP8266WiFi.h>
-#include "ds1820.h"
+#include "ds18x20.h"
 #include "shconst2.h"
 #include "shutil2.h"
 #if CONSTANT==EEPROMSAVED
