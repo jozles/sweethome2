@@ -117,6 +117,7 @@ File fmemdet;     // fichier détecteurs serveur
 extern char strdate[33];
 extern char temp[3],temp0[3],humid[3];
 
+/*
 byte decToBcd(byte val)
 {
   return( (val/10*16) + (val%10) );
@@ -218,6 +219,7 @@ void alphaNow(char* buff)
   //Serial.print("alphaNow ");Serial.print(buff);Serial.print(" ");Serial.print(ndt.hour);Serial.print(" ");Serial.print(ndt.minute);Serial.print(" ");Serial.println(ndt.second);
   //Serial.println();
 }
+*/
 
 /* >>>>>>>>> configuration <<<<<<<<<< */
 

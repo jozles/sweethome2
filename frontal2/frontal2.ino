@@ -1,7 +1,8 @@
 
 #include <SPI.h>      //bibliothèqe SPI pour W5100
 #include <Ethernet.h> //bibliothèque W5100 Ethernet
-#include <Wire.h>     //biblio I2C pour RTC 3231
+//#include <Wire.h>     //biblio I2C pour RTC 3231
+#include "ds3231.h"
 #include <shconst2.h>
 #include <shutil2.h>
 #include <shmess2.h>
@@ -13,7 +14,6 @@
 #include "pageshtml.h"
 
 #include <MemoryFree.h>;
-
 
 #ifdef WEMOS
   #define Serial SerialUSB
@@ -206,14 +206,13 @@ struct Timers timersN[NBTIMERS];
 char*  timersNA=(char*)&timersN;
 long   timersNlen=(sizeof(Timers))*NBTIMERS;
 
-/* alimentation DS3231 */
+/* DS3231 */
 
 #define PINVCCDS 19   // alim + DS3231
 #define PINGNDDS 18   // alim - DS3231
 
-  Ymdhms dt;
-
-//IPAddress servergoogle(74,125,232,128); // google pour l'heure 
+  Ds3231 ds3231;
+ 
 /*
  * =========== mécanisme de la librairie 
  * 
@@ -391,7 +390,9 @@ while(1){}
 
 /* >>>>>> ethernet start <<<<<< */
 
-  Wire.begin();
+  ds3231.i2cAddr=DS3231_I2C_ADDRESS;
+  //Ds3231(); 
+  //Wire.begin();
 
   if(Ethernet.begin(mac) == 0)
     {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
@@ -426,16 +427,16 @@ while(1){}
   if(!i){Serial.println("pb NTP");ledblink(BCODEPBNTP);} // pas de service date externe 
   else {
     Serial.print(js);Serial.print(" ");Serial.print(amj);Serial.print(" ");Serial.print(hms);Serial.println(" GMT");
-    getdate(&hms2,&amj2,&js2);               // read DS3231
+    ds3231.getDate(&hms2,&amj2,&js2,strdate);               // read DS3231
     if(amj!=amj2 || hms!=hms2 || js!=js2){
       Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.print(hms2);Serial.println(" setup DS3231 ");
-      setDS3231time((byte)(hms%100),(byte)((hms%10000)/100),(byte)(hms/10000),js,(byte)(amj%100),(byte)((amj%10000)/100),(byte)((amj/10000)-2000)); // SET GMT TIME      
-      getdate(&hms2,&amj2,&js2);sdstore_textdh0(&fhisto,"ST","RE"," ");
+      ds3231.setTime((byte)(hms%100),(byte)((hms%10000)/100),(byte)(hms/10000),js,(byte)(amj%100),(byte)((amj%10000)/100),(byte)((amj/10000)-2000)); // SET GMT TIME      
+      ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"ST","RE"," ");
     }
   }
 #endif UDPUSAGE
 #ifndef UDPUSAGE
-  getdate(&hms2,&amj2,&js2);sdstore_textdh0(&fhisto,"ST","RE"," ");
+  ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"ST","RE"," ");
   Serial.print(" DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
 #endif UDPUSAGE
   
@@ -486,7 +487,7 @@ void scantemp()
       temptime=millis();
       char buf[]={0,0,'.',0,0,0};
       float th;
-      readDS3231temp(&th);
+      ds3231.readTemp(&th);
       if(fabs(th-oldth)>MINTHCHGE){
         oldth=th;sprintf(buf,"%02.02f",th);
         sdstore_textdh(&fhisto,"T=",buf,"<br>\n\0");
@@ -541,7 +542,7 @@ void scanTimers()                                             //   recherche tim
       memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif
       timerstime=millis();
       char now[LNOW];
-      alphaNow(now);
+      ds3231.alphaNow(now);
       
       for(int nt=0;nt<NBTIMERS;nt++){
         if(                                                     
@@ -698,7 +699,7 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
 //   k+=MAXSW+1;
     }
     memcpy(periIpAddr,remote_IP_cur,4);            //for(int i=0;i<4;i++){periIpAddr[i]=remote_IP_cur[i];}         // Ip addr
-    char date14[LNOW];alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);      // maj dates
+    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);      // maj dates
     Serial.print("periDataRead =");periPrint(periCur);
     periSave(periCur,PERISAVESD);checkdate(6);
   }

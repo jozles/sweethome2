@@ -2,6 +2,7 @@
 #include <SPI.h>      //bibliothéqe SPI pour W5100
 #include <Ethernet.h>
 #include <SD.h>
+#include "ds3231.h"
 #include <shutil2.h>
 #include <shconst2.h>
 #include "const.h"
@@ -13,6 +14,8 @@
 #ifndef WEMOS
 //  #include <avr/wdt.h>  //biblio watchdog
 #endif ndef WEMOS
+
+extern Ds3231 ds3231;
 
 extern File      fhisto;      // fichier histo sd card
 extern long      sdpos;
@@ -246,7 +249,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
   htmlIntro(nomserver,cli);
 
   float th;                                  // pour temp DS3231
-  readDS3231temp(&th);
+  ds3231.readTemp(&th);
 
         cli->println("<body>");
         cli->println("<form method=\"GET \">");

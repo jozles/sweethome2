@@ -1,7 +1,7 @@
 #ifndef _PERIPH_H_
 #define _PERIPH_H_
 
-
+/*
 typedef struct Ymdhms Ymdhms;
 
 struct Ymdhms
@@ -17,17 +17,18 @@ struct Ymdhms
 
 Ymdhms now();
 
+
 #define LNOW 16             // len chargée par alphanow 
 void alphaNow(char* buff);  // charge LNOW (16) car YYYYMMDDHHMMSSd\0
 void setDS3231time(byte second, byte minute, byte hour,byte dayOfWeek,byte dayOfMonth, byte month, byte year);
 void readDS3231time(byte *second,byte *minute,byte *hour,byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year);
 void readDS3231temp(float* th);
+*/
 
 //int  temphydro(char* temp,char* temp0,char*humid);
 
 void ledblink(uint8_t nbre);
 
-void getdate(uint32_t* hms2,uint32_t* amj2,byte* js);
 
 #define PERISAVESD    VRAI                     // copie du cache sur le disque lors de periSave
 #define PERISAVELOCAL FAUX                     // pas de copie du cache sur le disque lors de periSave

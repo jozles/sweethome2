@@ -45,6 +45,7 @@
  *      bouton refresh des switchs envoie une demande d'état au périphérique
  *      libellé pour detecteurs serveur ; affichage/saisie lignes péritable disjoint
  * 1.3b periSend et periParamsHtml disparaissent ... periReq et periAns envoient des messages aux périphériques
+ *      ds3231.h devient une lib ; création de la classe Ds3231 (instance ds3231)
  *      
  * BUGS : 
  *  

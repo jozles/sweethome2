@@ -3,9 +3,12 @@
 #include <Ethernet.h>
 #include <EthernetUdp.h>
 #include <SD.h>
+#include "ds3231.h"
 #include "const.h"
 #include "periph.h"
 #include "shconst2.h"
+
+extern Ds3231 ds3231;
 
 #ifdef UDPUSAGE
 
@@ -53,7 +56,7 @@ void sdstore_textdh0(File* fhisto,char* val1,char* val2,char* val3)
 
 void sdstore_textdh(File* fhisto,char* val1,char* val2,char* val3)
 {
-  long tm=millis();getdate(&hms,&amj,&js);
+  long tm=millis();ds3231.getDate(&hms,&amj,&js,strdate);
   sdstore_textdh0(fhisto,val1,val2,val3);
   //Serial.print("tdate=");Serial.println(millis()-tm);
 }
@@ -95,42 +98,6 @@ int htmlPrint(EthernetClient* cli,File* fhtml,char* fname)                 // li
    return SDOK;
 }
 
-/*
-void getdate_google(EthernetClient* cligoogle)
-{
-  Serial.print("cligoogle connected ?...");
-  Serial.println("cligoogle connected");
-
-  cligoogle->println("GET /search?q=test  HTTP/1.1");
-  cligoogle->println("Host: www.google.com");
-  cligoogle->println("Connection: close");
-  cligoogle->println();
-
-  boolean termine=FAUX,fini=FAUX,fini2=FAUX;
-  int ptr=0,cnt=0;
-  int posdate=-1;
-  Serial.println("*getdate google*");
-  while (!fini || !fini2)
-    {
-    if (cligoogle->available())
-      {
-      char c = cligoogle->read();Serial.print(c);
-      //debug(c,ptr,posdate,strdate,cnt);
-      if(posdate==strdate){strdate[ptr]=c;strdate[ptr+1]={0};ptr++;if(c<' ' || ptr>=32){fini=VRAI;}}
-      if(posdate!=strdate && termine==VRAI){fini=VRAI;}
-      if (!termine)
-          {
-          cnt++;if(cnt>500){termine=VRAI;Serial.println("***terminé");}
-          strdate[ptr]=c;posdate=strstr(strdate,"Date: ");
-          if(posdate!=strdate){ptr++;if(ptr>=5){for(ptr=0;ptr<5;ptr++){strdate[ptr]=strdate[ptr+1];}ptr=5;}}
-          else {termine=VRAI;ptr=0;}
-          }
-      }
-    else {fini2=VRAI;}
-    }
-    cligoogle->stop();Serial.println("\n---- fin getdate google");
-}
-*/
 
 void convertNTP(long *dateUnix,int *year,int *month,int *day,byte *js,int *hour,int *minute,int *second)
 {

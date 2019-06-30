@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SPI.h>      //bibliothèqe SPI pour W5100
 #include <Ethernet.h> //bibliothèque W5100 Ethernet
+#include "ds3231.h"
 //#include <SD.h>
 #include "const.h"
 //#include <Wire.h>
@@ -9,6 +10,8 @@
 #include <shmess2.h>
 #include "shutil2.h"
 #include "periph.h"
+
+extern Ds3231 ds3231;
 
 /* >>>>>>>> fichier config <<<<<<< 
 
@@ -186,7 +189,7 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct)                       
 
   char message[LENMESS]={'\0'};
   int8_t zz=MESSOK;
-  char date14[LNOW];alphaNow(date14);
+  char date14[LNOW];ds3231.alphaNow(date14);
   char host[16];memset(host,'\0',16);
 
   periCur=np;periLoad(periCur);
@@ -226,7 +229,7 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
 
   char message[LENMESS]={'\0'};
   int8_t zz=MESSOK;
-  char date14[LNOW];alphaNow(date14);
+  char date14[LNOW];ds3231.alphaNow(date14);
 
   Serial.print("\nperiAns(peri=");Serial.print(periCur);Serial.println(")");
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){

@@ -2,6 +2,7 @@
 #include <SPI.h>      //bibliothéqe SPI pour W5100
 #include <Ethernet.h>
 #include <SD.h>
+#include "ds3231.h"
 #include <shutil2.h>
 #include <shconst2.h>
 #include "const.h"
@@ -9,6 +10,7 @@
 #include "utilether.h"
 #include "pageshtml.h"
 
+extern Ds3231 ds3231;
 
 extern char*     chexa;
 
@@ -149,7 +151,7 @@ void cliPrintMac(EthernetClient* cli, byte* mac)
 
 void cliPrintDateHeure(EthernetClient* cli,char* pkdate)
 {
-  char bufdate[LNOW];alphaNow(bufdate);packDate(pkdate,bufdate+2); // skip siècle
+  char bufdate[LNOW];ds3231.alphaNow(bufdate);packDate(pkdate,bufdate+2); // skip siècle
   for(int zz=0;zz<14;zz++){cli->print(bufdate[zz]);if(zz==7){cli->print("-");}}
   cli->print(" GMT ");
 }

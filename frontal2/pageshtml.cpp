@@ -1,13 +1,16 @@
 #include <Arduino.h>
 #include <SD.h>
+#include "ds3231.h"
 #include "const.h"
-#include <Wire.h>
+//#include <Wire.h>
 #include "utilether.h"
 #include "utilhtml.h"
 #include "shconst2.h"
 #include "shutil2.h"
 #include "periph.h"
 #include "pageshtml.h"
+
+extern Ds3231 ds3231;
 
 extern char*     nomserver;
 extern byte*     mac;              // adresse server
@@ -413,7 +416,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
 
   int   yy,mm,dd,js,hh,mi,ss;
   byte  yb,mb,db,dsb,hb,ib,sb;
-  readDS3231time(&sb,&ib,&hb,&dsb,&db,&mb,&yb);           // get date(now)
+  ds3231.readTime(&sb,&ib,&hb,&dsb,&db,&mb,&yb);           // get date(now)
   yy=yb+2000;mm=mb;dd=db;hh=hb;mi=ib;ss=sb;
   calcDate(bd,&yy,&mm,&dd,&js,&hh,&mi,&ss);               // get new date
   uint32_t amj=yy*10000L+mm*100+dd;
@@ -573,7 +576,7 @@ void timersHtml(EthernetClient* cli)
 {
   int nucb;           
   char a;
-  char bufdate[LNOW];alphaNow(bufdate);
+  char bufdate[LNOW];ds3231.alphaNow(bufdate);
   
             Serial.println("saisie timers");
             htmlIntro(nomserver,cli);
