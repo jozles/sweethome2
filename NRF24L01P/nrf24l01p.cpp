@@ -12,7 +12,7 @@
 #define CE_LOW    digitalWrite(ce_pin[numNrf],LOW);
 #define CSN_HIGH  digitalWrite(csn_pin[numNrf],HIGH);
 #define CSN_LOW   digitalWrite(csn_pin[numNrf],LOW);
-#define INIT_SPI  SPI.beginTransaction(SPISettings(1000000,MSBFIRST,SPI_MODE0));
+#define INIT_SPI  SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
 #define START_SPI SPI.begin();
 
 
@@ -25,21 +25,36 @@
 
 #define RFREG   RF_DR_HIGH_BIT & ~(RF_DR_LOW_BIT) | RF_PWR_BITS
 
-uint8_t numNrf=0;
+uint8_t numNrf=0;           // n° du circuit courant
+uint8_t numBalise=0;        // n° du circuit balise
+char    mode=' ';           // mode 'P' ou 'C'
+
+bool rxP0Set='false';       // rechargement RX_P0 nécessaire
+                            // après TX
 
 uint8_t regw,stat,fstat,conf;
+
 
 Nrfp::Nrfp()    // constructeur
 {
 }
 
-bool Nrfp::setNum(uint8_t num)
+bool Nrfp::setNum(uint8_t circuit,uint8_t balise)
 {
-    if(num<NB_NRF){
-            numNrf=num;
+    if(mode='P'){numNrf=1;numBalise=99;}
+    if(mode='C'){
+        if(circuit<NB_NRF){
+            numNrf=circuit;
+            numBalise=balise;
             return true;
+        }
     }
     return false;
+}
+
+void Nrfp::setMode(char exmode)
+{
+    mode=exmode;
 }
 
 void Nrfp::hardInit()
@@ -77,7 +92,7 @@ void Nrfp::hardInit()
  *
  */
 
-void Nrfp::config()           // power on config
+bool Nrfp::config()           // power on config
 {
 
   regWrite(RX_ADDR_P1,r1_addr,ADDR_LENGTH); // MAC si P ; base si C
@@ -89,14 +104,14 @@ void Nrfp::config()           // power on config
       regWrite((RX_ADDR_P1+i),(byte)(r1_addr[ADDR_LENGTH-1]+1),1);
     }
   }
-  if(mode=='P'){regWrite(RX_ADDR_P2,br_addr,ADDR_LENGTH);}
+  if(mode=='P'){regWrite(RX_ADDR_P2,br_addr,ADDR_LENGTH);} // broadcast
 
   if(channel==0){channel=DEF_CHANNEL;}
   regWrite(RF_CH,&channel,1);
   regw=MAX_PAYLOAD_LENGTH;
   regWrite(RX_PW_P0,&regw,1);
   regWrite(RX_PW_P1,&regw,1);
-  regw=(1<<EN_DYN_ACK);                // no ack enable
+  regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // no ack enable ; dyn pld length enable
   regWrite(FEATURE,&regw,1);
   regw=RFREG;
   regWrite(RF_SETUP,&regw,1);
@@ -110,6 +125,8 @@ void Nrfp::config()           // power on config
 
   regw=TX_DS_BIT | MAX_RT_BIT; // clear bits TX_DS & MAX_RT
   regWrite(STATUS,&regw,1);
+
+  if(mode=='P'){inscript();}
 }
 
 
@@ -119,7 +136,7 @@ void Nrfp::regRead(uint8_t reg,byte* data,uint8_t len)
 {
     CSN_LOW
     SPI.transfer((R_REGISTER | (REGISTER_MASK & reg)));
-    for(len;len>0;len--){data[len-1]=SPI.transfer(data[len-1]);}
+    for(uint8_t i=0;i<len;i++){data[i]=SPI.transfer(0xff);}
     CSN_HIGH
 }
 
@@ -127,7 +144,7 @@ void Nrfp::regWrite(uint8_t reg,byte* data,uint8_t len)
 {
     CSN_LOW
     SPI.transfer((W_REGISTER | (REGISTER_MASK & reg)));
-    for(len;len>0;len--){SPI.transfer(data[len-1]);}
+    for(uint8_t i=0;i<len;i++){SPI.transfer(data[i]);}
     CSN_HIGH
 }
 
@@ -150,9 +167,12 @@ void Nrfp::pwrUpTx()
 
 bool Nrfp::available()      // keep CE high when false
 {
-    CE_HIGH
+        // rechargement RX_ADDR_P0 après TX
+        if(mode=='C' && numNrf==numBalise && !rxP0Set){
+            regWrite(RX_ADDR_P0,cc_addr,ADDR_LENGTH); // pour inscriptions
+            rxP0Set=true;}
 
-    if(mode=='C'){regWrite(RX_ADDR_P0,cc_addr,ADDR_LENGTH);} // pour inscriptions
+    CE_HIGH
 
     regRead(FIFO_STATUS,&fstat,1);
     if((fstat & RX_EMPTY_BIT)!=0){
@@ -188,35 +208,34 @@ void Nrfp::dataRead(byte* data,uint8_t* pipe,uint8_t* pldLength)
     regWrite(STATUS,&stat,1);                   // clear RX_DR bit
 }
 
-void Nrfp::dataWrite(uint8_t pipe,byte* data,char na,uint8_t len)
+void Nrfp::dataWrite(uint8_t pipe,byte* data,char na,uint8_t len,byte* tx_addr)
 {
     byte pipeAddr[ADDR_LENGTH];                // buffer TX_ADDR
 
     pwrUpTx();
     flushTx();
 
+    if(mode=='C'){
+        rxP0Set='false';        // rechargement RX_ADDR_P0 pour RX à faire
+                                // (cc_addr)
+        if(numNrf!=numBalise){  // addr de péri ou addr broadcast
+            regWrite(TX_ADDR,tx_addr,ADDR_LENGTH);
+            regWrite(RX_ADDR_P0,tx_addr,ADDR_LENGTH);}
 
-    if(mode=='P'){
-        if(pipe==0){memcpy(pipeAddr,cc_addr,ADDR_LENGTH);}         // numPipe==0 si inscription
-        else {memcpy(pipeAddr,r1_addr,ADDR_LENGTH);}     // sinon message avec adresse reçue à l'inscription
+        else{regWrite(TX_ADDR,br_addr,ADDR_LENGTH);
+            na='N';}            // broadcast NO ACK
     }
 
-    if(mode=='C'){regRead((uint8_t)(RX_ADDR_P1+pipe-1),pipeAddr,ADDR_LENGTH);}
-
-    regWrite(TX_ADDR,pipeAddr,ADDR_LENGTH);
-    regWrite(RX_ADDR_P0,pipeAddr,ADDR_LENGTH);
-
     stat=TX_DS_BIT | MAX_RT_BIT;
-    regWrite(STATUS,&stat,1);                   // clear TX_DS & MAX_RT bits
+    regWrite(STATUS,&stat,1);    // clear TX_DS & MAX_RT bits
 
     CSN_LOW
-    if(na=='A'){SPI.transfer(W_TX_PAYLOAD);}
-    else{       SPI.transfer(W_TX_PAYLOAD_NA);}
+    if(na=='A'){SPI.transfer(W_TX_PAYLOAD);}        // avec ACK
+    else{       SPI.transfer(W_TX_PAYLOAD_NA);}     // sans ACK
     for(uint8_t i=0;i<len;i++){SPI.transfer(data[i]);}
     CSN_HIGH
 
     CE_HIGH                       // transmit
-
 
 // transmitting() should be checked now to wait for end of paquet transmission
 // or ACK reception before turning CE low
@@ -227,7 +246,10 @@ int Nrfp::transmitting()         // busy -> 1 ; empty -> 0 -> Rx ; MAX_RT -> -1
       int rtst=1;
       regRead(STATUS,&stat,1);
       if((stat & TX_DS_BIT)){rtst=0;pwrUpRx();}
-      if((stat & MAX_RT_BIT)){rtst=-1;}
+      if((stat & MAX_RT_BIT)){
+        rtst=-1;
+        if(mode=='P'){memset(pi_addr,0x00,ADDR_LENGTH);} // refaire l'inscription
+      }
       if(rtst<=0){
         stat = TX_DS_BIT | MAX_RT_BIT; // clear TX_DS & MAX_RT bits
         regWrite(STATUS,&stat,1);
@@ -249,19 +271,28 @@ void Nrfp::flushRx()
     CSN_HIGH
 }
 
-bool Nrfp::inscript()
-{
-    dataWrite(0,r1_addr,'A',ADDR_LENGTH);
+bool Nrfp::inscript()  // inscription péri pour obtenir une pipeAddr
+{                      // true OK ; false MAXRT ou TO réception data
+
+    regWrite(TX_ADDR,cc_addr,ADDR_LENGTH);    // adresse pour inscription
+    regWrite(RX_ADDR_P0,cc_addr,ADDR_LENGTH);
+
+    dataWrite(0,r1_addr,'A',ADDR_LENGTH,"00000");    // envoi macAddr
     int trst=1;
     while(trst==1){trst=transmitting();}
-    if(trst==0){return true;}
-    return false;
+
+    if(trst<0){return false;}                // erreur MAX_RT
 
     long time_beg = micros();
     int readTo;
     while(!available()&& (readTo>=0)){
         readTo=TO_AVAILABLE-micros()+time_beg;}
+
     if(readTo>=0){
         uint8_t pipe,pldLength=ADDR_LENGTH;
-        dataRead(pi_addr,&pipe,&pldLength);}
+        dataRead(pi_addr,&pipe,&pldLength);   // réception pipeAddr
+        regWrite(TX_ADDR,pi_addr,ADDR_LENGTH); // adresse PTX update
+        return true;}
+
+    return false;                             // erreur TO
 }

@@ -126,7 +126,10 @@
 #define RX_FULL_BIT BIT1
 #define RX_EMPTY    0
 #define RX_EMPTY_BIT BIT0
+#define EN_DPL      2
+#define EN_DPL_BIT  BIT2
 #define EN_DYN_ACK  0
+#define EN_DYN_ACK_BIT BIT0
 #define RF_DR_LOW   5
 #define RF_DR_LOW_BIT BIT5
 #define RF_DR_HIGH  3
