@@ -24,6 +24,7 @@ byte    nulAddr[]={0,0,0,0,0};
 
 long readTo=0;
 
+char* kk={"ko\0ok\0"}; 
 
 /* prototypes */
 
@@ -61,17 +62,21 @@ void setup() {
   nrfp.br_addr=(byte*)BR_ADDR;  // adresse commune de broadcast  
   nrfp.cc_addr=(byte*)CC_ADDR;  // adresse commune concentrateur    
 
-  confSta=nrfp.config();
+  
 
 #if NRF_MODE == 'P'
-  char* kk[2]; 
-  kk[0]="ko";kk[1]="ok";
-  Serial.print("start ");Serial.println(kk[confSta]);
+  while(!confSta){
+    confSta=nrfp.config();
+    Serial.print("start ");Serial.println((char*)(kk+confSta*3));
+    delay(5000);
+  }
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
 
-  tableCInit();tableCPrint();
+  nrfp.config();
+  
+  tableCInit();//tableCPrint();
 
   bool menu=true;
   while(1){
@@ -84,17 +89,29 @@ void setup() {
     
     if(nrfp.available()){
       memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
-      nrfp.dataRead(message,pipe,pldLength);
-      Serial.print("received ");Serial.print((char*)message);Serial.print(" l=");Serial.print(pldLength);Serial.print(" p=");Serial.println(pipe);
-      if(pipe==0){  // demande d'inscription
-        int i=0;    // remplacer par la recherche d'emplacement libre ou déjà existant
-        memcpy(tableC[i].periMac,message,ADDR_LENGTH);
-        nrfp.dataWrite(0,tableC[i].pipeAddr,'A',ADDR_LENGTH,tableC[i].periMac); // envoi à periMac de la pipeAddr qui lui est attribuée
-        int trst=1;
-        while(trst==1){trst=nrfp.transmitting();}
-        if(trst<0){memset(tableC[i].periMac,0x00,ADDR_LENGTH);} // MAX_RT -> effacement table ; la pi_addr sera effacée
-                                                                // pour non réponse à la première tentative de TX
+      pldLength=ADDR_LENGTH;                      // max length
+      nrfp.dataRead(message,&pipe,&pldLength);
+      Serial.print("received ");Serial.print((char*)message);Serial.print(" l=");Serial.print(pldLength);Serial.print(" p=");Serial.print(pipe);
+      
+      if(pipe==0){              // demande d'inscription
+        uint8_t i,k=NBPERIF;    // recherche d'emplacement libre ou déjà existant
+        for(i=0;i<NBPERIF;i++){
+          if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){break;} // trouvé déjà existant
+          else if(k>=NBPERIF && tableC[i].periMac[0] == 0){k=i;}       // mémo place libre
+        }
+        if(i>=NBPERIF && k<NBPERIF){
+          i=k;                                                         // i = place libre ou déjà existant
+          Serial.println(" inscripted");        
+          memcpy(tableC[i].periMac,message,ADDR_LENGTH);               // enregt macAddr 
+          nrfp.dataWrite(0,tableC[i].pipeAddr,'A',ADDR_LENGTH,tableC[i].periMac); // envoi à macAddr de la pipeAddr qui lui est attribuée
+          int trst=1;
+          while(trst==1){trst=nrfp.transmitting();}
+          if(trst<0){memset(tableC[i].periMac,0x00,ADDR_LENGTH);} // MAX_RT -> effacement table ; la pi_addr sera effacée
+                                                                  // pour non réponse à la première tentative de TX
+        }
+        else Serial.print(" full");
       }
+      Serial.println();
     }
 
 /*************************/

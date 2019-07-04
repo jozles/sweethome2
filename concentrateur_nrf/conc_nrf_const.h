@@ -60,7 +60,7 @@ concentrateur en PTX "normal"
 
   #define NBPERIF 24         // pour taille table
 
-  #define NRF_MODE 'P'       // C concentrateur ; P périphérique
+  #define NRF_MODE 'C'       // C concentrateur ; P périphérique
 
   #define PI_C 5             // nombre pipes dispo / circuit
 
@@ -83,12 +83,12 @@ concentrateur en PTX "normal"
 
 struct NrfConTable
 {
-  uint8_t numNrf24;         // numéro circuit nrf24L01+
-  uint8_t numCirc;          // numéro circuit (1-n)
-  uint8_t numPipe;          // numéro pipe (1-5) 
+  uint8_t numNrf24;               // numéro circuit nrf24L01+
+  uint8_t numCirc;                // numéro circuit (1-n)
+  uint8_t numPipe;                // numéro pipe (1-5) 
   byte    pipeAddr[ADDR_LENGTH];  // addr associée au pipe
-  uint8_t numPeri;          // numéro périphérique pour serveur
-  byte    periMac[5];       // macAddr 
+  uint8_t numPeri;                // numéro périphérique pour serveur
+  byte    periMac[ADDR_LENGTH];   // macAddr 
 };
 
 

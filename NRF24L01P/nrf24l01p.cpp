@@ -94,15 +94,19 @@ void Nrfp::hardInit()
 
 bool Nrfp::config()           // power on config
 {
-
+  regWrite(RX_ADDR_P1,r1_addr,ADDR_LENGTH); // MAC si P ; base si C
   regWrite(RX_ADDR_P1,r1_addr,ADDR_LENGTH); // MAC si P ; base si C
 
   if(mode=='C'){
-    regWrite((EN_AA),ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT,1);
-    regWrite((EN_RXADDR),ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT,1);
-    for(uint8_t i=1;i<ADDR_LENGTH;i++){
-      regWrite((RX_ADDR_P1+i),(byte)(r1_addr[ADDR_LENGTH-1]+1),1);
+    regw=(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
+    regWrite((EN_AA),&regw,1);
+    regw=(ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
+    regWrite((EN_RXADDR),&regw,1);
+    for(uint8_t i=1;i>=ADDR_LENGTH;i++){
+      regw=r1_addr[ADDR_LENGTH-1]+i;
+      regWrite((RX_ADDR_P1+i),&regw,1);
     }
+    rxP0Set=false;
   }
   if(mode=='P'){regWrite(RX_ADDR_P2,br_addr,ADDR_LENGTH);} // broadcast
 
@@ -123,10 +127,10 @@ bool Nrfp::config()           // power on config
   flushRx();
   flushTx();
 
-  regw=TX_DS_BIT | MAX_RT_BIT; // clear bits TX_DS & MAX_RT
+  regw=TX_DS_BIT | MAX_RT_BIT | RX_DR_BIT; // clear bits TX_DS , MAX_RT , RX_DR
   regWrite(STATUS,&regw,1);
 
-  if(mode=='P'){inscript();}
+  if(mode=='P'){return inscript();}
 }
 
 
@@ -167,9 +171,14 @@ void Nrfp::pwrUpTx()
 
 bool Nrfp::available()      // keep CE high when false
 {
+//Serial.print(" numNrf=");Serial.print(numNrf);Serial.print(" numBalise=");Serial.println(numBalise);
         // rechargement RX_ADDR_P0 après TX
-        if(mode=='C' && numNrf==numBalise && !rxP0Set){
-            regWrite(RX_ADDR_P0,cc_addr,ADDR_LENGTH); // pour inscriptions
+        if((mode=='C') && (numNrf==numBalise) && !rxP0Set){
+Serial.println("cc_addr->RX0 ; rxP0Set=true");
+            regWrite(RX_ADDR_P0,cc_addr,ADDR_LENGTH); // addr pour inscriptions
+            flushRx();                                // flush RX FIFO
+            regw=RX_DR_BIT;
+            regWrite(STATUS,&regw,1);                 // clr RX_DR_BIT
             rxP0Set=true;}
 
     CE_HIGH
@@ -254,6 +263,7 @@ int Nrfp::transmitting()         // busy -> 1 ; empty -> 0 -> Rx ; MAX_RT -> -1
         stat = TX_DS_BIT | MAX_RT_BIT; // clear TX_DS & MAX_RT bits
         regWrite(STATUS,&stat,1);
       }
+
       return rtst;
 }
 
@@ -273,6 +283,7 @@ void Nrfp::flushRx()
 
 bool Nrfp::inscript()  // inscription péri pour obtenir une pipeAddr
 {                      // true OK ; false MAXRT ou TO réception data
+
 
     regWrite(TX_ADDR,cc_addr,ADDR_LENGTH);    // adresse pour inscription
     regWrite(RX_ADDR_P0,cc_addr,ADDR_LENGTH);

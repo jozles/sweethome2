@@ -18,7 +18,11 @@ void tableCPrint()
     Serial.print(tableC[i].numCirc);Serial.print(" ");
     Serial.print(tableC[i].numPipe);Serial.print(" ");
     Serial.print(tableC[i].numPeri);Serial.print(" ");
-    //Serial.println((byte*)tableC[i].periMac);
+    
+    for(int j=0;j<ADDR_LENGTH;j++){Serial.print((char)tableC[i].periMac[j]);}Serial.print(" ");
+    for(int j=0;j<ADDR_LENGTH;j++){Serial.print((char)tableC[i].pipeAddr[j]);}
+    
+    Serial.println(" ");
   }
 }
 
@@ -28,13 +32,10 @@ void tableCInit()
     tableC[i].numNrf24=i;
     tableC[i].numCirc=i/PI_C;      // (0->n)
     tableC[i].numPipe=(i%PI_C)+1;  // (1->5)
-    memcpy(tableC[i].pipeAddr,nrfp.r1_addr,ADDR_LENGTH-2);
-    sprintf(tableC[i].pipeAddr+3,"02d",tableC[i].numCirc*10+tableC[i].numPipe);
     tableC[i].numPeri=0;
-    if(NRF_MODE=='C'){
-      memcpy(tableC[i].periMac,"00000",5);}
-    else{
-      memcpy(tableC[i].periMac,R1_ADDR,5);}
+    memcpy(tableC[i].pipeAddr,nrfp.r1_addr,ADDR_LENGTH-2);
+    sprintf(tableC[i].pipeAddr+3,"%02d",(tableC[i].numCirc*10+tableC[i].numPipe));
+    memcpy(tableC[i].periMac,"00000",ADDR_LENGTH);
   }
 }
 
