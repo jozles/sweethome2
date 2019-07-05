@@ -8,8 +8,10 @@ Nrfp nrfp;
 
 #if NRF_MODE == 'C'
 #include "table_conc_nrf.h"
-struct NrfConTable tableC[NBPI];
+struct NrfConTable tableC[NBPERIF];
 #endif NRF_MODE == 'C'
+
+#define LED 5
 
 unsigned long cnt=0;
 unsigned long cntko=0;
@@ -41,9 +43,10 @@ void setup() {
   
   Serial.begin(115200);
 
-  nrfp.setNum(1,BALISE);    // numéro circuit courant, numéro balise
-                            // si 'P' sans effet
-  
+  nrfp.setMode(NRF_MODE); // doit être la première fonction
+
+  nrfp.setNum(0,BALISE);  // numéro circuit courant, numéro balise
+                          // si 'P' sans effet
   nrfp.ce_pin[0]=8;
   nrfp.ce_pin[1]=9;
   nrfp.csn_pin[0]=7;
@@ -51,11 +54,9 @@ void setup() {
   
   nrfp.hardInit();
   
-  nrfp.channel=1; 
-
-  nrfp.setMode(NRF_MODE);
+  nrfp.channel=1;
  
-  nrfp.r1_addr=(byte*)R1_ADDR;  // P->MAC ou C->base 
+  nrfp.r0_addr=(byte*)R0_ADDR;  // P->MAC ou C->base 
   nrfp.pi_addr=(byte*)ccPipe;   // adresse pipe après inscription péri
   nrfp.br_addr=(byte*)BR_ADDR;  // adresse commune de broadcast  
   nrfp.cc_addr=(byte*)CC_ADDR;  // adresse commune concentrateur    
@@ -63,9 +64,10 @@ void setup() {
 #if NRF_MODE == 'P'
   while(!confSta){
     confSta=nrfp.config();
-    Serial.print("start ");Serial.print((char*)(kk+confSta*3));
-    Serial.print(" ccPipe=");Serial.println((char*)ccPipe);
-    delay(1000);
+/*    Serial.print("start ");Serial.print((char*)(kk+confSta*3));
+    Serial.print(" ccPipe=");Serial.println((char*)ccPipe);*/
+    pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(1);digitalWrite(LED,LOW);
+    delay(1950);
   }
 #endif NRF_MODE == 'P'
 
@@ -78,7 +80,7 @@ void setup() {
   bool menu=true;
   while(1){
     if(menu){
-      Serial.println("start (p)ingpong (b)roadcast (t)ableC (q)uit");
+      Serial.println("start (e)cho (b)roadcast (t)ableC (q)uit");
       menu=false;
     }
 
@@ -98,9 +100,10 @@ void setup() {
         }
         if(i>=NBPERIF && k<NBPERIF){i=k;}                              // i = place libre 
         if(i<NBPERIF){  
-          Serial.println(" inscripted");        
+          
           memcpy(tableC[i].periMac,message,ADDR_LENGTH);               // enregt macAddr 
-          nrfp.dataWrite(0,tableC[i].pipeAddr,'A',ADDR_LENGTH,tableC[i].periMac); // envoi à macAddr de la pipeAddr qui lui est attribuée
+          Serial.print(" inscripted on addr ");printAddr(tableC[i].periMac,'n');        
+          nrfp.dataWrite(tableC[i].pipeAddr,'A',ADDR_LENGTH,tableC[i].periMac); // envoi à macAddr de la pipeAddr qui lui est attribuée
           int trst=1;
           while(trst==1){trst=nrfp.transmitting();}
           if(trst<0){memset(tableC[i].periMac,0x00,ADDR_LENGTH);} // MAX_RT -> effacement table ; la pi_addr sera effacée
@@ -115,7 +118,7 @@ void setup() {
     
     char a=getch();
     switch(a){
-      case 'p':pingpong();menu=true;break;
+      case 'e':echo();menu=true;break;
       case 'b':broadcast();menu=true;break;
       case 't':tableCPrint();menu=true;break;
       default:break;
@@ -140,7 +143,7 @@ void loop() {
   
   //if(pipe!=BR_PIPE){                              // sinon message de balise
     pldLength=MAX_PAYLOAD_LENGTH;
-    nrfp.dataWrite(1,message,'A',pldLength,ccPipe);
+    nrfp.dataWrite(message,'A',pldLength,ccPipe);
     Serial.println(" transmit...");
   
     while(nrfp.transmitting()){}
@@ -150,22 +153,21 @@ void loop() {
 
 #if NRF_MODE == 'C'
 
-void pingpong()
+void echo()
 {
   while (getch()!='q'){
         
-    
     cnt++;
     sprintf(message,"%05d",cnt);
     message[5]='*';
     time_beg = micros();
 
-    nrfp.dataWrite(1,message,'A',MAX_PAYLOAD_LENGTH,tableC[0].pipeAddr);
-
-    Serial.print((char*)message);
+    Serial.print((char*)message);Serial.print(" to -> ");printAddr(tableC[0].periMac,' ');
+    
+    nrfp.dataWrite(message,'A',MAX_PAYLOAD_LENGTH,tableC[0].periMac);
 
     int trst=1;
-    while(trst>0){trst=nrfp.transmitting();
+    while(trst>0){trst=nrfp.transmitting();}
 
       switch(trst){
         case 0:Serial.print("...transmitted...");
@@ -187,9 +189,8 @@ void pingpong()
         case -1:Serial.println("...MAX_RT...");break;
         default:break;
       }
-    }
     delay(2000);
-  } 
+    } 
 }
 
 
@@ -201,6 +202,7 @@ char getch()
   return 0;
 }
 
+
 void broadcast()
 {
   time_beg = micros();
@@ -211,7 +213,7 @@ void broadcast()
   message[strlen(message)+1]='\0';  
   message[strlen(message)]='+';
   
-  nrfp.dataWrite(1,message,'N',6,BR_ADDR);
+  nrfp.dataWrite(message,'N',6,BR_ADDR);
   
   Serial.print((char*)message);
   

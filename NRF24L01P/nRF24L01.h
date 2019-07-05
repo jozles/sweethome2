@@ -1,3 +1,7 @@
+#ifndef nrfwords_H_INCLUDED
+#define nrfwords_H_INCLUDED
+
+
 /*
     Copyright (c) 2007 Stefan Engelke <mbox@stefanengelke.de>
 
@@ -115,7 +119,9 @@
 #define MAX_RT      4
 #define MAX_RT_BIT  BIT4
 #define RX_P_NO     1
+#define RX_P_NO_BIT 0x0E
 #define TX_FULL     0
+#define TX_FULL_BIT BIT0
 #define PLOS_CNT    4
 #define ARC_CNT     0
 #define TX_REUSE    6
@@ -154,6 +160,7 @@
 #define R_REGISTER    0x00
 #define W_REGISTER    0x20
 #define REGISTER_MASK 0x1F
+#define R_RX_PL_WID   0x60
 #define R_RX_PAYLOAD  0x61
 #define W_TX_PAYLOAD  0xA0
 #define W_TX_PAYLOAD_NA  0xB0
@@ -161,3 +168,6 @@
 #define FLUSH_RX      0xE2
 #define REUSE_TX_PL   0xE3
 #define NOP           0xFF
+
+
+#endif // nrfwords

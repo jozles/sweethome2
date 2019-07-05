@@ -1,5 +1,5 @@
-#ifndef _CON_NRF_CONST_
-#define _CON_NRF_CONST_
+#ifndef _CON_NRF_CONST_INCLUDED
+#define _CON_NRF_CONST_INCLUDED
 
 #include "nrf24l01p.h"
 
@@ -60,25 +60,21 @@ concentrateur en PTX "normal"
 
   #define NBPERIF 24         // pour taille table
 
-  #define NRF_MODE 'C'       // C concentrateur ; P périphérique
-
-  #define PI_C 5             // nombre pipes dispo / circuit
+  #define NRF_MODE 'P'       // C concentrateur ; P périphérique
 
   #define BR_ADDR  "bcast"   // adresse fixe de broadcast
   #define CC_ADDR  "ccons"   // adresse fixe du concentrateur pour inscription
 
-  #define BALISE  1          // numéro du circuit du concentrateur pour inscriptions et balise 
+  #define BALISE  0          // numéro du circuit du concentrateur pour inscriptions et balise 
                              // (inscriptions pipe0) (1 si concentrateur avec un seul circuit)
                              // sans effet en mode 'P'
 
 #if NRF_MODE == 'P'
   #define BR_PIPE 0          // pipe pour réception broadcast
-  #define R1_ADDR "peri1"    // MAC_ADDR PERI
-  //#define NBPI 1           // une seule entrée de table
+  #define R0_ADDR "peri0"    // MAC_ADDR PERI
 #endif
 #if NRF_MODE == 'C'
-  #define R1_ADDR "tot01"    // base des peri du concentrateur
-  #define NBPI NBPERIF       // une entrée par périf
+  #define R0_ADDR "tot00"    // base des peri du concentrateur
 #endif
 
 struct NrfConTable
@@ -86,9 +82,9 @@ struct NrfConTable
   uint8_t numNrf24;               // numéro circuit nrf24L01+
   uint8_t numCirc;                // numéro circuit (1-n)
   uint8_t numPipe;                // numéro pipe (1-5) 
-  byte    pipeAddr[ADDR_LENGTH];  // addr associée au pipe
+  byte    pipeAddr[ADDR_LENGTH+1];  // addr associée au pipe
   uint8_t numPeri;                // numéro périphérique pour serveur
-  byte    periMac[ADDR_LENGTH];   // macAddr 
+  byte    periMac[ADDR_LENGTH+1];   // macAddr 
 };
 
 
