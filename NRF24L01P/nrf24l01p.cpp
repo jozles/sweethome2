@@ -15,6 +15,7 @@
 #define INIT_SPI  SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
 #define START_SPI SPI.begin();
 
+#define PP4       pinMode(4,OUTPUT);digitalWrite(4,LOW);digitalWrite(4,HIGH);pinMode(4,INPUT);
 
 #define DEF_CHANNEL 1
 
@@ -97,26 +98,36 @@ bool Nrfp::config()           // power on config
   regWrite(RX_ADDR_P1,r1_addr,ADDR_LENGTH); // MAC si P ; base si C
   regWrite(RX_ADDR_P1,r1_addr,ADDR_LENGTH); // MAC si P ; base si C
 
-  if(mode=='C'){
+    //regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // no ack enable ; dyn pld length enable
+regw=EN_DYN_ACK_BIT;
+    regWrite(FEATURE,&regw,1);
+
     regw=(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
     regWrite((EN_AA),&regw,1);
+
     regw=(ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
     regWrite((EN_RXADDR),&regw,1);
-    for(uint8_t i=1;i>=ADDR_LENGTH;i++){
-      regw=r1_addr[ADDR_LENGTH-1]+i;
+
+//    regw=(DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
+//    regWrite((DYNPD),&regw,1);
+
+if(mode=='C'){
+    for(uint8_t i=2;i<=ADDR_LENGTH;i++){
+      regw=r1_addr[ADDR_LENGTH-1]+i-1;
       regWrite((RX_ADDR_P1+i),&regw,1);
     }
-    rxP0Set=false;
   }
-  if(mode=='P'){regWrite(RX_ADDR_P2,br_addr,ADDR_LENGTH);} // broadcast
+
+  rxP0Set=false;    // pour autoriser la restauration de RX0 à l'entrée de available()
+                    // brAddr si 'P' ; ccAddr si 'C'
 
   if(channel==0){channel=DEF_CHANNEL;}
   regWrite(RF_CH,&channel,1);
+
   regw=MAX_PAYLOAD_LENGTH;
   regWrite(RX_PW_P0,&regw,1);
   regWrite(RX_PW_P1,&regw,1);
-  regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // no ack enable ; dyn pld length enable
-  regWrite(FEATURE,&regw,1);
+
   regw=RFREG;
   regWrite(RF_SETUP,&regw,1);
 
@@ -179,7 +190,16 @@ Serial.println("cc_addr->RX0 ; rxP0Set=true");
             flushRx();                                // flush RX FIFO
             regw=RX_DR_BIT;
             regWrite(STATUS,&regw,1);                 // clr RX_DR_BIT
-            rxP0Set=true;}
+            rxP0Set=true;
+        }
+
+        if((mode=='P') && !rxP0Set){
+            regWrite(RX_ADDR_P0,br_addr,ADDR_LENGTH); // addr pour broadcast
+            flushRx();                                // flush RX FIFO
+            regw=RX_DR_BIT;
+            regWrite(STATUS,&regw,1);                 // clr RX_DR_BIT
+            rxP0Set=true;
+        }
 
     CE_HIGH
 
@@ -196,48 +216,46 @@ Serial.println("cc_addr->RX0 ; rxP0Set=true");
 }
 
 void Nrfp::dataRead(byte* data,uint8_t* pipe,uint8_t* pldLength)
-{
-    regRead(STATUS,&stat,1);
-    *pipe=(stat>>RX_P_NO)&0x03;                 // get pipe nb
-
+{       // available() should have be done
     uint8_t maxLength=*pldLength;
-    regRead((RX_PW_P0+pipe),*pldLength,1);      // get pldLength
-    if(*pldLength>maxLength){
-        *pldLength=0;
-        flushRx();                              // if error flush all
-        memset(data,0x00,*pldLength);
-    }
-    else{
+
+    regRead(STATUS,&stat,1);
+    *pipe=(stat>>RX_P_NO)&0x07;                     // get pipe nb
+    if(*pipe<=5){
+//Serial.print(" pipe=");Serial.println(*pipe);
+        regRead((RX_PW_P0+*pipe),*pldLength,1);}    // get pldLength
+
+    if((*pipe<=5) && (*pldLength<=maxLength) && (*pldLength>0)){
         CSN_LOW
         SPI.transfer(R_RX_PAYLOAD);
-        SPI.transfer(data,pldLength);           // get pld
+        SPI.transfer(data,MAX_PAYLOAD_LENGTH); //*pldLength);               // get pld
         CSN_HIGH
+
+        stat=RX_DR_BIT;
+        regWrite(STATUS,&stat,1);                   // clear RX_DR bit
     }
-    stat=RX_DR_BIT;
-    regWrite(STATUS,&stat,1);                   // clear RX_DR bit
+    else{
+        *pldLength=0;
+        flushRx();                                  // if error flush all
+        memset(data,0x00,*pldLength);
+    }
 }
 
 void Nrfp::dataWrite(uint8_t pipe,byte* data,char na,uint8_t len,byte* tx_addr)
 {
-    byte pipeAddr[ADDR_LENGTH];                // buffer TX_ADDR
+    byte pipeAddr[ADDR_LENGTH];                 // buffer TX_ADDR
 
     pwrUpTx();
     flushTx();
 
-    if(mode=='C'){
         rxP0Set='false';        // rechargement RX_ADDR_P0 pour RX à faire
                                 // (cc_addr)
-        if(numNrf!=numBalise){  // addr de péri ou addr broadcast
-            regWrite(TX_ADDR,tx_addr,ADDR_LENGTH);
-            regWrite(RX_ADDR_P0,tx_addr,ADDR_LENGTH);}
-
-        else{regWrite(TX_ADDR,br_addr,ADDR_LENGTH);
-            na='N';}            // broadcast NO ACK
-    }
+        regWrite(TX_ADDR,tx_addr,ADDR_LENGTH);
+        regWrite(RX_ADDR_P0,tx_addr,ADDR_LENGTH);
 
     stat=TX_DS_BIT | MAX_RT_BIT;
     regWrite(STATUS,&stat,1);    // clear TX_DS & MAX_RT bits
-
+len=MAX_PAYLOAD_LENGTH;
     CSN_LOW
     if(na=='A'){SPI.transfer(W_TX_PAYLOAD);}        // avec ACK
     else{       SPI.transfer(W_TX_PAYLOAD_NA);}     // sans ACK
@@ -285,25 +303,29 @@ bool Nrfp::inscript()  // inscription péri pour obtenir une pipeAddr
 {                      // true OK ; false MAXRT ou TO réception data
 
 
-    regWrite(TX_ADDR,cc_addr,ADDR_LENGTH);    // adresse pour inscription
-    regWrite(RX_ADDR_P0,cc_addr,ADDR_LENGTH);
+    rxP0Set=false;
 
-    dataWrite(0,r1_addr,'A',ADDR_LENGTH,"00000");    // envoi macAddr
+    dataWrite(0,r1_addr,'A',ADDR_LENGTH,cc_addr);    // envoi macAddr à cc_ADDR
     int trst=1;
     while(trst==1){trst=transmitting();}
 
-    if(trst<0){return false;}                // erreur MAX_RT
+    if(trst<0){
+            PP4
+            CE_LOW
+            return false;}                     // erreur MAX_RT
 
     long time_beg = micros();
     int readTo;
     while(!available()&& (readTo>=0)){
         readTo=TO_AVAILABLE-micros()+time_beg;}
 
+    CE_LOW
+
     if(readTo>=0){
         uint8_t pipe,pldLength=ADDR_LENGTH;
-        dataRead(pi_addr,&pipe,&pldLength);   // réception pipeAddr
+        dataRead(pi_addr,&pipe,&pldLength);    // réception pipeAddr
         regWrite(TX_ADDR,pi_addr,ADDR_LENGTH); // adresse PTX update
         return true;}
 
-    return false;                             // erreur TO
+    return false;                              // erreur TO
 }

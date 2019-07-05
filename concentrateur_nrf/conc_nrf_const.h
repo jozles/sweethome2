@@ -6,21 +6,21 @@
 /*
   *** périphérique ***
 
+Le circuit NRF n'autorise que 2 adresses en réception : RX0 et RX1 ; 
+les autres RX sont "dérivés" du RX1 (seul le LSB change) 
 au démarrage péri en PTX (inscription):
-    RX2=BR_ADDR
     RX1=macAddr
     RX0=CC_ADDR
     TX =CC_ADDR
     (concentrateur PRX RX0=cc_addr)
-    le péri envoie la macAddr à cc_addr
+    le péri envoie la macAddr à CC_ADDR
     le concentrateur enregistre la macAddr associée à un pipe libre
     dans la tableC[] et envoie en PTX la pipeAddr à la macAddr
     la pipeAddr est stockée dans ccpipe 
 en fonctionnement péri en PRX :
-    RX2=BR_ADDR
+    RX0=BR_ADDR (restauré à chaque entrée dans available() avant CE_HIGH)
     RX1=macAddr réception de commandes
 en fonctionnement péri en PTX : (si échec MAX_RT ccPipe est effacé ; retour à l'incription)
-    RX2=BR_ADDR
     RX1=macAddr réception de commandes
     RX0=ccPipe
     TX =ccPipe
@@ -45,7 +45,7 @@ les pipes RX0 des autres circuits sont inutilisés (avec 6 circuits perte de 5/3
 lors de l'inscription
 
 concentrateur en PRX
-   RX0=CC_ADDR     réception demandes d'inscriptions 
+   RX0=CC_ADDR     réception demandes d'inscriptions (restauré à chaque entrée dans available() avant CE_HIGH)
    RXn=adresses utilisées par les péri inscrits 
 concentrateur en PTX d'inscription
    RX0=macAddr reçue
@@ -77,7 +77,7 @@ concentrateur en PTX "normal"
   //#define NBPI 1           // une seule entrée de table
 #endif
 #if NRF_MODE == 'C'
-  #define R1_ADDR "tot00"    // base des peri du concentrateur
+  #define R1_ADDR "tot01"    // base des peri du concentrateur
   #define NBPI NBPERIF       // une entrée par périf
 #endif
 

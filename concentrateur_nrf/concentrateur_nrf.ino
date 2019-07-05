@@ -18,8 +18,8 @@ unsigned long time_end;
 byte    message[MAX_PAYLOAD_LENGTH+1];
 uint8_t pipe;
 uint8_t pldLength;
-byte    ccPipe[5];         // adresse pipe du concentrateur après inscription
-bool    confSta=false;     // pour 'P' true si inscription ok
+byte    ccPipe[]={"00000\0"};   // adresse pipe du concentrateur après inscription
+bool    confSta=false;          // pour 'P' true si inscription ok
 byte    nulAddr[]={0,0,0,0,0};   
 
 long readTo=0;
@@ -42,6 +42,7 @@ void setup() {
   Serial.begin(115200);
 
   nrfp.setNum(1,BALISE);    // numéro circuit courant, numéro balise
+                            // si 'P' sans effet
   
   nrfp.ce_pin[0]=8;
   nrfp.ce_pin[1]=9;
@@ -49,9 +50,6 @@ void setup() {
   nrfp.csn_pin[1]=10;    
   
   nrfp.hardInit();
-  
-  nrfp.setNum(1,BALISE);    // numéro circuit courant, numéro balise
-                            // si 'P' sans effet
   
   nrfp.channel=1; 
 
@@ -62,13 +60,12 @@ void setup() {
   nrfp.br_addr=(byte*)BR_ADDR;  // adresse commune de broadcast  
   nrfp.cc_addr=(byte*)CC_ADDR;  // adresse commune concentrateur    
 
-  
-
 #if NRF_MODE == 'P'
   while(!confSta){
     confSta=nrfp.config();
-    Serial.print("start ");Serial.println((char*)(kk+confSta*3));
-    delay(5000);
+    Serial.print("start ");Serial.print((char*)(kk+confSta*3));
+    Serial.print(" ccPipe=");Serial.println((char*)ccPipe);
+    delay(1000);
   }
 #endif NRF_MODE == 'P'
 
@@ -81,7 +78,7 @@ void setup() {
   bool menu=true;
   while(1){
     if(menu){
-      Serial.println("start p=pingpong b=broadcast ");
+      Serial.println("start (p)ingpong (b)roadcast (t)ableC (q)uit");
       menu=false;
     }
 
@@ -97,10 +94,10 @@ void setup() {
         uint8_t i,k=NBPERIF;    // recherche d'emplacement libre ou déjà existant
         for(i=0;i<NBPERIF;i++){
           if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){break;} // trouvé déjà existant
-          else if(k>=NBPERIF && tableC[i].periMac[0] == 0){k=i;}       // mémo place libre
+          else if(k>=NBPERIF && tableC[i].periMac[0] == '0'){k=i;}       // mémo place libre
         }
-        if(i>=NBPERIF && k<NBPERIF){
-          i=k;                                                         // i = place libre ou déjà existant
+        if(i>=NBPERIF && k<NBPERIF){i=k;}                              // i = place libre 
+        if(i<NBPERIF){  
           Serial.println(" inscripted");        
           memcpy(tableC[i].periMac,message,ADDR_LENGTH);               // enregt macAddr 
           nrfp.dataWrite(0,tableC[i].pipeAddr,'A',ADDR_LENGTH,tableC[i].periMac); // envoi à macAddr de la pipeAddr qui lui est attribuée
@@ -120,6 +117,7 @@ void setup() {
     switch(a){
       case 'p':pingpong();menu=true;break;
       case 'b':broadcast();menu=true;break;
+      case 't':tableCPrint();menu=true;break;
       default:break;
     }
   }
@@ -132,7 +130,7 @@ void loop() {
   while(!nrfp.available()){}
   
   Serial.print("received ");delay(1000);
-  
+
   nrfp.dataRead(message,&pipe,&pldLength);
   Serial.print((char*)message);
   Serial.print("p/l:");
@@ -140,18 +138,21 @@ void loop() {
   Serial.print("/");
   Serial.print(pldLength);
   
-  if(pipe!=BR_PIPE){                              // sinon message de balise
-    nrfp.dataWrite(1,message,'A',pldLength,nulAddr);
+  //if(pipe!=BR_PIPE){                              // sinon message de balise
+    pldLength=MAX_PAYLOAD_LENGTH;
+    nrfp.dataWrite(1,message,'A',pldLength,ccPipe);
     Serial.println(" transmit...");
   
     while(nrfp.transmitting()){}
-  }
+  //}
 #endif
 } 
 
+#if NRF_MODE == 'C'
+
 void pingpong()
 {
-  while (getch()!=(char)27){
+  while (getch()!='q'){
         
     
     cnt++;
@@ -159,7 +160,7 @@ void pingpong()
     message[5]='*';
     time_beg = micros();
 
-    nrfp.dataWrite(1,message,'A',MAX_PAYLOAD_LENGTH,nulAddr);
+    nrfp.dataWrite(1,message,'A',MAX_PAYLOAD_LENGTH,tableC[0].pipeAddr);
 
     Serial.print((char*)message);
 
@@ -205,14 +206,12 @@ void broadcast()
   time_beg = micros();
   byte regw;
   
-  nrfp.regWrite(TX_ADDR,nrfp.br_addr,ADDR_LENGTH);
-  
   cnt++;
   sprintf(message,"%05d",cnt);
   message[strlen(message)+1]='\0';  
   message[strlen(message)]='+';
   
-  nrfp.dataWrite(1,message,'N',6,nulAddr);
+  nrfp.dataWrite(1,message,'N',6,BR_ADDR);
   
   Serial.print((char*)message);
   
@@ -226,3 +225,4 @@ void broadcast()
 
 }
 
+#endif NRF_MODE == 'C'

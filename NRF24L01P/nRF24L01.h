@@ -49,6 +49,7 @@
 #define RX_PW_P4    0x15
 #define RX_PW_P5    0x16
 #define FIFO_STATUS 0x17
+#define DYNPD       0x1C
 #define FEATURE     0x1D
 
 /* bits masks */
@@ -135,6 +136,19 @@
 #define RF_DR_HIGH  3
 #define RF_DR_HIGH_BIT BIT3
 #define RF_PWR_BITS BIT1|BIT2
+#define DPL_P5      5
+#define DPL_P5_BIT  BIT5
+#define DPL_P4      4
+#define DPL_P4_BIT  BIT4
+#define DPL_P3      3
+#define DPL_P3_BIT  BIT3
+#define DPL_P2      2
+#define DPL_P2_BIT  BIT2
+#define DPL_P1      1
+#define DPL_P1_BIT  BIT1
+#define DPL_P0      0
+#define DPL_P0_BIT  BIT0
+
 
 /* Instruction Mnemonics */
 #define R_REGISTER    0x00
