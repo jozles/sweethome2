@@ -60,7 +60,7 @@ concentrateur en PTX "normal"
 
   #define NBPERIF 24         // pour taille table
 
-  #define NRF_MODE 'P'       // C concentrateur ; P périphérique
+  #define NRF_MODE 'C'       // C concentrateur ; P périphérique
 
   #define BR_ADDR  "bcast"   // adresse fixe de broadcast
   #define CC_ADDR  "ccons"   // adresse fixe du concentrateur pour inscription

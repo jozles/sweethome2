@@ -47,10 +47,10 @@ void setup() {
 
   nrfp.setNum(0,BALISE);  // numéro circuit courant, numéro balise
                           // si 'P' sans effet
-  nrfp.ce_pin[0]=8;
-  nrfp.ce_pin[1]=9;
-  nrfp.csn_pin[0]=7;
-  nrfp.csn_pin[1]=10;    
+  nrfp.ce_pin[1]=8;
+  nrfp.ce_pin[0]=9;
+  nrfp.csn_pin[1]=7;
+  nrfp.csn_pin[0]=10;    
   
   nrfp.hardInit();
   
@@ -77,6 +77,8 @@ void setup() {
   
   tableCInit();//tableCPrint();
 
+  long blktime=millis();pinMode(LED_BUILTIN,OUTPUT);
+
   bool menu=true;
   while(1){
     if(menu){
@@ -84,9 +86,14 @@ void setup() {
       menu=false;
     }
 
+//if((millis()-blktime)>2000){
+//  pinMode(LED_BUILTIN,OUTPUT);digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));
+//  blktime=millis();}
+
 /* gestion inscriptions */
     
     if(nrfp.available()){
+    //if(0){
       memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
       pldLength=ADDR_LENGTH;                      // max length
       nrfp.dataRead(message,&pipe,&pldLength);
@@ -130,7 +137,15 @@ void setup() {
 void loop() {
 #if NRF_MODE == 'P'
 
-  while(!nrfp.available()){}
+  long blktime=millis();
+  long blkdelay=1000;
+  
+  while(!nrfp.available()){
+    if((millis()-blktime)>blkdelay){
+      pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(1);digitalWrite(LED,LOW);
+      blktime=millis();if(blkdelay==1000){blkdelay=100;}else{blkdelay=1000;}
+      }
+    }
   
   Serial.print("received ");delay(1000);
 

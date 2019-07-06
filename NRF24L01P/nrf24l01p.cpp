@@ -12,7 +12,7 @@
 #define CE_LOW    digitalWrite(ce_pin[numNrf],LOW);
 #define CSN_HIGH  digitalWrite(csn_pin[numNrf],HIGH);
 #define CSN_LOW   digitalWrite(csn_pin[numNrf],LOW);
-#define INIT_SPI  SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
+#define INIT_SPI  SPI.beginTransaction(SPISettings(1000000,MSBFIRST,SPI_MODE0));
 #define START_SPI SPI.begin();
 
 #define PP4       pinMode(4,OUTPUT);digitalWrite(4,LOW);digitalWrite(4,HIGH);pinMode(4,INPUT);
@@ -43,7 +43,7 @@ Nrfp::Nrfp()    // constructeur
 
 bool Nrfp::setNum(uint8_t circuit,uint8_t balise)
 {
-    if(mode=='P'){numNrf=1;numBalise=99;}
+    if(mode=='P'){numNrf=0;numBalise=99;}
     if(mode=='C'){
         if(circuit<NB_NRF){
             numNrf=circuit;
@@ -153,6 +153,7 @@ bool Nrfp::config()           // power on config
     regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // no ack enable ; dyn pld length enable
 //regw=EN_DYN_ACK_BIT;      // static payload length
     regWrite(FEATURE,&regw,1);
+    regWrite(FEATURE,&regw,1);
 
     regw=(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
     regWrite(EN_AA,&regw,1);
@@ -166,7 +167,7 @@ bool Nrfp::config()           // power on config
     if(mode=='P'){
         regWrite(RX_ADDR_P1,r0_addr,ADDR_LENGTH); // macAddr
     }
-
+Serial.print("mode");Serial.println(mode);
     if(mode=='C'){
 
         byte pAddr[NB_PIPE];
@@ -177,8 +178,8 @@ bool Nrfp::config()           // power on config
         pAddr[ADDR_LENGTH-1]+=numNrf*NB_PIPE+1;
         regWrite(RX_ADDR_P1,pAddr,ADDR_LENGTH);   // RX1 du circuit
 
-        for(uint8_t i=1;i<=NB_PIPE;i++){          // fill pipes RX2-6
-            regw=pAddr[ADDR_LENGTH-1]+i;
+        for(uint8_t i=2;i<NB_PIPE;i++){          // fill pipes RX2-6
+            regw=pAddr[ADDR_LENGTH-1]+i-1;
             regWrite((RX_ADDR_P0+i),&regw,1);
         }
     }
@@ -312,7 +313,8 @@ bool Nrfp::dataRead(byte* data,uint8_t* pipe,uint8_t* pldLength)
 
 void Nrfp::dataWrite(byte* data,char na,uint8_t len,byte* tx_addr)
 {
-    while((fstat & TX_FULL_BIT)){regRead(FIFO_STATUS,&fstat,1);}   // wait for free FIFO
+    //fstat=TX_FULL_BIT;
+    //while((fstat & TX_FULL_BIT)){regRead(FIFO_STATUS,&fstat,1);}   // wait for free FIFO
                                                             // manage TO in case of out of order chip
     regWrite(TX_ADDR,tx_addr,ADDR_LENGTH);
     if(na=='A'){
