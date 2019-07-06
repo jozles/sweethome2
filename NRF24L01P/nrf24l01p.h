@@ -39,7 +39,8 @@ class Nrfp
 
   private:
 
-    bool inscript();
+    bool gotoPrx();
+    bool pRegister();
     void flushRx();
     void flushTx();
     void pwrUpRx();

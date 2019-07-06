@@ -30,7 +30,8 @@ uint8_t numNrf=0;           // n° du circuit courant
 uint8_t numBalise=0;        // n° du circuit balise
 char    mode=' ';           // mode 'P' ou 'C'
 
-bool rxP0Set[NB_NRF];        // force rechargement RX_P0 si false
+bool prxMode[NB_NRF];       // true=circuit en PRX (pwrUpRx(), RX0 chargé, CE_HIGH)
+bool rxP0Set[NB_NRF];       // force rechargement RX_P0 si false
                             // après modification pour TX avec ACK
 byte baseAddr[NB_NRF*ADDR_LENGTH];       // RX_P0 pour chaque circuit
 
@@ -90,9 +91,10 @@ void Nrfp::hardInit()
  *    retour en mode standby avec CE low.
  *
  *    fonctions :
- *    dataWrite() charge le FIFO, les adresses, fait pwrUpTx()
+ *    dataWrite() sort du mode prx
+ *                charge le FIFO, les adresses, fait pwrUpTx()
  *                et termine avec CE_HIGH
- *    transmitting() teste la fin de transmission et termine avec CE_LOW
+ *    transmitting() teste la fin de transmission, et passe en mode prx via CE_LOW
  *
  *  pour recevoir :
  *
@@ -103,7 +105,8 @@ void Nrfp::hardInit()
  *
  *    fonctions :
  *    available() recharge RX_ADDR_P0 si nécessaire (vidage FIFO dans ce cas)
- *               puis fait CE_HIGH et termine avec CE_LOW si true
+ *                passe en mode prx (pwrUpTx+CE_HIGH) si nécessaire au premier test
+ *                termine avec CE_LOW si true (fin du mode prx)
  *    dataRead() contrôle la longuer maxi, transfère le message
  *               et récupère la longueur reçue et le n° de pipe
  *
@@ -167,7 +170,7 @@ bool Nrfp::config()           // power on config
     if(mode=='P'){
         regWrite(RX_ADDR_P1,r0_addr,ADDR_LENGTH); // macAddr
     }
-Serial.print("mode");Serial.println(mode);
+
     if(mode=='C'){
 
         byte pAddr[NB_PIPE];
@@ -184,6 +187,7 @@ Serial.print("mode");Serial.println(mode);
         }
     }
 
+    prxMode[numNrf]=false;
     rxP0Set[numNrf]=false;    // pour forcer la restauration de RX0
                               // à l'entrée de available()
                               // brAddr si 'P' ; ccAddr si 'C' && balise
@@ -208,7 +212,7 @@ Serial.print("mode");Serial.println(mode);
     regw=TX_DS_BIT | MAX_RT_BIT | RX_DR_BIT; // clear bits TX_DS , MAX_RT , RX_DR
     regWrite(STATUS,&regw,1);
 
-    if(mode=='P'){return inscript();}
+    if(mode=='P'){return pRegister();}
 }
 
 
@@ -247,41 +251,45 @@ void Nrfp::pwrUpTx()
       regWrite(CONFIG,&conf,1);
 }
 
-bool Nrfp::available()      // keep CE high when false
+bool Nrfp::gotoPrx()      // passage en mode prx
 {
-  if(!rxP0Set[numNrf]){                                 // rechargement RX_ADDR_P0 après TX
-      rxP0Set[numNrf]=true;
-      flushRx();                                // flush RX FIFO
+    if(!rxP0Set[numNrf]){                             // rechargement RX_ADDR_P0 après TX
       regw=RX_DR_BIT;
-      regWrite(STATUS,&regw,1);                 // clr RX_DR_BIT
+      regWrite(STATUS,&regw,1);                       // clr RX_DR_BIT
 
       if(mode=='C'){
          if(numNrf==numBalise){
-           regWrite(RX_ADDR_P0,cc_addr,ADDR_LENGTH); // addr pour inscriptions
-         }
+           regWrite(RX_ADDR_P0,cc_addr,ADDR_LENGTH);} // addr pour inscriptions
          else{
-           regWrite(RX_ADDR_P0,baseAddr+numNrf*ADDR_LENGTH,ADDR_LENGTH);
-         }                                           // addr normale
-      }
+           regWrite(RX_ADDR_P0,baseAddr+numNrf*ADDR_LENGTH,ADDR_LENGTH);}} // addr normale
 
       if(mode=='P'){
-           regWrite(RX_ADDR_P0,br_addr,ADDR_LENGTH); // addr pour broadcast
-      }
-  }
+           regWrite(RX_ADDR_P0,br_addr,ADDR_LENGTH);} // addr pour broadcast
 
-  CE_HIGH
+      rxP0Set[numNrf]=true;
+    }
 
-  regRead(FIFO_STATUS,&fstat,1);
-  if((fstat & RX_EMPTY_BIT)!=0){      // FIFO empty ?
-      regRead(STATUS,&stat,1);
-      if((stat & RX_DR_BIT)==0){      // RX empty ?
-          return false;               // CE stay high while waiting
-      }
-  }
+    pwrUpRx();
+    CE_HIGH
+    prxMode[numNrf]=true;
+}
 
-  CE_LOW
-  PP4
-  return true;  // dataRead should be done now
+bool Nrfp::available()      // keep CE high when false
+{
+    if(!prxMode[numNrf]){gotoPrx();}
+
+    regRead(FIFO_STATUS,&fstat,1);
+    if((fstat & RX_EMPTY_BIT)!=0){      // FIFO empty ?
+        regRead(STATUS,&stat,1);
+        if((stat & RX_DR_BIT)==0){      // RX empty ?
+            return false;               // stay in prxMode while waiting
+        }
+    }
+
+    prxMode[numNrf]=false;
+    CE_LOW
+    PP4
+    return true;  // dataRead should be done now
 }
 
 bool Nrfp::dataRead(byte* data,uint8_t* pipe,uint8_t* pldLength)
@@ -313,14 +321,16 @@ bool Nrfp::dataRead(byte* data,uint8_t* pipe,uint8_t* pldLength)
 
 void Nrfp::dataWrite(byte* data,char na,uint8_t len,byte* tx_addr)
 {
+    prxMode[numNrf]=false;
+
     //fstat=TX_FULL_BIT;
     //while((fstat & TX_FULL_BIT)){regRead(FIFO_STATUS,&fstat,1);}   // wait for free FIFO
                                                             // manage TO in case of out of order chip
     regWrite(TX_ADDR,tx_addr,ADDR_LENGTH);
     if(na=='A'){
         regWrite(RX_ADDR_P0,tx_addr,ADDR_LENGTH);
-        rxP0Set[numNrf]=false;      // RX_ADDR_P0 restore to PRX to do
-    }                       // (cc_addr if 'C' ; br_addr if 'P' - see available())
+        rxP0Set[numNrf]=false;      // RX_ADDR_P0 restore to do
+    }                               // (cc_addr if 'C' ; br_addr if 'P' - see available())
 
     stat=TX_DS_BIT | MAX_RT_BIT;
     regWrite(STATUS,&stat,1);   // clear TX_DS & MAX_RT bits
@@ -353,6 +363,7 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
         stat = TX_DS_BIT | MAX_RT_BIT;            // clear TX_DS & MAX_RT bits
         regWrite(STATUS,&stat,1);
         CE_LOW
+        gotoPrx();
         PP4
       }
 
@@ -373,9 +384,9 @@ void Nrfp::flushRx()
     CSN_HIGH
 }
 
-bool Nrfp::inscript()  // inscription péri pour obtenir une pipeAddr
+bool Nrfp::pRegister()  // inscription péri pour obtenir une pipeAddr
 {                      // true OK ; false MAXRT or TO receiving data
-    rxP0Set[numNrf]=false;
+    uint8_t pipe,pldLength=ADDR_LENGTH;
 
     dataWrite(r0_addr,'N',ADDR_LENGTH,cc_addr);    // send macAddr to cc_ADDR
     int trst=1;
@@ -394,7 +405,6 @@ bool Nrfp::inscript()  // inscription péri pour obtenir une pipeAddr
     CE_LOW
 
     if(readTo>=0){                             // no TO data ready
-        uint8_t pipe,pldLength=ADDR_LENGTH;
         dataRead(pi_addr,&pipe,&pldLength);    // get pipeAddr
         regWrite(TX_ADDR,pi_addr,ADDR_LENGTH); // PTX address update
         return true;}
