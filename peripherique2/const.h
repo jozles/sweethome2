@@ -1,4 +1,4 @@
-g#ifndef CONST_H_INCLUDED
+#ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
 #define VERSION "1.h_"
@@ -144,8 +144,14 @@ Modifier :
 //#define RELAY   
 #define THESP01 '1'
 #define THESP12 '2'
-
-#define CARTE VRR                     // <------------- modèle carte
+/********************************** 3 config à faire ********************************/
+//                                  1 -- modèle de carte
+//                                  2 -- type alimentation
+//                                  3 -- adresse IP + port serveur + l'ordre des SSID  (peripherique.ino)
+//                                 
+//                                 enlever le cable série pour que ça marche sur THESP01
+//
+#define CARTE VRR                    // <------------- modèle carte
 #define POWER_MODE NO_MODE            // <------------- type d'alimentation 
 //#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 

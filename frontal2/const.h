@@ -93,7 +93,7 @@
 
 */
 
-#define _MODE_DEVT2    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
+#define _MODE_DEVT    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
 #ifdef _MODE_DEVT2
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAE"    
@@ -124,9 +124,8 @@
 
 #define UDPUSAGE
 
-#define DS3231_I2C_ADDRESS 0x68         // adresse 3231 sur bus I2C
+#define DS3231_I2C_ADDRESS 0x68               // adresse 3231 sur bus I2C
 
-#define PINDHT11 2
 
 #define NBPERIF 20                           
 #define PERINAMLEN 16+1                      // longueur nom perif

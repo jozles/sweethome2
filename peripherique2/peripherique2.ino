@@ -44,8 +44,8 @@ extern byte dsmodel;
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif DEVOLO
 
-  const char* host = HOSTIPADDR2;
-  const int   port = PORTPERISERVER2; 
+  const char* host = HOSTIPADDR;
+  const int   port = PORTPERISERVER; 
 
 WiFiClient cli;                 // client local du serveur externe (utilisé pour dataread/save)
 WiFiClient cliext;              // client externe du serveur local

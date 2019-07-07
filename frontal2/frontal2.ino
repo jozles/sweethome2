@@ -1,7 +1,7 @@
 
 #include <SPI.h>      //bibliothèqe SPI pour W5100
 #include <Ethernet.h> //bibliothèque W5100 Ethernet
-//#include <Wire.h>     //biblio I2C pour RTC 3231
+#include <Wire.h>     //biblio I2C pour RTC 3231
 #include "ds3231.h"
 #include <shconst2.h>
 #include <shutil2.h>
@@ -15,12 +15,6 @@
 
 #include <MemoryFree.h>;
 
-#ifdef WEMOS
-  #define Serial SerialUSB
-#endif def WEMOS
-#ifndef WEMOS
- // #include <avr/wdt.h>  //biblio watchdog
-#endif ndef WEMOS
 
 //#define _AVEC_AES
 #ifdef _AVEC_AES
@@ -211,6 +205,7 @@ long   timersNlen=(sizeof(Timers))*NBTIMERS;
 #define PINVCCDS 19   // alim + DS3231
 #define PINGNDDS 18   // alim - DS3231
 
+  //Ymdhms dt;
   Ds3231 ds3231;
  
 /*
@@ -299,7 +294,7 @@ void scanTimers();
 void setup() {                              // ====================================
 
   Serial.begin (115200);delay(1000);
-  Serial.print("+");
+  Serial.print("+");delay(100);
 
   pinMode(PINLED,OUTPUT);
   extern uint8_t cntBlink;
@@ -334,7 +329,7 @@ void setup() {                              // =================================
   delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
   Serial.print("  nbfonct=");Serial.println(nbfonct);
   //configSave();
-  configLoad();configPrint();
+  configLoad();memcpy(mac,MACADDR,6);configPrint();
   
   periInit();long periRecLength=(long)periEndOfRecord-(long)periBegOfRecord+1;
   
@@ -391,8 +386,11 @@ while(1){}
 /* >>>>>> ethernet start <<<<<< */
 
   ds3231.i2cAddr=DS3231_I2C_ADDRESS;
-  //Ds3231(); 
-  //Wire.begin();
+  Wire.begin();
+/*
+  Ds3231(); 
+//*/
+
 
   if(Ethernet.begin(mac) == 0)
     {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
@@ -1248,7 +1246,7 @@ void commonserver(EthernetClient cli)
                             case 'o': remoteN[nb].onoff=*valf-48;break;                                 // (remotecf) on on/off remote courante
                             case 'u': remoteT[nb].num=*valf-48;                                         // (remotecf) un N° remote table sw
                                       remoteT[nb].enable=0;break;                                       // (remotecf) effacement cb
-                            case 'd': remoteT[nb].detec=*valf-48;                                       // (remotecf) n° detecteur
+                            case 'd': remoteT[nb].detec=convStrToNum(valf,&j);                          // (remotecf) n° detecteur
                                       if(remoteT[nb].detec>NBDSRV){remoteT[nb].detec=NBDSRV;}break;       
                             case 'x': remoteT[nb].enable=*valf-48;break;                                // (remotecf) xe enable table sw
                             default:break;

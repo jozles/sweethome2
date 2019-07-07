@@ -1,7 +1,6 @@
 #ifndef _SHCONST_H_
 #define _SHCONST_H_
 
-
 #define PERIF
 
 #define LENVERSION  4
@@ -259,12 +258,12 @@ enum {OFF,ON};
 
 // byte 0 & byte 3 -- num détecteur + type (source/dest)
 
-#define PERINPV_MS    0xFC
+#define PERINPV_MS    0xFC          // mask n° det (6 bits - 64 possibles)
 #define PERINPNVMS_VB 0x80          // détec MSb
 #define PERINPNVMS_PB 0x07
 #define PERINPNVLS_VB 0x04          // détec LSb
 #define PERINPNVLS_PB 0x02
-#define PERINPNT_MS   0x03
+#define PERINPNT_MS   0x03          // mask type (2 bits - 4 possibles)
 #define PERINPNTMS_VB 0x02          // type MSb
 #define PERINPNTMS_PB 0x01
 #define PERINPNTLS_VB 0x01          // type LSb
@@ -277,8 +276,8 @@ enum {OFF,ON};
 
 // byte 2 -- act/usage/level/enable
 
-#define PERINPACT_MS    0xF0
-#define PERINPACTMS_VB  0x80        // action MSb (3 bits)
+#define PERINPACT_MS    0xF0        // mask action - 4 bits (16 possibles)
+#define PERINPACTMS_VB  0x80        // action MSb (4 bits)
 #define PERINPACTMS_PB  0x07
 #define PERINPACTLS_VB  0x10        // action LSb
 #define PERINPACTLS_PB  0x04
