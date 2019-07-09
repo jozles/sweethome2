@@ -9,7 +9,8 @@
 #define NB_PIPE 6       // nombre pipes par circuit
 #define MAX_PAYLOAD_LENGTH 32
 #define ADDR_LENGTH 5
-#define TO_AVAILABLE 4000
+#define TO_AVAILABLE 1000  // millis()
+#define TO_REGISTER  1000  // millis()
 
 class Nrfp
 {
@@ -39,7 +40,7 @@ class Nrfp
 
   private:
 
-    bool gotoPrx();
+    bool letsPrx();
     bool pRegister();
     void flushRx();
     void flushTx();

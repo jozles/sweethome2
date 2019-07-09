@@ -37,7 +37,7 @@ char getch();
 #if NRF_MODE == 'C'
   void pingpong();
   void broadcast();
-#endif NRF_MODE == C
+#endif NRF_MODE == 'C'
  
 void setup() {
   
@@ -62,15 +62,19 @@ void setup() {
   nrfp.cc_addr=(byte*)CC_ADDR;  // adresse commune concentrateur    
 
 #if NRF_MODE == 'P'
+  
+  pinMode(LED,OUTPUT);
+  
   while(!confSta){
     confSta=nrfp.config();
     Serial.print("start ");
     Serial.print((char*)(kk+confSta*3));
     Serial.print(" ccPipe=");Serial.println((char*)ccPipe);
     
-    pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(1);digitalWrite(LED,LOW);
+    digitalWrite(LED,HIGH);delay(30);digitalWrite(LED,LOW);
     delay(1950);
   }
+
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -88,41 +92,39 @@ void setup() {
       menu=false;
     }
 
-//if((millis()-blktime)>2000){
-//  pinMode(LED_BUILTIN,OUTPUT);digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));
-//  blktime=millis();}
-
 /* gestion inscriptions */
     
     if(nrfp.available()){
     
       memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
-      pldLength=ADDR_LENGTH;                      // max length
-      nrfp.dataRead(message,&pipe,&pldLength);
-      Serial.print("received ");Serial.print((char*)message);Serial.print(" l=");Serial.print(pldLength);Serial.print(" p=");Serial.print(pipe);
-      
-      //if(numNrf==BALISE && pipe==0){             // demande d'inscription
-      if(pipe==0){             // demande d'inscription
-        uint8_t i,k=NBPERIF;    // recherche d'emplacement libre ou déjà existant
-        for(i=1;i<NBPERIF;i++){ 
-          if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){break;}   // trouvé déjà existant
-          else if(k>=NBPERIF && tableC[i].periMac[0] == '0'){k=i;}       // mémo place libre
-        }
-        if(i>=NBPERIF && k<NBPERIF){i=k;}                              // i = place libre 
-        if(i<NBPERIF){  
+      pldLength=MAX_PAYLOAD_LENGTH;                  // max length
+      if(nrfp.dataRead(message,&pipe,&pldLength)){   // true=>no error
+        Serial.print("received ");Serial.print((char*)message);Serial.print(" l=");Serial.print(pldLength);Serial.print(" p=");Serial.print(pipe);
+        if(message[0]=='p' && pipe==0){              // register request
+        //if(numNrf==BALISE && pipe==0){             
+     
+          uint8_t i,k=NBPERIF;    // search free line or existing macAddr
+          for(i=1;i<NBPERIF;i++){ 
+            if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){break;}          // already existing
+            else if(k>=NBPERIF && tableC[i].periMac[0] == '0'){k=i;}              // store free line
+          }
+          if(i>=NBPERIF && k<NBPERIF){i=k;}                                       // i = free line 
+          if(i<NBPERIF){  
           
-          memcpy(tableC[i].periMac,message,ADDR_LENGTH);               // enregt macAddr 
-          Serial.print(" registred on addr ");printAddr(tableC[i].periMac,'n');        
-          nrfp.dataWrite(tableC[i].pipeAddr,'A',ADDR_LENGTH,tableC[i].periMac); // envoi à macAddr de la pipeAddr qui lui est attribuée
-          int trst=1;
-          while(trst==1){trst=nrfp.transmitting();}
-          if(trst<0){memset(tableC[i].periMac,0x00,ADDR_LENGTH);} // MAX_RT -> effacement table ; la pi_addr sera effacée
+            memcpy(tableC[i].periMac,message,ADDR_LENGTH);                        // record macAddr 
+            Serial.print(" registred on addr ");printAddr(tableC[i].periMac,'n');        
+            nrfp.dataWrite(tableC[i].pipeAddr,'A',ADDR_LENGTH,tableC[i].periMac); // send pipeAddr to peri(macAddr)
+            int trst=1;
+            while(trst==1){trst=nrfp.transmitting();}
+            if(trst<0){memset(tableC[i].periMac,0x00,ADDR_LENGTH);} // MAX_RT -> effacement table ; la pi_addr sera effacée
                                                                   // pour non réponse à la première tentative de TX
+          }
+          else Serial.print(" full");
         }
-        else Serial.print(" full");
-      }
-      Serial.println();
-    }
+        else{};  // pas demande d'inscription... à traiter
+        Serial.println();
+      }          // dataRead error
+    }            // unavailable
 
 /*************************/
     
@@ -133,20 +135,22 @@ void setup() {
       case 't':tableCPrint();menu=true;break;
       default:break;
     }
-  }
+  }               // menu loop
 #endif NRF_MODE == 'C'
 }
 
 void loop() {
-#if NRF_MODE == 'P'
 
+#if NRF_MODE == 'P'
+  pinMode(LED,OUTPUT);digitalWrite(LED,LOW);
   long blktime=millis();
-  long blkdelay=1000;
+#define BKDLY 2000
+  long blkdelay=BKDLY;  
   
   while(!nrfp.available()){
     if((millis()-blktime)>blkdelay){
-      pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(1);digitalWrite(LED,LOW);
-      blktime=millis();if(blkdelay==1000){blkdelay=100;}else{blkdelay=1000;}
+      digitalWrite(LED,HIGH);delay(40);digitalWrite(LED,LOW);
+      blktime=millis();if(blkdelay==BKDLY){blkdelay=60;}else{blkdelay=BKDLY;}
     }
   }
   
@@ -186,27 +190,26 @@ void echo()
     Serial.print((char*)message);Serial.print(" to -> ");printAddr(tableC[numP].periMac,' ');
     
     nrfp.dataWrite(message,'A',MAX_PAYLOAD_LENGTH,tableC[numP].periMac);
-
+Serial.print("..w..");
     int trst=1;
     while(trst>0){trst=nrfp.transmitting();}
 
       switch(trst){
         case 0:Serial.print("...transmitted...");
-                readTo=0;
-                while(!nrfp.available() && (readTo>=0)){
-                  readTo=TO_AVAILABLE-micros()+time_beg;}
-                if(readTo<0){cntko++;Serial.print(" time out (");Serial.print(cntko);Serial.println(")");}
-                else{
-                  pldLength=MAX_PAYLOAD_LENGTH;
-                  nrfp.dataRead(message,&pipe,&pldLength);  
-                  time_end=micros();
-                  Serial.print(" received ");  
-                  Serial.print((char*)message);
-                  Serial.print(" p/l:");Serial.print(pipe);Serial.print("/");Serial.print(pldLength);
-                  Serial.print(" in:");
-                  Serial.print(time_end - time_beg); 
-                  Serial.println("us");
-                }break;
+                readTo=millis();
+                while(!nrfp.available() && (millis()-readTo<TO_AVAILABLE)){}
+                  if(millis()-readTo<TO_AVAILABLE){cntko++;Serial.print(" time out (");Serial.print(cntko);Serial.println(")");}
+                  else{
+                    pldLength=MAX_PAYLOAD_LENGTH;
+                    nrfp.dataRead(message,&pipe,&pldLength);  
+                    time_end=micros();
+                    Serial.print(" received ");  
+                    Serial.print((char*)message);
+                    Serial.print(" p/l:");Serial.print(pipe);Serial.print("/");Serial.print(pldLength);
+                    Serial.print(" in:");
+                    Serial.print(time_end - time_beg); 
+                    Serial.println("us");
+                  }break;
         case -1:Serial.println("...MAX_RT...");break;
         default:break;
       }
