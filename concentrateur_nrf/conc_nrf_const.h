@@ -41,8 +41,6 @@ le circuit BALISE pipe 0 est utilisé pour recevoir les demandes d'inscription e
 les autres pipes du circuit BALISE fonctionne normalement
 les pipes RX0 des autres circuits sont inutilisés (avec 6 circuits perte de 5/36 ... avec 2 circuits perte de 1/12)
 
-évolution possible : channel indépendant par circuit avec channel fixe sur circuit BALISE et paramétrage du channel 
-lors de l'inscription
 
 concentrateur en PRX
    RX0=CC_ADDR     réception demandes d'inscriptions (restauré à chaque entrée dans available() avant CE_HIGH)
@@ -64,6 +62,10 @@ concentrateur en PTX "normal"
   #define NRF_MODE 'P'   // C concentrateur ; P périphérique
 //************************/
 
+  #define CE_PIN     9
+  #define CSN_PIN    10
+  #define NB_CIRCUIT 1
+  #define CHANNEL    1
   #define BR_ADDR  "bcast"   // adresse fixe de broadcast
   #define CC_ADDR  "ccons"   // adresse fixe du concentrateur pour inscription
 
