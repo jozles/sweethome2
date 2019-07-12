@@ -141,16 +141,27 @@ void loop() {
 
 #if NRF_MODE == 'P'
 
+#define TR_TO 1000
+long tr_beg;
+int trst;
+
   while(nrfp.getData(message,&pipe,&pldLength)!=1){ledblk(TBLK,DBLK,IBLK,2);}
   Serial.print("rx ");
-  pldLength=MAX_PAYLOAD_LENGTH;
+  Serial.print((char*)message);
+  
   nrfp.write(message,'A',pldLength,ccPipe);
-  Serial.print((char*)message); 
+   
   Serial.print(" p=");Serial.print(pipe);
   Serial.print(" l=");Serial.print(pldLength);
   Serial.println(" transmit...");
+
   
-  while(nrfp.transmitting()){}
+  tr_beg=millis();
+  trst=1;
+  while((trst>0) && ((millis()-tr_beg)<TR_TO)){trst=nrfp.transmitting();}
+  if((millis()-tr_beg)>=TR_TO){Serial.println("..TO..");}
+  if(trst<0){Serial.println("..MAX-RT..");}
+  else{Serial.println("..ok..");}  
   
 #endif
 } 
@@ -159,36 +170,38 @@ void loop() {
 
 void echo()
 {
+#define TO_GDS 1000  
   int cnt=0;
   int cntko=0;
+  pldLength=MAX_PAYLOAD_LENGTH;
   
   while (getch()!='q'){
         
+    int gdSta=0;
+    int trst=1;
     uint8_t numP=1;
     cnt++;
     sprintf(message,"%05d",cnt);
     message[5]='*';
-    time_beg = micros();
 
     Serial.print((char*)message);Serial.print(" to -> ");printAddr(tableC[numP].periMac,' ');
-    
-    nrfp.write(message,'A',MAX_PAYLOAD_LENGTH,tableC[numP].periMac);
-    Serial.print("..w..");
 
-    int gdSta=0;
-    int trst=1;
+    time_beg = micros();
+    nrfp.write(message,'A',6,tableC[numP].periMac);
+
     while(trst>0){trst=nrfp.transmitting();if(getch()=='q'){return;}}
 
     switch(trst){
-      case 0:Serial.print("...transmitted...");
+      case 0://Serial.print("..txd..");
         readTo=millis();
-        pldLength=MAX_PAYLOAD_LENGTH;
-        while(gdSta!=1 && (millis()-readTo<TO_AVAILABLE)){
+        gdSta=0;
+        while((gdSta!=1) && ((millis()-readTo)<TO_GDS)){
           gdSta=nrfp.getData(message,&pipe,&pldLength);if(getch()=='q'){return;}}
-        if(millis()-readTo<TO_AVAILABLE){cntko++;Serial.print("...TO...(");Serial.print(cntko);Serial.println(")");}
+          time_end=micros();
+        //Serial.print(" gdSta=");Serial.print(gdSta);Serial.print(" millis()-readTo=");Serial.println(millis()-readTo);
+        if((millis()-readTo)>=TO_GDS){cntko++;Serial.print("...TO...(");Serial.print(cntko);Serial.println(")");}
         else if(gdSta==-1){cntko++;Serial.print("...pipe or length error...(");Serial.print(cntko);Serial.println(")");}
         else{
-          time_end=micros();
           Serial.print(" received ");  
           Serial.print((char*)message);
           Serial.print(" p/l:");Serial.print(pipe);Serial.print("/");Serial.print(pldLength);
@@ -214,25 +227,26 @@ char getch()
 
 void broadcast()
 {
-  time_beg = micros();
-  byte regw;
-  
+
+  time_beg = micros();  
   sprintf(message,"%08d",time_beg);
   message[strlen(message)+1]='\0';  
   message[strlen(message)]='+';
+
+
+  time_beg = micros();
   
   nrfp.write(message,'N',9,BR_ADDR);
-  
-  Serial.print((char*)message);
   
   while(nrfp.transmitting()){}
 
   time_end=micros();
-  Serial.print(" transmitted ");  
-  Serial.print((char*)message);Serial.print(" in:");
+
+  Serial.print((char*)message);  
+  Serial.print(" transmitted to ");  
+  Serial.print(BR_ADDR);Serial.print(" in:");
   Serial.print(time_end - time_beg); 
   Serial.println("us");
-
 }
 
 #endif NRF_MODE == 'C'

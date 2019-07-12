@@ -21,7 +21,7 @@
 #define CE_LOW    digitalWrite(cePin,LOW);
 #define CSN_HIGH  digitalWrite(csnPin,HIGH);
 #define CSN_LOW   digitalWrite(csnPin,LOW);
-#define SPI_INIT  SPI.beginTransaction(SPISettings(1000000,MSBFIRST,SPI_MODE0));
+#define SPI_INIT  SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
 #define SPI_START SPI.begin();
 
 #define GET_STA   CSN_LOW stat=SPI.transfer(NOP);CSN_HIGH
@@ -352,6 +352,7 @@ bool Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength)
 
 void Nrfp::write(byte* data,char na,uint8_t len,byte* tx_addr)
 {
+
     prxMode[numNrf]=false;
     CE_LOW
 
@@ -364,6 +365,7 @@ void Nrfp::write(byte* data,char na,uint8_t len,byte* tx_addr)
         rxP0Set[numNrf]=false;              // RX_ADDR_P0 restore to do
     }                                       // (cc_addr if 'C' ; br_addr if 'P' - see available())
 
+    flushTx();
     stat=TX_DS_BIT | MAX_RT_BIT;
     regWrite(STATUS,&stat);                 // clear TX_DS & MAX_RT bits
                                             // static length used
@@ -395,6 +397,7 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
       }
       if(trst<=0){                              // data sent or max retry
         CE_LOW
+        flushTx();
         stat = TX_DS_BIT | MAX_RT_BIT;          // clear TX_DS & MAX_RT bits
         regWrite(STATUS,&stat);
         letsPrx();
@@ -436,13 +439,14 @@ int Nrfp::getData(char* data,uint8_t* pipe,uint8_t* pldLength)
         regw=RX_DR_BIT;
         regWrite(STATUS,&regw);             // clear RX_DR bit
         return 1;                           // data ok
-    }
+    }                                       // PRX mode still true
     else{
         CE_LOW
         flushRx();                          // if error flush all
         regw=RX_DR_BIT;
         regWrite(STATUS,&regw);
-        return -1;                  // invalid pipe nb or length
+        prxMode[numNrf]=false;
+        return -1;                          // invalid pipe nb or length
     }
 }
 
@@ -467,11 +471,9 @@ bool Nrfp::pRegister()  // peripheral registration to get pipeAddr
         readTo=TO_REGISTER-millis()+time_beg;
         gdSta=getData(pi_addr,&pipe,&pldLength);}
 
-    CE_LOW
-
     if(gdSta>0 && readTo>=0){               // no TO pld ok
         addrWrite(TX_ADDR,pi_addr);         // PTX address update
-        return true;}
+        return true;}                       // PRX mode still true
 
-    return false;          // else TO error or pipe/length error
+    return false;          // else TO error or pipe/length error CE low
 }
