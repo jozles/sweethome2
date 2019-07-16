@@ -16,7 +16,7 @@ au démarrage péri en PTX (inscription):
     le péri envoie la macAddr à CC_ADDR
     le concentrateur enregistre la macAddr associée à un pipe libre
     dans la tableC[] et envoie en PTX la pipeAddr à la macAddr
-    la pipeAddr est stockée dans ccpipe 
+    la pipeAddr est stockée dans ccPipe 
 en fonctionnement péri en PRX :
     RX0=BR_ADDR (restauré à chaque entrée dans available() avant CE_HIGH)
     RX1=macAddr réception de commandes
@@ -39,8 +39,6 @@ en fonctionnement péri en PTX : (si échec MAX_RT ccPipe est effacé ; retour �
   
 le circuit BALISE pipe 0 est utilisé pour recevoir les demandes d'inscription et emettre la balide temporelle
 les autres pipes du circuit BALISE fonctionne normalement
-les pipes RX0 des autres circuits sont inutilisés (avec 6 circuits perte de 5/36 ... avec 2 circuits perte de 1/12)
-
 
 concentrateur en PRX
    RX0=CC_ADDR     réception demandes d'inscriptions (restauré à chaque entrée dans available() avant CE_HIGH)
@@ -56,30 +54,34 @@ concentrateur en PTX "normal"
 
 */  
 
-  #define NBPERIF 24         // pour taille table
+  #define NBPERIF 24            // pour taille table
 
 //************************/
-  #define NRF_MODE 'P'   // C concentrateur ; P périphérique
+  #define NRF_MODE 'C'   //      C concentrateur ; P périphérique
 //************************/
 
-  #define CE_PIN     9
-  #define CSN_PIN    10
-  #define NB_CIRCUIT 1
-  #define CHANNEL    1
-  #define BR_ADDR  "bcast"   // adresse fixe de broadcast
-  #define CC_ADDR  "ccons"   // adresse fixe du concentrateur pour inscription
+  #define LED        5          // pin pour Led (13 pris par le clk du SPI)
+  #define CE_PIN     9          // pin pour CE du nrf
+  #define CSN_PIN    10         // pin pour CS du SPI
+  #define NB_CIRCUIT 1          // nombre de circuits nrf
+  #define CHANNEL    110        // numéro canal radio
+  #define RF_SPEED   RF_SPD_1MB // vitesse radio  RF_SPD_2MB // RF_SPD_1MB // RF_SPD_250K
+  #define ARD        2          // (1-16) x 250uS delay before repeat
+  #define ARC        15         // (0-15) repetitions
+  #define BR_ADDR    "bcast"    // adresse fixe de broadcast
+  #define CC_ADDR    "ccons"    // adresse fixe du concentrateur pour inscription
 
-  #define BALISE  0          // toujours 0
+  #define BALISE  0          // toujours 0  (sans effet en mode 'P')
                              // numéro du circuit du concentrateur pour inscriptions et balise 
                              // (inscriptions pipe0) 
-                             // sans effet en mode 'P'
+  #define CIRCUIT 0          // n° circuit initial
 
 #if NRF_MODE == 'P'
   #define BR_PIPE 0          // pipe pour réception broadcast
-  #define R0_ADDR "peri2n"    // MAC_ADDR PERI
+  #define R0_ADDR "peri2"    // MAC_ADDR PERI
 #endif
 #if NRF_MODE == 'C'
-  #define R0_ADDR "tot00"    // base des peri du concentrateur
+  #define R0_ADDR "tot00"    // adresse de base des peri du concentrateur
 #endif
 
 struct NrfConTable
@@ -96,4 +98,4 @@ struct NrfConTable
 
 
 
-#endif _CON_NRF_CONST_
+#endif _CON_NRF_CONST_INCLUDED

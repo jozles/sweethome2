@@ -85,32 +85,39 @@
 #define NB_PIPE 6           // nombre pipes par circuit
 #define MAX_PAYLOAD_LENGTH 32
 #define ADDR_LENGTH 5
+
 #define TO_AVAILABLE 1000   // millis()
 #define TO_REGISTER  1000   // millis()
+
+#define RF_SPD_2MB RF_DR_HIGH_BIT
+#define RF_SPD_1MB 0
+#define RF_SPD_250K RF_DR_LOW_BIT
+
+
 
 class Nrfp
 {
   public:
     Nrfp();
     void setup(char exMode,uint8_t exCePin,uint8_t exCsnPin,
-                 uint8_t exNbNrf,uint8_t exChannel,byte* exBr_addr,
+                 uint8_t exNbNrf,uint8_t exChannel,byte exSpeed,
+                 byte ardarc,byte* exBr_addr,
                  byte* exCc_addr,byte* exR0_addr,byte* exPi_addr);
-    void start();
+    void confCircuit();
     bool begin();
     bool setNum(uint8_t circuit,uint8_t balise);
 
-//    bool available();
-//    bool read(byte* data,uint8_t* pipe,uint8_t* pldLength);
-    int  getData(char* data,uint8_t* pipe,uint8_t* length);
+    int  available(uint8_t* pipe,uint8_t* length);
+    int  read(char* data,uint8_t* pipe,uint8_t* length);
     void write(byte* data,char na,uint8_t len,byte* tx_addr);
     int  transmitting();
 
     void powerUp();
     void powerDown();
-
+    void regRead(uint8_t reg,byte* data);
 
   private:
-    void regRead(uint8_t reg,byte* data);
+
     void regWrite(uint8_t reg,byte* data);
     void addrRead(uint8_t reg,byte* data);
     void addrWrite(uint8_t reg,byte* data);

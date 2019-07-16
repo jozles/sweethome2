@@ -40,7 +40,6 @@ void tableCInit()
     tableC[i].numPipe=i%NB_PIPE;      // (0->5)
     tableC[i].numPeri=0;
     memcpy(tableC[i].pipeAddr,R0_ADDR,ADDR_LENGTH-1);
-    //sprintf(tableC[i].pipeAddr+3,"%02d",(tableC[i].numCirc*10+tableC[i].numPipe));
     tableC[i].pipeAddr[ADDR_LENGTH-1]='0'+(tableC[i].numCirc*NB_PIPE)+tableC[i].numPipe;
     memcpy(tableC[i].periMac,"00000",ADDR_LENGTH);
   }

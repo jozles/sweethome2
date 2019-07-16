@@ -1,5 +1,5 @@
 
-#include <nRF24L01.h>
+#include "nRF24L01.h"
 #include "nrf24l01p.h"
 #include "conc_nrf_const.h"
 
@@ -11,7 +11,7 @@ Nrfp nrfp;
 struct NrfConTable tableC[NBPERIF];
 #endif NRF_MODE == 'C'
 
-#define LED 5
+
 uint16_t blkdelay=0;
 long blktime=0;
 uint8_t bcnt=0;
@@ -22,53 +22,59 @@ uint8_t bcnt=0;
 unsigned long time_beg=millis();
 unsigned long time_end;
 byte    message[MAX_PAYLOAD_LENGTH+1];
+uint8_t circuit=CIRCUIT;
 uint8_t pipe;
 uint8_t pldLength;
 byte    ccPipe[]={"00000\0"};   // adresse pipe du concentrateur après inscription
 bool    confSta=false;          // pour 'P' true si inscription ok
+byte    sta;
+int     gdSta=0;
+long    readTo=0;
+#define TO_GDS 1000
 
-
-long readTo=0;
-
-char* kk={"ko\0ok\0"}; 
+char* kk={"rt\0le\0pi\0TO\0ok\0"}; 
 
 /* prototypes */
 
 char getch();
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
-
+void printAddr(char* addr);
 #if NRF_MODE == 'C'
   void echo();
   void broadcast();
 #endif NRF_MODE == 'C'
  
+#if NRF_MODE == 'P'
+void beginP()
+{
+  confSta=false;
+  while(!confSta){
+    confSta=nrfp.begin(); // -3 max RT ; -2 len ; -1 pipe ; 0 na ; 1 ok
+    Serial.print("start ");
+    Serial.print((char*)(kk+(confSta+3)*3));
+    Serial.print(" ccPipe=");Serial.println((char*)ccPipe);
+    
+    ledblk(TBLK,DBLK,IBLK,1);
+  }
+}
+#endif NRF_MODE == 'P'
 
 void setup() {
   
   Serial.begin(115200);
 
-  nrfp.setup(NRF_MODE,CE_PIN,CSN_PIN,NB_CIRCUIT,CHANNEL,(byte*)BR_ADDR,(byte*)CC_ADDR,(byte*)R0_ADDR,(byte*)&ccPipe); // doit être la première fonction
+  nrfp.setup(NRF_MODE,CE_PIN,CSN_PIN,NB_CIRCUIT,CHANNEL,RF_SPEED,(ARD-1)*16+ARC,(byte*)BR_ADDR,(byte*)CC_ADDR,(byte*)R0_ADDR,(byte*)&ccPipe); // doit être la première fonction
 
-  nrfp.setNum(0,BALISE);  // numéro circuit courant, numéro balise
-                          // si 'P' sans effet
-  nrfp.start();
+  nrfp.setNum(circuit,BALISE);  // numéro circuit courant, numéro balise
+                                // si 'P' sans effet
+  nrfp.confCircuit();
   
   pinMode(LED,OUTPUT);
   
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}
 
 #if NRF_MODE == 'P'
-  
-  confSta=false;
-  while(!confSta){
-    confSta=nrfp.begin();
-    Serial.print("start ");
-    Serial.print((char*)(kk+confSta*3));
-    Serial.print(" ccPipe=");Serial.println((char*)ccPipe);
-    
-    ledblk(TBLK,DBLK,IBLK,1);
-  }
-
+  beginP();
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -93,7 +99,7 @@ void setup() {
       memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
       pldLength=MAX_PAYLOAD_LENGTH;                   // max length
       
-      if(nrfp.getData(message,&pipe,&pldLength)==1){  // data ready, no error
+      if(nrfp.read(message,&pipe,&pldLength)==1){  // data ready, no error
         Serial.print("received ");Serial.print((char*)message);Serial.print(" l=");Serial.print(pldLength);Serial.print(" p=");Serial.print(pipe);
         if(message[0]=='p' && pipe==0){               // register request
         //if(numNrf==BALISE && pipe==0){             
@@ -111,7 +117,7 @@ void setup() {
             nrfp.write(tableC[i].pipeAddr,'A',ADDR_LENGTH,tableC[i].periMac);     // send pipeAddr to peri(macAddr)
             int trst=1;
             while(trst==1){trst=nrfp.transmitting();}
-            if(trst<0){memset(tableC[i].periMac,'0',ADDR_LENGTH);i=NBPERIF+2;}   // MAX_RT -> effacement table ; la pi_addr sera effacée
+            if(trst<0){memset(tableC[i].periMac,'0',ADDR_LENGTH);i=NBPERIF+2;}    // MAX_RT -> effacement table ; la pi_addr sera effacée
                                                                                   // pour non réponse à la première tentative de TX
           }
           if(i!=0 && i<(NBPERIF+2)){
@@ -128,9 +134,9 @@ void setup() {
     
     char a=getch();
     switch(a){
-      case 'e':echo();menu=true;break;
-      case 'b':broadcast();menu=true;break;
-      case 't':tableCPrint();menu=true;break;
+      case 'e':echo(a);menu=true;break;
+      case 'b':broadcast(a);menu=true;break;
+      case 't':Serial.println((char)a);tableCPrint();menu=true;break;
       default:break;
     }
   }               // menu loop
@@ -142,77 +148,57 @@ void loop() {
 #if NRF_MODE == 'P'
 
 #define TR_TO 1000
+pldLength=MAX_PAYLOAD_LENGTH;
 long tr_beg;
 int trst;
+int gdSt=0;
 
-  while(nrfp.getData(message,&pipe,&pldLength)!=1){ledblk(TBLK,DBLK,IBLK,2);}
-  Serial.print("rx ");
-  Serial.print((char*)message);
+  if(*ccPipe=='0'){beginP();}
   
-  nrfp.write(message,'A',pldLength,ccPipe);
-   
-  Serial.print(" p=");Serial.print(pipe);
-  Serial.print(" l=");Serial.print(pldLength);
-  Serial.println(" transmit...");
+  while(gdSt==0){
+    gdSt=nrfp.read(message,&pipe,&pldLength);ledblk(TBLK,DBLK,IBLK,2);}
 
+  if(gdSt==1){
+    Serial.print(" rx ");
+    Serial.print((char*)message);
   
-  tr_beg=millis();
-  trst=1;
-  while((trst>0) && ((millis()-tr_beg)<TR_TO)){trst=nrfp.transmitting();}
-  if((millis()-tr_beg)>=TR_TO){Serial.println("..TO..");}
-  if(trst<0){Serial.println("..MAX-RT..");}
-  else{Serial.println("..ok..");}  
+    nrfp.write(message,'A',pldLength,ccPipe);       // le peri parle toujours à ccPipe
+                                                    // si ccPipe=='0' begin() est à refaire
+    Serial.print(" p=");Serial.print(pipe);
+    Serial.print(" l=");Serial.print(pldLength);
+    Serial.print(" transmit to ");
+    printAddr(ccPipe);
+
+    tr_beg=millis();
+    trst=1;
+    while((trst>0) && ((millis()-tr_beg)<TR_TO)){trst=nrfp.transmitting();}
+    if((millis()-tr_beg)>=TR_TO){Serial.println("erreur TO ACK");}
+    if(trst<0){Serial.println("erreur MAX-RT");}
+    else{Serial.println("..ok..");}  
+  }
+  else {Serial.print(" erreur reception ");Serial.println((char*)(kk+(gdSt+3)*3));}
   
 #endif
 } 
 
 #if NRF_MODE == 'C'
 
-void echo()
+void echo(char a)
 {
-#define TO_GDS 1000  
   int cnt=0;
   int cntko=0;
-  pldLength=MAX_PAYLOAD_LENGTH;
+
+  Serial.println((char)a);
   
   while (getch()!='q'){
-        
-    int gdSta=0;
-    int trst=1;
+
     uint8_t numP=1;
     cnt++;
     sprintf(message,"%05d",cnt);
-    message[5]='*';
+    echo0(message,5,tableC[numP].periMac);      // le concentrateur parle toujours à periMac
+                                                // si periMac ne répond plus ... à voir
 
-    Serial.print((char*)message);Serial.print(" to -> ");printAddr(tableC[numP].periMac,' ');
-
-    time_beg = micros();
-    nrfp.write(message,'A',6,tableC[numP].periMac);
-
-    while(trst>0){trst=nrfp.transmitting();if(getch()=='q'){return;}}
-
-    switch(trst){
-      case 0://Serial.print("..txd..");
-        readTo=millis();
-        gdSta=0;
-        while((gdSta!=1) && ((millis()-readTo)<TO_GDS)){
-          gdSta=nrfp.getData(message,&pipe,&pldLength);if(getch()=='q'){return;}}
-          time_end=micros();
-        //Serial.print(" gdSta=");Serial.print(gdSta);Serial.print(" millis()-readTo=");Serial.println(millis()-readTo);
-        if((millis()-readTo)>=TO_GDS){cntko++;Serial.print("...TO...(");Serial.print(cntko);Serial.println(")");}
-        else if(gdSta==-1){cntko++;Serial.print("...pipe or length error...(");Serial.print(cntko);Serial.println(")");}
-        else{
-          Serial.print(" received ");  
-          Serial.print((char*)message);
-          Serial.print(" p/l:");Serial.print(pipe);Serial.print("/");Serial.print(pldLength);
-          Serial.print(" in:");
-          Serial.print(time_end - time_beg); 
-          Serial.println("us");
-        }break;
-      case -1:Serial.println("...MAX_RT...");break;
-      default:break;
-    }
-    delay(2000);
+    delay(2000);ledblk(TBLK,DBLK,IBLK,2);
   } 
 }
 
@@ -224,31 +210,84 @@ char getch()
   return 0;
 }
 
-
-void broadcast()
+void showSta(uint8_t nb)
 {
-
-  time_beg = micros();  
-  sprintf(message,"%08d",time_beg);
-  message[strlen(message)+1]='\0';  
-  message[strlen(message)]='+';
-
-
-  time_beg = micros();
-  
-  nrfp.write(message,'N',9,BR_ADDR);
-  
-  while(nrfp.transmitting()){}
-
-  time_end=micros();
-
-  Serial.print((char*)message);  
-  Serial.print(" transmitted to ");  
-  Serial.print(BR_ADDR);Serial.print(" in:");
-  Serial.print(time_end - time_beg); 
-  Serial.println("us");
+  Serial.print(nb);
+  Serial.print(" >>> sta ");
+  nrfp.regRead(7,&sta);
+  Serial.println(sta,HEX);
 }
 
+void broadcast(char a)
+{           
+  Serial.println((char)a);
+//showSta(1);
+ 
+  sprintf(message,"%08lu",millis());
+
+  echo0(message,8,BR_ADDR);
+//showSta(5);
+
+}
+
+int txecho(char* message,uint8_t len,byte* addr)
+{
+  time_beg = micros();
+  
+  nrfp.write(message,'A',len+1,addr);
+
+  Serial.print("!");
+
+  int trSta=1;
+  while(trSta==1){
+    trSta=nrfp.transmitting();}
+
+  time_end=micros();
+/*  Serial.print((char*)message);  
+  Serial.print(" transmitted to ");  
+  Serial.print((char*)addr);Serial.print(" in:");
+  Serial.print((long)(time_end - time_beg)); 
+  Serial.println("us");
+*/
+  return trSta;
+}
+
+void echo0(char* message,uint8_t len,byte* addr)
+{ 
+  message[len]='+';
+  message[len+1]='\0';
+
+  int trSta=-1;
+  //uint8_t txcnt=0;
+  //while(txcnt<4 && trSta<0){
+    trSta=txecho(message,len,addr);
+    //txcnt++;}
+
+//showSta(2);
+  
+  if(trSta<0){Serial.print("********** maxRT ");}
+  else{
+    memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
+    pldLength=MAX_PAYLOAD_LENGTH;                   // max length
+    readTo=0;
+    gdSta=0;
+    long read_beg=millis();
+    while((gdSta==0)&& (readTo>=0)){
+//showSta(3);    
+      gdSta=nrfp.read(message,&pipe,&pldLength);
+//showSta(4);
+      readTo=TO_GDS-millis()+read_beg;}    
+    time_end=micros();
+    if(gdSta==1){  // data ready, no error
+      uint8_t numP=circuit*NB_PIPE+pipe;
+      Serial.print("received on ");printAddr(tableC[numP].pipeAddr);Serial.print(" ");
+      Serial.print((char*)message);Serial.print(" l=");
+      Serial.print(pldLength);Serial.print(" p=");Serial.print(pipe);
+    }
+    else{Serial.print("error ");Serial.print((char*)kk+(gdSta+3)*3);} 
+    Serial.print(" in:");Serial.print((long)(time_end - time_beg));Serial.println("us");
+  }
+}
 #endif NRF_MODE == 'C'
 
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
@@ -263,3 +302,10 @@ void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
   }
 }
 
+void printAddr(char* addr)
+{
+  char paddr[ADDR_LENGTH+1];
+  memcpy(paddr,addr,ADDR_LENGTH);
+  paddr[ADDR_LENGTH]='\0';
+  Serial.print(paddr);Serial.print(" ");
+}
