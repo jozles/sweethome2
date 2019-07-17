@@ -2,7 +2,9 @@
 #include "nRF24L01.h"
 #include "nrf24l01p.h"
 #include "conc_nrf_const.h"
-
+#ifdef DS18X20
+#include <ds18x20.h>
+#endif DS18X20
 
 Nrfp nrfp;
 
@@ -32,6 +34,14 @@ int     gdSta=0;
 long    readTo=0;
 #define TO_GDS 1000
 
+#ifdef DS18X20
+Ds1820 ds1820;
+float   temp; 
+bool    dsSta=false;
+byte    setds[]={0,0x7f,0x80,0x3f},readds[8];   // 187mS 10 bits accu 0,25°
+#define TCONVDS 200
+#endif DS18X20 
+
 char* kk={"rt\0le\0pi\0TO\0ok\0"}; 
 
 /* prototypes */
@@ -39,6 +49,7 @@ char* kk={"rt\0le\0pi\0TO\0ok\0"};
 char getch();
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
 void printAddr(char* addr);
+int  txMessage(char* message,uint8_t len,byte* addr);
 #if NRF_MODE == 'C'
   void echo();
   void broadcast();
@@ -54,7 +65,7 @@ void beginP()
     Serial.print((char*)(kk+(confSta+3)*3));
     Serial.print(" ccPipe=");Serial.println((char*)ccPipe);
     
-    ledblk(TBLK,DBLK,IBLK,1);
+    delayBlk(TBLK,DBLK,IBLK,1,1000);
   }
 }
 #endif NRF_MODE == 'P'
@@ -62,6 +73,10 @@ void beginP()
 void setup() {
   
   Serial.begin(115200);
+
+#ifdef DS18X20  
+  dsSta=ds1820.setDs(WPIN,setds,readds);   // setup ds18b20
+#endif DS18X20
 
   nrfp.setup(NRF_MODE,CE_PIN,CSN_PIN,NB_CIRCUIT,CHANNEL,RF_SPEED,(ARD-1)*16+ARC,(byte*)BR_ADDR,(byte*)CC_ADDR,(byte*)R0_ADDR,(byte*)&ccPipe); // doit être la première fonction
 
@@ -147,13 +162,32 @@ void loop() {
 
 #if NRF_MODE == 'P'
 
-#define TR_TO 1000
+#define TR_TO  1000
+#define RDY_TO 3600000
 pldLength=MAX_PAYLOAD_LENGTH;
 long tr_beg;
-int trst;
-int gdSt=0;
+long timeRdy=0;   // force message
+int  trst;
+int  gdSt=0;
 
   if(*ccPipe=='0'){beginP();}
+
+  if((millis()-timeRdy)>RDY_TO){
+    
+    sprintf(message,"%08ld",millis());
+    strcat(message+8,"ready");
+
+#ifdef DS18X20    
+    ds1820.convertDs(WPIN);
+    delay(TCONVDS);
+    temp=ds1820.readDs(WPIN);
+    sprintf(message+13,"%+02.2f",temp/100);                                
+    if((strstr(message,"nan")!=0) || !dsSta){strcpy(message+13,"+00.00\0");}
+#endif DS18X20
+
+    trst=txMessage(message,19,ccPipe);
+    if(trst<0){Serial.print((char*)message);Serial.println(" ********** maxRT ");beginP();}
+  }
   
   while(gdSt==0){
     gdSt=nrfp.read(message,&pipe,&pldLength);ledblk(TBLK,DBLK,IBLK,2);}
@@ -230,27 +264,6 @@ void broadcast(char a)
 
 }
 
-int txecho(char* message,uint8_t len,byte* addr)
-{
-  time_beg = micros();
-  
-  nrfp.write(message,'A',len+1,addr);
-
-  Serial.print("!");
-
-  int trSta=1;
-  while(trSta==1){
-    trSta=nrfp.transmitting();}
-
-  time_end=micros();
-/*  Serial.print((char*)message);  
-  Serial.print(" transmitted to ");  
-  Serial.print((char*)addr);Serial.print(" in:");
-  Serial.print((long)(time_end - time_beg)); 
-  Serial.println("us");
-*/
-  return trSta;
-}
 
 void echo0(char* message,uint8_t len,byte* addr)
 { 
@@ -258,14 +271,15 @@ void echo0(char* message,uint8_t len,byte* addr)
   message[len+1]='\0';
 
   int trSta=-1;
-  //uint8_t txcnt=0;
-  //while(txcnt<4 && trSta<0){
-    trSta=txecho(message,len,addr);
-    //txcnt++;}
+  trSta=txMessage(message,len,addr);
 
 //showSta(2);
   
-  if(trSta<0){Serial.print("********** maxRT ");}
+  if(trSta<0){Serial.print("********** maxRT ");
+#if NRF_MODE == 'P'
+    beginP();
+#endif NRF_MODE == 'P'
+  }
   else{
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     pldLength=MAX_PAYLOAD_LENGTH;                   // max length
@@ -285,10 +299,39 @@ void echo0(char* message,uint8_t len,byte* addr)
       Serial.print(pldLength);Serial.print(" p=");Serial.print(pipe);
     }
     else{Serial.print("error ");Serial.print((char*)kk+(gdSta+3)*3);} 
-    Serial.print(" in:");Serial.print((long)(time_end - time_beg));Serial.println("us");
   }
+  Serial.print(" in:");Serial.print((long)(time_end - time_beg));Serial.println("us");
 }
 #endif NRF_MODE == 'C'
+
+int txMessage(char* message,uint8_t len,byte* addr)
+{
+  time_beg = micros();
+  
+  nrfp.write(message,'A',len+1,addr);
+
+  Serial.print("!");
+
+  int trSta=1;
+  while(trSta==1){
+    trSta=nrfp.transmitting();}
+
+  time_end=micros();
+  Serial.print((char*)message);  
+  Serial.print(" transmitted to ");  
+  Serial.print((char*)addr);Serial.print(" in:");
+  Serial.print((long)(time_end - time_beg)); 
+  Serial.println("us");
+
+  return trSta;
+}
+
+
+void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,long dly)
+{
+  long tt=millis();
+  while((millis()-tt)<dly){ledblk(dur,bdelay,bint,bnb);}
+}
 
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
 {

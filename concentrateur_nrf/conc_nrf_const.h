@@ -53,6 +53,7 @@ concentrateur en PTX "normal"
    TX =  idem
 
 */  
+  //#define DS18X20
 
   #define NBPERIF 24            // pour taille table
 
@@ -61,6 +62,7 @@ concentrateur en PTX "normal"
 //************************/
 
   #define LED        5          // pin pour Led (13 pris par le clk du SPI)
+  #define WPIN       3          // pin thermomètre
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    10         // pin pour CS du SPI
   #define NB_CIRCUIT 1          // nombre de circuits nrf
