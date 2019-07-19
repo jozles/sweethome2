@@ -74,6 +74,8 @@ byte baseAddr[MAX_NRF*ADDR_LENGTH];       // RX_P0 pour chaque circuit
 
 uint8_t regw,stat,fstat,conf;
 
+bool powerD=true;
+
 
 Nrfp::Nrfp()    // constructeur
 {
@@ -231,20 +233,27 @@ void Nrfp::powerUp()
     conf=CONFREG;                         // powerUP
     regWrite(CONFIG,&conf);
 
+    powerD=false;
+
     delay(5);
 }
 
 void Nrfp::powerDown()
 {
-    CE_LOW
+    if(!powerD){            // si power down, ça bloque de refaire...
 
-    conf=CONFREG & ~(PWR_UP_BIT);          // powerDown
-    regWrite(CONFIG,&conf);
+        powerD=true;
 
-    CSN_OFF
-    CE_OFF
+        CE_LOW
 
-    SPI_OFF
+        conf=CONFREG & ~(PWR_UP_BIT);          // powerDown
+        regWrite(CONFIG,&conf);
+
+        CSN_OFF
+        CE_OFF
+
+        SPI_OFF
+    }
 }
 
 void Nrfp::setTx()

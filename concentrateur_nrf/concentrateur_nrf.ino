@@ -126,6 +126,7 @@ void setup() {
   dsSta=ds1820.setDs(WPIN,setds,readds);   // setup ds18b20
   dsM='B';if(ds1820.dsmodel==MODEL_S){dsM='S';}
 #endif DS18X20
+  Serial.println("end setup");delay(1);
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -205,10 +206,11 @@ void loop() {
   while((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)){
     awakeCnt--;
     awakeMinCnt--;
-    digitalWrite(LED,HIGH);delayMicroseconds(500);digitalWrite(LED,LOW); // 1mA rc=0,5/8000 -> 62nA
+    pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delayMicroseconds(500);digitalWrite(LED,LOW); // 1mA rc=0,5/8000 -> 62nA
     sleepPwrDown(8000);
+    Serial.print("awaken... ");Serial.println(awakeCnt);delay(10);
   }
-
+  Serial.println("awaken...... ");delay(10);
   awakeCnt=AWAKE_OK_VALUE;
 
   /*****  Here are data acquisition/checking to determine if nfr should be powered up *****
@@ -222,15 +224,17 @@ void loop() {
 #if TCONVDS != 200
     tconv // TCONVDS not 200 ... adjust sleep time
 #endif
+    Serial.println("awaken........ ");delay(10);
     sleepPwrDown(250); 
+    Serial.println("awaken......... ");delay(10);
 
     temp=ds1820.readDs(WPIN);Serial.print(temp);Serial.print(" ");Serial.print(millis());Serial.print(" ");Serial.print(awakeCnt);Serial.print(" ");Serial.print(awakeMinCnt);Serial.print(" ");Serial.println(retryCnt);
   }
 #endif DS18X20  
   if((temp>(previousTemp+deltaTemp))||(temp<(previousTemp-deltaTemp))||(awakeMinCnt<0)||(retryCnt!=0)){
 
-    nrfp.powerUp();                   // 5mS delay inside
-
+    hardwarePowerUp();                   // 5mS delay inside
+    Serial.println("awaken............. ");delay(10);
     uint8_t outLength=0;
     char    outMessage[MAX_PAYLOAD_LENGTH+1];
     int     trst;     // status retour txMessage
@@ -452,31 +456,43 @@ void wdtSetup(uint16_t durat)  // durat=0 for external wdt on INT0
  *   l'instrction wdr reset le timer (wdt_reset();)
  */
 
-  WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
-                                    // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants
+    WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
+                                      // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants
+    WDTCSR = (1<<WDIE) | (1<<WDP0) | (1<<WDP3);   // WDCE doit être 0 ; WDE=0 ; WDIE=1 mode interruption, 8s
+                                    
   if(durat==8000){
+    WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
+                                      // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants
     WDTCSR = (1<<WDIE) | (1<<WDP0) | (1<<WDP3);}   // WDCE doit être 0 ; WDE=0 ; WDIE=1 mode interruption, 8s
-  else if(durat==250){                                             
+  else if(durat==250){
+    WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
+                                      // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants                                             
     WDTCSR = (1<<WDIE) | (1<<WDP0);}
   else if(durat==16){
+    WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
+                                      // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants
     WDTCSR = (1<<WDIE) | (1<<WDP0);}
-    
+
   interrupts();
+Serial.println("wdtsetup");delay(10);
+
 }
 
 void sleepPwrDown(uint16_t durat) {
- 
+
+Serial.println("sleepPowerDown");delay(10); 
     hardwarePowerDown();
+Serial.println("hardware down");delay(10);     
     wdtSetup(durat);
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     power_adc_disable();
     sleep_enable();
- 
+Serial.println("sleep_enable");delay(10); 
     sleep_mode();
-  
+Serial.println("awaken");delay(10);   
     sleep_disable();
     power_all_enable();
-    hardwarePowerUp();
+    //hardwarePowerUp();
 }
 
 ISR(WDT_vect)                      // ISR interrupt service pour vecteurs d'IT du MPU (ici vecteur WDT)
