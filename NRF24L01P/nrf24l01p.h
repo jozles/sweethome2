@@ -37,10 +37,11 @@
  *    available() (f)(g)(h)
  *                recharge RX_ADDR_P0 si nécessaire (vidage FIFO dans ce cas)
  *                passe en mode prx (pwrUpTx+CE_HIGH) si nécessaire au premier test
- *                termine avec CE_LOW si true (fin du mode prx)
- *    Read()      (i)
  *                contrôle la longueur maxi, transfère le message
  *                et récupère la longueur reçue et le n° de pipe
+ *                termine avec CE_LOW si true (fin du mode prx)
+ *    Read()      (f)(g)(h)(i)
+ *                effectue available()
  *
  *
  *             ***** utilisation des pipes *****

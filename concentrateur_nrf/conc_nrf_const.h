@@ -3,6 +3,9 @@
 
 #include "nrf24l01p.h"
 
+#define VERSION "1.10"
+#define LENVERSION 4
+
 /*
   *** périphérique ***
 
@@ -53,12 +56,12 @@ concentrateur en PTX "normal"
    TX =  idem
 
 */  
-  //#define DS18X20
+  #define DS18X20
 
   #define NBPERIF 24            // pour taille table
 
 //************************/
-  #define NRF_MODE 'C'   //      C concentrateur ; P périphérique
+  #define NRF_MODE 'P'   //      C concentrateur ; P périphérique
 //************************/
 
   #define LED        5          // pin pour Led (13 pris par le clk du SPI)
