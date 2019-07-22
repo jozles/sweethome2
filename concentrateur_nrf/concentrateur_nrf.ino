@@ -1,22 +1,23 @@
 #include "nRF24L01.h"
 #include "nrf24l01p.h"
-#include "conc_nrf_const.h"
+#include "nrf24l01p_const.h"
 
 #if  NRF_MODE == 'P'
 #include <avr/sleep.h>
 #include <avr/power.h>
+
+#define DS18X20
 #ifdef DS18X20
 #include <ds18x20.h>
+#define WPIN       3          // pin thermomètre
 #endif DS18X20
 #endif NRF_MODE == 'P'
 
-Nrfp nrfp;
-
 #if NRF_MODE == 'C'
-#include "table_conc_nrf.h"
-struct NrfConTable tableC[NBPERIF];
+extern struct NrfConTable tableC[NBPERIF];
 #endif NRF_MODE == 'C'
 
+Nrfp nrfp;
 
 uint16_t blkdelay=0;
 long blktime=0;
@@ -31,7 +32,6 @@ byte    message[MAX_PAYLOAD_LENGTH+1];
 uint8_t circuit=CIRCUIT;
 uint8_t pipe;
 uint8_t pldLength;
-byte    ccPipe[]={"00000\0"};   // adresse pipe du concentrateur après inscription
 bool    confSta=false;          // pour 'P' true si inscription ok
 byte    sta;
 #define TO_GDS 1000
@@ -40,6 +40,8 @@ long    readTo=0;
 char*   kk={"rt\0le\0pi\0TO\0ok\0"}; // erreurs en transmission (maxrt, length, pipe)
 
 #if NRF_MODE == 'P'
+
+byte    ccPipe[]={"00000\0"};   // adresse pipe du concentrateur après inscription
 #define RDY_TO 120000
 long    timeRdy=-RDY_TO;        // pour message de présence
 bool    reveil=true;
@@ -68,8 +70,8 @@ float   volts=0;
 /* prototypes */
 
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
-void printAddr(char* addr);
-int  txMessage(char* message,char ack,uint8_t len,byte* addr);
+//void printAddr(char* addr);
+int  txMessage(char* message,char ack,uint8_t len,uint8_t numP);
 #if NRF_MODE == 'C'
   char getch();
   void echo();
@@ -96,7 +98,7 @@ void beginP()
 {
   confSta=false;
   while(!confSta){
-    confSta=nrfp.begin(); // -3 max RT ; -2 len ; -1 pipe ; 0 na ; 1 ok
+    confSta=nrfp.confCircuit(); // -3 max RT ; -2 len ; -1 pipe ; 0 na ; 1 ok
     Serial.print("start ");
     Serial.print((char*)(kk+(confSta+3)*3));
     Serial.print(" ccPipe=");Serial.println((char*)ccPipe);
@@ -110,16 +112,12 @@ void setup() {
   
   Serial.begin(115200);
 
-  nrfp.setup(NRF_MODE,CE_PIN,CSN_PIN,NB_CIRCUIT,CHANNEL,RF_SPEED,(ARD-1)*16+ARC,(byte*)BR_ADDR,(byte*)CC_ADDR,(byte*)R0_ADDR,(byte*)&ccPipe); // doit être la première fonction
-
-  nrfp.setNum(circuit,BALISE);  // numéro circuit courant, numéro balise
-                                // si 'P' sans effet
-
 #if NRF_MODE == 'P'
-  hardwarePowerUp();                                
-  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}
   
-  nrfp.confCircuit();
+  nrfp.setup((byte*)&ccPipe);
+  hardwarePowerUp();                                
+  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}        // 800mS ?
+  
   beginP();
   
 #ifdef DS18X20  
@@ -131,13 +129,15 @@ void setup() {
 
 #if NRF_MODE == 'C'
 
+  nrfp.setup();
+  nrfp.setNum(circuit,BALISE);  // numéro circuit courant, numéro balise
+
   pinMode(LED,OUTPUT);
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}
 
-  tableCInit();//tableCPrint();
+  nrfp.tableCInit();//nrfp.tableCPrint();
   nrfp.powerUp();
   nrfp.confCircuit();
-  nrfp.begin();
   
   Serial.println("start");
   
@@ -155,11 +155,13 @@ void setup() {
       memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
       pldLength=MAX_PAYLOAD_LENGTH;                   // max length
       
-      if(nrfp.read(message,&pipe,&pldLength)==1){  // data ready, no error
+      if(nrfp.read(message,&pipe,&pldLength)==1){     // data ready, no error
         showRx();
-        if(pipe==0){                           // register request
-        //if(numNrf==BALISE && pipe==0){             
-     
+        if(pipe==0){                                  // register request
+
+          byte pAd[ADDR_LENGTH];             
+          uint8_t numP=nrfp.cRegister(message,pAd);
+/*     
           uint8_t i,k=0,z=0;    // search free line or existing macAddr
           for(i=1;i<NBPERIF;i++){ 
             if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){k=i;break;}      // already existing
@@ -176,9 +178,10 @@ void setup() {
             if(trst<0){memset(tableC[i].periMac,'0',ADDR_LENGTH);i=NBPERIF+2;}    // MAX_RT -> effacement table ; la pi_addr sera effacée
                                                                                   // pour non réponse à la première tentative de TX
           }
-          if(i!=0 && i<(NBPERIF+2)){
-            Serial.print(" registred on addr ");printAddr(tableC[i].pipeAddr,'n');}
-          else if(i==(NBPERIF+2)){Serial.print(" MAX_RT ... deleted");}
+*/          
+          if(numP!=0 && numP<(NBPERIF+2)){
+            Serial.print(" registred on addr (");Serial.print(numP);Serial.print(")");nrfp.printAddr(pAd,'n');}
+          else if(numP==(NBPERIF+2)){Serial.print(" MAX_RT ... deleted");}
           else {Serial.print(" full");}
         }
         else{};  // pas demande d'inscription... à traiter
@@ -192,7 +195,7 @@ void setup() {
     switch(a){
       case 'e':echo(a);menu=true;break;
       case 'b':broadcast(a);menu=true;break;
-      case 't':Serial.println((char)a);tableCPrint();menu=true;break;
+      case 't':Serial.println((char)a);nrfp.tableCPrint();menu=true;break;
       default:break;
     }
   }               // menu loop
@@ -208,9 +211,8 @@ void loop() {
     awakeMinCnt--;
     pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delayMicroseconds(500);digitalWrite(LED,LOW); // 1mA rc=0,5/8000 -> 62nA
     sleepPwrDown(8000);
-    Serial.print("awaken... ");Serial.println(awakeCnt);delay(10);
   }
-  Serial.println("awaken...... ");delay(10);
+
   awakeCnt=AWAKE_OK_VALUE;
 
   /*****  Here are data acquisition/checking to determine if nfr should be powered up *****
@@ -224,9 +226,8 @@ void loop() {
 #if TCONVDS != 200
     tconv // TCONVDS not 200 ... adjust sleep time
 #endif
-    Serial.println("awaken........ ");delay(10);
+
     sleepPwrDown(250); 
-    Serial.println("awaken......... ");delay(10);
 
     temp=ds1820.readDs(WPIN);Serial.print(temp);Serial.print(" ");Serial.print(millis());Serial.print(" ");Serial.print(awakeCnt);Serial.print(" ");Serial.print(awakeMinCnt);Serial.print(" ");Serial.println(retryCnt);
   }
@@ -234,7 +235,7 @@ void loop() {
   if((temp>(previousTemp+deltaTemp))||(temp<(previousTemp-deltaTemp))||(awakeMinCnt<0)||(retryCnt!=0)){
 
     hardwarePowerUp();                   // 5mS delay inside
-    Serial.println("awaken............. ");delay(10);
+
     uint8_t outLength=0;
     char    outMessage[MAX_PAYLOAD_LENGTH+1];
     int     trst;     // status retour txMessage
@@ -257,7 +258,7 @@ void loop() {
     outMessage[outLength]='\0';
 
     /* sending message */
-    trst=txMessage(outMessage,'A',outLength,ccPipe);
+    trst=txMessage(outMessage,'A',outLength,1);  // 0 -> CC_ADDR  ; !=0 -> pi_addr
     if(trst<0){
       // si le message ne part pas, essai aux (RETRY_VALUE-1) prochains réveils 
       // puis après AWAKE_KO_VALUE réveils
@@ -276,44 +277,8 @@ void loop() {
     }
   }
   delay(1);  // pour serial
-/*  
-    pldLength=MAX_PAYLOAD_LENGTH;
 
-  gdSt=nrfp.read(message,&pipe,&pldLength);
-  ledblk(TBLK,DBLK,IBLK,2);
-
-  switch(gdSt){
-    case 0: if((millis()-timeRdy)>RDY_TO){                          // envoi présence ?
-              timeRdy=millis();
-              sprintf(outMessage,"%08ld",millis());
-              outLength=8;
-              #ifdef DS18X20    
-                ds1820.convertDs(WPIN);
-                delay(TCONVDS);
-                temp=ds1820.readDs(WPIN);Serial.println(temp);
-                outMessage[outLength]='+';if(temp<0){outMessage[outLength]='-';}
-                dtostrf(temp,5,2,outMessage+outLength+1);                               
-                if((strstr(outMessage,"nan")!=0) || !dsSta){strcpy((char*)(outMessage+outLength),"+00.00\0");}
-                outLength+=6;
-              #endif DS18X20
-              trst=txMessage(outMessage,'A',outLength,ccPipe);
-              if(trst<0){Serial.print((char*)outMessage);Serial.println(" ********** maxRT ");}
-            }break;
-    case 1: Serial.print(" rx ");                                   // reçu message ok
-            Serial.print((char*)message);
-            Serial.print(" p=");Serial.print(pipe);
-            Serial.print(" l=");Serial.print(pldLength);
-            Serial.print(" transmit to ");printAddr(ccPipe);
-            trst=txMessage(message,'A',pldLength,ccPipe);       // echo - le peri parle toujours à ccPipe
-            if(trst<0){Serial.println("erreur MAX-RT");}
-            else{Serial.println("..ok..");}  
-            break;
-    case -1:Serial.print(" erreur reception ");Serial.println((char*)(kk+(gdSt+3)*3));
-            break;
-    default:break;
-  }
-  }*/
-#endif
+#endif // NRF_MODE == 'P'
 } 
 
 #if NRF_MODE == 'C'
@@ -366,13 +331,13 @@ void broadcast(char a)
 }
 
 
-void echo0(char* message,uint8_t len,byte* addr)
+void echo0(char* message,uint8_t len,uint8_t numP)
 { 
   message[len]='+';
   message[len+1]='\0';
 
   int trSta=-1;
-  trSta=txMessage(message,'A',len,addr);
+  trSta=txMessage(message,'A',len,numP);
 
 //showSta(2);
   
@@ -404,8 +369,10 @@ void echo0(char* message,uint8_t len,byte* addr)
 void showRx()
 {
   uint8_t numP=circuit*NB_PIPE+pipe;
-  char pipeAd[ADDR_LENGTH];
+  byte pipeAd[ADDR_LENGTH];
   #if NRF_MODE=='C'
+  for(int i=0;i<ADDR_LENGTH;i++){
+    pipeAd[i]=tableC[numP].pipeAddr[i];}
   memcpy(pipeAd,tableC[numP].pipeAddr,ADDR_LENGTH);
   #endif NRF_MODE=='C'
   #if NRF_MODE=='P'
@@ -416,7 +383,7 @@ void showRx()
   }
   #endif NRF_MODE=='P'  
   Serial.print((char*)message);
-  Serial.print(" received on ");printAddr(pipeAd);
+  Serial.print(" received on ");nrfp.printAddr(pipeAd,' ');
   Serial.print(" l=");Serial.print(pldLength);
   Serial.print(" p=");Serial.print(pipe);
   Serial.print(" numP=");Serial.print(numP);
@@ -474,20 +441,19 @@ void wdtSetup(uint16_t durat)  // durat=0 for external wdt on INT0
     WDTCSR = (1<<WDIE) | (1<<WDP0);}
 
   interrupts();
-Serial.println("wdtsetup");delay(10);
 
 }
 
 void sleepPwrDown(uint16_t durat) {
 
-Serial.println("sleepPowerDown");delay(10); 
+
     hardwarePowerDown();
-Serial.println("hardware down");delay(10);     
+
     wdtSetup(durat);
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     power_adc_disable();
     sleep_enable();
-Serial.println("sleep_enable");delay(10); 
+Serial.print("sleep_enable ");Serial.println(durat);delay(10); 
     sleep_mode();
 Serial.println("awaken");delay(10);   
     sleep_disable();
@@ -502,7 +468,7 @@ ISR(WDT_vect)                      // ISR interrupt service pour vecteurs d'IT d
 
 #endif NRF_MODE == 'P'
 
-int txMessage(char* message,char ack,uint8_t len,byte* addr)
+int txMessage(char* message,char ack,uint8_t len,uint8_t numP)
 {
 #if NRF_MODE=='P'  
   if(*ccPipe=='0'){beginP();}
@@ -510,7 +476,7 @@ int txMessage(char* message,char ack,uint8_t len,byte* addr)
   
   time_beg = micros();
   
-  nrfp.write(message,ack,len+1,addr);
+  nrfp.write(message,ack,len+1,numP);
 
   Serial.print("!");
 
@@ -521,7 +487,7 @@ int txMessage(char* message,char ack,uint8_t len,byte* addr)
   time_end=micros();
   Serial.print((char*)message);  
   Serial.print(" transmitted to ");  
-  Serial.print((char*)addr);Serial.print(" in:");
+  Serial.print(numP);Serial.print(" in:");
   Serial.print((long)(time_end - time_beg)); 
   Serial.println("us");
 
@@ -546,16 +512,17 @@ void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
     blktime=millis();
   }
 }
-
-void printAddr(char* addr)
+/*
+void printAddr(char* addr,char n)
 {
   char paddr[ADDR_LENGTH+1];
   memcpy(paddr,addr,ADDR_LENGTH);
   paddr[ADDR_LENGTH]='\0';
   Serial.print(paddr);Serial.print(" ");
+  if(n=='n'){Serial.println();}
 }
+*/
 /*
-
 void dumpstr0(char* data,uint8_t len)
 {
     char* chexa="0123456789ABCDEFabcdef\0";

@@ -81,8 +81,8 @@
 #include <Arduino.h>
 
 #include "nRF24L01.h"       // mnemonics
+#include "nrf24l01p_const.h"
 
-#define MAX_NRF 2           // nombre maxi circuits
 #define NB_PIPE 6           // nombre pipes par circuit
 #define MAX_PAYLOAD_LENGTH 32
 #define ADDR_LENGTH 5
@@ -95,27 +95,51 @@
 #define RF_SPD_250K RF_DR_LOW_BIT
 
 
+#if NRF_MODE == 'C'
+struct NrfConTable
+{
+  uint8_t numNrf24;                 // numéro circuit nrf24L01+
+  uint8_t numCirc;                  // numéro circuit (1-n)
+  uint8_t numPipe;                  // numéro pipe (1-5)
+  byte    pipeAddr[ADDR_LENGTH+1];  // addr associée au pipe
+  uint8_t numPeri;                  // numéro périphérique pour serveur
+  byte    periMac[ADDR_LENGTH+1];   // macAddr
+};
+#endif // NRF_MODE == 'C'
+
 
 class Nrfp
 {
   public:
     Nrfp();
-    void setup(char exMode,uint8_t exCePin,uint8_t exCsnPin,
+/*    void setup(char exMode,uint8_t exCePin,uint8_t exCsnPin,
                  uint8_t exNbNrf,uint8_t exChannel,byte exSpeed,
                  byte ardarc,byte* exBr_addr,
-                 byte* exCc_addr,byte* exR0_addr,byte* exPi_addr);
-    void confCircuit();
-    bool begin();
-    bool setNum(uint8_t circuit,uint8_t balise);
+                 byte* exCc_addr,byte* exR0_addr,byte* exPi_addr);*/
+    bool confCircuit();
+//    bool begin();
 
     int  available(uint8_t* pipe,uint8_t* length);
     int  read(char* data,uint8_t* pipe,uint8_t* length);
-    void write(byte* data,char na,uint8_t len,byte* tx_addr);
+    void write(byte* data,char na,uint8_t len,uint8_t numP);
     int  transmitting();
 
     void powerUp();
     void powerDown();
     void regRead(uint8_t reg,byte* data);
+
+    void printAddr(char* addr,char n);
+
+#if NRF_MODE == 'P'
+    void setup(byte* expi_addr);
+#endif // NRF_MODE == 'P'
+#if NRF_MODE == 'C'
+    void setup();
+    bool setNum(uint8_t circuit,uint8_t balise);
+    void tableCInit();
+    void tableCPrint();
+    uint8_t cRegister(char* message,byte* addr);
+#endif NRF_MODE == 'C'
 
   private:
 
@@ -124,10 +148,14 @@ class Nrfp
     void addrWrite(uint8_t reg,byte* data);
     bool letsPrx();
     bool pRegister();
+
     void flushRx();
     void flushTx();
     void setRx();
     void setTx();
+
+    int Nrfp::tableCLoad();
+    int Nrfp::tableCSave();
 };
 
 #endif // NRF24L01P INCLUDED

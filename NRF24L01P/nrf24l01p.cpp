@@ -1,5 +1,6 @@
 #include <SPI.h>
 #include "nrf24l01p.h"
+#include "nrf24l01p_const.h"
 
 /* AP NFR24L01+ node multi*multi */
 
@@ -23,6 +24,16 @@
 #define CE_LOW    digitalWrite(cePin,LOW);
 #define CSN_HIGH  digitalWrite(csnPin,HIGH);
 #define CSN_LOW   digitalWrite(csnPin,LOW);
+//#define MEGA
+#ifdef MEGA
+#define CSN_HIGH  bitSet(PORTB,4);delayMicroseconds(1);
+#define CSN_LOW   bitClear(PORTB,4);delayMicroseconds(1);
+#endif MEGA
+
+#ifdef UNO
+#define CSN_HIGH  bitSet(PORTB,2);
+#define CSN_LOW   bitClear(PORTB,2);
+#endif UNO
 
 #define CLKPIN    13
 #define MISOPIN   12
@@ -51,12 +62,12 @@
 uint8_t nbNrf=0;            // nbre circuits
 uint8_t numNrf=0;           // n° du circuit courant
 uint8_t numBalise=0;        // n° du circuit balise
-char    mode=' ';           // 'P' ou 'C'
-uint8_t ceP[MAX_NRF];       // pins pour CE
+
+uint8_t ceP[NB_CIRCUIT];       // pins pour CE
 uint8_t cePin;
-uint8_t csnP[MAX_NRF];      // pins pour CSN
+uint8_t csnP[NB_CIRCUIT];      // pins pour CSN
 uint8_t csnPin;
-uint8_t channel[MAX_NRF];   // channels utilisés
+uint8_t channel[NB_CIRCUIT];   // channels utilisés
 byte    rfSpeed;
 byte    setupRetry;
 
@@ -65,12 +76,16 @@ byte*   cc_addr;
 byte*   r0_addr;
 byte*   pi_addr;
 
+#if NRF_MODE == 'C'
+struct NrfConTable tableC[NBPERIF];
+#endif NRF_MODE == 'C'
+
 /***** scratch *****/
 
-bool prxMode[MAX_NRF];       // true=circuit en PRX (pwrUpRx(), RX0 chargé, CE_HIGH)
-bool rxP0Set[MAX_NRF];       // force rechargement RX_P0 si false
+bool prxMode[NB_CIRCUIT];       // true=circuit en PRX (pwrUpRx(), RX0 chargé, CE_HIGH)
+bool rxP0Set[NB_CIRCUIT];       // force rechargement RX_P0 si false
                             // après modification pour TX avec ACK
-byte baseAddr[MAX_NRF*ADDR_LENGTH];       // RX_P0 pour chaque circuit
+byte baseAddr[NB_CIRCUIT*ADDR_LENGTH];       // RX_P0 pour chaque circuit
 
 uint8_t regw,stat,fstat,conf;
 
@@ -81,36 +96,44 @@ Nrfp::Nrfp()    // constructeur
 {
 }
 
-void Nrfp::setup(char exMode,uint8_t exCePin,uint8_t exCsnPin,
-                 uint8_t exNbNrf,uint8_t exChannel,
-                 byte exSpeed,byte exArdArc,byte* exBr_addr,
-                 byte* exCc_addr,byte* exR0_addr,byte* exPi_addr)
+#if NRF_MODE == 'P'
+void Nrfp::setup(byte* exPi_addr)
 {
-    mode=exMode;
-    nbNrf=exNbNrf;if(nbNrf==0 || nbNrf>MAX_NRF){nbNrf=1;}
-    ceP[0]=exCePin;for(uint8_t i=1;i<nbNrf;i++){ceP[i]=ceP[0]+i;}
-    csnP[0]=exCsnPin;for(uint8_t i=1;i<nbNrf;i++){csnP[i]=csnP[0]+i;}
-    channel[0]=exChannel;
-    if(exSpeed != RF_SPD_2MB && exSpeed != RF_SPD_1MB && exSpeed != RF_SPD_250K){exSpeed=DEF_RF_SPEED;}
-    rfSpeed=exSpeed;
-    setupRetry=exArdArc;
-    if(channel[0]==0){channel[0]=DEF_CHANNEL;}
-    for(uint8_t i=1;i<nbNrf;i++){channel[i]=channel[0]+i;}
-
-    cc_addr=exCc_addr;
-    br_addr=exBr_addr;
-    r0_addr=exR0_addr;
+    nbNrf=1;
     pi_addr=exPi_addr;
+    numNrf=0;
+    numBalise=99;
+    cePin=CE_PIN; // ceP[numNrf];
+    csnPin=CSN_PIN; //csnP[numNrf];
+    channel[0]=CHANNEL;
+#endif // NRF_MODE == 'P'
+
+#if NRF_MODE == 'C'
+void Nrfp::setup()
+{
+    nbNrf=NB_CIRCUIT;
+    numNrf=CIRCUIT;
+    ceP[0]=CE_PIN;for(uint8_t i=1;i<nbNrf;i++){ceP[i]=ceP[0]+i;}
+    csnP[0]=CSN_PIN;for(uint8_t i=1;i<nbNrf;i++){csnP[i]=csnP[0]+i;}
+    channel[0]=CHANNEL;for(uint8_t i=1;i<nbNrf;i++){channel[i]=channel[0];}
+
+#endif // NRF_MODE == 'C'
+
+    rfSpeed=RF_SPEED;
+    setupRetry=(ARD-1)*16+ARC;
+
+    cc_addr=CC_ADDR;
+    br_addr=BR_ADDR;
+    r0_addr=R0_ADDR;
 
 }
 
-void Nrfp::confCircuit()   // numNrf dependant
+bool Nrfp::confCircuit()   // numNrf dependant
 {
 
     /* registers */
 
     regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // no ack enable ; dyn pld length enable
-    regWrite(FEATURE,&regw);
     regWrite(FEATURE,&regw);
 
     regw=(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
@@ -122,12 +145,11 @@ void Nrfp::confCircuit()   // numNrf dependant
     regw=(DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
     regWrite(DYNPD,&regw);                  // dynamic payload length
 
-    if(mode=='P'){
+#if NRF_MODE == 'P'
         addrWrite(RX_ADDR_P1,r0_addr);      // macAddr
-    }
+#endif // NRF_MODE == 'P'
 
-    if(mode=='C'){
-
+#if NRF_MODE == 'C'
         byte pAddr[NB_PIPE];
         memcpy(pAddr,r0_addr,ADDR_LENGTH);
         pAddr[ADDR_LENGTH-1]+=numNrf*NB_PIPE;
@@ -140,7 +162,7 @@ void Nrfp::confCircuit()   // numNrf dependant
             regw=pAddr[ADDR_LENGTH-1]+i-1;
             regWrite((RX_ADDR_P0+i),&regw);
         }
-    }
+#endif // NRF_MODE == 'C'
 
     prxMode[numNrf]=false;
     rxP0Set[numNrf]=false;    // pour forcer la restauration de RX0
@@ -161,30 +183,29 @@ void Nrfp::confCircuit()   // numNrf dependant
     regw=TX_DS_BIT | MAX_RT_BIT | RX_DR_BIT; // clear bits TX_DS , MAX_RT , RX_DR
     regWrite(STATUS,&regw);
 
+#if NRF_MODE == 'P'
+    return pRegister();
+#endif NRF_MODE
+
+#if NRF_MODE == 'C'
+    letsPrx();
+#endif NRF_MODE
 }
-
-
-bool Nrfp::begin()
-{
-    if(mode=='P'){return pRegister();}
-    if(mode=='C'){letsPrx();return true;}
-}
-
 
 /* ********************************************************** */
 
+#if NRF_MODE == 'C'
 bool Nrfp::setNum(uint8_t circuit,uint8_t balise)
 {
-    if(mode=='P'){numNrf=0;numBalise=99;}
-    if(mode=='C'){
-        if(circuit>=nbNrf){return false;}
-        numNrf=circuit;
-        numBalise=balise;
-    }
+    if(circuit>=nbNrf){return false;}
+    numNrf=circuit;
+    numBalise=balise;
+
     cePin=ceP[numNrf];
     csnPin=csnP[numNrf];
     return true;
 }
+#endif // NRF_MODE == 'C'
 
 /************ utilitary ***************/
 
@@ -231,6 +252,7 @@ void Nrfp::powerUp()
     SPI_START;
 
     conf=CONFREG;                         // powerUP
+    regWrite(CONFIG,&conf);
     regWrite(CONFIG,&conf);
 
     powerD=false;
@@ -291,15 +313,15 @@ bool Nrfp::letsPrx()      // goto PRX mode
       regw=RX_DR_BIT;
       regWrite(STATUS,&regw);                       // clr RX_DR_BIT
 
-      if(mode=='C'){
-         if(numNrf==numBalise){
-           addrWrite(RX_ADDR_P0,cc_addr);}          // addr pour inscriptions
-         else{
-           addrWrite(RX_ADDR_P0,baseAddr+numNrf*ADDR_LENGTH);}} // addr normale
-
-      if(mode=='P'){
-           addrWrite(RX_ADDR_P0,br_addr);}          // addr pour broadcast
-
+#if NRF_MODE == 'C'
+      if(numNrf==numBalise){                        // R0 registration ?
+        addrWrite(RX_ADDR_P0,cc_addr);}             // addr pour inscriptions
+      else{
+        addrWrite(RX_ADDR_P0,baseAddr+numNrf*ADDR_LENGTH);} // addr normale
+#endif //NRF_MODE == 'C'
+#if NRF_MODE == 'P'
+      addrWrite(RX_ADDR_P0,br_addr);                // addr pour broadcast
+#endif // NRF_MODE == 'P'
       rxP0Set[numNrf]=true;
     }
 
@@ -310,7 +332,7 @@ bool Nrfp::letsPrx()      // goto PRX mode
 
 /********** public *************/
 
-void Nrfp::write(byte* data,char na,uint8_t len,byte* tx_addr)
+void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)
 {
     prxMode[numNrf]=false;
     CE_LOW
@@ -332,9 +354,19 @@ void Nrfp::write(byte* data,char na,uint8_t len,byte* tx_addr)
     stat=TX_DS_BIT | MAX_RT_BIT;  // clear TX_DS & MAX_RT bits
     regWrite(STATUS,&stat);
 
-    addrWrite(TX_ADDR,tx_addr);
+    byte wrAddr[5];
+#if NRF_MODE == 'C'
+    memcpy(wrAddr,tableC[numP].periMac,ADDR_LENGTH);
+    if(numP==0){memcpy(wrAddr,BR_ADDR,ADDR_LENGTH);}
+#endif // NRF_MODE == 'C'
+#if NRF_MODE == 'P'
+    memcpy(wrAddr,pi_addr,ADDR_LENGTH);
+    if(numP==0){memcpy(wrAddr,CC_ADDR,ADDR_LENGTH);}
+#endif // NRF_MODE == 'P'
+
+    addrWrite(TX_ADDR,wrAddr);
     if(na=='A'){
-        addrWrite(RX_ADDR_P0,tx_addr);
+        addrWrite(RX_ADDR_P0,wrAddr);
         rxP0Set[numNrf]=false;              // RX_ADDR_P0 restore to do
     }                                       // (cc_addr if 'C' ; br_addr if 'P' - see available())
 
@@ -353,7 +385,10 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
       if((stat & TX_DS_BIT)){trst=0;}           // data sent
       else if((stat & MAX_RT_BIT)){             // max retry
         trst=-1;
-        if(mode=='P'){memset(pi_addr,0x00,ADDR_LENGTH);} // de-validate inscription
+#if NRF_MODE == 'P'
+        memset(pi_addr,0x00,ADDR_LENGTH);       // de-validate inscription
+#endif // NRF_MODE
+//        if(mode=='P'){memset(pi_addr,0x00,ADDR_LENGTH);} // de-validate inscription
       }
       if(trst<=0){                              // data sent or max retry
         CE_LOW
@@ -422,12 +457,13 @@ int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength)
     return avSta;                           // PRX mode still true
 }
 
+#if NRF_MODE == 'P'
 bool Nrfp::pRegister()  // peripheral registration to get pipeAddr
 {                       // -3 maxRT ; -2 len ; -1 pipe ; 0 TO ; 1 ok
 
     uint8_t pipe,pldLength=ADDR_LENGTH;
 
-    write(r0_addr,'N',ADDR_LENGTH,cc_addr); // send macAddr to cc_ADDR ; no ACK
+    write(r0_addr,'N',ADDR_LENGTH,0); // send macAddr to cc_ADDR ; no ACK
 
     int trst=1;
     while(trst==1){trst=transmitting();} //bidcnt++;}
@@ -442,9 +478,81 @@ bool Nrfp::pRegister()  // peripheral registration to get pipeAddr
         readTo=TO_REGISTER-millis()+time_beg;
         gdSta=read(pi_addr,&pipe,&pldLength);}
 
-    if(gdSta>0 && (readTo>=0)){               // no TO pld ok
+    if(gdSta>0 && (readTo>=0)){             // no TO pld ok
         addrWrite(TX_ADDR,pi_addr);         // PTX address update
         return 1;}                          // PRX mode still true
 
+    CE_LOW
     return gdSta;          // else TO error or pipe/length error CE low
 }
+#endif // NRF_MODE
+
+void Nrfp::printAddr(char* addr,char n)
+{
+  for(int j=0;j<ADDR_LENGTH;j++){Serial.print((char)addr[j]);}
+  if(n=='n'){Serial.println();}
+}
+
+#if NRF_MODE =='C'
+
+uint8_t Nrfp::cRegister(char* message,byte* addr)
+{
+          uint8_t i,k=0,z=0;    // search free line or existing macAddr
+          for(i=1;i<NBPERIF;i++){
+            if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){k=i;break;}      // already existing
+            else if(memcmp(tableC[i].periMac,"0",1)==0 && z==0){z=i;}             // store free line
+          }
+
+          if(k==0 && z!=0){
+            i=z;                                                                  // i = free line
+            memcpy(tableC[i].periMac,message,ADDR_LENGTH);}                       // record macAddr
+          if(k!=0 or z!=0){
+            write(tableC[i].pipeAddr,'A',ADDR_LENGTH,i);                          // send pipeAddr to peri(macAddr)
+            int trst=1;
+            while(trst==1){trst=transmitting();}
+            if(trst<0){memset(tableC[i].periMac,'0',ADDR_LENGTH);i=NBPERIF+2;}    // MAX_RT -> effacement table ; la pi_addr sera effacée
+                                                                                  // pour non réponse à la première tentative de TX
+          }
+          memcpy(addr,tableC[i].pipeAddr,ADDR_LENGTH);
+          return i;
+}
+
+
+
+
+void Nrfp::tableCPrint()
+{
+  for(int i=0;i<NBPERIF;i++){
+    Serial.print(i);Serial.print(" ");
+    Serial.print(tableC[i].numNrf24);Serial.print(" ");
+    Serial.print(tableC[i].numCirc);Serial.print(" ");
+    Serial.print(tableC[i].numPipe);Serial.print(" ");
+    Serial.print(tableC[i].numPeri);Serial.print(" ");
+
+    printAddr(tableC[i].periMac,' ');Serial.print(" ");
+    printAddr(tableC[i].pipeAddr,'n');
+  }
+}
+
+void Nrfp::tableCInit()
+{
+  for(int i=0;i<NBPERIF;i++){
+    tableC[i].numNrf24=i;
+    tableC[i].numCirc=i/NB_PIPE;      // (0->n)
+    tableC[i].numPipe=i%NB_PIPE;      // (0->5)
+    tableC[i].numPeri=0;
+    memcpy(tableC[i].pipeAddr,R0_ADDR,ADDR_LENGTH-1);
+    tableC[i].pipeAddr[ADDR_LENGTH-1]='0'+(tableC[i].numCirc*NB_PIPE)+tableC[i].numPipe;
+    memcpy(tableC[i].periMac,"00000",ADDR_LENGTH);
+  }
+}
+
+int Nrfp::tableCLoad()
+{
+}
+
+int Nrfp::tableCSave()
+{
+}
+
+#endif NRF_MODE=='C'
