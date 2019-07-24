@@ -58,18 +58,21 @@ concentrateur en PTX "normal"
 */
 
 
-  #define NBPERIF 24            // pour taille table
-
-//************************/
-  #define NRF_MODE 'C'   //      C concentrateur ; P périphérique
-//************************/
+//****************************/
+  #define NRF_MODE 'P'        //  C concentrateur ; P périphérique
 
 #if NRF_MODE == 'P'
-  #define NB_CIRCUIT 1          // nombre de circuits nrf
-#endif // NRF_MODE == 'P'
+  #define R0_ADDR "peri2"     //  MAC_ADDR PERI
+  #define UNO                 //  UNO ou MEGA ou DUE  (PRO MINI id UNO)
+  #define BR_PIPE 0           //  pipe pour réception broadcast
+  #define NB_CIRCUIT 1        //  nombre de circuits nrf
+#endif
+//************************/
+
 #if NRF_MODE == 'C'
-  #define NB_CIRCUIT 1          // nombre de circuits nrf
-#endif // NRF_MODE == 'P'
+  #define NB_CIRCUIT 1         // nombre de circuits nrf
+  #define R0_ADDR "tot00"      // adresse de base des peri du concentrateur
+#endif
 
 
   #define LED        5          // pin pour Led (13 pris par le clk du SPI)
@@ -84,19 +87,11 @@ concentrateur en PTX "normal"
   #define BR_ADDR    "bcast"    // adresse fixe de broadcast
   #define CC_ADDR    "ccons"    // adresse fixe du concentrateur pour inscription
 
-  #define BALISE  0          // toujours 0  (sans effet en mode 'P')
-                             // numéro du circuit du concentrateur pour inscriptions et balise
-                             // (inscriptions pipe0)
-  #define CIRCUIT 0          // n° circuit initial
+  #define BALISE  0             // toujours 0  (sans effet en mode 'P')
+                                // numéro du circuit du concentrateur pour inscriptions et balise
+                                // (inscriptions pipe0)
+  #define CIRCUIT 0             // n° circuit initial
 
-#if NRF_MODE == 'P'
-  #define BR_PIPE 0          // pipe pour réception broadcast
-  #define R0_ADDR "peri2"    // MAC_ADDR PERI
-#endif
-#if NRF_MODE == 'C'
-  #define R0_ADDR "tot00"    // adresse de base des peri du concentrateur
-#endif
-
-
+  #define NBPERIF 24            //  pour dim table
 
 #endif _NRF_CONST_INCLUDED

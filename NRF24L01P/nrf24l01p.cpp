@@ -11,7 +11,7 @@
 * il commande CE et CSN, donc il contrôle parfaitement
 * l'accès aux circuits
 *
-* setup, setNum, start et begin doivent être effectués
+* setup, setNum et confcircuit doivent être effectués
 * dans l'ordre pour chaque circuit à l'initialisation
 *
 ******************************************************/
@@ -24,13 +24,12 @@
 #define CE_LOW    digitalWrite(cePin,LOW);
 #define CSN_HIGH  digitalWrite(csnPin,HIGH);
 #define CSN_LOW   digitalWrite(csnPin,LOW);
-//#define MEGA
+
 #ifdef MEGA
 #define CSN_HIGH  bitSet(PORTB,4);delayMicroseconds(1);
 #define CSN_LOW   bitClear(PORTB,4);delayMicroseconds(1);
 #endif MEGA
-
-#ifdef UNO
+#ifdef UNO        // idem for PRO MINI
 #define CSN_HIGH  bitSet(PORTB,2);
 #define CSN_LOW   bitClear(PORTB,2);
 #endif UNO

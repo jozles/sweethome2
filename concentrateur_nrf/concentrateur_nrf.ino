@@ -49,6 +49,9 @@ bool    reveil=true;
 int     awakeCnt=0;
 int     awakeMinCnt=0;
 int     retryCnt=0;
+uint32_t nbS=0;                  // nbre sleeps
+float   durT=0;                  // temps sleep cumulé (mS/10)
+float   tBeg=0;                  // temps total depuis reset (oscillateur local)
 #define AWAKE_OK_VALUE  5 //15   // 120 sec entre chaque test de temp
 #define AWAKE_MIN_VALUE 15 //111  // environ 15 min pour message minimum de présence
 #define AWAKE_KO_VALUE  450  // 1 heure avant prochain test si com HS
@@ -60,6 +63,7 @@ float   temp,previousTemp,deltaTemp;
 bool    dsSta=false;
 byte    setds[]={0,0x7f,0x80,0x3f},readds[8];   // 187mS 10 bits accu 0,25°
 char    dsM;
+uint32_t nbT=0;         // nbre lectures de temp
 #define TCONVDS 200     // mS !!
 #endif DS18X20 
 
@@ -224,16 +228,27 @@ void loop() {
     ds1820.convertDs(WPIN);
     
 #if TCONVDS != 200
-    tconv // TCONVDS not 200 ... adjust sleep time
+    tconv // TCONVDS not 200 ... should adjust sleep time
 #endif
 
     sleepPwrDown(250); 
 
-    temp=ds1820.readDs(WPIN);Serial.print(temp);Serial.print(" ");Serial.print(millis());Serial.print(" ");Serial.print(awakeCnt);Serial.print(" ");Serial.print(awakeMinCnt);Serial.print(" ");Serial.println(retryCnt);
+    nbT++;
+
+    temp=ds1820.readDs(WPIN);
+    Serial.print(temp);Serial.print(" ");
+    Serial.print(nbT);Serial.print("/");
   }
 #endif DS18X20  
+
+    tBeg=((float)millis()/1000)+(durT/100);
+    Serial.print(nbS);Serial.print("(");Serial.print(tBeg);Serial.print(") ");
+    Serial.print(awakeCnt);Serial.print(" ");
+    Serial.print(awakeMinCnt);Serial.print(" ");Serial.println(retryCnt);
+
   if((temp>(previousTemp+deltaTemp))||(temp<(previousTemp-deltaTemp))||(awakeMinCnt<0)||(retryCnt!=0)){
 
+    
     hardwarePowerUp();                   // 5mS delay inside
 
     uint8_t outLength=0;
@@ -245,7 +260,7 @@ void loop() {
     memcpy(outMessage,VERSION,LENVERSION);
     outMessage[LENVERSION]=dsM;
     outLength=LENVERSION+1;
-    sprintf(outMessage+outLength,"%08ld",millis());
+    sprintf(outMessage+outLength,"%08d",(long)tBeg);
     outLength+=8;
     outMessage[outLength]='+';if(temp<0){outMessage[outLength]='-';}
     outLength+=1;
@@ -446,7 +461,8 @@ void wdtSetup(uint16_t durat)  // durat=0 for external wdt on INT0
 
 void sleepPwrDown(uint16_t durat) {
 
-
+    nbS++;
+    durT+=durat/10;
     hardwarePowerDown();
 
     wdtSetup(durat);
@@ -455,7 +471,7 @@ void sleepPwrDown(uint16_t durat) {
     sleep_enable();
 Serial.print("sleep_enable ");Serial.println(durat);delay(10); 
     sleep_mode();
-Serial.println("awaken");delay(10);   
+  
     sleep_disable();
     power_all_enable();
     //hardwarePowerUp();
