@@ -43,14 +43,22 @@
 
 #define GET_STA   CSN_LOW stat=SPI.transfer(NOP);CSN_HIGH
 
-#define PP4       pinMode(4,OUTPUT);digitalWrite(4,LOW);digitalWrite(4,HIGH);pinMode(4,INPUT);
-                  // debug pulse for logic analyzer
+/*** debug pulse for logic analyzer  ***/
+#define PP        0
+#ifdef UNO        // idem for PRO MINI
+#define PP4       bitClear(PORTB,PP);bitSet(PORTB,PP);
+#endif UNO
+#ifndef UNO
+#define PP4       digitalWrite(PP,LOW);digitalWrite(PP,HIGH);
+#endif
+#define PP4_INIT  pinMode(PP,OUTPUT);PP4;
+
 #define DEF_CHANNEL 1
 
 #define RX 1
 #define TX 0
 
-#define CONFREG 0x00 & ~(MASK_RX_DR_BIT) & ~(MASK_TX_DS_BIT) & ~(MASK_MAX_RT_BIT) | EN_CRC_BIT & ~(CRCO_BIT) | PWR_UP_BIT | PRIM_RX_BIT
+#define CONFREG (0x00 & ~(MASK_RX_DR_BIT) & ~(MASK_TX_DS_BIT) & ~(MASK_MAX_RT_BIT) | EN_CRC_BIT & ~(CRCO_BIT) | PWR_UP_BIT | PRIM_RX_BIT)
 
 #define DEF_RF_SPEED RF_SPD_1MB
 #define RFREG   RF_PWR_BITS
@@ -182,10 +190,6 @@ bool Nrfp::confCircuit()   // numNrf dependant
     regw=TX_DS_BIT | MAX_RT_BIT | RX_DR_BIT; // clear bits TX_DS , MAX_RT , RX_DR
     regWrite(STATUS,&regw);
 
-#if NRF_MODE == 'P'
-    return pRegister();
-#endif NRF_MODE
-
 #if NRF_MODE == 'C'
     letsPrx();
 #endif NRF_MODE
@@ -246,6 +250,7 @@ void Nrfp::powerUp()
     CSN_INIT;
     CE_LOW;
     CE_INIT;
+    PP4_INIT;
 
     SPI_INIT;
     SPI_START;
@@ -256,7 +261,7 @@ void Nrfp::powerUp()
 
     powerD=false;
 
-    delay(5);
+    delay(4);
 }
 
 void Nrfp::powerDown()
@@ -267,11 +272,11 @@ void Nrfp::powerDown()
 
         CE_LOW
 
-        conf=CONFREG & ~(PWR_UP_BIT);          // powerDown
+        conf=CONFREG & ~PWR_UP_BIT;          // powerDown
         regWrite(CONFIG,&conf);
 
         CSN_OFF
-        CE_OFF
+        //CE_OFF    CE stay ON else go high (need a pulldown resistor?)
 
         SPI_OFF
     }
@@ -305,7 +310,7 @@ void Nrfp::flushRx()
 
 bool Nrfp::letsPrx()      // goto PRX mode
 {
-    CE_LOW
+    CE_HIGH
 
     if(!rxP0Set[numNrf]){                            // rechargement RX_ADDR_P0 après TX
       flushRx();
@@ -325,7 +330,6 @@ bool Nrfp::letsPrx()      // goto PRX mode
     }
 
     setRx();
-    CE_HIGH
     prxMode[numNrf]=true;
 }
 
@@ -345,10 +349,6 @@ void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)
     CSN_HIGH
 
     setTx();
-    CE_HIGH                       // transmit
-
-/*** ce qui suit doit s'executer en moins de 130uS (setup du modem) ***/
-/*** controler avec un quartz 8MHz sur l'ATMEGA328  ***/
 
     stat=TX_DS_BIT | MAX_RT_BIT;  // clear TX_DS & MAX_RT bits
     regWrite(STATUS,&stat);
@@ -363,11 +363,13 @@ void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)
     if(numP==0){memcpy(wrAddr,CC_ADDR,ADDR_LENGTH);}
 #endif // NRF_MODE == 'P'
 
-    addrWrite(TX_ADDR,wrAddr);
+    addrWrite(TX_ADDR,wrAddr);              // l'adresse TX doit être chargée avec CE low sinon délai supplémentaire
     if(na=='A'){
         addrWrite(RX_ADDR_P0,wrAddr);
         rxP0Set[numNrf]=false;              // RX_ADDR_P0 restore to do
     }                                       // (cc_addr if 'C' ; br_addr if 'P' - see available())
+
+    CE_HIGH                                 // transmit (CE high->TX_DS 235uS @1MbpS)
 
 // transmitting() should be checked now to wait for end of paquet transmission
 // or ACK reception before turning CE low
@@ -376,6 +378,8 @@ void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)
 int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
 {     // should be added : TO in case of out of order chip (trst=-2)
       // when sent or max retry, output in PRX mode with CE high
+
+      CE_LOW
 
       int trst=1;
 
@@ -390,7 +394,6 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
 //        if(mode=='P'){memset(pi_addr,0x00,ADDR_LENGTH);} // de-validate inscription
       }
       if(trst<=0){                              // data sent or max retry
-        CE_LOW
         flushTx();
         stat = TX_DS_BIT | MAX_RT_BIT;          // clear TX_DS & MAX_RT bits
         regWrite(STATUS,&stat);
@@ -401,17 +404,28 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
       return trst;
 }
 
+void Nrfp::rxError()
+{
+        CE_LOW
+        flushRx();                         // if error flush all
+        regw=RX_DR_BIT;
+        regWrite(STATUS,&regw);
+        prxMode[numNrf]=false;
+}
+
 int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
-{   // 1 full, 0 empty ; -1 pipe ; -2 length error
+{
+/* available/read output errors codes (>=0 numP) */
+
     uint8_t maxLength=*pldLength;
-    int err=-1;
+    int err=0;
 
     GET_STA
     if((stat & RX_DR_BIT)==0){             // RX empty ?
         regRead(FIFO_STATUS,&fstat);
         if((fstat & RX_EMPTY_BIT)!=0){     // FIFO empty ?
             if(!prxMode[numNrf]){letsPrx();}
-            return 0;                      // empty
+            return AV_EMPTY;               // empty
         }
         GET_STA
     }
@@ -421,68 +435,75 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     if(*pipe<NB_PIPE){
         CSN_LOW
         SPI.transfer(R_RX_PL_WID);
-        *pldLength=SPI.transfer(0xff);     // get pldLength (dynamic length)
+        *pldLength=SPI.transfer(0xff);      // get pldLength (dynamic length)
         CSN_HIGH
-        err--;                             // pipe ok so err=-2 for length
     }
+    else {err=AV_NBPIP;}
 
-    if((*pipe<NB_PIPE) && (*pldLength<=maxLength) && (*pldLength>0)){
-        return 1;}                         // data ok                                       // PRX mode still true
-
-    else{
-        CE_LOW
-        flushRx();                         // if error flush all
-        regw=RX_DR_BIT;
-        regWrite(STATUS,&regw);
-        prxMode[numNrf]=false;
-        return err;                        // invalid pipe nb or length
+    if((*pldLength<=maxLength) && (*pldLength>0) && err==0){
+        return numNrf*NB_PIPE+*pipe;        // ok ; numP ; PRX mode still true
     }
+    else if(err==0){err=AV_LMERR;}
+
+    rxError();
+    return err;                             // invalid pipe nb or length
 }
 
-int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength)
-{   // 1 ok, 0 empty ; -1 pipe ; -2 length error
+int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,uint8_t numP)
+{   // see available() return codes
+    // numP<NBPERIF means "available() allready done with result ok && *pipe set")
+    int avSta=numP;
+    if(numP>=NBPERIF){                                      // allow to only execute available()
+        avSta=available(pipe,pldLength);                    // if necessary
+    }
 
-    int avSta=available(pipe,pldLength);
-
-    if(avSta==1){
+    if(avSta>=0){
         CSN_LOW
         SPI.transfer(R_RX_PAYLOAD);
-        SPI.transfer(data,*pldLength);      // get pld
+        SPI.transfer(data,*pldLength);                      // get pld
         CSN_HIGH
 
         regw=RX_DR_BIT;
-        regWrite(STATUS,&regw);             // clear RX_DR bit
-    }                                       // data ok
-    return avSta;                           // PRX mode still true
+        regWrite(STATUS,&regw);                             // clear RX_DR bit
+#if NRF_MODE == 'C'
+        if(memcmp(data,tableC[avSta].periMac,ADDR_LENGTH)!=0){      // macAddr ok ?
+            avSta=AV_MCADD;rxError();}
+#endif // NRF_MODE == 'C'
+    }
+
+    return avSta;               // available() return codes ; PRX mode still true if no error
 }
 
 #if NRF_MODE == 'P'
-bool Nrfp::pRegister()  // peripheral registration to get pipeAddr
-{                       // -3 maxRT ; -2 len ; -1 pipe ; 0 TO ; 1 ok
+int Nrfp::pRegister()  // peripheral registration to get pipeAddr
+{                       // ER_MAXRT ; AV_errors codes ; >=0 numP ok
 
     uint8_t pipe,pldLength=ADDR_LENGTH;
 
-    write(r0_addr,'N',ADDR_LENGTH,0); // send macAddr to cc_ADDR ; no ACK
+    write(r0_addr,'N',ADDR_LENGTH,0);       // send macAddr to cc_ADDR ; no ACK
 
     int trst=1;
-    while(trst==1){trst=transmitting();} //bidcnt++;}
+    while(trst==1){trst=transmitting();}
 
-    if(trst<0){return -3;}                  // MAX_RT error
+    if(trst<0){return ER_MAXRT;}            // MAX_RT error
 
     long time_beg = millis();
     long readTo=0;
-    int  gdSta=0;
+    int  gdSta=AV_EMPTY;
 
-    while(gdSta==0 && (readTo>=0)){         // waiting for data
+    while(gdSta==AV_EMPTY && (readTo>=0)){  // waiting for data
         readTo=TO_REGISTER-millis()+time_beg;
-        gdSta=read(pi_addr,&pipe,&pldLength);}
+        gdSta=read(pi_addr,&pipe,&pldLength,NBPERIF);}
 
-    if(gdSta>0 && (readTo>=0)){             // no TO pld ok
+//Serial.print("gdSta=");Serial.print(gdSta);Serial.print(" readTo=");Serial.print(readTo);Serial.print(" pi_addr=");printAddr(pi_addr,'n');
+
+    if(gdSta>=0 && (readTo>=0)){            // no TO pld ok
         addrWrite(TX_ADDR,pi_addr);         // PTX address update
-        return 1;}                          // PRX mode still true
+        return gdSta;}                      // PRX mode still true ; numP value or error code
 
-    CE_LOW
-    return gdSta;          // else TO error or pipe/length error CE low
+    rxError();                              // CE low
+    if(gdSta>=0){return ER_RDYTO;}          // else TO error
+    return gdSta;                           // or AV error ;
 }
 #endif // NRF_MODE
 
@@ -494,25 +515,29 @@ void Nrfp::printAddr(char* addr,char n)
 
 #if NRF_MODE =='C'
 
-uint8_t Nrfp::cRegister(char* message,byte* addr)
-{
-          uint8_t i,k=0,z=0;    // search free line or existing macAddr
+uint8_t Nrfp::cRegister(char* macAddr)      // search free line or existing macAddr
+{         // retour NBPERIF -> full ; NBPERIF+2 -> MAX_RT ; else numP
+
+          uint8_t i,freeLine=0;
+          bool exist=false;
+
           for(i=1;i<NBPERIF;i++){
-            if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){k=i;break;}      // already existing
-            else if(memcmp(tableC[i].periMac,"0",1)==0 && z==0){z=i;}             // store free line
+            if(memcmp(tableC[i].periMac,macAddr,ADDR_LENGTH)==0){exist=true;break;}      // already existing
+            else if(freeLine==0 && tableC[i].periMac[0]=='0'){freeLine=i;}        // store free line nb
           }
 
-          if(k==0 && z!=0){
-            i=z;                                                                  // i = free line
-            memcpy(tableC[i].periMac,message,ADDR_LENGTH);}                       // record macAddr
-          if(k!=0 or z!=0){
+          if(!exist && freeLine!=0){
+            i=freeLine;                                                           // i = free line
+            exist=true;
+            memcpy(tableC[i].periMac,macAddr,ADDR_LENGTH);}                       // record macAddr
+
+          if(exist){
             write(tableC[i].pipeAddr,'A',ADDR_LENGTH,i);                          // send pipeAddr to peri(macAddr)
             int trst=1;
             while(trst==1){trst=transmitting();}
-            if(trst<0){memset(tableC[i].periMac,'0',ADDR_LENGTH);i=NBPERIF+2;}    // MAX_RT -> effacement table ; la pi_addr sera effacée
-                                                                                  // pour non réponse à la première tentative de TX
-          }
-          memcpy(addr,tableC[i].pipeAddr,ADDR_LENGTH);
+            if(trst<0){memset(tableC[i].periMac,'0',ADDR_LENGTH);i=NBPERIF+2;}    // MAX_RT -> effacement table ;
+          }                                           // la pi_addr sera effacée pour non réponse au premier TX
+
           return i;
 }
 

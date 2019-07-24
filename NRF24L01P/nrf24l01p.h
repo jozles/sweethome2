@@ -94,6 +94,16 @@
 #define RF_SPD_1MB 0
 #define RF_SPD_250K RF_DR_LOW_BIT
 
+/*** return (error) codes ***/
+#define AV_NBPIP -1
+#define AV_LMERR -2
+#define AV_MCADD -3 // read output (need message upload)
+#define AV_EMPTY -4
+#define AV_MAXAV AV_EMPTY
+#define ER_MAXRT AV_MAXAV-1 // code erreur MAX_RT
+#define ER_RDYTO ER_MAXRT-1 // code erreur Time Out attente réception
+#define ER_MAXER ER_RDYTO
+#define ER_TEXT "to\0rt\0em\0mc\0le\0pi\0--\0ok\0" // 2 char libs for codes
 
 #if NRF_MODE == 'C'
 struct NrfConTable
@@ -112,15 +122,10 @@ class Nrfp
 {
   public:
     Nrfp();
-/*    void setup(char exMode,uint8_t exCePin,uint8_t exCsnPin,
-                 uint8_t exNbNrf,uint8_t exChannel,byte exSpeed,
-                 byte ardarc,byte* exBr_addr,
-                 byte* exCc_addr,byte* exR0_addr,byte* exPi_addr);*/
     bool confCircuit();
-//    bool begin();
 
     int  available(uint8_t* pipe,uint8_t* length);
-    int  read(char* data,uint8_t* pipe,uint8_t* length);
+    int  read(char* data,uint8_t* pipe,uint8_t* length,uint8_t numP);
     void write(byte* data,char na,uint8_t len,uint8_t numP);
     int  transmitting();
 
@@ -132,13 +137,14 @@ class Nrfp
 
 #if NRF_MODE == 'P'
     void setup(byte* expi_addr);
+    int  pRegister();
 #endif // NRF_MODE == 'P'
 #if NRF_MODE == 'C'
     void setup();
     bool setNum(uint8_t circuit,uint8_t balise);
     void tableCInit();
     void tableCPrint();
-    uint8_t cRegister(char* message,byte* addr);
+    uint8_t cRegister(char* message);
 #endif NRF_MODE == 'C'
 
   private:
@@ -147,8 +153,8 @@ class Nrfp
     void addrRead(uint8_t reg,byte* data);
     void addrWrite(uint8_t reg,byte* data);
     bool letsPrx();
-    bool pRegister();
 
+    void rxError();
     void flushRx();
     void flushTx();
     void setRx();

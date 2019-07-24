@@ -74,7 +74,6 @@ concentrateur en PTX "normal"
   #define R0_ADDR "tot00"      // adresse de base des peri du concentrateur
 #endif
 
-
   #define LED        5          // pin pour Led (13 pris par le clk du SPI)
 
   #define CE_PIN     9          // pin pour CE du nrf
