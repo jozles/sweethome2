@@ -6,7 +6,7 @@
 #include <avr/sleep.h>
 #include <avr/power.h>
 
-#define DS18X20
+//#define DS18X20
 #ifdef DS18X20
 #include <ds18x20.h>
 #define WPIN       3          // pin thermomètre
@@ -16,7 +16,7 @@
 #if NRF_MODE == 'C'
 extern struct NrfConTable tableC[NBPERIF];
 bool menu=true;
-uint8_t numP;
+int  numP;
 #endif NRF_MODE == 'C'
 
 Nrfp nrfp;
@@ -260,12 +260,13 @@ void loop() {
       else {Serial.print(" full");}
     }
         
-    else{};                   // pas demande d'inscription... à traiter
+    else {}                   // pas demande d'inscription... à traiter
     Serial.println();
   }
 
   else if(numP!=AV_EMPTY){
-    Serial.print("erreur ");Serial.println((char*)kk+(numP+ER_MAXER)*3);}    // error... à traiter
+    showRx();
+    Serial.print(" err ");Serial.println((char*)kk+(numP+6)*3);}    // error... à traiter
     
   char a=getch();
   switch(a){
@@ -361,12 +362,13 @@ void echo0(char* message,uint8_t len,uint8_t numP)
 
 void showRx()
 {
-  uint8_t numP=circuit*NB_PIPE+pipe;
+  uint8_t nP;
+  if(numP<0){nP=circuit*NB_PIPE+pipe;}else{nP=numP;}
   byte pipeAd[ADDR_LENGTH];
   #if NRF_MODE=='C'
   for(int i=0;i<ADDR_LENGTH;i++){
-    pipeAd[i]=tableC[numP].pipeAddr[i];}
-  memcpy(pipeAd,tableC[numP].pipeAddr,ADDR_LENGTH);
+    pipeAd[i]=tableC[nP].pipeAddr[i];}
+  //memcpy(pipeAd,tableC[nP].pipeAddr,ADDR_LENGTH);
   #endif NRF_MODE=='C'
   #if NRF_MODE=='P'
   switch(pipe){

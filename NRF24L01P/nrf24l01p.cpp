@@ -44,7 +44,7 @@
 #define GET_STA   CSN_LOW stat=SPI.transfer(NOP);CSN_HIGH
 
 /*** debug pulse for logic analyzer  ***/
-#define PP        0
+#define PP        4
 #ifdef UNO        // idem for PRO MINI
 #define PP4       bitClear(PORTB,PP);bitSet(PORTB,PP);
 #endif UNO
@@ -446,7 +446,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     else if(err==0){err=AV_LMERR;}
 
     rxError();
-    return err;                             // invalid pipe nb or length
+    return err;                              // invalid pipe nb or length
 }
 
 int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,uint8_t numP)
@@ -456,7 +456,6 @@ int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,uint8_t numP)
     if(numP>=NBPERIF){                                      // allow to only execute available()
         avSta=available(pipe,pldLength);                    // if necessary
     }
-
     if(avSta>=0){
         CSN_LOW
         SPI.transfer(R_RX_PAYLOAD);
@@ -466,7 +465,7 @@ int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,uint8_t numP)
         regw=RX_DR_BIT;
         regWrite(STATUS,&regw);                             // clear RX_DR bit
 #if NRF_MODE == 'C'
-        if(memcmp(data,tableC[avSta].periMac,ADDR_LENGTH)!=0){      // macAddr ok ?
+        if(avSta!=0 && memcmp(data,tableC[avSta].periMac,ADDR_LENGTH)!=0){      // macAddr ok ?
             avSta=AV_MCADD;rxError();}
 #endif // NRF_MODE == 'C'
     }

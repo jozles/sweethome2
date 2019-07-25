@@ -59,7 +59,7 @@ concentrateur en PTX "normal"
 
 
 //****************************/
-  #define NRF_MODE 'P'        //  C concentrateur ; P périphérique
+  #define NRF_MODE 'C'        //  C concentrateur ; P périphérique
 
 #if NRF_MODE == 'P'
   #define R0_ADDR "peri2"     //  MAC_ADDR PERI
