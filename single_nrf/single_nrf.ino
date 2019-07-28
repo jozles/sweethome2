@@ -1,6 +1,8 @@
 #include "nRF24L01.h"
 #include "nrf24l01s.h"
 #include "nrf24l01s_const.h"
+#include "shconst2.h"
+#include "shutil2.h"
 
 #if  NRF_MODE == 'P'
 #include <avr/sleep.h>
@@ -30,6 +32,8 @@ uint8_t bcnt=0;
 
 /*** scratch ***/
 #define TO_READ 1000
+unsigned long read_beg;
+unsigned long readTo;       // compteur TO read()
 
 unsigned long time_beg=millis();
 unsigned long time_end;
@@ -40,9 +44,9 @@ uint8_t pldLength;
 
 int     confSta=0;          // pour 'P' numP si inscription ok
 byte    sta;                // status reg 
-int     gdSta=0;            // available() & read() status
-long    readTo=0;           // compteur TO read()
-char*   kk={"to\0rt\0em\0mc\0le\0pi\0--\0ok\0"};         // codes retour et erreur
+//int     gdSta=0;            // available() & read() status
+#define LMERR 9           
+char*   kk={"time out\0tx maxrt\0rx empty\0mac addr\0length  \0pipe nb \0--      \0ok      \0"};         // codes retour et erreur
 
 #if NRF_MODE == 'P'
 
@@ -51,18 +55,44 @@ bool    reveil;
 int     awakeCnt=0;
 int     awakeMinCnt=0;
 int     retryCnt=0;
-uint32_t nbS=0;                  // nbre sleeps
-float   durT=0;                  // temps sleep cumulé (mS/10)
-float   tBeg=0;                  // temps total depuis reset (oscillateur local)
-#define AWAKE_OK_VALUE  5 //15   // 120 sec entre chaque test de temp
-#define AWAKE_MIN_VALUE 15 //111  // environ 15 min pour message minimum de présence
-#define AWAKE_KO_VALUE  450  // 1 heure avant prochain test si com HS
-#define RETRY_VALUE     3    // nbre de retry avant KO
+uint32_t nbS=0;                   // nbre sleeps
+float   durT=0;                   // temps sleep cumulé (mS/10)
+float   tBeg=0;                   // temps total depuis reset (oscillateur local)
+
+#define  STEP_VALUE 8              // nbre sec par step
+#define  AWAKE_OK_VALUE  5 //15    // 120 sec entre chaque test de temp
+uint16_t aw_ok=AWAKE_OK_VALUE;
+#define  AWAKE_MIN_VALUE 15 //111  // environ 15 min pour message minimum de présence
+uint16_t aw_min=AWAKE_MIN_VALUE;
+#define  AWAKE_KO_VALUE  450       // 1 heure avant prochain test si com HS
+uint16_t aw_ko=AWAKE_KO_VALUE;
+#define  AWAKE_RETRY_VALUE     3   // nbre de retry avant KO
+uint8_t  aw_retry=AWAKE_RETRY_VALUE;
+
+long     perRefr=0;                
+uint16_t perTemp=0;
+long     pitchTemp=0;
+
+int      sizeRead;
+// prescaler WDT
+#define T16   0b00000000
+#define T32   0b00000001
+#define T64   0b00000010
+#define T125  0b00000011
+#define T250  0b00000100
+#define T500  0b00000101
+#define T1000 0b00000110
+#define T2000 0b00000111
+#define T4000 0b00100000
+#define T8000 0b00100001
+
+uint16_t wdtTime[]={16,32,64,125,500,1000,2000,4000,8000};   // durées WDT millis
 
 /*** ds18x20 ***/
 #ifdef DS18X20
 Ds1820 ds1820;
-float   temp,previousTemp,deltaTemp; 
+float   temp,previousTemp;
+float   deltaTemp=0.25; 
 bool    dsSta=false;
 byte    setds[]={0,0x7f,0x80,0x3f},readds[8];   // 187mS 10 bits accu 0,25°
 char    dsM;
@@ -77,6 +107,7 @@ float   volts=0;
 
 /* prototypes */
 
+void showRx();
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
 int  txMessage(char* message,char ack,uint8_t len,uint8_t numP);
 #if NRF_MODE == 'C'
@@ -104,9 +135,9 @@ void beginP()
 {
   confSta=-1;
   while(confSta<0){
-    confSta=nrfp.pRegister(); // -3 max RT ; -2 len ; -1 pipe ; 0 na ; 1 ok
+    confSta=nrfp.pRegister(); // -4 empty -3 max RT ; -2 len ; -1 pipe ; 0 na ; 1 ok
     Serial.print("start ");
-    Serial.print((char*)(kk+(confSta+6)*3));//Serial.print((confSta-ER_MAXER)*3);
+    Serial.print((char*)(kk+(confSta+6)*LMERR));//Serial.print((confSta-ER_MAXER)*3);
     Serial.print(" numP=");Serial.println(confSta);
     
     delayBlk(TBLK,DBLK,IBLK,1,1000);
@@ -121,9 +152,10 @@ void setup() {
 
 #if NRF_MODE == 'P'
   
+  hardwarePowerUp();
   nrfp.setup();
-  hardwarePowerUp();                                
-  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}        // 800mS ?
+                                  
+  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}        // 0,8sec (4 blink)
 
   beginP();                                 // pRegister()
   
@@ -136,10 +168,10 @@ void setup() {
 
 #if NRF_MODE == 'C'
 
-  nrfp.setup();
-
   hardwarePowerUp();                                
-  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}
+  nrfp.setup();
+  
+  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
 
   nrfp.tableCInit();//nrfp.tableCPrint();
   
@@ -156,10 +188,10 @@ void loop() {
     awakeCnt--;
     awakeMinCnt--;
     pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delayMicroseconds(500);digitalWrite(LED,LOW); // 1mA rc=0,5/8000 -> 62nA
-    sleepPwrDown(8000);
+    sleepPwrDown(T8000);
   }
 
-  awakeCnt=AWAKE_OK_VALUE;
+  awakeCnt=aw_ok;
 
   /*****  Here are data acquisition/checking to determine if nfr should be powered up *****
           If not -> sleepPwrDown() 
@@ -173,7 +205,7 @@ void loop() {
     tconv // TCONVDS not 200 ... should adjust sleep time
 #endif
 
-    sleepPwrDown(250); 
+    sleepPwrDown(T250); 
 
     nbT++;
     temp=ds1820.readDs(WPIN);
@@ -218,22 +250,44 @@ void loop() {
     outMessage[outLength]='\0';
 
     /* sending message */
-    trst=txMessage(outMessage,'A',outLength,1);  // 0 -> CC_ADDR  ; !=0 -> pi_addr
+    trst=txMessage(outMessage,'N',outLength,0);  
     if(trst<0){
-      // si le message ne part pas, essai aux (RETRY_VALUE-1) prochains réveils 
-      // puis après AWAKE_KO_VALUE réveils
+      // si le message ne part pas, essai aux (aw_retry-1) prochains réveils 
+      // puis après aw_ko réveils
       Serial.print((char*)outMessage);Serial.println(" ********** maxRT ");
       switch(retryCnt){
-        case 0:retryCnt=RETRY_VALUE;break;
-        case 1:awakeCnt=AWAKE_KO_VALUE;awakeMinCnt=AWAKE_KO_VALUE;awakeCnt=0;break;
+        case 0:retryCnt=aw_retry;break;
+        case 1:awakeCnt=aw_ko;awakeMinCnt=aw_ko;awakeCnt=0;break;
         default:retryCnt--;break;
       }
     }
-    else{           // transmit ok -> every counters reset
+    else{                 // transmit ok 
+      /* every counters reset */
       retryCnt=0;
-      awakeCnt=AWAKE_OK_VALUE;
-      awakeMinCnt=AWAKE_MIN_VALUE;
+      awakeCnt=aw_ok;
+      awakeMinCnt=aw_min;
       previousTemp=temp;
+      /* get response */
+      pldLength=MAX_PAYLOAD_LENGTH;                   // max length
+      int rdSta=AV_EMPTY;
+      read_beg=millis();
+      while((rdSta==AV_EMPTY)&& (readTo>=0)){
+        rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
+        readTo=TO_READ-millis()+read_beg;}
+      Serial.print("rdsta=");Serial.println(rdSta);  
+      if(rdSta>=0 && readTo>0){                                    // no error
+        showRx();
+
+        perRefr=(long)convStrToNum(message+ADDR_LENGTH+1+MPOSPERREFR-MPOSPERREFR,&sizeRead);     // per refresh server
+        aw_ok=perTemp/STEP_VALUE;
+        perTemp=(uint16_t)convStrToNum(message+ADDR_LENGTH+1+MPOSTEMPPER-MPOSPERREFR,&sizeRead); // per check température
+        aw_min=perRefr/STEP_VALUE;
+        deltaTemp=(long)convStrToNum(message+ADDR_LENGTH+1+MPOSPITCH-MPOSPERREFR,&sizeRead);     // pitch mesure
+Serial.print("R=");Serial.print(perRefr);Serial.print("/");Serial.print(aw_ok);Serial.print(" T=");Serial.print(perTemp);Serial.print("/");Serial.print(aw_min);Serial.print(" p=");Serial.println(deltaTemp);
+      }
+      else{
+        if(rdSta>=0){rdSta=ER_RDYTO;}
+        Serial.print(" response err ");Serial.println((char*)kk+(rdSta+6)*LMERR);}    // error
     }
   }
   delay(1);  // serial
@@ -254,22 +308,32 @@ void loop() {
   if(numP>=0){                                    // no error
     showRx();
     if(numP==0){                                  // register request
-  
       byte pAd[ADDR_LENGTH];             
       uint8_t numP=nrfp.cRegister(message);
       if(numP<(NBPERIF)){
         Serial.print(" registred on addr (");Serial.print(numP);Serial.print(")");nrfp.printAddr(pAd,'n');}
       else if(numP==(NBPERIF+2)){Serial.print(" MAX_RT ... deleted");}
       else {Serial.print(" full");}
+      Serial.println();
     }
         
-    else {}                   // pas demande d'inscription... à traiter
-    Serial.println();
+    else {                                        // pas demande d'inscription... send config
+      Serial.println();
+      /* store incoming message */
+      memcpy(tableC[numP].periBuf,message,pldLength);   
+      tableC[numP].periBufLength=pldLength;
+      /* build config */
+      memcpy(message+ADDR_LENGTH+1,tableC[numP].serverBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
+      /* send config message */
+      int trst=txMessage(message,'N',MAX_PAYLOAD_LENGTH,numP);
+      if(trst==0){tableC[numP].periBufSent=true;}
+      // reformater et transmettre au serveur le message reçu 
+    }
   }
 
   else if(numP!=AV_EMPTY){
     showRx();
-    Serial.print(" err ");Serial.println((char*)kk+(numP+6)*3);}    // error... à traiter
+    Serial.print(" err ");Serial.println((char*)kk+(numP+6)*LMERR);}    // error... à traiter
     
   char a=getch();
   switch(a){
@@ -338,7 +402,7 @@ void echo0(char* message,uint8_t len,uint8_t numP)
   message[len+1]='\0';
 
   int trSta=-1;
-  trSta=txMessage(message,'A',len,numP);
+  trSta=txMessage(message,'N',len,numP);
   
   if(trSta<0){Serial.print("********** maxRT ");
 #if NRF_MODE == 'P'
@@ -349,47 +413,25 @@ void echo0(char* message,uint8_t len,uint8_t numP)
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     pldLength=MAX_PAYLOAD_LENGTH;                   // max length
     readTo=0;
-    gdSta=AV_EMPTY;
+    numP=AV_EMPTY;
     long read_beg=millis();
-    while((gdSta==AV_EMPTY)&& (readTo>=0)){
-      gdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
+    while((numP==AV_EMPTY)&& (readTo>=0)){
+      numP=nrfp.read(message,&pipe,&pldLength,NBPERIF);
       readTo=TO_READ-millis()+read_beg;}    
     time_end=micros();
-    if(gdSta>=0){         // data ready, no error
+    if(numP>=0){         // data ready, no error
       showRx();
     }
-    else{Serial.print("error ");Serial.print((char*)kk+(gdSta+ER_MAXER)*3);} 
+    else{Serial.print("error ");Serial.print((char*)kk+(numP+ER_MAXER)*LMERR);} 
   }
   Serial.print(" in:");Serial.print((long)(time_end - time_beg));Serial.println("us");
-}
-
-void showRx()
-{
-/*  uint8_t nP;
-  byte pipeAd[ADDR_LENGTH];
-  #if NRF_MODE=='C'
-  for(int i=0;i<ADDR_LENGTH;i++){
-    pipeAd[i]=tableC[nP].pipeAddr[i];}
-  //memcpy(pipeAd,tableC[nP].pipeAddr,ADDR_LENGTH);
-  #endif NRF_MODE=='C'
-  #if NRF_MODE=='P'
-  switch(pipe){
-    case 1:memcpy(pipeAd,R0_ADDR,ADDR_LENGTH);break;
-    case 0:memcpy(pipeAd,BR_ADDR,ADDR_LENGTH);break;
-    default:memcpy(pipeAd,"*err*",ADDR_LENGTH);break;
-  }
-  #endif NRF_MODE=='P'  
-*/  
-  Serial.print((char*)message);
-  Serial.print(" l=");Serial.print(pldLength);
-  Serial.print(" p=");Serial.print(pipe);
 }
 
 #endif NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'
 
-void wdtSetup(uint16_t durat)  // durat=0 for external wdt on INT0
+void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à traiter)
 { 
 // datasheet page 54, Watchdog Timer.
    
@@ -419,31 +461,25 @@ void wdtSetup(uint16_t durat)  // durat=0 for external wdt on INT0
  *   l'instrction wdr reset le timer (wdt_reset();)
  */
 
+
+
     WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
                                       // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants
     WDTCSR = (1<<WDIE) | (1<<WDP0) | (1<<WDP3);   // WDCE doit être 0 ; WDE=0 ; WDIE=1 mode interruption, 8s
                                   
-  if(durat==8000){
     WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
                                       // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants
-    WDTCSR = (1<<WDIE) | (1<<WDP0) | (1<<WDP3);}   // WDCE doit être 0 ; WDE=0 ; WDIE=1 mode interruption, 8s
-  else if(durat==250){
-    WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
-                                      // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants                                             
-    WDTCSR = (1<<WDIE) | (1<<WDP0);}
-  else if(durat==16){
-    WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
-                                      // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants
-    WDTCSR = (1<<WDIE) | (1<<WDP0);}
+    WDTCSR = (1<<WDIE) | durat;       // WDCE doit être 0 ; WDE=0 ; WDIE=1 mode interruption, 8s
+//    WDTCSR = (1<<WDIE) | (1<<WDP0) | (1<<WDP3);       // WDCE doit être 0 ; WDE=0 ; WDIE=1 mode interruption, 8s
 
   interrupts();
 
 }
 
-void sleepPwrDown(uint16_t durat) {
+void sleepPwrDown(uint8_t durat) {
 
     nbS++;
-    durT+=durat/10;
+    durT+=wdtTime[durat]/10;
     hardwarePowerDown();
 
     wdtSetup(durat);
@@ -471,18 +507,16 @@ int txMessage(char* message,char ack,uint8_t len,uint8_t numP)
   if(numP==0){beginP();}
 #endif NRF_MODE=='P'
   
-  Serial.print((char*)message);delay(10);
+  Serial.print((char*)message);delay(1);
   
-  nrfp.write(message,ack,len+1,numP);
-
-  //Serial.print("!");
+  nrfp.write(message,ack,len,numP);
   int trSta=1;
   time_beg = micros();
   while(trSta==1){
     trSta=nrfp.transmitting();}
 
   time_end=micros();  
-  Serial.print(" transmitted to ");  
+  Serial.print(" tx to ");  
   Serial.print(numP);Serial.print(" in:");
   Serial.print((long)(time_end - time_beg)); 
   Serial.println("us");
@@ -490,6 +524,13 @@ delay(1);
   return trSta;
 }
 
+void showRx()
+{  
+  Serial.print((char*)message);
+  Serial.print(" l=");Serial.print(pldLength);
+  Serial.print(" p=");Serial.print(pipe);
+  Serial.print(" numP=");Serial.print(numP);
+}
 
 void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,long dly)
 {

@@ -16,22 +16,25 @@
 #define CE_OFF    pinMode(CE_PIN,INPUT);
 #define CSN_INIT  pinMode(CSN_PIN,OUTPUT);
 #define CSN_OFF   pinMode(CSN_PIN,INPUT);
-#define CE_HIGH   digitalWrite(CE_PIN,HIGH);
-#define CE_LOW    digitalWrite(CE_PIN,LOW);
 
 #ifdef MEGA
-#define CSN_HIGH  bitSet(PORTB,4);delayMicroseconds(1);
-#define CSN_LOW   bitClear(PORTB,4);delayMicroseconds(1);
+#define CSN_HIGH  bitSet(PORTB,4);//delayMicroseconds(1);
+#define CSN_LOW   bitClear(PORTB,4);//delayMicroseconds(1);
 #endif  // MEGA
 #ifdef UNO        // idem for PRO MINI
 #define CSN_HIGH  bitSet(PORTB,2);
 #define CSN_LOW   bitClear(PORTB,2);
+#define CE_HIGH   bitSet(PORTB,1);delayMicroseconds(4);
+#define CE_LOW    bitClear(PORTB,1);
 #endif  // UNO
 #ifndef CSN_HIGH
 #define CSN_HIGH  digitalWrite(CSN_PIN,HIGH);
 #define CSN_LOW   digitalWrite(CSN_PIN,LOW);
 #endif  // CSN_HIGH
-
+#ifndef CE_HIGH
+#define CE_HIGH   digitalWrite(CE_PIN,HIGH);
+#define CE_LOW    digitalWrite(CE_PIN,LOW);
+#endif  // CE_HIGH
 
 #define CLKPIN    13
 #define MISOPIN   12
@@ -48,17 +51,12 @@
 /*** debug pulse for logic analyzer  ***/
 #define PP        4
 #ifdef UNO        // idem for PRO MINI
-#define PP4       bitClear(PORTB,PP);bitSet(PORTB,PP);
+#define PP4       bitClear(PORTD,PP);bitSet(PORTD,PP);
 #endif UNO
 #ifndef UNO
 #define PP4       digitalWrite(PP,LOW);digitalWrite(PP,HIGH);
 #endif
-#define PP4_INIT  pinMode(PP,OUTPUT);PP4;
-
-#define DEF_CHANNEL 1
-
-#define RX 1
-#define TX 0
+#define PP4_INIT  pinMode(PP,OUTPUT);PP4
 
 #define CONFREG (0x00 & ~(MASK_RX_DR_BIT) & ~(MASK_TX_DS_BIT) & ~(MASK_MAX_RT_BIT) | EN_CRC_BIT & ~(CRCO_BIT) | PWR_UP_BIT | PRIM_RX_BIT)
 
@@ -66,17 +64,6 @@
 #define RFREG   RF_PWR_BITS
 
 /***** config *****/
-
-//uint8_t cePin;
-//uint8_t csnPin;
-//uint8_t channel;
-byte    rfSpeed;
-byte    setupRetry;
-
-byte*   br_addr;
-byte*   cc_addr;
-byte*   r0_addr;
-byte*   pi_addr;
 
 #if NRF_MODE == 'C'
 struct NrfConTable tableC[NBPERIF];
@@ -91,50 +78,59 @@ bool powerD=true;         // etat power (true=down)
 uint8_t regw,stat,fstat,conf;
 
 
-
 Nrfp::Nrfp()    // constructeur
 {
 }
 
 void Nrfp::setup()
-{
-//    cePin=CE_PIN; // ceP[numNrf];
-//    csnPin=CSN_PIN; //csnP[numNrf];
-//    channel=CHANNEL;
-
-    rfSpeed=RF_SPEED;
-    setupRetry=(ARD-1)*16+ARC;
-
-//    cc_addr=CC_ADDR;
-//    br_addr=BR_ADDR;
-//    r0_addr=R0_ADDR;
-
+{ 
     /* registers */
 
-    regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // no ack enable ; dyn pld length enable
+    regw=EN_DPL_BIT; //EN_DYN_ACK_BIT | EN_DPL_BIT;  // no ack enable ; dyn pld length enable
     regWrite(FEATURE,&regw);
 
-    regw=0; // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
-    regWrite(EN_AA,&regw);
+    regw=(ADDR_LENGTH-2)<<AW;       // addresses width
+    regWrite(SETUP_AW,&regw);
 
-    regw=(ERX_P1_BIT|ERX_P0_BIT); // R0,R1 seuls (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
+//    regw=MAX_PAYLOAD_LENGTH;        // set payload length
+//    regWrite(RX_PW_P0,&regw);
+
+//    regw=MAX_PAYLOAD_LENGTH;        // set payload length
+//    regWrite(RX_PW_P1,&regw);
+
+    #if NRF_MODE == 'P'             // pipe 0 et 1 utilisés
+    regw=0x00; //(ENAA_P1_BIT|ENAA_P0_BIT); // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
+    regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
+    regw=(ERX_P1_BIT|ERX_P0_BIT);   // R0,R1 seuls (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
     regWrite(EN_RXADDR,&regw);
+    regw=(DPL_P1_BIT|DPL_P0_BIT);   // (DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
+    regWrite(DYNPD,&regw);          // dynamic payload length
+    #endif NRF_MODE == 'P'
 
-    regw=(DPL_P1_BIT|DPL_P0_BIT); // (DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
-    regWrite(DYNPD,&regw);        // dynamic payload length
+    #if NRF_MODE == 'C'             // pipe 1 seul utilisé
+    regw=(ENAA_P1_BIT);             // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
+    regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
+    regw=(ERX_P1_BIT);              // R1 seul (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
+    regWrite(EN_RXADDR,&regw);
+    regw=(DPL_P1_BIT);              // (DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
+    regWrite(DYNPD,&regw);          // dynamic payload length
+    #endif NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'
-    addrWrite(RX_ADDR_P0,BR_ADDR);
-    addrWrite(TX_ADDR,CC_ADDR);
+    addrWrite(RX_ADDR_P0,BR_ADDR);   // RXP0 pour réception messages broadcast
+    addrWrite(TX_ADDR,CC_ADDR);      // TX sur concentrateur
 #endif // NRF_MODE == 'P'
-    addrWrite(RX_ADDR_P1,MAC_ADDR);
 
-    regWrite(RF_CH,CHANNEL);
+    addrWrite(RX_ADDR_P1,MAC_ADDR);  // RXP1 = macAddr du circuit
 
-    regw=RFREG | rfSpeed;
+    regw=CHANNEL;
+    regWrite(RF_CH,&regw);
+
+    regw=RFREG | RF_SPEED;
     regWrite(RF_SETUP,&regw);
 
-    regWrite(SETUP_RETR,&setupRetry);
+    regw=ARD_VALUE<<ARD+ARC_VALUE<<ARC;
+    regWrite(SETUP_RETR,&regw);
 
     flushRx();
     flushTx();
@@ -143,7 +139,6 @@ void Nrfp::setup()
     regWrite(STATUS,&regw);
 
     prxMode=false;
-    letsPrx();
 }
 
 /************ utilitary ***************/
@@ -197,7 +192,7 @@ void Nrfp::powerUp()
 
     powerD=false;
 
-    delay(4);
+    delay(5);
 }
 
 void Nrfp::powerDown()
@@ -246,41 +241,41 @@ void Nrfp::flushRx()
 
 bool Nrfp::letsPrx()      // goto PRX mode
 {
-    CE_HIGH
-
     if(!prxMode){
       flushRx();
       CLR_RXDR
       setRx();
       prxMode=true;
     }
+    CE_HIGH
 }
 
 /********** public *************/
 
 void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)  // write data,len to numP
 {
+    //len=MAX_PAYLOAD_LENGTH;
+    
     prxMode=false;
     CE_LOW
 
     flushTx();   // avant tx_pld !!!
+    setTx();
+    CLR_TXDS_MAXRT
 
     CSN_LOW
-    SPI.transfer(W_TX_PAYLOAD_NA);     // without ACK
+    /*if(na=='A'){SPI.transfer(W_TX_PAYLOAD);}            // with ACK
+    else{}*/
+    SPI.transfer(W_TX_PAYLOAD_NA);                // without ACK
     for(uint8_t i=0;i<len;i++){SPI.transfer(data[i]);}
     CSN_HIGH
-
-    setTx();
-
-    stat=TX_DS_BIT | MAX_RT_BIT;  // clear TX_DS & MAX_RT bits
-    regWrite(STATUS,&stat);
 
 #if NRF_MODE == 'C'
     addrWrite(TX_ADDR,tableC[numP].periMac);
 #endif // NRF_MODE == 'C'
 
     CE_HIGH                                 // transmit (CE high->TX_DS 235uS @1MbpS)
-
+    
 // transmitting() should be checked now to wait for end of paquet transmission
 // or ACK reception before turning CE low
 }
@@ -289,20 +284,20 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
 {     // should be added : TO in case of out of order chip (trst=-2)
       // when sent or max retry, output in PRX mode with CE high
 
-      CE_LOW
-
       int trst=1;
-
+      
       GET_STA
 
       if((stat & TX_DS_BIT)){trst=0;}           // data sent
-      else if((stat & MAX_RT_BIT)){             // max retry
+      else if((stat & MAX_RT_BIT)){             // max retry should not happen (no ACK allowed)
         trst=-1;
+        Serial.println("-1");
       }
 
       if(trst<=0){                              // data sent or max retry
-        flushTx();
+        CE_LOW
         CLR_TXDS_MAXRT
+        flushTx();
         letsPrx();
         PP4
       }
@@ -322,49 +317,58 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
 {
 /* available/read output errors codes (>=0 numP) */
 
-    uint8_t maxLength=*pldLength;
+    uint8_t maxLength=*pldLength; // MAX_PAYLOAD_LENGTH;
     int err=0;
 
+    if(!prxMode){letsPrx();}
+
     GET_STA
-    if((stat & RX_DR_BIT)==0){             // RX empty ?
+    if((stat & RX_DR_BIT)==0){             //     ||(((stat & RX_P_NO_BIT)>>RX_P_NO)==7)){             // RX empty ?
         regRead(FIFO_STATUS,&fstat);
         if((fstat & RX_EMPTY_BIT)!=0){     // FIFO empty ?
-            if(!prxMode){letsPrx();}
-            return AV_EMPTY;               // empty
+            return AV_EMPTY;               // --------------- empty
         }
-        GET_STA
+        else{
+          GET_STA
+          *pipe=(stat & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
+          if(*pipe!=1){
+            flushRx();
+            //CLR_RXDR 
+            return AV_EMPTY;}
+        }
     }
-
+    PP4    
     *pipe=(stat & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
-
+   
 #if NRF_MODE =='P'
     if(*pipe<NB_PIPE){
 #endif // NRF_MODE == 'P'
 #if NRF_MODE =='C'
     if(*pipe==1){
 #endif // NRF_MODE == 'C'
+
         CSN_LOW
         SPI.transfer(R_RX_PL_WID);
         *pldLength=SPI.transfer(0xff);      // get pldLength (dynamic length)
-        CSN_HIGH
+        CSN_HIGH      
     }
-    else {err=AV_NBPIP;}
+    else {err=AV_NBPIP;}                    // ---------------- pipe nb error
 
-    if(((*pldLength>maxLength) || (*pldLength<0)) && err==0){
-        err=AV_LMERR;}
+    if(((*pldLength>maxLength) || (*pldLength<=0)) && err==0){
+        err=AV_LMERR;}                      // ---------------- pldLength error
 
-    rxError();
-    return err;                              // invalid pipe nb or length
+    if(err!=0){rxError();}
+    return err;                             // =0 not empty ; !=0 error invalid pipe nb or length
 }
 
-int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,uint8_t numP)
+int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 {   // see available() return codes
     // numP<NBPERIF means "available() allready done with result ok && *pipe set")
-    int avSta=numP;
+
     if(numP>=NBPERIF){                                      // allow to only execute available()
-        avSta=available(pipe,pldLength);                    // if necessary
-    }
-    if(avSta>=0){
+        numP=available(pipe,pldLength);                     // if necessary
+    } 
+    if(numP>=0){
         CSN_LOW
         SPI.transfer(R_RX_PAYLOAD);
         SPI.transfer(data,*pldLength);                      // get pld
@@ -373,45 +377,56 @@ int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,uint8_t numP)
         CLR_RXDR
 
 #if NRF_MODE == 'C'
-        numP=data[ADDR_LENGTH]-48;
-        if(numP!=0 && memcmp(data,tableC[avSta].periMac,ADDR_LENGTH)!=0){  // macAddr ok ?
-            avSta=AV_MCADD;rxError();}                                     // si numP==0 inscription � faire
+        numP=data[ADDR_LENGTH]-48;                                        // numP
+        if(numP!=0 && memcmp(data,tableC[numP].periMac,ADDR_LENGTH)!=0){  // macAddr ok ?
+            numP=AV_MCADD;rxError();}                                     // si numP==0 inscription à faire
 #endif // NRF_MODE == 'C'
     }
 
-    return avSta;               // available() return codes ; PRX mode still true if no error
+    return numP;                  // available() return codes ; PRX mode still true if no error
 }
 
 #if NRF_MODE == 'P'
 int Nrfp::pRegister()  // peripheral registration to get pipeAddr
 {                      // ER_MAXRT ; AV_errors codes ; >=0 numP ok
 
-    char message[ADDR_LENGTH+1];
+    char message[ADDR_LENGTH+2];
+//    char message[MAX_PAYLOAD_LENGTH+1];
     memcpy(message,MAC_ADDR,ADDR_LENGTH);
     message[ADDR_LENGTH]='0';
-    write(message,'N',ADDR_LENGTH,0);       // send macAddr to cc_ADDR ; no ACK
-
+    message[ADDR_LENGTH+1]='\0';
+    write(message,'N',ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
     int trst=1;
     while(trst==1){trst=transmitting();}
 
-    if(trst<0){return ER_MAXRT;}            // MAX_RT error
+    if(trst<0){return ER_MAXRT;}            // MAX_RT error should not happen (no ACK allowed)
 
+int numP;
+long readTo;
+//while(1){
     long time_beg = millis();
-    long readTo=0;
-    int  gdSta=AV_EMPTY;
-    uint8_t pipe,pldLength;
+    readTo=0;
+    uint8_t pipe,pldLength=ADDR_LENGTH+1;
+    numP=AV_EMPTY;
 
-    while(gdSta==AV_EMPTY && (readTo>=0)){  // waiting for data
+    while(numP==AV_EMPTY && (readTo>=0)){  // waiting for data
         readTo=TO_REGISTER-millis()+time_beg;
-        gdSta=read(message,&pipe,&pldLength,NBPERIF);}
+        numP=read(message,&pipe,&pldLength,NBPERIF);}
 
-    if(gdSta>=0 && (readTo>=0)){            // no TO pld ok
-        gdSta=message[ADDR_LENGTH]-48;      // numP
-        return gdSta;}                      // PRX mode still true
+if(readTo<0 && numP>=0){numP=-99;}
+  Serial.print((char*)message);
+  Serial.print(" l=");Serial.print(pldLength);
+  Serial.print(" p=");Serial.print(pipe);
+  Serial.print(" numP=");Serial.println(numP);
+//}
 
-    rxError();                              // CE low
-    if(gdSta>=0){return ER_RDYTO;}          // else TO error
-    return gdSta;                           // or AV error ;
+    if(numP>=0 && (readTo>=0)){            // no TO pld ok
+        numP=message[ADDR_LENGTH]-48;      // numP
+        return numP;}                      // PRX mode still true
+
+    rxError();                             // CE low
+    if(numP>=0){return ER_RDYTO;}          // else TO error
+    return numP;                           // or AV error ;
 }
 #endif // NRF_MODE == 'P'
 
@@ -441,6 +456,7 @@ uint8_t Nrfp::cRegister(char* macAddr)      // search free line or existing macA
 
             int trst=1;
             while(trst==1){trst=transmitting();}
+
             if(trst<0){memset(tableC[i].periMac,'0',ADDR_LENGTH);i=NBPERIF+2;}    // MAX_RT -> effacement table ;
           }                                           // numP du perif sera effac� pour non r�ponse au premier TX
 
@@ -452,7 +468,12 @@ void Nrfp::tableCPrint()
   for(int i=0;i<NBPERIF;i++){
     Serial.print(i);Serial.print(" ");
     Serial.print(tableC[i].numPeri);Serial.print(" ");
-    printAddr(tableC[i].periMac,' ');Serial.print(" ");
+    printAddr(tableC[i].periMac,' ');Serial.print(" (");
+    Serial.print(tableC[i].periBufLength);Serial.print("/");
+    Serial.print(tableC[i].periBufSent);Serial.print(")");
+    Serial.print(tableC[i].periBuf);Serial.print(" ");
+    Serial.print(tableC[i].serverBuf);Serial.print(" ");
+    Serial.println();
   }
 }
 
@@ -462,6 +483,10 @@ void Nrfp::tableCInit()
   for(int i=1;i<NBPERIF;i++){
     tableC[i].numPeri=0;
     memcpy(tableC[i].periMac,"00000",ADDR_LENGTH);
+    memcpy(tableC[i].serverBuf,"00120_00040_0.25",16);
+    memset(tableC[i].periBuf,'\0',MAX_PAYLOAD_LENGTH+1);
+    tableC[i].periBufLength=0;
+    tableC[i].periBufSent=false;
   }
 }
 

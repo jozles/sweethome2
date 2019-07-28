@@ -6,14 +6,14 @@
 /*
  * Fonctionnement du NRF24L01+ :
  *
- *  au démarrage, le bit PWR_UP et CE_LOW
+ *  au dï¿½marrage, le bit PWR_UP et CE_LOW
  *  place le chip en mode standby en maxi 4,5mS
  *
  *  pour transmettre :
  *
  *    (a)charger le FIFO, bit PRIM_RX_low
  *    (b)charger TX_ADDR (et RX_ADDR_P0 si auto ACK)
- *    (c)CE high lance la transmission après un delais de 130uS
+ *    (c)CE high lance la transmission aprï¿½s un delais de 130uS
  *    (d)attendre la fin de la transmission (TX_DS set ou MAX_RT set
  *                                        effacer TX_DS et MAX_RT)
  *    (e)retour en mode standby avec CE low.
@@ -28,50 +28,50 @@
  *
  *  pour recevoir :
  *
- *    (f)bit PRIM_RX_high, CE_HIGH commence l'écoute après un delais de 130uS
+ *    (f)bit PRIM_RX_high, CE_HIGH commence l'ï¿½coute aprï¿½s un delais de 130uS
  *    (g)attendre un paquet (RX_DR set ou RX_EMPTY clr ; effacer RX_DR)
  *    (h)retour en standby avec CE low
- *    (i)charger le message reçu
+ *    (i)charger le message reï¿½u
  *
  *    fonctions :
  *    available() (f)(g)(h)
- *                recharge RX_ADDR_P0 si nécessaire (vidage FIFO dans ce cas)
- *                passe en mode prx (pwrUpTx+CE_HIGH) si nécessaire au premier test
- *                contrôle la longueur maxi, transfère le message
- *                et récupère la longueur reçue et le n° de pipe
+ *                recharge RX_ADDR_P0 si nï¿½cessaire (vidage FIFO dans ce cas)
+ *                passe en mode prx (pwrUpTx+CE_HIGH) si nï¿½cessaire au premier test
+ *                contrï¿½le la longueur maxi, transfï¿½re le message
+ *                et rï¿½cupï¿½re la longueur reï¿½ue et le nï¿½ de pipe
  *                termine avec CE_LOW si true (fin du mode prx)
  *    Read()      (f)(g)(h)(i)
  *                effectue available()
  *
  *
  *             ***** utilisation des pipes *****
- *             modèle en étoile : 1 concentrateur
- *           n circuits vers (n*6)-1 périphériques
+ *             modï¿½le en ï¿½toile : 1 concentrateur
+ *           n circuits vers (n*6)-1 pï¿½riphï¿½riques
  *
- *  Données communes :
+ *  DonnÃ©es communes :
  *
- *      br_addr (broadcast) messages du concentrateur vers tous les périphériques
+ *      br_addr (broadcast) messages du concentrateur vers tous les pï¿½riphï¿½riques
  *      cc_addr (concentrateur) guichet unique d'inscription
  *
- *  périphériques :
+ *  pÃ©riphÃ©riques :
  *
- *      macAddr unique allouée au pipe1 (pour mode PRX)
+ *      macAddr unique allouÃ©e au pipe1 (pour mode PRX)
  *      (br_addr sur pipe0 en PRX)
  *      regAddr(ccPipe)  adresse fournie par le concentrateur (pour mode PTX)
- *      pRegister() envoie la macAddr et reçoit une regAddr
+ *      pRegister() envoie la macAddr et reï¿½oit une regAddr
  *
  *  concentrateur :
  *
- *      un pipe est réservé pour la cc_addr
+ *      un pipe est rï¿½servï¿½ pour la cc_addr
  *      chaque pipe est muni d'une adresse fixe
- *      l'adresse de chaque périphérique est associée à chaque circuit/pipe
- *      en réception dataRead() fournit le numéro de pipe emetteur
- *      en émission l'adresse est fournie à datawrite()
- *      cRegister() reçoit la macAddr et fournit une regAddr
+ *      l'adresse de chaque pï¿½riphï¿½rique est associï¿½e ï¿½ chaque circuit/pipe
+ *      en rï¿½ception dataRead() fournit le numï¿½ro de pipe emetteur
+ *      en ï¿½mission l'adresse est fournie ï¿½ datawrite()
+ *      cRegister() reï¿½oit la macAddr et fournit une regAddr
  *
- *      numPeri numéro de périphérique (1-n)
- *      numPipe numéro de pipe de circuit du concentrateur (1-5)
- *      numNrf  numéro du circuit courant numPeri=(numNrf*10)+numPipe
+ *      numPeri numï¿½ro de pï¿½riphï¿½rique (1-n)
+ *      numPipe numï¿½ro de pipe de circuit du concentrateur (1-5)
+ *      numNrf  numï¿½ro du circuit courant numPeri=(numNrf*10)+numPipe
  *
  *
  *
@@ -83,7 +83,7 @@
 #include "nRF24L01.h"       // mnemonics
 #include "nrf24l01s_const.h"
 
-#define NB_PIPE 2           // nombre pipes utilisées
+#define NB_PIPE 2           // nombre pipes utilisï¿½es
 #define MAX_PAYLOAD_LENGTH 32
 #define ADDR_LENGTH 5
 
@@ -101,15 +101,19 @@
 #define AV_EMPTY -4
 #define AV_MAXAV AV_EMPTY
 #define ER_MAXRT AV_MAXAV-1 // code erreur MAX_RT
-#define ER_RDYTO ER_MAXRT-1 // code erreur Time Out attente réception
+#define ER_RDYTO ER_MAXRT-1 // code erreur Time Out attente rÃ©ception
 #define ER_MAXER ER_RDYTO
 #define ER_TEXT "to\0rt\0em\0mc\0le\0pi\0--\0ok\0" // 2 char libs for codes
 
 #if NRF_MODE == 'C'
 struct NrfConTable
 {
-  uint8_t numPeri;                  // numéro périphérique pour serveur
+  uint8_t numPeri;                  // numï¿½ro pï¿½riphï¿½rique pour serveur
   byte    periMac[ADDR_LENGTH+1];   // macAddr
+  char    serverBuf[MAX_PAYLOAD_LENGTH+1];
+  char    periBuf[MAX_PAYLOAD_LENGTH+1];
+  uint8_t periBufLength;
+  bool    periBufSent;
 };
 #endif // NRF_MODE == 'C'
 
@@ -122,7 +126,7 @@ class Nrfp
     void setup();
 
     int  available(uint8_t* pipe,uint8_t* length);
-    int  read(char* data,uint8_t* pipe,uint8_t* length,uint8_t numP);
+    int  read(char* data,uint8_t* pipe,uint8_t* length,int numP);
     void write(byte* data,char na,uint8_t len,uint8_t numP);
     int  transmitting();
 
@@ -159,4 +163,3 @@ class Nrfp
 };
 
 #endif // NRF24L01P INCLUDED
-
