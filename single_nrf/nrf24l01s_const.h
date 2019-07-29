@@ -36,7 +36,7 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
   #define UNO                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN
 
 #if NRF_MODE == 'P'
-  #define MAC_ADDR "peri2"
+  #define MAC_ADDR  PER_ADDR
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
@@ -44,6 +44,7 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
 
 /****************************/
 
+  #define PER_ADDR  "peri0"     // MAC_ADDR périphériques
   #define CC_ADDR   "toto_"     // MAC_ADDR concentrateur
   #define BR_ADDR   "bcast"     // adresse fixe de broadcast
 
@@ -63,4 +64,6 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
   #ifdef MEGA
   #define NBPERIF 24            //  pour dim table
   #endif  
+
+
 #endif _NRF_CONST_INCLUDED

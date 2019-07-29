@@ -18,13 +18,13 @@
 #define CSN_OFF   pinMode(CSN_PIN,INPUT);
 
 #ifdef MEGA
-#define CSN_HIGH  bitSet(PORTB,4);//delayMicroseconds(1);
-#define CSN_LOW   bitClear(PORTB,4);//delayMicroseconds(1);
+#define CSN_HIGH  bitSet(PORTB,4);
+#define CSN_LOW   bitClear(PORTB,4)
 #endif  // MEGA
 #ifdef UNO        // idem for PRO MINI
 #define CSN_HIGH  bitSet(PORTB,2);
 #define CSN_LOW   bitClear(PORTB,2);
-#define CE_HIGH   bitSet(PORTB,1);delayMicroseconds(4);
+#define CE_HIGH   bitSet(PORTB,1);delayMicroseconds(10);
 #define CE_LOW    bitClear(PORTB,1);
 #endif  // UNO
 #ifndef CSN_HIGH
@@ -99,7 +99,7 @@ void Nrfp::setup()
 //    regWrite(RX_PW_P1,&regw);
 
     #if NRF_MODE == 'P'             // pipe 0 et 1 utilisés
-    regw=0x00; //(ENAA_P1_BIT|ENAA_P0_BIT); // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
+    regw=0;//(ENAA_P1_BIT|ENAA_P0_BIT); // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
     regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
     regw=(ERX_P1_BIT|ERX_P0_BIT);   // R0,R1 seuls (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
     regWrite(EN_RXADDR,&regw);
@@ -108,7 +108,7 @@ void Nrfp::setup()
     #endif NRF_MODE == 'P'
 
     #if NRF_MODE == 'C'             // pipe 1 seul utilisé
-    regw=(ENAA_P1_BIT);             // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
+    regw=0;//(ENAA_P1_BIT);             // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
     regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
     regw=(ERX_P1_BIT);              // R1 seul (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
     regWrite(EN_RXADDR,&regw);
@@ -271,7 +271,7 @@ void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)  // write data,len
     CSN_HIGH
 
 #if NRF_MODE == 'C'
-    addrWrite(TX_ADDR,tableC[numP].periMac);
+    addrWrite(TX_ADDR,PER_ADDR);       //tableC[numP].periMac);
 #endif // NRF_MODE == 'C'
 
     CE_HIGH                                 // transmit (CE high->TX_DS 235uS @1MbpS)
@@ -426,7 +426,7 @@ if(readTo<0 && numP>=0){numP=-99;}
 
     rxError();                             // CE low
     if(numP>=0){return ER_RDYTO;}          // else TO error
-    return numP;                           // or AV error ;
+    return numP;                           // or AV error 
 }
 #endif // NRF_MODE == 'P'
 
