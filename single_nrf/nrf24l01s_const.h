@@ -33,7 +33,7 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
 
 /****************************/
   #define NRF_MODE 'C'           //  C concentrateur ; P périphérique
-  #define UNO                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN
+  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN
 
 #if NRF_MODE == 'P'
   #define MAC_ADDR  PER_ADDR
@@ -55,8 +55,8 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
 
   #define CHANNEL    110        // numéro canal radio
   #define RF_SPEED   RF_SPD_1MB // vitesse radio  RF_SPD_2MB // RF_SPD_1MB // RF_SPD_250K
-  #define ARD_VALUE  0          // ((0-15)+1) x 250uS delay before repeat
-  #define ARC_VALUE  0          // (0-15) repetitions
+  #define ARD_VALUE  1          // ((0-15)+1) x 250uS delay before repeat
+  #define ARC_VALUE  4          // (0-15) repetitions
 
   #ifdef UNO
   #define NBPERIF 8             //  pour dim table

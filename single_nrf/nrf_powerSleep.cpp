@@ -1,5 +1,6 @@
 #include "nrf24l01s_const.h"
 #include "nrf_powerSleep.h"
+#include "nrf_user.h"
 
 #include <avr/sleep.h>
 #include <avr/power.h>
@@ -14,10 +15,10 @@ extern uint32_t nbS;
  
 void hardwarePowerDown()
 {
+  userHardPowerDown();
   nrfp.powerDown();
   pinMode(LED,INPUT);
 }
-
 
 void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à traiter)
 { 

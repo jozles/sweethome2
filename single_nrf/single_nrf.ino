@@ -29,7 +29,7 @@ unsigned long readTo;       // compteur TO read()
 
 unsigned long time_beg=millis();
 unsigned long time_end;
-byte    message[MAX_PAYLOAD_LENGTH+1];
+byte    message[MAX_PAYLOAD_LENGTH+1];   // buffer général pour nrfp.read()
 int     numP;
 uint8_t pipe;
 uint8_t pldLength;
@@ -218,6 +218,7 @@ void loop() {
       byte pAd[ADDR_LENGTH];             
       uint8_t numP=nrfp.cRegister(message);
       if(numP<(NBPERIF)){
+        memcpy(pAd,tableC[numP].periMac,ADDR_LENGTH);
         Serial.print(" registred on addr (");Serial.print(numP);Serial.print(")");nrfp.printAddr(pAd,'n');}
       else if(numP==(NBPERIF+2)){Serial.print(" MAX_RT ... deleted");}
       else {Serial.print(" full");}
@@ -264,10 +265,10 @@ void echo(char a)
   
   while (getch()!='q'){
 
-    uint8_t numP=1;
+    uint8_t numP=1; // 1er perif de la table
     cnt++;
     sprintf(message,"%05d",cnt);
-    echo0(message,5,tableC[numP].periMac);      // le concentrateur parle toujours à periMac
+    echo0(message,5,numP);
                                                 // si periMac ne répond plus ... à voir
 
     delay(2000);ledblk(TBLK,DBLK,IBLK,2);
@@ -293,17 +294,14 @@ void showSta(uint8_t nb)
 void broadcast(char a)
 {           
   Serial.println((char)a);
-//showSta(1);
  
   sprintf(message,"%08lu",millis());
 
-  echo0(message,8,BR_ADDR);
-//showSta(5);
-
+  echo0(message,8,1);
 }
 
 void echo0(char* message,uint8_t len,uint8_t numP)
-{ 
+{                       // txMessage + read réponse (1er perif de la table)
   message[len]='+';
   message[len+1]='\0';
 

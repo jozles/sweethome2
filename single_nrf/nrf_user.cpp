@@ -5,13 +5,6 @@
 extern uint16_t aw_ok;
 extern uint16_t aw_min;
 
-
-long     perRefr=0;                
-uint16_t perTemp=0;
-long     pitchTemp=0;
-
-int      sizeRead;
-
 /* user includes */
 
 #include "shconst2.h"
@@ -43,7 +36,8 @@ float   volts=0;
 
 bool checkThings(uint8_t retryCnt)
 {
-
+  /* Here data acquisition/checking/treatment (if something to send -> return true) */
+  /* powerUp equipments who are in userHardPowerDown() */
 #ifdef DS18X20
 
   if(retryCnt==0){            // pas de conversion si retry en cours
@@ -69,8 +63,9 @@ bool checkThings(uint8_t retryCnt)
 
 void messageBuild(char* message,uint8_t* messageLength)
 {
+  /* Here add user data >>> be carefull to not override 32 bytes <<< */
     message[*messageLength+LENVERSION]=dsM;                                    // version ds18x20
-    *messageLength+=LENVERSION+1;
+    *messageLength++;
     message[*messageLength]='+';if(temp<0){message[*messageLength]='-';}      
     *messageLength+=1;
     dtostrf(temp,5,2,message+*messageLength);                                  // temp
@@ -84,6 +79,12 @@ void messageBuild(char* message,uint8_t* messageLength)
 
 void importData(char* data,uint8_t dataLength)
 {
+  /* Here received data to local fields transfer */
+    
+  long     perRefr=0;                
+  uint16_t perTemp=0;
+  int      sizeRead;
+
     perRefr=(long)convStrToNum(data+ADDR_LENGTH+1+MPOSPERREFR-MPOSPERREFR,&sizeRead);     // per refresh server
     aw_ok=perTemp/STEP_VALUE;
     perTemp=(uint16_t)convStrToNum(data+ADDR_LENGTH+1+MPOSTEMPPER-MPOSPERREFR,&sizeRead); // per check température
@@ -92,10 +93,15 @@ void importData(char* data,uint8_t dataLength)
 }
 
 void userHardSetup()
-{
+{ /* initial setup after reset */
 #ifdef DS18X20  
   dsSta=ds1820.setDs(WPIN,setds,readds);    // setup ds18b20
   dsM='B';if(ds1820.dsmodel==MODEL_S){dsM='S';}
 #endif DS18X20
 
+}
+
+void userHardPowerDown()
+{ /* materials to powerDown when sleep */
+  
 }

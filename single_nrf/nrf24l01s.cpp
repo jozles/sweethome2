@@ -16,7 +16,7 @@
 #define CE_OFF    pinMode(CE_PIN,INPUT);
 #define CSN_INIT  pinMode(CSN_PIN,OUTPUT);
 #define CSN_OFF   pinMode(CSN_PIN,INPUT);
-
+/*
 #ifdef MEGA
 #define CSN_HIGH  bitSet(PORTB,4);
 #define CSN_LOW   bitClear(PORTB,4)
@@ -27,12 +27,13 @@
 #define CE_HIGH   bitSet(PORTB,1);delayMicroseconds(10);
 #define CE_LOW    bitClear(PORTB,1);
 #endif  // UNO
+*/
 #ifndef CSN_HIGH
 #define CSN_HIGH  digitalWrite(CSN_PIN,HIGH);
 #define CSN_LOW   digitalWrite(CSN_PIN,LOW);
 #endif  // CSN_HIGH
 #ifndef CE_HIGH
-#define CE_HIGH   digitalWrite(CE_PIN,HIGH);
+#define CE_HIGH   digitalWrite(CE_PIN,HIGH);delayMicroseconds(8);
 #define CE_LOW    digitalWrite(CE_PIN,LOW);
 #endif  // CE_HIGH
 
@@ -60,7 +61,7 @@
 
 #define CONFREG (0x00 & ~(MASK_RX_DR_BIT) & ~(MASK_TX_DS_BIT) & ~(MASK_MAX_RT_BIT) | EN_CRC_BIT & ~(CRCO_BIT) | PWR_UP_BIT | PRIM_RX_BIT)
 
-#define DEF_RF_SPEED RF_SPD_1MB
+//#define DEF_RF_SPEED RF_SPD_1MB
 #define RFREG   RF_PWR_BITS
 
 /***** config *****/
@@ -86,20 +87,20 @@ void Nrfp::setup()
 { 
     /* registers */
 
-    regw=EN_DPL_BIT; //EN_DYN_ACK_BIT | EN_DPL_BIT;  // no ack enable ; dyn pld length enable
+    regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // ack enable ; dyn pld length enable
     regWrite(FEATURE,&regw);
 
     regw=(ADDR_LENGTH-2)<<AW;       // addresses width
     regWrite(SETUP_AW,&regw);
 
-//    regw=MAX_PAYLOAD_LENGTH;        // set payload length
-//    regWrite(RX_PW_P0,&regw);
+    regw=MAX_PAYLOAD_LENGTH;        // set payload length
+    regWrite(RX_PW_P0,&regw);
 
-//    regw=MAX_PAYLOAD_LENGTH;        // set payload length
-//    regWrite(RX_PW_P1,&regw);
+    regw=MAX_PAYLOAD_LENGTH;        // set payload length
+    regWrite(RX_PW_P1,&regw);
 
     #if NRF_MODE == 'P'             // pipe 0 et 1 utilisés
-    regw=0;//(ENAA_P1_BIT|ENAA_P0_BIT); // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
+    regw=(ENAA_P1_BIT|ENAA_P0_BIT); // ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
     regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
     regw=(ERX_P1_BIT|ERX_P0_BIT);   // R0,R1 seuls (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
     regWrite(EN_RXADDR,&regw);
@@ -108,7 +109,7 @@ void Nrfp::setup()
     #endif NRF_MODE == 'P'
 
     #if NRF_MODE == 'C'             // pipe 1 seul utilisé
-    regw=0;//(ENAA_P1_BIT);             // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
+    regw=(ENAA_P1_BIT);             // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
     regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
     regw=(ERX_P1_BIT);              // R1 seul (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
     regWrite(EN_RXADDR,&regw);
@@ -117,7 +118,7 @@ void Nrfp::setup()
     #endif NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'
-    addrWrite(RX_ADDR_P0,BR_ADDR);   // RXP0 pour réception messages broadcast
+    addrWrite(RX_ADDR_P0,CC_ADDR);   // RXP0 pour réception ACK
     addrWrite(TX_ADDR,CC_ADDR);      // TX sur concentrateur
 #endif // NRF_MODE == 'P'
 
@@ -254,7 +255,7 @@ bool Nrfp::letsPrx()      // goto PRX mode
 
 void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)  // write data,len to numP
 {
-    //len=MAX_PAYLOAD_LENGTH;
+    uint8_t llen=len; // MAX_PAYLOAD_LENGTH;
     
     prxMode=false;
     CE_LOW
@@ -264,14 +265,14 @@ void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)  // write data,len
     CLR_TXDS_MAXRT
 
     CSN_LOW
-    /*if(na=='A'){SPI.transfer(W_TX_PAYLOAD);}            // with ACK
-    else{}*/
-    SPI.transfer(W_TX_PAYLOAD_NA);                // without ACK
-    for(uint8_t i=0;i<len;i++){SPI.transfer(data[i]);}
+    if(na=='A'){SPI.transfer(W_TX_PAYLOAD);}            // with ACK
+    else{       SPI.transfer(W_TX_PAYLOAD_NA);}         // without ACK
+    for(uint8_t i=0;i<llen;i++){SPI.transfer(data[i]);}
     CSN_HIGH
 
 #if NRF_MODE == 'C'
     addrWrite(TX_ADDR,PER_ADDR);       //tableC[numP].periMac);
+    addrWrite(RX_ADDR_P0,PER_ADDR);
 #endif // NRF_MODE == 'C'
 
     CE_HIGH                                 // transmit (CE high->TX_DS 235uS @1MbpS)
@@ -291,13 +292,13 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
       if((stat & TX_DS_BIT)){trst=0;}           // data sent
       else if((stat & MAX_RT_BIT)){             // max retry should not happen (no ACK allowed)
         trst=-1;
-        Serial.println("-1");
       }
 
       if(trst<=0){                              // data sent or max retry
+
         CE_LOW
-        CLR_TXDS_MAXRT
         flushTx();
+        CLR_TXDS_MAXRT
         letsPrx();
         PP4
       }
@@ -317,19 +318,21 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
 {
 /* available/read output errors codes (>=0 numP) */
 
-    uint8_t maxLength=*pldLength; // MAX_PAYLOAD_LENGTH;
+    uint8_t maxLength=*pldLength; // MAX_PAYLOAD_LENGTH; //
     int err=0;
 
     if(!prxMode){letsPrx();}
 
     GET_STA
-    if((stat & RX_DR_BIT)==0){             //     ||(((stat & RX_P_NO_BIT)>>RX_P_NO)==7)){             // RX empty ?
+    if((stat & RX_DR_BIT)==0){             // RX empty ?
         regRead(FIFO_STATUS,&fstat);
         if((fstat & RX_EMPTY_BIT)!=0){     // FIFO empty ?
             return AV_EMPTY;               // --------------- empty
         }
         else{
+Serial.print(fstat,HEX);Serial.print(" ");Serial.print(stat,HEX);Serial.print(" ");
           GET_STA
+Serial.println(stat,HEX);          
           *pipe=(stat & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
           if(*pipe!=1){
             flushRx();
@@ -338,15 +341,10 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
         }
     }
     PP4    
+Serial.println(stat,HEX);    
     *pipe=(stat & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
    
-#if NRF_MODE =='P'
-    if(*pipe<NB_PIPE){
-#endif // NRF_MODE == 'P'
-#if NRF_MODE =='C'
     if(*pipe==1){
-#endif // NRF_MODE == 'C'
-
         CSN_LOW
         SPI.transfer(R_RX_PL_WID);
         *pldLength=SPI.transfer(0xff);      // get pldLength (dynamic length)
@@ -364,6 +362,8 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
 int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 {   // see available() return codes
     // numP<NBPERIF means "available() allready done with result ok && *pipe set")
+
+    //*pldLength=MAX_PAYLOAD_LENGTH;
 
     if(numP>=NBPERIF){                                      // allow to only execute available()
         numP=available(pipe,pldLength);                     // if necessary
@@ -390,24 +390,20 @@ int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 int Nrfp::pRegister()  // peripheral registration to get pipeAddr
 {                      // ER_MAXRT ; AV_errors codes ; >=0 numP ok
 
-    char message[ADDR_LENGTH+2];
-//    char message[MAX_PAYLOAD_LENGTH+1];
+    char message[MAX_PAYLOAD_LENGTH+1];
+    memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     memcpy(message,MAC_ADDR,ADDR_LENGTH);
     message[ADDR_LENGTH]='0';
-    message[ADDR_LENGTH+1]='\0';
     write(message,'N',ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
     int trst=1;
     while(trst==1){trst=transmitting();}
 
     if(trst<0){return ER_MAXRT;}            // MAX_RT error should not happen (no ACK allowed)
 
-int numP;
-long readTo;
-//while(1){
     long time_beg = millis();
-    readTo=0;
-    uint8_t pipe,pldLength=ADDR_LENGTH+1;
-    numP=AV_EMPTY;
+    long readTo=0;
+    uint8_t pipe=99,pldLength=MAX_PAYLOAD_LENGTH; // ADDR_LENGTH+1;
+    int numP=AV_EMPTY;
 
     while(numP==AV_EMPTY && (readTo>=0)){  // waiting for data
         readTo=TO_REGISTER-millis()+time_beg;
@@ -418,7 +414,6 @@ if(readTo<0 && numP>=0){numP=-99;}
   Serial.print(" l=");Serial.print(pldLength);
   Serial.print(" p=");Serial.print(pipe);
   Serial.print(" numP=");Serial.println(numP);
-//}
 
     if(numP>=0 && (readTo>=0)){            // no TO pld ok
         numP=message[ADDR_LENGTH]-48;      // numP
@@ -437,7 +432,7 @@ uint8_t Nrfp::cRegister(char* macAddr)      // search free line or existing macA
 
           uint8_t i,freeLine=0;
           bool exist=false;
-          char message[ADDR_LENGTH+1];
+          char message[MAX_PAYLOAD_LENGTH+1];
 
           for(i=1;i<NBPERIF;i++){
             if(memcmp(tableC[i].periMac,macAddr,ADDR_LENGTH)==0){exist=true;break;}      // already existing
@@ -452,7 +447,7 @@ uint8_t Nrfp::cRegister(char* macAddr)      // search free line or existing macA
           if(exist){
             memcpy(message,macAddr,ADDR_LENGTH);
             message[ADDR_LENGTH]=i+48;
-            write(message,'N',ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
+            write(message,'A',ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
 
             int trst=1;
             while(trst==1){trst=transmitting();}
