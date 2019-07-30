@@ -55,7 +55,7 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
 
   #define CHANNEL    110        // numéro canal radio
   #define RF_SPEED   RF_SPD_1MB // vitesse radio  RF_SPD_2MB // RF_SPD_1MB // RF_SPD_250K
-  #define ARD_VALUE  1          // ((0-15)+1) x 250uS delay before repeat
+  #define ARD_VALUE  0          // ((0-15)+1) x 250uS delay before repeat
   #define ARC_VALUE  0          // (0-15) repetitions
 
   #ifdef UNO

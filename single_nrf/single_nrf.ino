@@ -99,10 +99,15 @@ void setup() {
 
 #if NRF_MODE == 'C'
 
-  hardwarePowerUp();                                
-  nrfp.setup();
   nrfp.tableCInit();//nrfp.tableCPrint();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH);     // pour broadcast
+
+  hardwarePowerUp();                                
+  nrfp.setup();
+
+  nrfp.write("123456789",true,9,1);
+  trSta=1;
+  while(trSta==1){trSta=nrfp.transmitting();}
   
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
   

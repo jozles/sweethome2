@@ -6,14 +6,14 @@
 /*
  * Fonctionnement du NRF24L01+ :
  *
- *  au d�marrage, le bit PWR_UP et CE_LOW
+ *  au démarrage, le bit PWR_UP et CE_LOW
  *  place le chip en mode standby en maxi 4,5mS
  *
  *  pour transmettre :
  *
  *    (a)charger le FIFO, bit PRIM_RX_low
  *    (b)charger TX_ADDR (et RX_ADDR_P0 si auto ACK)
- *    (c)CE high lance la transmission apr�s un delais de 130uS
+ *    (c)CE high lance la transmission aprés un delais de 130uS
  *    (d)attendre la fin de la transmission (TX_DS set ou MAX_RT set
  *                                        effacer TX_DS et MAX_RT)
  *    (e)retour en mode standby avec CE low.
@@ -21,57 +21,48 @@
  *    fonctions :
  *    Write()     (a)(b)(c)
  *                sort du mode prx
- *                charge le FIFO, les adresses, fait pwrUpTx()
+ *                charge le FIFO, les adresses P0 et TX (si 'C'), fait setTx() et flushTx()
  *                et termine avec CE_HIGH
  *    transmitting() (d)(e)
  *                teste la fin de transmission, et passe en mode prx via CE_LOW
  *
  *  pour recevoir :
  *
- *    (f)bit PRIM_RX_high, CE_HIGH commence l'�coute apr�s un delais de 130uS
- *    (g)attendre un paquet (RX_DR set ou RX_EMPTY clr ; effacer RX_DR)
- *    (h)retour en standby avec CE low
- *    (i)charger le message re�u
+ *    (f)bit PRIM_RX_high, CE_HIGH commence l'écoute aprés un delais de 130uS
+ *    (g)attendre un paquet (RX_DR set ou fifo RX_EMPTY clr ; effacer RX_DR)
+ *    (h)controler n° pipe et longueur reçue
+ *    (i)retour en standby avec CE low
+ *    (j)charger le message reçu
  *
  *    fonctions :
  *    available() (f)(g)(h)
- *                recharge RX_ADDR_P0 si n�cessaire (vidage FIFO dans ce cas)
- *                passe en mode prx (pwrUpTx+CE_HIGH) si n�cessaire au premier test
- *                contr�le la longueur maxi, transf�re le message
- *                et r�cup�re la longueur re�ue et le n� de pipe
+ *                recharge RX_ADDR_P0 si nécessaire (vidage FIFO dans ce cas)
+ *                passe en mode prx (pwrUpTx+CE_HIGH) si nécessaire au premier test
+ *                contrôle la longueur maxi, transf�re le message
+ *                et récupère la longueur reçue et le n° de pipe
  *                termine avec CE_LOW si true (fin du mode prx)
  *    Read()      (f)(g)(h)(i)
- *                effectue available()
+ *                effectue available() à la demande
  *
  *
- *             ***** utilisation des pipes *****
- *             mod�le en �toile : 1 concentrateur
- *           n circuits vers (n*6)-1 p�riph�riques
- *
+ *             ***** pas d'utilisation des pipes *****
+ * RX_P1 du concentrateur reçoit tous les périphériques et emmet avec TX et RX_P0
+ * RX_P1 des périphériques reçoit les messages du concentrateurs ; TX/RX_P0 fixes sur concentrateur
+ * 
  *  Données communes :
  *
- *      br_addr (broadcast) messages du concentrateur vers tous les p�riph�riques
- *      cc_addr (concentrateur) guichet unique d'inscription
+ *      CC_ADDR (macAddr du concentrateur) guichet unique d'inscription
  *
  *  périphériques :
  *
  *      macAddr unique allouée au pipe1 (pour mode PRX)
- *      (br_addr sur pipe0 en PRX)
- *      regAddr(ccPipe)  adresse fournie par le concentrateur (pour mode PTX)
- *      pRegister() envoie la macAddr et re�oit une regAddr
- *
+ *      pRegister() envoie la macAddr et reçoit le numT 
+ *      n° d'entrée de la table où la macAddr du périphérique est stockée
+ *      
  *  concentrateur :
  *
- *      un pipe est r�serv� pour la cc_addr
- *      chaque pipe est muni d'une adresse fixe
- *      l'adresse de chaque p�riph�rique est associ�e � chaque circuit/pipe
- *      en r�ception dataRead() fournit le num�ro de pipe emetteur
- *      en �mission l'adresse est fournie � datawrite()
- *      cRegister() re�oit la macAddr et fournit une regAddr
+ *      cRegister() reoit la macAddr et renvoie le numT
  *
- *      numPeri num�ro de p�riph�rique (1-n)
- *      numPipe num�ro de pipe de circuit du concentrateur (1-5)
- *      numNrf  num�ro du circuit courant numPeri=(numNrf*10)+numPipe
  *
  *
  *

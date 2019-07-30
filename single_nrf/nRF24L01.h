@@ -1,6 +1,7 @@
 #ifndef nrfwords_H_INCLUDED
 #define nrfwords_H_INCLUDED
 
+/* UPGRADED 2019/06 -- BIT IMAGES + MISSING 
 
 /*
     Copyright (c) 2007 Stefan Engelke <mbox@stefanengelke.de>

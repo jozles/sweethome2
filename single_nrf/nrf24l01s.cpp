@@ -61,7 +61,6 @@
 
 #define CONFREG (0x00 & ~(MASK_RX_DR_BIT) & ~(MASK_TX_DS_BIT) & ~(MASK_MAX_RT_BIT) | EN_CRC_BIT & ~(CRCO_BIT) | PWR_UP_BIT | PRIM_RX_BIT)
 
-//#define DEF_RF_SPEED RF_SPD_1MB
 #define RFREG   RF_PWR_BITS
 
 /***** config *****/
@@ -87,24 +86,24 @@ void Nrfp::setup()
 { 
     /* registers */
 
-//    regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // ack enable ; dyn pld length enable
-//    regWrite(FEATURE,&regw);
+    regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // ack enable ; dyn pld length enable
+    regWrite(FEATURE,&regw);
 
 //    regw=(ADDR_LENGTH-2)<<AW;       // addresses width
 //    regWrite(SETUP_AW,&regw);
 
-    regw=9;//MAX_PAYLOAD_LENGTH;        // set payload length
-    regWrite(RX_PW_P0,&regw);
+//    regw=9;//MAX_PAYLOAD_LENGTH;        // set payload length
+//    regWrite(RX_PW_P0,&regw);
 
-    regw=9;//MAX_PAYLOAD_LENGTH;        // set payload length
-    regWrite(RX_PW_P1,&regw);
+//    regw=9;//MAX_PAYLOAD_LENGTH;        // set payload length
+//    regWrite(RX_PW_P1,&regw);
 
 //    regw=(ERX_P1_BIT|ERX_P0_BIT);   // R0,R1 seuls (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
 //    regWrite(EN_RXADDR,&regw);
 //    regw=(ENAA_P1_BIT|ENAA_P0_BIT); // ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
 //    regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
-//    regw=(DPL_P1_BIT|DPL_P0_BIT);   // (DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
-//    regWrite(DYNPD,&regw);          // dynamic payload length
+    regw=(DPL_P1_BIT|DPL_P0_BIT);   // (DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
+    regWrite(DYNPD,&regw);          // dynamic payload length
 
 #if NRF_MODE == 'P'
     addrWrite(RX_ADDR_P0,CC_ADDR);   // RXP0 pour réception ACK
@@ -116,11 +115,11 @@ void Nrfp::setup()
     regw=CHANNEL;
     regWrite(RF_CH,&regw);
 
-//    regw=RFREG | RF_SPEED;
-//    regWrite(RF_SETUP,&regw);
+    regw=RFREG | RF_SPEED;
+    regWrite(RF_SETUP,&regw);
 
-//    regw=ARD_VALUE<<ARD+ARC_VALUE<<ARC;
-//    regWrite(SETUP_RETR,&regw);
+    regw=ARD_VALUE<<ARD+ARC_VALUE<<ARC;
+    regWrite(SETUP_RETR,&regw);
 
     flushRx();
     flushTx();
@@ -176,7 +175,7 @@ void Nrfp::powerUp()
     SPI_INIT;
     SPI_START;
 
-    conf=CONFREG;                         // powerUP
+    conf=CONFREG;                         // powerUP/CRC 1 byte/PRX
     regWrite(CONFIG,&conf);
     regWrite(CONFIG,&conf);
 
@@ -232,8 +231,9 @@ void Nrfp::flushRx()
 bool Nrfp::letsPrx()      // goto PRX mode
 {
     if(!prxMode){
-      flushRx();
-      CLR_RXDR
+      CE_LOW
+      //flushRx();
+      //CLR_RXDR
       setRx();
       prxMode=true;
     }
@@ -249,8 +249,16 @@ void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,le
     prxMode=false;
     CE_LOW
 
+#if NRF_MODE == 'C'
+    addrWrite(TX_ADDR,tableC[numP].periMac);    // PER_ADDR);       
+    addrWrite(RX_ADDR_P0,tableC[numP].periMac); // PER_ADDR);
+#endif // NRF_MODE == 'C'
+    
+    setTx();
+    
     flushTx();   // avant tx_pld !!!
-    CLR_TXDS_MAXRT
+    
+    //CLR_TXDS_MAXRT
 
     CSN_LOW
     if(ack){SPI.transfer(W_TX_PAYLOAD);}                // with ACK
@@ -258,12 +266,6 @@ void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,le
     for(uint8_t i=0;i<llen;i++){SPI.transfer(data[i]);}
     CSN_HIGH
 
-#if NRF_MODE == 'C'
-    addrWrite(TX_ADDR,tableC[numP].periMac);    // PER_ADDR);       
-    addrWrite(RX_ADDR_P0,tableC[numP].periMac); // PER_ADDR);
-#endif // NRF_MODE == 'C'
-
-    setTx();
     CE_HIGH                                 // transmit (CE high->TX_DS 235uS @1MbpS)
     
 // transmitting() should be checked now to wait for end of paquet transmission
@@ -280,19 +282,16 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
       
       GET_STA
 
-      if((stat & TX_DS_BIT & MAX_RT_BIT)!=0){
+      if((stat & (TX_DS_BIT | MAX_RT_BIT))!=0){
 
         trst=0;
         if(stat & MAX_RT_BIT){trst=-1;}
 
-        CE_LOW
-        flushTx();
         CLR_TXDS_MAXRT
         letsPrx();
         PP4
       }
       
-      CE_LOW
       return trst;
 }
 
