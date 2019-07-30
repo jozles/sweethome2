@@ -87,35 +87,24 @@ void Nrfp::setup()
 { 
     /* registers */
 
-    regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // ack enable ; dyn pld length enable
-    regWrite(FEATURE,&regw);
+//    regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // ack enable ; dyn pld length enable
+//    regWrite(FEATURE,&regw);
 
-    regw=(ADDR_LENGTH-2)<<AW;       // addresses width
-    regWrite(SETUP_AW,&regw);
+//    regw=(ADDR_LENGTH-2)<<AW;       // addresses width
+//    regWrite(SETUP_AW,&regw);
 
-    regw=MAX_PAYLOAD_LENGTH;        // set payload length
+    regw=9;//MAX_PAYLOAD_LENGTH;        // set payload length
     regWrite(RX_PW_P0,&regw);
 
-    regw=MAX_PAYLOAD_LENGTH;        // set payload length
+    regw=9;//MAX_PAYLOAD_LENGTH;        // set payload length
     regWrite(RX_PW_P1,&regw);
 
-    #if NRF_MODE == 'P'             // pipe 0 et 1 utilisés
-    regw=(ENAA_P1_BIT|ENAA_P0_BIT); // ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
-    regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
-    regw=(ERX_P1_BIT|ERX_P0_BIT);   // R0,R1 seuls (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
-    regWrite(EN_RXADDR,&regw);
-    regw=(DPL_P1_BIT|DPL_P0_BIT);   // (DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
-    regWrite(DYNPD,&regw);          // dynamic payload length
-    #endif NRF_MODE == 'P'
-
-    #if NRF_MODE == 'C'             // pipe 1 seul utilisé
-    regw=(ENAA_P1_BIT);             // no ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
-    regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
-    regw=(ERX_P1_BIT);              // R1 seul (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
-    regWrite(EN_RXADDR,&regw);
-    regw=(DPL_P1_BIT);              // (DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
-    regWrite(DYNPD,&regw);          // dynamic payload length
-    #endif NRF_MODE == 'C'
+//    regw=(ERX_P1_BIT|ERX_P0_BIT);   // R0,R1 seuls (ERX_P5_BIT|ERX_P4_BIT|ERX_P3_BIT|ERX_P2_BIT|ERX_P1_BIT|ERX_P0_BIT);
+//    regWrite(EN_RXADDR,&regw);
+//    regw=(ENAA_P1_BIT|ENAA_P0_BIT); // ACK //(ENAA_P5_BIT|ENAA_P4_BIT|ENAA_P3_BIT|ENAA_P2_BIT|ENAA_P1_BIT|ENAA_P0_BIT);
+//    regWrite(EN_AA,&regw);          // ENAA nécessaire pour DPL
+//    regw=(DPL_P1_BIT|DPL_P0_BIT);   // (DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
+//    regWrite(DYNPD,&regw);          // dynamic payload length
 
 #if NRF_MODE == 'P'
     addrWrite(RX_ADDR_P0,CC_ADDR);   // RXP0 pour réception ACK
@@ -127,11 +116,11 @@ void Nrfp::setup()
     regw=CHANNEL;
     regWrite(RF_CH,&regw);
 
-    regw=RFREG | RF_SPEED;
-    regWrite(RF_SETUP,&regw);
+//    regw=RFREG | RF_SPEED;
+//    regWrite(RF_SETUP,&regw);
 
-    regw=ARD_VALUE<<ARD+ARC_VALUE<<ARC;
-    regWrite(SETUP_RETR,&regw);
+//    regw=ARD_VALUE<<ARD+ARC_VALUE<<ARC;
+//    regWrite(SETUP_RETR,&regw);
 
     flushRx();
     flushTx();
@@ -253,7 +242,7 @@ bool Nrfp::letsPrx()      // goto PRX mode
 
 /********** public *************/
 
-void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)  // write data,len to numP
+void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,len to numP
 {
     uint8_t llen=len; // MAX_PAYLOAD_LENGTH;
     
@@ -261,20 +250,20 @@ void Nrfp::write(byte* data,char na,uint8_t len,uint8_t numP)  // write data,len
     CE_LOW
 
     flushTx();   // avant tx_pld !!!
-    setTx();
     CLR_TXDS_MAXRT
 
     CSN_LOW
-    if(na=='A'){SPI.transfer(W_TX_PAYLOAD);}            // with ACK
+    if(ack){SPI.transfer(W_TX_PAYLOAD);}                // with ACK
     else{       SPI.transfer(W_TX_PAYLOAD_NA);}         // without ACK
     for(uint8_t i=0;i<llen;i++){SPI.transfer(data[i]);}
     CSN_HIGH
 
 #if NRF_MODE == 'C'
-    addrWrite(TX_ADDR,PER_ADDR);       //tableC[numP].periMac);
-    addrWrite(RX_ADDR_P0,PER_ADDR);
+    addrWrite(TX_ADDR,tableC[numP].periMac);    // PER_ADDR);       
+    addrWrite(RX_ADDR_P0,tableC[numP].periMac); // PER_ADDR);
 #endif // NRF_MODE == 'C'
 
+    setTx();
     CE_HIGH                                 // transmit (CE high->TX_DS 235uS @1MbpS)
     
 // transmitting() should be checked now to wait for end of paquet transmission
@@ -285,16 +274,16 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
 {     // should be added : TO in case of out of order chip (trst=-2)
       // when sent or max retry, output in PRX mode with CE high
 
+      
+      
       int trst=1;
       
       GET_STA
 
-      if((stat & TX_DS_BIT)){trst=0;}           // data sent
-      else if((stat & MAX_RT_BIT)){             // max retry should not happen (no ACK allowed)
-        trst=-1;
-      }
+      if((stat & TX_DS_BIT & MAX_RT_BIT)!=0){
 
-      if(trst<=0){                              // data sent or max retry
+        trst=0;
+        if(stat & MAX_RT_BIT){trst=-1;}
 
         CE_LOW
         flushTx();
@@ -302,7 +291,8 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
         letsPrx();
         PP4
       }
-
+      
+      CE_LOW
       return trst;
 }
 
@@ -394,7 +384,7 @@ int Nrfp::pRegister()  // peripheral registration to get pipeAddr
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     memcpy(message,MAC_ADDR,ADDR_LENGTH);
     message[ADDR_LENGTH]='0';
-    write(message,'N',ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
+    write(message,false,ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
     int trst=1;
     while(trst==1){trst=transmitting();}
 
@@ -447,7 +437,7 @@ uint8_t Nrfp::cRegister(char* macAddr)      // search free line or existing macA
           if(exist){
             memcpy(message,macAddr,ADDR_LENGTH);
             message[ADDR_LENGTH]=i+48;
-            write(message,'A',ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
+            write(message,true,ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
 
             int trst=1;
             while(trst==1){trst=transmitting();}

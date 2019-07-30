@@ -127,7 +127,7 @@ class Nrfp
 
     int  available(uint8_t* pipe,uint8_t* length);
     int  read(char* data,uint8_t* pipe,uint8_t* length,int numP);
-    void write(byte* data,char na,uint8_t len,uint8_t numP);
+    void write(byte* data,bool ack,uint8_t len,uint8_t numP);
     int  transmitting();
 
     void powerUp();
