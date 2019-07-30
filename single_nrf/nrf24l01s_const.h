@@ -32,7 +32,7 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
 */
 
 /****************************/
-  #define NRF_MODE 'C'           //  C concentrateur ; P périphérique
+  #define NRF_MODE 'P'           //  C concentrateur ; P périphérique
   #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN
 
 #if NRF_MODE == 'P'
