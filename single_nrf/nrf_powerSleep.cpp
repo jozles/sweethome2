@@ -2,6 +2,8 @@
 #include "nrf_powerSleep.h"
 #include "nrf_user.h"
 
+#if NRF_MODE == 'P'
+
 #include <avr/sleep.h>
 #include <avr/power.h>
 
@@ -59,7 +61,6 @@ void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à trai
     WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE doivent être 1 
                                       // pour écrire WDP[0-3] et WDE dans les 4 cycles suivants
     WDTCSR = (1<<WDIE) | durat;       // WDCE doit être 0 ; WDE=0 ; WDIE=1 mode interruption, 8s
-//    WDTCSR = (1<<WDIE) | (1<<WDP0) | (1<<WDP3);       // WDCE doit être 0 ; WDE=0 ; WDIE=1 mode interruption, 8s
 
   interrupts();
 
@@ -76,9 +77,13 @@ void sleepPwrDown(uint8_t durat)
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     power_adc_disable();
     sleep_enable();
-//Serial.print("sleep_enable ");Serial.println(durat);delay(10); 
+
+//  Serial.print("sleep_enable ");Serial.println(durat);delay(5); 
+    
     sleep_mode();
   
     sleep_disable();
     power_all_enable();
 }
+
+#endif // NRF_MODE == 'P'

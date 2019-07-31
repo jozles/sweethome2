@@ -2,6 +2,8 @@
 #include "nrf24l01s_const.h"
 #include "nrf_powerSleep.h"
 
+#if NRF_MODE == 'P'
+
 extern uint16_t aw_ok;
 extern uint16_t aw_min;
 
@@ -51,7 +53,7 @@ bool checkThings(uint8_t retryCnt)
 
     nbT++;
     temp=ds1820.readDs(WPIN);
-    Serial.print(nbT);Serial.print(temp);Serial.print("/");Serial.println(previousTemp);
+    Serial.print(nbT);Serial.print(" ");Serial.print(temp);Serial.print("/");Serial.println(previousTemp);
     if( (temp>(previousTemp+deltaTemp)) || (temp<(previousTemp-deltaTemp)) ){
       previousTemp=temp;
       return true;}
@@ -92,7 +94,8 @@ void importData(char* data,uint8_t dataLength)
     deltaTemp=(long)convStrToNum(data+ADDR_LENGTH+1+MPOSPITCH-MPOSPERREFR,&sizeRead);     // pitch mesure 
 }
 
-void userHardSetup()
+
+void userResetSetup()
 { /* initial setup after reset */
 #ifdef DS18X20  
   dsSta=ds1820.setDs(WPIN,setds,readds);    // setup ds18b20
@@ -105,3 +108,5 @@ void userHardPowerDown()
 { /* materials to powerDown when sleep */
   
 }
+
+#endif // NRF_MODE == 'P'

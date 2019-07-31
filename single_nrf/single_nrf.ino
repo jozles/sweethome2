@@ -25,7 +25,7 @@ uint8_t bcnt=0;
 /*** scratch ***/
 
 #define TO_READ 1000
-unsigned long readTo;                     // compteur TO read()
+long readTo;                     // compteur TO read()
 unsigned long time_beg=millis();
 unsigned long time_end;
 byte    message[MAX_PAYLOAD_LENGTH+1];    // buffer pour read()/write()
@@ -63,8 +63,9 @@ uint8_t  aw_retry=AWAKE_RETRY_VALUE;
 /* prototypes */
 
 void showErr();
-void showRx();
+void showRx(bool crlf);
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
+void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
 int  rxMessage();
 void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
@@ -87,7 +88,7 @@ void setup() {
 
 #if NRF_MODE == 'P'
   
-  userHardSetup();
+  userResetSetup();
   hardwarePowerUp();
   nrfp.setup();
                                   
@@ -105,9 +106,15 @@ void setup() {
   hardwarePowerUp();                                
   nrfp.setup();
 
+/*
+while(1){                 // >>>>>>>>>> test send/receive loop 1Sec period <<<<<<<<<<<<
   nrfp.write("123456789",true,9,1);
   trSta=1;
   while(trSta==1){trSta=nrfp.transmitting();}
+  rxMessage();
+  showRx();if(rdSta<0){showErr();}
+  delayBlk(TBLK,DBLK,IBLK,1,1000);  
+}*/
   
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
   
@@ -128,37 +135,41 @@ void loop() {
     sleepPwrDown(T8000);
   }
 
-  /* usefull awake */
+  /* usefull awake or retry */
   awakeCnt=aw_ok;
   mustSend=false;           
   mustSend=checkThings(retryCnt);           // user staff
 
   tBeg=((float)millis()/1000)+(durT/100);
+#ifdef DIAG
   Serial.print(nbS);Serial.print("(");Serial.print(tBeg);Serial.print(") ");
   Serial.print(awakeCnt);Serial.print(" ");
   Serial.print(awakeMinCnt);Serial.print(" ");Serial.println(retryCnt);
+#endif // DIAG
 
-  /* data ready to send or presence message to send -> send */
+  /* data ready to send or presence message to send or retry -> send */
   if( (mustSend==true) || (awakeMinCnt<0) || (retryCnt!=0)){
 
     hardwarePowerUp();                   // 5mS delay inside
 
     /* building message MMMMMPssssssssVVVV....... MMMMMP should not be changed */
-    uint8_t outLength=0;
-    memcpy(message+outLength,MAC_ADDR,ADDR_LENGTH);                   // macAddr
-    outLength+=ADDR_LENGTH;
-    message[outLength]=numT+48;                                       // numéro du périphérique
-    outLength++;
+
+    uint8_t outLength=ADDR_LENGTH+1;
     memcpy(message+outLength,VERSION,LENVERSION);                     // version
     sprintf(message+outLength,"%08d",(uint32_t)tBeg);                 // seconds since last reset 
-    outLength+=8;
+    outLength=ADDR_LENGTH+1+LENVERSION+8;
     messageBuild(message,&outLength);                                 // add user data
+    memcpy(message,MAC_ADDR,ADDR_LENGTH);                             // macAddr
+    message[ADDR_LENGTH]=numT+48;                                     // numéro du périphérique
+    message[outLength]='\0';
 
     /* send message */
-    if(txMessage(true,outLength,0)<0){      // tx error
+    if(txMessage(false,outLength,0)<0){      // tx error (maxrt)
       // si le message ne part pas, essai aux (aw_retry-1) prochains réveils 
       // puis après aw_ko réveils
+#ifdef DIAG
       Serial.print((char*)message);Serial.println(" ********** maxRT ");
+#endif // DIAG
       switch(retryCnt){
         case 0:retryCnt=aw_retry;break;
         case 1:awakeCnt=aw_ko;awakeMinCnt=aw_ko;awakeCnt=0;break;
@@ -173,10 +184,10 @@ void loop() {
       
       /* get response */
       if(rxMessage()>=0){                  // rx ok
-        showRx();
+        showRx(true);
         importData(message,pldLength);     // user data
       }
-      else{showErr();}                // rx error
+      else{showErr();numT=beginP();}       // rx error : refaire l'inscription
     }
   }
   delay(1);  // serial
@@ -196,7 +207,7 @@ void loop() {
   pldLength=MAX_PAYLOAD_LENGTH;                     // max length
   rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
   if(rdSta>=0){                                     // no error
-    showRx();
+    showRx(false);
     numT=rdSta;                                     // rdSta >=0 -> numT du périphérique       
     if(numT==0){                                    // registration request
       byte pAd[ADDR_LENGTH];             
@@ -209,22 +220,27 @@ void loop() {
       Serial.println();
     }
         
-    else {                                        // already registred -> send config
-      Serial.println();
-      /* store incoming message */
-      memcpy(tableC[numT].periBuf,message,pldLength);   
-      tableC[numT].periBufLength=pldLength;
-      /* build config */
-      memcpy(message+ADDR_LENGTH+1,tableC[numT].serverBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
-      /* send config message */
+    else {
+      if(memcmp(message,tableC[numT].periBuf,ADDR_LENGTH)==0){                                  
+        /* already registred (valid numT) -> send config */
+        Serial.println();
+        /* store incoming message */
+        //memcpy(tableC[numT].periBuf,message,pldLength);   
+        tableC[numT].periBufLength=pldLength;
+        /* build config */
+        memcpy(message+ADDR_LENGTH+1,tableC[numT].serverBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
+        /* send config message */
       
-      if(txMessage(true,MAX_PAYLOAD_LENGTH,numT)==0){tableC[numT].periBufSent=true;}
-      // reformater et transmettre au serveur le message reçu 
+        if(txMessage(true,MAX_PAYLOAD_LENGTH,numT)==0){tableC[numT].periBufSent=true;}
+        // reformater et transmettre au serveur le message reçu
+      }
+      /* si les macAddr de la table et du message ne correspondent pas ; 
+      le périf doit refaire l'inscription donc pas de réponse pour générer une erreur en rx */      
     }
   }
 
   else if(rdSta!=AV_EMPTY){
-    showRx();
+    showRx(false);
     showErr();}    // error... à traiter
     
   char a=getch();
@@ -259,14 +275,6 @@ void echo(char a)
   } 
 }
 
-char getch()
-{
-  if(Serial.available()){
-    return Serial.read();
-  }
-  return 0;
-}
-
 void broadcast(char a)
 {
   bool ack=true,titre=true;
@@ -278,6 +286,8 @@ void broadcast(char a)
       if(!ack){Serial.print('!');}
       Serial.print("ACK ... saisir l'adresse (rien=");
       nrfp.printAddr(tableC[1].periMac,0);Serial.println(" ; !=toogle ack ; q=exit)");}
+   
+//    while(Serial.available()){Serial.print(getch());}
     b=getch();
     switch (b){
       case 0:break;
@@ -285,12 +295,16 @@ void broadcast(char a)
       case 'q':return;
       default:
         if(b!=' '){
-          testAd[0]=b;for(int i=1;i<ADDR_LENGTH;i++){testAd[i]=getch();}
-          memcpy(tableC[1].periMac,testAd,ADDR_LENGTH);}
-        sprintf(message,"%08lu",millis());
+          testAd[0]=b;delay(10);for(int i=1;i<ADDR_LENGTH;i++){testAd[i]=getch();}
+          Serial.println((char*)testAd);
+          memcpy(tableC[1].periMac,testAd,ADDR_LENGTH);
+          nrfp.tableCPrint();}
+        memcpy(message,testAd,ADDR_LENGTH);
+        message[ADDR_LENGTH]='0';
+        sprintf(message+ADDR_LENGTH+1,"%08lu",millis());
         echo0(message,ack,8,1);
         titre=true;
-        break;
+        break; 
     }
   }
 }
@@ -302,11 +316,19 @@ void echo0(char* message,bool ack,uint8_t len,uint8_t numP)
 
   int trSta=-1;
   
-  if(txMessage(ack,len+1,numP)<0){Serial.print("********** maxRT ");}
+  if(txMessage(ack,len+1,numP)<0){Serial.println("********* maxRT ");}
   else{
-    if(rxMessage()>=0){showRx();}         // data ready, no error
+    if(rxMessage()>=0){showRx(true);}         // data ready, no error
     else{showErr();} 
   }
+}
+
+char getch()
+{
+  if(Serial.available()){
+    return Serial.read();
+  }
+  return 0;
 }
 
 #endif NRF_MODE == 'C'
@@ -321,7 +343,7 @@ uint8_t beginP()
     Serial.print("start ");
     Serial.print((char*)(kk+(confSta+6)*LMERR));
     Serial.print(" numP=");Serial.println(confSta);
-    
+    // sleepPowerDown(T1000);   pour sauver la batterie ... modifier delayBlk écolo
     delayBlk(TBLK,DBLK,IBLK,1,1000);
   }
   return confSta;                // le périphérique est inscrit
@@ -339,8 +361,10 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)
 #if NRF_MODE=='P'  
   if(numT==0){numT=beginP();}
 #endif NRF_MODE=='P'
-  
+
+#ifdef DIAG  
   Serial.print((char*)message);delay(1);
+#endif // DIAG
   
   nrfp.write(message,ack,len,numP);
   trSta=1;
@@ -348,47 +372,60 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)
   while(trSta==1){
     trSta=nrfp.transmitting();}
 
-  time_end=micros();  
+  time_end=micros();
+#ifdef DIAG
   Serial.print(" tx to ");Serial.print(numP);
   Serial.print(" trSta=");Serial.print(trSta);
   Serial.print(" in:");Serial.print((long)(time_end - time_beg)); 
   Serial.println("us");
 delay(2);
+#endif DIAG
   return trSta;
 }
 
 int rxMessage()
 {
+#ifdef DIAG  
   Serial.print("rx ");
+#endif // DIAG  
   memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
   pldLength=MAX_PAYLOAD_LENGTH;                    // max length
   rdSta=AV_EMPTY;
+  readTo=0;
   time_beg = micros();
-  while((rdSta==AV_EMPTY)&& (readTo>=0)){
+  while((rdSta==AV_EMPTY) && (readTo>=0)){
     rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
-    readTo=TO_READ-millis()+time_beg;}
-    if(readTo<0){rdSta==ER_RDYTO;}
+    readTo=TO_READ-(micros()-time_beg)/1000;}
+    if(readTo<0){rdSta=ER_RDYTO;}
   time_end=micros();
+#ifdef DIAG
   Serial.print((char*)message);  
   Serial.print(" rx from ");Serial.print((int)(message[ADDR_LENGTH]-48));
-  Serial.print("rdsta=");Serial.print(rdSta);  
+  Serial.print(" rdsta=");Serial.print(rdSta);  
   Serial.print(" in:");Serial.print((long)(time_end - time_beg)); 
   Serial.println("us");
-delay(2);
+delay(4);
+#endif // DIAG
   return rdSta;
 }
 
-void showRx()
-{  
+void showRx(bool crlf)
+{ 
+#ifdef DIAG
   Serial.print((char*)message);
   Serial.print(" l=");Serial.print(pldLength);
   Serial.print(" p=");Serial.print(pipe);
   Serial.print(" rdSta=");Serial.print(rdSta);
+  if(crlf){Serial.println();}
+delay(2);
+#endif // DIAG  
 }
 
 void showErr()
 {
+#ifdef DIAG  
   Serial.print(" err ");Serial.println((char*)kk+(rdSta+6)*LMERR);
+#endif // DIAG
 }
 
 void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,long dly)

@@ -257,12 +257,11 @@ void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,le
     setTx();
     
     flushTx();   // avant tx_pld !!!
-    
-    //CLR_TXDS_MAXRT
+    CLR_TXDS_MAXRT
 
     CSN_LOW
-    if(ack){SPI.transfer(W_TX_PAYLOAD);}                // with ACK
-    else{       SPI.transfer(W_TX_PAYLOAD_NA);}         // without ACK
+    if(ack){SPI.transfer(W_TX_PAYLOAD);}          // with ACK
+    else   {SPI.transfer(W_TX_PAYLOAD_NA);}       // without ACK
     for(uint8_t i=0;i<llen;i++){SPI.transfer(data[i]);}
     CSN_HIGH
 
@@ -276,8 +275,6 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
 {     // should be added : TO in case of out of order chip (trst=-2)
       // when sent or max retry, output in PRX mode with CE high
 
-      
-      
       int trst=1;
       
       GET_STA
@@ -319,9 +316,9 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
             return AV_EMPTY;               // --------------- empty
         }
         else{
-Serial.print(fstat,HEX);Serial.print(" ");Serial.print(stat,HEX);Serial.print(" ");
+
           GET_STA
-Serial.println(stat,HEX);          
+
           *pipe=(stat & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
           if(*pipe!=1){
             flushRx();
@@ -330,7 +327,7 @@ Serial.println(stat,HEX);
         }
     }
     PP4    
-Serial.println(stat,HEX);    
+
     *pipe=(stat & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
    
     if(*pipe==1){
@@ -398,11 +395,13 @@ int Nrfp::pRegister()  // peripheral registration to get pipeAddr
         readTo=TO_REGISTER-millis()+time_beg;
         numP=read(message,&pipe,&pldLength,NBPERIF);}
 
+#ifdef DIAG
 if(readTo<0 && numP>=0){numP=-99;}
   Serial.print((char*)message);
   Serial.print(" l=");Serial.print(pldLength);
   Serial.print(" p=");Serial.print(pipe);
   Serial.print(" numP=");Serial.println(numP);
+#endif // DIAG
 
     if(numP>=0 && (readTo>=0)){            // no TO pld ok
         numP=message[ADDR_LENGTH]-48;      // numP
