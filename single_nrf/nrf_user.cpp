@@ -53,7 +53,14 @@ bool checkThings(uint8_t retryCnt)
 
     nbT++;
     temp=ds1820.readDs(WPIN);
-    Serial.print(nbT);Serial.print(" ");Serial.print(temp);Serial.print("/");Serial.println(previousTemp);
+
+    Serial.print(nbT);Serial.print(" ");Serial.print(temp);
+    Serial.print("/");
+#ifdef DIAG
+Serial.print(previousTemp);
+#endif // DIAG
+
+    
     if( (temp>(previousTemp+deltaTemp)) || (temp<(previousTemp-deltaTemp)) ){
       previousTemp=temp;
       return true;}
@@ -66,16 +73,15 @@ bool checkThings(uint8_t retryCnt)
 void messageBuild(char* message,uint8_t* messageLength)
 {
   /* Here add user data >>> be carefull to not override 32 bytes <<< */
-    message[*messageLength+LENVERSION]=dsM;                                    // version ds18x20
-    *messageLength++;
+    message[*messageLength]=dsM;                                    // version ds18x20
+    (*messageLength)++;
     message[*messageLength]='+';if(temp<0){message[*messageLength]='-';}      
-    *messageLength+=1;
-    dtostrf(temp,5,2,message+*messageLength);                                  // temp
-    if((strstr(message,"nan")!=0) || !dsSta){strcpy((char*)(message+*messageLength),"+00.00\0");}
-    *messageLength+=5;
+    dtostrf(temp,5,2,message+*messageLength+1);                       // temp
+    if((strstr(message,"nan")!=0) || !dsSta){memcpy((message+*messageLength),"+00.00\0",7);}
+    (*messageLength)+=6;
     // get voltage 
     dtostrf(volts,4,2,message+*messageLength);
-    *messageLength+=4;                                                         // power voltage
+    (*messageLength)+=4;                                              // power voltage
     message[*messageLength]='\0';
 }
 
@@ -83,15 +89,17 @@ void importData(char* data,uint8_t dataLength)
 {
   /* Here received data to local fields transfer */
     
-  long     perRefr=0;                
+  unsigned long     perRefr=0;                
   uint16_t perTemp=0;
-  int      sizeRead;
-
-    perRefr=(long)convStrToNum(data+ADDR_LENGTH+1+MPOSPERREFR-MPOSPERREFR,&sizeRead);     // per refresh server
-    aw_ok=perTemp/STEP_VALUE;
-    perTemp=(uint16_t)convStrToNum(data+ADDR_LENGTH+1+MPOSTEMPPER-MPOSPERREFR,&sizeRead); // per check température
+  int      sizeRead,srt=0;
+  
+    perRefr=(long)convStrToNum(data+ADDR_LENGTH+1,&sizeRead);     // per refresh server
     aw_min=perRefr/STEP_VALUE;
-    deltaTemp=(long)convStrToNum(data+ADDR_LENGTH+1+MPOSPITCH-MPOSPERREFR,&sizeRead);     // pitch mesure 
+    srt=sizeRead;
+    perTemp=(uint16_t)convStrToNum(data+ADDR_LENGTH+1+srt,&sizeRead); // per check température
+    aw_ok=perTemp/STEP_VALUE;
+    srt+=sizeRead;
+    deltaTemp=(long)convStrToNum(data+ADDR_LENGTH+1+srt,&sizeRead);     // pitch mesure 
 }
 
 

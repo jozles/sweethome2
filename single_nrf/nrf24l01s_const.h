@@ -42,6 +42,8 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
   #define MAC_ADDR  CC_ADDR
 #endif
 
+ // #define DIAG                    // affichages série
+
 /****************************/
 
   #define PER_ADDR  "peri0"     // MAC_ADDR périphériques
@@ -64,8 +66,5 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
   #ifdef MEGA
   #define NBPERIF 24            //  pour dim table
   #endif  
-
-  #define DIAG                  // affichages série
-
 
 #endif _NRF_CONST_INCLUDED

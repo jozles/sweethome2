@@ -49,15 +49,6 @@
 #define CLR_TXDS_MAXRT  regw=TX_DS_BIT|MAX_RT_BIT;regWrite(STATUS,&regw);
 #define CLR_RXDR        regw=RX_DR_BIT;regWrite(STATUS,&regw);
 
-/*** debug pulse for logic analyzer  ***/
-#define PP        4
-#ifdef UNO        // idem for PRO MINI
-#define PP4       bitClear(PORTD,PP);bitSet(PORTD,PP);
-#endif UNO
-#ifndef UNO
-#define PP4       digitalWrite(PP,LOW);digitalWrite(PP,HIGH);
-#endif
-#define PP4_INIT  pinMode(PP,OUTPUT);PP4
 
 #define CONFREG (0x00 & ~(MASK_RX_DR_BIT) & ~(MASK_TX_DS_BIT) & ~(MASK_MAX_RT_BIT) | EN_CRC_BIT & ~(CRCO_BIT) | PWR_UP_BIT | PRIM_RX_BIT)
 
@@ -171,6 +162,8 @@ void Nrfp::powerUp()
     CE_LOW;
     CE_INIT;
     PP4_INIT;
+    PP4
+    PP4
 
     SPI_INIT;
     SPI_START;
@@ -178,6 +171,9 @@ void Nrfp::powerUp()
     conf=CONFREG;                         // powerUP/CRC 1 byte/PRX
     regWrite(CONFIG,&conf);
     regWrite(CONFIG,&conf);
+
+    flushRx();
+    CLR_RXDR
 
     powerD=false;
 
@@ -386,7 +382,7 @@ int Nrfp::pRegister()  // peripheral registration to get pipeAddr
 
     if(trst<0){return ER_MAXRT;}            // MAX_RT error should not happen (no ACK allowed)
 
-    long time_beg = millis();
+    unsigned long time_beg = millis();
     long readTo=0;
     uint8_t pipe=99,pldLength=MAX_PAYLOAD_LENGTH; // ADDR_LENGTH+1;
     int numP=AV_EMPTY;
@@ -395,14 +391,14 @@ int Nrfp::pRegister()  // peripheral registration to get pipeAddr
         readTo=TO_REGISTER-millis()+time_beg;
         numP=read(message,&pipe,&pldLength,NBPERIF);}
 
-#ifdef DIAG
+/*#ifdef DIAG
 if(readTo<0 && numP>=0){numP=-99;}
   Serial.print((char*)message);
   Serial.print(" l=");Serial.print(pldLength);
   Serial.print(" p=");Serial.print(pipe);
   Serial.print(" numP=");Serial.println(numP);
 #endif // DIAG
-
+*/
     if(numP>=0 && (readTo>=0)){            // no TO pld ok
         numP=message[ADDR_LENGTH]-48;      // numP
         return numP;}                      // PRX mode still true
@@ -449,6 +445,7 @@ uint8_t Nrfp::cRegister(char* macAddr)      // search free line or existing macA
 void Nrfp::tableCPrint()
 {
   for(int i=0;i<NBPERIF;i++){
+    if(i<10){Serial.print(" ");}
     Serial.print(i);Serial.print(" ");
     Serial.print(tableC[i].numPeri);Serial.print(" ");
     printAddr(tableC[i].periMac,' ');Serial.print(" (");

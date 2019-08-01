@@ -1,3 +1,4 @@
+#include "nrf24l01s.h"
 #include "nrf24l01s_const.h"
 #include "nrf_powerSleep.h"
 #include "nrf_user.h"
@@ -20,6 +21,7 @@ void hardwarePowerDown()
   userHardPowerDown();
   nrfp.powerDown();
   pinMode(LED,INPUT);
+  pinMode(PP,INPUT);
 }
 
 void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à traiter)

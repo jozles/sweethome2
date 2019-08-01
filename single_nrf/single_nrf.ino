@@ -15,9 +15,9 @@ bool menu=true;
 Nrfp nrfp;
 
 /*** LED ***/
-uint16_t blkdelay=0;
-long     blktime=0;
-uint8_t bcnt=0;
+uint16_t      blkdelay=0;
+unsigned long blktime=0;
+uint8_t       bcnt=0;
 #define TBLK 1
 #define DBLK 2000
 #define IBLK 80
@@ -65,7 +65,7 @@ uint8_t  aw_retry=AWAKE_RETRY_VALUE;
 void showErr();
 void showRx(bool crlf);
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
-void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,long dly);
+void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,unsigned long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
 int  rxMessage();
 void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
@@ -79,6 +79,7 @@ void hardwarePowerUp()
 {
   nrfp.powerUp();
   pinMode(LED,OUTPUT);
+  pinMode(PP,OUTPUT);
 }
  
 
@@ -142,6 +143,7 @@ void loop() {
 
   tBeg=((float)millis()/1000)+(durT/100);
 #ifdef DIAG
+  Serial.print(" ");
   Serial.print(nbS);Serial.print("(");Serial.print(tBeg);Serial.print(") ");
   Serial.print(awakeCnt);Serial.print(" ");
   Serial.print(awakeMinCnt);Serial.print(" ");Serial.println(retryCnt);
@@ -153,18 +155,18 @@ void loop() {
     hardwarePowerUp();                   // 5mS delay inside
 
     /* building message MMMMMPssssssssVVVV....... MMMMMP should not be changed */
-
     uint8_t outLength=ADDR_LENGTH+1;
     memcpy(message+outLength,VERSION,LENVERSION);                     // version
+    outLength+=LENVERSION;
     sprintf(message+outLength,"%08d",(uint32_t)tBeg);                 // seconds since last reset 
-    outLength=ADDR_LENGTH+1+LENVERSION+8;
+    outLength+=8;
     messageBuild(message,&outLength);                                 // add user data
     memcpy(message,MAC_ADDR,ADDR_LENGTH);                             // macAddr
     message[ADDR_LENGTH]=numT+48;                                     // numéro du périphérique
     message[outLength]='\0';
 
     /* send message */
-    if(txMessage(false,outLength,0)<0){      // tx error (maxrt)
+    if(txMessage(false,outLength,0)<0){    // tx error (maxrt)
       // si le message ne part pas, essai aux (aw_retry-1) prochains réveils 
       // puis après aw_ko réveils
 #ifdef DIAG
@@ -187,11 +189,16 @@ void loop() {
         showRx(true);
         importData(message,pldLength);     // user data
       }
-      else{showErr();numT=beginP();}       // rx error : refaire l'inscription
+      else{
+#ifndef DIAG
+        Serial.print(" ");Serial.println(rdSta);
+#endif // DIAG                      
+        showErr();numT=beginP();
+      }       // rx error : refaire l'inscription
     }
   }
   delay(1);  // serial
-
+  
 #endif // NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -206,43 +213,51 @@ void loop() {
 
   pldLength=MAX_PAYLOAD_LENGTH;                     // max length
   rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
-  if(rdSta>=0){                                     // no error
-    showRx(false);
-    numT=rdSta;                                     // rdSta >=0 -> numT du périphérique       
-    if(numT==0){                                    // registration request
-      byte pAd[ADDR_LENGTH];             
-      uint8_t numT=nrfp.cRegister(message);
-      if(numT<(NBPERIF)){                           // numT valid  
-        memcpy(pAd,tableC[numT].periMac,ADDR_LENGTH);
-        Serial.print(" registred on addr (");Serial.print(numT);Serial.print(")");nrfp.printAddr(pAd,'n');}
-      else if(numT==(NBPERIF+2)){Serial.print(" MAX_RT ... deleted");}
-      else {Serial.print(" full");}
-      Serial.println();
-    }
-        
-    else {
-      if(memcmp(message,tableC[numT].periBuf,ADDR_LENGTH)==0){                                  
-        /* already registred (valid numT) -> send config */
-        Serial.println();
-        /* store incoming message */
-        //memcpy(tableC[numT].periBuf,message,pldLength);   
-        tableC[numT].periBufLength=pldLength;
-        /* build config */
-        memcpy(message+ADDR_LENGTH+1,tableC[numT].serverBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
-        /* send config message */
-      
-        if(txMessage(true,MAX_PAYLOAD_LENGTH,numT)==0){tableC[numT].periBufSent=true;}
-        // reformater et transmettre au serveur le message reçu
-      }
-      /* si les macAddr de la table et du message ne correspondent pas ; 
-      le périf doit refaire l'inscription donc pas de réponse pour générer une erreur en rx */      
-    }
+
+  time_beg=micros();
+  // ====== no error registration request ======
+  if(rdSta==0){                                     
+      showRx(false);                                        
+      numT=nrfp.cRegister(message);               
+      if(numT<(NBPERIF)){                           // registration diag  
+        rdSta=numT;                                 // config message to send a response
+        memcpy(message,tableC[numT].periMac,ADDR_LENGTH);           
+        Serial.print(" rdSta=");Serial.print(rdSta);
+        Serial.print(" ");
+        nrfp.printAddr(tableC[numT].periMac,' ');
+        Serial.print(" registred as ");Serial.println(numT);}
+      else if(numT==(NBPERIF+2)){Serial.println(" MAX_RT ... deleted");}
+      else {Serial.println(" full");}
   }
 
-  else if(rdSta!=AV_EMPTY){
+  // ====== no error valid entry ======
+  if((rdSta>0) && (memcmp(message,tableC[rdSta].periMac,ADDR_LENGTH)==0)){      
+      memcpy(tableC[rdSta].periBuf,message,pldLength);   // incoming message storage
+      tableC[rdSta].periBufLength=pldLength;
+      /* build config */
+      memcpy(message+ADDR_LENGTH+1,tableC[rdSta].serverBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
+      /* send it */    
+      txMessage(true,MAX_PAYLOAD_LENGTH,rdSta);
+      if(trSta==0){tableC[rdSta].periBufSent=true;}      // fin de transaction donc auto ACK
+      // reformater et transmettre au serveur le message reçu
+  }
+  
+  // ====== error or empty -> ignore ======
+  // le périf doit refaire l'inscription donc pas de réponse pour générer une erreur en rx 
+
+
+#ifdef DIAG                                         // error diag
+  if(rdSta<0 && rdSta!=AV_EMPTY){                   
     showRx(false);
-    showErr();}    // error... à traiter
-    
+    showErr();}
+#endif // DIAG
+#ifndef DIAG                                        // diag minimal - code action + durée
+  if(rdSta!=AV_EMPTY){                   
+    Serial.print(rdSta);Serial.print(" ");Serial.print(micros()-time_beg);Serial.print(" ");Serial.println(trSta);}
+#endif // !DIAG
+
+
+  // ====== menu choice ======  
   char a=getch();
   switch(a){
     case 'e':echo(a);menu=true;break;
@@ -250,6 +265,7 @@ void loop() {
     case 't':Serial.println((char)a);nrfp.tableCPrint();menu=true;break;
     default:break;
   }
+  
 #endif // NRF_MODE == 'C'
 
 } /********** loop end  *********/
@@ -269,8 +285,7 @@ void echo(char a)
     cnt++;
     sprintf(message,"%05d",cnt);
     echo0(message,false,5,numP);
-                                                // si periMac ne répond plus ... à voir
-
+                                                // si periMac ne répond plus ... à traiter
     delay(2000);ledblk(TBLK,DBLK,IBLK,2);
   } 
 }
@@ -340,13 +355,15 @@ uint8_t beginP()
   int confSta=-1;
   while(confSta<0){
     confSta=nrfp.pRegister(); // -4 empty -3 max RT ; -2 len ; -1 pipe ; 0 na ; 1 ok
-    Serial.print("start ");
+    Serial.print(">>> start ");
     Serial.print((char*)(kk+(confSta+6)*LMERR));
-    Serial.print(" numP=");Serial.println(confSta);
-    // sleepPowerDown(T1000);   pour sauver la batterie ... modifier delayBlk écolo
-    delayBlk(TBLK,DBLK,IBLK,1,1000);
+    Serial.print(" numP=");Serial.print(confSta);
+    Serial.print("  aw_ok=");Serial.print(aw_ok*STEP_VALUE);
+    Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.println("sec");
+         
+    delayBlk(TBLK,DBLK,IBLK,2,1000);
   }
-  return confSta;                // le périphérique est inscrit
+  return confSta;                  // le périphérique est inscrit
 }
 
 ISR(WDT_vect)                      // ISR interrupt service pour vecteurs d'IT du MPU (ici vecteur WDT)
@@ -378,16 +395,13 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)
   Serial.print(" trSta=");Serial.print(trSta);
   Serial.print(" in:");Serial.print((long)(time_end - time_beg)); 
   Serial.println("us");
-delay(2);
-#endif DIAG
+delay(4);
+#endif // DIAG
   return trSta;
 }
 
 int rxMessage()
 {
-#ifdef DIAG  
-  Serial.print("rx ");
-#endif // DIAG  
   memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
   pldLength=MAX_PAYLOAD_LENGTH;                    // max length
   rdSta=AV_EMPTY;
@@ -403,7 +417,7 @@ int rxMessage()
   Serial.print(" rx from ");Serial.print((int)(message[ADDR_LENGTH]-48));
   Serial.print(" rdsta=");Serial.print(rdSta);  
   Serial.print(" in:");Serial.print((long)(time_end - time_beg)); 
-  Serial.println("us");
+  Serial.print("us ");
 delay(4);
 #endif // DIAG
   return rdSta;
@@ -412,12 +426,12 @@ delay(4);
 void showRx(bool crlf)
 { 
 #ifdef DIAG
-  Serial.print((char*)message);
+  //Serial.print((char*)message);
   Serial.print(" l=");Serial.print(pldLength);
   Serial.print(" p=");Serial.print(pipe);
-  Serial.print(" rdSta=");Serial.print(rdSta);
+  //Serial.print(" rdSta=");Serial.print(rdSta);
   if(crlf){Serial.println();}
-delay(2);
+delay(1);
 #endif // DIAG  
 }
 
@@ -428,14 +442,23 @@ void showErr()
 #endif // DIAG
 }
 
-void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,long dly)
+void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)
 {
-  long tt=millis();
-  while((millis()-tt)<dly){ledblk(dur,bdelay,bint,bnb);}
+  delay(4); // serial
+#if NRF_MODE == 'P'
+  while(dly>0){sleepPwrDown(T250);dly-=250;}
+#endif // NRF_MODE == 'P'
+#if NRF_MODE == 'C'
+  delay(dly);
+#endif // NRF_MODE == 'P'
+
+  unsigned long tt=millis(); 
+  blktime=0;bcnt=1;blkdelay=0;
+  while((millis()-tt)<(dur+bint)*bnb){ledblk(dur,bdelay,bint,bnb);}
 }
 
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
-{
+{   // dur = durée on ; bdelay = delay entre séquences ; bint = intervalle entre blinks ; bnb = nbre blinks
   if((millis()-blktime)>blkdelay){
     if(digitalRead(LED)==LOW){
       digitalWrite(LED,HIGH);blkdelay=dur;}
