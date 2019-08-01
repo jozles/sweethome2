@@ -151,7 +151,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //
-#define CARTE VRR                    // <------------- modèle carte
+#define CARTE VR                    // <------------- modèle carte
 #define POWER_MODE NO_MODE            // <------------- type d'alimentation 
 //#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 

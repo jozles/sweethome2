@@ -99,7 +99,7 @@ int htmlPrint(EthernetClient* cli,File* fhtml,char* fname)                 // li
 }
 
 
-void convertNTP(long *dateUnix,int *year,int *month,int *day,byte *js,int *hour,int *minute,int *second)
+void convertNTP(unsigned long *dateUnix,int *year,int *month,int *day,byte *js,int *hour,int *minute,int *second)
 {
     int feb29;
     unsigned long secDay=24*3600L;
@@ -144,14 +144,14 @@ void convertNTP(long *dateUnix,int *year,int *month,int *day,byte *js,int *hour,
 //Serial.print(*hour);Serial.print(":");Serial.print(*minute);Serial.print(":");Serial.println(*second);
 }
 
-long genUnixDate(int* year,int* month, int* day, int* hour,int* minute,int* seconde)
+unsigned long genUnixDate(int* year,int* month, int* day, int* hour,int* minute,int* seconde)
 {
     unsigned long secDay=24*3600L;
     unsigned long secYear=365*secDay;
     unsigned long m28=secDay*28L,m30=m28+secDay+secDay,m31=m30+secDay;
     unsigned long monthSec[]={0,m31,monthSec[1]+m28,monthSec[2]+m31,monthSec[3]+m30,monthSec[4]+m31,monthSec[5]+m30,monthSec[6]+m31,monthSec[7]+m31,monthSec[8]+m30,monthSec[9]+m31,monthSec[10]+m30,monthSec[11]+m31};
 
-    long udate;
+    unsigned long udate;
     
     int yy=*year;if(yy<1970){yy=1970;}
     yy-=1970;
@@ -160,14 +160,14 @@ long genUnixDate(int* year,int* month, int* day, int* hour,int* minute,int* seco
     if(((yy+2)%4)==0){
       if(*month>2 || (*month==2 && *day==29)){day29=1;}
     }
-    udate=(long)yy*secYear+(long)monthSec[*month-1]+(long)(*day-1)*secDay+(long)*hour*3600L+(long)*minute*60L+(long)*seconde+(long)nbybis*secDay+(long)day29*secDay;
+    udate=(unsigned long)yy*secYear+(unsigned long)monthSec[*month-1]+(unsigned long)(*day-1)*secDay+(unsigned long)*hour*3600L+(unsigned long)*minute*60L+(unsigned long)*seconde+(unsigned long)nbybis*secDay+(unsigned long)day29*secDay;
 
     return udate;
 }
 
 void calcDate(int bd,int* yy,int*mm,int* dd,int* js,int*hh,int* mi,int* ss)     // bd jours avant date*
 {
-  long udate=genUnixDate(yy,mm,dd,hh,mi,ss);
+  unsigned long udate=genUnixDate(yy,mm,dd,hh,mi,ss);
   Serial.print("udate1=");Serial.println(udate);Serial.print(" (");Serial.print(*yy);Serial.print("/");Serial.print(*mm);Serial.print("/");Serial.print(*dd);Serial.println(") ");
   udate-=bd*24*3600;
   Serial.print("udate2=");Serial.println(udate);
@@ -217,8 +217,8 @@ int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
     Udp.read(packetBuffer, NTP_PACKET_SIZE);  // get it                 // sec1900- 2208988800UL;
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
     unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-    long secsSince1900 = highWord << 16 | lowWord;
-    long secsSince1970 = secsSince1900 -2208988800UL;          //sec1970=1456790399UL;  // 29/02/2016
+    unsigned long secsSince1900 = highWord << 16 | lowWord;
+    unsigned long secsSince1970 = secsSince1900 -2208988800UL;          //sec1970=1456790399UL;  // 29/02/2016
 
 //Serial.print("packetBuffer 40-43 : ");Serial.print(packetBuffer[40]);Serial.print(" ");Serial.print(packetBuffer[41]);Serial.print(" ");Serial.print(packetBuffer[42]);Serial.print(" ");Serial.println(packetBuffer[43]);
 //Serial.print(" sin 1900/1970 : ");Serial.print(secsSince1900,10);Serial.print("/");Serial.println(secsSince1970,10);
@@ -232,6 +232,3 @@ int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
 }
 
 #endif UDPUSAGE
-
-
-

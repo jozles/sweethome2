@@ -14,14 +14,14 @@ extern  uint8_t pinSw[MAXSW];                                  // les switchs
 extern  byte    staPulse[NBPULSE];                             // état clock pulses
 extern  uint8_t pinDet[MAXDET];
 
-extern  long    detTime[MAXDET];                               // debounce détecteurs physiques
-extern  long    impDetTime[NBPULSE];                           // timer pour gestion commandes impulsionnelles     
-extern  long    isrTime;
+extern  unsigned long    detTime[MAXDET];                      // debounce détecteurs physiques
+extern  unsigned long    impDetTime[NBPULSE];                  // timer pour gestion commandes impulsionnelles     
+extern  unsigned long    isrTime;
 extern  void    (*isrD[4])(void);                              // tableau des pointeurs des isr détecteurs
 extern  byte    mask[];
 
 //extern  int     cntdebug[];
-//extern  long    timedebug[]={0,0,0,0};
+//extern  unsigned long    timedebug[]={0,0,0,0};
 extern  int*    int0;
 
 extern uint32_t  mDSmaskbit[];
@@ -373,7 +373,7 @@ void swDebounce()
 
 void isrDet(uint8_t det)      // setup memDetec et staPulse après interruption sur det
 {
-  long sht=micros();
+  unsigned long sht=micros();
   
   // setup memDetec 
   detTime[det]=millis();

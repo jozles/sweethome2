@@ -18,7 +18,7 @@ extern char* usrpass;
 
   /* debug
 int   cntdebug[NBDBPTS];
-long  timedebug[NBDBPTS*NBDBOC];
+unsigned long  timedebug[NBDBPTS*NBDBOC];
 int*  v0debug[NBDBPTS*NBDBOC];
 int*  v1debug[NBDBPTS*NBDBOC];
 char* v2debug[NBDBPTS*NBDBOC];
@@ -371,13 +371,13 @@ bool ctlpass(char* data,char* model)
   return !memcmp(model,data,strlen(model));
 }
 
-bool ctlto(long time,uint16_t to)
+bool ctlto(unsigned long time,uint16_t to)
 {
     //Serial.print("ctlto=");Serial.print(time);Serial.print(" to=");Serial.println(to);
  return (millis()-time)>(to*1000);
 }
 
-void startto(long* time,uint16_t* to,uint16_t valto)
+void startto(unsigned long* time,uint16_t* to,uint16_t valto)
 {
   *to=valto;
   *time=millis();

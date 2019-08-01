@@ -29,13 +29,13 @@ extern char*     modpass;             // mot de passe modif
 extern char*     peripass;            // mot de passe périphériques
 extern char*     usrnames;            // usernames
 extern char*     usrpass;             // userpass
-extern long*     usrtime;
+extern unsigned long*     usrtime;
 extern int       usernum;
 extern char*     thermonames;
 extern int16_t*  thermoperis;
 extern uint16_t* toPassword;
 
-extern long      cxtime;
+extern unsigned long      cxtime;
 extern char*     chexa;
 
 extern uint8_t   remote_IP[4],remote_IP_cur[4];
@@ -506,4 +506,3 @@ void showLine(EthernetClient* cli,int i,char* pkdate)
                   cli->print("</form>");
                 cli->println("</tr>");
 }
-

@@ -24,8 +24,8 @@ void dumpstr(char* data,uint16_t len);
 void dumpfield(char* fd,uint8_t ll);
 bool ctlpass(char* data,char* model);
 int  searchusr(char* usrname);
-bool ctlto(long time,uint16_t to);
-void startto(long* time,uint16_t* to,uint16_t valto);
+bool ctlto(unsigned long time,uint16_t to);
+void startto(unsigned long* time,uint16_t* to,uint16_t valto);
 
 void timeOvfSet(uint8_t slot);
 void timeOvfCtl(uint8_t slot);

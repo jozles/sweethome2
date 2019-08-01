@@ -29,8 +29,8 @@ extern char* passssid;
 extern int*  nbssid;
 extern char* usrnames;  
 extern char* usrpass;     
-extern long* usrtime;
-extern long* usrpretime;
+extern unsigned long* usrtime;
+extern unsigned long* usrpretime;
 extern char* thermonames;
 extern int16_t* thermoperis;
 extern uint16_t* toPassword;
@@ -392,4 +392,3 @@ int periParamsHtml(EthernetClient* cli,char* host,int port,char* nfonct)   // fo
           cli->stop();        
           return zz;
 }*/
-

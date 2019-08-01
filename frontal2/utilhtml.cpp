@@ -62,7 +62,7 @@ extern uint16_t  perrefr;
 
 extern char*     usrnames; 
 extern char*     usrpass; 
-extern long*     usrtime;  
+extern unsigned long* usrtime;  
 
 extern int       usernum;
 //extern int       chge_pwd;
@@ -394,5 +394,3 @@ void printPeriDate(EthernetClient* cli,char* periDate)
   int j;
   unpackDate(dateascii,periDate);for(j=0;j<12;j++){cli->print(dateascii[j]);if(j==5){cli->print(" ");}}cli->println("<br>");
 }
-
-

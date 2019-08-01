@@ -2,6 +2,8 @@
 #define _MODE_DEVT    
 /* Mode développement */
 
+#include <defper.h>
+
 #include <ESP8266WiFi.h>
 #include "const.h"
 #include <shconst2.h>
@@ -21,16 +23,16 @@ extern "C" {
 #endif
 
 Ds1820 ds1820;
-extern byte dsmodel;
+//extern byte dsmodel;
 
   char model[LENMODEL];
 
-  long dateon=millis();           // awake start time
-  long boucleTime=millis();
+  unsigned long dateon=millis();           // awake start time
+  unsigned long boucleTime=millis();
 
   const char* ssid;
   const char* password;
-#define DEVOLO  
+//#define DEVOLO  
 #ifdef DEVOLO
   const char* ssid2= "pinks";
   const char* password2 = "cain ne dormant pas songeait au pied des monts";
@@ -71,33 +73,33 @@ WiFiServer server(8888); // PORTSERVPERI);
   uint8_t fonction;      // la dernière fonction reçue
 
   float temp;
-  long  tempTime=0;               // (millis) timer température pour mode loop
+  unsigned long  tempTime=0;               // (millis) timer température pour mode loop
   uint16_t tempPeriod=PERTEMP;    // (sec) période courante check température 
   char  ageSeconds[8];     // secondes 9999999s=115 jours
-  long  tempAge=1;         // secondes
+  unsigned long  tempAge=1;         // secondes
   bool  tempchg=FAUX;
-  long  timeservbegin;
+  unsigned long  timeservbegin;
 
-  long  clkTime=millis();   // timer automate rapide
+  unsigned long  clkTime=millis();   // timer automate rapide
   uint8_t clkFastStep=0;    // stepper automate rapide
   uint8_t clkSlowStep=0;    // stepper automate /10
   extern uint8_t nbreBlink;
-  long  blkTime=millis();
+  unsigned long  blkTime=millis();
   int   blkPer=2000;
-  long  debTime=millis();   // pour mesurer la durée power on
-  long  debConv=millis();   // pour attendre la fin du délai de conversion
+  unsigned long  debTime=millis();   // pour mesurer la durée power on
+  unsigned long  debConv=millis();   // pour attendre la fin du délai de conversion
   int   tconversion=0;
-  long  detTime[MAXDET]={millis(),millis(),millis(),millis()};    // temps pour debounce
+  unsigned long  detTime[MAXDET]={millis(),millis(),millis(),millis()};    // temps pour debounce
 
 
   uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};      // les switchs
   byte    staPulse[NBPULSE];                               // état clock pulses
-  long    impDetTime[NBPULSE];                             // timer pour gestion commandes impulsionnelles     
+  unsigned long    impDetTime[NBPULSE];                             // timer pour gestion commandes impulsionnelles     
   uint8_t pinDet[MAXDET]={PINDTA,PINDTB,PINDTC,PINDTD};    // les détecteurs
 
   
 //  void (*isrD[4])(void);                                 // tableau de pointeurs de fonctions
-//  long isrTime=0;                                        // durée isr
+//  unsigned long isrTime=0;                                        // durée isr
 
   int   i=0,j=0,k=0;
   uint8_t oldswa[]={0,0,0,0};         // 1 par switch
@@ -733,7 +735,7 @@ int buildReadSave(char* nomfonction,char* data,char* toggle)   //   assemble et 
       sprintf(message+sb,"%1.2f",voltage);                            // alim                        - 5
       strncpy(message+sb+4,"_\0",2);
       strncpy(message+sb+5,VERSION,LENVERSION);                       // VERSION contient le "_"     - 3
-      char ds='B';if(dsmodel==MODEL_S){ds='S';}
+      char ds='B';if(ds1820.dsmodel==MODEL_S){ds='S';}
       strncpy(message+sb+5+LENVERSION-1,&ds,1);                       // modele DS18x20              - 2
       strncpy(message+sb+5+LENVERSION,"_\0",2);
       
@@ -825,7 +827,7 @@ bool wifiConnexion(const char* ssid,const char* password)
 {
 
   int i=0;
-  long beg=millis();
+  unsigned long beg=millis();
   bool cxstatus=VRAI;
 
     ledblink(BCODEONBLINK);
@@ -852,7 +854,7 @@ bool wifiConnexion(const char* ssid,const char* password)
       WL_IDLE_STATUS when Wi-Fi is in process of changing between statuses
       WL_DISCONNECTED if module is not configured in station mode
 */
-      long startcx=millis();  
+      unsigned long startcx=millis();  
       Serial.print(" WIFI connecting to ");Serial.println(ssid);
       WiFi.begin(ssid,password);
       delay(1000);
@@ -904,7 +906,7 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
 #endif PM==NO_MODE
 
 #if POWER_MODE==PO_MODE
-      long ms=millis();           // attente éventuelle de la fin de la conversion initiée à l'allumage
+      unsigned long ms=millis();           // attente éventuelle de la fin de la conversion initiée à l'allumage
       Serial.print("debConv=");Serial.print(debConv);Serial.print(" millis()=");Serial.print(ms);
       Serial.print(" Tconversion=");Serial.print(tconversion);Serial.print(" delay=");Serial.println((long)tconversion-(ms-debConv));
       if((ms-debConv)<tconversion){

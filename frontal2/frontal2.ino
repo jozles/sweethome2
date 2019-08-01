@@ -32,7 +32,7 @@ extern "C" {
 }
 
   EthernetClient cli_a;             // client du serveur periphériques et browser configuration
-  //EthernetClient cli_b;             // client du serveur pilotage
+  EthernetClient cli_b;             // client du serveur pilotage
   EthernetClient cliext;            // client de serveur externe  
 char ab;
     
@@ -41,29 +41,29 @@ char ab;
     IPAddress esptv(192,168,0,208);
     IPAddress gggg(74,125,232,128);    
 
-    long mill=millis();
+    unsigned long mill=millis();
     
 /* >>>> config server <<<<<< */
 
 char configRec[CONFIGRECLEN];
 
-  byte* mac;              // adresse server
-  byte* localIp;          // adresse server
-  uint16_t* portserver;   //
-  char* nomserver;        //
-  char* userpass;         // mot de passe browser
-  char* modpass;          // mot de passe modif
-  char* peripass;         // mot de passe périphériques
-  char* ssid;             // MAXSSID ssid
-  char* passssid;         // MAXSSID password SSID
-  int*  nbssid;           // inutilisé
-  char* usrnames;         // usernames
-  char* usrpass;          // userpass
-  long* usrtime;          // user cx time
-  long* usrpretime;       // user cx time précédent
-  char* thermonames;      // noms sondes thermos
-  int16_t* thermoperis;   // num périphériques thermo
-  uint16_t* toPassword;   // Délai validité password en sec !
+  byte* mac;                  // adresse server
+  byte* localIp;              // adresse server
+  uint16_t* portserver;       //
+  char* nomserver;            //
+  char* userpass;             // mot de passe browser
+  char* modpass;              // mot de passe modif
+  char* peripass;             // mot de passe périphériques
+  char* ssid;                 // MAXSSID ssid
+  char* passssid;             // MAXSSID password SSID
+  int*  nbssid;               // inutilisé
+  char* usrnames;             // usernames
+  char* usrpass;              // userpass
+  unsigned long* usrtime;     // user cx time
+  unsigned long* usrpretime;  // user cx time précédent
+  char* thermonames;          // noms sondes thermos
+  int16_t* thermoperis;       // num périphériques thermo
+  uint16_t* toPassword;       // Délai validité password en sec !
 
   byte* configBegOfRecord;
   byte* configEndOfRecord;
@@ -104,21 +104,21 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   char bufServer[LBUFSERVER];          // buffer entrée/sortie dataread/save
 
-  float     oldth=0;                       // pour prev temp DS3231
-  long      temptime=0;                    // last millis() pour temp
-#define PTEMP 120                          // secondes
-  uint32_t  pertemp=PTEMP;                 // période ech temp sur le serveur
-  uint16_t  perrefr=0;                     // periode rafraichissement de l'affichage
+  float         oldth=0;               // pour prev temp DS3231
+  unsigned long temptime=0;            // last millis() pour temp
+#define PTEMP 120                      // secondes
+  uint32_t      pertemp=PTEMP;         // période ech temp sur le serveur
+  uint16_t      perrefr=0;             // periode rafraichissement de l'affichage
 
-  long      cxtime=0;                      // durée connexion client
-  long      remotetime=0;                  // mesure scans remote
-  long      srvdettime=0;                  // mesure scans détecteurs
-  long      timerstime=0;                  // last millis pour timers
-#define PTIMERS 1;                         // secondes
-  uint32_t  pertimers=PTIMERS;             // période ctle timers
+  unsigned long cxtime=0;              // durée connexion client
+  unsigned long remotetime=0;          // mesure scans remote
+  unsigned long srvdettime=0;          // mesure scans détecteurs
+  unsigned long timerstime=0;          // last millis pour timers
+#define PTIMERS 1;                     // secondes
+  uint32_t  pertimers=PTIMERS;         // période ctle timers
   
   int   stime=0;int mtime=0;int htime=0;
-  long  curdate=0;
+  unsigned long  curdate=0;
 
 /* iùage mémoire détecteurs du serveur */
 
@@ -198,7 +198,7 @@ long   remoteNlen=(sizeof(Remote))*NBREMOTE;
 
 struct Timers timersN[NBTIMERS];
 char*  timersNA=(char*)&timersN;
-long   timersNlen=(sizeof(Timers))*NBTIMERS;
+unsigned long   timersNlen=(sizeof(Timers))*NBTIMERS;
 
 /* DS3231 */
 
@@ -519,7 +519,7 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* onoff)      // recher
   Serial.println();
 }
 
-void perToSend(uint8_t* tablePerToSend,long begTime)
+void perToSend(uint8_t* tablePerToSend,unsigned long begTime)
 {
       if((millis()-begTime)>1){Serial.print("  durée scan      =");Serial.print(millis()-begTime);}
       for(uint16_t np=1;np<=NBPERIF;np++){
@@ -1093,7 +1093,7 @@ void commonserver(EthernetClient cli)
                        else {Serial.println("password ok");usrtime[usernum]=millis();if(nbreparams==1){what=2;}}
                        break;                                                                        
               case 4:  {usernum=*(libfonctions+2*i+1)-PMFNCHAR;                                      // user_ref__ (argument : millis() envoyées avec la fonction au chargement de la page)
-                        long cxtime=0;conv_atobl(valf,(uint32_t*)&cxtime);
+                        unsigned long cxtime=0;conv_atobl(valf,(uint32_t*)&cxtime);
                         Serial.print("usr_ref__ : usrnum=");Serial.print(usernum);Serial.print(" millis()/1000=");Serial.print(millis()/1000);Serial.print(" cxtime=");Serial.print(cxtime);Serial.print(" usrtime[nb]=");Serial.print(usrtime[usernum]);Serial.print(" usrpretime[nb]=");Serial.println(usrpretime[usernum]);
                         // !( usrtime ok || (html && usrpretime ok) ) || time out  => accueil 
                         if(!(usrtime[usernum]==cxtime || (usrpretime[usernum]==cxtime && memcmp(&fonctions[numfonct[i+1]*LENNOM]+(LENNOM-3),"html",4)==0)) || (millis()-usrtime[usernum])>(*toPassword*1000)){
@@ -1384,10 +1384,15 @@ void periserver()
 void pilotserver()
 {
   ab='b';
-     // if(cli_b = pilotserv.available())      // attente d'un client
-      if(cli_a = pilotserv.available())      // attente d'un client
+     if(cli_b = pilotserv.available())      // attente d'un client
         {
-          commonserver(cli_a);
+          commonserver(cli_b);
         }     
+/*
+  ab='a';
+     if(cli_a = pilotserv.available())      // attente d'un client
+        {
+          commonserver(cli_b);
+        }     
+ */
 }
-

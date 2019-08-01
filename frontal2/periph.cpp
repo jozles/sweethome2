@@ -29,8 +29,8 @@ extern char* passssid;
 extern int*  nbssid;
 extern char* usrnames;  
 extern char* usrpass;     
-extern long* usrtime;
-extern long* usrpretime;
+extern unsigned long* usrtime;
+extern unsigned long* usrpretime;
 extern char* thermonames;
 extern int16_t* thermoperis;
 extern uint16_t* toPassword;
@@ -253,7 +253,7 @@ byte* temp=(byte*)configRec;
   temp+=NBUSR*(LENUSRNAME+1);
   usrpass=(char*)temp;
   temp+=NBUSR*(LENUSRPASS+1);
-  usrtime=(long*)temp;
+  usrtime=(unsigned long*)temp;
   temp+=NBUSR*sizeof(long);
   thermonames=(char*)temp;
   temp+=NBTHERMO*(LENTHNAME+1);
@@ -261,7 +261,7 @@ byte* temp=(byte*)configRec;
   temp+=NBTHERMO*sizeof(int16_t);
   toPassword=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
-  usrpretime=(long*)temp;
+  usrpretime=(unsigned long*)temp;
   temp+=NBUSR*sizeof(long);
 
   configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
@@ -293,7 +293,7 @@ memset(thermoperis,0x00,NBTHERMO*sizeof(int16_t));
 *toPassword=TO_PASSWORD;
 }
 
-void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,long* cxtime)
+void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned long* cxtime)
 {
   char* str2=(char*)strv;
   #define LBUFCPRINT LENSSID+1+LPWSSID+1+3+4

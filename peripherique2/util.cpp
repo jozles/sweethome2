@@ -30,13 +30,13 @@ extern byte     mac[6];
 extern byte     staPulse[MAXSW];            // état clock pulses
 extern uint8_t  pinSw[MAXSW];
 extern uint8_t  pinDet[MAXDET];
-extern long     detTime[MAXDET];
+extern unsigned long     detTime[MAXDET];
 
 extern          constantValues cstRec;
 extern char*    cstRecA;
-extern long     dateon;
+extern unsigned long     dateon;
 
-extern long     tempTime;
+extern unsigned long     tempTime;
 extern uint16_t tempPeriod;
 
 extern float    voltage;
@@ -242,5 +242,3 @@ void printConstant()
   periInputPrint((byte*)&cstRec.perInput);
 #endif NO_MODE  
 }
-
-

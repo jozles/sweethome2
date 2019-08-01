@@ -48,7 +48,7 @@ extern char*     ssid;
 extern char*     passssid;
 extern char*     usrnames;
 extern char*     usrpass;
-extern long*     usrtime;
+extern unsigned long*     usrtime;
 extern char*     thermonames;
 extern int16_t*  thermoperis;
 extern uint16_t* toPassword;
@@ -460,7 +460,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
       }
     }
   }
-  long t0=millis();
+  unsigned long t0=millis();
   Serial.print("--- fin recherche ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.print(millis());Serial.println("");
 
 /* --- balayage et màj --- */
