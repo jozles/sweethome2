@@ -44,7 +44,7 @@ char*   kk={"time out\0tx maxrt\0rx empty\0mac addr\0length  \0pipe nb \0--     
 #if NRF_MODE == 'P'
 
 /*** gestion sleep ***/
-bool    reveil;
+bool    reveil,tfr=false;
 bool    mustSend; 
 int     awakeCnt=0;
 int     awakeMinCnt=0;
@@ -58,6 +58,7 @@ uint16_t aw_min=AWAKE_MIN_VALUE;
 uint16_t aw_ko=AWAKE_KO_VALUE;
 uint8_t  aw_retry=AWAKE_RETRY_VALUE;
 
+uint8_t beginP();
 #endif NRF_MODE == 'P'
 
 /* prototypes */
@@ -139,7 +140,7 @@ void loop() {
   /* usefull awake or retry */
   awakeCnt=aw_ok;
   mustSend=false;           
-  mustSend=checkThings(retryCnt);           // user staff
+  mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff
 
   tBeg=((float)millis()/1000)+(durT/100);
 #ifdef DIAG
@@ -166,7 +167,7 @@ void loop() {
     message[outLength]='\0';
 
     /* send message */
-    if(txMessage(false,outLength,0)<0){    // tx error (maxrt)
+    if(txMessage(NO_ACK,outLength,0)<0){                              // tx error (maxrt)
       // si le message ne part pas, essai aux (aw_retry-1) prochains réveils 
       // puis après aw_ko réveils
 #ifdef DIAG
@@ -189,14 +190,16 @@ void loop() {
         showRx(true);
         importData(message,pldLength);     // user data
       }
-      else{
-#ifndef DIAG
-        Serial.print(" ");Serial.println(rdSta);
-#endif // DIAG                      
-        showErr();numT=beginP();
-      }       // rx error : refaire l'inscription
+      else{showErr();numT=beginP();}       // rx error : refaire l'inscription
     }
+    tfr=true;
   }
+#ifndef DIAG
+        if(tfr==true){Serial.print(" ");Serial.print(rdSta);Serial.print("/");}
+        else {Serial.print(" ./");}
+        tfr=false;
+#endif // DIAG
+
   delay(1);  // serial
   
 #endif // NRF_MODE == 'P'
@@ -237,7 +240,7 @@ void loop() {
       /* build config */
       memcpy(message+ADDR_LENGTH+1,tableC[rdSta].serverBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
       /* send it */    
-      txMessage(true,MAX_PAYLOAD_LENGTH,rdSta);
+      txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);
       if(trSta==0){tableC[rdSta].periBufSent=true;}      // fin de transaction donc auto ACK
       // reformater et transmettre au serveur le message reçu
   }
@@ -284,7 +287,7 @@ void echo(char a)
     uint8_t numP=1; // 1er perif de la table
     cnt++;
     sprintf(message,"%05d",cnt);
-    echo0(message,false,5,numP);
+    echo0(message,NO_ACK,5,numP);
                                                 // si periMac ne répond plus ... à traiter
     delay(2000);ledblk(TBLK,DBLK,IBLK,2);
   } 

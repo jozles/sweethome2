@@ -21,13 +21,14 @@
 #define CSN_HIGH  bitSet(PORTB,4);
 #define CSN_LOW   bitClear(PORTB,4)
 #endif  // MEGA
+*/
 #ifdef UNO        // idem for PRO MINI
 #define CSN_HIGH  bitSet(PORTB,2);
 #define CSN_LOW   bitClear(PORTB,2);
 #define CE_HIGH   bitSet(PORTB,1);delayMicroseconds(10);
 #define CE_LOW    bitClear(PORTB,1);
 #endif  // UNO
-*/
+
 #ifndef CSN_HIGH
 #define CSN_HIGH  digitalWrite(CSN_PIN,HIGH);
 #define CSN_LOW   digitalWrite(CSN_PIN,LOW);
@@ -196,6 +197,7 @@ void Nrfp::powerDown()
 
         SPI_OFF
     }
+    PP4 PP4 PP4
 }
 
 void Nrfp::setTx()
@@ -376,7 +378,7 @@ int Nrfp::pRegister()  // peripheral registration to get pipeAddr
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     memcpy(message,MAC_ADDR,ADDR_LENGTH);
     message[ADDR_LENGTH]='0';
-    write(message,false,ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
+    write(message,NO_ACK,ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
     int trst=1;
     while(trst==1){trst=transmitting();}
 
@@ -431,7 +433,7 @@ uint8_t Nrfp::cRegister(char* macAddr)      // search free line or existing macA
           if(exist){
             memcpy(message,macAddr,ADDR_LENGTH);
             message[ADDR_LENGTH]=i+48;
-            write(message,true,ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
+            write(message,ACK,ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
 
             int trst=1;
             while(trst==1){trst=transmitting();}

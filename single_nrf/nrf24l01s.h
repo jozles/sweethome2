@@ -74,6 +74,9 @@
 #include "nRF24L01.h"       // mnemonics
 #include "nrf24l01s_const.h"
 
+#define ACK     true
+#define NO_ACK  false
+
 #define NB_PIPE 2           // nombre pipes utilis�es
 #define MAX_PAYLOAD_LENGTH 32
 #define ADDR_LENGTH 5

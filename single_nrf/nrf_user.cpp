@@ -35,8 +35,7 @@ uint32_t nbT=0;         // nbre lectures de temp
 float   volts=0;
 
 
-
-bool checkThings(uint8_t retryCnt)
+bool checkThings(uint8_t awakeCnt,uint8_t awakeMinCnt,uint8_t retryCnt)
 {
   /* Here data acquisition/checking/treatment (if something to send -> return true) */
   /* powerUp equipments who are in userHardPowerDown() */
@@ -55,16 +54,14 @@ bool checkThings(uint8_t retryCnt)
     temp=ds1820.readDs(WPIN);
 
     Serial.print(nbT);Serial.print(" ");Serial.print(temp);
-    Serial.print("/");
 #ifdef DIAG
-Serial.print(previousTemp);
+Serial.print("/");Serial.print(previousTemp);
 #endif // DIAG
-
-    
+   
     if( (temp>(previousTemp+deltaTemp)) || (temp<(previousTemp-deltaTemp)) ){
       previousTemp=temp;
       return true;}
-  }
+  }                      
   return false;  
 #endif DS18X20  
  

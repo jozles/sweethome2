@@ -46,7 +46,7 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
 
 /****************************/
 
-  #define PER_ADDR  "peri0"     // MAC_ADDR périphériques
+  #define PER_ADDR  "peri1"     // MAC_ADDR périphériques
   #define CC_ADDR   "toto_"     // MAC_ADDR concentrateur
   #define BR_ADDR   "bcast"     // adresse fixe de broadcast
 

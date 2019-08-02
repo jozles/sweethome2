@@ -18,8 +18,8 @@ extern uint32_t nbS;
  
 void hardwarePowerDown()
 {
-  userHardPowerDown();
   nrfp.powerDown();
+  userHardPowerDown();
   pinMode(LED,INPUT);
   pinMode(PP,INPUT);
 }
