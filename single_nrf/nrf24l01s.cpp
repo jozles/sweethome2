@@ -251,7 +251,7 @@ bool Nrfp::letsPrx()      // goto PRX mode
 void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,len to numP
 {
     uint8_t llen=len; // MAX_PAYLOAD_LENGTH;
-    
+
     prxMode=false;
     CE_LOW
 
@@ -259,10 +259,9 @@ void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,le
     addrWrite(TX_ADDR,tableC[numP].periMac);    // PER_ADDR);       
     addrWrite(RX_ADDR_P0,tableC[numP].periMac); // PER_ADDR);
 #endif // NRF_MODE == 'C'
-    
+
     setTx();
-    
-    flushTx();   // avant tx_pld !!!
+    flushTx();   // avant tx_pld !!!    
     CLR_TXDS_MAXRT
 
     CSN_LOW
@@ -396,7 +395,6 @@ int Nrfp::pRegister()  // peripheral registration to get pipeAddr
     long readTo=0;
     uint8_t pipe=99,pldLength=MAX_PAYLOAD_LENGTH; // ADDR_LENGTH+1;
     int numP=AV_EMPTY;
-
     while(numP==AV_EMPTY && (readTo>=0)){  // waiting for data
         readTo=TO_REGISTER-millis()+time_beg;
         numP=read(message,&pipe,&pldLength,NBPERIF);}

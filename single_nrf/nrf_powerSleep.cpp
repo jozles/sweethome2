@@ -8,7 +8,7 @@
 #include <avr/sleep.h>
 #include <avr/power.h>
 
-uint16_t wdtTime[]={16,32,64,125,500,1000,2000,4000,8000};   // durées WDT millis
+uint16_t wdtTime[]={16,32,64,125,250,500,1000,2000,4000,8000};   // durées WDT millis
 
 extern Nrfp nrfp;
 

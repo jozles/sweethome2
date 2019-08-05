@@ -451,7 +451,7 @@ void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)
 {
   delay(4); // serial
 #if NRF_MODE == 'P'
-  while(dly>0){sleepPwrDown(T250);dly-=250;}
+  while(dly>0){sleepPwrDown(T250);hardwarePowerUp();dly-=250;}
 #endif // NRF_MODE == 'P'
 #if NRF_MODE == 'C'
   delay(dly);
