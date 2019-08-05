@@ -4,8 +4,8 @@
 #include "nrf_powerSleep.h"
 #include "shconst2.h"
 #include "shutil2.h"
-#include "nrf_user.h"
-
+#include "nrf_user_peri.h"
+#include "nrf_user_conc.h"
 
 #if NRF_MODE == 'C'
 extern struct NrfConTable tableC[NBPERIF];
@@ -215,19 +215,19 @@ void loop() {
   ledblk(TBLK,2000,IBLK,1);
 
   pldLength=MAX_PAYLOAD_LENGTH;                     // max length
-  rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
+  rdSta=nrfp.read((char*)message,&pipe,&pldLength,NBPERIF);
 
   time_beg=micros();
   // ====== no error registration request ======
   if(rdSta==0){                                     
       showRx(false);                                        
-      numT=nrfp.cRegister(message);               
+      numT=nrfp.cRegister((char*)message);               
       if(numT<(NBPERIF)){                           // registration diag  
         rdSta=numT;                                 // config message to send a response
         memcpy(message,tableC[numT].periMac,ADDR_LENGTH);           
         Serial.print(" rdSta=");Serial.print(rdSta);
         Serial.print(" ");
-        nrfp.printAddr(tableC[numT].periMac,' ');
+        nrfp.printAddr((char*)tableC[numT].periMac,' ');
         Serial.print(" registred as ");Serial.println(numT);}
       else if(numT==(NBPERIF+2)){Serial.println(" MAX_RT ... deleted");}
       else {Serial.println(" full");}
@@ -242,7 +242,9 @@ void loop() {
       /* send it */    
       txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);
       if(trSta==0){tableC[rdSta].periBufSent=true;}      // fin de transaction donc auto ACK
-      // reformater et transmettre au serveur le message reçu
+      
+      // ======= formatting & tx to server ======
+      exportData(rdSta);
   }
   
   // ====== error or empty -> ignore ======
@@ -286,8 +288,8 @@ void echo(char a)
 
     uint8_t numP=1; // 1er perif de la table
     cnt++;
-    sprintf(message,"%05d",cnt);
-    echo0(message,NO_ACK,5,numP);
+    sprintf((char*)message,"%05d",cnt);
+    echo0((char*)message,NO_ACK,5,numP);
                                                 // si periMac ne répond plus ... à traiter
     delay(2000);ledblk(TBLK,DBLK,IBLK,2);
   } 
@@ -303,7 +305,7 @@ void broadcast(char a)
       titre=false;
       if(!ack){Serial.print('!');}
       Serial.print("ACK ... saisir l'adresse (rien=");
-      nrfp.printAddr(tableC[1].periMac,0);Serial.println(" ; !=toogle ack ; q=exit)");}
+      nrfp.printAddr((char*)tableC[1].periMac,0);Serial.println(" ; !=toogle ack ; q=exit)");}
    
 //    while(Serial.available()){Serial.print(getch());}
     b=getch();
@@ -319,8 +321,8 @@ void broadcast(char a)
           nrfp.tableCPrint();}
         memcpy(message,testAd,ADDR_LENGTH);
         message[ADDR_LENGTH]='0';
-        sprintf(message+ADDR_LENGTH+1,"%08lu",millis());
-        echo0(message,ack,8,1);
+        sprintf((char*)(message+ADDR_LENGTH+1),"%08lu",millis());
+        echo0((char*)message,ack,8,1);
         titre=true;
         break; 
     }
@@ -411,7 +413,7 @@ int rxMessage()
   readTo=0;
   time_beg = micros();
   while((rdSta==AV_EMPTY) && (readTo>=0)){
-    rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
+    rdSta=nrfp.read((char*)message,&pipe,&pldLength,NBPERIF);
     readTo=TO_READ-(micros()-time_beg)/1000;}
     if(readTo<0){rdSta=ER_RDYTO;}
   time_end=micros();

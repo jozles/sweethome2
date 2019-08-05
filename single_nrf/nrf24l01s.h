@@ -163,8 +163,8 @@ class Nrfp
     void setRx();
     void setTx();
 
-    int Nrfp::tableCLoad();
-    int Nrfp::tableCSave();
+    int tableCLoad();
+    int tableCSave();
 };
 
 #endif // NRF24L01P INCLUDED

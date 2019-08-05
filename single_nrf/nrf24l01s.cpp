@@ -29,6 +29,13 @@
 #define CE_LOW    bitClear(PORTB,1);
 #endif  // UNO
 
+/*#ifdef DUE
+#define CSN_HIGH  bitSet(PORTC,29);
+#define CSN_LOW   bitClear(PORTC,29);
+#define CE_HIGH   bitSet(PORTC,21);delayMicroseconds(10);
+#define CE_LOW    bitClear(PORTC,21);
+#endif  // DUE */
+
 #ifndef CSN_HIGH
 #define CSN_HIGH  digitalWrite(CSN_PIN,HIGH);
 #define CSN_LOW   digitalWrite(CSN_PIN,LOW);
@@ -45,7 +52,8 @@
 #define SPI_START SPI.begin();
 #define SPI_OFF   SPI.end();pinMode(MOSIPIN,INPUT);pinMode(CLKPIN,INPUT);
 
-#define GET_STA   CSN_LOW stat=SPI.transfer(NOP);CSN_HIGH
+//#define GET_STA   CSN_LOW statu=SPI.transfer(NOP);CSN_HIGH
+#define GET_STA   digitalWrite(CSN_PIN,LOW);statu=SPI.transfer(NOP);CSN_HIGH //digitalWrite(CSN_PIN,HIGH);
 
 #define CLR_TXDS_MAXRT  regw=TX_DS_BIT|MAX_RT_BIT;regWrite(STATUS,&regw);
 #define CLR_RXDR        regw=RX_DR_BIT;regWrite(STATUS,&regw);
@@ -67,7 +75,7 @@ bool prxMode=false;       // true=circuit en PRX (pwrUpRx(), CE_HIGH)
 
 bool powerD=true;         // etat power (true=down)
 
-uint8_t regw,stat,fstat,conf;
+uint8_t regw,statu,fstatu,conf;
 
 
 Nrfp::Nrfp()    // constructeur
@@ -102,7 +110,7 @@ void Nrfp::setup()
     addrWrite(TX_ADDR,CC_ADDR);      // TX sur concentrateur
 #endif // NRF_MODE == 'P'
 
-    addrWrite(RX_ADDR_P1,MAC_ADDR);  // RXP1 = macAddr du circuit
+    addrWrite(RX_ADDR_P1,(byte*)MAC_ADDR);  // RXP1 = macAddr du circuit
 
     regw=CHANNEL;
     regWrite(RF_CH,&regw);
@@ -277,10 +285,10 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
       
       GET_STA
 
-      if((stat & (TX_DS_BIT | MAX_RT_BIT))!=0){
+      if((statu & (TX_DS_BIT | MAX_RT_BIT))!=0){
 
         trst=0;
-        if(stat & MAX_RT_BIT){trst=-1;}
+        if(statu & MAX_RT_BIT){trst=-1;}
 
         CLR_TXDS_MAXRT
         letsPrx();
@@ -308,16 +316,16 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     if(!prxMode){letsPrx();}
 
     GET_STA
-    if((stat & RX_DR_BIT)==0){             // RX empty ?
-        regRead(FIFO_STATUS,&fstat);
-        if((fstat & RX_EMPTY_BIT)!=0){     // FIFO empty ?
+    if((statu & RX_DR_BIT)==0){             // RX empty ?
+        regRead(FIFO_STATUS,&fstatu);
+        if((fstatu & RX_EMPTY_BIT)!=0){     // FIFO empty ?
             return AV_EMPTY;               // --------------- empty
         }
         else{
 
           GET_STA
 
-          *pipe=(stat & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
+          *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
           if(*pipe!=1){
             flushRx();
             //CLR_RXDR 
@@ -326,7 +334,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     }
     PP4    
 
-    *pipe=(stat & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
+    *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
    
     if(*pipe==1){
         CSN_LOW
@@ -433,7 +441,7 @@ uint8_t Nrfp::cRegister(char* macAddr)      // search free line or existing macA
           if(exist){
             memcpy(message,macAddr,ADDR_LENGTH);
             message[ADDR_LENGTH]=i+48;
-            write(message,ACK,ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
+            write((byte*)message,ACK,ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
 
             int trst=1;
             while(trst==1){trst=transmitting();}
@@ -450,7 +458,7 @@ void Nrfp::tableCPrint()
     if(i<10){Serial.print(" ");}
     Serial.print(i);Serial.print(" ");
     Serial.print(tableC[i].numPeri);Serial.print(" ");
-    printAddr(tableC[i].periMac,' ');Serial.print(" (");
+    printAddr((char*)tableC[i].periMac,' ');Serial.print(" (");
     Serial.print(tableC[i].periBufLength);Serial.print("/");
     Serial.print(tableC[i].periBufSent);Serial.print(")");
     Serial.print(tableC[i].periBuf);Serial.print(" ");

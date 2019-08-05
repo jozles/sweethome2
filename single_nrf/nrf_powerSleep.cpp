@@ -1,7 +1,7 @@
 #include "nrf24l01s.h"
 #include "nrf24l01s_const.h"
 #include "nrf_powerSleep.h"
-#include "nrf_user.h"
+#include "nrf_user_peri.h"
 
 #if NRF_MODE == 'P'
 
