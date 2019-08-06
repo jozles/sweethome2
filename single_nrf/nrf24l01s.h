@@ -100,7 +100,7 @@
 #define ER_TEXT "to\0rt\0em\0mc\0le\0pi\0--\0ok\0" // 2 char libs for codes
 
 /*** debug pulse for logic analyzer  ***/
-#define PP        4
+#define PP        2  // 4
 #ifdef UNO        // idem for PRO MINI
 #define PP4       bitClear(PORTD,PP);bitSet(PORTD,PP);
 #endif UNO
@@ -115,11 +115,16 @@ struct NrfConTable
 {
   uint8_t numPeri;                  // num�ro p�riph�rique pour serveur
   byte    periMac[ADDR_LENGTH+2];   // macAddr (ajout 1 car=num entrée de la table pour former une addr mac pour l'extérieur)
-  char    serverBuf[MAX_PAYLOAD_LENGTH+1];
+  char    servBuf[MAX_PAYLOAD_LENGTH+1];
+  uint8_t servBufLength;
   char    periBuf[MAX_PAYLOAD_LENGTH+1];
   uint8_t periBufLength;
   bool    periBufSent;
 };
+
+#define SBVINIT "00120_00040_0.25"
+#define SBLINIT 16
+
 #endif // NRF_MODE == 'C'
 
 
@@ -148,6 +153,8 @@ class Nrfp
     void tableCInit();
     void tableCPrint();
     uint8_t cRegister(char* message);
+    uint8_t macSearch(char* mac,int* numPer);
+    void extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len);
 #endif NRF_MODE == 'C'
 
   private:

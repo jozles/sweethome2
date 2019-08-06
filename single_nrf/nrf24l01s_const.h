@@ -39,7 +39,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
- // #define DIAG                    // affichages série
+//  #define DIAG                    // affichages série
 
 /****************************/
 
@@ -57,7 +57,12 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define LED        5          // pin pour Led (13 pris par le clk du SPI)
 
   #define CE_PIN     9          // pin pour CE du nrf
+#ifndef DUE
   #define CSN_PIN    10         // pin pour CS du SPI
+#endif
+#ifdef DUE
+  #define CSN_PIN     8         // pin pour CS du SPI
+#endif
 
   #define CHANNEL    110        // numéro canal radio
   #define RF_SPEED   RF_SPD_1MB // vitesse radio  RF_SPD_2MB // RF_SPD_1MB // RF_SPD_250K

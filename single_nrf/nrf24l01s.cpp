@@ -48,9 +48,9 @@
 #define CLKPIN    13
 #define MISOPIN   12
 #define MOSIPIN   11
-#define SPI_INIT  SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
-#define SPI_START SPI.begin();
-#define SPI_OFF   SPI.end();pinMode(MOSIPIN,INPUT);pinMode(CLKPIN,INPUT);
+#define SPI_INIT    //SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
+#define SPI_START   //SPI.begin();
+#define SPI_OFF     //SPI.end();pinMode(MOSIPIN,INPUT);pinMode(CLKPIN,INPUT);
 
 //#define GET_STA   CSN_LOW statu=SPI.transfer(NOP);CSN_HIGH
 #define GET_STA   digitalWrite(CSN_PIN,LOW);statu=SPI.transfer(NOP);CSN_HIGH //digitalWrite(CSN_PIN,HIGH);
@@ -450,6 +450,31 @@ uint8_t Nrfp::cRegister(char* message)      // search free line or existing macA
           return i;
 }
 
+uint8_t Nrfp::macSearch(char* mac,int* numPer)    // search mac in tableC ; out 1->n ; n<NBPERIF found
+{
+  int i,j;
+  
+  for(i=1;i<NBPERIF;i++){
+    for(j=5;j>=0;j--){
+      if(mac[j]!=tableC[i].periMac[j]){j=-2;}
+    }
+    if(j>-2){*numPer=tableC[i].numPeri;break;}
+  }
+  return i;
+}
+
+void Nrfp::extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len)
+{
+  tableC[numT].numPeri=numPer;
+  if(len>MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1){len=MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1;}
+  if(len!=0){
+    tableC[numT].servBufLength=len;
+    memcpy(tableC[numT].servBuf,data,len);}
+  else{
+    tableC[numT].servBufLength=SBLINIT;
+    memcpy(tableC[numT].servBuf,SBVINIT,SBLINIT);}
+}
+
 void Nrfp::tableCPrint()
 {
   for(int i=0;i<NBPERIF;i++){
@@ -460,7 +485,8 @@ void Nrfp::tableCPrint()
     Serial.print(tableC[i].periBufLength);Serial.print("/");
     Serial.print(tableC[i].periBufSent);Serial.print(")");
     Serial.print(tableC[i].periBuf);Serial.print(" ");
-    Serial.print(tableC[i].serverBuf);Serial.print(" ");
+    Serial.print(tableC[i].servBufLength);Serial.print("/");
+    Serial.print(tableC[i].servBuf);Serial.print(" ");
     Serial.println();
   }
 }
@@ -471,7 +497,8 @@ void Nrfp::tableCInit()
   for(int i=1;i<NBPERIF;i++){
     tableC[i].numPeri=0;
     memcpy(tableC[i].periMac,"00000",ADDR_LENGTH);
-    memcpy(tableC[i].serverBuf,"00120_00040_0.25",16);
+    tableC[i].servBufLength=SBLINIT;
+    memcpy(tableC[i].servBuf,SBVINIT,SBLINIT);
     memset(tableC[i].periBuf,'\0',MAX_PAYLOAD_LENGTH+1);
     tableC[i].periBufLength=0;
     tableC[i].periBufSent=false;

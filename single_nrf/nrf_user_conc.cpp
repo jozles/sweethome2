@@ -4,6 +4,7 @@
 #include "nrf_powerSleep.h"
 
 extern struct NrfConTable tableC[NBPERIF];
+extern Nrfp nrfp;
 
 #if NRF_MODE == 'C'
 
@@ -14,8 +15,12 @@ extern struct NrfConTable tableC[NBPERIF];
 #include "shutil2.h"
 #include "shmess2.h"
 
-  const char* host = HOSTIPADDR;
-  const int   port = PORTPERISERVER;
+//  const char* host  = HOSTIPADDR;
+  //byte host[]={192,168,0,35};
+  byte host[]={64, 233, 187, 99};
+  const int   port  = PORTPERISERVER;
+  byte        mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};               // mac addr ethernet carte W5100
+  byte        localIp[] = {192,168,0,30};      // adresse server
 
   EthernetClient cli;   
 
@@ -28,9 +33,70 @@ extern struct NrfConTable tableC[NBPERIF];
   char* srvpswd=PERIPASS;
   byte  lsrvpswd=LPWD;
 
+  char* fonctions={"set_______ack_______etat______reset_____sleep_____testaoff__testa_on__testboff__testb_on__last_fonc_"};
+  uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__;;
+  int     nbfonct;
+
   char* chexa="0123456789ABCDEFabcdef\0";
 
+int  dataTransfer(char* data);
+
+
 /* cycle functions */
+
+void userResetSetup()
+{
+  nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;  
+  fset_______=(strstr(fonctions,"set_______")-fonctions)/LENNOM;
+  fack_______=(strstr(fonctions,"ack_______")-fonctions)/LENNOM;
+  fetat______=(strstr(fonctions,"etat______")-fonctions)/LENNOM;
+  freset_____=(strstr(fonctions,"reset_____")-fonctions)/LENNOM;
+  fsleep_____=(strstr(fonctions,"sleep_____")-fonctions)/LENNOM;  
+  ftestaoff__=(strstr(fonctions,"testaoff__")-fonctions)/LENNOM;
+  ftesta_on__=(strstr(fonctions,"testa_on__")-fonctions)/LENNOM;
+  ftestboff__=(strstr(fonctions,"testboff__")-fonctions)/LENNOM;  
+  ftestb_on__=(strstr(fonctions,"testb_on__")-fonctions)/LENNOM;
+
+delay(3000);
+for(int i=0;i<6;i++){Serial.print(mac[i],HEX);Serial.print(" ");}Serial.print(" ");for(int i=0;i<4;i++){Serial.print(localIp[i]);Serial.print(" ");}
+Ethernet.begin(mac,(uint8_t*)localIp);
+Serial.print(" -- ");
+    
+/*    if(Ethernet.begin((uint8_t*)mac) == 0)
+    {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();delay(100);
+    Ethernet.begin ((uint8_t*)mac, localIp); //initialisation de la communication Ethernet
+    }*/
+  Serial.println(Ethernet.localIP());
+
+
+Serial.println("connecting...");
+while(1){
+  if (cli.connect(host, 80)) {
+    Serial.println("connected");
+    cli.println("GET /search?q=arduino HTTP/1.0");
+    cli.println();
+
+    while(1){
+      if(cli.available()) {
+        char c = cli.read();
+        Serial.print(c);
+      }
+
+      if (!cli.connected()) {
+        Serial.println();
+        Serial.println("disconnecting.");
+        cli.stop();
+        while(1){}  
+      }
+    }
+
+    
+  } else {
+    Serial.println("connection failed");
+    delay(1000);  
+  }
+}  
+}
 
 int exportData(uint8_t numT)
 {
@@ -72,44 +138,52 @@ int exportData(uint8_t numT)
       sb+=MAXSW+2;
       
 #define NBDET 0
-      message[sb]=(char)(NBDET+48);                                   // nombre détecteurs
+      message[sb]=(char)(NBDET+48);                                 // nombre détecteurs
       //for(i=(NBDET-1);i>=0;i--){message[sb+1+(NBDET-1)-i]=(char)(chexa[cstRec.memDetec[i]]);}
       if(NBDET<MAXDET){for(i=NBDET;i<MAXDET;i++){message[sb+1+i]='x';}}
-      memcpy(message+sb+MAXDET+1,"_\0",2);                         //    message[sb+MAXDET+1]='_';                              
+      memcpy(message+sb+MAXDET+1,"_\0",2);         
       sb+=MAXDET+2;
-
-/*      
-      for(i=0;i<NBPULSE;i++){message[sb+i]='0';} // chexa[staPulse[i]];}
-      memcpy(message+sb+NBPULSE,"_\0",2);                               // clock pulse status          - 5
-      sb+=NBPULSE+1;
-
-      memcpy(message+sb,model,LENMODEL);
-      sb+=LENMODEL;
-      memcpy(message+sb+LENMODEL,"_\0",2);                                                     //      - 7
-      sb+=1;
-      
-      uint32_t currt;
-      for(i=0;i<NBPULSE*2;i++){                                                              // loop compteurs (4*2)
-        currt=0;
-        byte* pcurr=(byte*)&currt;
-        //if(cstRec.cntPulseOne[i]!=0){currt=(millis()-cstRec.cntPulseOne[i])/1000;}
-        //Serial.print(i);Serial.print(" écoulé=");Serial.print(currt);Serial.print(" ");dumpfield((char*)pcurr,16);Serial.println();     // temps écoulé
-        for(int j=0;j<sizeof(uint32_t);j++){conv_htoa((char*)(message+sb+2*(i*sizeof(uint32_t)+j)),(byte*)(pcurr+j));}                    // loop bytes (4/8)
-      }
-      sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
-      memcpy(message+sb,"_\0",1);
-*/
 
 if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}
 
+    uint8_t fonction=0;                                                                       // data_read_ -> set
     char fonctName[]={"data__read_"};
-    if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",8);}
-    buildMess(fonctName,message,"");
+    if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",8);fonction=1;}                 // data_save_ -> ack
+    buildMess(fonctName,message,"");                                                          // buld message to server
+    int periMess=-1;
+//    periMess=messToServer(&cli,host,port,bufServer);                                          // send message to server
 
-//  return messToServer(&cli,host,port,bufServer); 
+    if(periMess==MESSOK){periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction);}      // get response
+    if(periMess==MESSOK){dataTransfer(bufServer);}                                            
+    if(periMess!=MESSOK){nrfp.extDataStore(0,numT,bufServer+MPOSPERREFR,0);}                  // re-init server buffer if received data ko
+
+    Serial.print("periMess=");Serial.println(periMess); 
 }
 
 /* user functions */
 
+int  dataTransfer(char* data)           // transfert contenu de set ou ack dans variables locales selon contrôles
+                                        // data sur fonction
+                                        //    contrôle mac addr et numPeriph ;
+                                        //    si pb -> numPeriph="00" et ipAddr=0
+                                        //    si ok -> tfr params
+                                        // retour periMess
+{
+  int  ddata=16;                        // position du numéro de périphérique  
+  int  numT,nP,len,numPer;
+  char fromServerMac[6];
+  int  periMess;
+  
+        periMess=MESSOK;
+        packMac((byte*)fromServerMac,(char*)(data+ddata+3));
+        nP=convStrToNum(data+ddata,&len);
+        numT=nrfp.macSearch(fromServerMac,&numPer);
+        
+        if(numT>=NBPERIF){periMess=MESSMAC;}
+        else if(numPer!=0 && numPer!=nP){periMess=MESSNUMP;}
+        else {nrfp.extDataStore(nP,numT,data+MPOSPERREFR,16);}            // format MMMMM_UUUUU_xxxx MMMMM aw_min value ; UUUUU aw_ok value ; xxxx user dispo 
+                                                                          // (_P.PP pitch value)
+        return periMess;
+}
 
 #endif // NRF_MODE == 'C'

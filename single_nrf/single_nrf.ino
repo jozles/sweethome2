@@ -107,11 +107,17 @@ void setup() {
 
 #if NRF_MODE == 'C'
 
+  delay(100);Serial.print("\nstart setup ");delay(100);
+
+userResetSetup();
+
   nrfp.tableCInit();//nrfp.tableCPrint();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast
 
   hardwarePowerUp();                                
   nrfp.setup();
+
+  
 
 /*
 while(1){                 // >>>>>>>>>> test send/receive loop 1Sec period <<<<<<<<<<<<
@@ -246,7 +252,7 @@ void loop() {
         memcpy(tableC[rdSta].periBuf,message,pldLength);    // incoming message storage (not when registration - no valid data)
         tableC[rdSta].periBufLength=pldLength;}
       /* build config */
-      memcpy(message+ADDR_LENGTH+1,tableC[rdSta].serverBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
+      memcpy(message+ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
       /* send it */    
       txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);              // end of transaction so auto ACK
       if(trSta==0){tableC[rdSta].periBufSent=true;} 
@@ -358,6 +364,7 @@ char getch()
   }
   return 0;
 }
+
 
 #endif NRF_MODE == 'C'
 

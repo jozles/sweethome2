@@ -5,14 +5,8 @@
 
 #if NRF_MODE == 'C'
 
-/**** insertion du code utilisateur ****
-  
-*/
-
-
 int  exportData(uint8_t numT);
 void userResetSetup();
-void userHardPowerDown();
 
 #endif // NRF_MODE == 'C'
 
