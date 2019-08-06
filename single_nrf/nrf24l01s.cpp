@@ -378,10 +378,9 @@ int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 }
 
 #if NRF_MODE == 'P'
-int Nrfp::pRegister()  // peripheral registration to get pipeAddr
+int Nrfp::pRegister(char* message,uint8_t* pldLength)  // peripheral registration to get pipeAddr
 {                      // ER_MAXRT ; AV_errors codes ; >=0 numP ok
 
-    char message[MAX_PAYLOAD_LENGTH+1];
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     memcpy(message,MAC_ADDR,ADDR_LENGTH);
     message[ADDR_LENGTH]='0';
@@ -389,15 +388,16 @@ int Nrfp::pRegister()  // peripheral registration to get pipeAddr
     int trst=1;
     while(trst==1){trst=transmitting();}
 
-    if(trst<0){return ER_MAXRT;}            // MAX_RT error should not happen (no ACK allowed)
+    if(trst<0){return ER_MAXRT;}            // MAX_RT error should not happen (no ACK mode)
 
     unsigned long time_beg = millis();
     long readTo=0;
-    uint8_t pipe=99,pldLength=MAX_PAYLOAD_LENGTH; // ADDR_LENGTH+1;
+    uint8_t pipe=99;
+    *pldLength=MAX_PAYLOAD_LENGTH;
     int numP=AV_EMPTY;
-    while(numP==AV_EMPTY && (readTo>=0)){  // waiting for data
+    while(numP==AV_EMPTY && (readTo>=0)){   // waiting for concentrator answer
         readTo=TO_REGISTER-millis()+time_beg;
-        numP=read(message,&pipe,&pldLength,NBPERIF);}
+        numP=read(message,&pipe,pldLength,NBPERIF);}
 
 /*#ifdef DIAG
 if(readTo<0 && numP>=0){numP=-99;}
@@ -407,7 +407,7 @@ if(readTo<0 && numP>=0){numP=-99;}
   Serial.print(" numP=");Serial.println(numP);
 #endif // DIAG
 */
-    if(numP>=0 && (readTo>=0)){            // no TO pld ok
+    if(numP>=0 && (readTo>=0)){            // no TO && pld ok
         numP=message[ADDR_LENGTH]-48;      // numP
         return numP;}                      // PRX mode still true
 
@@ -419,34 +419,34 @@ if(readTo<0 && numP>=0){numP=-99;}
 
 #if NRF_MODE =='C'
 
-uint8_t Nrfp::cRegister(char* macAddr)      // search free line or existing macAddr
+uint8_t Nrfp::cRegister(char* message)      // search free line or existing macAddr
 {         // retour NBPERIF -> full ; NBPERIF+2 -> MAX_RT ; else numP
 
           uint8_t i,freeLine=0;
           bool exist=false;
-          char message[MAX_PAYLOAD_LENGTH+1];
 
           for(i=1;i<NBPERIF;i++){
-            if(memcmp(tableC[i].periMac,macAddr,ADDR_LENGTH)==0){exist=true;break;}      // already existing
+            if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){exist=true;break;}      // already existing
             else if(freeLine==0 && tableC[i].periMac[0]=='0'){freeLine=i;}        // store free line nb
           }
 
           if(!exist && freeLine!=0){
             i=freeLine;                                                           // i = free line
             exist=true;
-            memcpy(tableC[i].periMac,macAddr,ADDR_LENGTH);}                       // record macAddr
+            memcpy(tableC[i].periMac,message,ADDR_LENGTH);                        // record macAddr
+            tableC[i].periMac[ADDR_LENGTH]=i+48;                                  // add numT as 6th char
+          }
 
           if(exist){
-            memcpy(message,macAddr,ADDR_LENGTH);
-            message[ADDR_LENGTH]=i+48;
-            write((byte*)message,ACK,ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
+            message[ADDR_LENGTH]=i+48;}
+/*            write((byte*)message,NO_ACK,ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
 
             int trst=1;
             while(trst==1){trst=transmitting();}
 
             if(trst<0){memset(tableC[i].periMac,'0',ADDR_LENGTH);i=NBPERIF+2;}    // MAX_RT -> effacement table ;
           }                                           // numP du perif sera effac� pour non r�ponse au premier TX
-
+*/
           return i;
 }
 

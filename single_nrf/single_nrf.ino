@@ -7,6 +7,10 @@
 #include "nrf_user_peri.h"
 #include "nrf_user_conc.h"
 
+#ifdef DUE
+#include <MemoryFree.h>;
+#endif
+
 #if NRF_MODE == 'C'
 extern struct NrfConTable tableC[NBPERIF];
 bool menu=true;
@@ -36,7 +40,8 @@ uint8_t pldLength;
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
-byte    testAd[]={"testx"};               // txaddr pour broadcast
+#define NTESTAD '1'                         // numéro testad dans table
+byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
 
 #define LMERR 9           
 char*   kk={"time out\0tx maxrt\0rx empty\0mac addr\0length  \0pipe nb \0--      \0ok      \0"};         // codes retour et erreur
@@ -103,7 +108,7 @@ void setup() {
 #if NRF_MODE == 'C'
 
   nrfp.tableCInit();//nrfp.tableCPrint();
-  memcpy(tableC[1].periMac,testAd,ADDR_LENGTH);     // pour broadcast
+  memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast
 
   hardwarePowerUp();                                
   nrfp.setup();
@@ -120,6 +125,10 @@ while(1){                 // >>>>>>>>>> test send/receive loop 1Sec period <<<<<
   
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
   
+#ifdef DUE
+  Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
+#endif  
+
 #endif NRF_MODE == 'C'
 
   Serial.println("end setup");delay(1);
@@ -214,6 +223,7 @@ void loop() {
 
   ledblk(TBLK,2000,IBLK,1);
 
+  numT=0;                                           // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                     // max length
   rdSta=nrfp.read((char*)message,&pipe,&pldLength,NBPERIF);
 
@@ -222,33 +232,31 @@ void loop() {
   if(rdSta==0){                                     
       showRx(false);                                        
       numT=nrfp.cRegister((char*)message);               
-      if(numT<(NBPERIF)){                           // registration diag  
-        rdSta=numT;                                 // config message to send a response
-        memcpy(message,tableC[numT].periMac,ADDR_LENGTH);           
-        Serial.print(" rdSta=");Serial.print(rdSta);
-        Serial.print(" ");
+      if(numT<(NBPERIF)){                           // registration ok
+        rdSta=numT;                                 // rdSta >0 for next step             
         nrfp.printAddr((char*)tableC[numT].periMac,' ');
         Serial.print(" registred as ");Serial.println(numT);}
       else if(numT==(NBPERIF+2)){Serial.println(" MAX_RT ... deleted");}
       else {Serial.println(" full");}
   }
 
-  // ====== no error valid entry ======
-  if((rdSta>0) && (memcmp(message,tableC[rdSta].periMac,ADDR_LENGTH)==0)){      
-      memcpy(tableC[rdSta].periBuf,message,pldLength);   // incoming message storage
-      tableC[rdSta].periBufLength=pldLength;
+  // ====== no error && valid entry ======
+  if((rdSta>0) && (memcmp(message,tableC[rdSta].periMac,ADDR_LENGTH)==0)){ 
+      if(numT==0){
+        memcpy(tableC[rdSta].periBuf,message,pldLength);    // incoming message storage (not when registration - no valid data)
+        tableC[rdSta].periBufLength=pldLength;}
       /* build config */
       memcpy(message+ADDR_LENGTH+1,tableC[rdSta].serverBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
       /* send it */    
-      txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);
-      if(trSta==0){tableC[rdSta].periBufSent=true;}      // fin de transaction donc auto ACK
+      txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);              // end of transaction so auto ACK
+      if(trSta==0){tableC[rdSta].periBufSent=true;} 
       
       // ======= formatting & tx to server ======
-      exportData(rdSta);
+      if(numT==0){exportData(rdSta);}                       // (not when registration - no valid data and save time)
   }
   
   // ====== error or empty -> ignore ======
-  // le périf doit refaire l'inscription donc pas de réponse pour générer une erreur en rx 
+  // peripheral must re-do registration so no answer to lead to rx error
 
 
 #ifdef DIAG                                         // error diag
@@ -256,7 +264,7 @@ void loop() {
     showRx(false);
     showErr();}
 #endif // DIAG
-#ifndef DIAG                                        // diag minimal - code action + durée
+#ifndef DIAG                                        // minimal diag - rdSta + durat + trSta
   if(rdSta!=AV_EMPTY){                   
     Serial.print(rdSta);Serial.print(" ");Serial.print(micros()-time_beg);Serial.print(" ");Serial.println(trSta);}
 #endif // !DIAG
@@ -358,16 +366,18 @@ char getch()
 uint8_t beginP()
 {
   int confSta=-1;
-  while(confSta<0){
-    confSta=nrfp.pRegister(); // -4 empty -3 max RT ; -2 len ; -1 pipe ; 0 na ; 1 ok
+  while(confSta<=0){
+    confSta=nrfp.pRegister(message,&pldLength); // -4 empty -3 max RT ; -2 len ; -1 pipe ; 0 na ; >=1 ok numT
     Serial.print(">>> start ");
     Serial.print((char*)(kk+(confSta+6)*LMERR));
-    Serial.print(" numP=");Serial.print(confSta);
+    Serial.print(" numT=");Serial.print(confSta);
     Serial.print("  aw_ok=");Serial.print(aw_ok*STEP_VALUE);
-    Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.println("sec");
+    Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.println("sec ");
          
     delayBlk(TBLK,DBLK,IBLK,2,1000);
   }
+  importData(message,pldLength);   // user data available
+  awakeMinCnt=-1;                  // force data upload
   return confSta;                  // le périphérique est inscrit
 }
 
@@ -449,9 +459,8 @@ void showErr()
 
 void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)
 {
-  delay(4); // serial
 #if NRF_MODE == 'P'
-  while(dly>0){sleepPwrDown(T250);hardwarePowerUp();dly-=250;}
+  while(dly>0){delay(10);sleepPwrDown(T250);hardwarePowerUp();dly-=250;}   // delay() for serial
 #endif // NRF_MODE == 'P'
 #if NRF_MODE == 'C'
   delay(dly);

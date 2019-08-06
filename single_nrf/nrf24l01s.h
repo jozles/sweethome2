@@ -114,7 +114,7 @@
 struct NrfConTable
 {
   uint8_t numPeri;                  // num�ro p�riph�rique pour serveur
-  byte    periMac[ADDR_LENGTH+1];   // macAddr
+  byte    periMac[ADDR_LENGTH+2];   // macAddr (ajout 1 car=num entrée de la table pour former une addr mac pour l'extérieur)
   char    serverBuf[MAX_PAYLOAD_LENGTH+1];
   char    periBuf[MAX_PAYLOAD_LENGTH+1];
   uint8_t periBufLength;
@@ -142,7 +142,7 @@ class Nrfp
     void printAddr(char* addr,char n);
 
 #if NRF_MODE == 'P'
-    int  pRegister();
+    int  pRegister(char* message,uint8_t* pldLength);
 #endif // NRF_MODE == 'P'
 #if NRF_MODE == 'C'
     void tableCInit();

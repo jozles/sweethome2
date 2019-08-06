@@ -11,29 +11,37 @@
 Le circuit NRF n'autorise que 2 adresses en réception : RX0 et RX1 ;
 les autres RX sont "dérivés" du RX1 (seul le LSB change)
 
-Le système Auto ACK est inutilisé
-
 L'adresse RX1 est utilisée pour recevoir les messages spécifiques au circuit
 c'est la macAddr du circuit
 
-L'adresse RX0 n'est utilisée que pour les périphériques pour recevoir
-les messages de broadcast (
+L'adresse RX0 n'est utilisée que par les périphériques pour recevoir
+les messages de broadcast (à traiter)
 
 Sur les périphériques l'adresse TX est fixe sur la macAddr du concentrateur
 
 Le concentrateur gère une table qui associe
     la macAddr du périphérique, son rang dans la table et son numéro de périphérique de sweetHome
-    + un buffer de réception de sh et un buffer de réception du périphérique
+    + un buffer de réception de l'exterieur et un buffer de réception du périphérique
+    (la macAddr est complétée du rang+48 dans la table pour avoir une longueur "normale" de 6 car) 
 
-Tous les messages commencent par macAddr/numP (numP 0x30 à 0xFF)
+Tous les messages commencent par macAddr/numT (numT rang dans la table 0x30 à 0xFF)
 Le concentrateur contrôle et répond si ok ; sinon l'éventuelle macAddr est effacée de la table.
-Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si inex puis renvoie
+Si le numT est '0', le concentrateur le recherche et enregistre la macAddr si inex puis renvoie
+
+Tous les messages du concentrateur vers un périphériques sont de la forme :
+  mmmmmTxxxxxx...xxxxx   mmmmm mac péri ; T rang dans table ; xxx...xxx buffer messages extérieur
 
 */
 
 /*****************************/
-  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
-  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN
+  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
+//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define MEGA                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+
+ // #define DIAG                    // affichages série
+
+/****************************/
 
 #if NRF_MODE == 'P'
   #define MAC_ADDR  PER_ADDR
@@ -41,10 +49,6 @@ Si le numP est '0', le concentrateur le recherche et enregistre la macAddr si in
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
 #endif
-
- // #define DIAG                    // affichages série
-
-/****************************/
 
   #define PER_ADDR  "peri1"     // MAC_ADDR périphériques
   #define CC_ADDR   "toto_"     // MAC_ADDR concentrateur
