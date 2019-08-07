@@ -48,9 +48,11 @@
 #define CLKPIN    13
 #define MISOPIN   12
 #define MOSIPIN   11
-#define SPI_INIT    //SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
-#define SPI_START   //SPI.begin();
-#define SPI_OFF     //SPI.end();pinMode(MOSIPIN,INPUT);pinMode(CLKPIN,INPUT);
+#ifdef SPI_MODE
+#define SPI_INIT    SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
+#define SPI_START   SPI.begin();
+#define SPI_OFF     SPI.end();pinMode(MOSIPIN,INPUT);pinMode(CLKPIN,INPUT);
+#endif SPI_MODE
 
 //#define GET_STA   CSN_LOW statu=SPI.transfer(NOP);CSN_HIGH
 #define GET_STA   digitalWrite(CSN_PIN,LOW);statu=SPI.transfer(NOP);CSN_HIGH //digitalWrite(CSN_PIN,HIGH);
@@ -174,8 +176,10 @@ void Nrfp::powerUp()
     PP4
     PP4
 
+#ifdef SPI_MODE
     SPI_INIT;
     SPI_START;
+#endif SPI_MODE
 
     conf=CONFREG;                         // powerUP/CRC 1 byte/PRX
     regWrite(CONFIG,&conf);
@@ -203,7 +207,9 @@ void Nrfp::powerDown()
         CSN_OFF
         //CE_OFF    CE stay ON else go high (need a pulldown resistor?)
 
+#ifdef SPI_MODE
         SPI_OFF
+#endif SPI_MODE        
     }
     PP4 PP4 PP4
 }

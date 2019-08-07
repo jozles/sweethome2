@@ -44,9 +44,11 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 /****************************/
 
 #if NRF_MODE == 'P'
+  #define SPI_MODE            // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
 #endif
 #if NRF_MODE == 'C'
+
   #define MAC_ADDR  CC_ADDR
 #endif
 
@@ -58,10 +60,10 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
   #define CE_PIN     9          // pin pour CE du nrf
 #ifndef DUE
-  #define CSN_PIN    10         // pin pour CS du SPI
+  #define CSN_PIN    10         // pin pour CS du SPI-nrf
 #endif
 #ifdef DUE
-  #define CSN_PIN     8         // pin pour CS du SPI
+  #define CSN_PIN     8         // pin pour CS du SPI-nrf
 #endif
 
   #define CHANNEL    110        // numéro canal radio

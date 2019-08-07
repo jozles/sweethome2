@@ -98,8 +98,6 @@ void setup() {
   userResetSetup();
   hardwarePowerUp();
   nrfp.setup();
-                                  
-  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}        // 0,8sec (4 blink)
 
   numT=beginP();                          // registration
   
@@ -109,33 +107,22 @@ void setup() {
 
   delay(100);Serial.print("\nstart setup ");delay(100);
 
-userResetSetup();
+  userResetSetup();
 
   nrfp.tableCInit();//nrfp.tableCPrint();
-  memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast
+  memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
 
   hardwarePowerUp();                                
   nrfp.setup();
-
-  
-
-/*
-while(1){                 // >>>>>>>>>> test send/receive loop 1Sec period <<<<<<<<<<<<
-  nrfp.write("123456789",true,9,1);
-  trSta=1;
-  while(trSta==1){trSta=nrfp.transmitting();}
-  rxMessage();
-  showRx();if(rdSta<0){showErr();}
-  delayBlk(TBLK,DBLK,IBLK,1,1000);  
-}*/
-  
-  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
   
 #ifdef DUE
   Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
 #endif  
 
 #endif NRF_MODE == 'C'
+
+  time_beg=millis();  
+  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
 
   Serial.println("end setup");delay(1);
 }

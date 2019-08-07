@@ -15,12 +15,12 @@ extern Nrfp nrfp;
 #include "shutil2.h"
 #include "shmess2.h"
 
-//  const char* host  = HOSTIPADDR;
-  //byte host[]={192,168,0,35};
-  byte host[]={64, 233, 187, 99};
-  const int   port  = PORTPERISERVER;
-  byte        mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};               // mac addr ethernet carte W5100
-  byte        localIp[] = {192,168,0,30};      // adresse server
+  const char* host  = HOSTIPADDR;
+  //byte host[]={192,168,0,35};                                 // ip server sweethome
+  //byte host[]={64, 233, 187, 99};
+  const int   port  = PORTPERISERVER;                         // port server sweethome
+  byte        mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};   // mac addr ethernet carte W5100
+  byte        localIp[] = {192,168,0,30};                     // IP fixe pour carte W5100
 
   EthernetClient cli;   
 
@@ -56,22 +56,19 @@ void userResetSetup()
   ftesta_on__=(strstr(fonctions,"testa_on__")-fonctions)/LENNOM;
   ftestboff__=(strstr(fonctions,"testboff__")-fonctions)/LENNOM;  
   ftestb_on__=(strstr(fonctions,"testb_on__")-fonctions)/LENNOM;
-
-delay(3000);
-for(int i=0;i<6;i++){Serial.print(mac[i],HEX);Serial.print(" ");}Serial.print(" ");for(int i=0;i<4;i++){Serial.print(localIp[i]);Serial.print(" ");}
-Ethernet.begin(mac,(uint8_t*)localIp);
-Serial.print(" -- ");
+  
     
-/*    if(Ethernet.begin((uint8_t*)mac) == 0)
-    {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();delay(100);
-    Ethernet.begin ((uint8_t*)mac, localIp); //initialisation de la communication Ethernet
-    }*/
-  Serial.println(Ethernet.localIP());
+  if(Ethernet.begin((uint8_t*)mac) == 0){
+    Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();delay(10);
+    Ethernet.begin ((uint8_t*)mac, localIp);
+    }
+    Serial.print(Ethernet.localIP());
 
+/*// test ethernet 
 
-Serial.println("connecting...");
 while(1){
-  if (cli.connect(host, 80)) {
+  Serial.println("connecting...");
+  if (cli.connect(host, port)) {
     Serial.println("connected");
     cli.println("GET /search?q=arduino HTTP/1.0");
     cli.println();
@@ -89,13 +86,11 @@ while(1){
         while(1){}  
       }
     }
-
-    
   } else {
     Serial.println("connection failed");
     delay(1000);  
   }
-}  
+}*/
 }
 
 int exportData(uint8_t numT)
@@ -147,11 +142,11 @@ int exportData(uint8_t numT)
 if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}
 
     uint8_t fonction=0;                                                                       // data_read_ -> set
-    char fonctName[]={"data__read_"};
-    if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",8);fonction=1;}                 // data_save_ -> ack
+    char fonctName[]={"data_read_"};
+    if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);fonction=1;}                 // data_save_ -> ack
     buildMess(fonctName,message,"");                                                          // buld message to server
     int periMess=-1;
-//    periMess=messToServer(&cli,host,port,bufServer);                                          // send message to server
+    periMess=messToServer(&cli,host,port,bufServer);                                          // send message to server
 
     if(periMess==MESSOK){periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction);}      // get response
     if(periMess==MESSOK){dataTransfer(bufServer);}                                            
