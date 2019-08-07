@@ -140,6 +140,8 @@ void assySet(char* message,int periCur,char* diag,char* date14)     // assemblag
                 }      // periSw (cdes)
                 memcpy(message+v1+MAXSW,"_\0",2);
 
+if(*periProg!=0){
+
                 v1+=MAXSW+1;
 
                 for(int k=0;k<NBPULSE*2;k++){                       // 4*2 compteurs (8*(8+1)bytes)
@@ -175,6 +177,7 @@ void assySet(char* message,int periCur,char* diag,char* date14)     // assemblag
             }  // pericur != 0
 
             strcat(message,diag);                         // periMess
+}            
 }
 
 
