@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <SPI.h>      //bibliothéqe SPI pour W5100
-#include <Ethernet.h>
+#include <Ethernet2.h>
 #include <SD.h>
 #include "ds3231.h"
 #include <shutil2.h>

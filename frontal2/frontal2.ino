@@ -1,6 +1,6 @@
 
 #include <SPI.h>      //bibliothèqe SPI pour W5100
-#include <Ethernet.h> //bibliothèque W5100 Ethernet
+#include <Ethernet2.h> //bibliothèque W5100 Ethernet
 #include <Wire.h>     //biblio I2C pour RTC 3231
 #include "ds3231.h"
 #include <shconst2.h>
