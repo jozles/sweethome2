@@ -10,17 +10,19 @@ extern Nrfp nrfp;
 
 /* user includes */
 
-#include <Ethernet.h> //bibliothèque W5100 Ethernet
+#include <Ethernet2.h> //bibliothèque W5x00 Ethernet
 #include "shconst2.h"
 #include "shutil2.h"
 #include "shmess2.h"
 
-  const char* host  = HOSTIPADDR;
+  //const char* host  = HOSTIPADDR;
+  byte        host[]={82, 64, 32, 56};
   //byte host[]={192,168,0,35};                                 // ip server sweethome
   //byte host[]={64, 233, 187, 99};
-  const int   port  = PORTPERISERVER;                         // port server sweethome
+  //const int   port  = PORTPERISERVER;                         // port server sweethome
+  int         port  = 1790;
   byte        mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};   // mac addr ethernet carte W5100
-  byte        localIp[] = {192,168,0,30};                     // IP fixe pour carte W5100
+  byte        localIp[] = {192,168,1,30};                     // IP fixe pour carte W5100
 
   EthernetClient cli;   
 
@@ -38,6 +40,8 @@ extern Nrfp nrfp;
   int     nbfonct;
 
   char* chexa="0123456789ABCDEFabcdef\0";
+
+  unsigned long t0,t1,t2;
 
 int  dataTransfer(char* data);
 
@@ -58,11 +62,12 @@ void userResetSetup()
   ftestb_on__=(strstr(fonctions,"testb_on__")-fonctions)/LENNOM;
   
     
-  if(Ethernet.begin((uint8_t*)mac) == 0){
+  unsigned long t_beg=millis();
+  //if(Ethernet.begin((uint8_t*)mac) == 0){
     Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();delay(10);
     Ethernet.begin ((uint8_t*)mac, localIp);
-    }
-    Serial.print(Ethernet.localIP());
+    //}
+  Serial.print(millis()-t_beg);Serial.print(" ");Serial.print(Ethernet.localIP());
 
 /*// test ethernet 
 
@@ -91,6 +96,75 @@ while(1){
     delay(1000);  
   }
 }*/
+}
+
+int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connecte au serveur et transfère la data
+{
+  int             cxStatus=0;
+  uint8_t         repeat=0;
+
+  Serial.print("connecting ");    
+  for(int i=0;i<4;i++){Serial.print((uint8_t)host[i]);Serial.print(" ");}
+  Serial.print(":");Serial.print(port);
+  Serial.print("...");
+  
+  while(!cxStatus && repeat<4){
+
+    Serial.print(repeat);Serial.print("/");
+    
+    repeat++;
+
+    t0=micros();
+    cxStatus=cli->connect(host,port);
+    cxStatus=cli->connected();
+    if(!cxStatus){
+        Serial.print(cxStatus);
+        switch(cxStatus){
+            case -1:Serial.print(" time out ");break;
+            case -2:Serial.print(" invalid server ");break;
+            case -3:Serial.print(" truncated ");break;
+            case -4:Serial.print(" invalid response ");break;
+            default:Serial.print(" unknown reason ");break;
+        }
+    }
+    else {
+      
+      cli->print(data);
+      cli->print("\r\n HTTP/1.1\r\n Connection:close\r\n\r\n");
+      Serial.print(cxStatus);Serial.print(" ok ");Serial.print(micros()-t0);Serial.println("uS");
+      return 1;
+    }
+    delay(100);
+  }
+  Serial.println(" failed");return 0;
+}
+
+
+int getHData(EthernetClient* cli,char* data,uint16_t* len)
+{
+  #define TIMEOUT 2000
+  
+  int pt=0;
+  char inch;
+  unsigned long timerTo=millis();
+
+  if(*len==0){return -1;}
+
+  t1=micros();
+
+  if(cli->connected()!=0){
+      while(millis()<(timerTo+TIMEOUT)){
+        if(cli->available()>0){
+          timerTo=millis();
+          if(pt<*len-1){data[pt]=cli->read();pt++;}
+        }
+      }
+      t2=micros();
+      data[pt]='\0';
+      *len=pt;
+      return 1;               // data ok
+  }
+  return -2;                  // not connected
 }
 
 int exportData(uint8_t numT)
@@ -143,15 +217,30 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
 
     uint8_t fonction=0;                                                                       // data_read_ -> set
     char fonctName[]={"data_read_"};
-    if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);fonction=1;}                 // data_save_ -> ack
+    if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);fonction=1;}            // data_save_ -> ack
     buildMess(fonctName,message,"");                                                          // buld message to server
-    int periMess=-1;
-    periMess=messToServer(&cli,host,port,bufServer);                                          // send message to server
 
-    if(periMess==MESSOK){periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction);}      // get response
+    int periMess=-1;
+    int cnt=0;
+    while(cnt<2){
+      periMess=mess2Server(&cli,host,port,bufServer);                                        // send message to server
+      if(periMess!=-7){cnt=2;}else {cnt++;userResetSetup();}}
+    
+    if(periMess==MESSOK){}
+/*      cnt=0;    
+      while(cnt<2){
+        periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction);                        // get response
+        if(periMess!=0){cnt=2;}else {cnt++;userResetSetup();}}}
+
     if(periMess==MESSOK){dataTransfer(bufServer);}                                            
     if(periMess!=MESSOK){nrfp.extDataStore(0,numT,bufServer+MPOSPERREFR,0);}                  // re-init server buffer if received data ko
-
+*/
+    uint16_t len=LBUFSERVER;
+    int z=getHData(&cli,bufServer,&len);
+    Serial.print(" getHD=");Serial.print(z);Serial.print(" ");Serial.print(len);Serial.println(" ");Serial.print(t2-t0);Serial.print("-");Serial.print(t2-t1);Serial.println("uS");
+    
+    cli.stop();
+    
     Serial.print("periMess=");Serial.println(periMess); 
 }
 

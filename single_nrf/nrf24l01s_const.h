@@ -48,7 +48,6 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define MAC_ADDR  PER_ADDR
 #endif
 #if NRF_MODE == 'C'
-
   #define MAC_ADDR  CC_ADDR
 #endif
 
