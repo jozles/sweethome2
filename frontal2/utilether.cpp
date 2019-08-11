@@ -1,6 +1,6 @@
 
 #include <Arduino.h>
-#include <Ethernet2.h>
+#include <Ethernet.h>
 #include <EthernetUdp.h>
 #include <SD.h>
 #include "ds3231.h"

@@ -1,6 +1,6 @@
 
 #include <SPI.h>      //bibliothèqe SPI pour W5100
-#include <Ethernet2.h> //bibliothèque W5100 Ethernet
+#include <Ethernet.h> //bibliothèque W5100 Ethernet
 #include <Wire.h>     //biblio I2C pour RTC 3231
 #include "ds3231.h"
 #include <shconst2.h>
@@ -451,11 +451,14 @@ while(1){}
 
 
 void getremote_IP(EthernetClient *client,uint8_t* ptremote_IP,byte* ptremote_MAC)
+//void getremote_IP(EthernetClient *client,IPAddress* ptremote_IP,byte* ptremote_MAC)
 {
     W5100.readSnDHAR(client->getSocketNumber(), ptremote_MAC);
     W5100.readSnDIPR(client->getSocketNumber(), ptremote_IP);
+    //w5500.readSnDIPR(client->getSocketNumber(), remoteIP);
+    //ptremote_IP  = (uint8_t)client->remoteIP();
+    //ptremote_MAC = client->getRemoteMAC();
 }
-
 
 
 /* ======================================= loop ===================================== */

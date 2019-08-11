@@ -145,9 +145,9 @@ int messToServer(WiFiClient* cli,const char* host,const int port,char* data)    
   }
   if(v==MESSOK){
         Serial.println(" ok");
+        //cli->print(data);
         cli->print(data);
-        cli->print("\r\n");
-        cli->print(" HTTP/1.1\r\n Connection:close\r\n\r\n");
+        cli->write("\r\n HTTP/1.1\r\n Connection:close\r\n\r\n");
   }
   return v;
 }
