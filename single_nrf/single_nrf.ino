@@ -22,14 +22,15 @@ Nrfp nrfp;
 uint16_t      blkdelay=0;
 unsigned long blktime=0;
 uint8_t       bcnt=0;
-#define TBLK 1
-#define DBLK 2000
-#define IBLK 80
+#define TBLK    1
+#define DBLK    2000
+#define IBLK    50
+#define TMINBLK 500     // uS
 
 /*** scratch ***/
 
 #define TO_READ 1000
-long readTo;                     // compteur TO read()
+long readTo;                              // compteur TO read()
 unsigned long time_beg=millis();
 unsigned long time_end;
 byte    message[MAX_PAYLOAD_LENGTH+1];    // buffer pour read()/write()
@@ -40,7 +41,9 @@ uint8_t pldLength;
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
-#define NTESTAD '1'                         // numéro testad dans table
+float   volts;                            // tension alim (VCC)
+
+#define NTESTAD '1'                       // numéro testad dans table
 byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
 
 #define LMERR 9           
@@ -63,7 +66,10 @@ uint16_t aw_min=AWAKE_MIN_VALUE;
 uint16_t aw_ko=AWAKE_KO_VALUE;
 uint8_t  aw_retry=AWAKE_RETRY_VALUE;
 
+extern float temp;    // debug
+
 uint8_t beginP();
+void    getVolts();
 #endif NRF_MODE == 'P'
 
 /* prototypes */
@@ -133,9 +139,17 @@ void loop() {
 
   /* timing to usefull awake */
   while((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)){           
-    awakeCnt--;
-    awakeMinCnt--;
-    pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delayMicroseconds(500);digitalWrite(LED,LOW); // 1mA rc=0,5/8000 -> 62nA
+    pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);
+    time_beg=micros();
+    getVolts();
+    if(volts<VOLTMIN){
+    }                      // eternal sleep ************* 
+    else{
+      awakeCnt--;
+      awakeMinCnt--;
+      while((micros()-time_beg)>TMINBLK){delayMicroseconds(50);}
+    }    
+    digitalWrite(LED,LOW); // 5+1mA rc=0,5/8000 -> 372nA
     sleepPwrDown(T8000);
   }
 
@@ -157,13 +171,15 @@ void loop() {
 
     hardwarePowerUp();                   // 5mS delay inside
 
-    /* building message MMMMMPssssssssVVVV....... MMMMMP should not be changed */
+    /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
+    /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
     uint8_t outLength=ADDR_LENGTH+1;
     memcpy(message+outLength,VERSION,LENVERSION);                     // version
     outLength+=LENVERSION;
-    sprintf(message+outLength,"%08d",(uint32_t)tBeg);                 // seconds since last reset 
+    sprintf((char*)(message+outLength),"%08d",(uint32_t)tBeg);        // seconds since last reset 
     outLength+=8;
-    messageBuild(message,&outLength);                                 // add user data
+                                                                                                          //#define USRDATAPOS ADDR_LENGTH+1+LENVERSION+8+4
+    messageBuild((char*)message,&outLength);                          // add user data
     memcpy(message,MAC_ADDR,ADDR_LENGTH);                             // macAddr
     message[ADDR_LENGTH]=numT+48;                                     // numéro du périphérique
     message[outLength]='\0';
@@ -182,6 +198,7 @@ void loop() {
       }
     }
     else{                                  // tx ok 
+      
       /* every counters reset */
       retryCnt=0;
       awakeCnt=aw_ok;
@@ -194,7 +211,7 @@ void loop() {
       }
       else{showErr();numT=beginP();}       // rx error : refaire l'inscription
     }
-    tfr=true;
+    tfr=true;  // pour DIAG
   }
 #ifndef DIAG
         if(tfr==true){Serial.print(" ");Serial.print(rdSta);Serial.print("/");}
@@ -363,12 +380,13 @@ uint8_t beginP()
   while(confSta<=0){
     confSta=nrfp.pRegister(message,&pldLength); // -4 empty -3 max RT ; -2 len ; -1 pipe ; 0 na ; >=1 ok numT
     Serial.print(">>> start ");
+    Serial.print(temp);Serial.print(" ");Serial.print(volts);Serial.print(" ");
     Serial.print((char*)(kk+(confSta+6)*LMERR));
     Serial.print(" numT=");Serial.print(confSta);
     Serial.print("  aw_ok=");Serial.print(aw_ok*STEP_VALUE);
     Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.println("sec ");
-         
-    delayBlk(TBLK,DBLK,IBLK,2,1000);
+    delay(2);         
+    delayBlk(1,1980,66,2,1);
   }
   importData(message,pldLength);   // user data available
   awakeMinCnt=-1;                  // force data upload
@@ -378,6 +396,15 @@ uint8_t beginP()
 ISR(WDT_vect)                      // ISR interrupt service pour vecteurs d'IT du MPU (ici vecteur WDT)
 {
   reveil = true;
+}
+
+void getVolts()
+{
+  analogReference(INTERNAL); 
+  pinMode(VCHECK,OUTPUT);digitalWrite(VCHECK,LOW);
+  delayMicroseconds(50);
+  volts=analogRead(VINPUT)*VFACTOR;
+  pinMode(VCHECK,INPUT);
 }
  
 #endif NRF_MODE == 'P'
@@ -417,7 +444,7 @@ int rxMessage()
   readTo=0;
   time_beg = micros();
   while((rdSta==AV_EMPTY) && (readTo>=0)){
-    rdSta=nrfp.read((char*)message,&pipe,&pldLength,NBPERIF);
+    rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
     readTo=TO_READ-(micros()-time_beg)/1000;}
     if(readTo<0){rdSta=ER_RDYTO;}
   time_end=micros();
@@ -451,18 +478,36 @@ void showErr()
 #endif // DIAG
 }
 
-void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)
-{
 #if NRF_MODE == 'P'
-  while(dly>0){delay(10);sleepPwrDown(T250);hardwarePowerUp();dly-=250;}   // delay() for serial
-#endif // NRF_MODE == 'P'
-#if NRF_MODE == 'C'
-  delay(dly);
+void sleepDly(uint16_t dly)                                                       // should be multiple of 33
+{
+  while(dly>0){delay(1);sleepPwrDown(T32);hardwarePowerUp();dly-=(32+1);}         // delay(bdelay); (delay(1) for serial)
+}
 #endif // NRF_MODE == 'P'
 
+void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)       // bint, bdelay should be multiple of 33
+{
+#if NRF_MODE == 'P'
+  
+  while(dly>0){
+    for(int i=0;i<bnb;i++){
+      digitalWrite(LED,HIGH);delay(dur);
+      digitalWrite(LED,LOW);sleepDly(bint);
+      dly-=(dur+bint);
+    }
+    sleepDly(bdelay);
+    dly-=bdelay;
+  }
+
+#endif // NRF_MODE == 'P'
+
+#if NRF_MODE == 'C'
+  delay(dly);
   unsigned long tt=millis(); 
   blktime=0;bcnt=1;blkdelay=0;
   while((millis()-tt)<(dur+bint)*bnb){ledblk(dur,bdelay,bint,bnb);}
+#endif // NRF_MODE == 'P'
+
 }
 
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
@@ -476,6 +521,8 @@ void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
     blktime=millis();
   }
 }
+
+
 
 /*
 void dumpstr0(char* data,uint8_t len)

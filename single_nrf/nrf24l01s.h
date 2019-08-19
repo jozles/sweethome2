@@ -136,7 +136,7 @@ class Nrfp
     void setup();
 
     int  available(uint8_t* pipe,uint8_t* length);
-    int  read(char* data,uint8_t* pipe,uint8_t* length,int numP);
+    int  read(byte* data,uint8_t* pipe,uint8_t* length,int numP);
     void write(byte* data,bool ack,uint8_t len,uint8_t numP);
     int  transmitting();
 
@@ -147,7 +147,7 @@ class Nrfp
     void printAddr(char* addr,char n);
 
 #if NRF_MODE == 'P'
-    int  pRegister(char* message,uint8_t* pldLength);
+    int  pRegister(byte* message,uint8_t* pldLength);
 #endif // NRF_MODE == 'P'
 #if NRF_MODE == 'C'
     void tableCInit();

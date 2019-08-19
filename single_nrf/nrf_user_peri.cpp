@@ -15,7 +15,14 @@ extern uint16_t aw_min;
 #define DS18X20
 #ifdef DS18X20
 #include <ds18x20.h>
+#ifdef DETS
+#define WPIN       5          // pin thermomètre
+#endif
+#ifndef DETS
 #define WPIN       3          // pin thermomètre
+#endif
+
+
 #endif DS18X20
 
 /* user fields */
@@ -33,7 +40,7 @@ uint32_t nbT=0;         // nbre lectures de temp
 #endif DS18X20 
 
 /*** volts ***/
-float   volts=0;
+extern float   volts;
 
 
 /* cycle functions */
@@ -42,6 +49,7 @@ bool checkThings(uint8_t awakeCnt,uint8_t awakeMinCnt,uint8_t retryCnt)
 {
   /* Here data acquisition/checking/treatment (if something to send -> return true) */
   /* powerUp equipments who are in userHardPowerDown() */
+
 #ifdef DS18X20
 
   if(retryCnt==0){            // pas de conversion si retry en cours
@@ -56,7 +64,7 @@ bool checkThings(uint8_t awakeCnt,uint8_t awakeMinCnt,uint8_t retryCnt)
     nbT++;
     temp=ds1820.readDs(WPIN);
 
-    Serial.print(nbT);Serial.print(" ");Serial.print(temp);
+    Serial.print(volts);Serial.print(" ");Serial.print(nbT);Serial.print(" ");Serial.print(temp);
 #ifdef DIAG
 Serial.print("/");Serial.print(previousTemp);
 #endif // DIAG
@@ -73,19 +81,21 @@ Serial.print("/");Serial.print(previousTemp);
 void messageBuild(char* message,uint8_t* messageLength)
 {
   /* Here add user data >>> be carefull to not override 32 bytes <<< */
+  
+    dtostrf(volts,4,2,(char*)(message+*messageLength));                      
+    (*messageLength)+=4;                                            // power voltage
     message[*messageLength]=dsM;                                    // version ds18x20
     (*messageLength)++;
-    message[*messageLength]='+';if(temp<0){message[*messageLength]='-';}      
-    dtostrf(temp,5,2,message+*messageLength+1);                     // temp
-    if((strstr(message,"nan")!=0) || !dsSta){memcpy((message+*messageLength),"+00.00\0",7);}
-    (*messageLength)+=6;
-    // get voltage 
-    dtostrf(volts,4,2,message+*messageLength);
-    (*messageLength)+=4;                                            // power voltage
+          
+    //dtostrf(temp,5,2,message+*messageLength);                       // temp
+    sprintf(message+*messageLength,"%+02.2f",temp); 
+    message[*messageLength]='+';if(temp<0){message[*messageLength]='-';}
+    if((strstr(message,"nan")!=0) || !dsSta){memcpy((message+*messageLength),"+00.00",6);}
+    (*messageLength)+=6; 
     message[*messageLength]='\0';
 }
 
-void importData(char* data,uint8_t dataLength)
+void importData(byte* data,uint8_t dataLength)
 {
   /* Here received data to local fields transfer */
     
@@ -93,27 +103,32 @@ void importData(char* data,uint8_t dataLength)
   uint16_t perTemp=0;
   int      sizeRead,srt=0;
   
-    perRefr=(long)convStrToNum(data+ADDR_LENGTH+1,&sizeRead);     // per refresh server
+    perRefr=(long)convStrToNum((char*)(data+ADDR_LENGTH+1),&sizeRead);          // per refresh server
     aw_min=perRefr/STEP_VALUE;
     srt=sizeRead;
-    perTemp=(uint16_t)convStrToNum(data+ADDR_LENGTH+1+srt,&sizeRead); // per check température
+    perTemp=(uint16_t)convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead);  // per check température
     aw_ok=perTemp/STEP_VALUE;
     srt+=sizeRead;
-    deltaTemp=(long)convStrToNum(data+ADDR_LENGTH+1+srt,&sizeRead);     // pitch mesure 
+    deltaTemp=(long)convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead);    // pitch mesure 
 }
 
 
 void userResetSetup()
-{ /* initial setup after reset */
+{
+  /* initial setup after reset */
+  
 #ifdef DS18X20  
   dsSta=ds1820.setDs(WPIN,setds,readds);    // setup ds18b20
   dsM='B';if(ds1820.dsmodel==MODEL_S){dsM='S';}
+  ds1820.convertDs(WPIN);
+  delay(TCONVDS);    
+  temp=ds1820.readDs(WPIN);
 #endif DS18X20
-
 }
 
 void userHardPowerDown()
-{ /* materials to powerDown when sleep */
+{ 
+  /* materials to powerDown when sleep */
   
 }
 

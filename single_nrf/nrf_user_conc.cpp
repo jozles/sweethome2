@@ -10,7 +10,8 @@ extern Nrfp nrfp;
 
 /* user includes */
 
-#include <Ethernet2.h> //bibliothèque W5x00 Ethernet
+
+#include <Ethernet.h> //bibliothèque W5x00 Ethernet
 #include "shconst2.h"
 #include "shutil2.h"
 #include "shmess2.h"
@@ -63,11 +64,11 @@ void userResetSetup()
   
     
   unsigned long t_beg=millis();
-  //if(Ethernet.begin((uint8_t*)mac) == 0){
+  if(Ethernet.begin((uint8_t*)mac) == 0){
     Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();delay(10);
     Ethernet.begin ((uint8_t*)mac, localIp);
-    //}
-  Serial.print(millis()-t_beg);Serial.print(" ");Serial.print(Ethernet.localIP());
+  }
+  Serial.print(millis()-t_beg);Serial.print(" ");Serial.println(Ethernet.localIP());
 
 /*// test ethernet 
 
@@ -153,10 +154,15 @@ int getHData(EthernetClient* cli,char* data,uint16_t* len)
   t1=micros();
 
   if(cli->connected()!=0){
+Serial.println("connected");    
       while(millis()<(timerTo+TIMEOUT)){
         if(cli->available()>0){
           timerTo=millis();
-          if(pt<*len-1){data[pt]=cli->read();pt++;}
+          inch=cli->read();
+#ifdef DIAG          
+          Serial.print(inch);
+#endif
+          if(pt<((*len)-1)){data[pt]=inch;pt++;}
         }
       }
       t2=micros();
@@ -178,23 +184,23 @@ int exportData(uint8_t numT)
   char x[2]={'\0','\0'};
   
       sprintf(message,"%02d",tableC[numT].numPeri);                 // N° périf                    
-      memcpy(message+2,"_\0",2);                                    //                        - 3
+      memcpy(message+2,"_\0",2);                     
       sb=3;
-      unpackMac((char*)(message+sb),tableC[numT].periMac);          // macaddr                    - 18
+      unpackMac((char*)(message+sb),tableC[numT].periMac);          // macaddr             
       sb+=17;
       memcpy(message+sb,"_\0",2);
       sb+=1;
-      memcpy(message+sb,tableC[numT].periBuf+7+LENVERSION+8,6);     // temp                              
+      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+8+4+1,6); // temp                              
       sb+=6;
       memcpy(message+sb,"__\0",3);                                  // âge 
       sb+=2;
-      memcpy(message+sb,tableC[numT].periBuf+7+LENVERSION+8+6,4);   // volts                              
+      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+8,4);     // volts                              
       sb+=4;
       memcpy(message+sb,"_\0",2);                             
       sb+=1;
-      memcpy(message+sb,tableC[numT].periBuf+6,LENVERSION-1);       // VERSION
+      memcpy(message+sb,tableC[numT].periBuf+6,LENVERSION);         // VERSION
       sb+=LENVERSION-1;
-      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+8,1);     // modele DS18x20
+      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+8+4,1);   // modele DS18x20
       sb+=1;
       memcpy(message+sb,"_\0",2);                             
       sb+=1;      
@@ -220,27 +226,20 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);fonction=1;}            // data_save_ -> ack
     buildMess(fonctName,message,"");                                                          // buld message to server
 
+
+/* tx/Rx to/from server */
     int periMess=-1;
     int cnt=0;
     while(cnt<2){
       periMess=mess2Server(&cli,host,port,bufServer);                                        // send message to server
       if(periMess!=-7){cnt=2;}else {cnt++;userResetSetup();}}
     
-    if(periMess==MESSOK){}
-/*      cnt=0;    
-      while(cnt<2){
-        periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction);                        // get response
-        if(periMess!=0){cnt=2;}else {cnt++;userResetSetup();}}}
-
-    if(periMess==MESSOK){dataTransfer(bufServer);}                                            
-    if(periMess!=MESSOK){nrfp.extDataStore(0,numT,bufServer+MPOSPERREFR,0);}                  // re-init server buffer if received data ko
-*/
-    uint16_t len=LBUFSERVER;
-    int z=getHData(&cli,bufServer,&len);
-    Serial.print(" getHD=");Serial.print(z);Serial.print(" ");Serial.print(len);Serial.println(" ");Serial.print(t2-t0);Serial.print("-");Serial.print(t2-t1);Serial.println("uS");
-    
+    if(periMess==MESSOK){
+      uint16_t len=LBUFSERVER;
+      int z=getHData(&cli,bufServer,&len);
+      Serial.print(" getHD=");Serial.print(z);Serial.print(" ");Serial.print(len);Serial.println(" ");Serial.print(t2-t0);Serial.print("-");Serial.print(t2-t1);Serial.println("uS");
+    }
     cli.stop();
-    
     Serial.print("periMess=");Serial.println(periMess); 
 }
 

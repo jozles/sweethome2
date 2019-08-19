@@ -3,7 +3,7 @@
 
 #include "nrf24l01s.h"
 
-#define VERSION "1.10"
+#define VERSION "1.11"
 #define LENVERSION 4
 
 /*
@@ -34,12 +34,16 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 */
 
 /*****************************/
-  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
-//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
+  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
-//  #define DIAG                    // affichages série
+#if NRF_MODE == 'P'
+    #define DETS
+#endif NRF_MODE == 'P'    
+
+  #define DIAG                    // affichages diags série
 
 /****************************/
 
@@ -51,18 +55,27 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define MAC_ADDR  CC_ADDR
 #endif
 
-  #define PER_ADDR  "peri1"     // MAC_ADDR périphériques
-  #define CC_ADDR   "toto_"     // MAC_ADDR concentrateur
-  #define BR_ADDR   "bcast"     // adresse fixe de broadcast
+  #define PER_ADDR  (byte*)"peri2"     // MAC_ADDR périphériques
+  #define CC_ADDR   (byte*)"toto_"     // MAC_ADDR concentrateur
+  #define BR_ADDR   (byte*)"bcast"     // adresse fixe de broadcast
 
-  #define LED        5          // pin pour Led (13 pris par le clk du SPI)
-
-  #define CE_PIN     9          // pin pour CE du nrf
-#ifndef DUE
-  #define CSN_PIN    10         // pin pour CS du SPI-nrf
+#if NRF_MODE == 'P'
+#ifdef DETS
+  #define LED        4
+  #define CSN_PIN    10
+  #define CE_PIN     9
 #endif
-#ifdef DUE
-  #define CSN_PIN     8         // pin pour CS du SPI-nrf
+#ifndef DETS
+  #define LED        5
+  #define CSN_PIN    10
+  #define CE_PIN     9
+#endif
+#endif
+
+#if NRF_MODE == 'C'
+  #define LED        4
+  #define CE_PIN     9          // pin pour CE du nrf
+  #define CSN_PIN    8          // pin pour CS du SPI-nrf
 #endif
 
   #define CHANNEL    110        // numéro canal radio
@@ -79,5 +92,11 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #ifdef DUE
   #define NBPERIF 24            //  pour dim table
   #endif  
+
+
+#define VOLTMIN 3.5             // minimal value to run
+#define VFACTOR 0.0061          // volts conversion
+#define VCHECK  A3              // volts check pin
+#define VINPUT  7               // volts ADC input pin
 
 #endif _NRF_CONST_INCLUDED

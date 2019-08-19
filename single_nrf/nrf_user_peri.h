@@ -34,7 +34,7 @@
 
 bool checkThings(uint8_t awakeCnt,uint8_t awakeMinCnt,uint8_t retryCnt);
 void messageBuild(char* message,uint8_t* messageLength);
-void importData(char* data,uint8_t dataLength);
+void importData(byte* data,uint8_t dataLength);
 void userResetSetup();
 void userHardPowerDown();
 

@@ -356,7 +356,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     return err;                             // =0 not empty ; !=0 error invalid pipe nb or length
 }
 
-int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,int numP)
+int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 {   // see available() return codes
     // numP<NBPERIF means "available() allready done with result ok && *pipe set")
 
@@ -384,7 +384,7 @@ int Nrfp::read(char* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 }
 
 #if NRF_MODE == 'P'
-int Nrfp::pRegister(char* message,uint8_t* pldLength)  // peripheral registration to get pipeAddr
+int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registration to get pipeAddr
 {                      // ER_MAXRT ; AV_errors codes ; >=0 numP ok
 
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
@@ -489,7 +489,7 @@ void Nrfp::tableCPrint()
     Serial.print(tableC[i].numPeri);Serial.print(" ");
     printAddr((char*)tableC[i].periMac,' ');Serial.print(" (");
     Serial.print(tableC[i].periBufLength);Serial.print("/");
-    Serial.print(tableC[i].periBufSent);Serial.print(")");
+    Serial.print(tableC[i].periBufSent);Serial.print(") ");
     Serial.print(tableC[i].periBuf);Serial.print(" ");
     Serial.print(tableC[i].servBufLength);Serial.print("/");
     Serial.print(tableC[i].servBuf);Serial.print(" ");
