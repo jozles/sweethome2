@@ -87,9 +87,10 @@ void messageBuild(char* message,uint8_t* messageLength)
     message[*messageLength]=dsM;                                    // version ds18x20
     (*messageLength)++;
           
-    //dtostrf(temp,5,2,message+*messageLength);                       // temp
-    sprintf(message+*messageLength,"%+02.2f",temp); 
-    message[*messageLength]='+';if(temp<0){message[*messageLength]='-';}
+    char s='+';if(temp<0){s='-';}
+    message[*messageLength]=s;
+    dtostrf(temp,5,2,message+*messageLength+1);                     // temp
+    if(temp<10){message[(*messageLength)+1]='0';}
     if((strstr(message,"nan")!=0) || !dsSta){memcpy((message+*messageLength),"+00.00",6);}
     (*messageLength)+=6; 
     message[*messageLength]='\0';

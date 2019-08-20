@@ -41,7 +41,7 @@ uint8_t pldLength;
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
-float   volts;                            // tension alim (VCC)
+float   volts=0;                          // tension alim (VCC)
 
 #define NTESTAD '1'                       // numéro testad dans table
 byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
@@ -380,7 +380,9 @@ uint8_t beginP()
   while(confSta<=0){
     confSta=nrfp.pRegister(message,&pldLength); // -4 empty -3 max RT ; -2 len ; -1 pipe ; 0 na ; >=1 ok numT
     Serial.print(">>> start ");
-    Serial.print(temp);Serial.print(" ");Serial.print(volts);Serial.print(" ");
+    Serial.print(temp);Serial.print(" ");
+    getVolts();
+    Serial.print(volts);Serial.print(" ");
     Serial.print((char*)(kk+(confSta+6)*LMERR));
     Serial.print(" numT=");Serial.print(confSta);
     Serial.print("  aw_ok=");Serial.print(aw_ok*STEP_VALUE);
