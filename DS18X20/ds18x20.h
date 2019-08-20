@@ -1,8 +1,11 @@
+#ifndef DS18X20_H_INCLUDED
+#define DS18X20_H_INCLUDED
+
 
 /*
-    Interrupt-free, small memory wasting ds1820 interface (about 1200 bytes)
+    Interrupt-free, small memory wasting ds1820 interface (less than 1K)
     this is working with any pin who allow digitalRead and digitalWrite.
-    Interrupt suspend should not be longer than 85 uSec for each written bit and
+    Interrupt suspend should not be longer than 85 uSec at each written bit and
     less than 10uSec for the other occurencys.
 
     2 steps : first converting (could be as long as 750 mSec) then get value.
@@ -18,10 +21,12 @@
     pin is the Arduino pin number used to connect Ds unit
 */
 
-#ifndef DS18X20_H_INCLUDED
-#define DS18X20_H_INCLUDED
 
 #include "Arduino.h"
+
+#define MODEL_S 0x10
+#define MODEL_B 0x28
+
 
 
 class Ds1820
@@ -34,6 +39,8 @@ class Ds1820
         int romDs(uint8_t pin,uint8_t* framein);
         int setDs(uint8_t pin,uint8_t* frameout,uint8_t* framein);
         int convertDs(uint8_t pin);
+
+        byte dsmodel=0x00;
 };
 
 #endif // DS18X20_H_INCLUDED

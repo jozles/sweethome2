@@ -5,7 +5,7 @@
       byte setds[]={0,0x7f,0x80,0x3f},readds[8];    // converting time 187mS 10 bits accu 0,25°
       int v=ds1820.setDs(WPIN,setds,readds);        // readds[0] = model
 
-    Interrupt-free, small memory wasting ds1820 interface (about 1200 bytes)
+    Interrupt-free, small memory wasting ds1820 interface (less than 1K)
     this is working with any pin accepting digitalRead and digitalWrite.
     Interrupt suspend should not be longer than 85 uSec for each written bit and
     less than 10uSec for the other occurencys.
@@ -40,10 +40,6 @@
 #define VRAI 1
 bool bitmessage=FAUX; // VRAI Serial.print les bits du meesage
 
-byte dsmodel=0x00;
-#define MODEL_S 0x10
-#define MODEL_B 0x28
-
 Ds1820::Ds1820()  // constructeur de la classe
 {
 }
@@ -66,11 +62,17 @@ void writeDs(uint8_t pin,uint8_t nbbyteout,uint8_t* frameout)
   pinMode(pin,OUTPUT);
   for(i=0;i<nbbyteout;i++){
     for(j=0;j<8;j++){
-      delaylow=80;delayhigh=0;pinstat=LOW;if((frameout[i] & maskbit[j])!=0){pinstat=HIGH;delaylow=0;delayhigh=80;}
+      //delaylow=60;delayhigh=0;pinstat=LOW;if((frameout[i] & maskbit[j])!=0){delaylow=0;delayhigh=60;pinstat=HIGH;}
+      //pinstat=!(frameout[i] & maskbit[j]);
+      pinstat=(frameout[i]>>j)&0x01;
       noInterrupts();
+#define DELAYCELL 50
       digitalWrite(pin,LOW);
       // if bit =1 low state about 2,7 uSec long (UNO)
-      delayMicroseconds(delaylow);digitalWrite(pin,pinstat);delayMicroseconds(delayhigh);
+      //delayMicroseconds(delaylow);
+      digitalWrite(pin,pinstat);
+      delayMicroseconds(DELAYCELL);
+      //delayMicroseconds(delayhigh);
       digitalWrite(pin,HIGH);
       interrupts();
     }
@@ -205,7 +207,9 @@ int Ds1820::getDs(uint8_t pin,uint8_t* frameout,uint8_t nbbyteout,uint8_t* frame
         delayMicroseconds(0);
         // delay between low and read about 5,2 uSec (UNO) + delayMicroseconds
         // delayMicroseconds is n-1 micros ; pinMode about 3,1 uSec
-        pinMode(pin,INPUT);delayMicroseconds(1);buff[v]=digitalRead(pin);    // environ 1,5uS pour blocage bas par le DS
+        pinMode(pin,INPUT);
+        delayMicroseconds(1);           // environ 1,5uS pour blocage bas par le DS
+        buff[v]=digitalRead(pin);
         interrupts();
         if(buff[v]!=0){framein[i]+= maskbit[j];}
         delayMicroseconds(50);
