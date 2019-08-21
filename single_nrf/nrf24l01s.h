@@ -99,15 +99,20 @@
 #define ER_MAXER ER_RDYTO
 #define ER_TEXT "to\0rt\0em\0mc\0le\0pi\0--\0ok\0" // 2 char libs for codes
 
-/*** debug pulse for logic analyzer  ***/
-#define PP        2  // 4
-#ifdef UNO        // idem for PRO MINI
-#define PP4       bitClear(PORTD,PP);bitSet(PORTD,PP);
+/*** logic analyzer debug pulse ***/
+#ifdef  DETS
+  #define PP        6  // PD6 - connector P3 pin 1
+#endif  DETS
+#ifndef DETS
+  #define PP        2  // 4
+#endif  DETS
+#ifdef  UNO        // idem for PRO MINI
+  #define PP4       bitClear(PORTD,PP);bitSet(PORTD,PP);
 #endif UNO
 #ifndef UNO
-#define PP4       digitalWrite(PP,LOW);digitalWrite(PP,HIGH);
+  #define PP4       digitalWrite(PP,LOW);digitalWrite(PP,HIGH);
 #endif
-#define PP4_INIT  pinMode(PP,OUTPUT);
+  #define PP4_INIT  pinMode(PP,OUTPUT);
 
 
 #if NRF_MODE == 'C'

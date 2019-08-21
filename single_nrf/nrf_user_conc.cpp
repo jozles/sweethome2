@@ -68,35 +68,7 @@ void userResetSetup()
     Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();delay(10);
     Ethernet.begin ((uint8_t*)mac, localIp);
   }
-  Serial.print(millis()-t_beg);Serial.print(" ");Serial.println(Ethernet.localIP());
-
-/*// test ethernet 
-
-while(1){
-  Serial.println("connecting...");
-  if (cli.connect(host, port)) {
-    Serial.println("connected");
-    cli.println("GET /search?q=arduino HTTP/1.0");
-    cli.println();
-
-    while(1){
-      if(cli.available()) {
-        char c = cli.read();
-        Serial.print(c);
-      }
-
-      if (!cli.connected()) {
-        Serial.println();
-        Serial.println("disconnecting.");
-        cli.stop();
-        while(1){}  
-      }
-    }
-  } else {
-    Serial.println("connection failed");
-    delay(1000);  
-  }
-}*/
+  Serial.print(millis()-t_beg);Serial.print(" ");Serial.print(Ethernet.localIP());Serial.print(" ");
 }
 
 int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connecte au serveur et transfère la data

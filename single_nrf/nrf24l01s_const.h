@@ -40,7 +40,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 //  #define MEGA                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
-    #define DETS
+    //#define DETS
 #endif NRF_MODE == 'P'    
 
   #define DIAG                    // affichages diags série
@@ -50,12 +50,12 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #if NRF_MODE == 'P'
   #define SPI_MODE            // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
+  #define PER_ADDR  (byte*)"peri1"     // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
 #endif
 
-  #define PER_ADDR  (byte*)"peri2"     // MAC_ADDR périphériques
   #define CC_ADDR   (byte*)"toto_"     // MAC_ADDR concentrateur
   #define BR_ADDR   (byte*)"bcast"     // adresse fixe de broadcast
 
@@ -95,8 +95,19 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 
 #define VOLTMIN 3.5             // minimal value to run
-#define VFACTOR 0.0061          // volts conversion
+//#define VFACTOR 0.0061          // volts conversion 2,2K+10K
+#define VFACTOR 0.0047          // volts conversion 10K+33K
 #define VCHECK  A3              // volts check pin
+#ifdef  DETS
 #define VINPUT  7               // volts ADC input pin
+//#define VFACTOR 0.0061          // volts conversion 2,2K+10K
+#define VFACTOR 0.0047          // volts conversion 10K+33K
+#endif
+#ifndef DETS                    // UNO d'essais
+#define VFACTOR 0.009           // volts conversion 3,9K+33K
+#define VINPUT  2               // volts ADC input pin
+#endif
+
+
 
 #endif _NRF_CONST_INCLUDED

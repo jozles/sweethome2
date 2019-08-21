@@ -190,7 +190,7 @@ void Nrfp::powerUp()
 
     powerD=false;
 
-    delay(5);
+    delay(5);       // powerUp delay
 }
 
 void Nrfp::powerDown()
@@ -432,7 +432,7 @@ uint8_t Nrfp::cRegister(char* message)      // search free line or existing macA
           bool exist=false;
 
           for(i=1;i<NBPERIF;i++){
-            if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){exist=true;break;}      // already existing
+            if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){exist=true;break;}      // already exist
             else if(freeLine==0 && tableC[i].periMac[0]=='0'){freeLine=i;}        // store free line nb
           }
 
@@ -461,7 +461,7 @@ uint8_t Nrfp::macSearch(char* mac,int* numPer)    // search mac in tableC ; out 
   int i,j;
   
   for(i=1;i<NBPERIF;i++){
-    for(j=5;j>=0;j--){
+    for(j=ADDR_LENGTH;j>=0;j--){
       if(mac[j]!=tableC[i].periMac[j]){j=-2;}
     }
     if(j>-2){*numPer=tableC[i].numPeri;break;}

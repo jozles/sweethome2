@@ -226,7 +226,7 @@ void loop() {
 #if NRF_MODE == 'C'
 
   if(menu){
-    nrfp.printAddr(MAC_ADDR,0);
+    nrfp.printAddr((char*)MAC_ADDR,0);
     Serial.println(" (e)cho (b)roadcast (t)ableC (q)uit");
     menu=false;
   }
@@ -235,7 +235,7 @@ void loop() {
 
   numT=0;                                           // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                     // max length
-  rdSta=nrfp.read((char*)message,&pipe,&pldLength,NBPERIF);
+  rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
 
   time_beg=micros();
   // ====== no error registration request ======
@@ -270,7 +270,7 @@ void loop() {
 
 
 #ifdef DIAG                                         // error diag
-  if(rdSta<0 && rdSta!=AV_EMPTY){                   
+  if(rdSta<0 && rdSta!=AV_EMPTY){                    
     showRx(false);
     showErr();}
 #endif // DIAG
@@ -388,7 +388,7 @@ uint8_t beginP()
     Serial.print("  aw_ok=");Serial.print(aw_ok*STEP_VALUE);
     Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.println("sec ");
     delay(2);         
-    delayBlk(1,1980,66,2,1);
+    delayBlk(1,1980,66,2,1);       // sleepPwrDown()
   }
   importData(message,pldLength);   // user data available
   awakeMinCnt=-1;                  // force data upload
@@ -483,16 +483,25 @@ void showErr()
 #if NRF_MODE == 'P'
 void sleepDly(uint16_t dly)                                                       // should be multiple of 33
 {
-  while(dly>0){delay(1);sleepPwrDown(T32);hardwarePowerUp();dly-=(32+1);}         // delay(bdelay); (delay(1) for serial)
+  while(dly>0){delay(1);sleepPwrDown(T32);dly-=(32+1);}         // delay(bdelay); (delay(1) for serial)
+  // sleepPwrDown() -> hardwarePowerDown() -> nrfp.powerDown()
+  
 }
 #endif // NRF_MODE == 'P'
 
-void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)       // bint, bdelay should be multiple of 33
+void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)       
+/*  delays are in sleepPwrDown() mode
+    bint, bdelay should be multiple of 33
+    usable if dly > (dur+bint)*bnb+bdelay
+    hardwarePowerDown() at beginning ; hardwarePowerUp() at end      
+*/    
 {
 #if NRF_MODE == 'P'
   
   while(dly>0){
+ 
     for(int i=0;i<bnb;i++){
+      pinMode(LED,OUTPUT);                      // sleepDly() -> sleepPwrDown() -> hardwarePowerDown() -> pinMode(LED,input)
       digitalWrite(LED,HIGH);delay(dur);
       digitalWrite(LED,LOW);sleepDly(bint);
       dly-=(dur+bint);
@@ -500,6 +509,8 @@ void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)     
     sleepDly(bdelay);
     dly-=bdelay;
   }
+  hardwarePowerUp();
+  // hardwarePowerUp() -> nrfp.powerUp() -> delay(5)
 
 #endif // NRF_MODE == 'P'
 
