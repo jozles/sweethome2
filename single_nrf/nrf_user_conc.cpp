@@ -42,7 +42,7 @@ extern Nrfp nrfp;
 
   char* chexa="0123456789ABCDEFabcdef\0";
 
-  unsigned long t0,t1,t2;
+  unsigned long t0,t1,t1b,t1c,t1d,t1e,t2,t2b,t2c;
 
 int  dataTransfer(char* data);
 
@@ -76,7 +76,9 @@ int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connec
   int             cxStatus=0;
   uint8_t         repeat=0;
 
-  Serial.print("connecting ");    
+  t0=micros();
+  
+  Serial.print("tx connecting ");    
   for(int i=0;i<4;i++){Serial.print((uint8_t)host[i]);Serial.print(" ");}
   Serial.print(":");Serial.print(port);
   Serial.print("...");
@@ -87,7 +89,6 @@ int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connec
     
     repeat++;
 
-    t0=micros();
     cxStatus=cli->connect(host,port);
     cxStatus=cli->connected();
     if(!cxStatus){
@@ -104,7 +105,10 @@ int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connec
       
       cli->print(data);
       cli->print("\r\n HTTP/1.1\r\n Connection:close\r\n\r\n");
-      Serial.print(cxStatus);Serial.print(" ok ");Serial.print(micros()-t0);Serial.println("uS");
+
+#ifdef DIAG
+      Serial.print(cxStatus);Serial.print(" ok cx+tx=");Serial.print(micros()-t0);Serial.println("uS");
+#endif
       return 1;
     }
     delay(100);
@@ -115,7 +119,7 @@ int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connec
 
 int getHData(EthernetClient* cli,char* data,uint16_t* len)
 {
-  #define TIMEOUT 2000
+  #define TIMEOUT 1000
   
   int pt=0;
   char inch;
@@ -123,30 +127,38 @@ int getHData(EthernetClient* cli,char* data,uint16_t* len)
 
   if(*len==0){return -1;}
 
-  t1=micros();
+  t1c=0;
+  t1b=micros();
+  t1=micros();                                          // ************ t1 beg getHD
+  t1e=0;
 
   if(cli->connected()!=0){
-Serial.println("connected");    
-      while(millis()<(timerTo+TIMEOUT)){
+    Serial.println(" rx connected");    
+    while(millis()<(timerTo+TIMEOUT)){
         if(cli->available()>0){
+          t1c+=(micros()-t1b);
           timerTo=millis();
+          t1d=micros();
           inch=cli->read();
+          t1e+=(micros()-t1d);
 #ifdef DIAG          
-          Serial.print(inch);
+          //Serial.print(inch);
 #endif
           if(pt<((*len)-1)){data[pt]=inch;pt++;}
+          t1b=micros();
         }
-      }
-      t2=micros();
-      data[pt]='\0';
-      *len=pt;
-      return 1;               // data ok
+    }
+    t2=micros();                                        // ********** t2 end getHD
+    data[pt]='\0';
+    *len=pt;
+    return 1;               // data ok
   }
   return -2;                  // not connected
 }
 
 int exportData(uint8_t numT)
 {
+  t2b=micros();
   strcpy(bufServer,"GET /cx?\0");
   if(!buildMess("peri_pass_",srvpswd,"?")==MESSOK){
     Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};
@@ -191,6 +203,23 @@ int exportData(uint8_t numT)
       memcpy(message+sb+MAXDET+1,"_\0",2);         
       sb+=MAXDET+2;
 
+      for(i=0;i<NBPULSE;i++){message[sb+i]='0';} //chexa[staPulse[i]];}
+      memcpy(message+sb+NBPULSE,"_\0",2);                               // clock pulse status          - 5
+      sb+=NBPULSE+1;
+
+char model[LENMODEL];
+
+  model[0]='D'; //CARTE;
+  model[1]='D'; //POWER_MODE;
+  model[2]='_'; //CONSTANT;
+  model[3]='1';
+  model[4]=(char)(NBSW+48);
+  model[5]=(char)(NBDET+48);  
+
+      memcpy(message+sb,model,LENMODEL);
+      memcpy(message+sb+LENMODEL,"_\0",2);
+      sb+=LENMODEL+1;
+
 if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}
 
     uint8_t fonction=0;                                                                       // data_read_ -> set
@@ -198,21 +227,29 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);fonction=1;}            // data_save_ -> ack
     buildMess(fonctName,message,"");                                                          // buld message to server
 
+    t2c=micros()-t2b;
 
 /* tx/Rx to/from server */
     int periMess=-1;
     int cnt=0;
+    int staGHD=-99;
+    uint16_t len=LBUFSERVER;
+    
     while(cnt<2){
       periMess=mess2Server(&cli,host,port,bufServer);                                        // send message to server
       if(periMess!=-7){cnt=2;}else {cnt++;userResetSetup();}}
     
     if(periMess==MESSOK){
-      uint16_t len=LBUFSERVER;
-      int z=getHData(&cli,bufServer,&len);
-      Serial.print(" getHD=");Serial.print(z);Serial.print(" ");Serial.print(len);Serial.println(" ");Serial.print(t2-t0);Serial.print("-");Serial.print(t2-t1);Serial.println("uS");
+      staGHD=getHData(&cli,bufServer,&len);
     }
     cli.stop();
+#ifdef DIAG                
+    Serial.print(" getHData=");Serial.print(staGHD);Serial.print(" l=");Serial.print(len);
+    Serial.print(" total=");Serial.print(t2-t0);Serial.print(" tfr=");Serial.print(t2c);
+    Serial.print(" rx=");Serial.print(t2-t1);Serial.print(" rx wait=");Serial.print(t1c);
+    Serial.print(" cli.read()=");Serial.print(t1e);Serial.print("uS ");
     Serial.print("periMess=");Serial.println(periMess); 
+#endif
 }
 
 /* user functions */
