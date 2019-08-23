@@ -279,6 +279,8 @@ void loop() {
     Serial.print(rdSta);Serial.print(" ");Serial.print(micros()-time_beg);Serial.print(" ");Serial.println(trSta);}
 #endif // !DIAG
 
+  // ====== RX from server ? ====
+  
 
   // ====== menu choice ======  
   char a=getch();

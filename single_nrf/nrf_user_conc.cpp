@@ -42,7 +42,7 @@ extern Nrfp nrfp;
 
   char* chexa="0123456789ABCDEFabcdef\0";
 
-  unsigned long t0,t1,t1b,t1c,t1d,t1e,t2,t2b,t2c;
+  unsigned long t0,t0b,t1,t1b,t1c,t1d,t1e,t2,t2b,t2c;
 
 int  dataTransfer(char* data);
 
@@ -77,21 +77,27 @@ int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connec
   uint8_t         repeat=0;
 
   t0=micros();
-  
+  t0b=0;
+
+#ifdef DIAG  
   Serial.print("tx connecting ");    
   for(int i=0;i<4;i++){Serial.print((uint8_t)host[i]);Serial.print(" ");}
   Serial.print(":");Serial.print(port);
   Serial.print("...");
-  
+#endif  
+
   while(!cxStatus && repeat<4){
 
+#ifdef DIAG  
     Serial.print(repeat);Serial.print("/");
+#endif
     
     repeat++;
 
     cxStatus=cli->connect(host,port);
     cxStatus=cli->connected();
     if(!cxStatus){
+#ifdef DIAG        
         Serial.print(cxStatus);
         switch(cxStatus){
             case -1:Serial.print(" time out ");break;
@@ -100,6 +106,7 @@ int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connec
             case -4:Serial.print(" invalid response ");break;
             default:Serial.print(" unknown reason ");break;
         }
+#endif        
     }
     else {
       
@@ -107,13 +114,16 @@ int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connec
       cli->print("\r\n HTTP/1.1\r\n Connection:close\r\n\r\n");
 
 #ifdef DIAG
-      Serial.print(cxStatus);Serial.print(" ok cx+tx=");Serial.print(micros()-t0);Serial.println("uS");
+      Serial.println(cxStatus);
 #endif
+      t0b=micros();
       return 1;
     }
     delay(100);
   }
+#ifdef DIAG    
   Serial.println(" failed");return 0;
+#endif  
 }
 
 
@@ -121,6 +131,7 @@ int getHData(EthernetClient* cli,char* data,uint16_t* len)
 {
   #define TIMEOUT 1000
   
+  int qAvailable;
   int pt=0;
   char inch;
   unsigned long timerTo=millis();
@@ -135,7 +146,11 @@ int getHData(EthernetClient* cli,char* data,uint16_t* len)
   if(cli->connected()!=0){
     Serial.println(" rx connected");    
     while(millis()<(timerTo+TIMEOUT)){
-        if(cli->available()>0){
+        qAvailable=cli->available();
+        if(qAvailable>0){
+#ifdef DIAG
+          Serial.print(" timerTo=");Serial.print(millis()-timerTo);Serial.print(" qAvailable=");Serial.println(qAvailable);        
+#endif
           t1c+=(micros()-t1b);
           timerTo=millis();
           t1d=micros();
@@ -147,6 +162,7 @@ int getHData(EthernetClient* cli,char* data,uint16_t* len)
           if(pt<((*len)-1)){data[pt]=inch;pt++;}
           t1b=micros();
         }
+        if(pt>(6+MPOSPERREFR+SBLINIT)){break;}          // 6 pour "<body>"
     }
     t2=micros();                                        // ********** t2 end getHD
     data[pt]='\0';
@@ -238,7 +254,11 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     while(cnt<2){
       periMess=mess2Server(&cli,host,port,bufServer);                                        // send message to server
       if(periMess!=-7){cnt=2;}else {cnt++;userResetSetup();}}
-    
+/*    
+ *     en TCP la réception devraitt être disjointe pour libérer le temps d'attente (plus de 250mS)
+ *     (à quel moment fermer la connexion ?) 
+ *     voir les performances de l'UDP...
+ */
     if(periMess==MESSOK){
       staGHD=getHData(&cli,bufServer,&len);
     }
@@ -246,9 +266,11 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
 #ifdef DIAG                
     Serial.print(" getHData=");Serial.print(staGHD);Serial.print(" l=");Serial.print(len);
     Serial.print(" total=");Serial.print(t2-t0);Serial.print(" tfr=");Serial.print(t2c);
+    Serial.print(" cx+tx=");Serial.print(t0b-t0);
     Serial.print(" rx=");Serial.print(t2-t1);Serial.print(" rx wait=");Serial.print(t1c);
-    Serial.print(" cli.read()=");Serial.print(t1e);Serial.print("uS ");
-    Serial.print("periMess=");Serial.println(periMess); 
+    Serial.print(" cli.read()=");Serial.print(t1e);Serial.print("uS");
+    Serial.print(" periMess=");Serial.println(periMess);
+    Serial.println(bufServer); 
 #endif
 }
 
@@ -273,7 +295,7 @@ int  dataTransfer(char* data)           // transfert contenu de set ou ack dans 
         
         if(numT>=NBPERIF){periMess=MESSMAC;}
         else if(numPer!=0 && numPer!=nP){periMess=MESSNUMP;}
-        else {nrfp.extDataStore(nP,numT,data+MPOSPERREFR,16);}            // format MMMMM_UUUUU_xxxx MMMMM aw_min value ; UUUUU aw_ok value ; xxxx user dispo 
+        else {nrfp.extDataStore(nP,numT,data+MPOSPERREFR,SBLINIT);}       // format MMMMM_UUUUU_xxxx MMMMM aw_min value ; UUUUU aw_ok value ; xxxx user dispo 
                                                                           // (_P.PP pitch value)
         return periMess;
 }
