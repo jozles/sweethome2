@@ -1,9 +1,8 @@
+#include "nrf24l01s_const.h"
 #include "nRF24L01.h"
 #include "nrf24l01s.h"
-#include "nrf24l01s_const.h"
+
 #include "nrf_powerSleep.h"
-#include "shconst2.h"
-#include "shutil2.h"
 #include "nrf_user_peri.h"
 #include "nrf_user_conc.h"
 
@@ -41,6 +40,8 @@ uint8_t pldLength;
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
+int     rxServ=0;                         // si 1, indique que dataTransfer() est à effectuer
+
 float   volts=0;                          // tension alim (VCC)
 
 #define NTESTAD '1'                       // numéro testad dans table
@@ -48,6 +49,10 @@ byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
 
 #define LMERR 9           
 char*   kk={"time out\0tx maxrt\0rx empty\0mac addr\0length  \0pipe nb \0--      \0ok      \0"};         // codes retour et erreur
+
+#if NRF_MODE == 'C'
+char bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
+#endif
 
 #if NRF_MODE == 'P'
 
@@ -233,36 +238,36 @@ void loop() {
 
   ledblk(TBLK,2000,IBLK,1);
 
-  numT=0;                                           // will stay 0 if no registration
-  pldLength=MAX_PAYLOAD_LENGTH;                     // max length
-  rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
+  numT=0;                                             // will stay 0 if no registration
+  pldLength=MAX_PAYLOAD_LENGTH;                       // max length
+  rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);  // get message from perif
 
   time_beg=micros();
-  // ====== no error registration request ======
-  if(rdSta==0){                                     
+  
+  if(rdSta==0){                                       // ====== no error registration request ======
       showRx(false);                                        
       numT=nrfp.cRegister((char*)message);               
-      if(numT<(NBPERIF)){                           // registration ok
-        rdSta=numT;                                 // rdSta >0 for next step             
+      if(numT<(NBPERIF)){                         // registration ok
+        rdSta=numT;                               // entry is valid -> rdSta >0              
         nrfp.printAddr((char*)tableC[numT].periMac,' ');
         Serial.print(" registred as ");Serial.println(numT);}
       else if(numT==(NBPERIF+2)){Serial.println(" MAX_RT ... deleted");}
       else {Serial.println(" full");}
   }
 
-  // ====== no error && valid entry ======
+                                                      // ====== no error && valid entry ======
   if((rdSta>0) && (memcmp(message,tableC[rdSta].periMac,ADDR_LENGTH)==0)){ 
-      if(numT==0){
-        memcpy(tableC[rdSta].periBuf,message,pldLength);    // incoming message storage (not when registration - no valid data)
+      if(numT==0){      // if not registration (no valid data), incoming message storage
+        memcpy(tableC[rdSta].periBuf,message,pldLength);    
         tableC[rdSta].periBufLength=pldLength;}
       /* build config */
       memcpy(message+ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
-      /* send it */    
-      txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);              // end of transaction so auto ACK
+      /* send it to perif */    
+      txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);        // end of transaction so auto ACK
       if(trSta==0){tableC[rdSta].periBufSent=true;} 
       
-      // ======= formatting & tx to server ======
-      if(numT==0){exportData(rdSta);}                       // (not when registration - no valid data and save time)
+                                                      // ======= formatting & tx to server ======
+      if(numT==0){rxServ=exportData(rdSta);}   // if not registration (no valid data), tx to server
   }
   
   // ====== error or empty -> ignore ======
@@ -281,7 +286,14 @@ void loop() {
 
   // ====== RX from server ? ====
   
-
+  // dataTransfer returns MESSOK(ok)/MESSNUMP(numPeri HS)/MESSMAC(mac not found)
+  int dt;
+  if(rxServ){
+    rxServ=0;dt=dataTransfer(bufServer);if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
+#ifdef DIAG
+  Serial.print(" dataTransfer=");Serial.println(dt);
+#endif // DIAG
+  }
   // ====== menu choice ======  
   char a=getch();
   switch(a){

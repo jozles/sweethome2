@@ -1,6 +1,6 @@
+#include "nrf24l01s_const.h"
 #include "nrf_user_conc.h"
 #include "nrf24l01s.h"
-#include "nrf24l01s_const.h"
 #include "nrf_powerSleep.h"
 
 extern struct NrfConTable tableC[NBPERIF];
@@ -31,7 +31,8 @@ extern Nrfp nrfp;
 
   char model[]={"D32800"};
 
-  char bufServer[LBUFSERVER];
+#define LBODY 6 // "<body>"
+  extern char bufServer[BUF_SERVER_LENGTH];
 
   char* srvpswd=PERIPASS;
   byte  lsrvpswd=LPWD;
@@ -44,7 +45,7 @@ extern Nrfp nrfp;
 
   unsigned long t0,t0b,t1,t1b,t1c,t1d,t1e,t2,t2b,t2c;
 
-int  dataTransfer(char* data);
+
 
 
 /* cycle functions */
@@ -127,26 +128,26 @@ int mess2Server(EthernetClient* cli,byte* host,int port,char* data)    // connec
 }
 
 
-int getHData(EthernetClient* cli,char* data,uint16_t* len)
+int getHData() //EthernetClient* cli,char* data,uint16_t* len)
 {
   #define TIMEOUT 1000
-  
-  int qAvailable;
+
+  char* data=bufServer;
+  uint16_t len=LBUFSERVER;                              // bufServer length
+  int qAvailable;                                       // data qty available
   int pt=0;
   char inch;
   unsigned long timerTo=millis();
-
-  if(*len==0){return -1;}
 
   t1c=0;
   t1b=micros();
   t1=micros();                                          // ************ t1 beg getHD
   t1e=0;
 
-  if(cli->connected()!=0){
-    Serial.println(" rx connected");    
+  if(cli.connected()!=0 ){
+    Serial.println(" rx cxd");    
     while(millis()<(timerTo+TIMEOUT)){
-        qAvailable=cli->available();
+        qAvailable=cli.available();
         if(qAvailable>0){
 #ifdef DIAG
           Serial.print(" timerTo=");Serial.print(millis()-timerTo);Serial.print(" qAvailable=");Serial.println(qAvailable);        
@@ -154,25 +155,25 @@ int getHData(EthernetClient* cli,char* data,uint16_t* len)
           t1c+=(micros()-t1b);
           timerTo=millis();
           t1d=micros();
-          inch=cli->read();
+          inch=cli.read();                             // incoming char from server
           t1e+=(micros()-t1d);
-#ifdef DIAG          
-          //Serial.print(inch);
-#endif
-          if(pt<((*len)-1)){data[pt]=inch;pt++;}
+
+          if(pt<(len-1)){data[pt]=inch;pt++;}        // store incoming char 
           t1b=micros();
         }
-        if(pt>(6+MPOSPERREFR+SBLINIT)){break;}          // 6 pour "<body>"
+        if(pt>(LBODY+MPOSPERREFR+SBLINIT)){break;}      // LBODY pour "<body>"
     }
     t2=micros();                                        // ********** t2 end getHD
     data[pt]='\0';
-    *len=pt;
-    return 1;               // data ok
+    len=pt;
+    return 1;                 // data ok
   }
-  return -2;                  // not connected
+  return -2;                  // not connected or no data
 }
 
-int exportData(uint8_t numT)
+int exportData(uint8_t numT)                            // formatting periBuf data in bufServer 
+                                                        // sending bufServer to server 
+                                                        // recieving server response in bufServer
 {
   t2b=micros();
   strcpy(bufServer,"GET /cx?\0");
@@ -241,7 +242,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     uint8_t fonction=0;                                                                       // data_read_ -> set
     char fonctName[]={"data_read_"};
     if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);fonction=1;}            // data_save_ -> ack
-    buildMess(fonctName,message,"");                                                          // buld message to server
+    buildMess(fonctName,message,"");                                                          // buld message for server
 
     t2c=micros()-t2b;
 
@@ -249,7 +250,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     int periMess=-1;
     int cnt=0;
     int staGHD=-99;
-    uint16_t len=LBUFSERVER;
+    
     
     while(cnt<2){
       periMess=mess2Server(&cli,host,port,bufServer);                                        // send message to server
@@ -260,11 +261,11 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
  *     voir les performances de l'UDP...
  */
     if(periMess==MESSOK){
-      staGHD=getHData(&cli,bufServer,&len);
+      staGHD=getHData();                                             // rx server message
     }
     cli.stop();
 #ifdef DIAG                
-    Serial.print(" getHData=");Serial.print(staGHD);Serial.print(" l=");Serial.print(len);
+    Serial.print(" getHData=");Serial.print(staGHD);//Serial.print(" l=");Serial.print(len);
     Serial.print(" total=");Serial.print(t2-t0);Serial.print(" tfr=");Serial.print(t2c);
     Serial.print(" cx+tx=");Serial.print(t0b-t0);
     Serial.print(" rx=");Serial.print(t2-t1);Serial.print(" rx wait=");Serial.print(t1c);
@@ -272,31 +273,39 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     Serial.print(" periMess=");Serial.println(periMess);
     Serial.println(bufServer); 
 #endif
+    return staGHD;
 }
 
-/* user functions */
 
-int  dataTransfer(char* data)           // transfert contenu de set ou ack dans variables locales selon contrôles
-                                        // data sur fonction
+int  dataTransfer(char* data)    // bufServer contient un message valide du serveur
+                                 // retour MESSOK ok ; MESSNUMP numPeri invalide ; MESSMAC macaddr pas trouvée dans tableC
+
+                                        // transfert contenu de set ou ack dans variables locales selon contrôles
+                                        // déclenché par rxServ qui indique que bufServer est valide
                                         //    contrôle mac addr et numPeriph ;
-                                        //    si pb -> numPeriph="00" et ipAddr=0
                                         //    si ok -> tfr params
                                         // retour periMess
 {
-  int  ddata=16;                        // position du numéro de périphérique  
-  int  numT,nP,len,numPer;
+  
+  int  numT,nP,len,numPeri;
   char fromServerMac[6];
   int  periMess;
   
         periMess=MESSOK;
-        packMac((byte*)fromServerMac,(char*)(data+ddata+3));
-        nP=convStrToNum(data+ddata,&len);
-        numT=nrfp.macSearch(fromServerMac,&numPer);
-        
+        packMac((byte*)fromServerMac,(char*)(data+MPOSMAC+LBODY));  // mac from set message (LBODY pour "<body>")
+        nP=convStrToNum(data+MPOSNUMPER+LBODY,&len);            // numPer from set message
+        numT=nrfp.macSearch(fromServerMac,&numPeri);            // numT reg nb in conc table ; numPeri from table numPeri 
+                                                                // numPeri should be same as nP (if mac found)
+
+        int eds=99;
         if(numT>=NBPERIF){periMess=MESSMAC;}
-        else if(numPer!=0 && numPer!=nP){periMess=MESSNUMP;}
-        else {nrfp.extDataStore(nP,numT,data+MPOSPERREFR,SBLINIT);}       // format MMMMM_UUUUU_xxxx MMMMM aw_min value ; UUUUU aw_ok value ; xxxx user dispo 
-                                                                          // (_P.PP pitch value)
+        else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}  
+        else {eds=nrfp.extDataStore(nP,numT,data+MPOSPERREFR+LBODY,SBLINIT);} // format MMMMM_UUUUU_xxxx MMMMM aw_min value ; UUUUU aw_ok value ; xxxx user dispo 
+                                                                              // (_P.PP pitch value)
+#ifdef DIAG                
+        Serial.print(" nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);Serial.print(" numPeri=");Serial.print(numPeri);Serial.print(" eds=");Serial.print(eds);Serial.print(" fromServerMac=");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}//Serial.println();
+#endif
+        
         return periMess;
 }
 

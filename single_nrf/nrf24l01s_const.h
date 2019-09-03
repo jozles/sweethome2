@@ -1,7 +1,9 @@
 #ifndef _NRF_CONST_INCLUDED
 #define _NRF_CONST_INCLUDED
 
-#include "nrf24l01s.h"
+#include <Arduino.h>
+#include "shconst2.h"
+#include "shutil2.h"
 
 #define VERSION "1.11"
 #define LENVERSION 4
@@ -108,6 +110,6 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #define VINPUT  2               // volts ADC input pin
 #endif
 
-
+#define BUF_SERVER_LENGTH LBUFSERVER    // to/from server buffer length
 
 #endif _NRF_CONST_INCLUDED

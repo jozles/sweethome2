@@ -116,12 +116,19 @@
 
 
 #if NRF_MODE == 'C'
+
+// extDataStore() output status
+#define EDS_STAT_OK 1
+#define EDS_STAT_PER 2
+#define EDS_STAT_LEN 3 
+
 struct NrfConTable
 {
-  uint8_t numPeri;                  // num�ro p�riph�rique pour serveur
+  uint8_t numPeri;                  // numéro périphérique pour serveur
   byte    periMac[ADDR_LENGTH+2];   // macAddr (ajout 1 car=num entrée de la table pour former une addr mac pour l'extérieur)
   char    servBuf[MAX_PAYLOAD_LENGTH+1];
   uint8_t servBufLength;
+  bool    servBufSent;
   char    periBuf[MAX_PAYLOAD_LENGTH+1];
   uint8_t periBufLength;
   bool    periBufSent;
@@ -152,14 +159,14 @@ class Nrfp
     void printAddr(char* addr,char n);
 
 #if NRF_MODE == 'P'
-    int  pRegister(byte* message,uint8_t* pldLength);
+    int     pRegister(byte* message,uint8_t* pldLength);
 #endif // NRF_MODE == 'P'
 #if NRF_MODE == 'C'
-    void tableCInit();
-    void tableCPrint();
+    void    tableCInit();
+    void    tableCPrint();
     uint8_t cRegister(char* message);
     uint8_t macSearch(char* mac,int* numPer);
-    void extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len);
+    uint8_t extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len);
 #endif NRF_MODE == 'C'
 
   private:
@@ -177,6 +184,12 @@ class Nrfp
 
     int tableCLoad();
     int tableCSave();
+
+    
+    bool prxMode=false;       // true=circuit en PRX (pwrUpRx(), CE_HIGH)
+    bool powerD=true;         // etat power (true=down)
+    uint8_t regw,statu,fstatu,conf;
+
 };
 
 #endif // NRF24L01P INCLUDED

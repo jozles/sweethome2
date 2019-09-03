@@ -1,6 +1,7 @@
+#include "nrf24l01s_const.h"
+#include "nrf_user_conc.h"
 #include <SPI.h>
 #include "nrf24l01s.h"
-#include "nrf24l01s_const.h"
 
 /* AP NFR24L01+ node single */
 
@@ -70,14 +71,6 @@
 #if NRF_MODE == 'C'
 struct NrfConTable tableC[NBPERIF];
 #endif NRF_MODE == 'C'
-
-/***** scratch *****/
-
-bool prxMode=false;       // true=circuit en PRX (pwrUpRx(), CE_HIGH)
-
-bool powerD=true;         // etat power (true=down)
-
-uint8_t regw,statu,fstatu,conf;
 
 
 Nrfp::Nrfp()    // constructeur
@@ -461,7 +454,7 @@ uint8_t Nrfp::macSearch(char* mac,int* numPer)    // search mac in tableC ; out 
   int i,j;
   
   for(i=1;i<NBPERIF;i++){
-    for(j=ADDR_LENGTH;j>=0;j--){
+    for(j=ADDR_LENGTH-1;j>=0;j--){
       if(mac[j]!=tableC[i].periMac[j]){j=-2;}
     }
     if(j>-2){*numPer=tableC[i].numPeri;break;}
@@ -469,8 +462,11 @@ uint8_t Nrfp::macSearch(char* mac,int* numPer)    // search mac in tableC ; out 
   return i;
 }
 
-void Nrfp::extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len)
+uint8_t Nrfp::extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len)
 {
+  if(numT>NBPERIF){return EDS_STAT_PER;}
+  if(len>BUF_SERVER_LENGTH || len>MAX_PAYLOAD_LENGTH){return EDS_STAT_LEN;}
+
   tableC[numT].numPeri=numPer;
   if(len>MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1){len=MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1;}
   if(len!=0){
@@ -479,6 +475,8 @@ void Nrfp::extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len)
   else{
     tableC[numT].servBufLength=SBLINIT;
     memcpy(tableC[numT].servBuf,SBVINIT,SBLINIT);}
+
+  return EDS_STAT_OK;
 }
 
 void Nrfp::tableCPrint()
@@ -490,8 +488,8 @@ void Nrfp::tableCPrint()
     printAddr((char*)tableC[i].periMac,' ');Serial.print(" (");
     Serial.print(tableC[i].periBufLength);Serial.print("/");
     Serial.print(tableC[i].periBufSent);Serial.print(") ");
-    Serial.print(tableC[i].periBuf);Serial.print(" ");
-    Serial.print(tableC[i].servBufLength);Serial.print("/");
+    Serial.print(tableC[i].periBuf);Serial.print(" (");
+    Serial.print(tableC[i].servBufLength);Serial.print(")");
     Serial.print(tableC[i].servBuf);Serial.print(" ");
     Serial.println();
   }
