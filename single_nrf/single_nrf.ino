@@ -40,8 +40,6 @@ uint8_t pldLength;
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
-int     rxServ=0;                         // si 1, indique que dataTransfer() est à effectuer
-
 float   volts=0;                          // tension alim (VCC)
 
 #define NTESTAD '1'                       // numéro testad dans table
@@ -243,8 +241,10 @@ void loop() {
   rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);  // get message from perif
 
   time_beg=micros();
+    
+  // ====== no error registration request ======
   
-  if(rdSta==0){                                       // ====== no error registration request ======
+  if(rdSta==0){                                 
       showRx(false);                                        
       numT=nrfp.cRegister((char*)message);               
       if(numT<(NBPERIF)){                         // registration ok
@@ -255,7 +255,8 @@ void loop() {
       else {Serial.println(" full");}
   }
 
-                                                      // ====== no error && valid entry ======
+  // ====== no error && valid entry ======
+  
   if((rdSta>0) && (memcmp(message,tableC[rdSta].periMac,ADDR_LENGTH)==0)){ 
       if(numT==0){      // if not registration (no valid data), incoming message storage
         memcpy(tableC[rdSta].periBuf,message,pldLength);    
@@ -267,14 +268,14 @@ void loop() {
       if(trSta==0){tableC[rdSta].periBufSent=true;} 
       
                                                       // ======= formatting & tx to server ======
-      if(numT==0){rxServ=exportData(rdSta);}   // if not registration (no valid data), tx to server
+      if(numT==0){exportData(rdSta);}                 // if not registration (no valid data), tx to server
   }
   
   // ====== error or empty -> ignore ======
   // peripheral must re-do registration so no answer to lead to rx error
 
 
-#ifdef DIAG                                         // error diag
+#ifdef DIAG                                    
   if(rdSta<0 && rdSta!=AV_EMPTY){                    
     showRx(false);
     showErr();}
@@ -286,15 +287,16 @@ void loop() {
 
   // ====== RX from server ? ====
   
-  // dataTransfer returns MESSOK(ok)/MESSNUMP(numPeri HS)/MESSMAC(mac not found)
-  int dt;
-  if(rxServ){
-    rxServ=0;dt=dataTransfer(bufServer);if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
+  // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
+  int dt=importData();
+  if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
+
 #ifdef DIAG
-  Serial.print(" dataTransfer=");Serial.println(dt);
+  if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
 #endif // DIAG
-  }
+
   // ====== menu choice ======  
+  
   char a=getch();
   switch(a){
     case 'e':echo(a);menu=true;break;

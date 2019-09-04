@@ -8,7 +8,7 @@
 #if NRF_MODE == 'C'
 
 int  exportData(uint8_t numT);
-int  dataTransfer(char* data);
+int  importData();
 void userResetSetup();
 
 #endif // NRF_MODE == 'C'

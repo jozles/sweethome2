@@ -134,8 +134,8 @@ struct NrfConTable
   bool    periBufSent;
 };
 
-#define SBVINIT "00120_00040_0.25"
-#define SBLINIT 16
+#define SBVINIT "00120_00040_0.25"  // server buffer init value
+#define SBLINIT 16                  // server buffer init length
 
 #endif // NRF_MODE == 'C'
 

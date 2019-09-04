@@ -452,7 +452,7 @@ uint8_t Nrfp::cRegister(char* message)      // search free line or existing macA
 uint8_t Nrfp::macSearch(char* mac,int* numPer)    // search mac in tableC ; out 1->n ; n<NBPERIF found
 {
   int i,j;
-  
+
   for(i=1;i<NBPERIF;i++){
     for(j=ADDR_LENGTH-1;j>=0;j--){
       if(mac[j]!=tableC[i].periMac[j]){j=-2;}
