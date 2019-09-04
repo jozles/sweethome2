@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SPI.h>      //bibliothèqe SPI pour W5100
 #include <Ethernet.h> //bibliothèque W5100 Ethernet
+#include <EthernetUdp.h>
 #include "ds3231.h"
 //#include <SD.h>
 #include "const.h"
@@ -12,6 +13,8 @@
 #include "periph.h"
 
 extern Ds3231 ds3231;
+
+extern EthernetUDP Udp;
 
 /* >>>>>>>> fichier config <<<<<<< 
 
@@ -38,6 +41,8 @@ extern byte* configBegOfRecord;
 extern byte* configEndOfRecord;
 
 */
+
+extern char ab;
 
 /* >>>>>>> fichier périphériques <<<<<<<  */
 
@@ -222,7 +227,7 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct)                       
           return zz;
 }
 
-int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cli 
+int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cli ... ou udp(remote_IP,remote_Port)
                     // envoie une page html (bufServer encapsulé dans <body>...</body>) (fonction ack suite à réception de datasave - set si dataread)
                     // periCur est à jour (0 ou n) et periMess contient le diag du dataread/save reçu
                     // format bufServer <body>message...</body>
@@ -240,16 +245,25 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
   *bufServer='\0';
   buildMess(nfonct,message,"");                           // bufServer complété 
 
+          if(ab!='u'){
             //htmlIntro0(cli);                            // inutile pour le périphérique
             cli->print("<body>");
             cli->print(bufServer);
             cli->println("</body>");
             //cli->println("</html>");                    // inutile pour le périphérique
+          }
+          else {
+            Udp.beginPacket(*periIpAddr,*periPort);
+            /*Serial.print("sending (");Serial.print(strlen(data));Serial.print(")>");Serial.print(data);
+            Serial.print("< to ");Serial.print();Serial.print(":");Serial.println(port);*/
+            Udp.write(bufServer,strlen(bufServer));
+            Udp.endPacket();
+          }
           
           if(zz==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=zz;
           periSave(periCur,PERISAVESD);                   // modifs de periTable et date effacèe par prochain periLoad si pas save
-          cli->stop();        
+          if(ab!='u'){cli->stop();}
           return zz;
 }
 

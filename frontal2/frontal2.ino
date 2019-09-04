@@ -1,6 +1,7 @@
 
 #include <SPI.h>      //bibliothèqe SPI pour W5100
-#include <Ethernet.h> //bibliothèque W5100 Ethernet
+#include <Ethernet.h> //bibliothèque W5x00 Ethernet
+#include <EthernetUdp.h>
 #include <Wire.h>     //biblio I2C pour RTC 3231
 #include "ds3231.h"
 #include <shconst2.h>
@@ -34,7 +35,13 @@ extern "C" {
   EthernetClient cli_a;             // client du serveur periphériques et browser configuration
   EthernetClient cli_b;             // client du serveur pilotage
   EthernetClient cliext;            // client de serveur externe  
+  EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
 char ab;
+
+  char udpData[UDPBUFLEN];         // buffer paquets UDP
+  uint16_t udpDataLen;             // taille paquet contenu
+    
+  extern EthernetUDP Udp;
     
     IPAddress test(82,64,32,56);
     IPAddress espdev(192,168,0,38);
@@ -75,13 +82,14 @@ char configRec[CONFIGRECLEN];
 EthernetServer periserv(PORTSERVER);  // serveur perif et table port 1789 service, 1790 devt, 1786 devt2
 EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
-  uint8_t remote_IP[4]={0,0,0,0};           // periserver
+  //uint8_t remote_IP[4]={0,0,0,0};           // periserver
+  IPAddress remote_IP={0,0,0,0};           // periserver
   uint8_t remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
   uint8_t remote_IP_Mac[4]={0,0,0,0};       // maintenance periserver
   uint8_t remote_IPb[4]={0,0,0,0};          // pilotserver
   byte    remote_MAC[6]={0,0,0,0,0,0};      // periserver
   byte    remote_MACb[6]={0,0,0,0,0,0};     // pilotserver
-
+  uint16_t remote_Port=0;                   
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
@@ -466,9 +474,11 @@ void getremote_IP(EthernetClient *client,uint8_t* ptremote_IP,byte* ptremote_MAC
 void loop()                         
 {
 
-            periserver();     // *** périphérique ou maintenance
+            tcpPeriServer();     // *** périphérique TCP ou maintenance
 
-            pilotserver();    // *** pilotage
+            udpPeriServer();     // *** périphérique UDP via NRF
+            
+            pilotServer();       // *** pilotage
 
             ledblink(0);  
 
@@ -706,20 +716,33 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
   }
 }
 
-int getcde(EthernetClient* cli) // décodage commande reçue selon tables 'cdes' longueur maxi LENCDEHTTP
+int cliAv(EthernetClient* cli,uint16_t len,uint16_t* pt)
+{
+  if(ab=='u'){if(*pt<len){return len-*pt;}else return 0;}
+  return cli->available();
+}
+
+char cliRead(EthernetClient* cli,char* data,uint16_t len,uint16_t* pt)
+{
+  if(ab=='u'){if(*pt<len){return data[*pt];*pt++;}else return data[len-1];}
+  return cli->read();
+}
+
+int getcde(EthernetClient* cli,char* data,uint16_t dataLen,uint16_t* ptr) // décodage commande reçue selon tables 'cdes' longueur maxi LENCDEHTTP
 {
   char c='\0',cde[LENCDEHTTP];
-  int k=0,ncde=0,ko=0;
-  
-  while (cli->available() && c!='/' && k<LENCDEHTTP) {
-    c=cli->read();Serial.print(c);     // décode la commande 
-    if(c!='/'){cde[k]=c;k++;}
-    else {cde[k]=0;break;}
-    }
+  int ncde=0,ko=0;
+
+  while (cliAv(cli,LENCDEHTTP,ptr) && c!='/' && *ptr<LENCDEHTTP) {
+      c=cliRead(cli,data,LENCDEHTTP,ptr);Serial.print(c);     // décode la commande 
+      if(c!='/'){cde[*ptr]=c;*ptr++;}
+      else {cde[*ptr]=0;break;}
+  }
+
   if (c!='/'){ko=1;}                                                                                            // pas de commande, message 400 Bad Request
   else if (strstr(cdes,cde)==0){ko=2;}                                                                          // commande inconnue 501 Not Implemented
   else {ncde=1+(strstr(cdes,cde)-cdes)/LENCDEHTTP ;}                                                            // numéro de commande (ok si >0 && < nbre cdes)
-  if ((ncde<=0) || (ncde>strlen(cdes)/LENCDEHTTP)){ko=1;ncde=0;while (cli->available()){cli->read();}}          // pas de cde valide -> vidage + message
+  if ((ncde<=0) || (ncde>strlen(cdes)/LENCDEHTTP)){ko=1;ncde=0;while (cliAv(cli,dataLen,ptr)){cliRead(cli,data,dataLen,ptr);}}  // pas de cde valide -> vidage + message
   switch(ko){
     case 1:cli->print("<body><br><br> err. 400 Bad Request <br><br></body></html>");break;
     case 2:cli->print("<body><br><br> err. 501 Not Implemented <br><br></body></html>");break;
@@ -728,14 +751,14 @@ int getcde(EthernetClient* cli) // décodage commande reçue selon tables 'cdes'
   return ncde;                                // ncde=0 si KO ; 1 à n numéro de commande
 }
 
-int analyse(EthernetClient* cli)              // decode la chaine et remplit les tableaux noms/valeurs 
+int analyse(EthernetClient* cli,char* data,uint16_t dataLen,uint16_t* ptr)  // decode la chaine et remplit les tableaux noms/valeurs 
 {                                             // prochain car = premier du premier nom
                                               // les caractères de ctle du flux sont encodés %HH par le navigateur
                                               // '%' encodé '%25' ; '@' '%40' etc... 
 
   boolean nom=VRAI,val=FAUX,termine=FAUX;
   int i=0,j=0,k=0;
-  char c,cpc='\0';                         // cpc pour convertir les séquences %hh 
+  char c,cpc='\0';                            // cpc pour convertir les séquences %hh 
   char noms[LENNOM+1]={0},nomsc[LENNOM-1];noms[LENNOM]='\0';nomsc[LENNOM-2]='\0';
   memset(libfonctions,0x00,sizeof(libfonctions));
 
@@ -744,8 +767,8 @@ int analyse(EthernetClient* cli)              // decode la chaine et remplit les
       memset(noms,' ',LENNOM);
       numfonct[0]=-1;                                   // aucune fonction trouvée
      
-      while (cli->available()){
-        c=cli->read();
+      while (cliAv(cli,dataLen,ptr)){
+        c=cliRead(cli,data,dataLen,ptr);
 
         if(c=='%'){cpc=c;}                              // %
         else {
@@ -790,8 +813,9 @@ int analyse(EthernetClient* cli)              // decode la chaine et remplit les
       if(numfonct[0]<0){return -1;} else return i;
 }
 
-int getnv(EthernetClient* cli)        // décode commande, chaine et remplit les tableaux noms/valeurs
+int getnv(EthernetClient* cli,char* data,uint16_t dataLen)        // décode commande, chaine et remplit les tableaux noms/valeurs
 {                                     // sortie -1 pas de commande ; 0 pas de nom/valeur ; >0 nbre de noms/valeurs                                
+  uint16_t ptr=0;
   numfonct[0]=-1;
   int cr=0,pbli=0;
 #define LBUFLI 12
@@ -799,23 +823,23 @@ int getnv(EthernetClient* cli)        // décode commande, chaine et remplit les
   
   Serial.println("--- getnv");
   
-  int ncde=getcde(cli); 
+  int ncde=getcde(cli,data,dataLen,&ptr); 
       Serial.print("ncde=");Serial.print(ncde);Serial.println(" ");
       if(ncde==0){return -1;}  
       
       c=' ';
-      while (cli->available() && c!='?' && c!='.'){      // attente '?' ou '.'
-        c=cli->read();Serial.print(c);
+      while (cliAv(cli,dataLen,&ptr) && c!='?' && c!='.'){      // attente '?' ou '.'
+        c=cliRead(cli,data,dataLen,&ptr);Serial.print(c);
         bufli[pbli]=c;if(pbli<LBUFLI-1){pbli++;bufli[pbli]='\0';}
       }Serial.println();          
 
         switch(ncde){
           case 1:           // GET
             if(strstr(bufli,"favicon")>0){htmlFavicon(cli);}
-            if(bufli[0]=='?' || strstr(bufli,"page.html?")>0 || strstr(bufli,"cx?")>0){return analyse(cli);}
+            if(bufli[0]=='?' || strstr(bufli,"page.html?")>0 || strstr(bufli,"cx?")>0){return analyse(cli,data,dataLen,&ptr);}
             break;
           case 2:           // POST
-            if(c=='\n' && cr>=3){return analyse(cli);}
+            if(c=='\n' && cr>=3){return analyse(cli,data,dataLen,&ptr);}
             else if(c=='\n' || c=='\r'){cr++;}
             else {cr=0;}
             break;
@@ -926,25 +950,27 @@ void inpsub(byte* ptr,byte PNT_MS,byte PNTLS_PB,char* libel,uint8_t len)
 //Serial.print(len);Serial.print(" lreel=");Serial.print(lreel);Serial.print(" typ=");Serial.print(typ);Serial.print(" libel=");Serial.print(libel);Serial.print(" v=");Serial.println(v,HEX);
 }
 
-void commonserver(EthernetClient cli)
+void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 {
 /*
+    Les messages peuvent provenir soit d'une connexion TCP soit UDP soit autre. 
+        Si TCP (ab!='u') bufData et bufDataLen sont sans objet.
+        Si UDP ou autre cli est invalide et sans objet (le membre est vide).
     
-    Une connexion est valide sur le serveur courant (clixx=xxxserv.available() a fonctionné)
+    Si ab='a' ou 'b', une connexion TCP est valide sur le serveur courant (clixx=xxxserv.available() et .connected() ont fonctionné)
+    Sinon bufData contient bufDataLen caractères d'un paquet UDP ou autre.
 
     Si le client est un périphérique, la fonction peripass doit précéder dataread/datasave et le mot de passe est systématiquement contrôlé
     Si le client est un browser (la première fonction n'est pas peripass) les 2 premières fonctions doivent être : 
       soit username__ et password__ en cas de login.
       soit usr_ref___ la référence fournie en première zone (hidden) de la page (num user en libfonction+2xi+1) et millis() comme valeur;
 */
-        
-      getremote_IP(&cli,remote_IP,remote_MAC);
 
-      Serial.print("\n *** serveur actif  IP=");serialPrintIp(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
+      Serial.print("\n *** serveur actif  IP=");Serial.print(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
+      //serialPrintIp(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
       cxtime=millis();
       
-      if (cli.connected()) 
-        {nbreparams=getnv(&cli);Serial.print("\n---- nbreparams ");Serial.println(nbreparams);
+      nbreparams=getnv(&cli,bufData,bufDataLen);Serial.print("\n---- nbreparams ");Serial.println(nbreparams);
         
 /*  getnv() décode la chaine GET ou POST ; le reste est ignoré
     forme ?nom1:valeur1&nom2:valeur2&... etc (NBVAL max)
@@ -1003,7 +1029,7 @@ void commonserver(EthernetClient cli)
 */
         periInitVar();        // pas de rémanence des données des périphériques entre 2 accès au serveur
 
-        memset(strSD,0x00,sizeof(strSD)); memset(buf,0,sizeof(buf));charIp(remote_IP,strSD);       // histo :
+        memset(strSD,0x00,sizeof(strSD)); memset(buf,0,sizeof(buf));charIp((byte*)&remote_IP,strSD);       // histo :
         sprintf(buf,"%d",nbreparams+1);strcat(strSD," ");strcat(strSD,buf);strcat(strSD," = ");    // une ligne par transaction
         strcat(strSD,strSdEnd);
 
@@ -1082,7 +1108,7 @@ void commonserver(EthernetClient cli)
               case 1:  if(checkData(valf)==MESSOK){                                                         // peri_pass_
                          periPassOk=ctlpass(valf+5,peripass);                                               // skip len
                          if(periPassOk==FAUX){memset(remote_IP_cur,0x00,4);sdstore_textdh(&fhisto,"pp","ko",strSD);}
-                         else {memcpy(remote_IP_cur,remote_IP,4);}
+                         else {memcpy(remote_IP_cur,(byte*)&remote_IP,4);}
                        }break;
               case 2:  usernum=searchusr(valf);if(usernum<0){                                        // username__
                           what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;}
@@ -1372,30 +1398,46 @@ void commonserver(EthernetClient cli)
         cliext.stop();
         Serial.print(" *** cli stopped - ");Serial.println(millis()-cxtime); 
 
-    } // cli.connected
+    //} // cli.connected
 }
 
-void periserver()
+
+/* ***************** serveurs ************************/
+
+
+void udpPeriServer()
+{
+  ab='u';
+  
+  uint16_t udpPacketLen = Udp.parsePacket();
+ 
+  if (udpPacketLen){
+    udpDataLen=UDPBUFLEN-1;
+    if(udpPacketLen<UDPBUFLEN){udpDataLen=udpPacketLen;}
+    remote_IP = (uint32_t) Udp.remoteIP();
+    remote_Port = (unsigned int) Udp.remotePort();
+    Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
+    packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY
+    commonserver(cli_udp,udpData,udpDataLen);                       // cli bid pour compatibilité d'arguments avec les fonction tcp
+  }
+}
+
+void tcpPeriServer()
 {
   ab='a';
       if(cli_a = periserv.available())      // attente d'un client
       {
-        commonserver(cli_a);
+        getremote_IP(&cli_a,(byte*)&remote_IP,remote_MAC);      
+        if (cli_a.connected()){commonserver(cli_a," ",1);}
       }
 }
 
-void pilotserver()
+void pilotServer()
 {
   ab='b';
      if(cli_b = pilotserv.available())      // attente d'un client
-        {
-          commonserver(cli_b);
-        }     
-/*
-  ab='a';
-     if(cli_a = pilotserv.available())      // attente d'un client
-        {
-          commonserver(cli_b);
-        }     
- */
+     {
+        getremote_IP(&cli_b,(byte*)&remote_IP,remote_MAC);      
+        if (cli_b.connected()){commonserver(cli_b," ",1);}
+     }     
 }
