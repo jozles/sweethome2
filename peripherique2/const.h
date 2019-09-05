@@ -141,6 +141,7 @@ Modifier :
 
 #define VR      'V'  // 2 triacs
 #define VRR     'W'  // 2 relais
+#define VRDEV   'D'  // carte dev avec 2 leds 
 //#define RELAY   
 #define THESP01 '1'
 #define THESP12 '2'
@@ -150,8 +151,8 @@ Modifier :
 //                                  3 -- adresse IP + port serveur + l'ordre des SSID  (peripherique.ino)
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
-//
-#define CARTE VR                    // <------------- modèle carte
+//                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
+#define CARTE VRDEV                   // <------------- modèle carte
 #define POWER_MODE NO_MODE            // <------------- type d'alimentation 
 //#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 
@@ -305,6 +306,32 @@ Modifier :
 #define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #endif CARTE==THESP12
 
+#if CARTE==VRDEV
+#define WPIN   4        // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
+#define NBSW   2        // nbre switchs
+#define PINSWA 5        // pin sortie switch A
+#define CLOSA  1        // valeur pour fermer (ouvert=!CLOSA)
+#define OPENA  0
+#define PINSWB 2        // pin sortie switch B
+#define CLOSB  1        // valeur pour fermer (ouvert=!CLOSB)
+#define OPENB  0
+#define PINSWC 5        // pin sortie switch C
+#define CLOSC  1        // valeur pour fermer (ouvert=!CLOSA)
+#define OPENC  0
+#define PINSWD 2        // pin sortie switch D
+#define CLOSD  1        // valeur pour fermer (ouvert=!CLOSB)
+#define OPEND  0
+#define NBDET  4
+#define PINDTA 12       // pin entrée détect bit 0 
+#define PINDTB 14       // pin entrée détect bit 1 
+#define PINDTC 13       // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
+#define PINDTD 13       // pin entrée détect bit 3  sur la même entrée.
+#define PININTA 12      // in interupt
+#define PININTB 14      // in interupt
+#define PINPOFF 3       // power off TPL5111 (RX ESP01)
+#define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#endif CARTE==VRDEV
+
 
 // timings
 
@@ -369,4 +396,3 @@ typedef struct {
 */
 
 #endif // CONST_H_INCLUDED
-

@@ -166,7 +166,7 @@ delay(1);
 
   pinMode(PINLED,OUTPUT);
 
-#if CARTE==VR || CARTE==VRR
+#if CARTE==VR || CARTE==VRR || CARTE==VRDEV
   digitalWrite(PINSWA,LOW);
   digitalWrite(PINSWB,LOW);
   pinMode(PINSWA,OUTPUT);

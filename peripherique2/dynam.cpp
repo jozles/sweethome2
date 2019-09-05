@@ -197,7 +197,8 @@ void actions()          // pour chaque input, test enable,
               case PMDCA_LNOR:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest   *** 0->0 ; 1->0 ***
                              case DETYEXT:break;
                              case DETYMEM:locmem &= ~mDSmaskbit[ndest];break;              // raz locmem bit
-                             case DETYSW:digitalWrite(pinSw[ndest],OFF);break;             // no disjoncteur ?
+                             case DETYSW:digitalWrite(pinSw[ndest],OFF);
+                                         break;
                              default:break;
                              }
                              break;                             
