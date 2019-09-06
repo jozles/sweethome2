@@ -446,12 +446,12 @@ void periLineHtml(EthernetClient* cli,int i)
                 cli->println("</tr></table></form>");
 }
 
-void showLine(EthernetClient* cli,int i,char* pkdate)
+void showLine(EthernetClient* cli,int numline,char* pkdate)
 {
   int j;
-                periInitVar();periLoad(i);periCur=i;
-//                if(*periSwNb>MAXSW){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
-//                if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
+                periInitVar();periLoad(numline);periCur=numline;
+                if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}     //periCheck(numline,"SwNb");periInitVar();periSave(numline,PERISAVESD);}
+                if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}  //periCheck(numline,"detNb");periInitVar();periSave(numline,PERISAVESD);}
 
                 cli->println("<tr>");
                   cli->println("<form method=\"GET \">");

@@ -35,7 +35,7 @@ extern "C" {
   EthernetClient cli_a;             // client du serveur periphériques et browser configuration
   EthernetClient cli_b;             // client du serveur pilotage
   EthernetClient cliext;            // client de serveur externe  
-  EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
+  //EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
 char ab;
 
   char udpData[UDPBUFLEN];         // buffer paquets UDP
@@ -82,8 +82,8 @@ char configRec[CONFIGRECLEN];
 EthernetServer periserv(PORTSERVER);  // serveur perif et table port 1789 service, 1790 devt, 1786 devt2
 EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
-  //uint8_t remote_IP[4]={0,0,0,0};           // periserver
-  IPAddress remote_IP={0,0,0,0};           // periserver
+  uint8_t remote_IP[4]={0,0,0,0};           // periserver
+  //IPAddress remote_IP={0,0,0,0};           // periserver
   uint8_t remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
   uint8_t remote_IP_Mac[4]={0,0,0,0};       // maintenance periserver
   uint8_t remote_IPb[4]={0,0,0,0};          // pilotserver
@@ -322,9 +322,12 @@ void setup() {                              // =================================
 /* >>>>>>     config     <<<<<< */  
   
   Serial.println();Serial.print(VERSION);
-  #ifdef _MODE_DEVT || MODE_DEVT2
+  #ifdef _MODE_DEVT 
   Serial.print(" MODE_DEVT");Serial.print(" free=");Serial.println(freeMemory(), DEC);
-  #endif _MODE_DEVT/2
+  #endif _MODE_DEVT
+  #ifdef _MODE_DEVT2 
+  Serial.print(" MODE_DEVT2");Serial.print(" free=");Serial.println(freeMemory(), DEC);
+  #endif _MODE_DEVT2
 
   Serial.print("\nSD card ");
   if(!SD.begin(4)){Serial.println("KO");ledblink(BCODESDCARDKO);}
@@ -387,6 +390,11 @@ while(1){}
     timersSave();
     while(1){}; 
 */
+/*  init detecteurs
+    memDetInit();
+    memDetSave();
+    while(1){};
+*/
   
   sdOpen(FILE_WRITE,&fhisto,"fdhisto.txt");
   //sdstore_textdh0(&fhisto,".1","RE"," ");
@@ -399,12 +407,13 @@ while(1){}
   Ds3231(); 
 //*/
 
-
+  Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
+  
   if(Ethernet.begin(mac) == 0)
     {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
     Ethernet.begin (mac, localIp); //initialisation de la communication Ethernet
     }
-  Serial.println(Ethernet.localIP());
+    Serial.print("localIP=");Serial.println(Ethernet.localIP());
 
 
   periserv.begin();Serial.println("periserv.begin ");   // serveur périphériques
@@ -458,14 +467,10 @@ while(1){}
 /*=================== fin setup ============================ */
 
 
-void getremote_IP(EthernetClient *client,uint8_t* ptremote_IP,byte* ptremote_MAC)
-//void getremote_IP(EthernetClient *client,IPAddress* ptremote_IP,byte* ptremote_MAC)
+void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC)
 {
     W5100.readSnDHAR(client->getSocketNumber(), ptremote_MAC);
     W5100.readSnDIPR(client->getSocketNumber(), ptremote_IP);
-    //w5500.readSnDIPR(client->getSocketNumber(), remoteIP);
-    //ptremote_IP  = (uint8_t)client->remoteIP();
-    //ptremote_MAC = client->getRemoteMAC();
 }
 
 
@@ -476,7 +481,7 @@ void loop()
 
             tcpPeriServer();     // *** périphérique TCP ou maintenance
 
-            udpPeriServer();     // *** périphérique UDP via NRF
+            //udpPeriServer();     // *** périphérique UDP via NRF
             
             pilotServer();       // *** pilotage
 
@@ -719,7 +724,8 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
 int cliAv(EthernetClient* cli,uint16_t len,uint16_t* pt)
 {
   if(ab=='u'){if(*pt<len){return len-*pt;}else return 0;}
-  return cli->available();
+  int x=cli->available();
+  return x;
 }
 
 char cliRead(EthernetClient* cli,char* data,uint16_t len,uint16_t* pt)
@@ -734,15 +740,17 @@ int getcde(EthernetClient* cli,char* data,uint16_t dataLen,uint16_t* ptr) // dé
   int ncde=0,ko=0;
 
   while (cliAv(cli,LENCDEHTTP,ptr) && c!='/' && *ptr<LENCDEHTTP) {
-      c=cliRead(cli,data,LENCDEHTTP,ptr);Serial.print(c);     // décode la commande 
-      if(c!='/'){cde[*ptr]=c;*ptr++;}
+      c=cliRead(cli,data,LENCDEHTTP,ptr);Serial.print(c);                  // décode la commande 
+      
+      if(c!='/'){cde[*ptr]=c;*ptr=(*ptr)+1;}
       else {cde[*ptr]=0;break;}
   }
 
-  if (c!='/'){ko=1;}                                                                                            // pas de commande, message 400 Bad Request
-  else if (strstr(cdes,cde)==0){ko=2;}                                                                          // commande inconnue 501 Not Implemented
-  else {ncde=1+(strstr(cdes,cde)-cdes)/LENCDEHTTP ;}                                                            // numéro de commande (ok si >0 && < nbre cdes)
-  if ((ncde<=0) || (ncde>strlen(cdes)/LENCDEHTTP)){ko=1;ncde=0;while (cliAv(cli,dataLen,ptr)){cliRead(cli,data,dataLen,ptr);}}  // pas de cde valide -> vidage + message
+  if (c!='/'){ko=1;}                                                                                // pas de commande, message 400 Bad Request
+  else if (strstr(cdes,cde)==0){ko=2;}                                                              // commande inconnue 501 Not Implemented
+  else {ncde=1+(strstr(cdes,cde)-cdes)/LENCDEHTTP ;}                                                // numéro de commande (ok si >0 && < nbre cdes)
+  if ((ncde<=0) || (ncde>strlen(cdes)/LENCDEHTTP)){ko=1;ncde=0;
+    while (cliAv(cli,dataLen,ptr)){cliRead(cli,data,dataLen,ptr);}}                                 // pas de cde valide -> vidage + message
   switch(ko){
     case 1:cli->print("<body><br><br> err. 400 Bad Request <br><br></body></html>");break;
     case 2:cli->print("<body><br><br> err. 501 Not Implemented <br><br></body></html>");break;
@@ -966,8 +974,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
       soit usr_ref___ la référence fournie en première zone (hidden) de la page (num user en libfonction+2xi+1) et millis() comme valeur;
 */
 
-      Serial.print("\n *** serveur actif  IP=");Serial.print(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
-      //serialPrintIp(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
+      Serial.print("\n *** serveur (");Serial.print((char)ab);Serial.print(") actif  IP=");serialPrintIp(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
+      
       cxtime=millis();
       
       nbreparams=getnv(&cli,bufData,bufDataLen);Serial.print("\n---- nbreparams ");Serial.println(nbreparams);
@@ -1407,7 +1415,11 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 
 void udpPeriServer()
 {
+  /*
+  
   ab='u';
+
+  Udp.begin(PORTUDP);
   
   uint16_t udpPacketLen = Udp.parsePacket();
  
@@ -1418,8 +1430,10 @@ void udpPeriServer()
     remote_Port = (unsigned int) Udp.remotePort();
     Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
     packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY
-    commonserver(cli_udp,udpData,udpDataLen);                       // cli bid pour compatibilité d'arguments avec les fonction tcp
+    commonserver(cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
   }
+  Udp.stop();
+*/
 }
 
 void tcpPeriServer()
@@ -1427,8 +1441,10 @@ void tcpPeriServer()
   ab='a';
       if(cli_a = periserv.available())      // attente d'un client
       {
-        getremote_IP(&cli_a,(byte*)&remote_IP,remote_MAC);      
-        if (cli_a.connected()){commonserver(cli_a," ",1);}
+        getremote_IP(&cli_a,remote_IP,remote_MAC);      
+        serialPrintIp(remote_IP);Serial.println(" connecté");
+        if (cli_a.connected()){         
+          commonserver(cli_a," ",1);}
       }
 }
 
@@ -1437,7 +1453,8 @@ void pilotServer()
   ab='b';
      if(cli_b = pilotserv.available())      // attente d'un client
      {
-        getremote_IP(&cli_b,(byte*)&remote_IP,remote_MAC);      
+        getremote_IP(&cli_b,remote_IP,remote_MAC);      
+        serialPrintIp(remote_IP);Serial.println(" connecté");
         if (cli_b.connected()){commonserver(cli_b," ",1);}
      }     
 }

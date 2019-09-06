@@ -3,7 +3,7 @@
 
 //#define WEMOS
 
-#define VERSION "1.3b"
+#define VERSION "1.4"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -46,6 +46,7 @@
  *      libellé pour detecteurs serveur ; affichage/saisie lignes péritable disjoint
  * 1.3b periSend et periParamsHtml disparaissent ... periReq et periAns envoient des messages aux périphériques
  *      ds3231.h devient une lib ; création de la classe Ds3231 (instance ds3231)
+ * 1.4  udp      
  *      
  * BUGS : 
  *  
@@ -93,13 +94,14 @@
 
 */
 
-#define _MODE_DEVT    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
+#define _MODE_DEVT2    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
 #ifdef _MODE_DEVT2
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAE"    
 #define LOCALSERVERIP {192,168,0,36}          
 #define PORTSERVER PORTPERISERVER2
 #define PORTPILOT  PORTPILOTSERVER2
+#define PORTUDP    PORTUDPSERVER2
 #define NOMSERV "sweet dev2\0"
 #define LNSERV  17
 #endif _MODE_DEVT2
