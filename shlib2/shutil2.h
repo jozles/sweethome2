@@ -5,6 +5,8 @@ uint8_t calcCrc(char* bufCrc,int len);
 byte setcrc(char* buf,int len);
 void conv_atoh(char* ascii,byte* hex);
 void conv_htoa(char* ascii,byte* hex);
+void conv_atob(char* ascii,uint16_t* bin);
+void conv_atobl(char* ascii,uint32_t* bin);
 float convStrToNum(char* str,int* sizeRead);
 int convIntToString(char* str,int num);
 int convNumToString(char* str,float num);  // retour string terminée par '\0' ; return longueur totale '\0' inclus
@@ -20,6 +22,7 @@ void unpackDate(char* dateout,char* datein);
 int  dateCmp(char* olddate,char* newdate,uint32_t offset,uint8_t skip1,uint8_t skip2);
 void serialPrintDate(char* datein);
 void ledblink(uint8_t nbBlk);
+void initLed(uint8_t pin);
 void dumpstr(char* data,uint16_t len);
 void dumpfield(char* fd,uint8_t ll);
 bool ctlpass(char* data,char* model);

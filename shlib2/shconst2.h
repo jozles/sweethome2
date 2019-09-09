@@ -17,6 +17,7 @@
 ///* 2nd serveur
 #define PORTPERISERVER2  1786    // port du serveur pour périphériques et maintenance
 #define PORTPILOTSERVER2 1788    // port du serveur de remote
+#define PORTUDPSERVER2   8886
 #define HOSTIPADDR2 "192.168.0.36"
 //*/
 
@@ -72,6 +73,7 @@
 //#define LENPSW  16    // nbre car maxi pswd
 #define RECHEAD 28                           // en-tete strSD date/heure/xx/yy + <br> + crlf
 #define RECCHAR NBVAL*(MEANVAL+3)+RECHEAD+8  // longueur maxi record histo
+#define UDPBUFLEN NBVAL*(MEANVAL+12)+6+1 //LENCDEHTTP // longueur maxi buffer paquet UDP
 
 #define LBUFSERVER LENMESS+LENNOM+1+4+1+2+1 // longueur bufserver (messages in/out periphériques)
                                             // + nom fonct+1+longueur+1+crc+1

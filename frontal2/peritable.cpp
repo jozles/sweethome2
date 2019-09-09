@@ -11,9 +11,6 @@
 #include "utilhtml.h"
 #include "pageshtml.h"
 
-#ifndef WEMOS
-//  #include <avr/wdt.h>  //biblio watchdog
-#endif ndef WEMOS
 
 extern Ds3231 ds3231;
 
@@ -187,7 +184,7 @@ void SwCtlTableHtml(EthernetClient* cli)
   cli->print("</tr></table></form>");
 
     cli->println("<table>Règles");
-      cli->println("<tr><th></th><th>e. l. p. e<br>n. v. r. s</th><th> source </th><th> destin.</th><th> action</th></tr>");
+      cli->println("<tr><th></th><th>e.l p.e<br>n.v.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
 
       char xfonc1[]="p_inp1____\0";
       char xfonc2[]="p_inp2____\0";
@@ -258,6 +255,10 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           #ifdef _MODE_DEVT
             cli->print("MODE_DEVT ");
           #endif _MODE_DEVT
+          #ifdef _MODE_DEVT2
+            cli->print("MODE_DEVT2 ");
+          #endif _MODE_DEVT2
+
           char pkdate[7];cliPrintDateHeure(cli,pkdate);
           cli->println("; local IP ");cli->print(Ethernet.localIP());cli->println(" ");
           cli->print(th);cli->println("°C<br>");

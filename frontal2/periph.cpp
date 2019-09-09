@@ -117,109 +117,8 @@ File fmemdet;     // fichier détecteurs serveur
 extern char strdate[33];
 extern char temp[3],temp0[3],humid[3];
 
-/*
-byte decToBcd(byte val)
-{
-  return( (val/10*16) + (val%10) );
-}
-
-byte bcdToDec(byte val)
-{
-  return( (val/16*10) + (val%16) );
-}
-
-void setDS3231time(byte second, byte minute, byte hour, 
-    byte dayOfWeek,byte dayOfMonth, byte month, byte year)
-{
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  Wire.write(0); // set next input to start at the seconds register
-  Wire.write(decToBcd(second)); // set seconds
-  Wire.write(decToBcd(minute)); // set minutes
-  Wire.write(decToBcd(hour)); // set hours
-  Wire.write(decToBcd(dayOfWeek)); // set day of week (1=Sunday, 7=Saturday)
-  Wire.write(decToBcd(dayOfMonth)); // set date (1 to 31)
-  Wire.write(decToBcd(month)); // set month
-  Wire.write(decToBcd(year)); // set year (0 to 99)
-  Wire.endTransmission();
-}
-
-
-void readDS3231time(byte *second,byte *minute,byte *hour,
-    byte *dayOfWeek,byte *dayOfMonth,byte *month,byte *year)
-{
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  Wire.write(0); // set DS3231 register pointer to 00h
-  Wire.endTransmission();
-  Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
-  // request seven bytes of data from DS3231 starting from register 00h
-  *second = bcdToDec(Wire.read() & 0x7f);
-  *minute = bcdToDec(Wire.read());
-  *hour = bcdToDec(Wire.read() & 0x3f);
-  *dayOfWeek = bcdToDec(Wire.read());
-  *dayOfMonth = bcdToDec(Wire.read());
-  *month = bcdToDec(Wire.read());
-  *year = bcdToDec(Wire.read());
-}
-
-Ymdhms now()
-{
-  Ymdhms ndt;
-  
-  readDS3231time(&ndt.second,&ndt.minute,&ndt.hour,&ndt.dow,&ndt.day,&ndt.month,&ndt.year);
-  //Serial.print("DS3231=");Serial.print(ndt.year);Serial.print(ndt.month);Serial.println(ndt.day);
-  return ndt;
-}
-
-void readDS3231temp(float* th)
-{
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  Wire.write(17); // set DS3231 register pointer to 11h
-  Wire.endTransmission();
-  Wire.requestFrom(DS3231_I2C_ADDRESS, 2);
-  // request two bytes of data from DS3231 starting from register 11h
-
-  byte msb = Wire.read();
-  byte lsb = Wire.read();
-  //Serial.print(*msb);Serial.print(":");Serial.println(*lsb);
-  switch(lsb)
-  {
-    case 0:break;
-    case 64: lsb=25;break;
-    case 128:lsb=50;break;
-    case 192:lsb=75;break;
-    default: msb=99,lsb=99;break; // error 
-  }
-  *th=(float)msb+(float)lsb/100;
-}
-
-void getdate(uint32_t* hms2,uint32_t* amj2,byte* js)
-{
-  char* days={"SunMonTueWedThuFriSat"};
-  char* months={"JanFebMarAprMayJunJulAugSepOctNovDec"};
-  int i=0;
-  byte seconde,minute,heure,jour,mois,annee,msb,lsb; // numérique DS3231   // ,joursemaine
-  char buf[8];for(byte i=0;i<8;i++){buf[i]=0;} 
-  readDS3231time(&seconde,&minute,&heure,js,&jour,&mois,&annee);
-  *hms2=(long)(heure)*10000+(long)minute*100+(long)seconde;*amj2=(long)(annee+2000)*10000+(long)mois*100+(long)jour;
-  memset(strdate,0x00,sizeof(strdate));
-  strncpy(strdate,days+(*(js)-1)*3,3);strcat(strdate,", ");sprintf(buf,"%u",(byte)jour);strcat(strdate,buf);
-  strcat(strdate," ");strncat(strdate,months+(mois-1)*3,3);strcat(strdate," ");sprintf(buf,"%u",annee+2000);strcat(strdate,buf);
-  strcat(strdate," ");sprintf(buf,"%.2u",heure);strcat(strdate,buf);strcat(strdate,":");sprintf(buf,"%.2u",minute);
-  strcat(strdate,buf);strcat(strdate,":");sprintf(buf,"%02u",seconde);strcat(strdate,buf);strcat(strdate," GMT");
-}
-
-void alphaNow(char* buff)
-{
-  Ymdhms ndt=now();
-  
-  sprintf(buff,"%.8lu",(long)(ndt.year+2000)*10000+(long)ndt.month*100+(long)ndt.day);
-  sprintf((buff+8),"%.2u",ndt.hour);sprintf((buff+10),"%.2u",ndt.minute);sprintf((buff+12),"%.2u",ndt.second);
-  buff[14]=ndt.dow;
-  buff[15]='\0';
-  //Serial.print("alphaNow ");Serial.print(buff);Serial.print(" ");Serial.print(ndt.hour);Serial.print(" ");Serial.print(ndt.minute);Serial.print(" ");Serial.println(ndt.second);
-  //Serial.println();
-}
-//*/
+extern  char* fonctions;
+extern  int   nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
 
 /* >>>>>>>>> configuration <<<<<<<<<< */
 
@@ -266,8 +165,26 @@ byte* temp=(byte*)configRec;
 
   configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
 
-//Serial.print((long)temp);Serial.print(" ");Serial.print((long)configEndOfRecord);Serial.print(" ");Serial.println((long)configBegOfRecord);  
   configInitVar();
+
+  long configRecLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
+  Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configRecLength);Serial.print("  ");
+  Serial.print("MLMSET/LENMESS=");Serial.print(MLMSET);Serial.print("/");Serial.print(LENMESS);
+  delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
+  
+  nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;
+  faccueil=(strstr(fonctions,"accueil___")-fonctions)/LENNOM;
+  fdatasave=(strstr(fonctions,"data_save_")-fonctions)/LENNOM;
+  fperiSwVal=(strstr(fonctions,"peri_intv0")-fonctions)/LENNOM;
+  fdone=(strstr(fonctions,"done______")-fonctions)/LENNOM;
+  fpericur=(strstr(fonctions,"peri_cur__")-fonctions)/LENNOM;
+  fperipass=(strstr(fonctions,"peri_pass_")-fonctions)/LENNOM;
+  fpassword=(strstr(fonctions,"password__")-fonctions)/LENNOM;
+  fusername=(strstr(fonctions,"username__")-fonctions)/LENNOM;
+  fuserref=(strstr(fonctions,"user_ref__")-fonctions)/LENNOM;
+  
+  Serial.print("  nbfonct=");Serial.println(nbfonct);
+  Serial.print("RECCHAR=");Serial.print(RECCHAR);Serial.print(" LBUFSERVER=");Serial.println(LBUFSERVER);
 }
 
 void configInitVar()
@@ -467,18 +384,26 @@ int periSave(uint16_t num,bool sd)
   *periNum=num;
   sta=SDOK;
   if(sd){
-    if(sdOpen(FILE_WRITE,&fperi,periFile)!=SDKO){
+/*    if(sdOpen(FILE_WRITE,&fperi,periFile)!=SDKO){
       fperi.seek(0);
       for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
 //for(i=0;i<PERIRECLEN+sizeof(uint16_t);i++){fperi.write(periRec[i]);}      // ajouter les longueurs des variables ajoutées avant de modifier PERIRECLEN
       fperi.close();
-
-      for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
+      Serial.print("done ");Serial.print(periFile);
+      for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}*/
+      Serial.print(periFile);
+      if(fperi=SD.open(periFile,FILE_WRITE)){
+        sta=SDOK;
+        fperi.seek(0);
+        for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
+        fperi.close();
+        Serial.print(" ok ");
+        for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
+      }
+      else{sta=SDKO;Serial.print(" ko ");}
     }
-    else sta=SDKO;
-    Serial.print("periSave(");Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(")status=");Serial.print(sta);Serial.print(" NbSw=");Serial.print(*periSwNb);if(num!=NBPERIF+1){Serial.println();}
+    Serial.print(" periSave(");Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(")status=");Serial.print(sta);Serial.print(";save=");Serial.print(sd);Serial.print(" NbSw=");Serial.print(*periSwNb);Serial.print(" port=");Serial.print(*periPort);if(num!=NBPERIF+1){Serial.println();}
     return sta;
-  }
 }
 
 void periInit()                 // pointeurs de l'enregistrement de table courant
@@ -616,6 +541,17 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
    // attention : perInitVar ne concerne que les variables de l'enregistrement de périphérique
    // lorsque periLoad est effectué periInitVar n'est oas utile
 }
+
+void periTableLoad()                 // au démarrage du systeme
+{
+  Serial.print("Load table perif ");
+  periInit();
+  long periRecLength=(long)periEndOfRecord-(long)periBegOfRecord+1;
+  Serial.print("PERIRECLEN=");Serial.print(PERIRECLEN);Serial.print("/");Serial.print(periRecLength);
+  delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
+
+  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periLoad(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" OK");
+}  
 
 void periConvert()        
 /* Pour ajouter une variable : 
@@ -820,6 +756,64 @@ Serial.print(" save ");
 
 
 
+/* >>>>>>  maintenance fichiers peri  <<<<<< */
+
+void periMaintenance()
+{
+/*
+for(i=0;i<50;i++){
+  Serial.print(i);if(i<10){Serial.print(" ");}Serial.print(" ");
+  for(j=0;j<10;j++){Serial.print((char)fonctions[i*10+j]);}
+  Serial.println();if((strstr(fonctions+i*10,"last")-(fonctions+i*10))==0){i=100;}}
+while(1){} 
+*/
+/* 
+    if(SD.exists("fdhisto.txt")){SD.remove("fdhisto.txt");}
+    while(1){}
+*/    
+/*//Modification des fichiers de périphériques   
+    Serial.println("conversion en cours...");
+    periConvert();
+    Serial.println("terminé");
+    while(1){};
+*/
+/*  après changement de format : chargement cache puis remove et save 
+    Serial.println("conv en cours");
+    for(int h=0;h<NBPERIF;h++){
+      periLoad(h);periRemove(h);periSave(h,1);
+    }
+    Serial.println("terminé");
+    while(1){}
+*/
+/*  création des fichiers de périphériques 
+    periInit();
+    for(i=11;i<=NBPERIF;i++){
+      periRemove(i);
+      periCacheStatus[i]=0x01;
+      periCur=i;periSave(i,1);
+    }
+    while(1){}
+*/
+/* //correction de valeurs dans les fichiers de périphériques
+    Serial.print("correction en cours...");
+    periInit();
+    for(i=1;i<=NBPERIF;i++){periSave(i,PERISAVESD);}
+    Serial.println("terminé");
+    while(1){}
+*/
+/*  init timers
+ 
+    timersInit();
+    timersSave();
+    while(1){}; 
+*/
+/*  init detecteurs
+    memDetInit();
+    memDetSave();
+    while(1){};
+*/
+}
+
 /*********** remotes ************/
 
 void remPrint(uint8_t num)
@@ -925,7 +919,7 @@ void timersInit()
 
 int timersLoad()
 {
-    Serial.print("Load timers ");
+    Serial.print("Load timers   ");
     if(sdOpen(FILE_READ,&ftimers,TIMERSNFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     ftimers.seek(0);
     for(uint16_t i=0;i<timersNlen;i++){*(timersNA+i)=ftimers.read();}             
@@ -943,9 +937,11 @@ int timersSave()
     return SDOK;
 }
 
+/************** détecteurs serveur **************/
+
 int memDetLoad()
 {
-    Serial.print("Load detServ ");
+    Serial.print("Load detServ  ");
     if(sdOpen(FILE_READ,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     fmemdet.seek(0);
     for(uint8_t i=0;i<MDSLEN;i++){*(&memDetServ+i)=fmemdet.read();}

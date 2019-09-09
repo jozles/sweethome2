@@ -25,6 +25,8 @@ char* v2debug[NBDBPTS*NBDBOC];
 char* v3debug[NBDBPTS*NBDBOC];
 */
 
+uint8_t pinLed;
+
 int   int00=0;
 int*  int0=&int00;
 
@@ -52,6 +54,22 @@ int convNumToString(char* str,float num)  // retour string terminée par '\0' ; 
   str[t]='\0';
 
   return t;
+}
+
+void conv_atob(char* ascii,uint16_t* bin)
+{
+  int j=0;
+  byte c;
+  *bin=0;
+  for(j=0;j<LENVAL;j++){c=ascii[j];if(c>='0' && c<='9'){*bin=*bin*10+c-48;}else{j=LENVAL;}}
+}
+
+void conv_atobl(char* ascii,uint32_t* bin)
+{
+  int j=0;
+  byte c;
+  *bin=0;
+  for(j=0;j<LENVAL;j++){c=ascii[j];if(c>='0' && c<='9'){*bin=*bin*10+c-48;}else{j=LENVAL;}}
 }
 
 void sp(char* a,bool ln)
@@ -282,12 +300,12 @@ void serialPrintDate(char* datein)
 void lb0()
 {
     if(millis()>blinktime){
-       if(digitalRead(PINLED)==LEDON){digitalWrite(PINLED,LEDOFF);
+       if(digitalRead(pinLed)==LEDON){digitalWrite(pinLed,LEDOFF);
           if(cntBlink<=1){blinktime=millis()+SLOWBLINK;}
           else{blinktime=millis()+FASTBLINK;}
           if(cntBlink>0){cntBlink--;}
        }
-       else {digitalWrite(PINLED,LEDON);blinktime=millis()+PULSEBLINK;}
+       else {digitalWrite(pinLed,LEDON);blinktime=millis()+PULSEBLINK;}
        if(cntBlink==0){cntBlink=nbreBlink;}      // recharge cntblink
     }
 }
@@ -297,11 +315,18 @@ void ledblink(uint8_t nbBlk)    // nbre blinks rapides tous les PERBLINK
 
          if(nbreBlink==0 ){
                 if(nbBlk!=BCODEONBLINK){nbreBlink=nbBlk;}                   // une fois nbreBlink chargé, la consigne est ignorée
-                else digitalWrite(PINLED,LEDON);
+                else digitalWrite(pinLed,LEDON);
          }
          if(nbBlk==100+nbreBlink){nbreBlink=0;}
          while(nbreBlink%2!=0){lb0();}                        // si nbreBlink impair blocage
          lb0();                                               // sinon blink 1 ou nbreBlink
+}
+
+void initLed(uint8_t pin)
+{
+  pinLed=pin;
+  pinMode(pinLed,OUTPUT);
+  cntBlink=0;
 }
 
 void timeOvfSet(uint8_t slot)

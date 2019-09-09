@@ -35,7 +35,7 @@ extern "C" {
   EthernetClient cli_a;             // client du serveur periphériques et browser configuration
   EthernetClient cli_b;             // client du serveur pilotage
   EthernetClient cliext;            // client de serveur externe  
-  //EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
+  EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
 char ab;
 
   char udpData[UDPBUFLEN];         // buffer paquets UDP
@@ -78,12 +78,10 @@ char configRec[CONFIGRECLEN];
   bool    periPassOk=FAUX;  // contrôle du mot de passe des périphériques
   int     usernum=-1;       // numéro(0-n) de l'utilisateur connecté (valide durant commonserver)   
 
-
 EthernetServer periserv(PORTSERVER);  // serveur perif et table port 1789 service, 1790 devt, 1786 devt2
 EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   uint8_t remote_IP[4]={0,0,0,0};           // periserver
-  //IPAddress remote_IP={0,0,0,0};           // periserver
   uint8_t remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
   uint8_t remote_IP_Mac[4]={0,0,0,0};       // maintenance periserver
   uint8_t remote_IPb[4]={0,0,0,0};          // pilotserver
@@ -252,9 +250,8 @@ unsigned long   timersNlen=(sizeof(Timers))*NBTIMERS;
 char inch=' ';
 char strdate[33]; // buffer date
 char strd3[4]={0};
-int  wday=0;
-byte js=0,js2=0;
-uint32_t amj=0, hms=0, amj2=0, hms2=0;
+byte js=0;
+uint32_t amj=0, hms=0;
  
 File fhisto;            // fichier histo sd card
 File fhtml;             // fichiers pages html
@@ -279,17 +276,11 @@ byte globalEnd;
 int  getnv(EthernetClient* cli);
 
 int  sdOpen(char mode,File* fileSlot,char* fname);
-void conv_atob(char* ascii,uint16_t* bin);
-void conv_atobl(char* ascii,uint32_t* bin);
-
-byte decToBcd(byte val);
-byte bcdToDec(byte val);
 void xcrypt();
 //void serialPrintSave();
 //void periSend(uint16_t np,char* nfonct);
 //int  periParamsHtml(EthernetClient* cli,char* host,int port);
 void periDataRead();
-void packVal2(byte* value,byte* val);
 void frecupptr(char* nomfonct,uint8_t* v,uint8_t* b,uint8_t lenpersw);
 void bitvSwCtl(byte* data,uint8_t sw,uint8_t datalen,uint8_t shift,byte msk);
 void test2Switchs();
@@ -304,108 +295,28 @@ void setup() {                              // =================================
   Serial.begin (115200);delay(1000);
   Serial.print("+");delay(100);
 
-  pinMode(PINLED,OUTPUT);
-  extern uint8_t cntBlink;
-  cntBlink=0;
-
-  nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;
-  faccueil=(strstr(fonctions,"accueil___")-fonctions)/LENNOM;
-  fdatasave=(strstr(fonctions,"data_save_")-fonctions)/LENNOM;
-  fperiSwVal=(strstr(fonctions,"peri_intv0")-fonctions)/LENNOM;
-  fdone=(strstr(fonctions,"done______")-fonctions)/LENNOM;
-  fpericur=(strstr(fonctions,"peri_cur__")-fonctions)/LENNOM;
-  fperipass=(strstr(fonctions,"peri_pass_")-fonctions)/LENNOM;
-  fpassword=(strstr(fonctions,"password__")-fonctions)/LENNOM;
-  fusername=(strstr(fonctions,"username__")-fonctions)/LENNOM;
-  fuserref=(strstr(fonctions,"user_ref__")-fonctions)/LENNOM;
+  initLed(PINLED);
   
 /* >>>>>>     config     <<<<<< */  
   
   Serial.println();Serial.print(VERSION);
-  #ifdef _MODE_DEVT 
-  Serial.print(" MODE_DEVT");Serial.print(" free=");Serial.println(freeMemory(), DEC);
-  #endif _MODE_DEVT
-  #ifdef _MODE_DEVT2 
-  Serial.print(" MODE_DEVT2");Serial.print(" free=");Serial.println(freeMemory(), DEC);
-  #endif _MODE_DEVT2
-
-  Serial.print("\nSD card ");
-  if(!SD.begin(4)){Serial.println("KO");ledblink(BCODESDCARDKO);}
-  Serial.println("OK");
-
-  configInit();long configRecLength=(long)configEndOfRecord-(long)configBegOfRecord+1;
+  Serial.print(MODE_EXEC);Serial.print(" free=");Serial.println(freeMemory(), DEC);
   
-  Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configRecLength);Serial.print("  ");
-  Serial.print("MLMSET/LENMESS=");Serial.print(MLMSET);Serial.print("/");Serial.print(LENMESS);
-  delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
-  Serial.print("  nbfonct=");Serial.println(nbfonct);
-  //configSave();
+  sdInit();
+
+  configInit();  //configSave();
   configLoad();memcpy(mac,MACADDR,6);configPrint();
   
-  periInit();long periRecLength=(long)periEndOfRecord-(long)periBegOfRecord+1;
+//  periMaintenance();  
   
-  Serial.print("PERIRECLEN=");Serial.print(PERIRECLEN);Serial.print("/");Serial.print(periRecLength);
-  delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
+/* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
-  Serial.print(" RECCHAR=");Serial.print(RECCHAR);Serial.print(" LBUFSERVER=");Serial.print(LBUFSERVER);
-  Serial.print(" free=");Serial.println(freeMemory(), DEC); 
-
-/* >>>>>>  maintenance fichiers peri  <<<<<< */
-/*
-for(i=0;i<50;i++){
-  Serial.print(i);if(i<10){Serial.print(" ");}Serial.print(" ");
-  for(j=0;j<10;j++){Serial.print((char)fonctions[i*10+j]);}
-  Serial.println();if((strstr(fonctions+i*10,"last")-(fonctions+i*10))==0){i=100;}}
-while(1){} 
-*/
-/* 
-    if(SD.exists("fdhisto.txt")){SD.remove("fdhisto.txt");}
-    while(1){}
-*/    
-/*//Modification des fichiers de périphériques   
-    Serial.println("conversion en cours...");
-    periConvert();
-    Serial.println("terminé");
-    while(1){};
-*/  
-/*  création des fichiers de périphériques 
-    periInit();
-    for(i=11;i<=NBPERIF;i++){
-      periRemove(i);
-      periCacheStatus[i]=0x01;
-      periCur=i;periSave(i,1);
-    }
-    while(1){}
-*/
-/* //correction de valeurs dans les fichiers de périphériques
-    Serial.print("correction en cours...");
-    periInit();
-    for(i=1;i<=NBPERIF;i++){periSave(i,PERISAVESD);}
-    Serial.println("terminé");
-    while(1){}
-*/
-/*  init timers
- 
-    timersInit();
-    timersSave();
-    while(1){}; 
-*/
-/*  init detecteurs
-    memDetInit();
-    memDetSave();
-    while(1){};
-*/
-  
-  sdOpen(FILE_WRITE,&fhisto,"fdhisto.txt");
-  //sdstore_textdh0(&fhisto,".1","RE"," ");
+  periTableLoad();
+  remoteLoad();//remInit();
+  timersLoad();//timersInit();
+  memDetLoad();memDetInit();
 
 /* >>>>>> ethernet start <<<<<< */
-
-  ds3231.i2cAddr=DS3231_I2C_ADDRESS;
-  Wire.begin();
-/*
-  Ds3231(); 
-//*/
 
   Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
   
@@ -414,7 +325,6 @@ while(1){}
     Ethernet.begin (mac, localIp); //initialisation de la communication Ethernet
     }
     Serial.print("localIP=");Serial.println(Ethernet.localIP());
-
 
   periserv.begin();Serial.println("periserv.begin ");   // serveur périphériques
 
@@ -428,44 +338,26 @@ while(1){}
   
   delay(100);
 
-#ifndef WEMOS  
- // wdt_enable(WDTO_4S);                // watch dog init (4 sec)
-#endif ndef WEMOS
-
 /* >>>>>> RTC ON, check date/heure et maj éventuelle par NTP  <<<<<< */
+/* ethernet doit être branché pour l'udp */
 
   digitalWrite(PINGNDDS,LOW);pinMode(PINGNDDS,OUTPUT);  
   digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT);  
 
-#ifdef UDPUSAGE
-  i=getUDPdate(&hms,&amj,&js);
-  if(!i){Serial.println("pb NTP");ledblink(BCODEPBNTP);} // pas de service date externe 
-  else {
-    Serial.print(js);Serial.print(" ");Serial.print(amj);Serial.print(" ");Serial.print(hms);Serial.println(" GMT");
-    ds3231.getDate(&hms2,&amj2,&js2,strdate);               // read DS3231
-    if(amj!=amj2 || hms!=hms2 || js!=js2){
-      Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.print(hms2);Serial.println(" setup DS3231 ");
-      ds3231.setTime((byte)(hms%100),(byte)((hms%10000)/100),(byte)(hms/10000),js,(byte)(amj%100),(byte)((amj%10000)/100),(byte)((amj/10000)-2000)); // SET GMT TIME      
-      ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"ST","RE"," ");
-    }
-  }
-#endif UDPUSAGE
-#ifndef UDPUSAGE
-  ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"ST","RE"," ");
-  Serial.print(" DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
-#endif UDPUSAGE
+  ds3231.i2cAddr=DS3231_I2C_ADDRESS;
+  Wire.begin();
   
+  delay(100);
+
+  initDate();
+
+
   sdstore_textdh(&fhisto,".3","RE","<br>\n\0");
 
-  remoteLoad();//remInit();
-  timersLoad();//timersInit();
-  memDetLoad();memDetInit();
-
-  Serial.println("fin setup");
+  Serial.println(">>>>>>>>> fin setup\n");
 }
 
-/*=================== fin setup ============================ */
-
+/* ================================== fin setup ================================= */
 
 void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC)
 {
@@ -473,8 +365,7 @@ void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC
     W5100.readSnDIPR(client->getSocketNumber(), ptremote_IP);
 }
 
-
-/* ======================================= loop ===================================== */
+/* ==================================== loop ===================================== */
 
 void loop()                         
 {
@@ -492,10 +383,8 @@ void loop()
             scanTimers();
 }
 
- 
 
-
-/* ========================================= tools =================================== */
+/* ==================================== tools =================================== */
 
 void scantemp()
 {
@@ -721,6 +610,8 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
   }
 }
 
+/* ================================ decodage ligne GET/POST ================================ */
+
 int cliAv(EthernetClient* cli,uint16_t len,uint16_t* pt)
 {
   if(ab=='u'){if(*pt<len){return len-*pt;}else return 0;}
@@ -856,6 +747,8 @@ int getnv(EthernetClient* cli,char* data,uint16_t dataLen)        // décode com
       if(numfonct[0]<0){return -1;} else return 0; 
 }
 
+
+/*
 void packVal2(byte* value,byte* val)      // insertion dans *value des bits 0 et 1 de *val 
                                           // dans la position de int(*val/4) 
 {                                         // *val retourné forme 0x03
@@ -869,7 +762,7 @@ void unpackVal2(byte* value,char* dest)   // remplit 4 car de dest avec les vale
 {
   for(int q=0;q<4;q++){byte x=*value;dest[3-q]=((x >> 2*q) & 0x03) + 48;}
 }
-
+*/
 
 #ifdef _AVEC_AES
 void xcrypt()
@@ -878,21 +771,6 @@ void xcrypt()
     AES_CTR_xcrypt_buffer(&ctx, chaine, 16);
 }
 #endif // _AVEC_AES
-
-
-void conv_atob(char* ascii,uint16_t* bin)
-{
-  int j=0;
-  *bin=0;
-  for(j=0;j<LENVAL;j++){c=ascii[j];if(c>='0' && c<='9'){*bin=*bin*10+c-48;}else{j=LENVAL;}}
-}
-
-void conv_atobl(char* ascii,uint32_t* bin)
-{
-  int j=0;
-  *bin=0;
-  for(j=0;j<LENVAL;j++){c=ascii[j];if(c>='0' && c<='9'){*bin=*bin*10+c-48;}else{j=LENVAL;}}
-}
 
 void test2Switchs()
 {
@@ -936,6 +814,7 @@ void textfonc(char* nf,int len)
   memcpy(nf,valf,nvalf[i+1]-nvalf[i]);
 }
 
+/* ================================ serveur ================================= */
 
 void inpsub(byte* ptr,byte PNT_MS,byte PNTLS_PB,char* libel,uint8_t len)
 {
@@ -1415,8 +1294,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 
 void udpPeriServer()
 {
-  /*
-  
+ 
   ab='u';
 
   Udp.begin(PORTUDP);
@@ -1426,14 +1304,15 @@ void udpPeriServer()
   if (udpPacketLen){
     udpDataLen=UDPBUFLEN-1;
     if(udpPacketLen<UDPBUFLEN){udpDataLen=udpPacketLen;}
-    remote_IP = (uint32_t) Udp.remoteIP();
+    IPAddress rip = Udp.remoteIP();
+    memcpy(remote_IP,(char*)&rip+4,4);
     remote_Port = (unsigned int) Udp.remotePort();
     Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
     packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY
     commonserver(cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
   }
   Udp.stop();
-*/
+
 }
 
 void tcpPeriServer()

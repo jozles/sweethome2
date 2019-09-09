@@ -27,11 +27,15 @@ EthernetUDP Udp;
 extern char months[36];
 extern char days[21];
 
-extern uint32_t amj,hms,amj2,hms2;
-extern byte js;
-extern char strdate[33];
+uint32_t        amj2,hms2;
+byte            js2;
+extern uint32_t amj,hms;
+extern byte     js;
+extern char     strdate[33];
 
 extern uint8_t* chexa;
+
+extern File fhisto;            // fichier histo sd card
 
 int sdOpen(char mode,File* fileS,char* fname)
 {
@@ -61,6 +65,14 @@ void sdstore_textdh(File* fhisto,char* val1,char* val2,char* val3)
   //Serial.print("tdate=");Serial.println(millis()-tm);
 }
 
+void sdInit()
+{
+  Serial.print("\nSD card ");
+  while(!SD.begin(4)){Serial.println("KO");}
+//  if(!SD.begin(4)){Serial.println("KO");ledblink(BCODESDCARDKO);}
+  Serial.println("OK");
+  sdOpen(FILE_WRITE,&fhisto,"fdhisto.txt");
+}
 
 int htmlSave(File* fhtml,char* fname,char* buff)                           // enregistre 1 buffer html
 {
@@ -176,6 +188,14 @@ void calcDate(int bd,int* yy,int*mm,int* dd,int* js,int*hh,int* mi,int* ss)     
   *js=js0;  
 }
 
+#ifndef UDPUSAGE
+void initDate()
+{
+  ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"ST","RE"," ");
+  Serial.print(" DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
+
+#endif UDPUSAGE
+
 
 #ifdef UDPUSAGE
 
@@ -230,5 +250,20 @@ int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
   Udp.stop();
   return returnStatus;
 }
+
+void initDate()
+{
+  Serial.print("date ");
+  if(!getUDPdate(&hms,&amj,&js)){Serial.println("pb NTP");ledblink(BCODEPBNTP);} // pas de service date externe 
+  else {
+    Serial.print(js);Serial.print(" ");Serial.print(amj);Serial.print(" ");Serial.print(hms);Serial.println(" GMT");
+    ds3231.getDate(&hms2,&amj2,&js2,strdate);               // read DS3231
+    if(amj!=amj2 || hms!=hms2 || js!=js2){
+      Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.print(hms2);Serial.println(" setup DS3231 ");
+      ds3231.setTime((byte)(hms%100),(byte)((hms%10000)/100),(byte)(hms/10000),js,(byte)(amj%100),(byte)((amj%10000)/100),(byte)((amj/10000)-2000)); // SET GMT TIME      
+      ds3231.getDate(&hms2,&amj2,&js2,strdate);
+    }
+  }
+}  
 
 #endif UDPUSAGE

@@ -1,7 +1,6 @@
 #ifndef _CONST_H_
 #define _CONST_H_
 
-//#define WEMOS
 
 #define VERSION "1.4"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
@@ -97,6 +96,7 @@
 #define _MODE_DEVT2    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
 #ifdef _MODE_DEVT2
+#define MODE_EXEC "DEVT2" 
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAE"    
 #define LOCALSERVERIP {192,168,0,36}          
 #define PORTSERVER PORTPERISERVER2
@@ -107,6 +107,7 @@
 #endif _MODE_DEVT2
 
 #ifdef _MODE_DEVT
+#define MODE_EXEC "DEVT"
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAC"    //adresse mac carte ethernet AB service ; AC devt
 #define LOCALSERVERIP {192,168,0,35}                   //adresse IP    ---- 34 service, 35 devt
 #define PORTSERVER PORTPERISERVER
@@ -116,6 +117,7 @@
 #endif _MODE_DEVT
 
 #ifdef _MODE_RUN
+#define MODE_EXEC "RUN"
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAB"    //adresse mac carte ethernet AB service ; AC devt
 #define LOCALSERVERIP {192,168,0,34}                   //adresse IP    ---- 34 service, 35 devt
 #define PORTSERVER PORTPERISERVER
