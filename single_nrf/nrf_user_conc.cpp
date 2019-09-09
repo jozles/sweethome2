@@ -16,9 +16,10 @@ extern Nrfp nrfp;
 #include "shutil2.h"
 #include "shmess2.h"
 
-#if TXRX_UDP
+#ifdef TXRX_UDP
   #include <EthernetUdp.h>
   EthernetUDP Udp;
+  #define PORTUDP PORTUDPSERVER2
 #endif
 
   //const char* host  = HOSTIPADDR;
@@ -26,7 +27,7 @@ extern Nrfp nrfp;
   //byte host[]={192,168,0,35};                                 // ip server sweethome
   //byte host[]={64, 233, 187, 99};
   //const int   port  = PORTPERISERVER;                         // port server sweethome
-  int         port  = 1790;
+  int         port  = PORTPERISERVER2;
   byte        mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};   // mac addr ethernet carte W5x00
   byte        localIp[] = {192,168,1,30};                     // IP fixe pour carte W5x00
 
@@ -75,7 +76,7 @@ void userResetSetup()
     Ethernet.begin ((uint8_t*)mac, localIp);
   }
 #ifdef TXRX_UDP
-  if(!Udp.begin(PORT)){Serial.println("Udp.begin ko");while(1){};}   
+  if(!Udp.begin(PORTUDP)){Serial.println("Udp.begin ko");while(1){};}   
 #endif TXRX_UDP
   
   Serial.print(millis()-t_beg);Serial.print(" ");Serial.print(Ethernet.localIP());Serial.print(" ");
@@ -159,10 +160,9 @@ int getHData()
  
   if (qAvailable){
     if(qAvailable<len){len=qAvailable;}
-    *ipAddr = (uint32_t) Udp.remoteIP();
-    *rxPort = (unsigned int) Udp.remotePort();
+    //*ipAddr = (uint32_t) Udp.remoteIP();
+    //*rxPort = (unsigned int) Udp.remotePort();
     Udp.read(data,len);
-    rxServ=1;
   }
   
 #endif TXRX_UDP
