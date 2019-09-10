@@ -37,7 +37,6 @@ extern uint16_t* toPassword;
 extern byte* configBegOfRecord;
 extern byte* configEndOfRecord;
 
-byte lip[]=LOCALSERVERIP;
 
 /* >>>>>>> fichier périphériques <<<<<<<  */
 
@@ -189,9 +188,9 @@ byte* temp=(byte*)configRec;
 
 void configInitVar()
 {
-memcpy(mac,MACADDR,6);
-memcpy(localIp,lip,4); 
-*portserver = PORTSERVER;
+memset(mac,0x00,6);
+memset(localIp,0x00,4); 
+*portserver = 0;
 memset(nomserver,0x00,LNSERV);memcpy(nomserver,NOMSERV,strlen(NOMSERV));
 memset(userpass,0x00,LPWD+1);memcpy(userpass,USRPASS,strlen(SRVPASS));
 memset(modpass,0x00,LPWD+1);memcpy(modpass,MODPASS,strlen(MODPASS));
@@ -402,7 +401,7 @@ int periSave(uint16_t num,bool sd)
       SD.remove(periFile);
       if(fperi=SD.open(periFile,FILE_WRITE)){
         sta=SDOK;
-        fperi.seek(0);
+        //fperi.seek(0);
         for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
         fperi.close();
         Serial.print(" ok ");
@@ -514,6 +513,7 @@ void periInitVar0()                  // pour bouton erase
     // lorsque periLoad est effectué periInitVar n'est oas utile
 //Serial.println("erase pulses & inputs");
    memset(periInput,0x00,NBPERINPUT*PERINPLEN*sizeof(byte));
+   //if(*periProg==FAUX){memset(periInput,0x01000802,NBPERINPUT*sizeof(uint32_t));}
    memset(periSwPulseOne,0x00,NBPULSE*sizeof(uint32_t));
    memset(periSwPulseTwo,0x00,NBPULSE*sizeof(uint32_t)); 
    memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t)); 
@@ -540,11 +540,11 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   memset(periModel,' ',LENMODEL);
   memset(periMacr,0x00,6);
   memset(periIpAddr,0x00,4);
-  *periPort=0;
   *periSwNb=0;
   *periSwVal=0;
   *periSondeNb=0;
   *periProg=FAUX;
+  if(*periProg==FAUX){*periPort=0;}
   *periDetNb=0;
   *periDetVal=0;
   *periThOffset=0;
@@ -787,16 +787,16 @@ while(1){}
     if(SD.exists("fdhisto.txt")){SD.remove("fdhisto.txt");}
     while(1){}
 */    
-/*//Modification des fichiers de périphériques   
+/*  Modification des fichiers de périphériques   
     Serial.println("conversion en cours...");
     periConvert();
     Serial.println("terminé");
     while(1){};
 */
-/*  après changement de format : chargement cache puis remove et save 
+/*  après changement de format : chargement cache puis remove, init (mettre en // les variabes à ne pas modifier) et save 
     Serial.println("conv en cours");
     for(int h=0;h<NBPERIF;h++){
-      periLoad(h);periRemove(h);periSave(h,1);
+      periLoad(h);periRemove(h);periInitVar();periSave(h,1);
     }
     Serial.println("terminé");
     while(1){}

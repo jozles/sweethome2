@@ -242,14 +242,16 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
   Serial.print("\nperiAns(peri=");Serial.print(periCur);Serial.println(")");
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
     assySet(message,periCur,periDiag(periMess),date14);}  // assemblage datas 
-  *bufServer='\0';
+  //*bufServer='\0';
+  memcpy(bufServer,"<body>\0",7);
   buildMess(nfonct,message,"");                           // bufServer complété 
+  strcat(bufServer,"</body>");
 
           if(ab!='u'){
             //htmlIntro0(cli);                            // inutile pour le périphérique
-            cli->print("<body>");
+            //cli->print("<body>");
             cli->print(bufServer);
-            cli->println("</body>");
+            //cli->println("</body>");
             //cli->println("</html>");                    // inutile pour le périphérique
           }
           else {

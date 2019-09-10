@@ -45,7 +45,7 @@
  *      libellé pour detecteurs serveur ; affichage/saisie lignes péritable disjoint
  * 1.3b periSend et periParamsHtml disparaissent ... periReq et periAns envoient des messages aux périphériques
  *      ds3231.h devient une lib ; création de la classe Ds3231 (instance ds3231)
- * 1.4  udp      
+ * 1.4  réaménagement setup ; udp      
  *      
  * BUGS : 
  *  
@@ -98,10 +98,10 @@
 #ifdef _MODE_DEVT2
 #define MODE_EXEC "DEVT2" 
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAE"    
-#define LOCALSERVERIP {192,168,0,36}          
-#define PORTSERVER PORTPERISERVER2
-#define PORTPILOT  PORTPILOTSERVER2
-#define PORTUDP    PORTUDPSERVER2
+#define LOCALSERVERIP HOSTIPADDR2                       // 36          
+#define PORTSERVER PORTPERISERVER2                      // 1786
+#define PORTPILOT  PORTPILOTSERVER2                     // 1788
+#define PORTUDP    PORTUDPSERVER2                       // 8886
 #define NOMSERV "sweet dev2\0"
 #define LNSERV  17
 #endif _MODE_DEVT2
@@ -110,8 +110,8 @@
 #define MODE_EXEC "DEVT"
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAC"    //adresse mac carte ethernet AB service ; AC devt
 #define LOCALSERVERIP {192,168,0,35}                   //adresse IP    ---- 34 service, 35 devt
-#define PORTSERVER PORTPERISERVER
-#define PORTPILOT  PORTPILOTSERVER
+#define PORTSERVER PORTPERISERVER                      // 1790
+#define PORTPILOT  PORTPILOTSERVER                     // 1792
 #define NOMSERV "sweet hdev\0"
 #define LNSERV  17
 #endif _MODE_DEVT
@@ -120,8 +120,8 @@
 #define MODE_EXEC "RUN"
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAB"    //adresse mac carte ethernet AB service ; AC devt
 #define LOCALSERVERIP {192,168,0,34}                   //adresse IP    ---- 34 service, 35 devt
-#define PORTSERVER PORTPERISERVER
-#define PORTPILOT  PORTPILOTSERVER
+#define PORTSERVER PORTPERISERVER                      // 1790
+#define PORTPILOT  PORTPILOTSERVER                     // 1792
 #define NOMSERV "sweet home\0"
 #define LNSERV  17
 #endif _MODE_RUN
@@ -374,7 +374,7 @@ struct Timers
                  (enable des 2 compteurs et bit free run/oneshot)
 
 
-          détail d'une entrée de règle :
+          détail d'une entrée de règle :  (000000 01 - 00000000 - 0000 1 0 0 0 - 000000 02  = ext 0 - nu - sta 000 - sw 0)
             
             type source   : (2 bits) 
                             détecteur physique local au périphérique

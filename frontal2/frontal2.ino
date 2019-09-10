@@ -36,6 +36,7 @@ extern "C" {
   EthernetClient cli_b;             // client du serveur pilotage
   EthernetClient cliext;            // client de serveur externe  
   EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
+
 char ab;
 
   char udpData[UDPBUFLEN];         // buffer paquets UDP
@@ -43,10 +44,10 @@ char ab;
     
   extern EthernetUDP Udp;
     
-    IPAddress test(82,64,32,56);
+/*    IPAddress test(82,64,32,56);
     IPAddress espdev(192,168,0,38);
     IPAddress esptv(192,168,0,208);
-    IPAddress gggg(74,125,232,128);    
+    IPAddress gggg(74,125,232,128);    */
 
     unsigned long mill=millis();
     
@@ -81,6 +82,7 @@ char configRec[CONFIGRECLEN];
 EthernetServer periserv(PORTSERVER);  // serveur perif et table port 1789 service, 1790 devt, 1786 devt2
 EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
+  uint8_t lip[]=LOCALSERVERIP;                       
   uint8_t remote_IP[4]={0,0,0,0};           // periserver
   uint8_t remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
   uint8_t remote_IP_Mac[4]={0,0,0,0};       // maintenance periserver
@@ -305,9 +307,11 @@ void setup() {                              // =================================
   sdInit();
 
   configInit();  //configSave();
-  configLoad();memcpy(mac,MACADDR,6);configPrint();
+  configLoad();
+  memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
+  configPrint();
   
-//  periMaintenance();  
+  periMaintenance();  
   
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
