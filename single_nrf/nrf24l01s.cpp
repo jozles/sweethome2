@@ -8,7 +8,7 @@
 
 /*************** hardware ****************************
 *
-* setup et confcircuit doivent �tre effectu�s
+* setup et confcircuit doivent être effectués
 * dans l'ordre à l'initialisation
 *
 ******************************************************/

@@ -50,6 +50,10 @@ char*   kk={"time out\0tx maxrt\0rx empty\0mac addr\0length  \0pipe nb \0--     
 
 #if NRF_MODE == 'C'
 char bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
+
+unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buffer pas plein         
+#define PERIMPORT 100
+
 #endif
 
 #if NRF_MODE == 'P'
@@ -99,7 +103,8 @@ void hardwarePowerUp()
  
 
 void setup() {
-  
+
+  delay(100);
   Serial.begin(115200);
 
 #if NRF_MODE == 'P'
@@ -114,7 +119,9 @@ void setup() {
 
 #if NRF_MODE == 'C'
 
-  delay(100);Serial.print("\nstart setup ");delay(100);
+  Serial.print("\nstart setup ");
+  Serial.print(TXRX_MODE);
+  delay(100);
 
   userResetSetup();
 
@@ -125,7 +132,7 @@ void setup() {
   nrfp.setup();
   
 #ifdef DUE
-  Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
+  Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
 #endif  
 
 #endif NRF_MODE == 'C'
@@ -288,12 +295,17 @@ void loop() {
   // ====== RX from server ? ====
   
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
-  int dt=importData();
-  if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
 
+  if((millis()-(timeImport+PERIMPORT))>0){
+    timeImport=millis();
+    int dt=importData();
+    if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
 #ifdef DIAG
   if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
 #endif // DIAG
+
+  }
+
 
   // ====== menu choice ======  
   

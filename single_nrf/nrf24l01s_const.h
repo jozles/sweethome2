@@ -49,7 +49,8 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
   #define DIAG                    // affichages diags série
 
-  #define TXRX_UDP                // TCP ou UDP
+  #define TXRX_MODE 'T'           // TCP       
+  //#define TXRX_MODE 'UDP'         // UDP
 
 /**************************************/
 
