@@ -348,28 +348,35 @@ void  periPrint(uint16_t num)
   periInputPrint(periInput);
 }
 
+void periSub(uint16_t num,int sta,bool sd)
+{
+  Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(")status=");Serial.print(sta);Serial.print(";save=");Serial.print(sd);Serial.print(" NbSw=");Serial.print(*periSwNb);Serial.print(" srv=");Serial.print(*periProg);Serial.print(" port=");Serial.println(*periPort);
+}
+
 int periLoad(uint16_t num)
 {
 if(num<=0 || num>NBPERIF){ledblink(BCODENUMPER);} 
   int i=0;
-  if(periCacheStatus[num]==0){
+  int sta=SDOK;
+  bool sd=periCacheStatus[num];
+  if(sd==0){
     char periFile[7];periFname(num,periFile);
-    if(sdOpen(FILE_READ,&fperi,periFile)==SDKO){return SDKO;}
-    for(i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=fperi.read();}              // periRec[i]=fperi.read();}
-    fperi.close();
-    periCacheStatus[num]=1;
+    //Serial.print(periFile);
+    if(sdOpen(FILE_READ,&fperi,periFile)==SDOK){
+      for(i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=fperi.read();}              // periRec[i]=fperi.read();}
+      fperi.close();
+      periCacheStatus[num]=1;
+      //Serial.print(" ok ");    
+    }
+    else {
+      //Serial.println(" ko");
+      sta=SDKO;}
   }
   for(i=0;i<PERIRECLEN;i++){periRec[i]=periCache[(num-1)*PERIRECLEN+i];}
-  return SDOK;
+  //Serial.print(" periLoad(");periSub(num,sta,sd);
+  return sta;
 }
 
-int periRemove(uint16_t num)
-{
-  int i=0;
-  char periFile[7];periFname(num,periFile);
-  if(SD.exists(periFile)){SD.remove(periFile);}
-  return SDOK;
-}
 
 int periSave(uint16_t num,bool sd)
 {
@@ -392,6 +399,7 @@ int periSave(uint16_t num,bool sd)
       Serial.print("done ");Serial.print(periFile);
       for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}*/
       Serial.print(periFile);
+      SD.remove(periFile);
       if(fperi=SD.open(periFile,FILE_WRITE)){
         sta=SDOK;
         fperi.seek(0);
@@ -402,8 +410,16 @@ int periSave(uint16_t num,bool sd)
       }
       else{sta=SDKO;Serial.print(" ko ");}
     }
-    Serial.print(" periSave(");Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(")status=");Serial.print(sta);Serial.print(";save=");Serial.print(sd);Serial.print(" NbSw=");Serial.print(*periSwNb);Serial.print(" port=");Serial.print(*periPort);if(num!=NBPERIF+1){Serial.println();}
+    Serial.print(" periSave(");periSub(num,sta,sd);
     return sta;
+}
+
+int periRemove(uint16_t num)
+{
+  int i=0;
+  char periFile[7];periFname(num,periFile);
+  if(SD.exists(periFile)){SD.remove(periFile);}
+  return SDOK;
 }
 
 void periInit()                 // pointeurs de l'enregistrement de table courant
