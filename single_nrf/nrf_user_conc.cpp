@@ -68,6 +68,8 @@ int         port  = PORTTCPCONC;
   uint8_t crcAsc;
   uint8_t crcLength=2;
   int lastPeriMess;
+  char indata[LBUFSERVER+1];
+  uint8_t lastEtatImport;
 
 /* cycle functions */
 
@@ -214,17 +216,20 @@ int getHData(char* data,uint16_t* len)
               for(k=4;k>0;k--){messLength*=10;messLength+=data[introLength2-k]-48;}
               messLength+=suffixLength;etatImport++;}            
             break;
-    case 2: if(cli.available()>=messLength){                                          // attente message
-              for(k=introLength2;k<messLength;k++){data[k]=cli.read();}               // load message+suffixe
-              data[k]='\0';  
-              for(uint8_t k=messLength-suffixLength;k<messLength;k++){if(data[k]!=suffix[k]){break;}} // controle suffixe
-              if(k>=messLength){etatImport++;}else etatImport=0;}
+    case 2: if(cli.available()>=messLength-2){                                         // attente message
+              for(k=0;k<(messLength-crcLength);k++){data[k+introLength2]=cli.read();}  // load message+suffixe
+              data[k+introLength2]='\0';
+              for(k=0;k<suffixLength;k++){
+                if(data[messLength-suffixLength+introLength2+k-crcLength]!=suffix[k]){break;}}    // controle suffixe              
+              if(k>=suffixLength){etatImport++;}
+              else {etatImport=0;messLength=0;data[0]='\0';}}
             break;
-    case 3: conv_atoh(data+messLength-suffixLength-crcLength,&crcAsc);                // contrôle crc
-            if(calcCrc(data,messLength-suffixLength)==crcAsc){etatImport=0;
+    case 3: conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // contrôle crc
+            Serial.print(crcAsc,HEX);Serial.print(" ");Serial.print((char*)(data+introLength2-4));Serial.print(" ");Serial.println(messLength-suffixLength);
+            if(calcCrc((char*)(data+introLength2-4),messLength-suffixLength)==crcAsc){etatImport=0;
               Serial.print(">>>> getHD l=");Serial.print(messLength);Serial.print(" data=");Serial.println(data);
               return MESSOK;}
-            else etatImport=0;
+            else etatImport=0;messLength=0;data[0]='\0';
             break;            
     default:etatImport=0;break;
   }
@@ -383,23 +388,27 @@ int  importData()                // reçoit un message du serveur
   int  numT,nP,len,numPeri;
   char fromServerMac[6];
   int  periMess;
-  char data[LBUFSERVER+1];
+
   int  dataLen=LBUFSERVER;
   
   
-  periMess=getHData(data,(uint16_t*)&dataLen);
-  if(periMess!=lastPeriMess){lastPeriMess=periMess;Serial.print("importData() periMess=");Serial.print(periMess);Serial.print(" etatImport=");Serial.println(etatImport);}
+  periMess=getHData(indata,(uint16_t*)&dataLen);
+  if(periMess!=lastPeriMess || etatImport!=lastEtatImport){lastPeriMess=periMess;lastEtatImport=etatImport;
+    Serial.print("importData() periMess=");Serial.print(periMess);
+    Serial.print(" etatImport=");Serial.print(etatImport);
+    Serial.print(" len=");Serial.print(messLength);
+    Serial.print(" indata=");Serial.println(indata);}
   if(periMess==MESSOK){
         
-        packMac((byte*)fromServerMac,(char*)(data+MPOSMAC+LBODY));  // mac from set message (LBODY pour "<body>")
-        nP=convStrToNum(data+MPOSNUMPER+LBODY,&dataLen);        // numPer from set message
+        packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC+LBODY));  // mac from set message (LBODY pour "<body>")
+        nP=convStrToNum(indata+MPOSNUMPER+LBODY,&dataLen);        // numPer from set message
         numT=nrfp.macSearch(fromServerMac,&numPeri);            // numT mac reg nb in conc table ; numPeri from table numPeri 
                                                                 // numPeri should be same as nP (if !=0 && mac found)
 
         int eds=99;
         if(numT>=NBPERIF){periMess=MESSMAC;}                    // if mac doesnt exist -> error
         else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}  // if numPeri doesnt match message -> error
-        else {eds=nrfp.extDataStore(nP,numT,data+MPOSPERREFR+LBODY,SBLINIT);} // format MMMMM_UUUUU_xxxx MMMMM aw_min value ; UUUUU aw_ok value ; xxxx user dispo 
+        else {eds=nrfp.extDataStore(nP,numT,indata+MPOSPERREFR+LBODY,SBLINIT);} // format MMMMM_UUUUU_xxxx MMMMM aw_min value ; UUUUU aw_ok value ; xxxx user dispo 
                                                                               // (_P.PP pitch value)
 #ifdef DIAG                
         Serial.print(" nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);Serial.print(" numPeri=");Serial.print(numPeri);Serial.print(" eds=");Serial.print(eds);Serial.print(" fromServerMac=");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}//Serial.println();
