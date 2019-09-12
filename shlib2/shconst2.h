@@ -3,6 +3,7 @@
 
 //#define PERIF
 
+//#define SHDIAGS
 
 #define LENVERSION  4
 #define LENMODEL    6
@@ -12,15 +13,19 @@
 ///* 1er serveur
 #define PORTPERISERVER  1790    // port du serveur pour périphériques et maintenance (RUN 1789)
 #define PORTPILOTSERVER 1792    // port du serveur de remote
-#define HOSTIPADDR "192.168.0.35"
+#define HOSTIPADDR {192,168,0,35}
 //*/
 ///* 2nd serveur
 #define PORTPERISERVER2  1786    // port du serveur pour périphériques et maintenance
 #define PORTPILOTSERVER2 1788    // port du serveur de remote
 #define PORTUDPSERVER2   8886
-#define HOSTIPADDR2 "192.168.0.36"
+#define HOSTIPADDR2 {192,168,0,36}
 //*/
-
+///* Concentrateur NRF
+#define PORTTCPCONC      1784
+#define PORTUDPCONC      8887
+#define CONCNRFIPADDR    {192,168,0,30}
+//*/
 
 #ifdef PERIF
  #define PINLED 0                    //  0 = ESP-12  ; 2 = ESP-01
@@ -110,7 +115,7 @@
 
 #define SLOWBLINK 3000
 #define FASTBLINK 500
-#define PULSEBLINK 40
+#define PULSEBLINK 20
 /* code blink  (valeurs impaires bloquantes) */
 /* code courant+100 reset (sauf impairs ofcourse) */
 #define BCODEONBLINK      98  // allume jusqu'au prochain blink

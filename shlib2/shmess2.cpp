@@ -101,7 +101,9 @@ int buildMess(char* fonction,char* data,char* sep)   // concatène un message da
       strcat(bufServer+sb+5,data);
       setcrc(bufServer+sb,d);
       strcat(bufServer,sep);
+#ifdef SHDIAGS
       Serial.print("bS=");Serial.println(bufServer);
+#endif // SHDIAGS
       return strlen(bufServer);
 }
 
