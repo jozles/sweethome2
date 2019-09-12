@@ -38,6 +38,13 @@
  #define LEDOFF LOW
 #endif ndef PERIF
 
+    // protocoles
+
+#define PROTOCHAR " TU"
+#define PROTOCSTR "   \0TCP\0UDP\0"
+#define LENPROSTR 4
+#define NBPROTOC  2
+
     // messages
 
 #define LENMESS     406+1               // longueur buffer message v1.3

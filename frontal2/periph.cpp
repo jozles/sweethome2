@@ -83,6 +83,7 @@ extern float*    periThmax;                    // ptr ds buffer : alarme maxi th
 extern float*    periVmin;                     // ptr ds buffer : alarme mini volts
 extern float*    periVmax;                     // ptr ds buffer : alarme maxi volts
 extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
+extern byte*     periProtocol;                   // ptr ds buffer : protocole ('T'CP/'U'DP)
       
 extern byte*     periBegOfRecord;
 extern byte*     periEndOfRecord;
@@ -421,6 +422,40 @@ int periRemove(uint16_t num)
   return SDOK;
 }
 
+
+void periConvert()        
+/* Pour ajouter une variable : 
+ *  ajouter en fin de liste son descripteur dans frontal.ino, periInit() et periIinitVar()
+ *  ajouter periconvert() devant periMaintenance() dans frontal.ino
+ *  mettre en rem periTableLoad() s'il est placé avant periConvert() dans frontal.ino
+ *  changer la ligne de "save" dans periSave() et ajouter la longueur supplémentaire
+ *  NE PAS changer PERIRECLEN
+ *  compiler, charger et laisser démarrer le serveur
+ *  remettre la ligne de "save" normale dans periSave() 
+ *  corriger PERIRECLEN dans const.h
+ *  enlever les // devant periTableLoad() dans frontal.ino
+ *  enlever periconvert() dans frontal.ino
+ *  compiler, charger
+ */
+{
+  Serial.println("conversion en cours...");
+  
+  char periFile[7];
+  int i=0;
+  periInitVar();            // les champs ajoutés sont initialisés ; les autres récupèreront les valeurs précédentes
+  for(uint16_t i=1;i<=NBPERIF;i++){
+    periFname(i,periFile);Serial.print(periFile);
+    if(periLoad(i)!=SDOK){Serial.print(" load KO");}
+    else{
+      SD.remove(periFile);
+      if(periSave(i,PERISAVESD)!=SDOK){Serial.print(" save KO");} 
+    }
+    Serial.println();
+  }
+  Serial.println("terminé");
+  while(1){};
+}
+
 void periInit()                 // pointeurs de l'enregistrement de table courant
 {
   for(uint16_t nbp=0;nbp<NBPERIF;nbp++){periCacheStatus[nbp]=0x00;}
@@ -500,6 +535,8 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=sizeof(uint16_t);
   periPort=(uint16_t*)temp;
   temp +=sizeof(uint16_t);
+  periProtocol=(byte*)temp;
+  temp +=sizeof(byte);
   temp +=1*sizeof(byte);
   periEndOfRecord=(byte*)temp;      // doit être le dernier !!!
   temp ++;
@@ -553,6 +590,7 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   *periVmin=3.25;
   *periVmax=3.50;
    memset(periDetServEn,0x00,2);
+  *periProtocol=0; 
    periInitVar0();
    // attention : perInitVar ne concerne que les variables de l'enregistrement de périphérique
    // lorsque periLoad est effectué periInitVar n'est oas utile
@@ -569,34 +607,6 @@ void periTableLoad()                 // au démarrage du systeme
   for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periLoad(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" OK");
 }  
 
-void periConvert()        
-/* Pour ajouter une variable : 
- *  ajouter en fin de liste son descripteur dans frontal.ino, periInit() et periIinitVar()
- *  enlever les // devant derriere la séquence dans frontal.ino
- *  mettre en rem la ligne d'affichage et ctle de PERIRECLEN dans frontal.ino
- *  changer la ligne de "save" dans periSave() et ajouter la longueur supplémentaire
- *  NE PAS changer PERIRECLEN
- *  compiler, charger et laisser démarrer le serveur
- *  remettre la ligne de "save" normale dans periSave() 
- *  corriger PERIRECLEN dans const.h
- *  enlever les // devant la ligne d'affichage et ctle de PERIRECLEN dans frontal.ino
- *  remettre les /* ... devant derriere la séquence dans frontal.ino
- *  compiler, charger
- */
-{
-  char periFile[7];
-  int i=0;
-  periInitVar();            // les champs ajoutés sont initialisés ; les autres récupèreront les valeurs précédentes
-  for(uint16_t i=1;i<=NBPERIF+1;i++){
-    periFname(i,periFile);Serial.print(periFile);
-    if(periLoad(i)!=SDOK){Serial.print(" load KO");}
-    else{
-      SD.remove(periFile);
-      if(periSave(i,PERISAVESD)!=SDOK){Serial.print(" save KO");} 
-    }
-    Serial.println();
-  }
-}
 
 void periModif()
 /*    Pour modifier la structure des données 
@@ -787,12 +797,6 @@ while(1){}
     if(SD.exists("fdhisto.txt")){SD.remove("fdhisto.txt");}
     while(1){}
 */    
-/*  Modification des fichiers de périphériques   
-    Serial.println("conversion en cours...");
-    periConvert();
-    Serial.println("terminé");
-    while(1){};
-*/
 /*  après changement de format : chargement cache puis remove, init (mettre en // les variabes à ne pas modifier) et save 
     Serial.println("conv en cours");
     for(int h=0;h<NBPERIF;h++){

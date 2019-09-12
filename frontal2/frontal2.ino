@@ -181,6 +181,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   float*    periVmin;                       // ptr ds buffer : alarme mini volts
   float*    periVmax;                       // ptr ds buffer : alarme maxi volts
   byte*     periDetServEn;                  // ptr ds buffer : 1 byte 8*enable detecteurs serveur
+  byte*     periProtocol;                   // ptr ds buffer : protocole ('T'CP/'U'DP)
     
   int8_t    periMess;                       // code diag réception message (voir MESSxxx shconst.h)
   byte      periMacBuf[6]; 
@@ -311,6 +312,7 @@ void setup() {                              // =================================
   memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
   configPrint();
   
+  //periConvert();
   periMaintenance();  
   
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
@@ -608,8 +610,9 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
 //   k+=MAXSW+1;
     }
     memcpy(periIpAddr,remote_IP_cur,4);            //for(int i=0;i<4;i++){periIpAddr[i]=remote_IP_cur[i];}         // Ip addr
-    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);      // maj dates
+    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);                      // maj dates
     Serial.print("periDataRead =");periPrint(periCur);
+    if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
     periSave(periCur,PERISAVESD);checkdate(6);
   }
 }

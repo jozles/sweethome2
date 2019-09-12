@@ -133,7 +133,7 @@
 
 #define NBPERIF 20                           
 #define PERINAMLEN 16+1                      // longueur nom perif
-#define PERIRECLEN 273 // V1.3               // longueur record périph
+#define PERIRECLEN 274 // V1.4               // longueur record périph
 
 #define NBTHERMO  NBPERIF
 #define LENTHNAME 16
