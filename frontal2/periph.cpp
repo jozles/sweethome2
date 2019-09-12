@@ -398,19 +398,25 @@ int periSave(uint16_t num,bool sd)
       fperi.close();
       Serial.print("done ");Serial.print(periFile);
       for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}*/
-      Serial.print(periFile);
+#ifdef SHDIAGS
+      Serial.print(periFile);    
+#endif
       SD.remove(periFile);
       if(fperi=SD.open(periFile,FILE_WRITE)){
         sta=SDOK;
         //fperi.seek(0);
         for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
         fperi.close();
+#ifdef SHDIAGS           
         Serial.print(" ok ");
+#endif
         for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
       }
       else{sta=SDKO;Serial.print(" ko ");}
     }
+#ifdef SHDIAGS    
     Serial.print(" periSave(");periSub(num,sta,sd);
+#endif
     return sta;
 }
 

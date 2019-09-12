@@ -611,7 +611,10 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
     }
     memcpy(periIpAddr,remote_IP_cur,4);            //for(int i=0;i<4;i++){periIpAddr[i]=remote_IP_cur[i];}         // Ip addr
     char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);                      // maj dates
-    Serial.print("periDataRead =");periPrint(periCur);
+#ifdef SHDIAGS    
+    periPrint(periCur);
+    Serial.print("periDataRead =");
+#endif    
     if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
     periSave(periCur,PERISAVESD);checkdate(6);
   }
@@ -1246,7 +1249,10 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
           }       // fin boucle nbre params
           
           if(nbreparams>=0){
-            Serial.print("what=");Serial.print(what);Serial.print(" periCur=");Serial.print(periCur);Serial.print(" strSD=");Serial.print(strSD);
+            Serial.print("what=");Serial.print(what);Serial.print(" periCur=");Serial.print(periCur);
+#ifdef SHDIAGS            
+            Serial.print(" strSD=");Serial.print(strSD);
+#endif            
             sdstore_textdh(&fhisto,"ip","CX",strSD);  // utilise getdate() et place date et heure dans l'enregistrement
           }                                           // 1 ligne par commande GET
 
@@ -1328,7 +1334,7 @@ void tcpPeriServer()
       if(cli_a = periserv.available())      // attente d'un client
       {
         getremote_IP(&cli_a,remote_IP,remote_MAC);      
-        serialPrintIp(remote_IP);Serial.println(" connecté");
+        //serialPrintIp(remote_IP);Serial.println(" connecté");
         if (cli_a.connected()){         
           commonserver(cli_a," ",1);}
       }
@@ -1340,7 +1346,7 @@ void pilotServer()
      if(cli_b = pilotserv.available())      // attente d'un client
      {
         getremote_IP(&cli_b,remote_IP,remote_MAC);      
-        serialPrintIp(remote_IP);Serial.println(" connecté");
+        //serialPrintIp(remote_IP);Serial.println(" connecté");
         if (cli_b.connected()){commonserver(cli_b," ",1);}
      }     
 }
