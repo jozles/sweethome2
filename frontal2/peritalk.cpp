@@ -242,19 +242,17 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
   int8_t zz=MESSOK;
   char date14[LNOW];ds3231.alphaNow(date14);
 
-  Serial.print("\nperiAns(peri=");Serial.print(periCur);Serial.println(")");
+  Serial.print("\nperiAns(peri=");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
-    assySet(message,periCur,periDiag(periMess),date14);}  // assemblage datas 
-  //*bufServer='\0';
-  memcpy(bufServer,"<body>\0",7);
-  buildMess(nfonct,message,"");                           // bufServer complété 
-  strcat(bufServer,"</body>");
+    assySet(message,periCur,periDiag(periMess),date14);
+    }  // assemblage datas 
 
-          //if(ab!='u'){
+  memcpy(bufServer,"<body>\0",7);
+  buildMess(nfonct,message,"\0");                           // bufServer complété 
+  strcat(bufServer,"</body>");
           if(*periProtocol=='T'){
             cli->print(bufServer);
           }
-          //else {
           if(*periProtocol=='U'){            
             Udp.beginPacket(*periIpAddr,*periPort);
             /*Serial.print("sending (");Serial.print(strlen(data));Serial.print(")>");Serial.print(data);
@@ -262,10 +260,9 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
             Udp.write(bufServer,strlen(bufServer));
             Udp.endPacket();
           }
-          
           if(zz==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=zz;
           periSave(periCur,PERISAVESD);                   // modifs de periTable et date effacèe par prochain periLoad si pas save
-          if(ab!='u'){cli->stop();}
+          if(*periProtocol!='U'){cli->stop();}
           return zz;
 }

@@ -382,6 +382,7 @@ void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC
 void loop()                         
 {
 
+
             tcpPeriServer();     // *** périphérique TCP ou maintenance
 
             udpPeriServer();     // *** périphérique UDP via NRF
@@ -622,45 +623,53 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
     Serial.print("periDataRead =");
 #endif    
     if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
+Serial.print("ab=");Serial.print(ab);Serial.print(" PS_periProt=");Serial.println((char)*periProtocol);
     periSave(periCur,PERISAVESD);checkdate(6);
   }
 }
 
 /* ================================ decodage ligne GET/POST ================================ */
 
+void cliWrite(EthernetClient* cli,char* data)
+{
+  if(ab=='u'){Udp.write(data,strlen(data));return;}
+  cli->write(data);
+}
+
 int cliAv(EthernetClient* cli,uint16_t len,uint16_t* pt)
 {
   if(ab=='u'){if(*pt<len){return len-*pt;}else return 0;}
-  int x=cli->available();
-  return x;
+  return cli->available();
 }
 
 char cliRead(EthernetClient* cli,char* data,uint16_t len,uint16_t* pt)
 {
-  if(ab=='u'){if(*pt<len){return data[*pt];*pt++;}else return data[len-1];}
+  if(ab=='u'){if(*pt<len){*pt=(*pt)+1;return data[(*pt)-1];}else return data[len-1];}
   return cli->read();
 }
 
 int getcde(EthernetClient* cli,char* data,uint16_t dataLen,uint16_t* ptr) // décodage commande reçue selon tables 'cdes' longueur maxi LENCDEHTTP
 {
   char c='\0',cde[LENCDEHTTP];
-  int ncde=0,ko=0;
-
+  int ncde=0,ko=0,ptc=0;
   while (cliAv(cli,LENCDEHTTP,ptr) && c!='/' && *ptr<LENCDEHTTP) {
       c=cliRead(cli,data,LENCDEHTTP,ptr);Serial.print(c);                  // décode la commande 
-      
-      if(c!='/'){cde[*ptr]=c;*ptr=(*ptr)+1;}
-      else {cde[*ptr]=0;break;}
+      if(c!='/'){cde[ptc]=c;ptc++;}
+      else {cde[ptc]=0;break;}
   }
 
   if (c!='/'){ko=1;}                                                                                // pas de commande, message 400 Bad Request
   else if (strstr(cdes,cde)==0){ko=2;}                                                              // commande inconnue 501 Not Implemented
   else {ncde=1+(strstr(cdes,cde)-cdes)/LENCDEHTTP ;}                                                // numéro de commande (ok si >0 && < nbre cdes)
-  if ((ncde<=0) || (ncde>strlen(cdes)/LENCDEHTTP)){ko=1;ncde=0;
-    while (cliAv(cli,dataLen,ptr)){cliRead(cli,data,dataLen,ptr);}}                                 // pas de cde valide -> vidage + message
+
+  if ((ncde<=0) || (ncde>strlen(cdes)/LENCDEHTTP)){
+    ko=1;ncde=0;
+    while (cliAv(cli,dataLen,ptr)){
+      c=cliRead(cli,data,dataLen,ptr);}}                                 // pas de cde valide -> vidage + message
+
   switch(ko){
-    case 1:cli->print("<body><br><br> err. 400 Bad Request <br><br></body></html>");break;
-    case 2:cli->print("<body><br><br> err. 501 Not Implemented <br><br></body></html>");break;
+    case 1:cliWrite(cli,"<body><br><br> err. 400 Bad Request <br><br></body></html>");break;
+    case 2:cliWrite(cli,"<body><br><br> err. 501 Not Implemented <br><br></body></html>");break;
     default:break;
   }
   return ncde;                                // ncde=0 si KO ; 1 à n numéro de commande
@@ -1298,6 +1307,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 void udpPeriServer()
 {
   ab='u';
+  IPAddress rip;
   
   uint16_t udpPacketLen = Udp.parsePacket();
  
@@ -1305,14 +1315,14 @@ void udpPeriServer()
     udpDataLen=UDPBUFLEN-1;
     if(udpPacketLen<UDPBUFLEN){
       udpDataLen=udpPacketLen;
-      IPAddress rip = Udp.remoteIP();
+      rip = Udp.remoteIP();
       memcpy(remote_IP,(char*)&rip+4,4);
       remote_Port = (unsigned int) Udp.remotePort();
       Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
       packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY
       commonserver(cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
     }
-    else{Udp.flush();Serial.print("Udp overflow=");Serial.println(udpPacketLen);}
+    else{Udp.flush();Serial.print("Udp overflow=");Serial.print(udpPacketLen);Serial.print(" from ");Serial.println(rip);}
   }
   //Udp.stop();
 }
@@ -1339,7 +1349,6 @@ void pilotServer()
         if (cli_b.connected()){commonserver(cli_b," ",1);}
      }     
 }
-
 
 
 
