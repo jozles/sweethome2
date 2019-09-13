@@ -148,14 +148,16 @@ byte calcBitCrc (byte shiftReg, byte data_bit)
 
 uint8_t calcCrc(char* buf,int len)
 {
-  char bitMask[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
-  uint8_t c,crc;
-  int i,j;
+  uint8_t crc=0;
+  uint8_t i,j,k;
 
-  crc=0;
-  for(i=0;i<len;i++){//Serial.print(i);Serial.print(" ");
-    for(j=0;j<8;j++){c=0;if((buf[i] & bitMask[j])!=0){c=1;}//Serial.print(c);Serial.print(" ");}
-    crc=calcBitCrc(crc,c);}// Serial.println(crc);}
+  for(i=0;i<len;i++){
+    for(j=0;j<8;j++){
+//        k=(crc&0x01)^((buf[i]>>j)&0x01);
+        k=(crc^(buf[i]>>j))&0x01;
+        crc=crc>>1;
+        if(k==1){crc=crc^0x8C;}     // 0x8C is 00011001 rigth rotated polynom
+    }
   }
   return crc;
 }
