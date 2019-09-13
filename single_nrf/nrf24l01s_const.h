@@ -5,7 +5,7 @@
 #include "shconst2.h"
 #include "shutil2.h"
 
-#define VERSION "1.11"
+#define VERSION "1.12"
 #define LENVERSION 4
 
 /*
@@ -49,8 +49,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
   #define DIAG                    // affichages diags série
 
-  #define TXRX_MODE 'T'           // TCP       
-  //#define TXRX_MODE 'UDP'         // UDP
+  #define TXRX_MODE 'U'           // TCP / UDP      
 
 /**************************************/
 

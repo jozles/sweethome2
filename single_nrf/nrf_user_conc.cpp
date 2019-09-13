@@ -17,18 +17,44 @@ extern Nrfp nrfp;
 #include "shutil2.h"
 #include "shmess2.h"
 
-#if TXRX_MODE == 'U'
-  #include <EthernetUdp.h>
-  EthernetUDP Udp;
-int         port  = PORTUDPCONC;
-#endif
-#if TXRX_MODE == 'T'
-int         port  = PORTTCPCONC;
-#endif
 
-  //byte        host[]    = HOSTIPADDR2;                          // ip server sh devt2
+#if TXRX_MODE == 'T'
+
+  int         port  = PORTTCPCONC;
+//byte        host[]    = HOSTIPADDR2;                          // ip server sh devt2
   byte        host[]    = {82,64,32,56};
   int         hport     = PORTPERISERVER2;                      // port server sh devt2
+
+#define CLICX cli.connected()
+#define CLIAV cli.available()
+#define CLIRD cli.read()
+//#define CLIST for(k=0;k<k1;k++){data[k+k2]=cli.read();}data[k+k2]='\0'
+#define CLIST for(k=k2;k<k1;k++){data[k]=cli.read();}data[k]='\0'
+//#define CLIST cli.readBytesUntil('\0',data+k2,k1);data[k1+k2]='\0'
+
+#endif
+
+#if TXRX_MODE == 'U'
+
+#include <EthernetUdp.h>
+
+  EthernetUDP Udp;
+  
+  int         port  = PORTUDPCONC;
+  byte        host[]    = {82,64,32,56};
+  //byte        host[]   = {192,168,0,36};
+  int         hport    = 8886;
+
+
+#define CLICX 1
+#define CLIAV Udp.parsePacket()
+#define CLIRD Udp.read(&c,1)
+#define CLIST Udp.read(data+k2,k1);data[k+k1+k2]='\0';
+
+#endif  
+
+int k,k1,k2;    // pour macros TCP/UDP
+char c;         // pour macros TCP/UDP
 
   byte        mac[]     = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
   byte        localIp[] = CONCNRFIPADDR;                        // IP fixe pour carte W5x00
@@ -55,23 +81,24 @@ int         port  = PORTTCPCONC;
 
 /* importDSata & getHData times */
 
-  unsigned long t1;   // beg importData()
-  unsigned long t1_0; // MESSCX
-  unsigned long t1_1; // MESSLEN got '<body>'
-  unsigned long t1_2; // MESSLEN got len
-  unsigned long t1_3; // MESSLEN got '</body>'
-  unsigned long t1_4; // MESSOK
-  unsigned long t2;   // 
-  unsigned long t2_1; // 
+  unsigned long t1;     // beg importData()
+  unsigned long t1_0;   // MESSCX
+  unsigned long t1_1;   // MESSLEN got '<body>'
+  unsigned long t1_2;   // MESSLEN got len
+  unsigned long t1_03;  // MESSLEN got '</body>'
+  unsigned long t1_3;   // MESSLEN got '</body>' + check it
+  unsigned long t1_4;   // MESSOK
+  unsigned long t2;     // 
+  unsigned long t2_1;   // 
 
 /* exportDSata & mess2Server times */
 
-  unsigned long t3;   // beg exportData
-  unsigned long t3_0; // fin message building
+  unsigned long t3;       // beg exportData
+  unsigned long t3_0;     // fin message building
   unsigned long t3_01=0 ; // cx
   unsigned long t3_02=0 ; // tfr  
-  unsigned long t3_1=0; // 
-  unsigned long t3_2=0; //  
+  unsigned long t3_1=0;   // 
+  unsigned long t3_2=0;   //  
 
 /* réception/decodage messages serveur */
 
@@ -113,8 +140,9 @@ void userResetSetup()
   }
   
 #if TXRX_MODE == 'U'
-  if(!Udp.begin(port)){Serial.print(" Udp.begin ko");while(1){};}
-  else{Serial.print(" Udp.begin ok");}
+  Serial.print(" UDP port=");Serial.print(port);
+  if(!Udp.begin(port)){Serial.print(" begin ko ");while(1){};}
+  else{Serial.print(" begin ok");}
 #endif TXRX_UDP  
   
   Serial.print(" local IP=");Serial.print(Ethernet.localIP());Serial.print(" ");Serial.println(millis()-t_beg);
@@ -130,10 +158,10 @@ int mess2Server(EthernetClient* cli,byte* host,int hport,char* data)    // conne
 
 #if TXRX_MODE == 'U'
   Udp.beginPacket(host,hport);
+  t3_01=micros();
   Udp.write(data,strlen(data));
   Udp.endPacket();
-  Serial.println();
-  return 0;
+  return 1;
 #endif TXRX_UDP
 
 #if TXRX_MODE == 'T'  
@@ -158,10 +186,10 @@ int mess2Server(EthernetClient* cli,byte* host,int hport,char* data)    // conne
         default:Serial.print(" unknown reason ");break;
     }
 #endif DIAG
-    t3_01=micros();        
+    t3_01=micros();
     if(cxStatus){
-      cli->print(data);
-      cli->print("\r\n HTTP/1.1\r\n Connection:close\r\n\r\n");
+      cli->write(data);
+      //cli->print("\r\n HTTP/1.1\r\n Connection:close\r\n\r\n");
       return 1;
     }
     delay(CXDLY);
@@ -173,24 +201,7 @@ int mess2Server(EthernetClient* cli,byte* host,int hport,char* data)    // conne
 
 int getHData(char* data,uint16_t* len)
 {
-#if TXRX_MODE == 'U'
-
-  int qAvailable = Udp.parsePacket();
- 
-  if (qAvailable){
-    if(qAvailable<len){len=qAvailable;}
-    //*ipAddr = (uint32_t) Udp.remoteIP();
-    //*rxPort = (unsigned int) Udp.remotePort();
-    Udp.read(data,len);
-  }
-  data[len]='\0';
-  if(len==0){return MESSLEN;}
-  return MESSOK;
-
-#endif TXRX_UDP
-
-#if TXRX_MODE == 'T'
-
+SPI.beginTransaction(SPISettings(20000000,MSBFIRST,SPI_MODE0));
 /*
   mode_attente_<
     attendre le caractère '<'
@@ -205,29 +216,36 @@ int getHData(char* data,uint16_t* len)
 */
 /*    retour MESSCX not connected ; MESSLEN en cours selon etatImport ; MESSOK messLength in data  */
 
-  uint8_t k;
-
   if(etatImport==0){messLength=0;data[0]='\0';
   }
-  if(!cli.connected()){t1_0=micros()-t1;return MESSCX;}                                    // not connected
+  if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected
+//  if(!cli.connected()){t1_0=micros()-t1;return MESSCX;}                               // not connected
   
   switch(etatImport){
-    case 0: if(cli.available()>=introLength1){                                        // attente intro et contrôle
-              for(k=0;k<introLength1;k++){if(cli.read()!=intro[k]){break;}}
+    case 0: if(CLIAV>=introLength1){                                                  // attente intro et contrôle
+              for(k=0;k<introLength1;k++){if(CLIRD!=intro[k]){break;}}
+//    case 0: if(cli.available()>=introLength1){                                        // attente intro et contrôle
+//              for(k=0;k<introLength1;k++){if(cli.read()!=intro[k]){break;}}
               if(k>=introLength1){etatImport++;}}
             t1_1=micros()-t1;
             break;
-    case 1: if(cli.available()>=introLength2){                                        // attente longueur message
-              for(k=0;k<introLength2;k++){data[k]=cli.read();}                        // load fonction+len
-              for(k=4;k>0;k--){messLength*=10;messLength+=data[introLength2-k]-48;}
+    case 1: if(CLIAV>=introLength2){                                                  // attente longueur message
+              k1=introLength2;k2=0;CLIST;                                             // load fonction+len
+//    case 1: if(cli.available()>=introLength2){                                        // attente longueur message
+//              for(k=0;k<introLength2;k++){data[k]=cli.read();}                        // load fonction+len
+              for(k=4;k>0;k--){messLength*=10;messLength+=data[introLength2-k]-'0';}
               messLength+=suffixLength;etatImport++;}            
             t1_2=micros()-t1;
             break;
-    case 2: if(cli.available()>=messLength-2){                                         // attente message
-              for(k=0;k<(messLength-crcLength);k++){data[k+introLength2]=cli.read();}  // load message+suffixe
-              data[k+introLength2]='\0';
+    case 2: if(CLIAV>=messLength-2){                                                  // attente message
+              k2=introLength2;k1=(messLength-crcLength)+k2;CLIST;                        // load message+ctle suffixe
+              t1_03=micros()-t1;
+//    case 2: if(cli.available()>=messLength-2){                                         // attente message
+              //for(k=0;k<(messLength-crcLength);k++){data[k+introLength2]=cli.read();}  
+              //data[k+introLength2]='\0';
+              k1=messLength-suffixLength+introLength2-crcLength;
               for(k=0;k<suffixLength;k++){
-                if(data[messLength-suffixLength+introLength2+k-crcLength]!=suffix[k]){break;}}    // controle suffixe              
+                if(data[k+k1]!=suffix[k]){break;}}    // controle suffixe              
               if(k>=suffixLength){etatImport++;}
               else {etatImport=0;messLength=0;data[0]='\0';}}
             t1_3=micros()-t1;
@@ -241,48 +259,9 @@ int getHData(char* data,uint16_t* len)
             break;            
     default:etatImport=0;break;
   }
+  SPI.endTransaction();
   return MESSLEN;
 
-#endif TXRX_TCP  
-
-/*
-  #define TIMEOUT 500
-
-  int pt=0;
-  char inch;
-  uint8_t cnt=0;                            // pour autoriser plusieurs lectures=0 avant de sortir
-  unsigned long timerTo=millis();
-  uint8_t waitedLength=LBODY+MPOSPERREFR+SBLINIT;
-
-  qAvailable=cli.available();
-  if(qAvailable==0){return MESSLEN;}                                // skip when nothing
-  if(!cli.connected()){t2=micros();return MESSCX;}                  // not connected
-
-    while((qAvailable!=0 || cnt<2) && (millis()<(timerTo+TIMEOUT))&&(pt<=(len-1))&&(pt<=(waitedLength))){
-        qAvailable=cli.available();
-        if(qAvailable>0){
-          cnt=0;
-          timerTo=millis();
-          data[pt]=cli.read();pt++;                     // store incoming char 
-        }
-        else cnt++;
-    }
-    data[pt+1]='\0';
-    len=pt;
-    if(len!=0){cli.flush();}
-  
-#endif TXRX_TCP
-
-    data[len]='\0';
-    t2=micros();             // ********** t2 end getHD
-    if(len==0){return MESSLEN;}
-
-    Serial.print(">>>> getHD=");Serial.print(t2-t1);Serial.print(" length=");Serial.print(len);Serial.print(" data=");Serial.print(data);
-#ifdef DIAG
-    Serial.print(" qAvailable=");Serial.println(qAvailable);        
-#endif
-    return MESSOK;           // valid len >0 
-*/    
 }
 
 int exportData(uint8_t numT)                            // formatting periBuf data in bufServer 
@@ -297,7 +276,7 @@ int exportData(uint8_t numT)                            // formatting periBuf da
     Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};
 
   char message[LENVAL];
-  int sb=0,i=0,k;
+  int sb=0,i=0;
   char x[2]={'\0','\0'};
   
       sprintf(message,"%02d",tableC[numT].numPeri);                 // N° périf                    
@@ -423,7 +402,9 @@ int  importData()                // reçoit un message du serveur
         t2_1=micros();                                                    // (_P.PP pitch value)
         
 #ifdef DIAG                
-        Serial.print(">>> getHD l=");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);Serial.print(" suffix=");Serial.print(t1_3);Serial.print(" ok=");Serial.print(t1_4);Serial.print(" data=");Serial.print(indata);Serial.println();
+        Serial.print(">>> getHD l=");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
+        Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
+        Serial.print(" ok=");Serial.println(t1_4);Serial.print("    data=");Serial.println(indata);
         if(periMess==MESSOK){
           Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");}
         else {Serial.print("    importData ko=");Serial.print(periMess);Serial.print(" ");Serial.print(t2_1-t1);}
