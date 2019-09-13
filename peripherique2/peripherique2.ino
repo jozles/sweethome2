@@ -46,15 +46,14 @@ Ds1820 ds1820;
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif DEVOLO
 
-  const char* host = HOSTIPADDR;
-  const int   port = PORTPERISERVER; 
+  const char* host = HOSTIPADDR2;
+  const int   port = PORTPERISERVER2; 
 
 WiFiClient cli;                 // client local du serveur externe (utilisé pour dataread/save)
 WiFiClient cliext;              // client externe du serveur local
 
 #ifdef  _SERVER_MODE
-WiFiServer server(8888); // PORTSERVPERI);
-//bool serverup=0; // si!=0, server.begin a été effectué
+WiFiServer server(8888);
 #endif  _SERVER
 
   String headerHttp;
@@ -771,10 +770,6 @@ int buildReadSave(char* nomfonction,char* data,char* toggle)   //   assemble et 
       }
       sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
       strcpy(message+sb-1,"_\0");
-
-        
-//      for(i=(NBSW-1);i>=0;i--){message[sb+(MAXSW-1)-i]=(char)(chexa[toggle[i]]);}
-//      strcpy(message+sb+MAXSW,"_\0");                                 // toggle sw                   - 5    
 
 if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
   

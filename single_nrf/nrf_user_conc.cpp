@@ -140,7 +140,7 @@ void userResetSetup()
   }
   
 #if TXRX_MODE == 'U'
-  Serial.print(" UDP port=");Serial.print(port);
+  Serial.print(" UDPport=");Serial.print(port);
   if(!Udp.begin(port)){Serial.print(" begin ko ");while(1){};}
   else{Serial.print(" begin ok");}
 #endif TXRX_UDP  
@@ -201,7 +201,7 @@ int mess2Server(EthernetClient* cli,byte* host,int hport,char* data)    // conne
 
 int getHData(char* data,uint16_t* len)
 {
-SPI.beginTransaction(SPISettings(20000000,MSBFIRST,SPI_MODE0));
+//SPI.beginTransaction(SPISettings(20000000,MSBFIRST,SPI_MODE0));
 /*
   mode_attente_<
     attendre le caractère '<'
@@ -259,7 +259,7 @@ SPI.beginTransaction(SPISettings(20000000,MSBFIRST,SPI_MODE0));
             break;            
     default:etatImport=0;break;
   }
-  SPI.endTransaction();
+//  SPI.endTransaction();
   return MESSLEN;
 
 }

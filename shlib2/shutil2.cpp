@@ -148,8 +148,8 @@ byte calcBitCrc (byte shiftReg, byte data_bit)
 
 uint8_t calcCrc(char* buf,int len)
 {
-  uint8_t crc=0;
-  uint8_t i,j,k;
+  uint8_t crc=0,j,k;
+  uint16_t i;
 
   for(i=0;i<len;i++){
     for(j=0;j<8;j++){
