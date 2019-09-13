@@ -44,12 +44,14 @@ char ab;
     
   extern EthernetUDP Udp;
     
-/*    IPAddress test(82,64,32,56);
+/*    
+    IPAddress test(82,64,32,56);
     IPAddress espdev(192,168,0,38);
     IPAddress esptv(192,168,0,208);
-    IPAddress gggg(74,125,232,128);    */
+    IPAddress gggg(74,125,232,128);    
+*/
 
-    unsigned long mill=millis();
+//    unsigned long mill=millis();
     
 /* >>>> config server <<<<<< */
 
@@ -272,8 +274,6 @@ char* chexa="0123456789ABCDEFabcdef\0";
 byte  maskbit[]={0xfe,0x01,0xfd,0x02,0xfb,0x04,0xf7,0x08,0xef,0x10,0xdf,0x20,0xbf,0x40,0x7f,0x80};
 byte  mask[]={0x00,0x01,0x03,0x07,0x0F};
 
-byte globalEnd;
-
 /* prototypes */
 
 int  getnv(EthernetClient* cli);
@@ -287,10 +287,11 @@ void periDataRead();
 void frecupptr(char* nomfonct,uint8_t* v,uint8_t* b,uint8_t lenpersw);
 void bitvSwCtl(byte* data,uint8_t sw,uint8_t datalen,uint8_t shift,byte msk);
 void test2Switchs();
-void periserver();
-void pilotserver();
+void tcpPeriServer();
+void pilotServer();
+void udpPeriServer();
 void scanTimers();
-
+void testUdp();
 
 
 void setup() {                              // ====================================
@@ -332,6 +333,11 @@ void setup() {                              // =================================
     }
     Serial.print("localIP=");Serial.println(Ethernet.localIP());
 
+  Serial.print("Udp.begin(");Serial.print(PORTUDP);Serial.print(") ");
+  if(!Udp.begin(PORTUDP)){Serial.print("ko");while(1){}}
+  Serial.println("ok");
+
+
   periserv.begin();Serial.println("periserv.begin ");   // serveur périphériques
 
   pilotserv.begin();Serial.println("pilotserv.begin ");  //  remote serveur
@@ -355,8 +361,8 @@ void setup() {                              // =================================
   
   delay(100);
 
-  initDate();
-
+  //initDate();
+  //testUdp();
 
   sdstore_textdh(&fhisto,".3","RE","<br>\n\0");
 
@@ -378,7 +384,7 @@ void loop()
 
             tcpPeriServer();     // *** périphérique TCP ou maintenance
 
-            //udpPeriServer();     // *** périphérique UDP via NRF
+            udpPeriServer();     // *** périphérique UDP via NRF
             
             pilotServer();       // *** pilotage
 
@@ -701,24 +707,26 @@ int analyse(EthernetClient* cli,char* data,uint16_t dataLen,uint16_t* ptr)  // d
 
                 if(numfonc<0 || numfonc>=nbfonct){
                   memcpy(nomsc,noms,LENNOM-2);
-                  numfonc=(strstr(fonctions,nomsc)-fonctions)/LENNOM;   // si nom long pas trouvé, recherche nom court (complété par nn)
+                  numfonc=(strstr(fonctions,nomsc)-fonctions)/LENNOM;       // si nom long pas trouvé, recherche nom court (complété par nn)
 
                   if(numfonc<0 || numfonc>=nbfonct){numfonc=faccueil;}
                   else {numfonct[i]=numfonc;}
                 }
                 else {numfonct[i]=numfonc;}
               }
-              if (nom==VRAI && c!='?' && c!=':' && c!='&' && c>' '){noms[j]=c;if(j<LENNOM-1){j++;}}              // acquisition nom
+              if (nom==VRAI && c!='?' && c!=':' && c!='&' && c>' '){noms[j]=c;if(j<LENNOM-1){j++;}}     // acquisition nom
               if (val==VRAI && c!='&' && c!=':' && c!='=' && c>' '){
-                valeurs[nvalf[i+1]]=c;if(nvalf[i+1]<=LENVALEURS-1){nvalf[i+1]++;}}                               // contrôle decap !
+                valeurs[nvalf[i+1]]=c;if(nvalf[i+1]<=LENVALEURS-1){nvalf[i+1]++;}}                      // contrôle decap !
               if (val==VRAI && (c=='&' || c<=' ')){
-                nom=VRAI;val=FAUX;j=0;Serial.println();
-                if(c==' ' || c<=' '){termine=VRAI;}}                                                             // ' ' interdit dans valeur : indique fin données                                 
+                nom=VRAI;val=FAUX;j=0;
+                if(c<=' '){termine=VRAI;}
+              Serial.println(); 
+              }                                                                                         // ' ' interdit dans valeur : indique fin données                                 
             }//Serial.println(libfonctions+2*(i-1));
           }                                                                                             // acquisition valeur terminée (données aussi si c=' ')
         }
       }
-      Serial.print("\n---- fin getnv i=");Serial.println(i);
+      Serial.print("---- fin getnv i=");Serial.println(i);
       if(numfonct[0]<0){return -1;} else return i;
 }
 
@@ -756,23 +764,6 @@ int getnv(EthernetClient* cli,char* data,uint16_t dataLen)        // décode com
         }
       if(numfonct[0]<0){return -1;} else return 0; 
 }
-
-
-/*
-void packVal2(byte* value,byte* val)      // insertion dans *value des bits 0 et 1 de *val 
-                                          // dans la position de int(*val/4) 
-{                                         // *val retourné forme 0x03
-  byte a=(byte)*val&0xfe;
-  if(*val&0x01==0){*val=0;}
-  else *val&=0xfe;
-  a=0xff^a;*value&=a;*value|=*val;
-}
-
-void unpackVal2(byte* value,char* dest)   // remplit 4 car de dest avec les valeurs des 4 paires de bits de *value
-{
-  for(int q=0;q<4;q++){byte x=*value;dest[3-q]=((x >> 2*q) & 0x03) + 48;}
-}
-*/
 
 #ifdef _AVEC_AES
 void xcrypt()
@@ -1304,28 +1295,26 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 
 /* ***************** serveurs ************************/
 
-
 void udpPeriServer()
 {
- 
   ab='u';
-
-  Udp.begin(PORTUDP);
   
   uint16_t udpPacketLen = Udp.parsePacket();
  
-  if (udpPacketLen){
+  if (udpPacketLen>0){
     udpDataLen=UDPBUFLEN-1;
-    if(udpPacketLen<UDPBUFLEN){udpDataLen=udpPacketLen;}
-    IPAddress rip = Udp.remoteIP();
-    memcpy(remote_IP,(char*)&rip+4,4);
-    remote_Port = (unsigned int) Udp.remotePort();
-    Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
-    packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY
-    commonserver(cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
+    if(udpPacketLen<UDPBUFLEN){
+      udpDataLen=udpPacketLen;
+      IPAddress rip = Udp.remoteIP();
+      memcpy(remote_IP,(char*)&rip+4,4);
+      remote_Port = (unsigned int) Udp.remotePort();
+      Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
+      packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY
+      commonserver(cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
+    }
+    else{Udp.flush();Serial.print("Udp overflow=");Serial.println(udpPacketLen);}
   }
-  Udp.stop();
-
+  //Udp.stop();
 }
 
 void tcpPeriServer()
@@ -1349,4 +1338,45 @@ void pilotServer()
         //serialPrintIp(remote_IP);Serial.println(" connecté");
         if (cli_b.connected()){commonserver(cli_b," ",1);}
      }     
+}
+
+
+
+
+void testUdp()
+{
+#define MAX_LENGTH_TEST 100
+
+  Serial.println("\nlancer le test Udp sur l'autre machine \n");
+  
+  while(1){ 
+    int packetSize = Udp.parsePacket(); 
+    IPAddress ipAddr;
+    unsigned int rxPort;
+    char data[MAX_LENGTH_TEST];
+    if (packetSize){
+      ipAddr = (uint32_t) Udp.remoteIP();
+      Serial.print("Received packet of size ");Serial.println(packetSize);
+      Serial.print("From ");Serial.print(ipAddr);Serial.print(" ");
+    
+      rxPort = (unsigned int) Udp.remotePort();
+      Serial.print(", port ");Serial.println(rxPort);
+
+      if(packetSize<MAX_LENGTH_TEST){
+        Udp.read(data, packetSize);
+        data[packetSize]='\0';
+        Serial.print("Contents: ");Serial.println(data);
+  
+        Udp.beginPacket(ipAddr,rxPort);
+
+        char data[]="hello Slave";
+        Serial.print("sending (");Serial.print(strlen(data));Serial.print(")>");Serial.print(data);
+        Serial.print("< to ");Serial.print(ipAddr);Serial.print(":");Serial.println(rxPort);
+  
+        Udp.write(data,strlen(data));
+        Udp.endPacket();
+      }
+      else{Serial.println("paquet trop gros...");Udp.flush();}
+    }  
+  }
 }

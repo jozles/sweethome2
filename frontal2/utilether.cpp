@@ -14,7 +14,7 @@ extern Ds3231 ds3231;
 
 // udp DATA
 
-unsigned int localUDPPort = 8888;         // local port to listen for UDP packets
+//unsigned int localUDPPort = PORTUDP;         // local port to listen for UDP packets
 char timeServer[] = "ntp-p1.obspm.fr\0";  //"ntp-p1.obspm.fr\0";      // 145.238.203.14  NTP.MIDWAY.OVH ntp.unice.fr ntp.uvsq.fr ntp-p1.obspm.fr
 const int NTP_PACKET_SIZE = 48;           // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[ NTP_PACKET_SIZE];      // buffer to hold incoming and outgoing packets
@@ -218,6 +218,9 @@ void sendNTPpacket(char* address)
   // all NTP fields have been given values, now
   // you can send a packet requesting a timestamp:
   Udp.beginPacket(address, 123); //NTP requests are to port 123
+//IPAddress loc(82,64,32,56);
+//Udp.beginPacket(loc,8888);
+
   Udp.write(packetBuffer, NTP_PACKET_SIZE);
   Udp.endPacket();
 }
@@ -228,7 +231,7 @@ int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
   int returnStatus=0;
   int year=0,month=0,day=0,hour=0,minute=0,second=0;
 
-  Udp.begin(localUDPPort);
+ // Udp.begin(localUDPPort);
 
   sendNTPpacket(timeServer); 
   
