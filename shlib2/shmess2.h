@@ -10,7 +10,7 @@
 int buildMess(char* fonction,char* data,char* sep);
 int checkData(char* data);
 int checkHttpData(char* data,uint8_t* fonction);
-char* periDiag(uint8_t diag);
+char* periDiag(int8_t diag);
 
 #ifndef PERIF
 void purgeServer(EthernetClient* cli);

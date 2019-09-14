@@ -247,10 +247,11 @@ int getHttpResponse(WiFiClient* cli, char* data,int lmax,uint8_t* fonction)     
   return q;
 }
 
-char* periDiag(uint8_t diag)
+char* periDiag(int8_t diag)
 {
   int v=0;
   if(diag>NBMESS){diag=MESSSYS;}
-  if(diag!=MESSOK){v=LPERIMESS*(diag+1);}
+  //if(diag!=MESSOK){
+        v=LPERIMESS*(-(diag-1));//} // diag -n -> 1 devient 0->n-1
   return periText+v;
 }

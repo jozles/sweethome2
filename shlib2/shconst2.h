@@ -152,9 +152,9 @@ enum {OFF,ON};
 
 // messages diag
 
+#define MESSOK    1
 #define MESSTO    0
 #define MESSDEC  -1
-#define MESSOK    1
 #define MESSCRC  -2
 #define MESSLEN  -3
 #define MESSFON  -4
@@ -164,18 +164,22 @@ enum {OFF,ON};
 #define MESSNUMP -8
 #define MESSMAC  -9
 
-#define NBMESS   8  // OK ne compte pas
+#define NBMESS   10  // OK ne compte pas
 
-#define TEXTTO      "*TO_\0"
-#define TEXTDEC     "*OVF\0"
-#define TEXTCRC     "*CRC\0"
-#define TEXTLEN     "*LEN\0"
-#define TEXTFON     "*FON\0"
-#define TEXTFULL    "*FUL\0"
-#define TEXTSYS     "*SYS\0"
-#define TEXTCX      "*CX_\0"
+#define TEXTOK      " OK "
+#define TEXTTO      "*TO_"
+#define TEXTDEC     "*OVF"
+#define TEXTCRC     "*CRC"
+#define TEXTLEN     "*LEN"
+#define TEXTFON     "*FON"
+#define TEXTFULL    "*FUL"
+#define TEXTSYS     "*SYS"
+#define TEXTCX      "*CX_"
+#define TEXTNUMP    "*NUP"
+#define TEXTMAC     "*MAC"
 
-#define TEXTMESS "\0   \0*TO_\0*OVF\0*CRC\0*LEN\0*FON\0*FUL\0*SYS\0*CX_\0"
+//#define TEXTMESS TEXTOK,TEXTTO,TEXTDEC,TEXTCRC,TEXTLEN,TEXTFON,TEXTFULL,TEXTSYS,TEXTCX,TEXTNUMP,TEXTMAC
+#define TEXTMESS " OK \0*TO_\0*OVF\0*CRC\0*LEN\0*FON\0*FUL\0*SYS\0*CX_\0*NUP\0*MAC\0"
 
 #define LPERIMESS  5   // len texte diag en réception de message
 
