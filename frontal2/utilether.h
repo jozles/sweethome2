@@ -17,6 +17,7 @@ void convertNTP(unsigned long *dateUnix,int *year,int *month,int *day,byte *js,i
 void calcDate(int bd,int* yy,int*mm,int* dd,int* js,int*hh,int* mi,int* ss);
 
 void initDate();
+void initMess();
 
 #ifdef UDPUSAGE
 int  getUDPdate(uint32_t* hms,uint32_t* amj,byte* js);

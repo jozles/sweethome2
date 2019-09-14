@@ -20,7 +20,7 @@ extern Nrfp nrfp;
 
 #if TXRX_MODE == 'T'
 
-  int         port  = PORTTCPCONC;
+  int         port      = PORTTCPCONC;
 //byte        host[]    = HOSTIPADDR2;                          // ip server sh devt2
   byte        host[]    = {82,64,32,56};
   int         hport     = PORTPERISERVER2;                      // port server sh devt2
@@ -32,7 +32,7 @@ extern Nrfp nrfp;
 #define CLIST for(k=k2;k<k1;k++){data[k]=cli.read();}data[k]='\0'
 //#define CLIST cli.readBytesUntil('\0',data+k2,k1);data[k1+k2]='\0'
 
-#endif
+#endif TXRX_MODE == 'T'
 
 #if TXRX_MODE == 'U'
 
@@ -40,24 +40,23 @@ extern Nrfp nrfp;
 
   EthernetUDP Udp;
   
-  int         port  = PORTUDPCONC;
-  byte        host[]    = {82,64,32,56};
+  int         port     = PORTUDPCONC;           // (8887)
+  byte        host[]   = {82,64,32,56};
   //byte        host[]   = {192,168,0,36};
   int         hport    = 8886;
-
 
 #define CLICX 1
 #define CLIAV Udp.parsePacket()
 #define CLIRD Udp.read(&c,1)
-#define CLIST Udp.read(data+k2,k1);data[k+k1+k2]='\0';
+#define CLIST Udp.read(data+k2,k1);data[k+k1+k2]='\0'
 
-#endif  
+#endif TXRX_MODE == 'U' 
 
 int k,k1,k2;    // pour macros TCP/UDP
 char c;         // pour macros TCP/UDP
 
   byte        mac[]     = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
-  byte        localIp[] = CONCNRFIPADDR;                        // IP fixe pour carte W5x00
+  byte        localIp[] = CONCNRFIPADDR;                        // IP fixe pour carte W5x00   (192.168.0.30)
 
   EthernetClient cli;   
 

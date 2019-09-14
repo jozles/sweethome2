@@ -250,7 +250,7 @@ int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
 //Serial.print(*amj);Serial.print(" ");Serial.println(*hms);
     returnStatus=1;
   }
-  Udp.stop();
+  //Udp.stop();
   return returnStatus;
 }
 

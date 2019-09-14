@@ -181,13 +181,12 @@ if(*periProg!=0){
                 memcpy(message+v1+4,"_\0",2);
 
             }  // periprog != 0
-
             strcat(message,diag);                         // periMess length=LPERIMESS
   }  // pericur != 0            
 }
 
 
-int periReq(EthernetClient* cli,uint16_t np,char* nfonct)                                 // fonction set ou ack vers périphérique
+int periReq(EthernetClient* cli,uint16_t np,char* nfonct)     // fonction set ou ack vers périphérique
                     // envoie cde GET dans bufServer via messToServer + getHttpResp         (fonction set suite à modif dans periTable)
                     //                            status retour de messToServer ou getHttpResponse ou fonct invalide (doit être done___)
                     // np=periCur à jour (0 ou n) si periCur = 0 message set réduit
@@ -197,12 +196,13 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct)                       
 {                   
 
   char message[LENMESS]={'\0'};
-  int8_t zz=MESSOK;
   char date14[LNOW];ds3231.alphaNow(date14);
   char host[16];memset(host,'\0',16);
 
   periCur=np;periLoad(periCur);
-  Serial.print("\nperiReq(peri=");Serial.print(periCur);Serial.print("-port=");Serial.print(*periPort);Serial.println(")");
+  
+  Serial.print("\nperiReq(");Serial.print(*periProtocol);Serial.print("peri=");Serial.print(periCur);
+  Serial.print("-port=");Serial.print(*periPort);Serial.println(")");
   
     if(*periProg!=0 && *periPort!=0){charIp(periIpAddr,host);}
   
@@ -214,20 +214,21 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct)                       
         buildMess(nfonct,message,"");                   // bufServer complété   
 
         if(*periProtocol=='T'){                         // UDP à développer
-          zz=messToServer(cli,host,*periPort,bufServer);
+          periMess=messToServer(cli,host,*periPort,bufServer);
           uint8_t fonct;
-          if(zz==MESSOK){
-              zz=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct);
-              if(zz==MESSOK && fonct!=fdone){zz=MESSFON;}
-              delay(1);
+          if(periMess==MESSOK){
+              periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct);
+              if(periMess==MESSOK && fonct!=fdone){periMess=MESSFON;}
+              delay(1);                                 // (?)
               purgeServer(cli);
               }
-          if(zz==MESSOK){packDate(periLastDateOut,date14+2);}
-          *periErr=zz;
-        }  
-        periSave(periCur,PERISAVESD);                  // modifs de periTable et date effacèe par prochain periLoad si pas save
-        cli->stop();        
-        return zz;
+          if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
+          *periErr=periMess;
+        }
+        cli->stop();
+        int8_t zz=periSave(periCur,PERISAVESD);          // modifs de periTable et date effacèe par prochain periLoad si pas save
+        if(periMess==MESSOK){periMess=zz;}
+        return periMess;
 }
 
 int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cli ... ou udp(remote_IP,remote_Port)
@@ -239,7 +240,6 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
 {                   
 
   char message[LENMESS]={'\0'};
-  int8_t zz=MESSOK;
   char date14[LNOW];ds3231.alphaNow(date14);
 
   Serial.print("\nperiAns(peri=");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
@@ -252,6 +252,7 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
   strcat(bufServer,"</body>");
           if(*periProtocol=='T'){
             cli->print(bufServer);
+            cli->stop();
           }
           if(*periProtocol=='U'){            
             Udp.beginPacket(*periIpAddr,*periPort);
@@ -260,9 +261,7 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
             Udp.write(bufServer,strlen(bufServer));
             Udp.endPacket();
           }
-          if(zz==MESSOK){packDate(periLastDateOut,date14+2);}
-          *periErr=zz;
-          periSave(periCur,PERISAVESD);                   // modifs de periTable et date effacèe par prochain periLoad si pas save
-          if(*periProtocol!='U'){cli->stop();}
-          return zz;
+          packDate(periLastDateOut,date14+2);
+          *periErr=MESSOK;                                // assySet, buildMess, envoi ne génèrent pas d'erreur
+          return periSave(periCur,PERISAVESD);            // modifs de periTable et date effacèe par prochain periLoad si pas save
 }
