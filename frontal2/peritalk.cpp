@@ -243,6 +243,7 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
   char date14[LNOW];ds3231.alphaNow(date14);
 
   Serial.print("\nperiAns(peri=");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
+  Serial.print(" ip=");serialPrintIp(periIpAddr);Serial.print(" port=");Serial.print(*periPort);
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
     assySet(message,periCur,periDiag(periMess),date14);
     }  // assemblage datas 
@@ -254,8 +255,10 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
             cli->print(bufServer);
             cli->stop();
           }
-          if(*periProtocol=='U'){            
-            Udp.beginPacket(*periIpAddr,*periPort);
+          if(*periProtocol=='U'){
+            IPAddress udpAddress;
+            memcpy((char*)(&udpAddress)+4,periIpAddr,4);
+            Udp.beginPacket(udpAddress,*periPort);
             /*Serial.print("sending (");Serial.print(strlen(data));Serial.print(")>");Serial.print(data);
             Serial.print("< to ");Serial.print();Serial.print(":");Serial.println(port);*/
             Udp.write(bufServer,strlen(bufServer));

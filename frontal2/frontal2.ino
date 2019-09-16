@@ -446,11 +446,11 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* onoff)      // recher
 int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)
 {
       periMess=MESSOK;
-      if((millis()-begTime)>1){Serial.print("  durée scan      =");Serial.print(millis()-begTime);}
+      if((millis()-begTime)>1){Serial.print("  durée scan =");Serial.print(millis()-begTime);}
       for(uint16_t np=1;np<=NBPERIF;np++){
         if(tablePerToSend[np-1]!=0){periMess=periReq(&cliext,np,"set_______");} 
       }
-      if((millis()-begTime)>1){Serial.print("\n  durée scan+send =");Serial.print(millis()-begTime);
+      if((millis()-begTime)>1){Serial.print("  durée scan+send =");Serial.print(millis()-begTime);
         Serial.print(" ");
         for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);Serial.print(" ");}Serial.println();}
       memset(tablePerToSend,0x00,NBPERIF);
@@ -868,7 +868,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
       soit usr_ref___ la référence fournie en première zone (hidden) de la page (num user en libfonction+2xi+1) et millis() comme valeur;
 */
 
-      Serial.print("\n *** serveur (");Serial.print((char)ab);Serial.print(") actif  IP=");serialPrintIp(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
+      Serial.print("\n *** serveur(");Serial.print((char)ab);Serial.print(") actif  IP=");serialPrintIp(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
       
       cxtime=millis();
       
@@ -1316,23 +1316,24 @@ void udpPeriServer()
   ab='u';
   IPAddress rip;
   
-  uint16_t udpPacketLen = Udp.parsePacket();
+  int udpPacketLen = Udp.parsePacket();
  
-  if (udpPacketLen>0){
-    udpDataLen=UDPBUFLEN-1;
-    if(udpPacketLen<UDPBUFLEN){
-      udpDataLen=udpPacketLen;
-      rip = Udp.remoteIP();
+  if (udpPacketLen){
+    udpDataLen=udpPacketLen;
+    if(udpPacketLen>UDPBUFLEN){udpDataLen=UDPBUFLEN-1;}
+    
+      rip = (uint32_t) Udp.remoteIP();
       memcpy(remote_IP,(char*)&rip+4,4);
       remote_Port = (unsigned int) Udp.remotePort();
       Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
+      
       packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY
       commonserver(cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
     }
-    else{Udp.flush();Serial.print("Udp overflow=");Serial.print(udpPacketLen);Serial.print(" from ");Serial.println(rip);}
-  }
-  //Udp.stop();
+    //else{Udp.flush();Serial.print("Udp overflow=");Serial.print(udpPacketLen);Serial.print(" from ");Serial.println(rip);}
 }
+
+
 
 void tcpPeriServer()
 {
@@ -1361,7 +1362,7 @@ void pilotServer()
 
 void testUdp()
 {
-#define MAX_LENGTH_TEST 100
+#define MAX_LENGTH_TEST 200
 
   Serial.println("\nlancer le test Udp sur l'autre machine \n");
   

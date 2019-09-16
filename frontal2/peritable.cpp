@@ -429,7 +429,7 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
                       cli->println("</td>");
                       cli->print("<td>");
                       for(int k=0;k<6;k++){cli->print(chexa[periMacr[k]/16]);cli->print(chexa[periMacr[k]%16]);}cli->print("<br>");
-                      if(*periProg!=0){cli->print("port=");cli->print(*periPort);}cli->print("<br>");
+                      if(*periProg!=0 || *periProtocol=='U'){cli->print("port=");cli->print(*periPort);}cli->print("<br>");
                       cli->print("<font size=\"2\">");for(j=0;j<4;j++){cli->print(periIpAddr[j]);if(j<3){cli->print(".");}}cli->println("</font></td>");
                       cli->print("<td><font size=\"2\">");for(j=0;j<LENVERSION;j++){cli->print(periVers[j]);}
                       cli->println(" ");long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}

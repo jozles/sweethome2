@@ -24,7 +24,7 @@
 ///* Concentrateur NRF
 #define PORTTCPCONC      1784
 #define PORTUDPCONC      8887
-#define CONCNRFIPADDR    {192,168,0,30}
+#define CONCNRFIPADDR    {192,168,0,31}
 //*/
 
 #ifdef PERIF
@@ -166,7 +166,7 @@ enum {OFF,ON};
 
 #define NBMESS   10  // OK ne compte pas
 
-#define TEXTOK      " OK "
+#define TEXTOK      "*OK_"
 #define TEXTTO      "*TO_"
 #define TEXTDEC     "*OVF"
 #define TEXTCRC     "*CRC"

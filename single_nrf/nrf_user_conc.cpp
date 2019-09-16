@@ -20,7 +20,8 @@ extern Nrfp nrfp;
 
 #if TXRX_MODE == 'T'
 
-  int         port      = PORTTCPCONC;
+  byte        localIp[] = CONCNRFIPADDR;                        // IP fixe pour carte W5x00   (192.168.0.30)
+  int         port      = PORTTCPCONC;                          //
 //byte        host[]    = HOSTIPADDR2;                          // ip server sh devt2
   byte        host[]    = {82,64,32,56};
   int         hport     = PORTPERISERVER2;                      // port server sh devt2
@@ -31,6 +32,7 @@ extern Nrfp nrfp;
 //#define CLIST for(k=0;k<k1;k++){data[k+k2]=cli.read();}data[k+k2]='\0'
 #define CLIST for(k=k2;k<k1;k++){data[k]=cli.read();}data[k]='\0'
 //#define CLIST cli.readBytesUntil('\0',data+k2,k1);data[k1+k2]='\0'
+#define CLIZER etatImport=0
 
 #endif TXRX_MODE == 'T'
 
@@ -39,16 +41,25 @@ extern Nrfp nrfp;
 #include <EthernetUdp.h>
 
   EthernetUDP Udp;
-  
-  int         port     = PORTUDPCONC;           // (8887)
-  byte        host[]   = {82,64,32,56};
+
+  byte          localIp[] = CONCNRFIPADDR;        // IP fixe pour carte W5x00   (192.168.0.31)
+  unsigned int  port     = PORTUDPCONC;           // (8887)
+  IPAddress     host(192, 168, 0, 36);            // ip server sh devt2
+  //byte        host[]   = {82,64,32,56};
   //byte        host[]   = {192,168,0,36};
-  int         hport    = 8886;
+  unsigned int  hport    = 8886;                  // port server sh devt2
+
+IPAddress     rxIpAddr;   // IPAddress from received message
+unsigned int  rxPort;     // port      from received message
+int   cliav=0;      // len reçue dans le dernier paquet
+int   clipt=0;      // prochain car à sortir du dernier paquet;
+char  udpData[LBUFSERVER+1];
 
 #define CLICX 1
-#define CLIAV Udp.parsePacket()
-#define CLIRD Udp.read(&c,1)
-#define CLIST Udp.read(data+k2,k1);data[k+k1+k2]='\0'
+#define CLIAV (cliav-clipt)
+#define CLIRD udpData[clipt];clipt++
+#define CLIST memcpy(data+k2,udpData+clipt,k1-k2);clipt+=(k1-k2);data[k1]='\0'
+#define CLIZER etatImport=0;cliav=0
 
 #endif TXRX_MODE == 'U' 
 
@@ -56,7 +67,6 @@ int k,k1,k2;    // pour macros TCP/UDP
 char c;         // pour macros TCP/UDP
 
   byte        mac[]     = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
-  byte        localIp[] = CONCNRFIPADDR;                        // IP fixe pour carte W5x00   (192.168.0.30)
 
   EthernetClient cli;   
 
@@ -82,6 +92,7 @@ char c;         // pour macros TCP/UDP
 
   unsigned long t1;     // beg importData()
   unsigned long t1_0;   // MESSCX
+  unsigned long t1_01;  // udpRead()
   unsigned long t1_1;   // MESSLEN got '<body>'
   unsigned long t1_2;   // MESSLEN got len
   unsigned long t1_03;  // MESSLEN got '</body>'
@@ -131,8 +142,21 @@ void userResetSetup()
   ftestb_on__=(strstr(fonctions,"testb_on__")-fonctions)/LENNOM;
      
   unsigned long t_beg=millis();
+  
+IPAddress slaveIp(192, 168, 0, 31);
+#define IP slaveIp
+#define PORT 8887
+  Serial.println();
+  for(int i=0;i<6;i++){Serial.print(mac[i],HEX);if(i!=5){Serial.print(":");}}
+  Serial.print(" ready on ");
+  for(int i=0;i<4;i++){Serial.print(IP[i]);if(i!=3){Serial.print(".");}}
 
-  Serial.print("\nEthernet mac=");serialPrintMac(mac,0);
+// start ethernet,udp  
+  Ethernet.begin(mac, IP);
+  Serial.print(" Udp.begin ");Serial.print(PORT);
+  if(!Udp.begin(PORT)){Serial.println(" ko");while(1){};}
+  Serial.println(" ok");
+/*  Serial.print("\nEthernet mac=");serialPrintMac(mac,0);
   if(Ethernet.begin((uint8_t*)mac) == 0){
     Serial.print(" failed with DHCP... forcing Ip ");serialPrintIp(localIp);delay(10);
     Ethernet.begin ((uint8_t*)mac, localIp);
@@ -143,16 +167,19 @@ void userResetSetup()
   if(!Udp.begin(port)){Serial.print(" begin ko ");while(1){};}
   else{Serial.print(" begin ok");}
 #endif TXRX_UDP  
-  
+*/  
   Serial.print(" local IP=");Serial.print(Ethernet.localIP());Serial.print(" ");Serial.println(millis()-t_beg);
 }
 
-int mess2Server(EthernetClient* cli,byte* host,int hport,char* data)    // connecte au serveur et transfère la data
+//int mess2Server(EthernetClient* cli,byte* host,int hport,char* data)    // connecte au serveur et transfère la data
+int mess2Server(EthernetClient* cli,IPAddress host,unsigned int hport,char* data)    // connecte au serveur et transfère la data
 {
-#ifdef DIAG  
+#ifdef DIAG
+/*  
   Serial.print(TXRX_MODE);Serial.print(" to ");
   for(int i=0;i<4;i++){Serial.print((uint8_t)host[i]);Serial.print(" ");}
   Serial.print(":");Serial.print(hport);Serial.print("...");
+*/
 #endif DIAG
 
 #if TXRX_MODE == 'U'
@@ -198,9 +225,25 @@ int mess2Server(EthernetClient* cli,byte* host,int hport,char* data)    // conne
 #endif TXRX_TCP
 }
 
+#if TXRX_MODE == 'U'
+int intro_Udp()
+{
+  cliav=Udp.parsePacket();
+  if(cliav>0){
+    clipt=0;
+    rxIpAddr = (uint32_t) Udp.remoteIP();
+    rxPort = (unsigned int) Udp.remotePort();
+    //Serial.print(ipAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
+    Udp.read(udpData,cliav);udpData[cliav]='\0';
+    t1_01=micros();
+    //Serial.println(udpData);
+  }
+  return cliav;
+}
+#endif
+
 int getHData(char* data,uint16_t* len)
 {
-//SPI.beginTransaction(SPISettings(20000000,MSBFIRST,SPI_MODE0));
 /*
   mode_attente_<
     attendre le caractère '<'
@@ -215,52 +258,47 @@ int getHData(char* data,uint16_t* len)
 */
 /*    retour MESSCX not connected ; MESSLEN en cours selon etatImport ; MESSOK messLength in data  */
 
-  if(etatImport==0){messLength=0;data[0]='\0';
-  }
+  if(etatImport==0){messLength=0;data[0]='\0';}
+
+#if TXRX_MODE == 'U'
+  if(clipt>=cliav){intro_Udp();}
+#endif
+  
   if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected
-//  if(!cli.connected()){t1_0=micros()-t1;return MESSCX;}                               // not connected
   
   switch(etatImport){
-    case 0: if(CLIAV>=introLength1){                                                  // attente intro et contrôle
-              for(k=0;k<introLength1;k++){if(CLIRD!=intro[k]){break;}}
-//    case 0: if(cli.available()>=introLength1){                                        // attente intro et contrôle
-//              for(k=0;k<introLength1;k++){if(cli.read()!=intro[k]){break;}}
+    case 0: if(CLIAV>=introLength1){                                                  // attente intro et contrôle     
+              for(k=0;k<introLength1;k++){char c=CLIRD;if(c!=intro[k]){break;}}
               if(k>=introLength1){etatImport++;}}
             t1_1=micros()-t1;
             break;
     case 1: if(CLIAV>=introLength2){                                                  // attente longueur message
               k1=introLength2;k2=0;CLIST;                                             // load fonction+len
-//    case 1: if(cli.available()>=introLength2){                                        // attente longueur message
-//              for(k=0;k<introLength2;k++){data[k]=cli.read();}                        // load fonction+len
               for(k=4;k>0;k--){messLength*=10;messLength+=data[introLength2-k]-'0';}
               messLength+=suffixLength;etatImport++;}            
             t1_2=micros()-t1;
             break;
     case 2: if(CLIAV>=messLength-2){                                                  // attente message
-              k2=introLength2;k1=(messLength-crcLength)+k2;CLIST;                        // load message+ctle suffixe
+              k2=introLength2;k1=(messLength-crcLength)+k2;CLIST;                     // load message+ctle suffixe
               t1_03=micros()-t1;
-//    case 2: if(cli.available()>=messLength-2){                                         // attente message
-              //for(k=0;k<(messLength-crcLength);k++){data[k+introLength2]=cli.read();}  
-              //data[k+introLength2]='\0';
               k1=messLength-suffixLength+introLength2-crcLength;
               for(k=0;k<suffixLength;k++){
-                if(data[k+k1]!=suffix[k]){break;}}    // controle suffixe              
+                if(data[k+k1]!=suffix[k]){break;}}                                     // controle suffixe              
               if(k>=suffixLength){etatImport++;}
-              else {etatImport=0;messLength=0;data[0]='\0';}}
+              else {messLength=0;data[0]='\0';CLIZER;}}
             t1_3=micros()-t1;
             break;
     case 3: conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // contrôle crc
             //Serial.print(crcAsc,HEX);Serial.print(" ");Serial.print((char*)(data+introLength2-4));Serial.print(" ");Serial.println(messLength-suffixLength);
-            if(calcCrc((char*)(data+introLength2-4),messLength-suffixLength)==crcAsc){etatImport=0;             
+            CLIZER;
+            if(calcCrc((char*)(data+introLength2-4),messLength-suffixLength)==crcAsc){
               t1_4=micros()-t1;
               return MESSOK;}
-            else etatImport=0;messLength=0;data[0]='\0';
+            else messLength=0;data[0]='\0';CLIZER;
             break;            
-    default:etatImport=0;break;
+    default:CLIZER;break;
   }
-//  SPI.endTransaction();
   return MESSLEN;
-
 }
 
 int exportData(uint8_t numT)                            // formatting periBuf data in bufServer 
@@ -401,7 +439,8 @@ int  importData()                // reçoit un message du serveur
         t2_1=micros();                                                    // (_P.PP pitch value)
         
 #ifdef DIAG                
-        Serial.print(">>> getHD l=");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
+        Serial.print(">>> getHD ");Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
+        Serial.print("/");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
         Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
         Serial.print(" ok=");Serial.println(t1_4);Serial.print("    data=");Serial.println(indata);
         if(periMess==MESSOK){

@@ -296,15 +296,15 @@ void loop() {
   
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
 
-  if((millis()-(timeImport+PERIMPORT))>0){
-    timeImport=millis();
+  //if((millis()-(timeImport+PERIMPORT))>0){
+    //timeImport=millis();
     int dt=importData();
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
 #ifdef DIAG
   if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
 #endif // DIAG
 
-  }
+  //}
 
 
   // ====== menu choice ======  

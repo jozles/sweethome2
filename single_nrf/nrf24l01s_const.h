@@ -79,7 +79,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #endif
 
 #if NRF_MODE == 'C'
-  #define LED        4
+  #define LED        3          
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
 #endif
