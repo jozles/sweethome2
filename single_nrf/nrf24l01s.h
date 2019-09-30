@@ -158,6 +158,8 @@ class Nrfp
 
     void printAddr(char* addr,char n);
 
+    bool powerD=true;         // etat power (true=down)
+
 #if NRF_MODE == 'P'
     int     pRegister(byte* message,uint8_t* pldLength);
 #endif // NRF_MODE == 'P'
@@ -187,7 +189,7 @@ class Nrfp
 
     
     bool prxMode=false;       // true=circuit en PRX (pwrUpRx(), CE_HIGH)
-    bool powerD=true;         // etat power (true=down)
+
     uint8_t regw,statu,fstatu,conf;
 
 };

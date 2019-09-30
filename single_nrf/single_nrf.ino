@@ -1,3 +1,4 @@
+#include <SPI.h>
 #include "nrf24l01s_const.h"
 #include "nRF24L01.h"
 #include "nrf24l01s.h"
@@ -59,7 +60,7 @@ unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buff
 #if NRF_MODE == 'P'
 
 /*** gestion sleep ***/
-bool    reveil,tfr=false;
+bool    tfr=false;                // pour DIAG
 bool    mustSend; 
 int     awakeCnt=0;
 int     awakeMinCnt=0;
@@ -99,6 +100,7 @@ void hardwarePowerUp()
   nrfp.powerUp();
   pinMode(LED,OUTPUT);
   pinMode(PP,OUTPUT);
+  pinMode(REED,INPUT_PULLUP);
 }
  
 
@@ -108,6 +110,15 @@ void setup() {
   Serial.begin(115200);
 
 #if NRF_MODE == 'P'
+
+  
+  /* test nrf poxer down */
+
+  delayBlk(10,350,350,2,5000);
+  sleepPwrDown(0);
+  //pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(500);digitalWrite(LED,LOW);
+  //sleepPwrDown(0);  
+  /* ------------------- */
   
   userResetSetup();
   hardwarePowerUp();
@@ -149,24 +160,24 @@ void loop() {
 
   /* timing to usefull awake */
   while((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)){           
+
     pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);
-    time_beg=micros();
-    getVolts();
-    if(volts<VOLTMIN){
-    }                      // eternal sleep ************* 
-    else{
-      awakeCnt--;
-      awakeMinCnt--;
-      while((micros()-time_beg)>TMINBLK){delayMicroseconds(50);}
-    }    
+    awakeCnt--;
+    awakeMinCnt--;
+    delayMicroseconds(TMINBLK);
     digitalWrite(LED,LOW); // 5+1mA rc=0,5/8000 -> 372nA
-    sleepPwrDown(T8000);
+    durT+=sleepPwrDown(0); //T8000);
   }
 
   /* usefull awake or retry */
   awakeCnt=aw_ok;
   mustSend=false;           
   mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff
+
+   getVolts();                  // checkthings laisse le temps à l'ADC de démarrer...
+   if(volts<VOLTMIN){
+    // shutdown...
+   }                     
 
   tBeg=((float)millis()/1000)+(durT/100);
 #ifdef DIAG
@@ -416,23 +427,17 @@ uint8_t beginP()
     Serial.print("  aw_ok=");Serial.print(aw_ok*STEP_VALUE);
     Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.println("sec ");
     delay(2);         
-    delayBlk(1,1980,66,2,1);       // sleepPwrDown()
+    delayBlk(1,7500,250,2,1);      // sleepPwrDown(T250)
   }
   importData(message,pldLength);   // user data available
   awakeMinCnt=-1;                  // force data upload
   return confSta;                  // le périphérique est inscrit
 }
 
-ISR(WDT_vect)                      // ISR interrupt service pour vecteurs d'IT du MPU (ici vecteur WDT)
-{
-  reveil = true;
-}
-
 void getVolts()
 {
   analogReference(INTERNAL); 
   pinMode(VCHECK,OUTPUT);digitalWrite(VCHECK,LOW);
-  delayMicroseconds(50);
   volts=analogRead(VINPUT)*VFACTOR;
   pinMode(VCHECK,INPUT);
 }
@@ -509,19 +514,23 @@ void showErr()
 }
 
 #if NRF_MODE == 'P'
-void sleepDly(uint16_t dly)                                                       // should be multiple of 33
+void sleepDly(uint16_t dly)                                                       // should be (nx250)
 {
-  while(dly>0){delay(1);sleepPwrDown(T32);dly-=(32+1);}         // delay(bdelay); (delay(1) for serial)
-  // sleepPwrDown() -> hardwarePowerDown() -> nrfp.powerDown()
-  
+  delay(1);                     // serial
+  dly=(dly/250)*250;
+  while(dly>=250){durT+=sleepPwrDown(T250);dly-=250;}
 }
 #endif // NRF_MODE == 'P'
 
-void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)       
-/*  delays are in sleepPwrDown() mode
-    bint, bdelay should be multiple of 33
+void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)
+/*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 
+    bnb=(on+off) nb in one sequence ; dly=total delay time   
+    
+    delays are in sleepPwrDown() mode
+    bint, bdelay must be multiple of 250
+    at least 1 bdelay is executed (even dly smaller)
     usable if dly > (dur+bint)*bnb+bdelay
-    hardwarePowerDown() at beginning ; hardwarePowerUp() at end      
+    hardwarePowerDown() at beginning of every sleepPwrDown() ; hardwarePowerUp() at end of delayBlk
 */    
 {
 #if NRF_MODE == 'P'
@@ -535,10 +544,10 @@ void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)
       dly-=(dur+bint);
     }
     sleepDly(bdelay);
+    //sleepPwrDown(T8000);
     dly-=bdelay;
   }
-  hardwarePowerUp();
-  // hardwarePowerUp() -> nrfp.powerUp() -> delay(5)
+  hardwarePowerUp();                            // hardwarePowerUp() -> nrfp.powerUp() -> delay(5)
 
 #endif // NRF_MODE == 'P'
 
@@ -547,7 +556,7 @@ void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)
   unsigned long tt=millis(); 
   blktime=0;bcnt=1;blkdelay=0;
   while((millis()-tt)<(dur+bint)*bnb){ledblk(dur,bdelay,bint,bnb);}
-#endif // NRF_MODE == 'P'
+#endif // NRF_MODE == 'C'
 
 }
 

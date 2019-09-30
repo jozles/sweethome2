@@ -37,14 +37,14 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 /************* config ****************/
   
-  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
+  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
   
-//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
-    //#define DETS                  // carte DETS (sinon UNO etc)
+    #define DETS                  // carte DETS (sinon UNO etc)
 #endif NRF_MODE == 'P'    
 
   #define DIAG                    // affichages diags série
@@ -56,7 +56,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #if NRF_MODE == 'P'
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  (byte*)"peri1"     // MAC_ADDR périphériques
+  #define PER_ADDR  (byte*)"peri2"     // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
@@ -65,11 +65,16 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define CC_ADDR   (byte*)"toto_"     // MAC_ADDR concentrateur
   #define BR_ADDR   (byte*)"bcast"     // adresse fixe de broadcast
 
+#define CLKPIN    13
+#define MISOPIN   12
+#define MOSIPIN   11
+
 #if NRF_MODE == 'P'
 #ifdef DETS
   #define LED        4
   #define CSN_PIN    10
   #define CE_PIN     9
+  #define REED       3
 #endif
 #ifndef DETS
   #define LED        5

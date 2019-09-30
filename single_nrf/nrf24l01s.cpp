@@ -46,9 +46,7 @@
 #define CE_LOW    digitalWrite(CE_PIN,LOW);
 #endif  // CE_HIGH
 
-#define CLKPIN    13
-#define MISOPIN   12
-#define MOSIPIN   11
+
 #ifdef SPI_MODE
 #if NRF_MODE == 'P'
 #define SPI_INIT    SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
@@ -193,23 +191,27 @@ void Nrfp::powerUp()
 
 void Nrfp::powerDown()
 {
-    if(!powerD){            // si power down, �a bloque de refaire...
-
+    if(!powerD){            // si power down, ça bloque de refaire...        
         powerD=true;
-
+     
         CE_LOW
 
         conf=CONFREG & ~PWR_UP_BIT;          // powerDown
         regWrite(CONFIG,&conf);
 
-        CSN_OFF
-        //CE_OFF    CE stay ON else go high (need a pulldown resistor?)
-
 #ifdef SPI_MODE
         SPI_OFF
 #endif SPI_MODE        
+       
+       PP4 PP4        // 3 times -> done
     }
-    PP4 PP4 PP4
+    
+      CSN_INIT
+      CSN_LOW       // powerdown value
+      CE_INIT
+      CE_LOW        // powerdown value
+
+    PP4               // 1 time  -> flag already set
 }
 
 void Nrfp::setTx()

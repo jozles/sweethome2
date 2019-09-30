@@ -21,7 +21,7 @@
 #define  AWAKE_KO_VALUE  450        // 1 heure avant prochain test si com HS
 #define  AWAKE_RETRY_VALUE     3    // nbre de retry avant KO
 
-void sleepPwrDown(uint8_t durat);
+uint16_t sleepPwrDown(uint8_t durat);
 
 #endif // NRF_MODE == 'P'
 
