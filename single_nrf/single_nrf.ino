@@ -60,19 +60,32 @@ unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buff
 #if NRF_MODE == 'P'
 
 /*** gestion sleep ***/
-bool    tfr=false;                // pour DIAG
-bool    mustSend; 
-int     awakeCnt=0;
-int     awakeMinCnt=0;
-int     retryCnt=0;
-uint32_t nbS=0;                   // nbre sleeps
-float   durT=0;                   // temps sleep cumulé (mS/10)
-float   tBeg=0;                   // temps total depuis reset (oscillateur local)
+bool      tfr=false;                // pour DIAG
+bool      mustSend; 
+int       awakeCnt=0;
+int       awakeMinCnt=0;
+int       retryCnt=0;
+uint32_t  nbS=0;                   // nbre sleeps
+float     durT=0;                  // temps sleep cumulé (mS/10)
+float     tBeg=0;                  // temps total depuis reset (oscillateur local)
 
-uint16_t aw_ok=AWAKE_OK_VALUE;
-uint16_t aw_min=AWAKE_MIN_VALUE;
-uint16_t aw_ko=AWAKE_KO_VALUE;
-uint8_t  aw_retry=AWAKE_RETRY_VALUE;
+uint16_t  aw_ok=AWAKE_OK_VALUE;
+uint16_t  aw_min=AWAKE_MIN_VALUE;
+uint16_t  aw_ko=AWAKE_KO_VALUE;
+uint8_t   aw_retry=AWAKE_RETRY_VALUE;
+
+float     timer1;
+bool      extTimer;
+float     period;
+#define PRESCALER_RATIO 256           // prescaler ratio clock timer1 clock
+#define TCCR1B_PRESCALER_MASK 0xF8    // prescaler bit mask in TCCR1B
+#if PRESCALER_RATIO==1024
+  #define TCCR1B_PRESCALER_BITS 0x05  // prescaler bit value for ratio 1024 in TCCR1B
+#endif  
+#if PRESCALER_RATIO==256
+  #define TCCR1B_PRESCALER_BITS 0x04  // prescaler bit value for ratio 256 in TCCR1B
+#endif  
+#define CPU_FREQUENCY 8000000
 
 extern float temp;    // debug
 
@@ -102,22 +115,55 @@ void hardwarePowerUp()
   pinMode(PP,OUTPUT);
   pinMode(REED,INPUT_PULLUP);
 }
- 
+
+void intISR()
+{
+  extTimer=true;
+  timer1+=TCNT1;
+  detachInterrupt(0);
+  detachInterrupt(1);
+}
+
+ISR(TIMER1_OVF_vect)                     // ISR interrupt service for MPU timer 1 ovf vector
+{
+  timer1+=0x010000;
+}
 
 void setup() {
 
   delay(100);
   Serial.begin(115200);
 
+  Serial.print("\nstart setup ");
+
 #if NRF_MODE == 'P'
 
   
-  /* test nrf poxer down */
+  /* external timer calibration sequence */
 
-  delayBlk(10,350,350,2,5000);
-  sleepPwrDown(0);
-  //pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(500);digitalWrite(LED,LOW);
-  //sleepPwrDown(0);  
+  delayBlk(2,0,500,2,5000);         // 5sec blinking
+  sleepPwrDown(0);                  // wait interrupt from external timer
+
+  pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(300);digitalWrite(LED,LOW);   // external timer calibration starts
+
+  TCCR1A=0;
+  TCCR1B &= TCCR1B_PRESCALER_MASK;  // timer1 prescaler
+  TCCR1B |= TCCR1B_PRESCALER_BITS;  // timer1 prescaler
+  TCNT1=0;                          // clr counter
+  timer1=0;                         // external timer period
+  extTimer=false;                   // true at next period
+  TIMSK1 |= (1<<TOIE1);             // enable timer1 overflow counting interrupt
+
+  attachInterrupt(0,intISR,FALLING);EIFR=bit(INTF0);    // external timer interrupt
+  
+  while(!extTimer){delay(1000);Serial.print(".");}
+  
+  TIMSK1 &= ~(1<<TOIE1);            // disable timer1 ovf interrupt
+
+  period=(float)timer1*PRESCALER_RATIO/CPU_FREQUENCY;
+  Serial.print(timer1);Serial.print(" ");
+  Serial.print("period is ");Serial.println(period);delay(1);
+
   /* ------------------- */
   
   userResetSetup();
@@ -130,7 +176,6 @@ void setup() {
 
 #if NRF_MODE == 'C'
 
-  Serial.print("\nstart setup ");
   Serial.print(TXRX_MODE);
   delay(100);
 
@@ -418,16 +463,21 @@ uint8_t beginP()
   int confSta=-1;
   while(confSta<=0){
     confSta=nrfp.pRegister(message,&pldLength); // -4 empty -3 max RT ; -2 len ; -1 pipe ; 0 na ; >=1 ok numT
-    Serial.print(">>> start ");
-    Serial.print(temp);Serial.print(" ");
+    Serial.print(">>> start ");Serial.print(temp);Serial.print(" ");
     getVolts();
     Serial.print(volts);Serial.print(" ");
     Serial.print((char*)(kk+(confSta+6)*LMERR));
     Serial.print(" numT=");Serial.print(confSta);
+#ifdef DIAG
     Serial.print("  aw_ok=");Serial.print(aw_ok*STEP_VALUE);
-    Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.println("sec ");
-    delay(2);         
-    delayBlk(1,7500,250,2,1);      // sleepPwrDown(T250)
+    Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.print("sec ");
+    delay(1);
+#endif
+    Serial.println();
+    delay(1);         
+
+    delayBlk(1,0,250,2,1);         // 2 blinks
+    sleepPwrDown(0);sleepPwrDown(0);
   }
   importData(message,pldLength);   // user data available
   awakeMinCnt=-1;                  // force data upload
@@ -522,7 +572,7 @@ void sleepDly(uint16_t dly)                                                     
 }
 #endif // NRF_MODE == 'P'
 
-void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)
+void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,int dly)
 /*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 
     bnb=(on+off) nb in one sequence ; dly=total delay time   
     
@@ -544,7 +594,6 @@ void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,int dly)
       dly-=(dur+bint);
     }
     sleepDly(bdelay);
-    //sleepPwrDown(T8000);
     dly-=bdelay;
   }
   hardwarePowerUp();                            // hardwarePowerUp() -> nrfp.powerUp() -> delay(5)

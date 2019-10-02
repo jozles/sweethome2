@@ -153,6 +153,7 @@ uint16_t sleepPwrDown(uint8_t durat)
     set_sleep_mode(SLEEP_MODE_PWR_DOWN); 
 
     if(durat!=0){wdtSetup(durat);}        // setup WDTCSR register for sleep with WDT int awake
+    
     noInterrupts();                       // cli();
 
     if(durat==0){                         // awake by interrupt
@@ -169,7 +170,7 @@ uint16_t sleepPwrDown(uint8_t durat)
     sleep_disable();
     wdtDisable();                         
     power_all_enable();
-    ADCSRA |= (1<<ADEN);                  // ADC enable prescaler  div/8 =1MHz
+    ADCSRA |= (1<<ADEN);                  // ADC enable
 
     return wdtTime[durat]/10;
 }
