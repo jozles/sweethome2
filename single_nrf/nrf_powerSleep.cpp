@@ -118,8 +118,8 @@ void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à trai
 #define T4000 0b00100000
 #define T8000 0b00100001
 
-  noInterrupts();
-  wdt_reset();
+    noInterrupts();
+    wdt_reset();
 
     MCUSR &= ~(1<<WDRF);  // pour autoriser WDE=0
 
@@ -127,52 +127,57 @@ void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à trai
                                       // to write WDP[0-3] and WDE in the following 4 cycles
     WDTCSR = (1<<WDIE) | durat;       // WDCE must be 0 ; WDE=0, WDIE=1 interrupt mode, TXXX 
      
-  interrupts();
+    interrupts();
 }
 
 void wdtDisable()
 {
     noInterrupts();
     wdt_reset();
-    MCUSR &= ~(1<<WDRF);  // pour autoriser WDE=0
+    MCUSR &= ~(1<<WDRF);              // to allow WDE=0
     WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE must be 1 to write WDE in the following 4 cycles
-    WDTCSR = 0;                       // WDE et WDIE disabled
+    WDTCSR = 0;                       // WDE and WDIE disabled
     interrupts();                                                    
 }
 
-uint16_t sleepPwrDown(uint8_t durat)
-{
+uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not included to avoid multiple unusefull power on */
+{                                     /* durat=0 to enable external timer (INT0) */
     nbS++;
     
     hardwarePowerDown();
 
-    ADCSRA &= ~(1<<ADEN);                 // ADC shutdown
+    ADCSRA &= ~(1<<ADEN);                   // ADC shutdown
     
-    power_all_disable();                  // set all bits in PRR register (modules clk halted)
+    power_all_disable();                    // all bits set in PRR register (I/O modules clock halted)
     
     set_sleep_mode(SLEEP_MODE_PWR_DOWN); 
 
-    if(durat!=0){wdtSetup(durat);}        // setup WDTCSR register for sleep with WDT int awake
+    if(durat!=0){wdtSetup(durat);}          // WDTCSR register setup for sleep with WDT int awake
     
-    noInterrupts();                       // cli();
+    noInterrupts();                         // cli();
 
-    if(durat==0){                         // awake by interrupt
-      attachInterrupt(1,int1_ISR,FALLING);
-      EIFR=bit(INTF1);                    // clr flag
-      attachInterrupt(0,int0_ISR,FALLING);
-      EIFR=bit(INTF0);                    // clr flag      
+    if(durat==0){                           // external timer interrupt awaking
+  /* it would have to wait here for low state on INT0 to avoid       
+     possibility of falling transition between interrupts() and sleep_cpu()
+     (in that case BOD is not disable ; that cause little more power wasting)
+     it should not happen because no operation should take more than 1 sec 
+     same issue for reed on INT1 which is a rare event */
+      attachInterrupt(0,int0_ISR,FALLING);  // external timer interrupt enable
+      EIFR=bit(INTF0);                      // clr flag      
     }
+    attachInterrupt(1,int1_ISR,CHANGE);     // reed interrupt enable
+    EIFR=bit(INTF1);                        // clr flag
     
     sleep_enable();                       
-    sleep_bod_disable();                  // BOD halted if followed by sleep_cpu 
-    interrupts();                         // sei();
+    sleep_bod_disable();                    // BOD halted if followed by sleep_cpu 
+    interrupts();                           // sei();
     sleep_cpu();
     sleep_disable();
-    wdtDisable();                         
-    power_all_enable();
-    ADCSRA |= (1<<ADEN);                  // ADC enable
-
-    return wdtTime[durat]/10;
+    if(durat!=0){wdtDisable();}                         
+    power_all_enable();                     // all bits clr in PRR register (I/O modules clock halted)
+    ADCSRA |= (1<<ADEN);                    // ADC enable
+ 
+    return wdtTime[durat]/10;               // not valid if durat=0...
 }
 
 #endif // NRF_MODE == 'P'

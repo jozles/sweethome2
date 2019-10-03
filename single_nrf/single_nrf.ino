@@ -75,6 +75,7 @@ uint16_t  aw_ko=AWAKE_KO_VALUE;
 uint8_t   aw_retry=AWAKE_RETRY_VALUE;
 
 float     timer1;
+bool      timer1Ovf;
 bool      extTimer;
 float     period;
 #define PRESCALER_RATIO 256           // prescaler ratio clock timer1 clock
@@ -116,7 +117,7 @@ void hardwarePowerUp()
   pinMode(REED,INPUT_PULLUP);
 }
 
-void intISR()
+void int_ISR()
 {
   extTimer=true;
   timer1+=TCNT1;
@@ -126,6 +127,7 @@ void intISR()
 
 ISR(TIMER1_OVF_vect)                     // ISR interrupt service for MPU timer 1 ovf vector
 {
+  timer1Ovf=true;
   timer1+=0x010000;
 }
 
@@ -138,10 +140,9 @@ void setup() {
 
 #if NRF_MODE == 'P'
 
-  
   /* external timer calibration sequence */
 
-  delayBlk(2,0,500,2,5000);         // 5sec blinking
+  delayBlk(1,0,250,1,5000);         // 5sec blinking
   sleepPwrDown(0);                  // wait interrupt from external timer
 
   pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(300);digitalWrite(LED,LOW);   // external timer calibration starts
@@ -151,12 +152,16 @@ void setup() {
   TCCR1B |= TCCR1B_PRESCALER_BITS;  // timer1 prescaler
   TCNT1=0;                          // clr counter
   timer1=0;                         // external timer period
+  timer1Ovf=false;
   extTimer=false;                   // true at next period
   TIMSK1 |= (1<<TOIE1);             // enable timer1 overflow counting interrupt
 
-  attachInterrupt(0,intISR,FALLING);EIFR=bit(INTF0);    // external timer interrupt
+  attachInterrupt(0,int_ISR,FALLING);EIFR=bit(INTF0);    // external timer interrupt
   
-  while(!extTimer){delay(1000);Serial.print(".");}
+  //while(!extTimer){if(timer1Ovf){timer1Ovf=false;Serial.print(".");}}
+  while(!extTimer){delay(1000);Serial.print(".");} // *********************** delay() modifie le comptage du timer 1
+                                                   // ET empeche le blocage du comptage ????????
+  //while(!extTimer){}
   
   TIMSK1 &= ~(1<<TOIE1);            // disable timer1 ovf interrupt
 
@@ -210,8 +215,9 @@ void loop() {
     awakeCnt--;
     awakeMinCnt--;
     delayMicroseconds(TMINBLK);
-    digitalWrite(LED,LOW); // 5+1mA rc=0,5/8000 -> 372nA
-    durT+=sleepPwrDown(0); //T8000);
+    digitalWrite(LED,LOW);            // 5+1mA rc=0,5/8000 -> 372nA
+    sleepPwrDown(0);
+    durT+=period*1000;
   }
 
   /* usefull awake or retry */
@@ -232,7 +238,7 @@ void loop() {
   Serial.print(awakeMinCnt);Serial.print(" ");Serial.println(retryCnt);
 #endif // DIAG
 
-  /* data ready to send or presence message to send or retry -> send */
+  /* data ready or presence message time or retry -> send */
   if( (mustSend==true) || (awakeMinCnt<0) || (retryCnt!=0)){
 
     hardwarePowerUp();                   // 5mS delay inside
@@ -474,10 +480,10 @@ uint8_t beginP()
     delay(1);
 #endif
     Serial.println();
-    delay(1);         
+    delay(2);         
 
-    delayBlk(1,0,250,2,1);         // 2 blinks
-    sleepPwrDown(0);sleepPwrDown(0);
+    sleepPwrDown(0);
+    delayBlk(1,0,250,2,1);         // 2 blinks (hardwarePowerUp() included)
   }
   importData(message,pldLength);   // user data available
   awakeMinCnt=-1;                  // force data upload
@@ -581,6 +587,13 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,int dly)
     at least 1 bdelay is executed (even dly smaller)
     usable if dly > (dur+bint)*bnb+bdelay
     hardwarePowerDown() at beginning of every sleepPwrDown() ; hardwarePowerUp() at end of delayBlk
+
+    exemples :
+
+    delayBlk(1,0,250,1,5000);         // 5sec blinking (1/250)
+    delayBlk(1,0,250,3,1);            // 3 blinks (1/250)
+    delayBlk(300,0,1,1);              // 1 pulse (300)
+    
 */    
 {
 #if NRF_MODE == 'P'
@@ -601,12 +614,10 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,int dly)
 #endif // NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
-  delay(dly);
   unsigned long tt=millis(); 
   blktime=0;bcnt=1;blkdelay=0;
-  while((millis()-tt)<(dur+bint)*bnb){ledblk(dur,bdelay,bint,bnb);}
+  while((millis()-tt)<dly){ledblk(dur,bdelay,bint,bnb);dly-=((dur+bint)*bnb+bdelay);}
 #endif // NRF_MODE == 'C'
-
 }
 
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
