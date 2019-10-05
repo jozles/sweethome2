@@ -66,7 +66,7 @@ void hardwarePowerDown()
   pinMode(LED,INPUT);
   pinMode(PP,INPUT);
   pinMode(REED,INPUT);
-  pinMode(CSN_PIN,OUTPUT);digitalWrite(CSN_PIN,LOW);
+  pinMode(CSN_PIN,OUTPUT);digitalWrite(CSN_PIN,HIGH);
   pinMode(CE_PIN,OUTPUT);digitalWrite(CE_PIN,LOW);
   pinMode(CLKPIN,OUTPUT);digitalWrite(CLKPIN,HIGH);
 }
@@ -123,10 +123,12 @@ void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à trai
 
     MCUSR &= ~(1<<WDRF);  // pour autoriser WDE=0
 
+#ifdef ATMEGA328  
     WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE must be 1
                                       // to write WDP[0-3] and WDE in the following 4 cycles
     WDTCSR = (1<<WDIE) | durat;       // WDCE must be 0 ; WDE=0, WDIE=1 interrupt mode, TXXX 
-     
+#endif     
+
     interrupts();
 }
 
@@ -135,8 +137,10 @@ void wdtDisable()
     noInterrupts();
     wdt_reset();
     MCUSR &= ~(1<<WDRF);              // to allow WDE=0
+    
     WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE must be 1 to write WDE in the following 4 cycles
     WDTCSR = 0;                       // WDE and WDIE disabled
+
     interrupts();                                                    
 }
 
@@ -162,14 +166,17 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
      (in that case BOD is not disable ; that cause little more power wasting)
      it should not happen because no operation should take more than 1 sec 
      same issue for reed on INT1 which is a rare event */
+     
       attachInterrupt(0,int0_ISR,FALLING);  // external timer interrupt enable
-      EIFR=bit(INTF0);                      // clr flag      
+      EIFR=bit(INTF0);                      // clr flag
     }
     attachInterrupt(1,int1_ISR,CHANGE);     // reed interrupt enable
     EIFR=bit(INTF1);                        // clr flag
     
     sleep_enable();                       
+#ifdef ATMEGA328
     sleep_bod_disable();                    // BOD halted if followed by sleep_cpu 
+#endif
     interrupts();                           // sei();
     sleep_cpu();
     sleep_disable();

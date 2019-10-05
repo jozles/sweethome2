@@ -142,28 +142,30 @@ void setup() {
 
   /* external timer calibration sequence */
 
-  delayBlk(1,0,250,1,5000);         // 5sec blinking
-  sleepPwrDown(0);                  // wait interrupt from external timer
+  delayBlk(1,0,250,1,5000);               // 5sec blinking
+  sleepPwrDown(0);                        // wait interrupt from external timer
 
   pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(300);digitalWrite(LED,LOW);   // external timer calibration starts
 
   TCCR1A=0;
-  TCCR1B &= TCCR1B_PRESCALER_MASK;  // timer1 prescaler
-  TCCR1B |= TCCR1B_PRESCALER_BITS;  // timer1 prescaler
-  TCNT1=0;                          // clr counter
-  timer1=0;                         // external timer period
+  TCCR1B &= TCCR1B_PRESCALER_MASK;        // timer1 prescaler
+  TCCR1B |= TCCR1B_PRESCALER_BITS;        // timer1 prescaler
+  TCNT1=0;                                // clr counter
+  timer1=0;                               // external timer period
   timer1Ovf=false;
-  extTimer=false;                   // true at next period
-  TIMSK1 |= (1<<TOIE1);             // enable timer1 overflow counting interrupt
+  extTimer=false;                         // true at next period
 
-  attachInterrupt(0,int_ISR,FALLING);EIFR=bit(INTF0);    // external timer interrupt
+  TIMSK1 |= (1<<TOIE1);                   // enable timer1 overflow counting interrupt
+
+  attachInterrupt(0,int_ISR,FALLING);     // external timer interrupt
+  EIFR=bit(INTF0);                        // clr flag
   
   //while(!extTimer){if(timer1Ovf){timer1Ovf=false;Serial.print(".");}}
   while(!extTimer){delay(1000);Serial.print(".");} // *********************** delay() modifie le comptage du timer 1
                                                    // ET empeche le blocage du comptage ????????
   //while(!extTimer){}
-  
-  TIMSK1 &= ~(1<<TOIE1);            // disable timer1 ovf interrupt
+
+  TIMSK1 &= ~(1<<TOIE1);                  // disable timer1 ovf interrupt
 
   period=(float)timer1*PRESCALER_RATIO/CPU_FREQUENCY;
   Serial.print(timer1);Serial.print(" ");

@@ -207,9 +207,9 @@ void Nrfp::powerDown()
     }
     
       CSN_INIT
-      CSN_LOW       // powerdown value
+      CSN_HIGH        // powerdown value
       CE_INIT
-      CE_LOW        // powerdown value
+      CE_LOW          // powerdown value
 
     PP4               // 1 time  -> flag already set
 }

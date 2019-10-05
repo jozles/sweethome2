@@ -3,6 +3,13 @@
 
 #if NRF_MODE == 'P'
 
+#ifdef ATMEGA8
+#define WDTCSR WDTCR
+#define EIFR   GIFR
+#define TIMSK1 TIMSK
+#endif
+
+
 // prescaler WDT
 #define T16   0b00000000
 #define T32   0b00000001
