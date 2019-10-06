@@ -283,7 +283,7 @@ void nrf24l01PwrDown()
 
     digitalWrite(CE_PIN,LOW);
     pinMode(CE_PIN,OUTPUT);
-    digitalWrite(CSN_PIN,LOW);                                      // enable device access 
+    digitalWrite(CSN_PIN,HIGH);                                      // enable device access 
     pinMode(CSN_PIN,OUTPUT);
 
 /* NRF CONF REG BITS */    
@@ -291,17 +291,55 @@ void nrf24l01PwrDown()
 #define MASK_TX_DS_BIT 0x20
 #define MASK_MAX_RT_BIT 0x10
 #define EN_CRC_BIT  0x08
-#define CRCO_BIT    0x04
+#define CRCO_BIT    0x04 
 #define PWR_UP_BIT  0x02
 #define PRIM_RX_BIT 0x01
      
 #define CONFREG (0x00 & ~(MASK_RX_DR_BIT) & ~(MASK_TX_DS_BIT) & ~(MASK_MAX_RT_BIT) | EN_CRC_BIT & ~(CRCO_BIT) & ~(PWR_UP_BIT) | PRIM_RX_BIT )
     byte conf=CONFREG;                                                // PWR_UP_BIT = 0
+
+    delay(100);                                                       // power on reset NRF
         
 #define W_REGISTER    0x20                                            // write register command
-    SPI.transfer(W_REGISTER);                                         // config register is 0x00
+    digitalWrite(CSN_PIN,LOW);
+    SPI.transfer(W_REGISTER);                                         // config register nb is 0x00
     SPI.transfer(conf);
     digitalWrite(CSN_PIN,HIGH);
+
+#define NOP           0xFF                                            // nop command
+    digitalWrite(CSN_PIN,LOW);
+    byte statu=SPI.transfer(NOP);
+    digitalWrite(CSN_PIN,HIGH);    
+
+Serial.print("status ");Serial.println(statu,HEX);
+
+conf |= PWR_UP_BIT;                                                   // PWR_UP_BIT set -> idle 1 state (40uA=12board+28nrf)
+    digitalWrite(CSN_PIN,LOW);
+    SPI.transfer(W_REGISTER);                                         // config register nb is 0x00
+    SPI.transfer(conf);
+    digitalWrite(CSN_PIN,HIGH);
+
+    delay(5);
+
+#define NOP           0xFF                                            // nop command
+    digitalWrite(CSN_PIN,LOW);
+    statu=SPI.transfer(NOP);
+    digitalWrite(CSN_PIN,HIGH);    
+
+Serial.print("status ");Serial.println(statu,HEX);
+
+conf &= ~PWR_UP_BIT;                                                  // PWR_UP_BIT clr -> power down state (13uA=12 board+1nrf)
+    digitalWrite(CSN_PIN,LOW);
+    SPI.transfer(W_REGISTER);                                         // config register nb is 0x00
+    SPI.transfer(conf);
+    digitalWrite(CSN_PIN,HIGH);
+
+#define NOP           0xFF                                            // nop command
+    digitalWrite(CSN_PIN,LOW);
+    statu=SPI.transfer(NOP);
+    digitalWrite(CSN_PIN,HIGH);    
+
+Serial.print("status ");Serial.println(statu,HEX);
 
     SPI.end();                                                        // disable SPI and pins
     pinMode(MOSI_PIN,INPUT);                               
@@ -316,7 +354,7 @@ void setup()
     Serial.begin(115200);
     Serial.println("test sleep ready ");
     Serial.print(getVolts());Serial.println("V");
-   
+
     hardPwrDown();
     
     pinMode(REED,INPUT_PULLUP); // must stay pullup when reed mode active
