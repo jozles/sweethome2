@@ -39,10 +39,10 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 /************* config ****************/
   
-  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
+  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
   
-//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
@@ -58,7 +58,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #if NRF_MODE == 'P'
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  (byte*)"peri3"     // MAC_ADDR périphériques
+  #define PER_ADDR  (byte*)"peri4"     // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
@@ -67,9 +67,9 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define CC_ADDR   (byte*)"toto_"     // MAC_ADDR concentrateur
   #define BR_ADDR   (byte*)"bcast"     // adresse fixe de broadcast
 
-#define CLKPIN    13
-#define MISOPIN   12
-#define MOSIPIN   11
+#define CLK_PIN    13
+#define MISO_PIN   12
+#define MOSI_PIN   11
 
 #if NRF_MODE == 'P'
 #ifdef DETS

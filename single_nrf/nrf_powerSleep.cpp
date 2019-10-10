@@ -68,7 +68,8 @@ void hardwarePowerDown()
   pinMode(REED,INPUT);
   pinMode(CSN_PIN,OUTPUT);digitalWrite(CSN_PIN,HIGH);
   pinMode(CE_PIN,OUTPUT);digitalWrite(CE_PIN,LOW);
-  pinMode(CLKPIN,OUTPUT);digitalWrite(CLKPIN,HIGH);
+  pinMode(CLK_PIN,OUTPUT);digitalWrite(CLK_PIN,HIGH);
+  pinMode(MOSI_PIN,OUTPUT);digitalWrite(MOSI_PIN,HIGH);
 }
 
 

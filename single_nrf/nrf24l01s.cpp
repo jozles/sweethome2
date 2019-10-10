@@ -55,7 +55,7 @@
 #define SPI_INIT    SPI.beginTransaction(SPISettings(8000000,MSBFIRST,SPI_MODE0));
 #endif
 #define SPI_START   SPI.begin();
-#define SPI_OFF     SPI.end();pinMode(MOSIPIN,INPUT);pinMode(CLKPIN,INPUT);
+#define SPI_OFF     SPI.end();pinMode(MOSI_PIN,INPUT);pinMode(CLK_PIN,INPUT);
 #endif SPI_MODE
 
 //#define GET_STA   CSN_LOW statu=SPI.transfer(NOP);CSN_HIGH

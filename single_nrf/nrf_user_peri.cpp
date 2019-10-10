@@ -56,6 +56,7 @@ bool checkThings(uint8_t awakeCnt,uint8_t awakeMinCnt,uint8_t retryCnt)
   if(retryCnt==0){            // pas de conversion si retry en cours
     ds1820.convertDs(WPIN);
     
+    
     #if TCONVDS != 200
     tconv // TCONVDS not 200 ... should adjust sleep time
     #endif

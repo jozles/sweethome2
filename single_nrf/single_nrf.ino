@@ -120,16 +120,9 @@ void hardwarePowerUp()
 void int_ISR()
 {
   extTimer=true;
-  timer1+=TCNT1;
-  detachInterrupt(0);
-  detachInterrupt(1);
+  //Serial.println("int_ISR");
 }
 
-ISR(TIMER1_OVF_vect)                     // ISR interrupt service for MPU timer 1 ovf vector
-{
-  timer1Ovf=true;
-  timer1+=0x010000;
-}
 
 void setup() {
 
@@ -145,31 +138,17 @@ void setup() {
   delayBlk(1,0,250,1,5000);               // 5sec blinking
   sleepPwrDown(0);                        // wait interrupt from external timer
 
-  pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(300);digitalWrite(LED,LOW);   // external timer calibration starts
-
-  TCCR1A=0;
-  TCCR1B &= TCCR1B_PRESCALER_MASK;        // timer1 prescaler
-  TCCR1B |= TCCR1B_PRESCALER_BITS;        // timer1 prescaler
-  TCNT1=0;                                // clr counter
-  timer1=0;                               // external timer period
-  timer1Ovf=false;
-  extTimer=false;                         // true at next period
-
-  TIMSK1 |= (1<<TOIE1);                   // enable timer1 overflow counting interrupt
-
+  long beg=millis();
+  pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(100);digitalWrite(LED,LOW);   // external timer calibration starts
   attachInterrupt(0,int_ISR,FALLING);     // external timer interrupt
   EIFR=bit(INTF0);                        // clr flag
   
-  //while(!extTimer){if(timer1Ovf){timer1Ovf=false;Serial.print(".");}}
-  while(!extTimer){delay(1000);Serial.print(".");} // *********************** delay() modifie le comptage du timer 1
-                                                   // ET empeche le blocage du comptage ????????
-  //while(!extTimer){}
-
-  TIMSK1 &= ~(1<<TOIE1);                  // disable timer1 ovf interrupt
-
-  period=(float)timer1*PRESCALER_RATIO/CPU_FREQUENCY;
-  Serial.print(timer1);Serial.print(" ");
-  Serial.print("period is ");Serial.println(period);delay(1);
+  while(!extTimer){delay(1);}             // évite le blocage à la fin ... ???
+  
+  detachInterrupt(0);
+  period=(float)(millis()-beg)/1000;
+  pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(100);digitalWrite(LED,LOW); 
+  Serial.print("period is ");Serial.print(period);Serial.println("sec");delay(1);
 
   /* ------------------- */
   
@@ -227,7 +206,8 @@ void loop() {
   mustSend=false;           
   mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff
 
-   getVolts();                  // checkthings laisse le temps à l'ADC de démarrer...
+   delay(200);                    // pour démarrage de l'ADC quand pas de thermo
+   getVolts();                  // checkthings laisse le temps à l'ADC de démarrer (si thermo)
    if(volts<VOLTMIN){
     // shutdown...
    }                     
@@ -634,7 +614,27 @@ void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
   }
 }
 
+/*  
+ *     utilisation du timer 1        ...... réaction bizarres avec delay()   
+ *
+ISR(TIMER1_OVF_vect)                     // ISR interrupt service for MPU timer 1 ovf vector
+{
+  timer1Ovf=true;
+  timer1+=0x010000;
+  //Serial.println(timer1);
+}
 
+ *      
+  TCCR1A=0;
+  TCCR1B &= TCCR1B_PRESCALER_MASK;        // timer1 prescaler
+  TCCR1B |= TCCR1B_PRESCALER_BITS;        // timer1 prescaler value  if /256 -> 8MHz / 256 / 65532 = 2.097Hz
+  GTCCR  |= PSRSYNC;                      // reset prescaler
+  TCNT1=0;                                // clr counter
+
+  TIMSK1 |= (1<<TOIE1);                   // enable timer1 ovf interrupt  
+
+  TIMSK1 &= ~(1<<TOIE1);                  // disable timer1 ovf interrupt
+  */
 
 /*
 void dumpstr0(char* data,uint8_t len)
