@@ -342,10 +342,10 @@ conf &= ~PWR_UP_BIT;                                                  // PWR_UP_
 Serial.print("status ");Serial.println(statu,HEX);
 
     SPI.end();                                                        // disable SPI and pins
-    pinMode(MOSI_PIN,INPUT);                               
+    //pinMode(MOSI_PIN,INPUT);                               
 
-    digitalWrite(MISO_PIN,HIGH);                                      // SPI MISO pin
-    digitalWrite(CLK_PIN,LOW);                                        // SPI CK pin
+    digitalWrite(MOSI_PIN,HIGH);                                      // SPI MISO pin
+    digitalWrite(CLK_PIN,HIGH);                                        // SPI CK pin
 }
 #endif NRF
 
