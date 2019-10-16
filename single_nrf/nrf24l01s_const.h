@@ -39,10 +39,10 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 /************* config ****************/
   
-  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
+  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
   
-  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
@@ -58,7 +58,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #if NRF_MODE == 'P'
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  (byte*)"peri4"     // MAC_ADDR périphériques
+  #define PER_ADDR  (byte*)"peri3"     // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR

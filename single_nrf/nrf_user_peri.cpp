@@ -34,10 +34,11 @@ Ds1820 ds1820;
 float    temp,previousTemp=-99;
 float    deltaTemp=0.25; 
 bool     dsSta=false;
-byte     setds[]={0,0x7f,0x80,0x3f},readds[8];   // 187mS 10 bits accu 0,25°
+byte     setds[]={0,0x7f,0x80,0x1f},readds[8];   // 1f=93mS 9 bits accu 0,5° ; 3f=187mS 10 bits accu 0,25°
 char     dsM;
 uint32_t nbT=0;         // nbre lectures de temp
-#define  TCONVDS 200     // mS !!
+#define  TCONVDS1 T64   // sleep PwrDown mS !!
+#define  TCONVDS2 T32   // sleep PwrDown mS !!
 #endif DS18X20 
 
 /*** volts ***/
@@ -54,14 +55,15 @@ bool checkThings(uint8_t awakeCnt,uint8_t awakeMinCnt,uint8_t retryCnt)
 #ifdef DS18X20
 
   if(retryCnt==0){            // pas de conversion si retry en cours
+
+    dsSta=ds1820.setDs(WPIN,setds,readds);    // setup ds18b20
+    
     ds1820.convertDs(WPIN);
     
-    
-    #if TCONVDS != 200
-    tconv // TCONVDS not 200 ... should adjust sleep time
-    #endif
+    /* *********** mettre en mode 9 bits 0,5° avec sleep 64+32mS -> 96 mA/mS +10mA/mS = 106/60000=1,6uA moyen (1 lect/min) ************* */
 
-    sleepPwrDown(T250); 
+  sleepPwrDown(TCONVDS1);
+  sleepPwrDown(TCONVDS2);   
 
     nbT++;
     temp=ds1820.readDs(WPIN);
@@ -124,7 +126,8 @@ void userResetSetup()
   dsSta=ds1820.setDs(WPIN,setds,readds);    // setup ds18b20
   dsM='B';if(ds1820.dsmodel==MODEL_S){dsM='S';}
   ds1820.convertDs(WPIN);
-  delay(TCONVDS);    
+  sleepPwrDown(TCONVDS1);
+  sleepPwrDown(TCONVDS2);    
   temp=ds1820.readDs(WPIN);
 #endif DS18X20
 }

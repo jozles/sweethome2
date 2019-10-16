@@ -49,13 +49,21 @@ byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
 #define LMERR 9           
 char*   kk={"time out\0tx maxrt\0rx empty\0mac addr\0length  \0pipe nb \0--      \0ok      \0"};         // codes retour et erreur
 
+#define LENECHO 10                        // echo message len
+
 #if NRF_MODE == 'C'
-char bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
+
+bool    echoOn=false;                     // fonction echo en cours (sur l'entrée de table 1 envoi de messages pour écho - test de portée)
+                                          // le périphérique n'écoutant que les réponses à ses messages, il faut attendre une demande pour commencer.
+                                          // en attente, echoOn=true ;
+                                          // le concentrateur est bloqué pendant la maneuvre
+
+char    bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
 
 unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buffer pas plein         
 #define PERIMPORT 100
 
-#endif
+#endif // NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'
 
@@ -114,15 +122,18 @@ void hardwarePowerUp()
   nrfp.powerUp();
   pinMode(LED,OUTPUT);
   pinMode(PP,OUTPUT);
+#if NRF_MODE == 'P'
   pinMode(REED,INPUT_PULLUP);
+#endif // NRF_MODE == 'P'
 }
 
+#if NRF_MODE == 'P'
 void int_ISR()
 {
   extTimer=true;
   //Serial.println("int_ISR");
 }
-
+#endif NRF_MODE == 'P'
 
 void setup() {
 
@@ -206,7 +217,6 @@ void loop() {
   mustSend=false;           
   mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff
 
-   delay(200);                    // pour démarrage de l'ADC quand pas de thermo
    getVolts();                  // checkthings laisse le temps à l'ADC de démarrer (si thermo)
    if(volts<VOLTMIN){
     // shutdown...
@@ -261,7 +271,9 @@ void loop() {
       /* get response */
       if(rxMessage()>=0){                  // rx ok
         showRx(true);
-        importData(message,pldLength);     // user data
+      /* echo request ? (address is 0x5555555555) */
+        if(memcmp(message,"UUUUU",5)==0){echo();}
+        else importData(message,pldLength);     // user data
       }
       else{showErr();numT=beginP();}       // rx error : refaire l'inscription
     }
@@ -298,28 +310,33 @@ void loop() {
   if(rdSta==0){                                 
       showRx(false);                                        
       numT=nrfp.cRegister((char*)message);               
-      if(numT<(NBPERIF)){                         // registration ok
-        rdSta=numT;                               // entry is valid -> rdSta >0              
+      if(numT<(NBPERIF)){                             // registration ok
+        rdSta=numT;                                   // entry is valid -> rdSta >0              
         nrfp.printAddr((char*)tableC[numT].periMac,' ');
         Serial.print(" registred as ");Serial.println(numT);}
       else if(numT==(NBPERIF+2)){Serial.println(" MAX_RT ... deleted");}
       else {Serial.println(" full");}
   }
 
-  // ====== no error && valid entry ======
+  // ====== no error && valid entry ======         
   
   if((rdSta>0) && (memcmp(message,tableC[rdSta].periMac,ADDR_LENGTH)==0)){ 
-      if(numT==0){      // if not registration (no valid data), incoming message storage
+      if(numT==0){                                    // if not registration (no valid data), incoming message storage
         memcpy(tableC[rdSta].periBuf,message,pldLength);    
         tableC[rdSta].periBufLength=pldLength;}
-      /* build config */
-      memcpy(message+ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
-      /* send it to perif */    
-      txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);        // end of transaction so auto ACK
-      if(trSta==0){tableC[rdSta].periBufSent=true;} 
       
-                                                      // ======= formatting & tx to server ======
-      if(numT==0){exportData(rdSta);}                 // if not registration (no valid data), tx to server
+      /* if maneuvre d'echo en attente, début */
+      Serial.print(numT);Serial.print(" echo? ");Serial.println(echoOn);
+      if(echoOn && numT==1){echo('e');}                     // echo sur entrée 1 de la table seulement
+      else {
+      /* build config */
+        memcpy(message+ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
+      /* send it to perif */    
+        txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);        // end of transaction so auto ACK
+        if(trSta==0){tableC[rdSta].periBufSent=true;} 
+      /* ======= formatting & tx to server ====== */
+        if(numT==0){exportData(rdSta);}                 // if not registration (no valid data), tx to server
+      }
   }
   
   // ====== error or empty -> ignore ======
@@ -336,26 +353,21 @@ void loop() {
     Serial.print(rdSta);Serial.print(" ");Serial.print(micros()-time_beg);Serial.print(" ");Serial.println(trSta);}
 #endif // !DIAG
 
-  // ====== RX from server ? ====
-  
+  // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
 
-  //if((millis()-(timeImport+PERIMPORT))>0){
-    //timeImport=millis();
     int dt=importData();
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
 #ifdef DIAG
   if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
 #endif // DIAG
 
-  //}
-
 
   // ====== menu choice ======  
   
   char a=getch();
   switch(a){
-    case 'e':echo(a);menu=true;break;
+    case 'e':echoOn=true;menu=true;break;
     case 'b':broadcast(a);menu=true;break;
     case 't':Serial.println((char)a);nrfp.tableCPrint();menu=true;break;
     default:break;
@@ -368,7 +380,10 @@ void loop() {
 #if NRF_MODE == 'C'
 
 void echo(char a)
-{
+{ 
+  Serial.print("start echo");
+  echoOn=false;
+  
   int cnt=0;
   int cntko=0;
 
@@ -378,8 +393,9 @@ void echo(char a)
 
     uint8_t numP=1; // 1er perif de la table
     cnt++;
-    sprintf((char*)message,"%05d",cnt);
-    echo0((char*)message,NO_ACK,5,numP);
+    memcpy(message,"UUUUUU",5);
+    sprintf((char*)message+5,"%05d",cnt);
+    echo0((char*)message,NO_ACK,LENECHO,numP);
                                                 // si periMac ne répond plus ... à traiter
     delay(2000);ledblk(TBLK,DBLK,IBLK,2);
   } 
@@ -479,7 +495,25 @@ void getVolts()
   volts=analogRead(VINPUT)*VFACTOR;
   pinMode(VCHECK,INPUT);
 }
- 
+
+void echo()                         // mettre un flag qui indique de passer en mode echo au lieu de répondre la config
+{                                   // lors d'un message du périphérique    
+#define ECHOTO 5000                 // time out 5 sec
+
+  bool fin=false; 
+  
+  while(!fin){
+    Serial.println((char*)message);
+    memcpy(message,"VVVVV",5);
+    txMessage(NO_ACK,LENECHO,0);
+    fin=true;
+    unsigned long echoTo=millis();
+    while((millis()-echoTo-ECHOTO)<0){
+      if(rxMessage()>=0){fin=false;break;}
+    }
+  }
+}
+
 #endif NRF_MODE == 'P'
 
 int txMessage(bool ack,uint8_t len,uint8_t numP)
