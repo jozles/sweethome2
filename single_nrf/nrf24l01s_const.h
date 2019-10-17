@@ -43,7 +43,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   
 //  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
   #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-//  #define MEGA                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
     #define DETS                  // carte DETS (sinon UNO etc)

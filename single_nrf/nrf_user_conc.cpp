@@ -112,19 +112,19 @@ char c;         // pour macros TCP/UDP
 
 /* réception/decodage messages serveur */
 
-  uint8_t etatImport=0;
-  char*   intro="<body>";
-  uint8_t introLength1=6;
-  uint8_t introLength2=15;
-  char*   suffix="</body>";
-  uint8_t suffixLength=7;
-  uint8_t messLength=0;
-  uint8_t l;
-  uint8_t crcAsc;
-  uint8_t crcLength=2;
-  int lastPeriMess;
-  char indata[LBUFSERVER+1];
-  uint8_t lastEtatImport;
+  uint8_t   etatImport=0;
+  char*     intro="<body>";
+  uint8_t   introLength1=6;
+  uint8_t   introLength2=15;
+  char*     suffix="</body>";
+  uint8_t   suffixLength=7;
+  uint16_t  messLength=0;
+  uint16_t  l;
+  uint8_t   crcAsc;
+  uint8_t   crcLength=2;
+  int       lastPeriMess;
+  char      indata[LBUFSERVER+1];
+  uint8_t   lastEtatImport;
 
 /* cycle functions */
 
@@ -274,7 +274,10 @@ int getHData(char* data,uint16_t* len)
             break;
     case 1: if(CLIAV>=introLength2){                                                  // attente longueur message
               k1=introLength2;k2=0;CLIST;                                             // load fonction+len
-              for(k=4;k>0;k--){messLength*=10;messLength+=data[introLength2-k]-'0';}
+              for(k=4;k>0;k--){
+                //Serial.print(" ");Serial.print(introLength2-k);Serial.print("=");Serial.print(data[introLength2-k]);
+                messLength*=10;messLength+=data[introLength2-k]-'0';}
+              //Serial.print(" -> ");Serial.println(messLength);
               messLength+=suffixLength;etatImport++;}            
             t1_2=micros()-t1;
             break;
@@ -284,6 +287,7 @@ int getHData(char* data,uint16_t* len)
               k1=messLength-suffixLength+introLength2-crcLength;
               for(k=0;k<suffixLength;k++){
                 if(data[k+k1]!=suffix[k]){break;}}                                     // controle suffixe              
+              //Serial.print("l=");Serial.print(messLength);Serial.print(" GHD=");Serial.println(data);
               if(k>=suffixLength){etatImport++;}
               else {messLength=0;data[0]='\0';CLIZER;}}
             t1_3=micros()-t1;
@@ -368,7 +372,7 @@ char model[LENMODEL];
       memcpy(message+sb,model,LENMODEL);
       memcpy(message+sb+LENMODEL,"_\0",2);
       sb+=LENMODEL+1;
-
+//Serial.print("exportData message=");Serial.println((char*)message);
 if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}
 
     uint8_t fonction=0;                                                                       // data_read_ -> set
@@ -390,6 +394,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
       else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup();t3_2=micros();}}}       // si connecté fin sinon redémarrer ethernet
 
 #ifdef DIAG
+    Serial.print(" periMess=");Serial.print(periMess);
     Serial.print(" buildmess=");Serial.print(t3_0-t3);
     Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
     Serial.print(" userResetSetup=");Serial.println(t3_2-t3_1);
@@ -420,13 +425,15 @@ int  importData()                // reçoit un message du serveur
   
   t1=micros();
   periMess=getHData(indata,(uint16_t*)&dataLen);
-/*  if(periMess!=lastPeriMess || etatImport!=lastEtatImport){lastPeriMess=periMess;lastEtatImport=etatImport;
-    Serial.print("importData() periMess=");Serial.print(periMess);
+/*  
+    if(periMess!=lastPeriMess || etatImport!=lastEtatImport){lastPeriMess=periMess;lastEtatImport=etatImport;
+    Serial.print("****** importData() periMess=");Serial.print(periMess);
     Serial.print(" etatImport=");Serial.print(etatImport);
     Serial.print(" len=");Serial.print(messLength);
-    Serial.print(" indata=");Serial.println(indata);}*/
+    Serial.print(" indata=");Serial.println(indata);}
+*/
+
   if(periMess==MESSOK){
-        
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // mac from set message (LBODY pour "<body>")
         nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // numPer from set message
         numT=nrfp.macSearch(fromServerMac,&numPeri);              // numT mac reg nb in conc table ; numPeri from table numPeri 
@@ -439,20 +446,18 @@ int  importData()                // reçoit un message du serveur
         t2_1=micros();                                                    // (_P.PP pitch value)
         
 #ifdef DIAG                
-        Serial.print(">>> getHD ");Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
+        Serial.print(">>> getHD ");
+        Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
         Serial.print("/");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
         Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
         Serial.print(" ok=");Serial.println(t1_4);Serial.print("    data=");Serial.println(indata);
-        if(periMess==MESSOK){
-          Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");}
-        else {Serial.print("    importData ko=");Serial.print(periMess);Serial.print(" ");Serial.print(t2_1-t1);}
-
+        Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
         Serial.print(" nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);Serial.print(" numPeri=");Serial.print(numPeri);
         Serial.print(" eds=");Serial.print(eds);Serial.print(" fromServerMac=");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
         Serial.print(" print diag=");Serial.print(micros()-t2_1);
-        Serial.println();
+        Serial.println();        
 #endif        
-  }        
+  }
   return periMess;
 }
 
