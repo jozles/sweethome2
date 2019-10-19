@@ -254,7 +254,7 @@ bool Nrfp::letsPrx()      // goto PRX mode
 
 /********** public *************/
 
-void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,len to numP
+void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,len to numP if 'C' mode or to CCADDR if 'P' mode
 {
     uint8_t llen=len; // MAX_PAYLOAD_LENGTH;
 
@@ -313,7 +313,9 @@ void Nrfp::rxError()
 
 int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
 {
-/* available/read output errors codes (>=0 numP) */
+/* returns ( 0 full (valid length) ; <0 empty, pipe err or length error) 
+   only receiving in pipe 1 ...
+*/
 
     uint8_t maxLength=*pldLength; // MAX_PAYLOAD_LENGTH; //
     int err=0;
@@ -321,46 +323,51 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     if(!prxMode){letsPrx();}
 
     GET_STA
-    if((statu & RX_DR_BIT)==0){             // RX empty ?
+    if((statu & RX_DR_BIT)==0){                   // RX empty ?
         regRead(FIFO_STATUS,&fstatu);
-        if((fstatu & RX_EMPTY_BIT)!=0){     // FIFO empty ?
-            return AV_EMPTY;               // --------------- empty
+        if((fstatu & RX_EMPTY_BIT)!=0){           // FIFO empty ?
+            return AV_EMPTY;                      // --------------- empty
         }
-        else{
+        else{                                     // FiFO not empty
 
           GET_STA
 
           *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
-          if(*pipe!=1){
-            flushRx();
+          if(*pipe!=1){                           
+            flushRx();                            
             //CLR_RXDR 
             return AV_EMPTY;}
         }
     }
-    PP4    
+    PP4                                           // RX full
 
-    *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
+    *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;         // get pipe nb
    
     if(*pipe==1){
         CSN_LOW
         SPI.transfer(R_RX_PL_WID);
-        *pldLength=SPI.transfer(0xff);      // get pldLength (dynamic length)
+        *pldLength=SPI.transfer(0xff);            // get pldLength (dynamic length)
         CSN_HIGH      
     }
-    else {err=AV_NBPIP;}                    // ---------------- pipe nb error
+    else {err=AV_NBPIP;}                          // ---------------- pipe nb error
 
     if(((*pldLength>maxLength) || (*pldLength<=0)) && err==0){
-        err=AV_LMERR;}                      // ---------------- pldLength error
+        err=AV_LMERR;}                            // ---------------- pldLength error
 
     if(err!=0){rxError();}
-    return err;                             // =0 not empty ; !=0 error invalid pipe nb or length
+    return err;                                   // =0 not empty ; <0 error : invalid pipe nb or length
 }
 
 int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
-{   // see available() return codes
+{ 
+    /* mode 'C' returns  0  registration to do 
+                        >0  valid data table entry nb 
+                        <0  empty, pipe err, length err, mac addr table error
+       mode 'P' returns =0  full
+                        <0  empty, pipe err or length error
+    */
     // numP<NBPERIF means "available() allready done with result ok && *pipe set")
-
-    //*pldLength=MAX_PAYLOAD_LENGTH;
+    // PRX mode still true if no error
 
     if(numP>=NBPERIF){                                      // allow to only execute available()
         numP=available(pipe,pldLength);                     // if necessary
@@ -374,13 +381,13 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
         CLR_RXDR
 
 #if NRF_MODE == 'C'
-        numP=data[ADDR_LENGTH]-48;                                        // numP
-        if(numP!=0 && memcmp(data,tableC[numP].periMac,ADDR_LENGTH)!=0){  // macAddr ok ?
-            numP=AV_MCADD;rxError();}                                     // si numP==0 inscription à faire
-#endif // NRF_MODE == 'C'
+        numP=data[ADDR_LENGTH]-'0';                                       // sender numP
+        if(numP!=0 && memcmp(data,tableC[numP].periMac,ADDR_LENGTH)!=0){  // macAddr ko ?
+            numP=AV_MCADD;rxError();}                                     // if numP==0 registration to do
+#endif NRF_MODE == 'C'
     }
 
-    return numP;                  // available() return codes ; PRX mode still true if no error
+    return numP;               
 }
 
 #if NRF_MODE == 'P'

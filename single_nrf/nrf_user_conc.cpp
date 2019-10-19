@@ -325,6 +325,7 @@ int exportData(uint8_t numT)                            // formatting periBuf da
       sb=3;
       unpackMac((char*)(message+sb),tableC[numT].periMac);          // macaddr             
       sb+=17;
+      message[sb-1]='0';
       memcpy(message+sb,"_\0",2);
       sb+=1;
       memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+8+4+1,6); // temp                              

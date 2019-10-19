@@ -39,10 +39,10 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 /************* config ****************/
   
-  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
+  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
   
-//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
@@ -56,16 +56,16 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 /**************************************/
 
 #if NRF_MODE == 'P'
-  #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
+  #define SPI_MODE                      // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  (byte*)"peri3"     // MAC_ADDR périphériques
+  #define PER_ADDR  "peri3"      // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
 #endif
 
-  #define CC_ADDR   (byte*)"toto_"     // MAC_ADDR concentrateur
-  #define BR_ADDR   (byte*)"bcast"     // adresse fixe de broadcast
+  #define CC_ADDR   (byte*)"toto_"      // MAC_ADDR concentrateur
+  #define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
 
 #define CLK_PIN    13
 #define MISO_PIN   12
@@ -94,16 +94,16 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define CHANNEL    110        // numéro canal radio
   #define RF_SPEED   RF_SPD_1MB // vitesse radio  RF_SPD_2MB // RF_SPD_1MB // RF_SPD_250K
   #define ARD_VALUE  0          // ((0-15)+1) x 250uS delay before repeat
-  #define ARC_VALUE  0          // (0-15) repetitions
+  #define ARC_VALUE  4          // (0-15) repetitions
 
   #ifdef UNO
   #define NBPERIF 8             //  pour dim table
   #endif
   #ifdef MEGA
-  #define NBPERIF 24            //  pour dim table
+  #define NBPERIF 12            //  pour dim table
   #endif  
   #ifdef DUE
-  #define NBPERIF 24            //  pour dim table
+  #define NBPERIF 12            //  pour dim table
   #endif  
 
 
@@ -114,7 +114,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #ifdef  DETS
 #define VINPUT  7               // volts ADC input pin
 //#define VFACTOR 0.0061          // volts conversion 2,2K+10K
-#define VFACTOR 0.0047          // volts conversion 10K+33K
+#define VFACTOR 0.00464         // volts conversion 10K+33K
 #endif
 #ifndef DETS                    // UNO d'essais
 #define VFACTOR 0.009           // volts conversion 3,9K+33K

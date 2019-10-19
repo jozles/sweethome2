@@ -23,8 +23,8 @@
 #define T8000 0b00100001
 
 #define  STEP_VALUE          12    // nbre sec par période Sleep
-#define  AWAKE_OK_VALUE       5    // 60 sec entre chaque test de temp
-#define  AWAKE_MIN_VALUE     10    // environ 2 min pour message minimum de présence
+#define  AWAKE_OK_VALUE       2    // 60 sec entre chaque test de temp
+#define  AWAKE_MIN_VALUE      6    // environ 2 min pour message minimum de présence
 #define  AWAKE_KO_VALUE     300    // 1 heure avant prochain test si com HS
 #define  AWAKE_RETRY_VALUE    3    // nbre de retry avant KO
 
