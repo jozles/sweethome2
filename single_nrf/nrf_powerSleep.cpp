@@ -145,6 +145,21 @@ void wdtDisable()
     interrupts();                                                    
 }
 
+void lethalSleep()
+{
+    hardwarePowerDown();
+    ADCSRA &= ~(1<<ADEN);                   // ADC shutdown    
+    power_all_disable();                    // all bits set in PRR register (I/O modules clock halted)
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN); 
+    noInterrupts();                         // cli();
+    sleep_enable();                       
+#ifdef ATMEGA328
+    sleep_bod_disable();                    // BOD halted if followed by sleep_cpu 
+#endif
+    interrupts();                           // sei();
+    sleep_cpu();
+}
+
 uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not included to avoid multiple unusefull power on */
 {                                     /* durat=0 to enable external timer (INT0) */
     nbS++;
@@ -183,7 +198,9 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
     sleep_disable();
     if(durat!=0){wdtDisable();}                         
     power_all_enable();                     // all bits clr in PRR register (I/O modules clock halted)
-    ADCSRA |= (1<<ADEN);                    // ADC enable
+
+    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
+    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /128
  
     return wdtTime[durat]/10;               // not valid if durat=0...
 }

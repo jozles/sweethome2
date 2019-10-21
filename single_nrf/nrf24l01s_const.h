@@ -58,7 +58,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #if NRF_MODE == 'P'
   #define SPI_MODE                      // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri3"      // MAC_ADDR périphériques
+  #define PER_ADDR  "peri6"      // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
@@ -110,16 +110,18 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #define VOLTMIN 3.5             // minimal value to run
 //#define VFACTOR 0.0061          // volts conversion 2,2K+10K
 #define VFACTOR 0.0047          // volts conversion 10K+33K
-#define VCHECK  A3              // volts check pin
+#define VCHECK  A3              // volts arduino check pin
+#define VCHECKHL HIGH           // command pin level for reading
+
 #ifdef  DETS
-#define VINPUT  7               // volts ADC input pin
+#define VCHECKADC 7             // ATMEGA ADC pin Nb
 //#define VFACTOR 0.0061          // volts conversion 2,2K+10K
-#define VFACTOR 0.00464         // volts conversion 10K+33K
-#endif
+#define VFACTOR 0.00472         // volts conversion 10K+33K
+#endif // def DETS
 #ifndef DETS                    // UNO d'essais
 #define VFACTOR 0.009           // volts conversion 3,9K+33K
-#define VINPUT  2               // volts ADC input pin
-#endif
+#define VCHECKADC 2             // ATMEGA ADC pin Nb
+#endif // ndef DETS
 
 #define BUF_SERVER_LENGTH LBUFSERVER    // to/from server buffer length
 

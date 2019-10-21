@@ -147,7 +147,7 @@ void setup() {
   delay(100);
   Serial.begin(115200);
 
-  Serial.print("\nstart setup ");
+  Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");
 
 #if NRF_MODE == 'P'
 
@@ -208,23 +208,21 @@ void loop() {
 #if NRF_MODE == 'P'
 
   /* timing to usefull awake */
+  
   while((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)){           
 
     pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);
     awakeCnt--;
     awakeMinCnt--;
-    delayMicroseconds(TMINBLK);
-    digitalWrite(LED,LOW);            // 5+1mA rc=0,5/8000 -> 372nA
+    //delayMicroseconds(TMINBLK);
+    getVolts();                       // ~0,33mS
+    digitalWrite(LED,LOW);            // 4+1mA rc=0,5/12000 -> 208nA
+    //if(volts<VOLTMIN){lethalSleep();}                     
     sleepPwrDown(0);
     durT+=period*1000;
   }
 
   /* usefull awake or retry */
-
-   getVolts();                        // volts dispo pour checkthings
-   if(volts<VOLTMIN){
-    // shutdown...
-   }                     
   
   awakeCnt=aw_ok;
   mustSend=false;           
@@ -531,7 +529,10 @@ uint8_t beginP()
   int confSta=-1;
   while(confSta<=0){
     confSta=nrfp.pRegister(message,&pldLength); // -4 empty -3 max RT ; -2 len ; -1 pipe ; 0 na ; >=1 ok numT
-    Serial.print(">>> start ");Serial.print(temp);Serial.print(" ");
+    getVolts();
+    Serial.print(">>> start ");
+    Serial.print(volts);Serial.print(" ");
+    Serial.print(temp);Serial.print(" ");
     Serial.print((char*)(kk+(confSta+6)*LMERR));
     Serial.print(" numT=");Serial.print(confSta);
 #ifdef DIAG
@@ -552,11 +553,27 @@ uint8_t beginP()
 
 void getVolts()
 {
-  delay(60);
+  uint16_t v=0;
+  digitalWrite(VCHECK,VCHECKHL);pinMode(VCHECK,OUTPUT);
+  
+    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
+    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
+  
+  delayMicroseconds(320);           // 25+14 ADC clk so 39*8uS to make 1+1 conv @8MHz/64
+
+  v=ADCL;
+  v+=ADCH*256;
+  pinMode(VCHECK,INPUT);
+  //digitalWrite(VCHECK,LOW);//!VCHECKHL);
+  //Serial.println(v,HEX);
+
+  volts=v*VFACTOR;
+  /*
   analogReference(INTERNAL); 
   pinMode(VCHECK,OUTPUT);digitalWrite(VCHECK,LOW);
   volts=analogRead(VINPUT)*VFACTOR;
   pinMode(VCHECK,INPUT);
+  */
 }
 
 void echo()

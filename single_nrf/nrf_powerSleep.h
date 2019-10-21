@@ -29,6 +29,7 @@
 #define  AWAKE_RETRY_VALUE    3    // nbre de retry avant KO
 
 uint16_t sleepPwrDown(uint8_t durat);
+void lethalSleep();
 
 #endif // NRF_MODE == 'P'
 
