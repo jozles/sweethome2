@@ -418,7 +418,7 @@ int  importData()                // reçoit un message du serveur
                                         //    si ok -> tfr params
                                         // retour periMess
 {
-  int  numT,nP,len,numPeri;
+  int  numT=-99,nP,len,numPeri;
   char fromServerMac[6];
   int  periMess;
 

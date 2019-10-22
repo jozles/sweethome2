@@ -282,7 +282,7 @@ void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,le
 // or ACK reception before turning CE low
 }
 
-int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
+int Nrfp::transmitting(bool ack)         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
 {     // should be added : TO in case of out of order chip (trst=-2)
       // when sent or max retry, output in PRX mode with CE high
 
@@ -293,7 +293,9 @@ int Nrfp::transmitting()         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT -> -1
       if((statu & (TX_DS_BIT | MAX_RT_BIT))!=0){
 
         trst=0;
-        if(statu & MAX_RT_BIT){trst=-1;}
+        if(statu & MAX_RT_BIT){
+          if(!ack){Serial.print("\nsyst err maxrt without ack ");Serial.println(statu,HEX);delay(2);}
+          trst=-1;}
 
         CLR_TXDS_MAXRT
         letsPrx();
@@ -323,6 +325,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     if(!prxMode){letsPrx();}
 
     GET_STA
+    lastSta=statu;
     if((statu & RX_DR_BIT)==0){                   // RX empty ?
         regRead(FIFO_STATUS,&fstatu);
         if((fstatu & RX_EMPTY_BIT)!=0){           // FIFO empty ?
@@ -339,9 +342,10 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
             return AV_EMPTY;}
         }
     }
-    PP4                                           // RX full
+    PP4                                           // RX full : either (statu & RX_DR_BIT)!=0
+                                                  //           either (fstatu & RX_EMPTY_BIT)==0) && ((statu & RX_P_NO_BIT)>>RX_P_NO)==1
 
-    *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;         // get pipe nb
+    *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;         // get pipe nb ... if not 1 there is trouble
    
     if(*pipe==1){
         CSN_LOW
@@ -398,9 +402,9 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     memcpy(message,MAC_ADDR,ADDR_LENGTH);
     message[ADDR_LENGTH]='0';
     write(message,NO_ACK,ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
+    
     int trst=1;
-    while(trst==1){trst=transmitting();}
-
+    while(trst==1){trst=transmitting(NO_ACK);}
     if(trst<0){return ER_MAXRT;}            // MAX_RT error should not happen (no ACK mode)
 
     unsigned long time_beg = millis();
@@ -420,6 +424,8 @@ if(readTo<0 && numP>=0){numP=-99;}
   Serial.print(" numP=");Serial.println(numP);
 #endif // DIAG
 */
+
+
     if(numP>=0 && (readTo>=0)){            // no TO && pld ok
         numP=message[ADDR_LENGTH]-48;      // numP
         return numP;}                      // PRX mode still true

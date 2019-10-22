@@ -13,7 +13,8 @@ extern uint16_t aw_min;
 
 #include "shconst2.h"
 #include "shutil2.h"
-#define DS18X20
+
+//#define DS18X20
 #ifdef DS18X20
 #include <ds18x20.h>
 #ifdef DETS
@@ -31,15 +32,16 @@ extern uint16_t aw_min;
 /*** ds18x20 ***/
 #ifdef DS18X20
 Ds1820 ds1820;
-float    temp,previousTemp=-99;
-float    deltaTemp=0.25; 
-bool     dsSta=false;
+float    previousTemp=-99;
 byte     setds[]={0,0x7f,0x80,0x1f},readds[8];   // 1f=93mS 9 bits accu 0,5° ; 3f=187mS 10 bits accu 0,25°
-char     dsM;
 uint32_t nbT=0;         // nbre lectures de temp
 #define  TCONVDS1 T64   // sleep PwrDown mS !!
 #define  TCONVDS2 T32   // sleep PwrDown mS !!
 #endif DS18X20 
+char     dsM=' ';
+float    temp=-99.99;
+bool     dsSta=false;
+float    deltaTemp=0.25; 
 
 /*** volts ***/
 extern float   volts;
@@ -68,11 +70,12 @@ bool checkThings(uint8_t awakeCnt,uint8_t awakeMinCnt,uint8_t retryCnt)
     nbT++;
     temp=ds1820.readDs(WPIN);
 
-    Serial.print(volts);Serial.print(" ");Serial.print(nbT);Serial.print(" ");Serial.print(temp);
+/*    Serial.print(volts);Serial.print(" ");Serial.print(nbT);Serial.print(" ");Serial.print(temp);
 #ifdef DIAG
 Serial.print("/");Serial.print(previousTemp);
 #endif // DIAG
-   
+    delay(1);
+*/       
     if( (temp>(previousTemp+deltaTemp)) || (temp<(previousTemp-deltaTemp)) ){
       previousTemp=temp;
       return true;}

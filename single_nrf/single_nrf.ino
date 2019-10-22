@@ -29,8 +29,9 @@ uint8_t       bcnt=0;
 
 /*** scratch ***/
 
-#define TO_READ 1000
+#define TO_READ 100
 long readTo;                              // compteur TO read()
+unsigned long t_on;
 unsigned long time_beg=millis();
 unsigned long time_end;
 byte    message[MAX_PAYLOAD_LENGTH+1];    // buffer pour read()/write()
@@ -81,6 +82,7 @@ int       awakeCnt=0;
 int       awakeMinCnt=0;
 int       retryCnt=0;
 uint32_t  nbS=0;                   // nbre sleeps
+uint32_t  nbL=0;                   // nbre loops
 float     durT=0;                  // temps sleep cumulé (mS/10)
 float     tBeg=0;                  // temps total depuis reset (oscillateur local)
 
@@ -111,7 +113,7 @@ void    getVolts();
 
 /* prototypes */
 
-void showErr();
+void showErr(bool crlf);
 void showRx(bool crlf);
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
 void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,unsigned long dly);
@@ -166,12 +168,17 @@ void setup() {
   detachInterrupt(0);
   period=(float)(millis()-beg)/1000;
   pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(100);digitalWrite(LED,LOW); 
-  Serial.print("period is ");Serial.print(period);Serial.println("sec");delay(1);
+  Serial.print("period ");Serial.print(period);Serial.print("sec ");
 
   /* ------------------- */
   
   userResetSetup();
   hardwarePowerUp();
+
+  getVolts();
+  Serial.print(volts);Serial.print("V ");
+  Serial.print(temp);Serial.println("°C ");
+  
   nrfp.setup();
 
   numT=beginP();                          // registration
@@ -220,22 +227,24 @@ void loop() {
     //if(volts<VOLTMIN){lethalSleep();}                     
     sleepPwrDown(0);
     durT+=period*1000;
+    nbL++;
   }
 
   /* usefull awake or retry */
+  t_on=micros();
   
   awakeCnt=aw_ok;
   mustSend=false;           
   mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff
 
   tBeg=((float)millis()/1000)+(durT/100);
-#ifdef DIAG
+/*#ifdef DIAG
   Serial.print(" ");
   Serial.print(nbS);Serial.print("(");Serial.print(tBeg);Serial.print(") ");
   Serial.print(awakeCnt);Serial.print(" ");
   Serial.print(awakeMinCnt);Serial.print(" ");Serial.println(retryCnt);
 #endif // DIAG
-
+*/
   /* data ready or presence message time or retry -> send */
   if( (mustSend==true) || (awakeMinCnt<0) || (retryCnt!=0)){
 
@@ -258,6 +267,7 @@ void loop() {
     if(txMessage(NO_ACK,outLength,0)<0){                              // tx error (maxrt)
       // si le message ne part pas, essai aux (aw_retry-1) prochains réveils 
       // puis après aw_ko réveils
+  
 #ifdef DIAG
       Serial.print((char*)message);Serial.println(" ********** maxRT ");
 #endif // DIAG
@@ -268,26 +278,27 @@ void loop() {
       }
     }
     else{                                  // tx ok 
-      Serial.println(diagMess);delay(2);
+
+      //Serial.println(diagMess);delay(2);              // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS 
       
       /* every counters reset */
       retryCnt=0;
       awakeCnt=aw_ok;
-      awakeMinCnt=aw_min;
-      
+      awakeMinCnt=aw_min;            
+
       /* get response */
       if(rxMessage(0)>=0){                  // rx ok
     
       /* echo request ? (address field is 0x5555555555) */
         if(memcmp(message,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
         else {
-          Serial.print(diagMess);delay(2);
+          //Serial.print(diagMess);delay(2);
           Serial.print(" rdSta ");Serial.print(rdSta);
-          showRx(true);
+          showRx(false);
           importData(message,pldLength);   // user data
         }
       }
-      else{showErr();numT=beginP();}       // rx error : refaire l'inscription
+      else{showErr(false);numT=0;}   //beginP();}       // rx error : refaire l'inscription au prochain réveil
     }
     tfr=true;  // pour DIAG
   }
@@ -297,7 +308,8 @@ void loop() {
         tfr=false;
 #endif // DIAG
 
-  delay(1);  // serial
+  Serial.print(" | ");Serial.print(nbS);Serial.print("/");;Serial.print(nbL);Serial.print(" | ");Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("°C t_on(");Serial.print(micros()-t_on);Serial.println(")");
+  delay(2);  // serial
   
 #endif // NRF_MODE == 'P'
 
@@ -369,7 +381,7 @@ void loop() {
 #ifdef DIAG                                    
   if(rdSta<0 && rdSta!=AV_EMPTY){                    
     showRx(false);
-    showErr();}
+    showErr(true);}
 #endif // DIAG
 #ifndef DIAG                                        // minimal diag - rdSta + durat + trSta
   if(rdSta!=AV_EMPTY){                   
@@ -432,7 +444,7 @@ void echo()
     nrfp.write(message,NO_ACK,ECHO_LEN,echoNb);
     trSta=1;
     while(trSta==1 && (micros()-time_beg)<ECHOTO){
-      trSta=nrfp.transmitting();}                 // trsta=0 if data sent ok ; -1 if maxRt
+      trSta=nrfp.transmitting(NO_ACK);}                 // trsta=0 if data sent ok ; -1 if maxRt
     if(trSta<0){Serial.println("********* maxRT ");break;}
     time_end = micros();
     
@@ -471,7 +483,7 @@ void echo0(char* message,bool ack,uint8_t len,uint8_t numP)
         showRx(true);
         if(memcmp(message,"VVVV",4)==0){waitEcho=false;}
       }
-      else {showErr();waitEcho=false;}
+      else {showErr(true);waitEcho=false;}
     }         
   if(txMessage(ack,len+1,numP)<0){Serial.println("********* maxRT ");}
 }
@@ -527,21 +539,23 @@ char getch()
 uint8_t beginP()
 {
   int confSta=-1;
+  unsigned long bptime=micros();
   while(confSta<=0){
-    confSta=nrfp.pRegister(message,&pldLength); // -4 empty -3 max RT ; -2 len ; -1 pipe ; 0 na ; >=1 ok numT
-    getVolts();
+    confSta=nrfp.pRegister(message,&pldLength); // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
+                                                // 0 na ; >=1 ok numT
+    int sta=confSta;if(sta>0){sta=1;}
     Serial.print(">>> start ");
-    Serial.print(volts);Serial.print(" ");
-    Serial.print(temp);Serial.print(" ");
-    Serial.print((char*)(kk+(confSta+6)*LMERR));
+    Serial.print((char*)(kk+(sta-(ER_MAXER))*LMERR));
     Serial.print(" numT=");Serial.print(confSta);
-#ifdef DIAG
+/*#ifdef DIAG
     Serial.print("  aw_ok=");Serial.print(aw_ok*STEP_VALUE);
     Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.print("sec ");
-    delay(1);
+    delay(2);
 #endif
-    Serial.println();
-    delay(2);         
+*/
+    Serial.print(" register ");Serial.println(micros()-bptime);
+    bptime=micros();
+    delay(3);         
 
     sleepPwrDown(0);
     delayBlk(1,0,250,2,1);         // 2 blinks (hardwarePowerUp() included)
@@ -554,26 +568,26 @@ uint8_t beginP()
 void getVolts()
 {
   uint16_t v=0;
-  digitalWrite(VCHECK,VCHECKHL);pinMode(VCHECK,OUTPUT);
-  
+  digitalWrite(VCHECK,VCHECKHL);
+  pinMode(VCHECK,OUTPUT);
+
     ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
     ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
   
-  delayMicroseconds(320);           // 25+14 ADC clk so 39*8uS to make 1+1 conv @8MHz/64
+  delayMicroseconds(320);           // 25+14 ADC clk so 39*8uS(@8MHz/2/32=125KHz->8uS) to make 1+1 conv
 
   v=ADCL;
   v+=ADCH*256;
-  pinMode(VCHECK,INPUT);
-  //digitalWrite(VCHECK,LOW);//!VCHECKHL);
-  //Serial.println(v,HEX);
 
-  volts=v*VFACTOR;
-  /*
-  analogReference(INTERNAL); 
-  pinMode(VCHECK,OUTPUT);digitalWrite(VCHECK,LOW);
-  volts=analogRead(VINPUT)*VFACTOR;
   pinMode(VCHECK,INPUT);
-  */
+  volts=v*VFACTOR;
+
+/*
+  analogReference(INTERNAL); 
+  pinMode(VCHECK,OUTPUT);digitalWrite(VCHECK,VCHECKHL);
+  volts=analogRead(VCHECKADC)*VFACTOR;
+  pinMode(VCHECK,INPUT);
+*/
 }
 
 void echo()
@@ -599,7 +613,7 @@ void echo()
     nrfp.write(echoMess,NO_ACK,ECHO_LEN,0);
     trSta=1;
     while(trSta==1){
-      trSta=nrfp.transmitting();}                     // trsta=0 if data sent ok ; -1 if maxRt
+      trSta=nrfp.transmitting(NO_ACK);}                     // trsta=0 if data sent ok ; -1 if maxRt
 
     time_end=micros();
 
@@ -616,7 +630,7 @@ void echo()
     while(rdSta<0 && cntErr<MAXECHOERR){
       rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
       if((micros()-time_beg)/1000>to){rdSta=ER_RDYTO;time_beg=micros();}
-      if(rdSta<0 && rdSta!=AV_EMPTY){showErr();cntErr++;}                
+      if(rdSta<0 && rdSta!=AV_EMPTY){showErr(true);cntErr++;}                
     }
 
     /* if max err or no req mess leave */
@@ -638,11 +652,12 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)
   trSta=1;
   time_beg = micros();
   while(trSta==1){
-    trSta=nrfp.transmitting();}                 // trsta=0 if data sent ok ; -1 if maxRt
+    trSta=nrfp.transmitting(ack);}                 // trsta=0 if data sent ok ; -1 if maxRt
 
   time_end=micros();
 
 #ifdef DIAG
+#if NRF_MODE=='C'
   memset(bufCv,0x00,LBUFCV);
   memcpy(diagMess,message,len);
   diagMess[len]='\0';
@@ -656,6 +671,7 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)
   sprintf(bufCv,"%d",(time_end - time_beg));
   strcat(diagMess,bufCv);
   strcat(diagMess,"uS");
+#endif NRF_MODE=='C'
 #endif // DIAG
 
   return trSta;
@@ -676,6 +692,7 @@ int rxMessage(unsigned long to)
   time_end=micros();
 
 #ifdef DIAG
+#if NRF_MODE=='C'
   memset(bufCv,0x00,LBUFCV);
   memcpy(diagMess,message,pldLength);
   diagMess[pldLength]='\0';
@@ -686,6 +703,7 @@ int rxMessage(unsigned long to)
   sprintf(bufCv,"%d",(time_end - time_beg));
   strcat(diagMess,bufCv);
   strcat(diagMess,"uS");
+#endif NRF_MODE=='C'
 #endif // DIAG
 
   return rdSta;
@@ -702,11 +720,13 @@ delay(1);
 #endif // DIAG  
 }
 
-void showErr()
+void showErr(bool crlf)
 {
 #ifdef DIAG
-  Serial.print(" message ");Serial.print((char*)message);
-  Serial.print(" err ");Serial.println((char*)kk+(rdSta+6)*LMERR);
+  //Serial.print(" message ");Serial.print((char*)message);
+  Serial.print(" lastSta ");Serial.print(nrfp.lastSta,HEX);
+  Serial.print(" err ");Serial.print((char*)kk+(rdSta+6)*LMERR);
+  if(crlf){Serial.println();}
 #endif // DIAG
 }
 

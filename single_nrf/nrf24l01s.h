@@ -81,8 +81,8 @@
 #define MAX_PAYLOAD_LENGTH 32
 #define ADDR_LENGTH 5
 
-#define TO_AVAILABLE 1000   // millis()
-#define TO_REGISTER  1000   // millis()
+#define TO_AVAILABLE 100   // millis()
+#define TO_REGISTER  100   // millis()
 
 #define RF_SPD_2MB RF_DR_HIGH_BIT
 #define RF_SPD_1MB 0
@@ -94,9 +94,9 @@
 #define AV_MCADD -3 // read output (need message upload)
 #define AV_EMPTY -4
 #define AV_MAXAV AV_EMPTY
-#define ER_MAXRT AV_MAXAV-1 // code erreur MAX_RT
-#define ER_RDYTO ER_MAXRT-1 // code erreur Time Out attente réception
-#define ER_MAXER ER_RDYTO
+#define ER_MAXRT (AV_MAXAV)-1 // code erreur MAX_RT
+#define ER_RDYTO (ER_MAXRT)-1 // code erreur Time Out attente réception
+#define ER_MAXER (ER_RDYTO)
 #define ER_TEXT "to\0rt\0em\0mc\0le\0pi\0--\0ok\0" // 2 char libs for codes
 
 /*** logic analyzer debug pulse ***/
@@ -150,7 +150,7 @@ class Nrfp
     int  available(uint8_t* pipe,uint8_t* length);
     int  read(byte* data,uint8_t* pipe,uint8_t* length,int numP);
     void write(byte* data,bool ack,uint8_t len,uint8_t numP);
-    int  transmitting();
+    int  transmitting(bool ack);
 
     void powerUp();
     void powerDown();
@@ -159,6 +159,7 @@ class Nrfp
     void printAddr(char* addr,char n);
 
     bool powerD=true;         // etat power (true=down)
+    uint8_t lastSta=0;
 
 #if NRF_MODE == 'P'
     int     pRegister(byte* message,uint8_t* pldLength);

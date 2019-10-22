@@ -58,7 +58,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #if NRF_MODE == 'P'
   #define SPI_MODE                      // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri6"      // MAC_ADDR périphériques
+  #define PER_ADDR  "peri5"      // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
@@ -115,8 +115,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 #ifdef  DETS
 #define VCHECKADC 7             // ATMEGA ADC pin Nb
-//#define VFACTOR 0.0061          // volts conversion 2,2K+10K
-#define VFACTOR 0.00472         // volts conversion 10K+33K
+#define VFACTOR 0.00472         // volts conversion 1K+3,3K MOSFET
 #endif // def DETS
 #ifndef DETS                    // UNO d'essais
 #define VFACTOR 0.009           // volts conversion 3,9K+33K

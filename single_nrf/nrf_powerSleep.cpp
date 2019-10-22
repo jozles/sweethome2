@@ -186,8 +186,8 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
       attachInterrupt(0,int0_ISR,FALLING);  // external timer interrupt enable
       EIFR=bit(INTF0);                      // clr flag
     }
-    attachInterrupt(1,int1_ISR,CHANGE);     // reed interrupt enable
-    EIFR=bit(INTF1);                        // clr flag
+    //attachInterrupt(1,int1_ISR,CHANGE);     // reed interrupt enable
+    //EIFR=bit(INTF1);                        // clr flag
     
     sleep_enable();                       
 #ifdef ATMEGA328
@@ -199,9 +199,10 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
     if(durat!=0){wdtDisable();}                         
     power_all_enable();                     // all bits clr in PRR register (I/O modules clock halted)
 
-    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
-    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /128
- 
+    ADCSRA |= (1<<ADEN);                    // enable ADC
+//    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
+//    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
+                                                                              // @8MHz CPU -> 4MHz prescaler -> 125KHz ADC
     return wdtTime[durat]/10;               // not valid if durat=0...
 }
 
