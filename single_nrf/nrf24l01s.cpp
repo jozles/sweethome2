@@ -406,6 +406,7 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     int trst=1;
     while(trst==1){trst=transmitting(NO_ACK);}
     if(trst<0){return ER_MAXRT;}            // MAX_RT error should not happen (no ACK mode)
+                                            // radio card HS or missing
 
     unsigned long time_beg = millis();
     long readTo=0;
