@@ -31,7 +31,9 @@ uint8_t       bcnt=0;
 
 #define TO_READ 100
 long readTo;                              // compteur TO read()
+uint32_t      tBeg=0;                     // date unix du 1er message reçu
 unsigned long t_on;
+unsigned long t_on0;
 unsigned long time_beg=millis();
 unsigned long time_end;
 byte    message[MAX_PAYLOAD_LENGTH+1];    // buffer pour read()/write()
@@ -42,7 +44,7 @@ uint8_t pldLength;
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
-float   volts=0;                          // tension alim (VCC)
+extern float   volts;                          // tension alim (VCC)
 
 #define NTESTAD '1'                       // numéro testad dans table
 byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
@@ -70,6 +72,7 @@ bool    echoOn=false;                     // fonction echo en cours (sur l'entr�
 char    bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
 
 unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buffer pas plein         
+unsigned long tLast=0;             // date unix dernier message reçu 
 #define PERIMPORT 100
 
 #endif // NRF_MODE == 'C'
@@ -77,7 +80,7 @@ unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buff
 #if NRF_MODE == 'P'
 
 /*** gestion sleep ***/
-bool      tfr=false;                // pour DIAG
+
 bool      mustSend; 
 int       awakeCnt=0;
 int       awakeMinCnt=0;
@@ -85,7 +88,6 @@ int       retryCnt=0;
 uint32_t  nbS=0;                   // nbre sleeps
 uint32_t  nbL=0;                   // nbre loops
 float     durT=0;                  // temps sleep cumulé (mS/10)
-float     tBeg=0;                  // temps total depuis reset (oscillateur local)
 
 uint16_t  aw_ok=AWAKE_OK_VALUE;
 uint16_t  aw_min=AWAKE_MIN_VALUE;
@@ -109,7 +111,7 @@ float     period;
 extern float temp;    // debug
 
 uint8_t beginP();
-void    getVolts();
+void    getVoltsWd();
 void    echo();
 #endif NRF_MODE == 'P'
 
@@ -148,23 +150,28 @@ void int_ISR()
 
 void setup() {
 
+#if NRF_MODE == 'P'
+
+  /* external timer calibration sequence */
+
+  getVoltsWd();                           // watchdog
+
   delay(100);
   Serial.begin(115200);
 
   Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");
 
-#if NRF_MODE == 'P'
-
-  /* external timer calibration sequence */
-
-  delayBlk(1,0,250,1,5000);               // 5sec blinking
-  sleepPwrDown(0);                        // wait interrupt from external timer
+  
+  delayBlk(1,0,250,1,4000);               // 4sec blinking
+  
+  sleepPwrDown(0);                        // wait for interrupt from external timer to rreach beginning of period
 
   long beg=millis();
-  pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(100);digitalWrite(LED,LOW);   // external timer calibration starts
-  attachInterrupt(0,int_ISR,FALLING);     // external timer interrupt
-  EIFR=bit(INTF0);                        // clr flag
+  pinMode(LED,OUTPUT);
+  digitalWrite(LED,HIGH);delay(100);digitalWrite(LED,LOW);   // external timer calibration starts
   
+  attachInterrupt(0,int_ISR,ISREDGE);     // external timer interrupt
+  EIFR=bit(INTF0);                        // clr flag
   while(!extTimer){delay(1);}             // évite le blocage à la fin ... ???
   
   detachInterrupt(0);
@@ -172,12 +179,13 @@ void setup() {
   pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(100);digitalWrite(LED,LOW); 
   Serial.print("period ");Serial.print(period);Serial.print("sec ");
 
+  getVoltsWd();                           // watchdog 
+
   /* ------------------- */
   
   userResetSetup();
   hardwarePowerUp();
 
-  getVolts();
   Serial.print(volts);Serial.print("V ");
   Serial.print(temp);Serial.println("°C ");
   
@@ -189,6 +197,11 @@ void setup() {
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
+
+  delay(100);
+  Serial.begin(115200);
+
+  Serial.println();Serial.print(" start setup ");
 
   Serial.print(TXRX_MODE);
   delay(100);
@@ -221,13 +234,8 @@ void loop() {
   
   while((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)){           
 
-    pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);
     awakeCnt--;
     awakeMinCnt--;
-    //delayMicroseconds(TMINBLK);
-    getVolts();                       // ~0,33mS
-    digitalWrite(LED,LOW);            // 4+1mA rc=0,5/12000 -> 208nA
-    //if(volts<VOLTMIN){lethalSleep();}                     
     sleepPwrDown(0);
     durT+=period*1000;
     nbL++;
@@ -240,7 +248,6 @@ void loop() {
   mustSend=false;           
   mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff
 
-  tBeg=((float)millis()/1000)+(durT/100);
 /*#ifdef DIAG
   Serial.print(" ");
   Serial.print(nbS);Serial.print("(");Serial.print(tBeg);Serial.print(") ");
@@ -258,7 +265,7 @@ void loop() {
     uint8_t outLength=ADDR_LENGTH+1;
     memcpy(message+outLength,VERSION,LENVERSION);                     // version
     outLength+=LENVERSION;
-    sprintf((char*)(message+outLength),"%08d",(uint32_t)tBeg);        // seconds since last reset 
+    sprintf((char*)(message+outLength),"%08d",(uint32_t)tBeg);        // first connection unix time
     outLength+=8;
                                                                                                           //#define USRDATAPOS ADDR_LENGTH+1+LENVERSION+8+4
     messageBuild((char*)message,&outLength);                          // add user data
@@ -293,17 +300,18 @@ void loop() {
       }
     }
   }
-  /* radio HS or missing ; 1 display every 2 sleeps */
+  /* if radio HS or missing ; 1 display every 2 sleeps */
   if(nrfp.lastSta==0xFF){ 
     retryCnt=0;
     awakeCnt=1;
     awakeMinCnt=aw_min;            
   }
-  tfr=true;  // pour DIAG
-
-  Serial.print(" | ");Serial.print(nbS);Serial.print("/");;Serial.print(nbL);Serial.print(" | ");Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("°C t_on(");Serial.print(micros()-t_on);Serial.println(")");
+#ifdef DIAG  
+  t_on0=micros();
+  Serial.print(" | ");Serial.print(nbS);Serial.print("/");;Serial.print(nbL);Serial.print(" | ");
+  Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("°C t_on(");Serial.print(t_on0-t_on);Serial.println(")");
   delay(2);  // serial
-
+#endif DIAG
 #endif // NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -383,8 +391,9 @@ void loop() {
 
   // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
+  //            update tLast (last unix date)
 
-    int dt=importData();
+    int dt=importData(&tLast);
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
 #ifdef DIAG
   if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
@@ -557,32 +566,6 @@ uint8_t beginP()
   importData(message,pldLength);   // user data available
   awakeMinCnt=-1;                  // force data upload
   return confSta;                  // le périphérique est inscrit
-}
-
-void getVolts()
-{
-  uint16_t v=0;
-  digitalWrite(VCHECK,VCHECKHL);
-  pinMode(VCHECK,OUTPUT);
-
-    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
-    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
-  
-  delayMicroseconds(320);           // 25+14 ADC clk so 39*8uS(@8MHz/2/32=125KHz->8uS) to make 1+1 conv
-
-  v=ADCL;
-  v+=ADCH*256;
-
-  pinMode(VCHECK,INPUT);
-  volts=v*VFACTOR;
-  //Serial.print(v,HEX);Serial.print(" ");Serial.println(volts);
-
-/*
-  analogReference(INTERNAL); 
-  pinMode(VCHECK,OUTPUT);digitalWrite(VCHECK,VCHECKHL);
-  volts=analogRead(VCHECKADC)*VFACTOR;
-  pinMode(VCHECK,INPUT);
-*/
 }
 
 void echo()

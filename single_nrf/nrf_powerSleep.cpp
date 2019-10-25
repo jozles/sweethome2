@@ -33,10 +33,13 @@
 
 uint16_t wdtTime[]={16,32,64,125,250,500,1000,2000,4000,8000};   // durées WDT millis
 
+float    volts=0;                          // tension alim (VCC)
+
 extern Nrfp nrfp;
 
 extern float   durT;
 extern uint32_t nbS;
+
 
 
 ISR(WDT_vect)                     // ISR interrupt service for MPU INT WDT vector
@@ -160,6 +163,48 @@ void lethalSleep()
     sleep_cpu();
 }
 
+
+void getVoltsWd()                  // get unregulated voltage and reset watchdog for external timer period 
+{
+
+  pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);     // free blink while getVolts()
+  
+  uint16_t v=0;
+  digitalWrite(VCHECK,VCHECKHL);
+  pinMode(VCHECK,OUTPUT);
+
+    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
+    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
+  
+  
+    digitalWrite(DONE,LOW);         // external timer : high on done pin ends high pulse -> falling edge generate low pulse on reset
+    pinMode(DONE,OUTPUT);           // VCHECK high shorten reset at VCC -> low pulse masked
+    digitalWrite(DONE,HIGH);
+    delay(1);
+    //pinMode(DONE,INPUT);
+    digitalWrite(DONE,LOW);
+  
+  delayMicroseconds(320);           // 25+14 ADC clk so 39*8uS(@8MHz/2/32=125KHz->8uS) to make 1+1 conv
+
+  v=ADCL;
+  v+=ADCH*256;
+
+  pinMode(VCHECK,INPUT);
+  volts=v*VFACTOR;
+  //Serial.print(v,HEX);Serial.print(" ");Serial.println(volts);
+
+/*
+  analogReference(INTERNAL); 
+  pinMode(VCHECK,OUTPUT);digitalWrite(VCHECK,VCHECKHL);
+  volts=analogRead(VCHECKADC)*VFACTOR;
+  pinMode(VCHECK,INPUT);
+*/
+    digitalWrite(LED,LOW);            // 4+1mA rc=0,5/12000 -> 208nA
+
+    //if(v!=0 && volts<VOLTMIN){lethalSleep();} // ne fonctionne pas à cause du watchdog...
+}
+
+
 uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not included to avoid multiple unusefull power on */
 {                                     /* durat=0 to enable external timer (INT0) */
     nbS++;
@@ -183,11 +228,11 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
      it should not happen because no operation should take more than 1 sec 
      same issue for reed on INT1 which is a rare event */
      
-      attachInterrupt(0,int0_ISR,FALLING);  // external timer interrupt enable
+      attachInterrupt(0,int0_ISR,ISREDGE);   // external timer interrupt enable
       EIFR=bit(INTF0);                      // clr flag
     }
-    //attachInterrupt(1,int1_ISR,CHANGE);     // reed interrupt enable
-    //EIFR=bit(INTF1);                        // clr flag
+    //attachInterrupt(1,int1_ISR,CHANGE);   // reed interrupt enable
+    //EIFR=bit(INTF1);                      // clr flag
     
     sleep_enable();                       
 #ifdef ATMEGA328
@@ -203,6 +248,8 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
 //    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
 //    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
                                                                               // @8MHz CPU -> 4MHz prescaler -> 125KHz ADC
+    if(durat==0){delay(500);getVoltsWd();}                 // watchdog 
+
     return wdtTime[durat]/10;               // not valid if durat=0...
 }
 

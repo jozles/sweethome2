@@ -30,6 +30,7 @@
 
 uint16_t sleepPwrDown(uint8_t durat);
 void lethalSleep();
+void getVoltsWd();
 
 #endif // NRF_MODE == 'P'
 

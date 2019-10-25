@@ -77,6 +77,8 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define CSN_PIN    10
   #define CE_PIN     9
   #define REED       3
+  #define DONE       8
+  #define ISREDGE    RISING
 #endif
 #ifndef DETS
   #define LED        5
@@ -106,21 +108,20 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define NBPERIF 12            //  pour dim table
   #endif  
 
-
+#if NRF_MODE == 'P'
 #define VOLTMIN 3.5             // minimal value to run
-//#define VFACTOR 0.0061          // volts conversion 2,2K+10K
-#define VFACTOR 0.0047          // volts conversion 10K+33K
 #define VCHECK  A3              // volts arduino check pin
 #define VCHECKHL HIGH           // command pin level for reading
 
 #ifdef  DETS
 #define VCHECKADC 7             // ATMEGA ADC pin Nb
-#define VFACTOR 0.00472         // volts conversion 1K+3,3K MOSFET
+#define VFACTOR 0.00395         // volts conversion 1K+3,3K MOSFET 
 #endif // def DETS
 #ifndef DETS                    // UNO d'essais
 #define VFACTOR 0.009           // volts conversion 3,9K+33K
 #define VCHECKADC 2             // ATMEGA ADC pin Nb
 #endif // ndef DETS
+#endif NRF_MODE == 'P'
 
 #define BUF_SERVER_LENGTH LBUFSERVER    // to/from server buffer length
 

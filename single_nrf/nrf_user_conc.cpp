@@ -405,7 +405,8 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
 }
 
 
-int  importData()                // reçoit un message du serveur
+int  importData(uint32_t* tLast) // reçoit un message du serveur
+                                 // update tLast
                                  // retour MESSOK   ok  
                                  //        MESSCX   pas connecté
                                  //        MESSLEN  vide
@@ -439,6 +440,7 @@ int  importData()                // reçoit un message du serveur
         nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // numPer from set message
         numT=nrfp.macSearch(fromServerMac,&numPeri);              // numT mac reg nb in conc table ; numPeri from table numPeri 
                                                                   // numPeri should be same as nP (if !=0 && mac found)
+        conv_atobl(indata+MPOSDH,tlast,UNIXDATELEN);                  
         t2=micros();
         int eds=99;
         if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
