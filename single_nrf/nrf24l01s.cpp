@@ -179,7 +179,6 @@ void Nrfp::powerUp()
 
     conf=CONFREG;                         // powerUP/CRC 1 byte/PRX
     regWrite(CONFIG,&conf);
-    regWrite(CONFIG,&conf);
 
     flushRx();
     CLR_RXDR
@@ -291,7 +290,7 @@ int Nrfp::transmitting(bool ack)         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT
       GET_STA
 
       if((statu & (TX_DS_BIT | MAX_RT_BIT))!=0){
-
+Serial.print(">>> pregister ");delay(2);
         trst=0;
         if(statu & MAX_RT_BIT){
           if(!ack){Serial.print("\nsyst err maxrt without ack ");Serial.println(statu,HEX);delay(2);}
@@ -401,8 +400,9 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     memcpy(message,MAC_ADDR,ADDR_LENGTH);
     message[ADDR_LENGTH]='0';
-    write(message,NO_ACK,ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
     
+    write(message,NO_ACK,ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
+ 
     int trst=1;
     while(trst==1){trst=transmitting(NO_ACK);}
     if(trst<0){return ER_MAXRT;}            // MAX_RT error should not happen (no ACK mode)

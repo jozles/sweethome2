@@ -111,7 +111,6 @@ float     period;
 extern float temp;    // debug
 
 uint8_t beginP();
-void    getVoltsWd();
 void    echo();
 #endif NRF_MODE == 'P'
 
@@ -234,11 +233,13 @@ void loop() {
   
   while((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)){           
 
+
     awakeCnt--;
     awakeMinCnt--;
     sleepPwrDown(0);
     durT+=period*1000;
     nbL++;
+   
   }
 
   /* usefull awake or retry */
@@ -304,11 +305,11 @@ void loop() {
   if(nrfp.lastSta==0xFF){ 
     retryCnt=0;
     awakeCnt=1;
-    awakeMinCnt=aw_min;            
+    awakeMinCnt=1;            
   }
 #ifdef DIAG  
   t_on0=micros();
-  Serial.print(" | ");Serial.print(nbS);Serial.print("/");;Serial.print(nbL);Serial.print(" | ");
+  Serial.print(" | ");Serial.print(nbS);Serial.print("/");;Serial.print(nbL);Serial.print(" | ");     // nbS sleep nb ; nbL loop nb
   Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("°C t_on(");Serial.print(t_on0-t_on);Serial.println(")");
   delay(2);  // serial
 #endif DIAG
@@ -545,6 +546,7 @@ uint8_t beginP()
   while(confSta<=0){
     confSta=nrfp.pRegister(message,&pldLength); // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
                                                 // 0 na ; >=1 ok numT
+    Serial.print(">>> pregister ");delay(2);
     if(confSta==-5){nrfp.lastSta=0xFF;break;}
     int sta=confSta;if(sta>0){sta=1;}
     Serial.print(">>> start ");

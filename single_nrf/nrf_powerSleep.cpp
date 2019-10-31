@@ -33,7 +33,9 @@
 
 uint16_t wdtTime[]={16,32,64,125,250,500,1000,2000,4000,8000};   // durées WDT millis
 
-float    volts=0;                          // tension alim (VCC)
+float         volts=0;                           // tension alim (VCC)
+extern float  temp;
+uint8_t       cntTest=0;                         // test watchdog
 
 extern Nrfp nrfp;
 
@@ -54,11 +56,16 @@ void int1_ISR()                    // reed ISR
   detachInterrupt(1);
 }
 
-void int0_ISR()                    // external timer ISR
+void int0_ISR()                   // external timer ISR
 {
+  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);        // debug pulse
+  bitSet(PORT_CE,BIT_CE);
+  bitClear(PORT_CE,BIT_CE);  
+  
   sleep_disable();
   detachInterrupt(0);
   detachInterrupt(1);
+
 }
 
  
@@ -66,13 +73,18 @@ void hardwarePowerDown()
 {
   nrfp.powerDown();
   userHardPowerDown();
-  pinMode(LED,INPUT);
-  pinMode(PP,INPUT);
-  pinMode(REED,INPUT);
-  pinMode(CSN_PIN,OUTPUT);digitalWrite(CSN_PIN,HIGH);
-  pinMode(CE_PIN,OUTPUT);digitalWrite(CE_PIN,LOW);
-  pinMode(CLK_PIN,OUTPUT);digitalWrite(CLK_PIN,HIGH);
-  pinMode(MOSI_PIN,OUTPUT);digitalWrite(MOSI_PIN,HIGH);
+  
+  bitClear(DDR_LED,BIT_LED);      //pinMode(LED,INPUT);
+  bitClear(DDR_PP,BIT_PP);        //pinMode(PP,INPUT);
+  bitClear(DDR_REED,BIT_REED);    //pinMode(REED,INPUT);
+  bitSet(DDR_CSN,BIT_CSN);        //pinMode(CSN_PIN,OUTPUT);
+  bitSet(PORT_CSN,BIT_CSN);       //digitalWrite(CSN_PIN,HIGH);
+  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);
+  bitClear(PORT_CE,BIT_CE);       //digitalWrite(CE_PIN,LOW);
+  bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
+  bitSet(PORT_CLK,BIT_CLK);       //digitalWrite(CLK_PIN,HIGH);
+  bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);
+  bitSet(PORT_MOSI,BIT_MOSI);     //digitalWrite(MOSI_PIN,HIGH);
 }
 
 
@@ -167,39 +179,62 @@ void lethalSleep()
 void getVoltsWd()                  // get unregulated voltage and reset watchdog for external timer period 
 {
 
-  pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);     // free blink while getVolts()
+  bitSet(DDR_LED,BIT_LED);                  //pinMode(LED,OUTPUT);     // free blink while getVolts()
+  bitSet(PORT_LED,BIT_LED);                 //digitalWrite(LED,HIGH);
   
   uint16_t v=0;
-  digitalWrite(VCHECK,VCHECKHL);
-  pinMode(VCHECK,OUTPUT);
+  bitSet(PORT_VCHK,BIT_VCHK);               //digitalWrite(VCHECK,VCHECKHL);
+  bitSet(DDR_VCHK,BIT_VCHK);                //pinMode(VCHECK,OUTPUT);
 
     ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
     ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
   
-  
-    digitalWrite(DONE,LOW);         // external timer : high on done pin ends high pulse -> falling edge generate low pulse on reset
-    pinMode(DONE,OUTPUT);           // VCHECK high shorten reset at VCC -> low pulse masked
-    digitalWrite(DONE,HIGH);
-    delay(1);
-    //pinMode(DONE,INPUT);
-    digitalWrite(DONE,LOW);
-  
+/*    cntTest++;
+    if(cntTest<4){  
+*/
+delayMicroseconds(4);   // some time to saturate reset strobe mosfet (only 2.5V Vgs)
+   // external timer : high on done pin ends high pulse -> falling edge generate low pulse on reset
+   // VCHECK high shorten reset at VCC -> low pulse masked during volts reading
+      bitSet(DDR_DONE,BIT_DONE);            //pinMode(DONE,OUTPUT);
+      bitSet(PORT_DONE,BIT_DONE);           //digitalWrite(DONE,HIGH);
+      bitClear(PORT_DONE,BIT_DONE);          //pinMode(DONE,INPUT);
+      bitClear(DDR_DONE,BIT_DONE);          //pinMode(DONE,INPUT);
+
+/*      bitSet(DDR_CE,BIT_CE);
+      bitSet(PORT_CE,BIT_CE);               // debug pulse
+      bitClear(DDR_CE,BIT_CE);  */
+
+/*    }
+    else{
+      cntTest=0;
+      pinMode(CE_PIN,OUTPUT);
+      digitalWrite(CE_PIN,HIGH);
+      pinMode(CE_PIN,INPUT);
+    }
+*/  
   delayMicroseconds(320);           // 25+14 ADC clk so 39*8uS(@8MHz/2/32=125KHz->8uS) to make 1+1 conv
+                                    // delay used to fill the reset pulse capacitor
 
   v=ADCL;
   v+=ADCH*256;
-
-  pinMode(VCHECK,INPUT);
-  volts=v*VFACTOR;
-  //Serial.print(v,HEX);Serial.print(" ");Serial.println(volts);
-
 /*
-  analogReference(INTERNAL); 
-  pinMode(VCHECK,OUTPUT);digitalWrite(VCHECK,VCHECKHL);
-  volts=analogRead(VCHECKADC)*VFACTOR;
-  pinMode(VCHECK,INPUT);
-*/
-    digitalWrite(LED,LOW);            // 4+1mA rc=0,5/12000 -> 208nA
+    ADMUX  |= (0<<REFS1) | (1<<REFS0) | TCHECKADC ;                           // AVcc ref + ADC input for temp
+    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
+
+  delayMicroseconds(240);           // (1.5+13)*2 ADC clk so 29*8uS(@8MHz/2/32=125KHz->8uS) to make 1+1 conv
+  
+  v=ADCL;
+  v+=ADCH*256;
+
+  temp=100*(v*TFACTOR-(TOFFSET))+TREF;
+*/  
+  bitClear(PORT_VCHK,BIT_VCHK);  
+  bitClear(DDR_VCHK,BIT_VCHK);      //pinMode(VCHECK,INPUT);              // reset pulse strobe released 
+
+//Serial.println(v,HEX);
+  volts=v*VFACTOR;
+
+  bitClear(PORT_LED,BIT_LED);       //digitalWrite(LED,LOW);            // 4+1mA rc=0,5/12000 -> 208nA
 
     //if(v!=0 && volts<VOLTMIN){lethalSleep();} // ne fonctionne pas à cause du watchdog...
 }
@@ -226,7 +261,8 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
      possibility of falling transition between interrupts() and sleep_cpu()
      (in that case BOD is not disable ; that cause little more power wasting)
      it should not happen because no operation should take more than 1 sec 
-     same issue for reed on INT1 which is a rare event */
+     same issue for reed on INT1 which is a rare event (reed to greedy, no more detected by int)
+     */
      
       attachInterrupt(0,int0_ISR,ISREDGE);   // external timer interrupt enable
       EIFR=bit(INTF0);                      // clr flag
@@ -248,7 +284,7 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
 //    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
 //    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
                                                                               // @8MHz CPU -> 4MHz prescaler -> 125KHz ADC
-    if(durat==0){delay(500);getVoltsWd();}                 // watchdog 
+    if(durat==0){getVoltsWd();}                 // watchdog 
 
     return wdtTime[durat]/10;               // not valid if durat=0...
 }

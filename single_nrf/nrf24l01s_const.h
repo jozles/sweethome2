@@ -58,7 +58,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #if NRF_MODE == 'P'
   #define SPI_MODE                      // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri6"      // MAC_ADDR périphériques
+  #define PER_ADDR  "peri5"      // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
@@ -73,11 +73,39 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 #if NRF_MODE == 'P'
 #ifdef DETS
-  #define LED        4
-  #define CSN_PIN    10
-  #define CE_PIN     9
-  #define REED       3
-  #define DONE       8
+  #define PORT_LED    PORTD
+  #define DDR_LED     DDRD
+  #define BIT_LED     4
+  #define LED         4
+  #define PORT_CSN    PORTB
+  #define DDR_CSN     DDRB
+  #define BIT_CSN     2
+  #define CSN_PIN     10
+  #define PORT_CE     PORTB
+  #define DDR_CE      DDRB
+  #define BIT_CE      1
+  #define CE_PIN      9
+  #define PORT_REED   PORTD
+  #define DDR_REED    DDRD
+  #define BIT_REED    3
+  #define REED        3
+  #define PORT_DONE   PORTB
+  #define DDR_DONE    DDRB
+  #define BIT_DONE    0
+  #define DONE        8
+  #define PORT_MOSI   PORTB
+  #define DDR_MOSI    DDRB
+  #define BIT_MOSI    3
+  #define PORT_CLK    PORTB
+  #define DDR_CLK     DDRB
+  #define BIT_CLK     5
+  #define PORT_PP     PORTD
+  #define DDR_PP      DDRD
+  #define BIT_PP      6
+  #define PORT_VCHK   PORTC
+  #define DDR_VCHK    DDRC
+  #define BIT_VCHK    3
+
   #define ISREDGE    RISING
 #endif
 #ifndef DETS
@@ -114,8 +142,14 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #define VCHECKHL HIGH           // command pin level for reading
 
 #ifdef  DETS
-#define VCHECKADC 7             // ATMEGA ADC pin Nb
-#define VFACTOR 0.00395         // volts conversion 1K+3,3K MOSFET 
+#define VCHECKADC 7             // VOLTS ADC pin Nb
+#define TCHECKADC 0             // TEMP  ADC pin Nb
+//#define VFACTOR 0.004         // volts conversion 1K+3,3K MOSFET 
+//#define VFACTOR 0.0047        // volts conversion 1K+4,7K MOSFET
+#define VFACTOR 0.00845          // volts conversion 1K+6,8K MOSFET
+#define TFACTOR 3.3             // temp conversion pour LM335
+#define TOFFSET 3               // à25°
+#define TREF    25            
 #endif // def DETS
 #ifndef DETS                    // UNO d'essais
 #define VFACTOR 0.009           // volts conversion 3,9K+33K
