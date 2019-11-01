@@ -58,17 +58,20 @@ void int1_ISR()                    // reed ISR
 
 void int0_ISR()                   // external timer ISR
 {
-  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);        // debug pulse
-  bitSet(PORT_CE,BIT_CE);
-  bitClear(PORT_CE,BIT_CE);  
-  
   sleep_disable();
   detachInterrupt(0);
   detachInterrupt(1);
-
 }
 
  
+void hardwarePowerUp()
+{
+  PP4_INIT
+  pinMode(LED,OUTPUT);
+  pinMode(REED,INPUT_PULLUP);
+}
+
+
 void hardwarePowerDown()
 {
   nrfp.powerDown();
@@ -77,14 +80,21 @@ void hardwarePowerDown()
   bitClear(DDR_LED,BIT_LED);      //pinMode(LED,INPUT);
   bitClear(DDR_PP,BIT_PP);        //pinMode(PP,INPUT);
   bitClear(DDR_REED,BIT_REED);    //pinMode(REED,INPUT);
-  bitSet(DDR_CSN,BIT_CSN);        //pinMode(CSN_PIN,OUTPUT);
+
+PP4
+  
   bitSet(PORT_CSN,BIT_CSN);       //digitalWrite(CSN_PIN,HIGH);
-  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);
+  bitSet(DDR_CSN,BIT_CSN);        //pinMode(CSN_PIN,OUTPUT);
+  
   bitClear(PORT_CE,BIT_CE);       //digitalWrite(CE_PIN,LOW);
-  bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
+  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);
+  
   bitSet(PORT_CLK,BIT_CLK);       //digitalWrite(CLK_PIN,HIGH);
-  bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);
+  bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
+  
   bitSet(PORT_MOSI,BIT_MOSI);     //digitalWrite(MOSI_PIN,HIGH);
+  bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);
+  
 }
 
 
@@ -175,12 +185,37 @@ void lethalSleep()
     sleep_cpu();
 }
 
-
-void getVoltsWd()                  // get unregulated voltage and reset watchdog for external timer period 
+void clearWd()
 {
+  
+  delayMicroseconds(4);   // some time to saturate reset strobe mosfet (only 2.5V Vgs)
+   // external timer : high on done pin ends high pulse -> falling edge generate low pulse on reset
+   // VCHECK high shorten reset at VCC -> low pulse masked during volts reading
+      bitSet(PORT_DONE,BIT_DONE);           //digitalWrite(DONE,HIGH);
+      bitSet(DDR_DONE,BIT_DONE);            //pinMode(DONE,OUTPUT);
+      bitClear(PORT_DONE,BIT_DONE);         ////digitalWrite(DONE,LOW);
+      bitClear(DDR_DONE,BIT_DONE);          //pinMode(DONE,INPUT);
+  delayMicroseconds(8);   // some time to fill up the capacitor low drived by 5111 
 
-  bitSet(DDR_LED,BIT_LED);                  //pinMode(LED,OUTPUT);     // free blink while getVolts()
+}
+
+void wd()
+{
+  bitSet(PORT_VCHK,BIT_VCHK);               //digitalWrite(VCHECK,VCHECKHL);
+  bitSet(DDR_VCHK,BIT_VCHK);                //pinMode(VCHECK,OUTPUT);
+
+  clearWd();
+
+  bitClear(PORT_VCHK,BIT_VCHK);  
+  bitClear(DDR_VCHK,BIT_VCHK);      //pinMode(VCHECK,INPUT);              // reset pulse strobe released 
+
+}
+
+void getVolts()                     // get unregulated voltage and reset watchdog for external timer period 
+{
+// free blink while getVolts()
   bitSet(PORT_LED,BIT_LED);                 //digitalWrite(LED,HIGH);
+  bitSet(DDR_LED,BIT_LED);                  //pinMode(LED,OUTPUT);     
   
   uint16_t v=0;
   bitSet(PORT_VCHK,BIT_VCHK);               //digitalWrite(VCHECK,VCHECKHL);
@@ -189,30 +224,10 @@ void getVoltsWd()                  // get unregulated voltage and reset watchdog
     ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
     ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
   
-/*    cntTest++;
-    if(cntTest<4){  
-*/
-delayMicroseconds(4);   // some time to saturate reset strobe mosfet (only 2.5V Vgs)
-   // external timer : high on done pin ends high pulse -> falling edge generate low pulse on reset
-   // VCHECK high shorten reset at VCC -> low pulse masked during volts reading
-      bitSet(DDR_DONE,BIT_DONE);            //pinMode(DONE,OUTPUT);
-      bitSet(PORT_DONE,BIT_DONE);           //digitalWrite(DONE,HIGH);
-      bitClear(PORT_DONE,BIT_DONE);          //pinMode(DONE,INPUT);
-      bitClear(DDR_DONE,BIT_DONE);          //pinMode(DONE,INPUT);
+  //clearWd();
 
-/*      bitSet(DDR_CE,BIT_CE);
-      bitSet(PORT_CE,BIT_CE);               // debug pulse
-      bitClear(DDR_CE,BIT_CE);  */
-
-/*    }
-    else{
-      cntTest=0;
-      pinMode(CE_PIN,OUTPUT);
-      digitalWrite(CE_PIN,HIGH);
-      pinMode(CE_PIN,INPUT);
-    }
-*/  
-  delayMicroseconds(320);           // 25+14 ADC clk so 39*8uS(@8MHz/2/32=125KHz->8uS) to make 1+1 conv
+#define OUTDLY (20+5)               // clearWD+ADC read
+  delayMicroseconds(320-OUTDLY);    // 25+14 ADC clk so 39*8uS(@8MHz/2/32=125KHz->8uS) to make 1+1 conv
                                     // delay used to fill the reset pulse capacitor
 
   v=ADCL;
@@ -243,7 +258,7 @@ delayMicroseconds(4);   // some time to saturate reset strobe mosfet (only 2.5V 
 uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not included to avoid multiple unusefull power on */
 {                                     /* durat=0 to enable external timer (INT0) */
     nbS++;
-    
+
     hardwarePowerDown();
 
     ADCSRA &= ~(1<<ADEN);                   // ADC shutdown
@@ -269,7 +284,7 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
     }
     //attachInterrupt(1,int1_ISR,CHANGE);   // reed interrupt enable
     //EIFR=bit(INTF1);                      // clr flag
-    
+        
     sleep_enable();                       
 #ifdef ATMEGA328
     sleep_bod_disable();                    // BOD halted if followed by sleep_cpu 
@@ -284,7 +299,8 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
 //    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
 //    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
                                                                               // @8MHz CPU -> 4MHz prescaler -> 125KHz ADC
-    if(durat==0){getVoltsWd();}                 // watchdog 
+    wd();                                   // watchdog
+    hardwarePowerUp();
 
     return wdtTime[durat]/10;               // not valid if durat=0...
 }

@@ -13,10 +13,6 @@
 *
 ******************************************************/
 
-#define CE_INIT   pinMode(CE_PIN,OUTPUT);
-#define CE_OFF    pinMode(CE_PIN,INPUT);
-#define CSN_INIT  pinMode(CSN_PIN,OUTPUT);
-#define CSN_OFF   pinMode(CSN_PIN,INPUT);
 /*
 #ifdef MEGA
 #define CSN_HIGH  bitSet(PORTB,4);
@@ -24,10 +20,15 @@
 #endif  // MEGA
 */
 #ifdef UNO        // idem for PRO MINI
-#define CSN_HIGH  bitSet(PORTB,2);
-#define CSN_LOW   bitClear(PORTB,2);
-#define CE_HIGH   bitSet(PORTB,1);delayMicroseconds(10);
-#define CE_LOW    bitClear(PORTB,1);
+#define CSN_HIGH  bitSet(PORT_CSN,BIT_CSN);
+#define CSN_LOW   bitClear(PORT_CSN,BIT_CSN);
+#define CE_HIGH   bitSet(PORT_CE,BIT_CE);delayMicroseconds(10);
+// 10uS is minimal pulse ; 4uS to CSN low
+#define CE_LOW    bitClear(PORT_CE,BIT_CE);
+#define CSN_INIT  bitSet(DDR_CSN,BIT_CSN);
+#define CSN_OFF   bitClear(DDR_CSN,BIT_CSN);
+#define CE_INIT   bitSet(DDR_CE,BIT_CE);
+#define CE_OFF    bitClear(DDR_CE,BIT_CE);
 #endif  // UNO
 
 /*#ifdef DUE
@@ -40,12 +41,13 @@
 #ifndef CSN_HIGH
 #define CSN_HIGH  digitalWrite(CSN_PIN,HIGH);
 #define CSN_LOW   digitalWrite(CSN_PIN,LOW);
-#endif  // CSN_HIGH
-#ifndef CE_HIGH
 #define CE_HIGH   digitalWrite(CE_PIN,HIGH);delayMicroseconds(8);
 #define CE_LOW    digitalWrite(CE_PIN,LOW);
-#endif  // CE_HIGH
-
+#define CE_INIT   pinMode(CE_PIN,OUTPUT);
+#define CE_OFF    pinMode(CE_PIN,INPUT);
+#define CSN_INIT  pinMode(CSN_PIN,OUTPUT);
+#define CSN_OFF   pinMode(CSN_PIN,INPUT);
+#endif // CSN_HIGH
 
 #ifdef SPI_MODE
 #if NRF_MODE == 'P'
@@ -163,14 +165,11 @@ void Nrfp::addrWrite(uint8_t reg,byte* data)
 }
 
 void Nrfp::powerUp()
-{
+{   
     CSN_HIGH;
     CSN_INIT;
     CE_LOW;
     CE_INIT;
-    PP4_INIT;
-    PP4
-    PP4
 
 #ifdef SPI_MODE
     SPI_INIT;
@@ -185,7 +184,7 @@ void Nrfp::powerUp()
 
     powerD=false;
 
-    delay(5);       // powerUp delay
+    delayMicroseconds(5000);       // powerUp delay
 }
 
 void Nrfp::powerDown()
@@ -200,17 +199,13 @@ void Nrfp::powerDown()
 
 #ifdef SPI_MODE
         SPI_OFF
-#endif SPI_MODE        
-       
-       PP4 PP4        // 3 times -> done
+#endif SPI_MODE              
     }
     
-      CSN_INIT
-      CSN_HIGH        // powerdown value
-      CE_INIT
-      CE_LOW          // powerdown value
-
-    PP4               // 1 time  -> flag already set
+    CSN_HIGH        // powerdown value
+    CSN_INIT
+    CE_LOW          // powerdown value    
+    CE_INIT
 }
 
 void Nrfp::setTx()
@@ -242,13 +237,21 @@ void Nrfp::flushRx()
 bool Nrfp::letsPrx()      // goto PRX mode
 {
     if(!prxMode){
-      CE_LOW
+      CE_LOW              // to change from TX to RX
       //flushRx();
       //CLR_RXDR
       setRx();
       prxMode=true;
     }
     CE_HIGH
+}
+
+void Nrfp::rxError()
+{
+        CE_LOW
+        flushRx();                         // if error flush all
+        CLR_RXDR
+        prxMode=false;
 }
 
 /********** public *************/
@@ -266,7 +269,7 @@ void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,le
 #endif // NRF_MODE == 'C'
 
     setTx();
-    flushTx();   // avant tx_pld !!!    
+    flushTx();
     CLR_TXDS_MAXRT
 
     CSN_LOW
@@ -290,7 +293,7 @@ int Nrfp::transmitting(bool ack)         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT
       GET_STA
 
       if((statu & (TX_DS_BIT | MAX_RT_BIT))!=0){
-Serial.print(">>> pregister ");delay(2);
+
         trst=0;
         if(statu & MAX_RT_BIT){
           if(!ack){Serial.print("\nsyst err maxrt without ack ");Serial.println(statu,HEX);delay(2);}
@@ -298,18 +301,9 @@ Serial.print(">>> pregister ");delay(2);
 
         CLR_TXDS_MAXRT
         letsPrx();
-        PP4
       }
       
       return trst;
-}
-
-void Nrfp::rxError()
-{
-        CE_LOW
-        flushRx();                         // if error flush all
-        CLR_RXDR
-        prxMode=false;
 }
 
 int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
@@ -335,14 +329,14 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
           GET_STA
 
           *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
-          if(*pipe!=1){                           
+          if(*pipe!=1){                           // concentrator talking
             flushRx();                            
             //CLR_RXDR 
             return AV_EMPTY;}
         }
     }
-    PP4                                           // RX full : either (statu & RX_DR_BIT)!=0
-                                                  //           either (fstatu & RX_EMPTY_BIT)==0) && ((statu & RX_P_NO_BIT)>>RX_P_NO)==1
+    // RX full : either (statu & RX_DR_BIT)!=0
+    //           either (fstatu & RX_EMPTY_BIT)==0) && ((statu & RX_P_NO_BIT)>>RX_P_NO)==1
 
     *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;         // get pipe nb ... if not 1 there is trouble
    
@@ -352,7 +346,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
         *pldLength=SPI.transfer(0xff);            // get pldLength (dynamic length)
         CSN_HIGH      
     }
-    else {err=AV_NBPIP;}                          // ---------------- pipe nb error
+    else {err=AV_EMPTY;} //AV_NBPIP;}                          // ---------------- pipe nb error
 
     if(((*pldLength>maxLength) || (*pldLength<=0)) && err==0){
         err=AV_LMERR;}                            // ---------------- pldLength error
@@ -390,7 +384,14 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 #endif NRF_MODE == 'C'
     }
 
-    return numP;               
+    return numP;    // CE stay HIGH in case of subsequent packets 
+                    // (so read() caller has to put CE low if rx completed)
+}
+
+void Nrfp::readStop()
+{
+  CE_LOW
+  prxMode=false;
 }
 
 #if NRF_MODE == 'P'
@@ -412,27 +413,19 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     long readTo=0;
     uint8_t pipe=99;
     *pldLength=MAX_PAYLOAD_LENGTH;
-    int numP=AV_EMPTY;
+    int numP=AV_EMPTY;    
     while(numP==AV_EMPTY && (readTo>=0)){   // waiting for concentrator answer
         readTo=TO_REGISTER-millis()+time_beg;
         numP=read(message,&pipe,pldLength,NBPERIF);}
-
-/*#ifdef DIAG
-if(readTo<0 && numP>=0){numP=-99;}
-  Serial.print((char*)message);
-  Serial.print(" l=");Serial.print(pldLength);
-  Serial.print(" p=");Serial.print(pipe);
-  Serial.print(" numP=");Serial.println(numP);
-#endif // DIAG
-*/
-
 
     if(numP>=0 && (readTo>=0)){            // no TO && pld ok
         numP=message[ADDR_LENGTH]-48;      // numP
         return numP;}                      // PRX mode still true
 
-    rxError();                             // CE low
-    if(numP>=0){return ER_RDYTO;}          // else TO error
+    if(numP>=0){
+        CE_LOW
+        return ER_RDYTO;}                  // else TO error
+    
     return numP;                           // or AV error 
 }
 #endif // NRF_MODE == 'P'

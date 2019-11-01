@@ -129,16 +129,6 @@ void echo();
 void broadcast(char a);
 #endif NRF_MODE == 'C'
 
-void hardwarePowerUp()
-{
-  nrfp.powerUp();
-  pinMode(LED,OUTPUT);
-  pinMode(PP,OUTPUT);
-#if NRF_MODE == 'P'
-  pinMode(REED,INPUT_PULLUP);
-#endif // NRF_MODE == 'P'
-}
-
 #if NRF_MODE == 'P'
 void int_ISR()
 {
@@ -152,22 +142,21 @@ void setup() {
 #if NRF_MODE == 'P'
 
   /* external timer calibration sequence */
-
-  getVoltsWd();                           // watchdog
-
+  hardwarePowerUp();
+  PP4
+  wd();                           // watchdog
+ 
   delay(100);
   Serial.begin(115200);
 
   Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");
 
+  delayBlk(1,0,250,1,2000);               // 2sec blinking
   
-  delayBlk(1,0,250,1,4000);               // 4sec blinking
-  
-  sleepPwrDown(0);                        // wait for interrupt from external timer to rreach beginning of period
+  sleepPwrDown(0);                        // wait for interrupt from external timer to reach beginning of period
 
   long beg=millis();
-  pinMode(LED,OUTPUT);
-  digitalWrite(LED,HIGH);delay(100);digitalWrite(LED,LOW);   // external timer calibration starts
+  led(100000);                            // external timer calibration begin
   
   attachInterrupt(0,int_ISR,ISREDGE);     // external timer interrupt
   EIFR=bit(INTF0);                        // clr flag
@@ -175,19 +164,19 @@ void setup() {
   
   detachInterrupt(0);
   period=(float)(millis()-beg)/1000;
-  pinMode(LED,OUTPUT);digitalWrite(LED,HIGH);delay(100);digitalWrite(LED,LOW); 
+  led(100000);
   Serial.print("period ");Serial.print(period);Serial.print("sec ");
 
-  getVoltsWd();                           // watchdog 
+  getVolts();                            // readVolts+watchdog 
 
   /* ------------------- */
   
   userResetSetup();
-  hardwarePowerUp();
 
   Serial.print(volts);Serial.print("V ");
   Serial.print(temp);Serial.println("°C ");
   
+  nrfp.powerUp();
   nrfp.setup();
 
   numT=beginP();                          // registration 
@@ -239,7 +228,7 @@ void loop() {
     sleepPwrDown(0);
     durT+=period*1000;
     nbL++;
-   
+    getVolts();             // free blink
   }
 
   /* usefull awake or retry */
@@ -259,7 +248,7 @@ void loop() {
   /* hardware ok, data ready or presence message time or retry -> send */
   if(nrfp.lastSta!=0xFF && ((mustSend==true) || (awakeMinCnt<0) || (retryCnt!=0))){
 
-    hardwarePowerUp();                   // 5mS delay inside
+    nrfp.powerUp();                   // 5mS delay inside
 
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
@@ -281,7 +270,7 @@ void loop() {
       /* echo request ? (address field is 0x5555555555) */
       if(memcmp(message,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
       else {
-          showRx(false);
+          //showRx(false);
           importData(message,pldLength);   // user data
       }
       /* tx+rx ok -> every counters reset */
@@ -292,6 +281,7 @@ void loop() {
     else{
       //Serial.println(diagMessT);delay(2);              // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
       //Serial.println(diagMessR);delay(2);              // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
+    
       showErr(false);
       numT=0;                  // rx error : refaire l'inscription au prochain réveil
       switch(retryCnt){
@@ -543,30 +533,39 @@ uint8_t beginP()
 {
   int confSta=-1;
   unsigned long bptime=micros();
-  while(confSta<=0){
+  while(1){                                     // confsta>=1 or -5 or wait 
     confSta=nrfp.pRegister(message,&pldLength); // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
                                                 // 0 na ; >=1 ok numT
-    Serial.print(">>> pregister ");delay(2);
-    if(confSta==-5){nrfp.lastSta=0xFF;break;}
-    int sta=confSta;if(sta>0){sta=1;}
+/*#ifdef DIAG
+    int sta=confsta;if(confsta>0){sta=1;)
     Serial.print(">>> start ");
     Serial.print((char*)(kk+(sta-(ER_MAXER))*LMERR));
     Serial.print(" numT=");Serial.print(confSta);
-/*#ifdef DIAG
-    Serial.print("  aw_ok=");Serial.print(aw_ok*STEP_VALUE);
-    Serial.print("sec   aw_min=");Serial.print(aw_min*STEP_VALUE);Serial.print("sec ");
-    delay(2);
-#endif
-*/
-    Serial.print(" register ");Serial.println(micros()-bptime);
+    Serial.print(" reg ");Serial.println(micros()-bptime);
     bptime=micros();
     delay(3);         
+#endif    */
+
+    if(confSta>0){
+      importData(message,pldLength);  // user data available
+      awakeMinCnt=-1;                 // force data upload
+PP4      
+      break;
+    }
+
+    if(confSta==-5){
+      nrfp.lastSta=0xFF;              // KO mode : radio missing or HS
+      break;
+    }
     
-    sleepPwrDown(0);
-    delayBlk(1,0,250,2,1);         // 2 blinks (hardwarePowerUp() included)
+    sleepPwrDown(0);                  // still waiting (about 4,5+2mS @20mA)
+    // in order to minimize power wasting, special sleep need like awok 1 time then awmin
+    // + include double blink  
+    
+    delayBlk(1,0,250,2,1);            // 2 blinks
+    nrfp.powerUp();
   }
-  importData(message,pldLength);   // user data available
-  awakeMinCnt=-1;                  // force data upload
+
   return confSta;                  // le périphérique est inscrit
 }
 
@@ -669,6 +668,7 @@ int rxMessage(unsigned long to)
     rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
     readTo=to-(micros()-time_beg)/1000;}
   if(readTo<0){rdSta=ER_RDYTO;}
+  nrfp.readStop();
   time_end=micros();
 
 #ifdef DIAG
@@ -736,19 +736,21 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,int dly)
     delayBlk(300,0,1,1);              // 1 pulse (300)
     
 */    
-{  
+{
+   
   while(dly>0){
  
     for(int i=0;i<bnb;i++){
-      pinMode(LED,OUTPUT);                      // sleepDly() -> sleepPwrDown() -> hardwarePowerDown() -> pinMode(LED,input)
-      digitalWrite(LED,HIGH);delay(dur);
-      digitalWrite(LED,LOW);sleepDly(bint);
+      digitalWrite(LED,HIGH);
+      pinMode(LED,OUTPUT);
+      delay(dur);                 // sleepDly() -> sleepPwrDown() -> hardwarePowerDown() -> pinMode(LED,input)
+      digitalWrite(LED,LOW);
+      sleepDly(bint);
       dly-=(dur+bint);
     }
     sleepDly(bdelay);
     dly-=bdelay;
   }
-  hardwarePowerUp();                            // hardwarePowerUp() -> nrfp.powerUp() -> delay(5)
 }
 #endif // NRF_MODE == 'P'
 
@@ -777,6 +779,13 @@ void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
   }
 }
 
+void led(unsigned long dur)
+{
+  digitalWrite(LED,HIGH);
+  pinMode(LED,OUTPUT);
+  delayMicroseconds(dur);
+  digitalWrite(LED,LOW);
+}
 /*  
  *     utilisation du timer 1        ...... réaction bizarres avec delay()   
  *

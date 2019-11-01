@@ -100,19 +100,16 @@
 #define ER_TEXT "to\0rt\0em\0mc\0le\0pi\0--\0ok\0" // 2 char libs for codes
 
 /*** logic analyzer debug pulse ***/
-#ifdef  DETS
-  #define PP        6  // PD6 - connector P3 pin 1
-#endif  DETS
-#ifndef DETS
-  #define PP        2  // 4
-#endif  DETS
+
 #ifdef  UNO        // idem for PRO MINI
-  #define PP4       bitClear(PORTD,PP);bitSet(PORTD,PP);
+  #define PP4       bitClear(PORT_PP,BIT_PP);bitSet(PORT_PP,BIT_PP);
+  #define PP4_INIT  bitSet(PORT_PP,BIT_PP);bitSet(DDR_PP,BIT_PP);;
 #endif UNO
 #ifndef UNO
   #define PP4       digitalWrite(PP,LOW);digitalWrite(PP,HIGH);
-#endif
   #define PP4_INIT  pinMode(PP,OUTPUT);
+#endif
+  
 
 
 #if NRF_MODE == 'C'
@@ -149,6 +146,7 @@ class Nrfp
 
     int  available(uint8_t* pipe,uint8_t* length);
     int  read(byte* data,uint8_t* pipe,uint8_t* length,int numP);
+    void readStop();
     void write(byte* data,bool ack,uint8_t len,uint8_t numP);
     int  transmitting(bool ack);
 
