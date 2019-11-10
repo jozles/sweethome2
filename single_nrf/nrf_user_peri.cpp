@@ -14,8 +14,8 @@ extern uint16_t aw_min;
 #include "shconst2.h"
 #include "shutil2.h"
 
-//#define DS18X20
 #ifdef DS18X20
+#define THERMO "DS18X20 "
 #include <ds18x20.h>
 #ifdef DETS
 #define WPIN       5          // pin thermomètre

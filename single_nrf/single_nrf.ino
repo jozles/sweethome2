@@ -149,7 +149,7 @@ void setup() {
   delay(100);
   Serial.begin(115200);
 
-  Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");
+  Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");Serial.print(THERMO);
 
   delayBlk(1,0,250,1,2000);               // 2sec blinking
   
@@ -167,7 +167,7 @@ void setup() {
   led(100000);
   Serial.print("period ");Serial.print(period);Serial.print("sec ");
 
-  getVolts();                            // readVolts+watchdog 
+  getVolts();                            // read voltage and temperature
 
   /* ------------------- */
   
@@ -222,18 +222,17 @@ void loop() {
   
   while((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)){           
 
-
     awakeCnt--;
     awakeMinCnt--;
     sleepPwrDown(0);
     durT+=period*1000;
     nbL++;
-    getVolts();             // free blink
   }
 
   /* usefull awake or retry */
   t_on=micros();
-  
+
+  getVolts();                                                  
   awakeCnt=aw_ok;
   mustSend=false;           
   mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff

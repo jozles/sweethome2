@@ -51,7 +51,9 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
   #define DIAG                    // affichages diags série
 
-  #define TXRX_MODE 'U'           // TCP / UDP      
+  #define TXRX_MODE 'U'           // TCP / UDP
+
+  #define MCP9700                 //#define TMP36 //#define LM335 //#define DS18X20 // modèle thermomètre
 
 /**************************************/
 
@@ -136,21 +138,47 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define NBPERIF 12            //  pour dim table
   #endif  
 
-#if NRF_MODE == 'P'
+#if NRF_MODE == 'P'             /* voltage and temp acquisition params */
+
 #define VOLTMIN 3.5             // minimal value to run
 #define VCHECK  A3              // volts arduino check pin
 #define VCHECKHL HIGH           // command pin level for reading
 
 #ifdef  DETS
 #define VCHECKADC 7             // VOLTS ADC pin Nb
-#define TCHECKADC 0             // TEMP  ADC pin Nb
-//#define VFACTOR 0.004         // volts conversion 1K+3,3K MOSFET 
-//#define VFACTOR 0.0047        // volts conversion 1K+4,7K MOSFET
-#define VFACTOR 0.00845          // volts conversion 1K+6,8K MOSFET
-#define TFACTOR 3.3             // temp conversion pour LM335
-#define TOFFSET 3               // à25°
-#define TREF    25            
+#define VADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | VCHECKADC     // internal 1,1V ref + ADC input for volts
+#define VFACTOR 0.00845         // volts conversion 1K+6,8K (MOSFET)
+
+#define TCHECKADC 6             // TEMP  ADC pin Nb (6 DETS1.0 ; 1 DETS2.0)
+#define TREF    25              // TEMP ref for TOFFSET 
+                                
+                                // temp=(ADCreading/1024*ADCREF(mV)-TOFFSET(mV))/10+TREF                                
+                                // equivalent to // temp=(ADC*TFACTOR-(TOFFSET))+TREF (no dividing)
+                                // with
+                                // TFACTOR=1.1/10.24 or VCC/10.24 or AREF/10.24
+                                // TOFFSET voltage(mV)/10 @ TREF @ 10mV/°C
+
+#ifdef LM335
+#define TADMUXVAL  0 | (0<<REFS1) | (1<<REFS0) | TCHECKADC     // ADVCC ref + ADC input for temp
+#define THERMO "LM335 "
+#define TFACTOR 0.806           // temp conversion pour LM335
+#define TOFFSET 750             // @25°
+#endif LM335
+#ifdef TMP36
+#define THERMO "TMP36 "
+#define TADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | TCHECKADC     // internal 1,1V ref + ADC input for temp
+#define TFACTOR 1               // temp conversion pour TMP36
+#define TOFFSET 698             // @25°
+#endif TMP36
+#ifdef MCP9700
+#define TADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | TCHECKADC     // internal 1,1V ref + ADC input for temp
+#define THERMO "MCP97 "
+#define TFACTOR 0.1074          // temp conversion pour MCP9700
+#define TOFFSET 75              // @25°
+#endif MCP9700
+
 #endif // def DETS
+
 #ifndef DETS                    // UNO d'essais
 #define VFACTOR 0.009           // volts conversion 3,9K+33K
 #define VCHECKADC 2             // ATMEGA ADC pin Nb

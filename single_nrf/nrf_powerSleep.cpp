@@ -211,47 +211,40 @@ void wd()
 
 }
 
+float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_t dly)      // dly=1 if ADC halted
+{
+    uint16_t a=0;
+    
+    ADCSRA |= (1<<ADEN);                    // ADC enable to write ADMUX
+    ADMUX   = admuxval;
+    ADCSRA  = 0 | (1<<ADEN) | (1<<ADSC) | (1<<ADIF) | (1<<ADPS2) | (0<<ADPS1) | (0<<ADPS0);   // ADC enable + start conversion + prescaler /16
+
+    delayMicroseconds(30+dly*30);        // ok with /16 prescaler @8MHz
+   
+    a=ADCL;
+    a+=ADCH*256;
+  
+    return (float)(a*factor-(offset))+ref;
+}
+
 void getVolts()                     // get unregulated voltage and reset watchdog for external timer period 
 {
+  unsigned long t=micros();
 // free blink while getVolts()
   bitSet(PORT_LED,BIT_LED);                 //digitalWrite(LED,HIGH);
   bitSet(DDR_LED,BIT_LED);                  //pinMode(LED,OUTPUT);     
-  
-  uint16_t v=0;
-  bitSet(PORT_VCHK,BIT_VCHK);               //digitalWrite(VCHECK,VCHECKHL);
+
+  bitSet(PORT_VCHK,BIT_VCHK);               //digitalWrite(VCHECK,VCHECKHL);        // voltage and temperature reading + reset strobe
   bitSet(DDR_VCHK,BIT_VCHK);                //pinMode(VCHECK,OUTPUT);
 
-    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
-    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
+  volts=adcRead(VADMUXVAL,VFACTOR,0,0,1);
+  temp=adcRead(TADMUXVAL,TFACTOR,TOFFSET,TREF,0);
   
-  //clearWd();
-
-#define OUTDLY (20+5)               // clearWD+ADC read
-  delayMicroseconds(320-OUTDLY);    // 25+14 ADC clk so 39*8uS(@8MHz/2/32=125KHz->8uS) to make 1+1 conv
-                                    // delay used to fill the reset pulse capacitor
-
-  v=ADCL;
-  v+=ADCH*256;
-/*
-    ADMUX  |= (0<<REFS1) | (1<<REFS0) | TCHECKADC ;                           // AVcc ref + ADC input for temp
-    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
-
-  delayMicroseconds(240);           // (1.5+13)*2 ADC clk so 29*8uS(@8MHz/2/32=125KHz->8uS) to make 1+1 conv
-  
-  v=ADCL;
-  v+=ADCH*256;
-
-  temp=100*(v*TFACTOR-(TOFFSET))+TREF;
-*/  
   bitClear(PORT_VCHK,BIT_VCHK);  
-  bitClear(DDR_VCHK,BIT_VCHK);      //pinMode(VCHECK,INPUT);              // reset pulse strobe released 
+  bitClear(DDR_VCHK,BIT_VCHK);      //pinMode(VCHECK,INPUT);            // reset pulse strobe released 
+  bitClear(PORT_LED,BIT_LED);       //digitalWrite(LED,LOW);            // getvolts cost : 4+1mA rc=0,3/period(mS)  5*0,25/2000 -> 625nA/AW_OK 
 
-//Serial.println(v,HEX);
-  volts=v*VFACTOR;
-
-  bitClear(PORT_LED,BIT_LED);       //digitalWrite(LED,LOW);            // 4+1mA rc=0,5/12000 -> 208nA
-
-    //if(v!=0 && volts<VOLTMIN){lethalSleep();} // ne fonctionne pas à cause du watchdog...
+  //Serial.println(micros()-t);delay(1);
 }
 
 
@@ -296,8 +289,6 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
     power_all_enable();                     // all bits clr in PRR register (I/O modules clock halted)
 
     ADCSRA |= (1<<ADEN);                    // enable ADC
-//    ADMUX  |= (1<<REFS1) | (1<<REFS0) | VCHECKADC ;                           // internal 1,1V ref + ADC input for volts
-//    ADCSRA |= (1<<ADEN) | (1<<ADSC) | (1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0);   // ADC enable + start conversion + prescaler /32
                                                                               // @8MHz CPU -> 4MHz prescaler -> 125KHz ADC
     wd();                                   // watchdog
     hardwarePowerUp();
