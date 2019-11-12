@@ -60,7 +60,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #if NRF_MODE == 'P'
   #define SPI_MODE                      // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri5"      // MAC_ADDR périphériques
+  #define PER_ADDR  "peri4"      // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR

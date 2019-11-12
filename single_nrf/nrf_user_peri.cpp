@@ -79,10 +79,10 @@ Serial.print("/");Serial.print(previousTemp);
     if( (temp>(previousTemp+deltaTemp)) || (temp<(previousTemp-deltaTemp)) ){
       previousTemp=temp;
       return true;}
-  }                      
-  return false;  
+  }                        
 #endif DS18X20  
- 
+
+  return false; 
 }
 
 void messageBuild(char* message,uint8_t* messageLength)

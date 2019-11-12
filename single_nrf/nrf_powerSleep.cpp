@@ -192,10 +192,10 @@ void clearWd()
    // external timer : high on done pin ends high pulse -> falling edge generate low pulse on reset
    // VCHECK high shorten reset at VCC -> low pulse masked during volts reading
       bitSet(PORT_DONE,BIT_DONE);           //digitalWrite(DONE,HIGH);
-      bitSet(DDR_DONE,BIT_DONE);            //pinMode(DONE,OUTPUT);
+      bitSet(DDR_DONE,BIT_DONE);            //pinMode(DONE,OUTPUT);                 // 100nS minimum pulse
       bitClear(PORT_DONE,BIT_DONE);         ////digitalWrite(DONE,LOW);
       bitClear(DDR_DONE,BIT_DONE);          //pinMode(DONE,INPUT);
-  delayMicroseconds(8);   // some time to fill up the capacitor low drived by 5111 
+  delayMicroseconds(8);   // some time to fill up the reset pulse capacitor low drived by 5111 
 
 }
 
@@ -219,7 +219,7 @@ float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_
     ADMUX   = admuxval;
     ADCSRA  = 0 | (1<<ADEN) | (1<<ADSC) | (1<<ADIF) | (1<<ADPS2) | (0<<ADPS1) | (0<<ADPS0);   // ADC enable + start conversion + prescaler /16
 
-    delayMicroseconds(30+dly*30);        // ok with /16 prescaler @8MHz
+    delayMicroseconds(40+dly*48);           // ok with /16 prescaler @8MHz
    
     a=ADCL;
     a+=ADCH*256;
@@ -238,12 +238,20 @@ void getVolts()                     // get unregulated voltage and reset watchdo
   bitSet(DDR_VCHK,BIT_VCHK);                //pinMode(VCHECK,OUTPUT);
 
   volts=adcRead(VADMUXVAL,VFACTOR,0,0,1);
+  delayMicroseconds(1000);                  // MCP9700 stabilize
   temp=adcRead(TADMUXVAL,TFACTOR,TOFFSET,TREF,0);
+  uint16_t temp0=((int)temp)*100,temp1=(int)(temp*100);         // 0.25°C step
+  if((temp1-temp0)>=12 && (temp1-temp0)<38){temp0+=25;}
+  else if((temp1-temp0)>=38 && (temp1-temp0)<63){temp0+=50;}
+  else if((temp1-temp0)>=63 && (temp1-temp0)<88){temp0+=75;}
+  else if((temp1-temp0)>=88){temp0+=100;}
+  temp=(float)temp0/100;
   
   bitClear(PORT_VCHK,BIT_VCHK);  
   bitClear(DDR_VCHK,BIT_VCHK);      //pinMode(VCHECK,INPUT);            // reset pulse strobe released 
   bitClear(PORT_LED,BIT_LED);       //digitalWrite(LED,LOW);            // getvolts cost : 4+1mA rc=0,3/period(mS)  5*0,25/2000 -> 625nA/AW_OK 
 
+  ADCSRA &= ~(1<<ADEN);                   // ADC shutdown for clean next voltage measurement
   //Serial.println(micros()-t);delay(1);
 }
 
@@ -286,10 +294,8 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
     sleep_cpu();
     sleep_disable();
     if(durat!=0){wdtDisable();}                         
-    power_all_enable();                     // all bits clr in PRR register (I/O modules clock halted)
+    power_all_enable();                     // all bits clr in PRR register (I/O modules clock running)
 
-    ADCSRA |= (1<<ADEN);                    // enable ADC
-                                                                              // @8MHz CPU -> 4MHz prescaler -> 125KHz ADC
     wd();                                   // watchdog
     hardwarePowerUp();
 
