@@ -11,6 +11,14 @@
 #include <MemoryFree.h>;
 #endif
 
+#ifdef DS18X20
+#include <ds18x20.h>
+Ds1820 ds1820;
+byte     setds[]={0,0x7f,0x80,0x3f},readds[8];   // 1f=93mS 9 bits accu 0,5° ; 3f=187mS 10 bits accu 0,25° !!! TCONVDS to adjust
+#define  TCONVDS1 T64   // sleep PwrDown mS !!
+#define  TCONVDS2 T125  // sleep PwrDown mS !!
+#endif DS18X20 
+
 #if NRF_MODE == 'C'
 extern struct NrfConTable tableC[NBPERIF];
 bool menu=true;
@@ -111,7 +119,13 @@ float     period;
 #endif  
 #define CPU_FREQUENCY 8000000
 
-extern float temp;    // debug
+float temp;
+float previousTemp=-99.99;
+float deltaTemp=0.25;
+bool  thSta=true;                     // temp validity
+char  thermo[LTH];                    // thermo name text
+char  thN;                            // thermo code for version
+
 
 uint8_t beginP();
 void    echo();
@@ -119,6 +133,8 @@ void    echo();
 
 /* prototypes */
 
+void iniTemp();
+void readTemp();
 void showErr(bool crlf);
 void showRx(bool crlf);
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
@@ -148,11 +164,12 @@ void setup() {
   hardwarePowerUp();
   PP4
   wd();                           // watchdog
+  iniTemp();
  
   delay(100);
   Serial.begin(115200);
 
-  Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");Serial.print(THERMO);
+  Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");Serial.print(thermo);
 
   delayBlk(1,0,250,1,2000);               // 2sec blinking
   
@@ -243,10 +260,16 @@ void loop() {
   if(awakeMinCnt<0){Serial.print('m');}       // min awake  
   if(retryCnt!=0){Serial.print('r');}         // retry (no sleep)
 */  
-  getVolts();                                 // 1.2 mS                                               
+  getVolts();                                 // 1.2 mS include notDS18X20 thermo reading                                     
+  readTemp();                                 // only for DS18X20
   awakeCnt=aw_ok;
   mustSend=false;           
   mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff
+
+  if( (temp>(previousTemp+deltaTemp)) || (temp<(previousTemp-deltaTemp)) ){
+    previousTemp=temp;
+    mustSend=true;}
+
   if(mustSend){Serial.print("!");}
 
 /*#ifdef DIAG
@@ -265,9 +288,10 @@ void loop() {
     uint8_t outLength=ADDR_LENGTH+1;
     memcpy(message+outLength,VERSION,LENVERSION);                     // version
     outLength+=LENVERSION;
+    memcpy(message+outLength-1,&thN,1);                                // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
     sprintf((char*)(message+outLength),"%08d",(uint32_t)tBeg);        // first connection unix time
     outLength+=8;
-                                                                                                          //#define USRDATAPOS ADDR_LENGTH+1+LENVERSION+8+4
+ 
     messageBuild((char*)message,&outLength);                          // add user data
     memcpy(message,MAC_ADDR,ADDR_LENGTH);                             // macAddr
     message[ADDR_LENGTH]=numT+48;                                     // numéro du périphérique
@@ -732,6 +756,49 @@ void showErr(bool crlf)
 }
 
 #if NRF_MODE == 'P'
+
+void iniTemp()
+{
+  memcpy(thermo,THERMO,LTH);
+  thN=THN;
+  thSta=true;
+  
+#ifdef DS18X20  
+  checkOn();
+  thSta=ds1820.setDs(WPIN,setds,readds);    // setup ds18b20
+  thN='B';if(ds1820.dsmodel==MODEL_S){thN='S';}
+  readTemp();                               // include checkOff()
+#endif DS18X20
+}
+
+void readTemp()
+{
+  if(retryCnt==0){            // pas de conversion si retry en cours
+  thSta=true;
+  
+#ifdef DS18X20
+    checkOn();                                // power on
+    thSta=ds1820.setDs(WPIN,setds,readds);    // setup ds18b20
+    ds1820.convertDs(WPIN);
+    sleepPwrDown(TCONVDS1);
+    sleepPwrDown(TCONVDS2);   
+    nbT++;
+    temp=ds1820.readDs(WPIN);
+    checkOff();                               // power off
+
+/*    Serial.print(volts);Serial.print(" ");Serial.print(nbT);Serial.print(" ");Serial.print(temp);
+#ifdef DIAG
+Serial.print("/");Serial.print(previousTemp);
+#endif // DIAG
+    delay(1);
+*/       
+#endif DS18X20
+
+  }                        
+}
+  
+
+
 
 void sleepDly(uint16_t dly)                                                       // should be (nx250)
 {

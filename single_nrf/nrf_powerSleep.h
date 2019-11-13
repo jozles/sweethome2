@@ -30,6 +30,8 @@
 
 uint16_t sleepPwrDown(uint8_t durat);
 void lethalSleep();
+void checkOn();
+void checkOff();
 void wd();
 void getVolts();
 void hardwarePowerUp();

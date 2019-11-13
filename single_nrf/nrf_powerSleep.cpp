@@ -199,16 +199,23 @@ void clearWd()
 
 }
 
-void wd()
+void checkOn()                              // voltage and temperature reading + reset strobe
 {
   bitSet(PORT_VCHK,BIT_VCHK);               //digitalWrite(VCHECK,VCHECKHL);
-  bitSet(DDR_VCHK,BIT_VCHK);                //pinMode(VCHECK,OUTPUT);
+  bitSet(DDR_VCHK,BIT_VCHK);                //pinMode(VCHECK,OUTPUT);  
+}
 
-  clearWd();
-
+void checkOff()
+{
   bitClear(PORT_VCHK,BIT_VCHK);  
   bitClear(DDR_VCHK,BIT_VCHK);      //pinMode(VCHECK,INPUT);              // reset pulse strobe released 
+}
 
+void wd()
+{
+  checkOn();
+  clearWd();
+  checkOff();
 }
 
 float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_t dly)      // dly=1 if ADC halted
@@ -234,10 +241,11 @@ void getVolts()                     // get unregulated voltage and reset watchdo
   bitSet(PORT_LED,BIT_LED);                 //digitalWrite(LED,HIGH);
   bitSet(DDR_LED,BIT_LED);                  //pinMode(LED,OUTPUT);     
 
-  bitSet(PORT_VCHK,BIT_VCHK);               //digitalWrite(VCHECK,VCHECKHL);        // voltage and temperature reading + reset strobe
-  bitSet(DDR_VCHK,BIT_VCHK);                //pinMode(VCHECK,OUTPUT);
-
+  checkOn();
+  
   volts=adcRead(VADMUXVAL,VFACTOR,0,0,1);
+
+#ifndef DS18X20
   delayMicroseconds(1000);                  // MCP9700 stabilize
   temp=adcRead(TADMUXVAL,TFACTOR,TOFFSET,TREF,0);
   uint16_t temp0=((int)temp)*100,temp1=(int)(temp*100);         // 0.25°C step
@@ -246,10 +254,10 @@ void getVolts()                     // get unregulated voltage and reset watchdo
   else if((temp1-temp0)>=63 && (temp1-temp0)<88){temp0+=75;}
   else if((temp1-temp0)>=88){temp0+=100;}
   temp=(float)temp0/100;
-  
-  bitClear(PORT_VCHK,BIT_VCHK);  
-  bitClear(DDR_VCHK,BIT_VCHK);      //pinMode(VCHECK,INPUT);            // reset pulse strobe released 
-  bitClear(PORT_LED,BIT_LED);       //digitalWrite(LED,LOW);            // getvolts cost : 4+1mA rc=0,3/period(mS)  5*0,25/2000 -> 625nA/AW_OK 
+#endif  
+
+  checkOff();
+  bitClear(PORT_LED,BIT_LED);             //digitalWrite(LED,LOW);            
 
   ADCSRA &= ~(1<<ADEN);                   // ADC shutdown for clean next voltage measurement
   //Serial.println(micros()-t);delay(1);
