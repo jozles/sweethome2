@@ -73,6 +73,16 @@ char configRec[CONFIGRECLEN];
   unsigned long* usrpretime;  // user cx time précédent
   char* thermonames;          // noms sondes thermos
   int16_t* thermoperis;       // num périphériques thermo
+  bool* thermolowenable;      // low level temp trigger enable
+  bool* thermohighenable;     // high level temp trigger enable
+  bool* thermolowstate;       // low level temp trigger state
+  bool* thermohighstate;      // high level temp trigger state
+  int16_t* thermolowvalue;    // low level temp value for trigger
+  int16_t* thermohighvalue;   // high level temp value for trigger
+  int16_t* thermolowoffset;   // low level offset to trigger
+  int16_t* thermohighoffset;  // high level offset to trigger  
+  uint8_t* thermolowdets;     // low level dets to set/clear
+  uint8_t* thermohighdets;    // high level dets to set/clear
   uint16_t* toPassword;       // Délai validité password en sec !
 
   byte* configBegOfRecord;
@@ -306,14 +316,15 @@ void setup() {                              // =================================
   
   sdInit();
 
-  configInit();  //configSave();
-  configLoad();
-  memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
-  configPrint();
   
   //periConvert();
   periMaintenance();  
   
+  configInit();  
+  configLoad();*toPassword=TO_PASSWORD;configSave();
+  memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
+  configPrint();
+    
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
   periTableLoad();
@@ -623,7 +634,7 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
 //   k+=MAXSW+1;
     }
     memcpy(periIpAddr,remote_IP_cur,4);            //for(int i=0;i<4;i++){periIpAddr[i]=remote_IP_cur[i];}         // Ip addr
-    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);                      // maj dates
+    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);                      // maj dates
 #ifdef SHDIAGS    
     periPrint(periCur);
     Serial.print("periDataRead =");
@@ -868,7 +879,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
       soit usr_ref___ la référence fournie en première zone (hidden) de la page (num user en libfonction+2xi+1) et millis() comme valeur;
 */
 
-      Serial.print("\n *** serveur(");Serial.print((char)ab);Serial.print(") actif  IP=");serialPrintIp(remote_IP);Serial.print(" MAC=");serialPrintMac(remote_MAC,1);
+      Serial.print("\n *** serveur(");Serial.print((char)ab);Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
       
       cxtime=millis();
       
@@ -1303,7 +1314,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
         purgeServer(&cli);
         cli.stop();
         cliext.stop();
-        Serial.print(" periMess=");Serial.print(periDiag(periMess));Serial.print(" *** cli stopped - ");Serial.println(millis()-cxtime); 
+        Serial.print(" pM=");Serial.print(periDiag(periMess));Serial.print(" *** cli stopped - ");Serial.println(millis()-cxtime); 
 
     //} // cli.connected
 }
@@ -1329,6 +1340,8 @@ void udpPeriServer()
       
       packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY
       commonserver(cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
+      
+      Serial.println(" *** end udp");
     }
     //else{Udp.flush();Serial.print("Udp overflow=");Serial.print(udpPacketLen);Serial.print(" from ");Serial.println(rip);}
 }
@@ -1344,6 +1357,7 @@ void tcpPeriServer()
         //serialPrintIp(remote_IP);Serial.println(" connecté");
         if (cli_a.connected()){         
           commonserver(cli_a," ",1);}
+      Serial.println(" end tcp");
       }
 }
 

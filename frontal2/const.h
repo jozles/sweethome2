@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4"
+#define VERSION "1.4a"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -45,11 +45,14 @@
  *      libellé pour detecteurs serveur ; affichage/saisie lignes péritable disjoint
  * 1.3b periSend et periParamsHtml disparaissent ... periReq et periAns envoient des messages aux périphériques
  *      ds3231.h devient une lib ; création de la classe Ds3231 (instance ds3231)
- * 1.4  réaménagement setup ; udp      
+ * 1.4  réaménagement setup ; udp ; 
+ * 1.4a extension thermomètres pour contrôle chaudière/clim     
  *      
  * BUGS : 
  *  
  * à faire :
+ * 
+ *    remplacer date14 par date unix sur 8 digits dans les messages ACK et SET
  *     
  *    ajouter nbre inputs dans assyset
  *     
@@ -138,7 +141,7 @@
 #define NBTHERMO  NBPERIF
 #define LENTHNAME 16
 
-#define CONFIGRECLEN 1245                    // longueur record config 
+#define CONFIGRECLEN 1525                    // longueur record config 
 
 #define TO_PASSWORD 600                      // sec (pour initialiser toPassword à la mise sous tension
 

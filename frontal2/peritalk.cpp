@@ -107,7 +107,8 @@ extern char*     chexa;
 extern int       nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
 
 
-void assySet(char* message,int periCur,char* diag,char* date14)     // assemblage dats pour périphérique ; foemat pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
+void assySet(char* message,int periCur,char* diag,char* date14)     
+// assemblage dats pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
 {
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
@@ -242,8 +243,8 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
   char message[LENMESS]={'\0'};
   char date14[LNOW];ds3231.alphaNow(date14);
 
-  Serial.print("\nperiAns(peri=");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
-  Serial.print(" ip=");serialPrintIp(periIpAddr);Serial.print(" port=");Serial.print(*periPort);
+  Serial.print("\nperiAns(");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
+  Serial.print(" ");serialPrintIp(periIpAddr);Serial.print("/");Serial.print(*periPort);
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
     assySet(message,periCur,periDiag(periMess),date14);
     }  // assemblage datas 

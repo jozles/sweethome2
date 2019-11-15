@@ -33,6 +33,16 @@ extern unsigned long* usrtime;
 extern unsigned long* usrpretime;
 extern char* thermonames;
 extern int16_t* thermoperis;
+extern bool* thermolowenable;
+extern bool* thermohighenable;
+extern bool* thermolowstate;
+extern bool* thermohighstate;
+extern int16_t* thermolowvalue;
+extern int16_t* thermohighvalue;
+extern int16_t* thermolowoffset;
+extern int16_t* thermohighoffset;
+extern uint8_t* thermolowdets;
+extern uint8_t* thermohighdets;
 extern uint16_t* toPassword;
 extern byte* configBegOfRecord;
 extern byte* configEndOfRecord;
@@ -122,6 +132,41 @@ extern  int   nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fp
 
 /* >>>>>>>>> configuration <<<<<<<<<< */
 
+void configInitVar()
+{
+memset(mac,0x00,6);
+memset(localIp,0x00,4); 
+*portserver = 0;
+memset(nomserver,0x00,LNSERV);memcpy(nomserver,NOMSERV,strlen(NOMSERV));
+memset(userpass,0x00,LPWD+1);memcpy(userpass,USRPASS,strlen(SRVPASS));
+memset(modpass,0x00,LPWD+1);memcpy(modpass,MODPASS,strlen(MODPASS));
+memset(peripass,0x00,LPWD+1);memcpy(peripass,SRVPASS,strlen(PERIPASS));
+memset(ssid,0x00,MAXSSID*(LENSSID+1));
+memcpy(ssid,SSID1,strlen(SSID1));memcpy(ssid+LENSSID+1,SSID2,strlen(SSID2));   
+memset(passssid,0x00,MAXSSID*(LPWSSID+1));
+memcpy(passssid,PWDSSID1,strlen(PWDSSID1));memcpy(passssid+LPWSSID+1,PWDSSID2,strlen(PWDSSID2));
+*nbssid = MAXSSID;
+memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
+memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
+memset(usrtime,0x00,NBUSR*sizeof(long));
+memset(usrpretime,0x00,NBUSR*sizeof(long));
+memset(thermonames,0x00,NBTHERMO*(LENTHNAME+1));
+memset(thermoperis,0x00,NBTHERMO*sizeof(int16_t));
+memset(thermolowenable,0x00,NBTHERMO*sizeof(bool));
+memset(thermohighenable,0x00,NBTHERMO*sizeof(bool));
+memset(thermolowstate,0x00,NBTHERMO*sizeof(bool));
+memset(thermohighstate,0x00,NBTHERMO*sizeof(bool));
+memset(thermolowvalue,0x00,NBTHERMO*sizeof(int16_t));
+memset(thermohighvalue,0x00,NBTHERMO*sizeof(int16_t));
+memset(thermolowoffset,0x00,NBTHERMO*sizeof(int16_t));
+memset(thermohighoffset,0x00,NBTHERMO*sizeof(int16_t));
+memset(thermolowdets,0x00,NBTHERMO*sizeof(uint8_t));
+memset(thermohighdets,0x00,NBTHERMO*sizeof(uint8_t));
+
+*toPassword=TO_PASSWORD;
+}
+
+
 void configInit()
 {
 byte* temp=(byte*)configRec;
@@ -158,6 +203,26 @@ byte* temp=(byte*)configRec;
   temp+=NBTHERMO*(LENTHNAME+1);
   thermoperis=(int16_t*)temp;
   temp+=NBTHERMO*sizeof(int16_t);
+  thermolowenable=(bool*)temp;
+  temp+=NBTHERMO*sizeof(bool);
+  thermohighenable=(bool*)temp;
+  temp+=NBTHERMO*sizeof(bool); 
+  thermolowstate=(bool*)temp;
+  temp+=NBTHERMO*sizeof(bool);
+  thermohighstate=(bool*)temp;
+  temp+=NBTHERMO*sizeof(bool); 
+  thermolowvalue=(int16_t*)temp;
+  temp+=NBTHERMO*sizeof(int16_t);
+  thermohighvalue=(int16_t*)temp;
+  temp+=NBTHERMO*sizeof(int16_t);
+  thermolowoffset=(int16_t*)temp;
+  temp+=NBTHERMO*sizeof(int16_t);
+  thermohighoffset=(int16_t*)temp;
+  temp+=NBTHERMO*sizeof(int16_t);  
+  thermolowdets=(uint8_t*)temp;
+  temp+=NBTHERMO*sizeof(uint8_t);
+  thermohighdets=(uint8_t*)temp;
+  temp+=NBTHERMO*sizeof(uint8_t);      
   toPassword=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
   usrpretime=(unsigned long*)temp;
@@ -187,37 +252,17 @@ byte* temp=(byte*)configRec;
   Serial.print("RECCHAR=");Serial.print(RECCHAR);Serial.print(" LBUFSERVER=");Serial.println(LBUFSERVER);
 }
 
-void configInitVar()
-{
-memset(mac,0x00,6);
-memset(localIp,0x00,4); 
-*portserver = 0;
-memset(nomserver,0x00,LNSERV);memcpy(nomserver,NOMSERV,strlen(NOMSERV));
-memset(userpass,0x00,LPWD+1);memcpy(userpass,USRPASS,strlen(SRVPASS));
-memset(modpass,0x00,LPWD+1);memcpy(modpass,MODPASS,strlen(MODPASS));
-memset(peripass,0x00,LPWD+1);memcpy(peripass,SRVPASS,strlen(PERIPASS));
-memset(ssid,0x00,MAXSSID*(LENSSID+1));
-memcpy(ssid,SSID1,strlen(SSID1));memcpy(ssid+LENSSID+1,SSID2,strlen(SSID2));   
-memset(passssid,0x00,MAXSSID*(LPWSSID+1));
-memcpy(passssid,PWDSSID1,strlen(PWDSSID1));memcpy(passssid+LPWSSID+1,PWDSSID2,strlen(PWDSSID2));
-*nbssid = MAXSSID;
-memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
-memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
-memset(usrtime,0x00,NBUSR*sizeof(long));
-memset(usrpretime,0x00,NBUSR*sizeof(long));
-memset(thermonames,0x00,340); //NBTHERMO*(LENTHNAME+1));
-memset(thermoperis,0x00,NBTHERMO*sizeof(int16_t));
-*toPassword=TO_PASSWORD;
-}
+
 
 void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned long* cxtime)
 {
   char* str2=(char*)strv;
-  #define LBUFCPRINT LENSSID+1+LPWSSID+1+3+4
+  #define LBUFCPRINT LENSSID+1+LPWSSID+1+3+4+8
   char bufcprint[LBUFCPRINT];
+
   for(int nb=0;nb<nbl;nb++){
     if(*(str1+(nb*(len1+1)))!='\0'){
-        memset(bufcprint,0x00,LBUFCPRINT);bufcprint[0]=0x20;sprintf(bufcprint+1,"%1u",nb);strcat(bufcprint," ");
+        memset(bufcprint,0x00,LBUFCPRINT);bufcprint[0]=0x20;sprintf(bufcprint+1,"%1u",nb);strcat(bufcprint," ");if(nb<10){strcat(bufcprint," ");}
         strcat(bufcprint,str1+(nb*(len1+1)));strcat(bufcprint," ");
         int lsp=(len1-strlen(str1+nb*(len1+1)));for(int ns=0;ns<lsp;ns++){strcat(bufcprint," ");}
         if(len2>=0){
@@ -225,7 +270,16 @@ void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned 
           lsp=(len2-strlen(str2+nb*(len2+1)));for(int ns=0;ns<lsp;ns++){strcat(bufcprint," ");}
           Serial.print(bufcprint);if(cxtime[nbl]!=0){Serial.print(cxtime[nbl]);}Serial.println();
         }
-        else{int16_t peri=*((int16_t*)strv+nb);Serial.print(bufcprint);Serial.println(peri);}  
+        else{
+          int16_t peri=*((int16_t*)strv+nb);          
+
+          Serial.print(bufcprint);Serial.print((char)(peri+'0'));Serial.print(" ");
+          Serial.print(thermolowenable[nb]);Serial.print(" ");Serial.print(thermohighenable[nb]);Serial.print(" ");
+          Serial.print((uint8_t)thermolowstate[nb]);Serial.print(" ");Serial.print((uint8_t)thermohighstate[nb]);Serial.print(" ");
+          Serial.print(thermolowvalue[nb]);Serial.print(" ");Serial.print(thermohighvalue[nb]);Serial.print(" ");Serial.print(thermolowoffset[nb]);Serial.print(" ");Serial.print(thermohighoffset[nb]);Serial.print(" ");
+          Serial.print(thermolowdets[nb]);Serial.print(" ");Serial.print(thermohighdets[nb]);
+          Serial.println();
+        }  
     }
   }
 }
@@ -836,6 +890,17 @@ while(1){}
 /*  init detecteurs
     memDetInit();
     memDetSave();
+    while(1){};
+*/
+/*  modif config
+
+    configInit();
+    configPrint();
+    configLoad();
+    memset(thermolowenable,0x00,NBTHERMO*sizeof(bool));
+    memset(thermohighenable,0x00,NBTHERMO*sizeof(bool));
+    configPrint();
+    configSave();
     while(1){};
 */
 }
