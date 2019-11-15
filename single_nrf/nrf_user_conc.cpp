@@ -328,18 +328,18 @@ int exportData(uint8_t numT)                            // formatting periBuf da
       message[sb-1]='0';
       memcpy(message+sb,"_\0",2);
       sb+=1;
-      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+8+4+1,6); // temp                              
+      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+1+8+4,6); // temp                              
       sb+=6;
       memcpy(message+sb,"__\0",3);                                  // âge 
       sb+=2;
-      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+8,4);     // volts                              
+      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+1+8,4);   // volts                              
       sb+=4;
       memcpy(message+sb,"_\0",2);                             
       sb+=1;
       memcpy(message+sb,tableC[numT].periBuf+6,LENVERSION);         // VERSION
-      sb+=LENVERSION-1;
-      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+8+4,1);   // modele DS18x20
-      sb+=1;
+      sb+=LENVERSION;
+      memcpy(message+sb-1,tableC[numT].periBuf+6+LENVERSION,1);     // thermo model take place of 4th version char
+      //sb+=1;
       memcpy(message+sb,"_\0",2);                             
       sb+=1;      
       
@@ -347,7 +347,7 @@ int exportData(uint8_t numT)                            // formatting periBuf da
       message[sb]=(char)(NBSW+48);                                  // nombre switchs              - 1   
       //for(i=0;i<NBSW;i++){message[sb+1+(MAXSW-1)-i]=(char)(48+digitalRead(pinSw[i]));}     
       if(NBSW<MAXSW){for(i=NBSW;i<MAXSW;i++){message[sb+1+(MAXSW-1)-i]='x';}}
-      memcpy(message+sb+MAXSW+1,"_\0",2);                       // message[sb+MAXSW+1]='_';
+      memcpy(message+sb+MAXSW+1,"_\0",2);                           // message[sb+MAXSW+1]='_';
       sb+=MAXSW+2;
       
 #define NBDET 0
@@ -440,7 +440,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // numPer from set message
         numT=nrfp.macSearch(fromServerMac,&numPeri);              // numT mac reg nb in conc table ; numPeri from table numPeri 
                                                                   // numPeri should be same as nP (if !=0 && mac found)
-        conv_atobl(indata+MPOSDH,tlast,UNIXDATELEN);                  
+        conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
         t2=micros();
         int eds=99;
         if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error

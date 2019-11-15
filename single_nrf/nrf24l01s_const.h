@@ -5,7 +5,7 @@
 #include "shconst2.h"
 #include "shutil2.h"
 
-#define VERSION "1.12"
+#define VERSION "1.2"
 #define LENVERSION 4
 
 /*
@@ -53,14 +53,14 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
   #define TXRX_MODE 'U'           // TCP / UDP
 
-  #define MCP9700                 //#define TMP36 //#define LM335 //#define DS18X20 // #define DS18X20 // modèle thermomètre
+  #define MCP9700                 //#define TMP36 //#define LM335 //#define DS18X20 // modèle thermomètre
 
 /**************************************/
 
 #if NRF_MODE == 'P'
-  #define SPI_MODE                      // SPI initialisé par la lib (ifndef -> lib externe)
+  #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri4"      // MAC_ADDR périphériques
+  #define PER_ADDR  "peri4"       // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR

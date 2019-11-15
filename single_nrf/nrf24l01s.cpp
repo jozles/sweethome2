@@ -275,6 +275,7 @@ void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,le
     CSN_LOW
     if(ack){SPI.transfer(W_TX_PAYLOAD);}          // with ACK
     else   {SPI.transfer(W_TX_PAYLOAD_NA);}       // without ACK
+
     for(uint8_t i=0;i<llen;i++){SPI.transfer(data[i]);}
     CSN_HIGH
 
@@ -370,6 +371,7 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
         numP=available(pipe,pldLength);                     // if necessary
     } 
     if(numP>=0){
+
         CSN_LOW
         SPI.transfer(R_RX_PAYLOAD);
         SPI.transfer(data,*pldLength);                      // get pld

@@ -47,7 +47,8 @@ unsigned long t_on2;
 unsigned long t_on3;
 unsigned long time_beg=millis();
 unsigned long time_end;
-byte    message[MAX_PAYLOAD_LENGTH+1];    // buffer pour read()/write()
+byte    message[MAX_PAYLOAD_LENGTH+1];    // buffer pour write()
+byte    messageIn[MAX_PAYLOAD_LENGTH+1];  // buffer pour read()
 int     rdSta;                            // return status read() / available()
 int     trSta;                            // return status write() / transmitting()
 uint8_t pipe;
@@ -214,12 +215,13 @@ void setup() {
   Serial.print(TXRX_MODE);
   delay(100);
 
+  pinMode(LED,OUTPUT);
   userResetSetup();
 
   nrfp.tableCInit();//nrfp.tableCPrint();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
 
-  hardwarePowerUp();                                
+  nrfp.powerUp();
   nrfp.setup();
   
 #ifdef DUE
@@ -288,9 +290,9 @@ void loop() {
     uint8_t outLength=ADDR_LENGTH+1;
     memcpy(message+outLength,VERSION,LENVERSION);                     // version
     outLength+=LENVERSION;
-    memcpy(message+outLength-1,&thN,1);                                // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
-    sprintf((char*)(message+outLength),"%08d",(uint32_t)tBeg);        // first connection unix time
-    outLength+=8;
+    memcpy(message+outLength,&thN,1);                                 // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
+    sprintf((char*)(message+outLength+1),"%08d",(uint32_t)tBeg);      // first connection unix time
+    outLength+=9;
  
     messageBuild((char*)message,&outLength);                          // add user data
     memcpy(message,MAC_ADDR,ADDR_LENGTH);                             // macAddr
@@ -299,32 +301,41 @@ void loop() {
 
     /* One transaction is tx+rx ; if both ok reset counters else retry management*/
     t_on1=micros();  
-    nrfp.powerUp();delay(5);                                                   // 5mS delay inside    
+    nrfp.powerUp();delay(5);                                          // 5mS delay inside    
     t_on2=micros();  
-    if((txMessage(NO_ACK,outLength,0)>=0) && (rxMessage(0)>=0)){      // no error
+    rdSta=-1;
+
+    trSta=txMessage(NO_ACK,outLength,0);
+    if(trSta>=0){
+
+      rdSta=rxMessage(0);
+      if(rdSta>=0){                                                  // no error
       
-      t_on3=micros();
-      /* echo request ? (address field is 0x5555555555) */
-      if(memcmp(message,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
-      else {
+        t_on3=micros();
+
+        /* echo request ? (address field is 0x5555555555) */
+        if(memcmp(messageIn,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
+        else {
           //showRx(false);
-          importData(message,pldLength);   // user data
-      }
-      /* tx+rx ok -> every counters reset */
+          importData(messageIn,pldLength);   // user data
+        }
+        
+        /* tx+rx ok -> every counters reset */
           retryCnt=0;
           awakeCnt=aw_ok;
           awakeMinCnt=aw_min;            
+      }
     }
-    else{
-      //Serial.println(diagMessT);delay(2);              // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
-      //Serial.println(diagMessR);delay(2);              // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
+    if(trSta<0 || rdSta<0){                                           // error
+      //Serial.println(diagMessT);delay(2);               // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
+      //Serial.println(diagMessR);delay(2);               // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
     
       showErr(false);
-      numT=0;                  // rx error : refaire l'inscription au prochain réveil
+      numT=0;                                           // tx or rx error : refaire l'inscription au prochain réveil
       switch(retryCnt){
         case 0:retryCnt=aw_retry;break;
         case 1:awakeCnt=aw_ko;awakeMinCnt=aw_ko;
-                awakeCnt=0;                                 // ********************** debug **************************
+                awakeCnt=0;                             // ********************** debug **************************
                 retryCnt=0;break;
         default:retryCnt--;break;
       }
@@ -360,38 +371,41 @@ void loop() {
 
   numT=0;                                             // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                       // max length
-  rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);  // get message from perif
+  memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
+  rdSta=nrfp.read(messageIn,&pipe,&pldLength,NBPERIF);  // get message from perif (<0 err ; 0 reg to do ; >0 entry nb)
 
   time_beg=micros();
-  if(rdSta>=0){Serial.print((char*)message);Serial.print(" ");}
+  if(rdSta!=AV_EMPTY){Serial.print(rdSta);Serial.print(" ");}
+  if(rdSta>=0){Serial.print((char*)messageIn);Serial.print(" ");}    
 
   if(rdSta==0){
     
   // ====== no error registration request ======
       
       showRx(false);                                        
-      numT=nrfp.cRegister((char*)message);               
+      numT=nrfp.cRegister((char*)messageIn);               
       if(numT<(NBPERIF)){                             // registration ok
         rdSta=numT;                                   // entry is valid -> rdSta >0              
         nrfp.printAddr((char*)tableC[numT].periMac,' ');
-        Serial.print(" registred as ");Serial.println(numT);}
-      else if(numT==(NBPERIF+2)){Serial.println(" MAX_RT ... deleted");}
-      else {Serial.println(" full");}
+        Serial.print(" registred as ");Serial.println(numT);}                 // numT = 0-(NBPERIF-1) ; rdSta=numT
+      else if(numT==(NBPERIF+2)){Serial.println(" MAX_RT ... deleted");}      // numT = NBPERIF+2 ; rdSta=0
+      else {Serial.println(" full");}                                         // numT = NBPERIF   ; rdSta=0
   }
 
   // ====== no error && valid entry ======         
   
-  if((rdSta>0) && (memcmp(message,tableC[rdSta].periMac,ADDR_LENGTH)==0)){ 
+  if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,ADDR_LENGTH)==0)){ 
                                                       // rdSta is table entry nb
       if(numT==0 && (echoNb!=rdSta || !echoOn)){      // numT=0 means that is not a registration, and message is not an echo answer 
                                                       // so -> incoming message storage
-        memcpy(tableC[rdSta].periBuf,message,pldLength);    
+        memcpy(tableC[rdSta].periBuf,messageIn,pldLength);    
         tableC[rdSta].periBufLength=pldLength;
       }
       
       if(echoNb!=rdSta){                              // if no echo pending on this table entry
       /* build config */
-        memcpy(message+ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);
+        memcpy(message,messageIn,ADDR_LENGTH+1);
+        memcpy(message+ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);    // build message to perif with server data
       
       /* send it to perif */    
         txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);      // end of transaction so auto ACK
@@ -409,7 +423,7 @@ void loop() {
         echo();}
   }
   
-  // ====== error or empty -> ignore ======
+  // ====== error, full or empty -> ignore ======
   // peripheral must re-do registration so no answer to lead to rx error
 
 
@@ -485,12 +499,12 @@ void echo()
     time_end = micros();
     
     /* wait for answer until receipt ok or TO or err */
-    memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
+    memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
     rdSta=AV_EMPTY; 
            
     while(rdSta==AV_EMPTY && (micros()-time_end)<ECHOTO){
-      rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);      
-      if(rdSta>=0){Serial.print(" rcv ");Serial.print((char*)message);}
+      rdSta=nrfp.read(messageIn,&pipe,&pldLength,NBPERIF);      
+      if(rdSta>=0){Serial.print(" rcv ");Serial.print((char*)messageIn);}
       else if(rdSta<0 && rdSta!=AV_EMPTY){
         Serial.print(" err ");Serial.println((char*)kk+(rdSta+6)*LMERR);        // rcv err
         rdSta=AV_EMPTY;}                                                        // permet d'attendre le time out
@@ -505,11 +519,8 @@ void echo()
   echoNb=0;
 }
 
-void echo0(char* message,bool ack,uint8_t len,uint8_t numP)
+void echo0(bool ack,uint8_t len,uint8_t numP)
 {                       // txMessage + read réponse (1er perif de la table)
-  message[len]='+';
-  message[len+1]='\0';
-
   int trSta=-1;
   
   bool waitEcho=true;
@@ -517,10 +528,11 @@ void echo0(char* message,bool ack,uint8_t len,uint8_t numP)
       rdSta=rxMessage(0);
       if(rdSta>=0){
         showRx(true);
-        if(memcmp(message,"VVVV",4)==0){waitEcho=false;}
+        if(memcmp(messageIn,"VVVV",4)==0){waitEcho=false;}
       }
       else {showErr(true);waitEcho=false;}
-    }         
+  }         
+  memcpy(message,messageIn,len);
   if(txMessage(ack,len+1,numP)<0){Serial.println("********* maxRT ");}
 }
 
@@ -551,7 +563,7 @@ void broadcast(char a)
         memcpy(message,testAd,ADDR_LENGTH);
         message[ADDR_LENGTH]='0';
         sprintf((char*)(message+ADDR_LENGTH+1),"%08lu",millis());
-        echo0((char*)message,ack,8,1);
+        echo0(ack,8,1);
         titre=true;
         break; 
     }
@@ -576,9 +588,9 @@ uint8_t beginP()
 {
   int confSta=-1;
   unsigned long bptime=micros();
-  while(1){                                     // confsta>=1 or -5 or wait 
-    confSta=nrfp.pRegister(message,&pldLength); // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
-                                                // 0 na ; >=1 ok numT
+  while(1){                                       // confsta>=1 or -5 or wait 
+    confSta=nrfp.pRegister(messageIn,&pldLength); // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
+                                                  // 0 na ; >=1 ok numT
 /*#ifdef DIAG
     int sta=confsta;if(confsta>0){sta=1;)
     Serial.print(">>> start ");
@@ -590,7 +602,7 @@ uint8_t beginP()
 #endif    */
 
     if(confSta>0){
-      importData(message,pldLength);  // user data available
+      importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                 // force data upload
 PP4      
       break;                          // out of while(1)
@@ -631,7 +643,7 @@ void echo()
   while(1){
 
     /* send echo */
-    memcpy(echoMess,message,ECHO_LEN);
+    memcpy(echoMess,messageIn,ECHO_LEN);
     memcpy(echoMess,echoRef,ADDR_LENGTH+1);
     echoMess[ECHO_LEN]='\0';
     nrfp.write(echoMess,NO_ACK,ECHO_LEN,0);
@@ -641,7 +653,7 @@ void echo()
 
     time_end=micros();
 
-    Serial.print(" rcv ");Serial.print((char*)message);
+    Serial.print(" rcv ");Serial.print((char*)messageIn);
     Serial.print(" sent ");Serial.print((char*)echoMess);      
     Serial.print(" wait ");Serial.print((time_end-time_beg)/1000);Serial.println("mS");
     delay(4);
@@ -652,13 +664,13 @@ void echo()
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     rdSta=AV_EMPTY;        
     while(rdSta<0 && cntErr<MAXECHOERR){
-      rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
+      rdSta=nrfp.read(messageIn,&pipe,&pldLength,NBPERIF);
       if((micros()-time_beg)/1000>to){rdSta=ER_RDYTO;time_beg=micros();}
       if(rdSta<0 && rdSta!=AV_EMPTY){showErr(true);cntErr++;}                
     }
 
     /* if max err or no req mess leave */
-    if(cntErr>=MAXECHOERR || memcmp(message,ECHO_MAC_REQ,4)!=0 ){break;}
+    if(cntErr>=MAXECHOERR || memcmp(messageIn,ECHO_MAC_REQ,4)!=0 ){break;}
     else cntErr=0;
   }
   Serial.println("stop echo");delay(1);
@@ -705,12 +717,12 @@ int rxMessage(unsigned long to)
 {
   time_beg = micros();
   if(to==0){to=TO_READ;}
-  memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
+  memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
   pldLength=MAX_PAYLOAD_LENGTH;                    // max length
   rdSta=AV_EMPTY;
   readTo=0;
   while((rdSta==AV_EMPTY) && (readTo>=0)){
-    rdSta=nrfp.read(message,&pipe,&pldLength,NBPERIF);
+    rdSta=nrfp.read(messageIn,&pipe,&pldLength,NBPERIF);
     readTo=to-(micros()-time_beg)/1000;}
   if(readTo<0){rdSta=ER_RDYTO;}
   nrfp.readStop();
@@ -782,10 +794,8 @@ void readTemp()
     ds1820.convertDs(WPIN);
     sleepPwrDown(TCONVDS1);
     sleepPwrDown(TCONVDS2);   
-    nbT++;
     temp=ds1820.readDs(WPIN);
     checkOff();                               // power off
-
 /*    Serial.print(volts);Serial.print(" ");Serial.print(nbT);Serial.print(" ");Serial.print(temp);
 #ifdef DIAG
 Serial.print("/");Serial.print(previousTemp);
