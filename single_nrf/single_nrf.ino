@@ -186,6 +186,7 @@ void setup() {
   detachInterrupt(0);
   period=(float)(millis()-beg)/1000;
   led(100000);
+  period=0;
   Serial.print("period ");Serial.print(period);Serial.print("sec ");
 
   getVolts();                            // read voltage and temperature
@@ -376,7 +377,10 @@ void loop() {
 
   time_beg=micros();
   if(rdSta!=AV_EMPTY){Serial.print(rdSta);Serial.print(" ");}
-  if(rdSta>=0){Serial.print((char*)messageIn);Serial.print(" ");}    
+  if(rdSta>=0){
+    //dumpstr((char*)messageIn,24);
+    Serial.print((char*)messageIn);Serial.print(" ");
+    }    
 
   if(rdSta==0){
     

@@ -61,10 +61,10 @@ void importData(byte* data,uint8_t dataLength)
   int      sizeRead,srt=0;
   
     perRefr=(long)convStrToNum((char*)(data+ADDR_LENGTH+1),&sizeRead);          // per refresh server
-    aw_min=perRefr/STEP_VALUE;
+    aw_min=perRefr/period;
     srt=sizeRead;
     perTemp=(uint16_t)convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead);  // per check température
-    aw_ok=perTemp/STEP_VALUE;
+    aw_ok=perTemp/period;
     srt+=sizeRead;
     deltaTemp=(long)convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead);    // pitch mesure 
 }
