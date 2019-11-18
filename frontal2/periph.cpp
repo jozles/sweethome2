@@ -17,26 +17,26 @@ extern uint16_t perrefr;
 
 extern char configRec[CONFIGRECLEN];
   
-extern byte* mac;
-extern byte* localIp;
-extern int*  portserver;
-extern char* nomserver;
-extern char* userpass;
-extern char* modpass;
-extern char* peripass;
-extern char* ssid;   
-extern char* passssid;
-extern int*  nbssid;
-extern char* usrnames;  
-extern char* usrpass;     
+extern byte*    mac;
+extern byte*    localIp;
+extern int*     portserver;
+extern char*    nomserver;
+extern char*    userpass;
+extern char*    modpass;
+extern char*    peripass;
+extern char*    ssid;   
+extern char*    passssid;
+extern int*     nbssid;
+extern char*    usrnames;  
+extern char*    usrpass;     
 extern unsigned long* usrtime;
 extern unsigned long* usrpretime;
-extern char* thermonames;
+extern char*    thermonames;
 extern int16_t* thermoperis;
-extern bool* thermolowenable;
-extern bool* thermohighenable;
-extern bool* thermolowstate;
-extern bool* thermohighstate;
+extern bool*    thermolowenable;
+extern bool*    thermohighenable;
+extern bool*    thermolowstate;
+extern bool*    thermohighstate;
 extern int16_t* thermolowvalue;
 extern int16_t* thermohighvalue;
 extern int16_t* thermolowoffset;
@@ -44,8 +44,8 @@ extern int16_t* thermohighoffset;
 extern uint8_t* thermolowdets;
 extern uint8_t* thermohighdets;
 extern uint16_t* toPassword;
-extern byte* configBegOfRecord;
-extern byte* configEndOfRecord;
+extern byte*    configBegOfRecord;
+extern byte*    configEndOfRecord;
 
 
 /* >>>>>>> fichier périphériques <<<<<<<  */
@@ -121,6 +121,11 @@ extern char*  timersNA;
 extern long   timersNlen;
 File ftimers;     // fichier timers
 
+extern struct Thermo thermos[NBTHERMOS];
+extern char*  thermosA;
+extern long   thermoslen;
+File fthermos;    // fichier thermos
+
 extern char   libDetServ[NBDSRV][LENLIBDETSERV];
 File fmemdet;     // fichier détecteurs serveur
 
@@ -150,18 +155,18 @@ memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
 memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
 memset(usrtime,0x00,NBUSR*sizeof(long));
 memset(usrpretime,0x00,NBUSR*sizeof(long));
-memset(thermonames,0x00,NBTHERMO*(LENTHNAME+1));
-memset(thermoperis,0x00,NBTHERMO*sizeof(int16_t));
-memset(thermolowenable,0x00,NBTHERMO*sizeof(bool));
-memset(thermohighenable,0x00,NBTHERMO*sizeof(bool));
-memset(thermolowstate,0x00,NBTHERMO*sizeof(bool));
-memset(thermohighstate,0x00,NBTHERMO*sizeof(bool));
-memset(thermolowvalue,0x00,NBTHERMO*sizeof(int16_t));
-memset(thermohighvalue,0x00,NBTHERMO*sizeof(int16_t));
-memset(thermolowoffset,0x00,NBTHERMO*sizeof(int16_t));
-memset(thermohighoffset,0x00,NBTHERMO*sizeof(int16_t));
-memset(thermolowdets,0x00,NBTHERMO*sizeof(uint8_t));
-memset(thermohighdets,0x00,NBTHERMO*sizeof(uint8_t));
+memset(thermonames,0x00,NBTHERMOS*(LENTHNAME+1));
+memset(thermoperis,0x00,NBTHERMOS*sizeof(int16_t));
+memset(thermolowenable,0x00,NBTHERMOS*sizeof(bool));
+memset(thermohighenable,0x00,NBTHERMOS*sizeof(bool));
+memset(thermolowstate,0x00,NBTHERMOS*sizeof(bool));
+memset(thermohighstate,0x00,NBTHERMOS*sizeof(bool));
+memset(thermolowvalue,0x00,NBTHERMOS*sizeof(int16_t));
+memset(thermohighvalue,0x00,NBTHERMOS*sizeof(int16_t));
+memset(thermolowoffset,0x00,NBTHERMOS*sizeof(int16_t));
+memset(thermohighoffset,0x00,NBTHERMOS*sizeof(int16_t));
+memset(thermolowdets,0x00,NBTHERMOS*sizeof(uint8_t));
+memset(thermohighdets,0x00,NBTHERMOS*sizeof(uint8_t));
 
 *toPassword=TO_PASSWORD;
 }
@@ -200,29 +205,29 @@ byte* temp=(byte*)configRec;
   usrtime=(unsigned long*)temp;
   temp+=NBUSR*sizeof(long);
   thermonames=(char*)temp;
-  temp+=NBTHERMO*(LENTHNAME+1);
+  temp+=NBTHERMOS*(LENTHNAME+1);
   thermoperis=(int16_t*)temp;
-  temp+=NBTHERMO*sizeof(int16_t);
+  temp+=NBTHERMOS*sizeof(int16_t);
   thermolowenable=(bool*)temp;
-  temp+=NBTHERMO*sizeof(bool);
+  temp+=NBTHERMOS*sizeof(bool);
   thermohighenable=(bool*)temp;
-  temp+=NBTHERMO*sizeof(bool); 
+  temp+=NBTHERMOS*sizeof(bool); 
   thermolowstate=(bool*)temp;
-  temp+=NBTHERMO*sizeof(bool);
+  temp+=NBTHERMOS*sizeof(bool);
   thermohighstate=(bool*)temp;
-  temp+=NBTHERMO*sizeof(bool); 
+  temp+=NBTHERMOS*sizeof(bool); 
   thermolowvalue=(int16_t*)temp;
-  temp+=NBTHERMO*sizeof(int16_t);
+  temp+=NBTHERMOS*sizeof(int16_t);
   thermohighvalue=(int16_t*)temp;
-  temp+=NBTHERMO*sizeof(int16_t);
+  temp+=NBTHERMOS*sizeof(int16_t);
   thermolowoffset=(int16_t*)temp;
-  temp+=NBTHERMO*sizeof(int16_t);
+  temp+=NBTHERMOS*sizeof(int16_t);
   thermohighoffset=(int16_t*)temp;
-  temp+=NBTHERMO*sizeof(int16_t);  
+  temp+=NBTHERMOS*sizeof(int16_t);  
   thermolowdets=(uint8_t*)temp;
-  temp+=NBTHERMO*sizeof(uint8_t);
+  temp+=NBTHERMOS*sizeof(uint8_t);
   thermohighdets=(uint8_t*)temp;
-  temp+=NBTHERMO*sizeof(uint8_t);      
+  temp+=NBTHERMOS*sizeof(uint8_t);      
   toPassword=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
   usrpretime=(unsigned long*)temp;
@@ -292,7 +297,7 @@ void configPrint()
   Serial.print("password=");Serial.print(userpass);Serial.print(" modpass=");Serial.print(modpass);Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.println("table ssid ");subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
   Serial.println("table user ");subcprint(usrnames,usrpass,NBUSR,LENUSRNAME,LENUSRPASS,usrtime);
-  Serial.println("table thermo ");subcprint(thermonames,thermoperis,NBTHERMO,LENTHNAME,-1,0);
+  //Serial.println("table thermo ");subcprint(thermonames,thermoperis,NBTHERMOS,LENTHNAME,-1,0);
   //dumpstr((char*)thermoperis,16);
 }
 
@@ -1021,12 +1026,73 @@ int timersLoad()
 int timersSave()
 {
     Serial.print("Save timers ");
+    SD.remove(TIMERSNFNAME);
     if(sdOpen(FILE_WRITE,&ftimers,TIMERSNFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     ftimers.seek(0);
     for(uint16_t i=0;i<timersNlen;i++){ftimers.write(*(timersNA+i));}             
     ftimers.close();Serial.println(" OK");
     return SDOK;
 }
+
+/**************** thermometres ******************/
+
+void subchp(bool enable,uint16_t state,uint16_t value,uint16_t offset,uint8_t det)
+{
+  Serial.print("   ");Serial.print(enable);Serial.print(" ");
+  Serial.print((float)value/100);Serial.print(" ");Serial.print((float)offset/100);Serial.print(" ");
+  Serial.print(det);Serial.print(" ");Serial.print(state);
+}
+
+void thermosPrint()
+{
+  for(uint8_t nt=0;nt<NBTHERMOS;nt++){
+    Serial.print(nt);Serial.print(" ");Serial.print((char*)thermos[nt].nom);Serial.print(" ");Serial.print(thermos[nt].peri);Serial.print(" ");
+    subchp(thermos[nt].lowenable,thermos[nt].lowstate,thermos[nt].lowvalue,thermos[nt].lowoffset,thermos[nt].lowdetec);
+    subchp(thermos[nt].highenable,thermos[nt].highstate,thermos[nt].highvalue,thermos[nt].highoffset,thermos[nt].highdetec); 
+    Serial.println();
+  }
+}
+
+void thermosInit()
+{
+  for(uint8_t nt=0;nt<NBTHERMOS;nt++){
+    memset(thermos[nt].nom,0x00,LENTHNAME);
+    thermos[nt].peri=0;
+    thermos[nt].lowenable=0;
+    thermos[nt].highenable=0;
+    thermos[nt].lowstate=0;
+    thermos[nt].highstate=0;
+    thermos[nt].lowvalue=0;
+    thermos[nt].highvalue=0;
+    thermos[nt].lowoffset=0;
+    thermos[nt].highoffset=0;  
+    thermos[nt].lowdetec=0;
+    thermos[nt].highdetec=0;  
+  }
+}
+
+int thermosLoad()
+{
+    Serial.print("Load thermos   ");
+    if(sdOpen(FILE_READ,&fthermos,THERMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    fthermos.seek(0);
+    for(uint16_t i=0;i<thermoslen;i++){*(thermosA+i)=fthermos.read();}              
+    fthermos.close();Serial.println(" OK");
+    return SDOK;
+}
+
+int thermosSave()
+{
+    
+    Serial.print("Save thermos ");
+    SD.remove(THERMOSFNAME);
+    if(sdOpen(FILE_WRITE,&fthermos,THERMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    fthermos.seek(0);
+    for(uint16_t i=0;i<thermoslen;i++){fthermos.write(*(thermosA+i));}             
+    fthermos.close();Serial.println(" OK");
+    return SDOK;
+}
+
 
 /************** détecteurs serveur **************/
 

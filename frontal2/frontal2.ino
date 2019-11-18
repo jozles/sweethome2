@@ -105,7 +105,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass____cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlthername__therperi__thermohtmlperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmldispo_____dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
@@ -211,15 +211,19 @@ uint8_t tablePerToSend[NBPERIF];            // liste des périphériques à mett
 
 struct SwRemote remoteT[MAXREMLI];
 char*  remoteTA=(char*)&remoteT;
-long   remoteTlen=(sizeof(SwRemote))*MAXREMLI;
+unsigned long   remoteTlen=(sizeof(SwRemote))*MAXREMLI;
 
 struct Remote remoteN[NBREMOTE];
 char*  remoteNA=(char*)&remoteN;
-long   remoteNlen=(sizeof(Remote))*NBREMOTE;
+unsigned long   remoteNlen=(sizeof(Remote))*NBREMOTE;
 
 struct Timers timersN[NBTIMERS];
 char*  timersNA=(char*)&timersN;
 unsigned long   timersNlen=(sizeof(Timers))*NBTIMERS;
+
+struct Thermo thermos[NBTHERMOS];
+char*  thermosA=(char*)&thermos;
+unsigned long   thermoslen=(sizeof(Thermo))*NBTHERMOS;
 
 /* DS3231 */
 
@@ -315,22 +319,25 @@ void setup() {                              // =================================
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.println(freeMemory(), DEC);
   
   sdInit();
-
   
-  //periConvert();
   periMaintenance();  
   
-  configInit();  
-  configLoad();*toPassword=TO_PASSWORD;configSave();
+  configInit();  // en attendant un utiliatire de configuration des utilisateurs et ssid....
+  configLoad();*toPassword=TO_PASSWORD;
   memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
   configPrint();
+
+//for(int z=0;z<nbfonct;z++){Serial.print(z);Serial.print(" ");for(int w=0;w<10;w++){Serial.print(fonctions[z*10+w]);}Serial.println();}
     
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
   periTableLoad();
-  remoteLoad();//remInit();
-  timersLoad();//timersInit();
-  memDetLoad();memDetInit();
+  remoteLoad();   //remInit();
+  timersLoad();   //timersInit();
+
+  thermosLoad();
+
+  memDetLoad();   //memDetInit();
 
 /* >>>>>> ethernet start <<<<<< */
 
@@ -1199,16 +1206,40 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        else {remoteN[nb].newonoff=1;}                                                   // (remote_ct) check cb
                        }break;                                                                       
               case 54: Serial.println("remoteHtml()");remoteHtml(&cli);break;                           // remotehtml
-              case 55: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // thername_
+              case 55: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // thername__         *************** dispo
                        memset(thermonames+nb*(LENTHNAME+1),0x00,LENTHNAME+1);memcpy(thermonames+nb*(LENTHNAME+1),valf,nvalf[i+1]-nvalf[i]);
                        }break;
-              case 56: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // therperi_
-                       *(thermoperis+nb)=0;conv_atob(valf,(uint16_t*)(thermoperis+nb));
-                       if(*(thermoperis+nb)>NBPERIF){*(thermoperis+nb)=NBPERIF;}
+              case 56: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // therperi_          *************** dispo
+                       thermos[nb].peri=0;thermos[nb].peri=convStrToNum(valf,&j);
+                       if(thermos[nb].peri>NBPERIF){thermos[nb].peri=NBPERIF;}
                        }break;
-              case 57: Serial.println("thermoHtml()");thermoHtml(&cli);break;                           // thermoHtml
-              case 58: *periPort=0;conv_atob(valf,periPort);break;                                      // (ligne peritable) peri_port_
-              case 59: what=7;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (timers) tim_name__
+              case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // submit depuis thparams__
+                        switch (*(libfonctions+2*i)){
+                          case 'n':memset(&thermos[nb].nom,0x00,LENTHNAME+1);
+                                   memcpy(&thermos[nb].nom,valf,nvalf[i+1]-nvalf[i]);
+                                   break;
+                          case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToNum(valf,&j);
+                                   if((thermos[nb].peri)>NBPERIF){(thermos[nb].peri)=NBPERIF;}
+                                   break;
+                          case 'e':thermos[nb].lowenable=*valf-48;break;                                           // enable low
+                          case 'E':thermos[nb].highenable=*valf-48;break;                                          // enable high
+                          case 's':thermos[nb].lowstate=*valf-48;break;                                            // state  low
+                          case 'S':thermos[nb].highstate=*valf-48;break;                                          // state  high
+                          case 'v':thermos[nb].lowvalue=0;thermos[nb].lowvalue=convStrToNum(valf,&j);break;       // value low
+                          case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=convStrToNum(valf,&j);break;     // value high
+                          case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=convStrToNum(valf,&j);break;     // offset low
+                          case 'O':thermos[nb].highoffset=0;thermos[nb].highoffset=convStrToNum(valf,&j);break;   // offset high
+                          case 'd':thermos[nb].lowdetec=0;thermos[nb].lowdetec=convStrToNum(valf,&j);
+                                   if(thermos[nb].lowdetec>NBDSRV){thermos[nb].lowdetec=NBDSRV;}break;            // det low
+                          case 'D':thermos[nb].highdetec=0;thermos[nb].highdetec=convStrToNum(valf,&j);
+                                   if(thermos[nb].highdetec>NBDSRV){thermos[nb].highdetec=NBDSRV;}break;          // det high                          
+                          default:break;
+                        } 
+                       }break;
+              case 58: thermoShowHtml(&cli);break;                                                      // thermoshow
+              case 59: thermoCfgHtml(&cli);thermosPrint();break;                                       // thermos___ (bouton thermo_cfg)
+              case 60: *periPort=0;conv_atob(valf,periPort);break;                                      // (ligne peritable) peri_port_
+              case 61: what=7;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (timers) tim_name__
                        textfonc(timersN[nb].nom,LENTIMNAM);
                        //Serial.print("efface cb timers ");Serial.print(nb);Serial.print(" ");Serial.print(timersN[nb].nom);
                        timersN[nb].enable=0;                                                            // (timers) effacement cb     
@@ -1218,11 +1249,11 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        timersN[nb].forceonoff=0;
                        timersN[nb].dw=0;
                        }break;
-              case 60: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_det___                                  
+              case 62: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_det___                                  
                        timersN[nb].detec=convStrToNum(valf,&j);
                        if(timersN[nb].detec>NBDSRV){timersN[nb].detec=NBDSRV;}
                        }break;
-              case 61: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_hdf___
+              case 63: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_hdf___
                         switch (*(libfonctions+2*i)){         
                           case 'd':textfonc(timersN[nb].hdeb,6);break;
                           case 'f':textfonc(timersN[nb].hfin,6);break;
@@ -1231,7 +1262,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           default:break;
                         } 
                        }break;
-              case 62: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_chkb__
+              case 64: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_chkb__
                         int nv=*(libfonctions+2*i)-PMFNCHAR;
                         /* e_p_c_f */
                         switch (nv){         
@@ -1246,17 +1277,17 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           timersN[nb].dw|=maskbit[1+2*(7-nv+NBCBTIM)];                          
                         }                         
                        }break;
-              case 63: Serial.println("timersHtml()");timersHtml(&cli);break;                           // timershtml
-              case 64: Serial.println("cfgDetServHtml()");cfgDetServHtml(&cli);break;                   // cfgdetservhtml              
-              case 65: what=11;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // lib detserv
+              case 65: Serial.println("timersHtml()");timersHtml(&cli);break;                           // timershtml
+              case 66: Serial.println("cfgDetServHtml()");cfgDetServHtml(&cli);break;                   // cfgdetservhtml              
+              case 67: what=11;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // lib detserv
                        if(nb>=16){nb-=16;}
                        memset(&libDetServ[nb][0],0x00,LENLIBDETSERV);                                   
                        memcpy(&libDetServ[nb][0],valf,nvalf[i+1]-nvalf[i]);
                        }break;
-              case 66: periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                          // bouton periph periline__ (ligne peritable)
+              case 68: periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                          // bouton periph periline__ (ligne peritable)
                        periLoad(periCur);                                                            
                        periLineHtml(&cli,periCur);break;                                                                                                    
-              case 67: break;                                                                           // done                        
+              case 69: break;                                                                           // done                        
                               
               default:break;
               }
@@ -1307,6 +1338,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                   cliext.stop();
                   periMess=perToSend(tablePerToSend,srvdettime);break;
           case 11:memDetPrint();memDetSave();cfgDetServHtml(&cli);break;  // bouton cfgdetserv puis submit         
+          case 12:thermosSave();thermoCfgHtml(&cli);break;                  // thermos
 
           default:accueilHtml(&cli);break;
         }

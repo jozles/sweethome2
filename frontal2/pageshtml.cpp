@@ -12,50 +12,48 @@
 
 extern Ds3231 ds3231;
 
-extern char*     nomserver;
-extern byte*     mac;              // adresse server
-extern byte*     localIp;
-extern uint16_t* portserver;
-extern char*     userpass;         // mot de passe browser
-extern char*     modpass;          // mot de passe modif
-extern char*     peripass;         // mot de passe périphériques
+extern char*      nomserver;
+extern byte*      mac;              // adresse server
+extern byte*      localIp;
+extern uint16_t*  portserver;
+extern char*      userpass;         // mot de passe browser
+extern char*      modpass;          // mot de passe modif
+extern char*      peripass;         // mot de passe périphériques
 
-extern char*     chexa;
-extern byte      maskbit[];
+extern char*      chexa;
+extern byte       maskbit[];
 
-extern int       periCur;          // Numéro du périphérique courant
+extern int        periCur;          // Numéro du périphérique courant
 
-extern byte*     periMacr;                     // ptr ds buffer : mac address 
-extern char*     periNamer;                    // ptr ds buffer : description périphérique
-extern float*    periLastVal;                  // ptr ds buffer : dernière valeur de température  
-extern float*    periThmin;                    // ptr ds buffer : alarme mini th
-extern float*    periThmax;                    // ptr ds buffer : alarme maxi th
-extern float*    periThOffset;                 // ptr ds buffer : offset correctif sur mesure température
-extern char*     periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
-extern char*     periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
-extern char*     periVers;                     // ptr ds buffer : version logiciel du périphérique
-extern char*     periModel;                    // ptr ds buffer : model du périphérique
+extern byte*      periMacr;                     // ptr ds buffer : mac address 
+extern char*      periNamer;                    // ptr ds buffer : description périphérique
+extern float*     periLastVal;                  // ptr ds buffer : dernière valeur de température  
+extern float*     periThmin;                    // ptr ds buffer : alarme mini th
+extern float*     periThmax;                    // ptr ds buffer : alarme maxi th
+extern float*     periThOffset;                 // ptr ds buffer : offset correctif sur mesure température
+extern char*      periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
+extern char*      periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
+extern char*      periVers;                     // ptr ds buffer : version logiciel du périphérique
+extern char*      periModel;                    // ptr ds buffer : model du périphérique
 
-extern byte      periMacBuf[6]; 
+extern byte       periMacBuf[6]; 
 
-extern uint16_t  perrefr;
-extern File      fhisto;           // fichier histo sd card
-extern long      sdpos;
-extern char      strSD[RECCHAR];
+extern uint16_t   perrefr;
+extern File       fhisto;           // fichier histo sd card
+extern long       sdpos;
+extern char       strSD[RECCHAR];
 
 
-extern char*     ssid;
-extern char*     passssid;
-extern char*     usrnames;
-extern char*     usrpass;
+extern char*      ssid;
+extern char*      passssid;
+extern char*      usrnames;
+extern char*      usrpass;
 extern unsigned long*     usrtime;
-extern char*     thermonames;
-extern int16_t*  thermoperis;
-extern uint16_t* toPassword;
+extern uint16_t*  toPassword;
 
-extern int       usernum;
+extern int        usernum;
 
-extern byte*     periSwVal;                    // ptr ds buffer peri : état/cde des inter 
+extern byte*      periSwVal;                    // ptr ds buffer peri : état/cde des inter 
 
 File fimg;     // fichier image
 
@@ -63,6 +61,8 @@ extern struct SwRemote remoteT[MAXREMLI];
 extern struct Remote remoteN[NBREMOTE];
 
 extern struct Timers timersN[NBTIMERS];
+
+extern struct Thermo thermos[NBTHERMOS];
 
 extern char*     periNamer;                    // ptr ds buffer : description périphérique
 
@@ -177,6 +177,7 @@ void sscb(EthernetClient* cli,bool val,char* nomfonct,int nuf,int etat,uint8_t t
   checkboxTableHtml(cli,(uint8_t*)&val,nf,etat,td,"");
 }
 
+
 void sscfgt(EthernetClient* cli,char* nom,uint8_t nb,void* value,int len,uint8_t type)  // type=0 value ok ; type =1 (char)value modulo len*nt ; type =2 (uint16_t)value modulo nb
 {
   int sizbx=len-3;if(sizbx<=0){sizbx=1;}
@@ -237,7 +238,7 @@ void cfgServerHtml(EthernetClient* cli)
             subcfgtable(cli,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
             subcfgtable(cli,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
           
-            subcfgtable(cli,"THERMO",NBTHERMO,"thername_",thermonames,LENTHNAME,1,"therperi_",thermoperis,-1,"peri",2);
+            //subcfgtable(cli,"THERMO",NBTHERMO,"thername_",thermonames,LENTHNAME,1,"therperi_",thermoperis,-1,"peri",2);
             
             cli->println("</form></body></html>");
 }
@@ -401,7 +402,7 @@ void remoteHtml(EthernetClient* cli)
             cli->println("</table>");
             
             cli->println("<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"><br>");
-            boutFonction(cli,"thermohtml","","températures",0,0,7,0);cli->print(" ");
+            boutFonction(cli,"thermoshow","","températures",0,0,7,0);cli->print(" ");
             boutFonction(cli,"remotehtml","","refresh",0,0,7,0);
             cli->print("</p>");
             
@@ -526,12 +527,9 @@ void intro(EthernetClient* cli)
   cli->println("</head>");
 }
 
-void thermoHtml(EthernetClient* cli)
+void thermoShowHtml(EthernetClient* cli)
 {  
             scalcTh(1);          // update periphériques
-            
-            Serial.println("thermo show");
-            //htmlIntro(nomserver,cli);
             intro(cli);
             
             cli->print("<body>");cli->print(VERSION);cli->print(" ");
@@ -545,15 +543,16 @@ void thermoHtml(EthernetClient* cli)
                 cli->println("<th>peri</th><th></th><th>TH</th><th>min</th><th>max</th><th>last in</th>");
               cli->println("</tr>");
 
-              for(int nuth=0;nuth<NBTHERMO;nuth++){
-                int16_t nuper=*(thermoperis+nuth);
+              for(int nuth=0;nuth<NBTHERMOS;nuth++){
+                int16_t nuper=thermos[nuth].peri;
                 if(nuper!=0){
                   periInitVar();periCur=nuper;periLoad(periCur);
+
                   if(periMacr[0]!=0x00){
                     cli->println("<tr>");
                       //cli->print("<td>");cli->print(nuth+1);cli->print("</td>");
                       cli->print("<td>");cli->print(periCur);cli->println("</td>");
-                      cli->print("<td> <font size=\"7\">");cli->print(thermonames+nuth*(LENTHNAME+1));cli->println("</font></td>");
+                      cli->print("<td> <font size=\"7\">");cli->print(thermos[nuth].nom+nuth*(LENTHNAME+1));cli->println("</font></td>");
                       cli->print("<td> <font size=\"7\">");cli->print(*periLastVal+*periThOffset);cli->println("</font></td>");
                       cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print(*periThmin);cli->println("</div></td>");
                       cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print(*periThmax);cli->println("</div></td>");
@@ -566,11 +565,80 @@ void thermoHtml(EthernetClient* cli)
 
         cli->print("<p align=\"center\">");
         boutFonction(cli,"remotehtml","","remote",0,0,7,0);cli->print(" ");                        
-        boutFonction(cli,"thermohtml","","refresh",0,0,7,0);
+        boutFonction(cli,"thermoshow","","refresh",0,0,7,0);
         cli->print("</p>");
         cli->print("<br><br><br>");for(int d=0;d<NBDSRV;d++){cli->print((char)(((memDetServ>>d)&0x01)+48));cli->print(" ");}
         cli->println("/n</body></html>");
 }
+
+void subthd(EthernetClient* cli,char param,uint8_t nb,void* val,char type)
+{
+        uint8_t* vv;
+        char nf[LENNOM+1];
+        memcpy(nf,"thparams__\0",LENNOM+1);
+        nf[LENNOM-2]=param;
+        nf[LENNOM-1]=nb+PMFNCHAR;                              
+        
+        switch(type){
+          case 'd': numTableHtml(cli,'b',val,nf,2,1,0);break;                           // n° detec/peri              
+          case 'v': numTableHtml(cli,'d',val,nf,4,1,0);break;                           // value/offset
+          case 'e': checkboxTableHtml(cli,(uint8_t*)val,nf,-1,1,"");break;              // enable/state
+          default:break;
+        }
+}
+
+void thermoCfgHtml(EthernetClient* cli)
+{
+  uint8_t val;
+  
+            Serial.println(" config thermos");
+            htmlIntro(nomserver,cli);
+            
+            cli->println("<body>");
+            cli->println(VERSION);cli->println();
+            
+            boutRetour(cli,"retour",0,0);
+            boutFonction(cli,"thermoscfg","","refresh",0,0,1,0);cli->print(" ");
+            
+            char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
+            //detServHtml(cli,&memDetServ,&libDetServ[0][0]);            
+
+/* table thermos */
+
+            cli->println("<table>");
+              cli->println("<tr>");
+                cli->println("<th>   </th><th>      Nom      </th><th> peri </th><th>  </th><th> low<br> en</th><th> low<br> state</th><th> low<br> value</th><th> low<br> offset</th><th> low<br> det</th><th> </th><th> high<br> en</th><th> high<br> state</th><th> high<br> value</th><th> high<br> offset</th><th> high<br> det</th>");
+              cli->println("</tr>");
+
+              for(int nb=0;nb<NBTHERMOS;nb++){
+                cli->println("<tr>");
+                cli->println("<form method=\"get\" >");
+                usrFormHtml(cli,1);
+                
+                cli->print("<td>");cli->print(nb+1);cli->print("</td>");                                      // n° thermo
+                
+                cli->print("<td><input type=\"text\" name=\"thparamsn");cli->print((char)(nb+PMFNCHAR));      // nom
+                  cli->print("\" value=\"");
+                  cli->print(thermos[nb].nom);cli->print("\" size=\"12\" maxlength=\"");cli->print(LENTHNAME-1);cli->println("\" ></td>");
+    
+                subthd(cli,'p',nb,&thermos[nb].peri,'d');                               // peri
+                 periInitVar();periCur=thermos[nb].peri;if(periCur!=0){periLoad(periCur);}cli->print("<td>");cli->print(periNamer);cli->println("</td>");
+                subthd(cli,'e',nb,&thermos[nb].lowenable,'e');                          // low enable
+                subthd(cli,'s',nb,&thermos[nb].lowstate,'e');                           // low state
+                subthd(cli,'v',nb,&thermos[nb].lowvalue,'v');                           // low value
+                subthd(cli,'o',nb,&thermos[nb].lowoffset,'v');                          // low offset
+                subthd(cli,'d',nb,&thermos[nb].lowdetec,'d');                           // low det
+                 uint8_t vv=(uint8_t)thermos[nb].lowdetec;cli->println(" <td>");if(vv!=0){cli->print((char*)(&libDetServ[vv][0]));cli->print(" ");cli->print((char)(((memDetServ>>vv)&0x01)+48));}cli->println(" </td>");
+                
+
+                cli->print("<td>");cli->print(" <input type=\"submit\" value=\"MàJ\"><br>");cli->println("</td>");
+                cli->println("</form>");
+                cli->println("</tr>");
+              }
+            cli->println("</table>");
+            cli->println("</body></html>");
+}
+
 
 void timersHtml(EthernetClient* cli)
 {
@@ -600,7 +668,6 @@ void timersHtml(EthernetClient* cli)
                     cli->println("<form method=\"GET \">");
                       usrFormHtml(cli,1);
                       cli->print("<td>");cli->print(nt+1);cli->println("</td>");
-                      //Serial.print(nt);Serial.print(" ");Serial.print(timersN[nt].nom);Serial.print(" ");Serial.println(timersN[nt].detec);
                       
                       sscfgt(cli,"tim_name_",nt,timersN[nt].nom,LENTIMNAM,0);
                       sscfgt(cli,"tim_det__",nt,&timersN[nt].detec,2,3);                                            

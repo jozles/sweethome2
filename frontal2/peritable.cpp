@@ -284,7 +284,8 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           cli->print("<br>");
           boutFonction(cli,"remote____","","remote_cfg",0,0,0,0);
           boutFonction(cli,"remotehtml","","remotehtml",0,0,0,0);
-          boutFonction(cli,"thermohtml","","thermohtml",0,0,0,0);
+          boutFonction(cli,"thermoscfg","","thermo_cfg",0,0,0,0);
+          boutFonction(cli,"thermoshow","","thermoshow",0,0,0,0);
           boutFonction(cli,"timershtml","","timershtml",0,0,0,0);
           boutFonction(cli,"dsrvhtml__","","detsrvhtml",0,0,0,0);                 
         

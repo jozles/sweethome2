@@ -138,9 +138,6 @@
 #define PERINAMLEN 16+1                      // longueur nom perif
 #define PERIRECLEN 274 // V1.4               // longueur record périph
 
-#define NBTHERMO  NBPERIF
-#define LENTHNAME 16
-
 #define CONFIGRECLEN 1525                    // longueur record config 
 
 #define TO_PASSWORD 600                      // sec (pour initialiser toPassword à la mise sous tension
@@ -196,6 +193,26 @@ struct Timers
   byte    dw;            // jours semaine xyyyyyyyy ; x si tout
   char    dhdebcycle[16];
   char    dhfincycle[16];
+};
+
+#define NBTHERMOS  NBPERIF
+#define LENTHNAME 16
+#define THERMOSFNAME "THERMOS_"
+
+struct Thermo
+{
+  char      nom[LENTHNAME+1];   // nom
+  uint8_t   peri;               // periph
+  bool      lowenable;          // low level enable
+  bool      highenable;         // high level enable
+  bool      lowstate;           // low level enable
+  bool      highstate;          // high level enable
+  uint16_t  lowvalue;           // low level value   
+  uint16_t  highvalue;          // high level value
+  uint16_t  lowoffset;          // low level offset   
+  uint16_t  highoffset;         // high level offset  
+  uint16_t  lowdetec;           // low level value   
+  uint16_t  highdetec;          // high level value  
 };
 
 #define MEMDETFNAME "MEM_DETS"

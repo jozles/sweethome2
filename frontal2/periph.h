@@ -38,6 +38,11 @@ void  timersInit();
 int   timersLoad();
 int   timersSave();
 
+void  thermosPrint();
+void  thermosInit();
+int   thermosLoad();
+int   thermosSave();
+
 void  memDetPrint();
 void  memDetInit();
 int   memDetLoad();
