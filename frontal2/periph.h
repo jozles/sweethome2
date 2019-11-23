@@ -8,6 +8,8 @@ void ledblink(uint8_t nbre);
 #define PERISAVESD    VRAI                     // copie du cache sur le disque lors de periSave
 #define PERISAVELOCAL FAUX                     // pas de copie du cache sur le disque lors de periSave
 
+void  sdCardGen();
+
 int   periLoad(uint16_t num);
 int   periSave(uint16_t num,bool sd);
 int   periRemove(uint16_t num);

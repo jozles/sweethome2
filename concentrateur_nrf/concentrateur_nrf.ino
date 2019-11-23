@@ -1,8 +1,8 @@
-#include "nRF24L01.h"
-#include "nrf24l01p.h"
-#include "nrf24l01p_const.h"
+#include <nRF24L01.h>
+#include <nrf24l01p.h>
+#include <nrf24l01p_const.h>
 
-#if  NRF_MODE == 'P'
+#if  NRF_MODE == 'C'
 #include <avr/sleep.h>
 #include <avr/power.h>
 
@@ -256,12 +256,11 @@ void loop() {
       uint8_t numP=nrfp.cRegister(message);
       if(numP<(NBPERIF)){
         Serial.print(" registred on addr (");Serial.print(numP);Serial.print(")");nrfp.printAddr(pAd,'n');}
-      else if(numP==(NBPERIF+2)){Serial.print(" MAX_RT ... deleted");}
-      else {Serial.print(" full");}
+      else if(numP==(NBPERIF+2)){Serial.println(" MAX_RT ... deleted");}
+      else {Serial.println(" full");}
     }
         
     else {}                   // pas demande d'inscription... à traiter
-    Serial.println();
   }
 
   else if(numP!=AV_EMPTY){

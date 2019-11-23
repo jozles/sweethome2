@@ -138,7 +138,7 @@
 #define PERINAMLEN 16+1                      // longueur nom perif
 #define PERIRECLEN 274 // V1.4               // longueur record périph
 
-#define CONFIGRECLEN 1525                    // longueur record config 
+#define CONFIGRECLEN 865                     // longueur record config 
 
 #define TO_PASSWORD 600                      // sec (pour initialiser toPassword à la mise sous tension
 

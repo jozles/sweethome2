@@ -71,18 +71,6 @@ char configRec[CONFIGRECLEN];
   char* usrpass;              // userpass
   unsigned long* usrtime;     // user cx time
   unsigned long* usrpretime;  // user cx time précédent
-  char* thermonames;          // noms sondes thermos
-  int16_t* thermoperis;       // num périphériques thermo
-  bool* thermolowenable;      // low level temp trigger enable
-  bool* thermohighenable;     // high level temp trigger enable
-  bool* thermolowstate;       // low level temp trigger state
-  bool* thermohighstate;      // high level temp trigger state
-  int16_t* thermolowvalue;    // low level temp value for trigger
-  int16_t* thermohighvalue;   // high level temp value for trigger
-  int16_t* thermolowoffset;   // low level offset to trigger
-  int16_t* thermohighoffset;  // high level offset to trigger  
-  uint8_t* thermolowdets;     // low level dets to set/clear
-  uint8_t* thermohighdets;    // high level dets to set/clear
   uint16_t* toPassword;       // Délai validité password en sec !
 
   byte* configBegOfRecord;
@@ -319,6 +307,7 @@ void setup() {                              // =================================
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.println(freeMemory(), DEC);
   
   sdInit();
+  //sdCardGen();
   
   periMaintenance();  
   
@@ -1206,14 +1195,9 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        else {remoteN[nb].newonoff=1;}                                                   // (remote_ct) check cb
                        }break;                                                                       
               case 54: Serial.println("remoteHtml()");remoteHtml(&cli);break;                           // remotehtml
-              case 55: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // thername__         *************** dispo
-                       memset(thermonames+nb*(LENTHNAME+1),0x00,LENTHNAME+1);memcpy(thermonames+nb*(LENTHNAME+1),valf,nvalf[i+1]-nvalf[i]);
-                       }break;
-              case 56: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // therperi_          *************** dispo
-                       thermos[nb].peri=0;thermos[nb].peri=convStrToNum(valf,&j);
-                       if(thermos[nb].peri>NBPERIF){thermos[nb].peri=NBPERIF;}
-                       }break;
-              case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // submit depuis thparams__
+              case 55: break;                                                                           //                            *************** dispo
+              case 56: break;                                                                           //                            *************** dispo
+              case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis thparams__
                         switch (*(libfonctions+2*i)){
                           case 'n':memset(&thermos[nb].nom,0x00,LENTHNAME+1);
                                    memcpy(&thermos[nb].nom,valf,nvalf[i+1]-nvalf[i]);
