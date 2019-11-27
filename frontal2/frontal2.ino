@@ -121,9 +121,9 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
-  unsigned long timerstime=0;          // last millis pour timers
+  unsigned long timerstime=0;          // last millis pour timers & thermos
 #define PTIMERS 1;                     // secondes
-  uint32_t  pertimers=PTIMERS;         // période ctle timers
+  uint32_t  pertimers=PTIMERS;         // période ctle timers & thermos
   
   int   stime=0;int mtime=0;int htime=0;
   unsigned long  curdate=0;
@@ -393,7 +393,6 @@ void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC
 void loop()                         
 {
 
-
             tcpPeriServer();     // *** périphérique TCP ou maintenance
 
             udpPeriServer();     // *** périphérique UDP via NRF
@@ -402,15 +401,25 @@ void loop()
 
             ledblink(0);  
 
-            scantemp();
+            scanTemp();
+
+    if((millis()-timerstime)>pertimers*1000){
+       
+            timerstime=millis();
+            memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif            
+            
+            scanThermos();
 
             scanTimers();
+
+            perToSend(tablePerToSend,timerstime);     // mise à jour périphériques de tablePerToSend
+    }
 }
 
 
 /* ==================================== tools =================================== */
 
-void scantemp()
+void scanTemp()
 {
     if((millis()-temptime)>pertemp*1000){   // *** maj température  
       temptime=millis();
@@ -424,24 +433,62 @@ void scantemp()
     }       
 }
 
-void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* onoff)      // recherche des périphériques ayant une input sur le détecteur externe 'detec'
-{                                                                      // et màj de tablePerToSend
+void scanThermos()                                                        // positionnement détecteurs associés aux thermos
+{                                                                         // maj tablePerToSend
+  uint8_t th;
+  bool dval;
+    
+    /* raz detecteurs */
+    for(th=0;th<NBTHERMOS;th++){
+      memDetServ &= ~mDSmaskbit[thermos[th].lowdetec];
+      memDetServ &= ~mDSmaskbit[thermos[th].highdetec];
+    }
+    /* set detecteurs */
+    // déclenchement au seuil, retour sous/sur offset
+    for(th=0;th<NBTHERMOS;th++){
+      uint8_t per=(uint8_t)thermos[th].peri;
+      periLoad(per);
+      if( thermos[th].lowenable && !thermos[th].lowstate && *periLastVal<thermos[th].lowvalue){
+        memDetServ |= mDSmaskbit[thermos[th].lowdetec];
+        thermos[th].lowstate=1;
+        tablePerToSend[per-1]++;
+      }
+      else if( thermos[th].lowenable && thermos[th].lowstate && *periLastVal>(thermos[th].lowvalue+thermos[th].lowoffset)){
+        memDetServ &= ~mDSmaskbit[thermos[th].lowdetec];
+        thermos[th].lowstate=0;
+        tablePerToSend[per-1]++;
+      }
+      if( thermos[th].highenable && !thermos[th].highstate && *periLastVal>thermos[th].highvalue){
+        memDetServ |= mDSmaskbit[thermos[th].highdetec];
+        thermos[th].highstate=1;
+        tablePerToSend[per-1]++;
+      }
+      else if(thermos[th].highenable && thermos[th].highstate && *periLastVal<(thermos[th].highvalue-thermos[th].highoffset)){
+        memDetServ &= ~mDSmaskbit[thermos[th].highdetec];
+        thermos[th].highstate=0;
+        tablePerToSend[per-1]++;
+      }
+    }
+}
+
+void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* onoff)     // recherche des périphériques ayant une input sur le détecteur externe 'detec'
+{                                                                     // et màj de tablePerToSend
   uint16_t offs;
   uint8_t eni,ninp;
-  byte model=(detec<<PERINPNVLS_PB)|DETYEXT;                           // valeur pour N°detecteur type externe
+  byte model=(detec<<PERINPNVLS_PB)|DETYEXT;                          // valeur pour N°detecteur type externe
   
   Serial.print(" poolperif (detec ");Serial.print(detec);Serial.print(" -> ");Serial.print(onoff);Serial.println(")");
-  for(uint8_t np=1;np<=NBPERIF;np++){                                  // boucle périphériques
+  for(uint8_t np=1;np<=NBPERIF;np++){                                 // boucle périphériques
     periLoad(np);
     if(*periSwNb!=0){
 
-        for(ninp=0;ninp<NBPERINPUT;ninp++){                            // boucle inputs
+        for(ninp=0;ninp<NBPERINPUT;ninp++){                           // boucle inputs
           
           offs=ninp*PERINPLEN;
-          eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);     // enable          
-          if(eni!=0 && model==*(byte*)(periInput+offs)){               // trouvé usage du détecteur dans periInput 
+          eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);    // enable          
+          if(eni!=0 && model==*(byte*)(periInput+offs)){              // trouvé usage du détecteur dans periInput 
             Serial.print("  per=");Serial.print(np);Serial.print(" ninp=");Serial.print(ninp);
-            tablePerToSend[np-1]++;                                    // (periSend) periReq à faire sur ce périf            
+            tablePerToSend[np-1]++;                                   // (periSend) periReq à faire sur ce périf            
             //for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);Serial.print(" ");}Serial.println();
           } // enable et model ok
         }   // input suivant
@@ -450,14 +497,15 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* onoff)      // recher
   Serial.println();
 }
 
-int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)
+int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)       // maj des périphériques repérés dans la table spécifiée 
 {
       periMess=MESSOK;
       if((millis()-begTime)>1){Serial.print("  durée scan =");Serial.print(millis()-begTime);}
       for(uint16_t np=1;np<=NBPERIF;np++){
         if(tablePerToSend[np-1]!=0){periMess=periReq(&cliext,np,"set_______");} 
       }
-      if((millis()-begTime)>1){Serial.print("  durée scan+send =");Serial.print(millis()-begTime);
+      if((millis()-begTime)>1){
+        Serial.print("  durée scan+send =");Serial.print(millis()-begTime);
         Serial.print(" ");
         for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);Serial.print(" ");}Serial.println();}
       memset(tablePerToSend,0x00,NBPERIF);
@@ -467,11 +515,8 @@ int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)
 void scanTimers()                                             //   recherche timer ayant changé d'état 
 {                                                             //      si (en.perm.dh.js) (ON) et état OFF -> état ON, det ON, poolperif
                                                               //      sinon              (OFF) et état ON -> état OFF, det OFF, poolperif
-                                                              //      à la fin perToSend
-    if((millis()-timerstime)>pertimers*1000){
+                                                              //      màj tablePerToSend
 
-      memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif
-      timerstime=millis();
       char now[LNOW];
       ds3231.alphaNow(now);
       
@@ -500,14 +545,12 @@ void scanTimers()                                             //   recherche tim
             poolperif(tablePerToSend,timersN[nt].detec,"off");} // recherche periphérique et mise à jour tablePerToSend
         }
       }
-      perToSend(tablePerToSend,timerstime);                     // mise à jour périphériques de tablePerToSend
-    }
 }
 
 
 void periRemoteUpdate()                        //   recherche remote ayant changé d'état (onoff!=newonoff)
                                                //     polling table des détecteurs pour trouver les détecteurs concernés
-                                               //       màj de memDetServ et poolperif() pour trouver les périf concernés et charger tablePerToSend
+                                               //     màj de memDetServ et poolperif() pour trouver les périf concernés et charger tablePerToSend
 {  
   remotetime=millis();
   memset(tablePerToSend,0x00,NBPERIF);         // périphériques !=0 si (periSend) periReq à faire via pertoSend())
@@ -529,7 +572,7 @@ void periRemoteUpdate()                        //   recherche remote ayant chang
           if(remoteN[nbr].onoff==1){memDetServ |= msk;}                             // set bit (1)
           else {memDetServ &= ~msk;}                                                // clr bit (0)
           //Serial.print(" memDetServ=");dumpfield((char*)&memDetServ,4);Serial.print(" mem=");dumpfield((char*)&mem,4);Serial.println();
-          if((memDetServ & msk) != mem){                                              // detec chge => poolperif
+          if((memDetServ & msk) != mem){                                            // detec chge => poolperif
             poolperif(tablePerToSend,remoteT[nbd].detec," ");}                      // si le détecteur est utilisé dans un périf, ajout du périf dans tablePerRoSend
         }
       }
@@ -545,14 +588,15 @@ void periDetecUpdate()                              // détecteurs serveur - upd
   uint8_t of=3;
   srvdettime=millis();                                        
   memset(tablePerToSend,0x00,NBPERIF);         // périphériques !=0 => (periSend) periReq à faire via pertoSend())
-Serial.print("bakDetServ=");Serial.print(bakDetServ,HEX);Serial.print(" memDetServ=");Serial.print(memDetServ,HEX);Serial.println();  
+  //Serial.print("bakDetServ=");Serial.print(bakDetServ,HEX);Serial.print(" memDetServ=");Serial.print(memDetServ,HEX);Serial.println();  
+  
   for(uint8_t ds=0;ds<NBDSRV;ds++){                                                
     if((memDetServ&mDSmaskbit[ds]) != (bakDetServ&mDSmaskbit[ds])){   // si le détecteur ds a changé
       of=3;if(memDetServ&mDSmaskbit[ds]!=0){of=0;}
       poolperif(tablePerToSend,ds,&onoff[of]);}}                      // et si utilisé dans un périf, ajout du périf dans tablePerRoSend
 }
 
-void checkdate(uint8_t num)
+void checkdate(uint8_t num)                                           // détection des dates invalides (en général défaut de format des messages)
 {
   if(periLastDateIn[0]==0x66){Serial.print("===>>> date ");Serial.print(num);Serial.print(" HS ");
     char dateascii[12];
@@ -793,6 +837,7 @@ void xcrypt()
     AES_CTR_xcrypt_buffer(&ctx, chaine, 16);
 }
 #endif // _AVEC_AES
+
 
 void test2Switchs()
 {
