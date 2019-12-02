@@ -27,10 +27,10 @@ extern int        periCur;          // Numéro du périphérique courant
 
 extern byte*      periMacr;                     // ptr ds buffer : mac address 
 extern char*      periNamer;                    // ptr ds buffer : description périphérique
-extern float*     periLastVal;                  // ptr ds buffer : dernière valeur de température  
-extern float*     periThmin;                    // ptr ds buffer : alarme mini th
-extern float*     periThmax;                    // ptr ds buffer : alarme maxi th
-extern float*     periThOffset;                 // ptr ds buffer : offset correctif sur mesure température
+extern int16_t*   periLastVal_;                  // ptr ds buffer : dernière valeur de température  
+extern int16_t*   periThmin_;                    // ptr ds buffer : alarme mini th
+extern int16_t*   periThmax_;                    // ptr ds buffer : alarme maxi th
+extern int16_t*   periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
 extern char*      periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
 extern char*      periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
 extern char*      periVers;                     // ptr ds buffer : version logiciel du périphérique
@@ -411,6 +411,7 @@ void remoteHtml(EthernetClient* cli)
 
 int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd derniers jours
 {
+  
 /* --- calcul date début --- */
   
   int   ldate=15;
@@ -425,7 +426,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   char     dhasc[ldate+1];
   sprintf(dhasc,"%.8lu",amj);strcat(dhasc," ");
   sprintf(dhasc+9,"%.6lu",hms);dhasc[15]='\0';            // dhasc date/heure recherchée
-  Serial.print("dhasc=");Serial.println(dhasc);
+//  Serial.print("dhasc=");Serial.println(dhasc);
   
   if(sdOpen(FILE_READ,&fhisto,"fdhisto.txt")==SDKO){return SDKO;}
   
@@ -471,15 +472,21 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
     Serial.print("fdatasave>99!! ");Serial.print("fdatasave=");Serial.print(fdatasave);Serial.print(" strfds=");Serial.println(strfds);ledblink(BCODESYSERR);
   }
   char* pc;
-  float th,np;
+  //float th,np;
+  int16_t th_;
+  uint8_t np_;
   int lnp=0,nbli=0,nbth=0;
 
-  for(int pp=1;pp<=NBPERIF;pp++){periLoad(pp);if(periMacr[0]!=0x00){*periThmin=99;*periThmax=-99;periSave(pp,PERISAVELOCAL);}}
+  for(int pp=1;pp<=NBPERIF;pp++){periLoad(pp);*periThmin_=9900;*periThmax_=-9900;
+    Serial.print(pp);Serial.print(" ");Serial.print(*periThmin_);Serial.print(" ");Serial.println(*periThmax_);
+    periSave(pp,PERISAVELOCAL);
+  }
                                                                              
                                                                          // acquisition
   fhisto.seek(ptr-ldate);                                                // sur début enregistrement
   fini=FAUX;
   while(ptr<pos){
+
     pt=0;
     inch1='\0';      
     while(ptr<pos && inch1!='\n'){inch1=fhisto.read();buf[pt]=inch1;pt++;ptr++;}   // get record
@@ -487,15 +494,17 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
     nbli++;
     pc=strchr(buf,';');
     if(memcmp(buf+ldate+1,"ip",2)==0 && memcmp(pc+1,strfds,2)==0){       // datasave (après ';' soit '\n' soit'<' soit num fonction)
-      np=convStrToNum(pc+SDPOSNUMPER,&lnp);                              // num périphérique
-      th=convStrToNum(pc+SDPOSTEMP,&lnp);                                // temp périphérique
-      periLoad((int)np);
-//delay(20);Serial.print(buf);Serial.print(" per=");Serial.print(np);Serial.print(" th=");Serial.print(th);Serial.print(" - ");periPrint(np);
+      np_=(uint8_t)convStrToInt(pc+SDPOSNUMPER,&lnp);                              // num périphérique
+      th_=(int16_t)(convStrToNum(pc+SDPOSTEMP,&lnp)*100);                          // temp périphérique
+      periLoad(np_);
+    Serial.print(np_);Serial.print(" ");Serial.print(*periThmin_);Serial.print(" ");Serial.println(*periThmax_);
       packMac(periMacBuf,pc+SDPOSMAC);                       
-      if(compMac(periMacBuf,periMacr)){                                  // contrôle mac
-        if(*periThmin>th){*periThmin=th;periSave((int)np,PERISAVELOCAL);nbth++;}
-        if(*periThmax<th){*periThmax=th;periSave((int)np,PERISAVELOCAL);nbth++;} 
-      }      
+      if(compMac(periMacBuf,periMacr) && th_<9900 && th_>-9900){                                  // contrôle mac
+        Serial.println(buf);Serial.print(" per=");Serial.print(np_);Serial.print(" th=");Serial.print(th_);Serial.print(" thmin=");Serial.print(*periThmin_);Serial.print(" thmax=");Serial.print(*periThmax_);Serial.print(" - ");
+        if(*periThmin_>th_){*periThmin_=(int16_t)th_;periSave(np_,PERISAVELOCAL);nbth++;Serial.print(" maj ");}
+        if(*periThmax_<th_){*periThmax_=(int16_t)th_;periSave(np_,PERISAVELOCAL);nbth++;Serial.print(" maj ");} 
+        Serial.println();
+      }
     }
   }
   for(uint16_t pp=1;pp<=NBPERIF;pp++){periLoad(pp);if(periMacr[0]!=0x00){periSave(pp,PERISAVESD);}}   // écriture SD
@@ -553,9 +562,9 @@ void thermoShowHtml(EthernetClient* cli)
                       //cli->print("<td>");cli->print(nuth+1);cli->print("</td>");
                       cli->print("<td>");cli->print(periCur);cli->println("</td>");
                       cli->print("<td> <font size=\"7\">");cli->print(thermos[nuth].nom+nuth*(LENTHNAME+1));cli->println("</font></td>");
-                      cli->print("<td> <font size=\"7\">");cli->print(*periLastVal+*periThOffset);cli->println("</font></td>");
-                      cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print(*periThmin);cli->println("</div></td>");
-                      cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print(*periThmax);cli->println("</div></td>");
+                      cli->print("<td> <font size=\"7\">");cli->print((float)(*periLastVal_+*periThOffset_)/100);cli->println("</font></td>");
+                      cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print((float)*periThmin_/100);cli->println("</div></td>");
+                      cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print((float)*periThmax_/100);cli->println("</div></td>");
                       cli->print("<td>");printPeriDate(cli,periLastDateIn);cli->println("</td>");                      
                     cli->println("</tr>");
                   }
@@ -581,7 +590,7 @@ void subthd(EthernetClient* cli,char param,uint8_t nb,void* val,char type)
         
         switch(type){
           case 'd': numTableHtml(cli,'b',val,nf,2,1,0);break;                           // n° detec/peri              
-          case 'v': numTableHtml(cli,'d',val,nf,4,1,0);break;                           // value/offset
+          case 'v': numTableHtml(cli,'I',val,nf,4,1,0);break;                           // value/offset
           case 'e': checkboxTableHtml(cli,(uint8_t*)val,nf,-1,1,"");break;              // enable/state
           default:break;
         }
@@ -622,7 +631,8 @@ void thermoCfgHtml(EthernetClient* cli)
                   cli->print(thermos[nb].nom);cli->print("\" size=\"12\" maxlength=\"");cli->print(LENTHNAME-1);cli->println("\" ></td>");
     
                 subthd(cli,'p',nb,&thermos[nb].peri,'d');                               // peri
-                 periInitVar();periCur=thermos[nb].peri;if(periCur!=0){periLoad(periCur);}cli->print("<td>");cli->print(periNamer);cli->println("</td>");
+                 periInitVar();periCur=thermos[nb].peri;if(periCur!=0){periLoad(periCur);}cli->print("<td>");cli->print(periNamer);
+                 cli->println("|");cli->print((float)*periLastVal_/100);cli->println("</td>");
                 subthd(cli,'e',nb,&thermos[nb].lowenable,'e');                          // low enable
                 subthd(cli,'s',nb,&thermos[nb].lowstate,'e');                           // low state
                 subthd(cli,'v',nb,&thermos[nb].lowvalue,'v');                           // low value

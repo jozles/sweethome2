@@ -49,9 +49,9 @@ extern int       periCur;                      // Numéro du périphérique cour
 extern uint16_t* periNum;                      // ptr ds buffer : Numéro du périphérique courant
 extern int32_t*  periPerRefr;                  // ptr ds buffer : période datasave minimale
 extern uint16_t* periPerTemp;                  // ptr ds buffer : période de lecture tempèrature
-extern float*    periPitch;                    // ptr ds buffer : variation minimale de température pour datasave
-extern float*    periLastVal;                  // ptr ds buffer : dernière valeur de température  
-extern float*    periAlim;                     // ptr ds buffer : dernière tension d'alimentation
+extern int16_t*  periPitch_;                    // ptr ds buffer : variation minimale de température pour datasave
+extern int16_t*  periLastVal_;                  // ptr ds buffer : dernière valeur de température  
+extern int16_t*  periAlim_;                     // ptr ds buffer : dernière tension d'alimentation
 extern char*     periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
 extern char*     periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
 extern char*     periLastDateErr;              // ptr ds buffer : date/heure de derniere anomalie com
@@ -75,11 +75,11 @@ extern uint8_t*  periSondeNb;                  // ptr ds buffer : nbre sonde
 extern boolean*  periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
 extern byte*     periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
-extern float*    periThOffset;                 // ptr ds buffer : offset correctif sur mesure température
-extern float*    periThmin;                    // ptr ds buffer : alarme mini th
-extern float*    periThmax;                    // ptr ds buffer : alarme maxi th
-extern float*    periVmin;                     // ptr ds buffer : alarme mini volts
-extern float*    periVmax;                     // ptr ds buffer : alarme maxi volts
+extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
+extern int16_t*  periThmin_;                    // ptr ds buffer : mini last 24h
+extern int16_t*  periThmax_;                    // ptr ds buffer : maxi last 24h
+extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini volts
+extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
 extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*     periProtocol;                   // ptr ds buffer : protocole ('T'CP/'U'DP)
       
@@ -471,12 +471,12 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=sizeof(uint16_t);
   periPerRefr=(int32_t*)temp;
   temp +=sizeof(int32_t);
-  periPitch=(float*)temp;
-  temp +=sizeof(float);
-  periLastVal=(float*)temp;
-  temp +=sizeof(float);
-  periAlim=(float*)temp;
-  temp +=sizeof(float);
+  periPitch_=(int16_t*)temp;
+  temp +=sizeof(int16_t);
+  periLastVal_=(int16_t*)temp;
+  temp +=sizeof(int16_t);
+  periAlim_=(int16_t*)temp;
+  temp +=sizeof(int16_t);
   periLastDateIn=(char*)temp;
   temp +=LENPERIDATE;
   periLastDateOut=(char*)temp;
@@ -521,16 +521,16 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=sizeof(byte);
   periDetVal=(byte*)temp;
   temp +=sizeof(byte);
-  periThOffset=(float*)temp;
-  temp +=sizeof(float);
-  periThmin=(float*)temp;
-  temp +=sizeof(float);
-  periThmax=(float*)temp;
-  temp +=sizeof(float);  
-  periVmin=(float*)temp;
-  temp +=sizeof(float);  
-  periVmax=(float*)temp;
-  temp +=sizeof(float);  
+  periThOffset_=(int16_t*)temp;
+  temp +=sizeof(int16_t); 
+  periThmin_=(int16_t*)temp;
+  temp +=sizeof(int16_t);
+  periThmax_=(int16_t*)temp;
+  temp +=sizeof(int16_t);  
+  periVmin_=(int16_t*)temp;
+  temp +=sizeof(int16_t);  
+  periVmax_=(int16_t*)temp;
+  temp +=sizeof(int16_t);  
   periDetServEn=(byte*)temp;
   temp +=1*sizeof(byte);
   periPerTemp=(uint16_t*)temp;
@@ -567,9 +567,9 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   *periNum=0;
   *periPerRefr=MAXSERVACCESS;
   *periPerTemp=TEMPERPREF;
-  *periPitch=0;
-  *periLastVal=0;
-  *periAlim=0;
+  *periPitch_=0;
+  *periLastVal_=0;
+  *periAlim_=0;
   memset(periLastDateIn,0x00,LENPERIDATE);
   memset(periLastDateOut,0x00,LENPERIDATE);
   memset(periLastDateErr,0x00,LENPERIDATE);
@@ -586,11 +586,11 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   if(*periProg==FAUX){*periPort=0;}
   *periDetNb=0;
   *periDetVal=0;
-  *periThOffset=0;
-  *periThmin=-99;
-  *periThmax=+125;
-  *periVmin=3.25;
-  *periVmax=3.50;
+  *periThOffset_=0;
+  *periThmin_=-9900;
+  *periThmax_=9900;
+  *periVmin_=325;
+  *periVmax_=350;
    memset(periDetServEn,0x00,2);
   *periProtocol=0; 
    periInitVar0();
@@ -807,9 +807,9 @@ while(1){}
     Serial.println("terminé");
     while(1){}
 */
-/*  création des fichiers de périphériques 
+/*  création des fichiers de périphériques  
     periInit();
-    for(i=11;i<=NBPERIF;i++){
+    for(int i=1;i<=NBPERIF;i++){
       periRemove(i);
       periCacheStatus[i]=0x01;
       periCur=i;periSave(i,1);
@@ -1044,7 +1044,9 @@ int memDetLoad()
     Serial.print("Load detServ  ");
     if(sdOpen(FILE_READ,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     fmemdet.seek(0);
-    for(uint8_t i=0;i<MDSLEN;i++){*(&memDetServ+i)=fmemdet.read();}
+    
+    for(uint8_t i=0;i<MDSLEN;i++){*(((byte*)&memDetServ)+i)=fmemdet.read();}
+dumpstr((char*)periThmin_,16);    
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){libDetServ[i][j]=fmemdet.read();}
     }
@@ -1057,7 +1059,7 @@ int memDetSave()
     Serial.print("Save detServ ");
     if(sdOpen(FILE_WRITE,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     fmemdet.seek(0);
-    for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*(&memDetServ+i));}
+    for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*((&memDetServ)+i));}
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){fmemdet.write(libDetServ[i][j]);}
     }
@@ -1119,4 +1121,4 @@ void sdCardGen()
   thermosInit();
   thermosSave();
 
-}  
+}

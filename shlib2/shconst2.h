@@ -13,13 +13,13 @@
 ///* 1er serveur
 #define PORTPERISERVER  1790    // port du serveur pour périphériques et maintenance (RUN 1789)
 #define PORTPILOTSERVER 1792    // port du serveur de remote
-#define HOSTIPADDR {192,168,0,35}
+#define HOSTIPADDR "192.168.0.35"
 //*/
 ///* 2nd serveur
 #define PORTPERISERVER2  1786    // port du serveur pour périphériques et maintenance
 #define PORTPILOTSERVER2 1788    // port du serveur de remote
 #define PORTUDPSERVER2   8886
-#define HOSTIPADDR2 {192,168,0,36}
+#define HOSTIPADDR2 "192.168.0.36"
 //*/
 ///* Concentrateur NRF
 #define PORTTCPCONC      1784
@@ -44,6 +44,8 @@
 #define PROTOCSTR "   \0TCP\0UDP\0"
 #define LENPROSTR 4
 #define NBPROTOC  2
+
+#define UNIXDATELEN 4                   // uint32_t
 
     // messages
 

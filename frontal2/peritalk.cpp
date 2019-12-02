@@ -16,31 +16,6 @@ extern Ds3231 ds3231;
 
 extern EthernetUDP Udp;
 
-/* >>>>>>>> fichier config <<<<<<< 
-
-extern char configRec[CONFIGRECLEN];
-  
-extern byte* mac;
-extern byte* localIp;
-extern int*  portserver;
-extern char* nomserver;
-extern char* userpass;
-extern char* modpass;
-extern char* peripass;
-extern char* ssid;   
-extern char* passssid;
-extern int*  nbssid;
-extern char* usrnames;  
-extern char* usrpass;     
-extern unsigned long* usrtime;
-extern unsigned long* usrpretime;
-extern char* thermonames;
-extern int16_t* thermoperis;
-extern uint16_t* toPassword;
-extern byte* configBegOfRecord;
-extern byte* configEndOfRecord;
-
-*/
 
 extern char ab;
 
@@ -55,9 +30,9 @@ extern int       periCur;                      // Numéro du périphérique cour
 extern uint16_t* periNum;                      // ptr ds buffer : Numéro du périphérique courant
 extern int32_t*  periPerRefr;                  // ptr ds buffer : période datasave minimale
 extern uint16_t* periPerTemp;                  // ptr ds buffer : période de lecture tempèrature
-extern float*    periPitch;                    // ptr ds buffer : variation minimale de température pour datasave
-extern float*    periLastVal;                  // ptr ds buffer : dernière valeur de température  
-extern float*    periAlim;                     // ptr ds buffer : dernière tension d'alimentation
+extern int16_t*  periPitch_;                    // ptr ds buffer : variation minimale de température pour datasave
+extern int16_t*  periLastVal_;                  // ptr ds buffer : dernière valeur de température  
+extern int16_t*  periAlim_;                     // ptr ds buffer : dernière tension d'alimentation
 extern char*     periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
 extern char*     periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
 extern char*     periLastDateErr;              // ptr ds buffer : date/heure de derniere anomalie com
@@ -81,11 +56,11 @@ extern uint8_t*  periSondeNb;                  // ptr ds buffer : nbre sonde
 extern boolean*  periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
 extern byte*     periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
-extern float*    periThOffset;                 // ptr ds buffer : offset correctif sur mesure température
-extern float*    periThmin;                    // ptr ds buffer : alarme mini th
-extern float*    periThmax;                    // ptr ds buffer : alarme maxi th
-extern float*    periVmin;                     // ptr ds buffer : alarme mini volts
-extern float*    periVmax;                     // ptr ds buffer : alarme maxi volts
+extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
+extern int16_t*  periThmin_;                    // ptr ds buffer : alarme mini th
+extern int16_t*  periThmax_;                    // ptr ds buffer : alarme maxi th
+extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini volts
+extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
 extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*     periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
       
@@ -136,7 +111,7 @@ void assySet(char* message,int periCur,char* diag,char* date14)
                 sprintf((message+strlen(message)),"%05d",v2);       // periPerTemp
                 strcat(message,"_");
 
-                v2=*periPitch*100;
+                v2=*periPitch_;
                 sprintf((message+strlen(message)),"%04d",v2);       // periPitch
                 strcat(message,"_");
 
@@ -151,12 +126,12 @@ if(*periProg!=0){
 
                 v1+=MAXSW+1;
 
-                for(int k=0;k<NBPULSE*2;k++){                       // 4*2 compteurs (8*(8+1)bytes)
+                for(int k=0;k<NBPULSE*2;k++){                      // 4*2 compteurs (8*(8+1)bytes)
                     sprintf(message+v1+k*(LENVALPULSE+1),"%08u",*(periSwPulseOne+k));
                     memcpy(message+v1+(k+1)*LENVALPULSE+k,"_\0",2);
                 }
 
-                v1+=NBPULSE*2*(8+1);                                // bits OTF * 4 = 2*2+1 bytes
+                v1+=NBPULSE*2*(8+1);                               // bits OTF * 4 = 2*2+1 bytes
                 for(int k=0;k<PCTLLEN;k++){conv_htoa(message+v1+k*2,(byte*)(periSwPulseCtl+k));}
                 memcpy(message+v1+2*PCTLLEN,"_\0",2);  
 
@@ -170,7 +145,7 @@ if(*periProg!=0){
 
                 v1+=2*NBPERINPUT*PERINPLEN+1;
                 byte byt;
-                for(int mds=MDSLEN-1;mds>=0;mds--){                   // 32 bits memDetServ -> 8 car hexa
+                for(int mds=MDSLEN-1;mds>=0;mds--){               // 32 bits memDetServ -> 8 car hexa
                     byt=(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
                     //Serial.print(" memDetServ shifté(");Serial.print(mds);Serial.print(")");Serial.print((uint32_t)(memDetServ>>(mds*8)),HEX);
                     conv_htoa(message+v1+2*(MDSLEN-mds-1),(byte*)&byt);}//Serial.println();
@@ -178,11 +153,11 @@ if(*periProg!=0){
 
                 v1+=MDSLEN*2+1;
                 v2=*periPort;
-                sprintf((message+v1),"%04d",v2);          // periPort
+                sprintf((message+v1),"%04d",v2);                  // periPort
                 memcpy(message+v1+4,"_\0",2);
 
             }  // periprog != 0
-            strcat(message,diag);                         // periMess length=LPERIMESS
+            strcat(message,diag);                                 // periMess length=LPERIMESS
   }  // pericur != 0            
 }
 
@@ -202,7 +177,7 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct)     // fonction set ou
 
   periCur=np;periLoad(periCur);
   
-  Serial.print("\nperiReq(");Serial.print(*periProtocol);Serial.print("peri=");Serial.print(periCur);
+  Serial.print("\nperiReq(");Serial.print((char)*periProtocol);Serial.print(" peri=");Serial.print(periCur);
   Serial.print("-port=");Serial.print(*periPort);Serial.println(")");
   
     if(*periProg!=0 && *periPort!=0){charIp(periIpAddr,host);}

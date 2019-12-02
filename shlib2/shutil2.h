@@ -7,7 +7,9 @@ void conv_atoh(char* ascii,byte* hex);
 void conv_htoa(char* ascii,byte* hex);
 void conv_atob(char* ascii,uint16_t* bin);
 void conv_atobl(char* ascii,uint32_t* bin);
+void conv_atobl(char* ascii,uint32_t* bin,uint8_t len);
 float convStrToNum(char* str,int* sizeRead);
+int32_t convStrToInt(char* str,int* sizeRead);
 int convIntToString(char* str,int num);
 int convNumToString(char* str,float num);  // retour string terminée par '\0' ; return longueur totale '\0' inclus
 boolean compMac(byte* mac1,byte* mac2);       // FAUX si != ; VRAI si ==

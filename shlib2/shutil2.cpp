@@ -32,6 +32,7 @@ int*  int0=&int00;
 
 int convIntToString(char* str,int num)
 {
+
   int i=0,t=0,num0=num;
   while(num0!=0){num0/=10;i++;}                 // comptage nbre chiffres partie entière
   t=i;
@@ -72,6 +73,14 @@ void conv_atobl(char* ascii,uint32_t* bin)
   for(j=0;j<LENVAL;j++){c=ascii[j];if(c>='0' && c<='9'){*bin=*bin*10+c-48;}else{j=LENVAL;}}
 }
 
+void conv_atobl(char* ascii,uint32_t* bin,uint8_t len)
+{
+  int j=0;
+  byte c;
+  *bin=0;
+  for(j=0;j<len;j++){c=ascii[j];if(c>='0' && c<='9'){*bin=*bin*10+c-48;}else{j=len;}}
+}
+
 void sp(char* a,bool ln)
 {
     Serial.print(a);if(ln!=0){Serial.println();}
@@ -80,7 +89,7 @@ void sp(char* a,bool ln)
 void serialPrintIp(uint8_t* ip)
 {
   for(int i=0;i<4;i++){Serial.print(ip[i]);if(i<3){Serial.print(".");}}
-  Serial.print(" ");
+  //Serial.print(" ");
 }
 
 void charIp(byte* nipadr,char* aipadr)
@@ -194,28 +203,32 @@ float convStrToNum(char* str,int* sizeRead)
   return v*minu;
 }
 
-/*
-float convStrToNum(char* str,int* sizeRead)
+
+int32_t convStrToInt(char* str,int* sizeRead)
 {
-  float   pd=1,v=0;
-  uint8_t i=0,v0=0,minu=1;
+  int32_t v=0;
+  int minu=1;
 
-  while(str[i]==' '){i++;}
+#define MAXL 12 // max int32 length -4 294 967 296 (+séparator)
 
-  if(str[i]=='+'){i++;}
-  if(str[i]=='-'){i++;minu=-1;}
+  for(int i=0;i<MAXL;i++){
+//Serial.print(i);Serial.print(" ");Serial.print(str);Serial.print(" ");Serial.print((char)str[i]);Serial.print(" ");Serial.println((int)v);
 
-  while((str[i]!='_' && str[i]!='\0' && str[i]>='0' && str[i]<='9') || (str[i]=='.')){
-    if(str[i]=='.'){if(pd==1){pd=10;}}
-    else {v0=str[i]-48;
-      if(pd==1){v=v*10+v0;}
-      else{v+=v0/pd;pd*=10;}
+    if(i==0){
+        if(str[i]=='+'){i++;}
+        else if(str[i]=='-'){i++;minu=-1;}
     }
-    i++;
+    *sizeRead=i+1;
+
+    if(str[i]!='_' && str[i]!='\0' && str[i]>='0' && str[i]<='9'){
+      v*=10;
+      v+=str[i]-'0';
+    }
+    else {i=MAXL;}
   }
+  //Serial.print("s>n str,num=");Serial.print(string);Serial.print(" ");Serial.println(v*minus);
   return v*minu;
 }
-*/
 
 boolean compMac(byte* mac1,byte* mac2)
 {

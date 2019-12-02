@@ -44,9 +44,9 @@ extern uint16_t  periCur;                    // Numéro du périphérique couran
 extern uint16_t* periNum;                      // ptr ds buffer : Numéro du périphérique courant
 extern long*     periPerRefr;                  // ptr ds buffer : période maximale accés au serveur
 extern uint16_t* periPerTemp;                  // ptr ds buffer : période de lecture tempèrature
-extern float*    periPitch;                    // ptr ds buffer : variation minimale de température pour datasave
-extern float*    periLastVal;                  // ptr ds buffer : dernière valeur de température  
-extern float*    periAlim;                     // ptr ds buffer : dernière tension d'alimentation
+extern int16_t*  periPitch_;                    // ptr ds buffer : variation minimale de température pour datasave
+extern int16_t*  periLastVal_;                  // ptr ds buffer : dernière valeur de température  
+extern int16_t*  periAlim_;                     // ptr ds buffer : dernière tension d'alimentation
 extern char*     periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
 extern char*     periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
 extern char*     periLastDateErr;              // ptr ds buffer : date/heure de derniere anomalie com
@@ -70,11 +70,11 @@ extern uint8_t*  periSondeNb;                  // ptr ds buffer : nbre sonde
 extern boolean*  periProg;                     // ptr ds buffer : flag "programmable" 
 extern byte*     periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
-extern float*    periThOffset;                 // ptr ds buffer : offset correctif sur mesure température
-extern float*    periThmin;                    // ptr ds buffer : alarme mini th
-extern float*    periThmax;                    // ptr ds buffer : alarme maxi th
-extern float*    periVmin;                     // ptr ds buffer : alarme mini volts
-extern float*    periVmax;                     // ptr ds buffer : alarme maxi volts
+extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
+extern int16_t*  periThmin_;                    // ptr ds buffer : alarme mini th
+extern int16_t*  periThmax_;                    // ptr ds buffer : alarme maxi th
+extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini volts
+extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
 extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*     periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
 
@@ -350,17 +350,17 @@ void periLineHtml(EthernetClient* cli,int i)
                       usrPeriCur(cli,"peri_cur__",0,2,3);
                       cli->print("<td><input type=\"text\" name=\"peri_nom__\" value=\"");
                         cli->print(periNamer);cli->print("\" size=\"12\" maxlength=\"");cli->print(PERINAMLEN-1);cli->println("\" ></td>");
-                      textTableHtml(cli,'f',periLastVal,periThmin,periThmax,1,1);
-                      //numTableHtml(cli,'f',periThmin,"peri_thmin",5,0,0);cli->println("<br>");
-                      //numTableHtml(cli,'f',periThmax,"peri_thmax",5,3,0);
-                      cli->print(*periThmin);cli->println("<br>");
-                      cli->print(*periThmax);
-                      textTableHtml(cli,'f',periAlim,periVmin,periVmax,1,1);
-                      numTableHtml(cli,'f',periVmin,"peri_vmin_",5,0,0);cli->println("<br>");
-                      numTableHtml(cli,'f',periVmax,"peri_vmax_",5,3,0);
+                      textTableHtml_(cli,periLastVal_,periThmin_,periThmax_,1,1);
+                      //numTableHtml(cli,'I',periThmin_,"peri_thmin",5,0,0);cli->println("<br>");
+                      //numTableHtml(cli,'I',periThmax_,"peri_thmax",5,3,0);
+                      cli->print(*periThmin_);cli->println("<br>");
+                      cli->print(*periThmax_);
+                      textTableHtml_(cli,periAlim_,periVmin_,periVmax_,1,1);
+                      numTableHtml(cli,'I',periVmin_,"peri_vmin_",5,0,0);cli->println("<br>");
+                      numTableHtml(cli,'I',periVmax_,"peri_vmax_",5,3,0);
                       numTableHtml(cli,'d',(uint32_t*)periPerTemp,"peri_rtemp",5,2,0);cli->println("<br>");
-                      numTableHtml(cli,'f',periPitch,"peri_pitch",5,0,0);cli->print("<br>");
-                      numTableHtml(cli,'f',periThOffset,"peri_tofs_",5,3,0);
+                      numTableHtml(cli,'I',periPitch_,"peri_pitch",5,0,0);cli->print("<br>");
+                      numTableHtml(cli,'I',periThOffset_,"peri_tofs_",5,3,0);
                       numTableHtml(cli,'l',(uint32_t*)periPerRefr,"peri_refr_",5,2,0);cli->println("<br>");
                       checkboxTableHtml(cli,(uint8_t*)periProg,"peri_prog_",-1,3,"");
                       numTableHtml(cli,'b',periSwNb,"peri_intnb",1,2,0);cli->println("<br>");
@@ -408,15 +408,15 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
                       cli->println(periCur);
                       usrPeriCur(cli,"peri_cur__",0,2,3);
                       cli->print("<td>");cli->print(periNamer);cli->print("</td>");
-                      textTableHtml(cli,'f',periLastVal,periThmin,periThmax,1,1);
-                      cli->print(*periThmin);cli->println("<br>");
-                      cli->print(*periThmax);cli->print("</td>");
-                      textTableHtml(cli,'f',periAlim,periVmin,periVmax,1,1);
-                      cli->print(*periVmin);cli->println("<br>");
-                      cli->print(*periVmax);cli->print("</td>");
+                      textTableHtml_(cli,periLastVal_,periThmin_,periThmax_,1,1);
+                      cli->print((float)*periThmin_/100);cli->println("<br>");
+                      cli->print((float)*periThmax_/100);cli->print("</td>");
+                      textTableHtml_(cli,periAlim_,periVmin_,periVmax_,1,1);
+                      cli->print((float)*periVmin_/100);cli->println("<br>");
+                      cli->print((float)*periVmax_/100);cli->print("</td>");
                       cli->print("<td>");cli->print(*periPerTemp);cli->print("<br>");
-                      cli->print(*periPitch);cli->print("<br>");
-                      cli->print(*periThOffset);cli->print("</td>");
+                      cli->print((float)*periPitch_/100);cli->print("<br>");
+                      cli->print((float)*periThOffset_/100);cli->print("</td>");
                       cli->print("<td>");cli->print(*periPerRefr);cli->print("<br>");
                       if(*periProg!=0){cli->print("serv");}cli->print("</td>");
                       cli->print("<td>");cli->print(*periSwNb);cli->print("<br>");cli->print(*periDetNb);cli->print("</td>");

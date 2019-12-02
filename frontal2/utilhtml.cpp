@@ -20,41 +20,6 @@ extern char      periRec[PERIRECLEN];        // 1er buffer de l'enregistrement d
   
 extern uint16_t  periCur;                    // Numéro du périphérique courant
 
-extern uint16_t* periNum;                      // ptr ds buffer : Numéro du périphérique courant
-extern long*     periPerRefr;                  // ptr ds buffer : période maximale accés au serveur
-extern uint16_t* periPerTemp;                  // ptr ds buffer : période de lecture tempèrature
-extern float*    periPitch;                    // ptr ds buffer : variation minimale de température pour datasave
-extern float*    periLastVal;                  // ptr ds buffer : dernière valeur de température  
-extern float*    periAlim;                     // ptr ds buffer : dernière tension d'alimentation
-extern char*     periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
-extern char*     periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
-extern char*     periLastDateErr;              // ptr ds buffer : date/heure de derniere anomalie com
-extern int8_t*   periErr;                      // ptr ds buffer : code diag anomalie com (voir MESSxxx shconst.h)
-extern char*     periNamer;                    // ptr ds buffer : description périphérique
-extern char*     periVers;                     // ptr ds buffer : version logiciel du périphérique
-extern char*     periModel;                    // ptr ds buffer : model du périphérique
-extern byte*     periMacr;                     // ptr ds buffer : mac address 
-extern byte*     periIpAddr;                   // ptr ds buffer : Ip address
-extern byte*     periSwNb;                     // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
-extern byte*     periSwVal;                    // ptr ds buffer : état/cde des inter  
-extern byte*     periSwMode;                   // ptr ds buffer : Mode fonctionnement inters (4 bytes par switch)           
-extern uint32_t* periSwPulseOne;               // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
-extern uint32_t* periSwPulseTwo;               // ptr ds buffer : durée pulses sec OFF(mode astable)
-extern uint32_t* periSwPulseCurrOne;           // ptr ds buffer : temps courant pulses ON
-extern uint32_t* periSwPulseCurrTwo;           // ptr ds buffer : temps courant pulses OFF
-extern byte*     periSwPulseCtl;               // ptr ds buffer : mode pulses 
-extern byte*     periSwPulseSta;               // ptr ds buffer : état clock pulses
-extern uint8_t*  periSondeNb;                  // ptr ds buffer : nbre sonde
-extern boolean*  periProg;                     // ptr ds buffer : flag "programmable" 
-extern byte*     periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
-extern byte*     periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
-extern float*    periThOffset;                 // ptr ds buffer : offset correctif sur mesure température
-extern float*    periThmin;                    // ptr ds buffer : alarme mini th
-extern float*    periThmax;                    // ptr ds buffer : alarme maxi th
-extern float*    periVmin;                     // ptr ds buffer : alarme mini volts
-extern float*    periVmax;                     // ptr ds buffer : alarme maxi volts
-extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
-
 extern int8_t    periMess;                     // code diag réception message (voir MESSxxx shconst.h)
 extern byte      periMacBuf[6]; 
 
@@ -183,6 +148,7 @@ void numTableHtml(EthernetClient* cli,char type,void* valfonct,char* nomfonct,in
     case 'b':cli->print(*(byte*)valfonct);break;
     case 'd':cli->print(*(uint16_t*)valfonct);break;
     case 'i':cli->print(*(int*)valfonct);break;
+    case 'I':cli->print(*(int16_t*)valfonct);break;
     case 'l':cli->print(*(long*)valfonct);break;
     case 'f':cli->print(*(float*)valfonct);break;
     case 'g':cli->print(*(uint32_t*)valfonct);break;    
@@ -194,7 +160,7 @@ void numTableHtml(EthernetClient* cli,char type,void* valfonct,char* nomfonct,in
   if(td==1 || td==3){cli->println("</td>");}
 }
 
-void textTableHtml(EthernetClient* cli,char type,float* valfonct,float* valmin,float* valmax,uint8_t br,uint8_t td)
+void textTableHtml_(EthernetClient* cli,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)
 {
   memcpy(colour,"black\0",6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,"red\0",4);}
   if(td==1 || td==2){cli->print("<td>");}
@@ -208,7 +174,7 @@ void textTableHtml(EthernetClient* cli,char type,float* valfonct,float* valmin,f
       case 'g':cli->print(*(uint32_t*)valfonct);break;    
       default:break;}
 */
-  cli->print(*valfonct);  
+  cli->print((float)*valfonct/100);  
   cli->print("</font>");
   if(br==1){cli->print("<br>");}
   if(td==2 || td==3){cli->println("</td>");}

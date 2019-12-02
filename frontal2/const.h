@@ -46,7 +46,8 @@
  * 1.3b periSend et periParamsHtml disparaissent ... periReq et periAns envoient des messages aux périphériques
  *      ds3231.h devient une lib ; création de la classe Ds3231 (instance ds3231)
  * 1.4  réaménagement setup ; udp ; 
- * 1.4a extension thermomètres pour contrôle chaudière/clim ; perToSend commun pour timers et thermos     
+ * 1.4a extension thermomètres pour contrôle chaudière/clim ; ajout scanThermos()     
+ *      valeurs entières pour températures(x100) dans fichiers peri ; convStrToInt remplace convStrToNum là où c'est possible
  *      
  * BUGS : 
  *  
@@ -136,7 +137,7 @@
 
 #define NBPERIF 20                           
 #define PERINAMLEN 16+1                      // longueur nom perif
-#define PERIRECLEN 274 // V1.4               // longueur record périph
+#define PERIRECLEN 258 // V1.4a              // longueur record périph
 
 #define CONFIGRECLEN 865                     // longueur record config 
 

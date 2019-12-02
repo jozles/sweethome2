@@ -32,7 +32,7 @@ Ds1820 ds1820;
 
   const char* ssid;
   const char* password;
-//#define DEVOLO  
+#define DEVOLO  
 #ifdef DEVOLO
   const char* ssid2= "pinks";
   const char* password2 = "cain ne dormant pas songeait au pied des monts";
@@ -47,7 +47,7 @@ Ds1820 ds1820;
 #endif DEVOLO
 
   const char* host = HOSTIPADDR2;
-  const int   port = PORTPERISERVER2; 
+  const int    port = PORTPERISERVER2; 
 
 WiFiClient cli;                 // client local du serveur externe (utilisé pour dataread/save)
 WiFiClient cliext;              // client externe du serveur local
@@ -64,7 +64,7 @@ WiFiServer server(8888);
 // enregistrement pour serveur externe
 
   char  bufServer[LBUFSERVER];   // buffer des envois/réceptions de messages
-  int   periMess;           // diag de réception de message
+  int   periMess;                // diag de réception de message
 
   char* fonctions={"set_______ack_______etat______reset_____sleep_____testaoff__testa_on__testboff__testb_on__last_fonc_"};
   uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__;;

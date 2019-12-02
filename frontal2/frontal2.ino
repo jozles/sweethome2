@@ -121,9 +121,12 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
-  unsigned long timerstime=0;          // last millis pour timers & thermos
+  unsigned long timerstime=0;          // last millis pour timers
 #define PTIMERS 1;                     // secondes
-  uint32_t  pertimers=PTIMERS;         // période ctle timers & thermos
+  uint32_t  pertimers=PTIMERS;         // période ctle timers 
+  unsigned long thermosTime=0;          // last millis pour thermos
+#define PTHERMOS 1;                    // secondes
+  uint32_t  perThermos=PTHERMOS;       // période ctle thermos
   
   int   stime=0;int mtime=0;int htime=0;
   unsigned long  curdate=0;
@@ -144,14 +147,14 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   char      periCache[PERIRECLEN*(NBPERIF+1)];  // cache des périphériques
   byte      periCacheStatus[(NBPERIF+1)];       // indicateur de validité du cache d'un périph  
   
-  uint16_t  periCur=0;                          // Numéro du périphérique courant
+  uint16_t  periCur=0;                      // Numéro du périphérique courant
   
   uint16_t* periNum;                        // ptr ds buffer : Numéro du périphérique courant
   uint32_t* periPerRefr;                    // ptr ds buffer : période maximale d'accès au serveur
   uint16_t* periPerTemp;                    // ptr ds buffer : période de lecture tempèrature
-  float*    periPitch;                      // ptr ds buffer : variation minimale de température pour datasave
-  float*    periLastVal;                    // ptr ds buffer : dernière valeur de température  
-  float*    periAlim;                       // ptr ds buffer : dernière tension d'alimentation
+  int16_t*  periPitch_;                      // ptr ds buffer : variation minimale de température pour datasave
+  int16_t*  periLastVal_;                    // ptr ds buffer : dernière valeur de température  
+  int16_t*  periAlim_;                       // ptr ds buffer : dernière tension d'alimentation
   char*     periLastDateIn;                 // ptr ds buffer : date/heure de dernière réception
   char*     periLastDateOut;                // ptr ds buffer : date/heure de dernier envoi  
   char*     periLastDateErr;                // ptr ds buffer : date/heure de derniere anomalie com
@@ -175,11 +178,11 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   boolean*  periProg;                       // ptr ds buffer : flag "programmable" (périphériques serveurs)
   byte*     periDetNb;                      // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
   byte*     periDetVal;                     // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
-  float*    periThOffset;                   // ptr ds buffer : offset correctif sur mesure température
-  float*    periThmin;                      // ptr ds buffer : alarme mini th
-  float*    periThmax;                      // ptr ds buffer : alarme maxi th
-  float*    periVmin;                       // ptr ds buffer : alarme mini volts
-  float*    periVmax;                       // ptr ds buffer : alarme maxi volts
+  int16_t*  periThOffset_;                  // ptr ds buffer : offset correctif sur mesure température
+  int16_t*  periThmin_;                     // ptr ds buffer : mini last 24h 
+  int16_t*  periThmax_;                     // ptr ds buffer : maxi last 24h
+  int16_t*  periVmin_;                      // ptr ds buffer : alarme mini volts
+  int16_t*  periVmax_;                      // ptr ds buffer : alarme maxi volts
   byte*     periDetServEn;                  // ptr ds buffer : 1 byte 8*enable detecteurs serveur
   byte*     periProtocol;                   // ptr ds buffer : protocole ('T'CP/'U'DP)
     
@@ -290,6 +293,8 @@ void test2Switchs();
 void tcpPeriServer();
 void pilotServer();
 void udpPeriServer();
+int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime);
+void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* nf);
 void scanTimers();
 void testUdp();
 
@@ -308,8 +313,10 @@ void setup() {                              // =================================
   
   sdInit();
   //sdCardGen();
+
+  dumpstr(periRec,16);
   
-  periMaintenance();  
+  periMaintenance();
   
   configInit();  // en attendant un utiliatire de configuration des utilisateurs et ssid....
   configLoad();*toPassword=TO_PASSWORD;
@@ -323,11 +330,10 @@ void setup() {                              // =================================
   periTableLoad();
   remoteLoad();   //remInit();
   timersLoad();   //timersInit();
-
   thermosLoad();
-
+dumpstr((char*)periThmin_,16);
   memDetLoad();   //memDetInit();
-
+dumpstr((char*)periThmin_,16);
 /* >>>>>> ethernet start <<<<<< */
 
   Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
@@ -378,6 +384,7 @@ void setup() {                              // =================================
   sdstore_textdh(&fhisto,".3","RE","<br>\n\0");
 
   Serial.println(">>>>>>>>> fin setup\n");
+  dumpstr((char*)periThmin_,16);
 }
 
 /* ================================== fin setup ================================= */
@@ -401,19 +408,12 @@ void loop()
 
             ledblink(0);  
 
-            scanTemp();
-
-    if((millis()-timerstime)>pertimers*1000){
-       
-            timerstime=millis();
-            memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif            
+            scanTemp(); 
             
-            scanThermos();
+            //scanThermos();
 
             scanTimers();
 
-            perToSend(tablePerToSend,timerstime);     // mise à jour périphériques de tablePerToSend
-    }
 }
 
 
@@ -435,49 +435,74 @@ void scanTemp()
 
 void scanThermos()                                                        // positionnement détecteurs associés aux thermos
 {                                                                         // maj tablePerToSend
-  uint8_t th;
-  bool dval;
+  if((millis()-thermosTime)>perThermos*1000){
     
-    /* raz detecteurs */
+  thermosTime=millis();
+  memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
+
+  
+  uint8_t th,det;
+  uint8_t detLst[NBDSRV];                                // liste détecteurs concernés
+  bool    detSta[NBDSRV];                                // état  après scan thermos
+    
+    /* repérage detecteurs */
+    memset(detLst,0x00,NBDSRV);
     for(th=0;th<NBTHERMOS;th++){
-      memDetServ &= ~mDSmaskbit[thermos[th].lowdetec];
-      memDetServ &= ~mDSmaskbit[thermos[th].highdetec];
+      if(thermos[th].lowenable){detLst[thermos[th].lowdetec]++;}
+      if(thermos[th].highenable){detLst[thermos[th].highdetec]++;}
     }
-    /* set detecteurs */
+
+    /* maj état thermos */
+    memset(detSta,0x00,NBDSRV);
     // déclenchement au seuil, retour sous/sur offset
     for(th=0;th<NBTHERMOS;th++){
       uint8_t per=(uint8_t)thermos[th].peri;
       periLoad(per);
-      if( thermos[th].lowenable && !thermos[th].lowstate && *periLastVal<thermos[th].lowvalue){
-        memDetServ |= mDSmaskbit[thermos[th].lowdetec];
+      if( thermos[th].lowenable && !thermos[th].lowstate && *periLastVal_<thermos[th].lowvalue){                                 // set low
+        detSta[thermos[th].lowdetec]= true;
         thermos[th].lowstate=1;
-        tablePerToSend[per-1]++;
       }
-      else if( thermos[th].lowenable && thermos[th].lowstate && *periLastVal>(thermos[th].lowvalue+thermos[th].lowoffset)){
-        memDetServ &= ~mDSmaskbit[thermos[th].lowdetec];
+      else if( thermos[th].lowenable && thermos[th].lowstate && *periLastVal_>(thermos[th].lowvalue+thermos[th].lowoffset)){     // clr low
         thermos[th].lowstate=0;
-        tablePerToSend[per-1]++;
       }
-      if( thermos[th].highenable && !thermos[th].highstate && *periLastVal>thermos[th].highvalue){
-        memDetServ |= mDSmaskbit[thermos[th].highdetec];
+      if( thermos[th].highenable && !thermos[th].highstate && *periLastVal_>thermos[th].highvalue){                              // set high
+        detSta[thermos[th].highdetec]= true;
         thermos[th].highstate=1;
-        tablePerToSend[per-1]++;
       }
-      else if(thermos[th].highenable && thermos[th].highstate && *periLastVal<(thermos[th].highvalue-thermos[th].highoffset)){
-        memDetServ &= ~mDSmaskbit[thermos[th].highdetec];
+      else if(thermos[th].highenable && thermos[th].highstate && *periLastVal_<(thermos[th].highvalue-thermos[th].highoffset)){  // clr high
         thermos[th].highstate=0;
-        tablePerToSend[per-1]++;
       }
     }
-}
 
-void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* onoff)     // recherche des périphériques ayant une input sur le détecteur externe 'detec'
+    /* maj détecteurs & tablePerToSend */
+    bool dval;
+    char tpts[4];
+    for(det=0;det<NBDSRV;det++){
+      if(detLst[det]){
+        memset(tpts,0x00,4);
+        dval=memDetServ & mDSmaskbit[det];
+        if(detSta[det]){
+          memDetServ |= mDSmaskbit[det];
+          if(!dval){memcpy(tpts,"on ",3);}
+        }
+        else{
+          memDetServ &= ~mDSmaskbit[det];
+          if(dval){memcpy(tpts,"off",3);}
+        }
+        if(tpts[0]!=0x00){poolperif(tablePerToSend,det,tpts);}
+      }
+    }
+    perToSend(tablePerToSend,thermosTime);
+  }
+}  
+
+void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* nf)                 // recherche des périphériques ayant une input sur le détecteur externe 'detec'
 {                                                                     // et màj de tablePerToSend
   uint16_t offs;
   uint8_t eni,ninp;
   byte model=(detec<<PERINPNVLS_PB)|DETYEXT;                          // valeur pour N°detecteur type externe
   
-  Serial.print(" poolperif (detec ");Serial.print(detec);Serial.print(" -> ");Serial.print(onoff);Serial.println(")");
+  Serial.print(" poolperif (detec ");Serial.print(detec);Serial.print(" -> ");Serial.print(nf);Serial.println(")");
   for(uint8_t np=1;np<=NBPERIF;np++){                                 // boucle périphériques
     periLoad(np);
     if(*periSwNb!=0){
@@ -517,6 +542,10 @@ void scanTimers()                                             //   recherche tim
                                                               //      sinon              (OFF) et état ON -> état OFF, det OFF, poolperif
                                                               //      màj tablePerToSend
 
+    if((millis()-timerstime)>pertimers*1000){
+       
+      timerstime=millis();
+      memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
       char now[LNOW];
       ds3231.alphaNow(now);
       
@@ -545,6 +574,8 @@ void scanTimers()                                             //   recherche tim
             poolperif(tablePerToSend,timersN[nt].detec,"off");} // recherche periphérique et mise à jour tablePerToSend
         }
       }
+      perToSend(tablePerToSend,timerstime);     // mise à jour périphériques de tablePerToSend
+    }
 }
 
 
@@ -653,14 +684,14 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
   if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
     memcpy(periMacr,periMacBuf,6);
 #define PNP 2+1+17+1
-    k=valf+PNP;*periLastVal=convStrToNum(k,&i);                                    // température si save
+    k=valf+PNP;*periLastVal_=(int16_t)convStrToNum(k,&i)*100;     // température si save
 #if PNP != SDPOSTEMP-SDPOSNUMPER
     periCur/=0;
 #endif     
-    k+=i;convStrToNum(k,&i);                                                            // age si save
-    k+=i;*periAlim=convStrToNum(k,&i);                                                  // alim
-    k+=i;strncpy(periVers,k,LENVERSION);                                                // version
-    k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);                                 // nbre sw
+    k+=i;convStrToInt(k,&i);                                      // age si save (inutilisé)
+    k+=i;*periAlim_=(int16_t)convStrToNum(k,&i)*100;              // alim
+    k+=i;strncpy(periVers,k,LENVERSION);                          // version
+    k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);           // nbre sw
     k+=1; *periSwVal&=0xAA;for(int i=MAXSW-1;i>=0;i--){*periSwVal |= ((*(k+i)-48)&0x01)<< (2*(MAXSW-i)-2);}        // periSwVal états sw
     k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                       // nbre detec
     k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}  // détecteurs
@@ -1089,7 +1120,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 5:  *toPassword=TO_PASSWORD;conv_atob(valf,toPassword);Serial.print(" topass=");Serial.println(valf);break;                     // to_passwd_
               case 6:  what=2;perrefr=0;conv_atob(valf,&perrefr);                                    // (en tête peritable) periode refresh browser
                        break;                                                                               
-              case 7:  *periThOffset=0;*periThOffset=convStrToNum(valf,&j);break;                    // (ligne peritable) Th Offset
+              case 7:  *periThOffset_=0;*periThOffset_=(int16_t)convStrToNum(valf,&j)*100;break;       // (ligne peritable) Th Offset
               case 8:  periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                       // bouton switchs___ (ligne peritable)
                        periLoad(periCur);                                                            // + bouton refresh  (switchs)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                 // + bouton erase    (switchs)
@@ -1121,7 +1152,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 20: periTableHtml(&cli);break;                                                    // peri table
               case 21: *periProg=*valf-48;break;                                                     // (ligne peritable) peri prog
               case 22: *periSondeNb=*valf-48;if(*periSondeNb>MAXSDE){*periSondeNb=MAXSDE;}break;     // (ligne peritable) peri sonde
-              case 23: *periPitch=0;*periPitch=convStrToNum(valf,&j);break;                          // (ligne peritable) peri pitch
+              case 23: *periPitch_=0;*periPitch_=(int16_t)convStrToNum(valf,&j)*100;break;             // (ligne peritable) peri pitch
               case 24: what=4;periCur=0;conv_atob(valf,&periCur);                                    // (input-lignes) submit peri_inp__ set periCur raz cb
                        if(periCur>NBPERIF){periCur=NBPERIF;}periInitVar();periLoad(periCur);
                        *(byte*)(periInput+((uint8_t)(*(libfonctions+2*i+1))-PMFNCHAR)*PERINPLEN+2)&=PERINPACT_MS;  // effacement cb (oldlev/active/edge/en)
@@ -1178,15 +1209,15 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                         // pericur est à jour via peri_inp_
                         *(uint8_t*)(periInput+offs+1)|=(uint8_t)PERINPRULESLS_VB<<nfct;}break;
               case 35: {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri Pulse one (pto)
-                        *(periSwPulseOne+pu)=0;*(periSwPulseOne+pu)=(uint32_t)convStrToNum(valf,&j);                              
+                        *(periSwPulseOne+pu)=0;*(periSwPulseOne+pu)=(uint32_t)convStrToInt(valf,&j);                              
                        }break;                                                                      
               case 36: {int pu=*(libfonctions+2*i)-PMFNCHAR;
-                        *(periSwPulseTwo+pu)=0;*(periSwPulseTwo+pu)=(uint32_t)convStrToNum(valf,&j); 
+                        *(periSwPulseTwo+pu)=0;*(periSwPulseTwo+pu)=(uint32_t)convStrToInt(valf,&j); 
                        }break;                                                                          // (pulses) peri Pulse two (ptt)
-              case 37: *periThmin=0;*periThmin=convStrToNum(valf,&j);break;                             // (ligne peritable) Th min
-              case 38: *periThmax=0;*periThmax=convStrToNum(valf,&j);break;                             // (ligne peritable) Th max
-              case 39: *periVmin=0;*periVmin=(float)convStrToNum(valf,&j);break;                        // (ligne peritable) V min
-              case 40: *periVmax=0;*periVmax=convStrToNum(valf,&j);break;                               // (ligne peritable) V max
+              case 37: *periThmin_=0;*periThmin_=(int16_t)convStrToInt(valf,&j);break;                  // (ligne peritable) Th min
+              case 38: *periThmax_=0;*periThmax_=(int16_t)convStrToInt(valf,&j);break;                  // (ligne peritable) Th max
+              case 39: *periVmin_=0;*periVmin_=(int16_t)convStrToInt(valf,&j);break;                    // (ligne peritable) V min
+              case 40: *periVmax_=0;*periVmax_=(int16_t)convStrToInt(valf,&j);break;                    // (ligne peritable) V max
               case 41: what=10;bakDetServ=memDetServ;memDetServ=0;                                      // bouton submit detecteurs serveur ; effct cb
                        break;
               case 42: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (mem_dsrv__) set det bit
@@ -1229,7 +1260,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                             case 'o': remoteN[nb].onoff=*valf-48;break;                                 // (remotecf) on on/off remote courante
                             case 'u': remoteT[nb].num=*valf-48;                                         // (remotecf) un N° remote table sw
                                       remoteT[nb].enable=0;break;                                       // (remotecf) effacement cb
-                            case 'd': remoteT[nb].detec=convStrToNum(valf,&j);                          // (remotecf) n° detecteur
+                            case 'd': remoteT[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur
                                       if(remoteT[nb].detec>NBDSRV){remoteT[nb].detec=NBDSRV;}break;       
                             case 'x': remoteT[nb].enable=*valf-48;break;                                // (remotecf) xe enable table sw
                             default:break;
@@ -1247,26 +1278,26 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           case 'n':memset(&thermos[nb].nom,0x00,LENTHNAME+1);
                                    memcpy(&thermos[nb].nom,valf,nvalf[i+1]-nvalf[i]);
                                    break;
-                          case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToNum(valf,&j);
+                          case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToInt(valf,&j);
                                    if((thermos[nb].peri)>NBPERIF){(thermos[nb].peri)=NBPERIF;}
                                    break;
                           case 'e':thermos[nb].lowenable=*valf-48;break;                                           // enable low
                           case 'E':thermos[nb].highenable=*valf-48;break;                                          // enable high
                           case 's':thermos[nb].lowstate=*valf-48;break;                                            // state  low
-                          case 'S':thermos[nb].highstate=*valf-48;break;                                          // state  high
-                          case 'v':thermos[nb].lowvalue=0;thermos[nb].lowvalue=convStrToNum(valf,&j);break;       // value low
-                          case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=convStrToNum(valf,&j);break;     // value high
-                          case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=convStrToNum(valf,&j);break;     // offset low
-                          case 'O':thermos[nb].highoffset=0;thermos[nb].highoffset=convStrToNum(valf,&j);break;   // offset high
-                          case 'd':thermos[nb].lowdetec=0;thermos[nb].lowdetec=convStrToNum(valf,&j);
+                          case 'S':thermos[nb].highstate=*valf-48;break;                                           // state  high
+                          case 'v':thermos[nb].lowvalue=0;thermos[nb].lowvalue=(int16_t)convStrToInt(valf,&j);break;       // value low
+                          case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=(int16_t)convStrToInt(valf,&j);break;     // value high
+                          case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=(int16_t)convStrToInt(valf,&j);break;     // offset low
+                          case 'O':thermos[nb].highoffset=0;thermos[nb].highoffset=(int16_t)convStrToInt(valf,&j);break;   // offset high
+                          case 'd':thermos[nb].lowdetec=0;thermos[nb].lowdetec=convStrToInt(valf,&j);
                                    if(thermos[nb].lowdetec>NBDSRV){thermos[nb].lowdetec=NBDSRV;}break;            // det low
-                          case 'D':thermos[nb].highdetec=0;thermos[nb].highdetec=convStrToNum(valf,&j);
+                          case 'D':thermos[nb].highdetec=0;thermos[nb].highdetec=convStrToInt(valf,&j);
                                    if(thermos[nb].highdetec>NBDSRV){thermos[nb].highdetec=NBDSRV;}break;          // det high                          
                           default:break;
                         } 
                        }break;
               case 58: thermoShowHtml(&cli);break;                                                      // thermoshow
-              case 59: thermoCfgHtml(&cli);thermosPrint();break;                                       // thermos___ (bouton thermo_cfg)
+              case 59: thermoCfgHtml(&cli);thermosPrint();break;                                        // thermos___ (bouton thermo_cfg)
               case 60: *periPort=0;conv_atob(valf,periPort);break;                                      // (ligne peritable) peri_port_
               case 61: what=7;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (timers) tim_name__
                        textfonc(timersN[nb].nom,LENTIMNAM);
@@ -1279,7 +1310,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        timersN[nb].dw=0;
                        }break;
               case 62: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_det___                                  
-                       timersN[nb].detec=convStrToNum(valf,&j);
+                       timersN[nb].detec=convStrToInt(valf,&j);
                        if(timersN[nb].detec>NBDSRV){timersN[nb].detec=NBDSRV;}
                        }break;
               case 63: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_hdf___

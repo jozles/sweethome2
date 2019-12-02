@@ -18,6 +18,7 @@ void thermoShowHtml(EthernetClient* cli);
 void timersHtml(EthernetClient* cli);
 void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib);
 void cfgDetServHtml(EthernetClient* cli);
+int  scalcTh(int bd);
 
 
 #endif // _PAGESHTML_H_
