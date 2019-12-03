@@ -16,6 +16,8 @@ extern Ds3231 ds3231;
 
 extern EthernetUDP Udp;
 
+extern uint16_t remote_Port;
+extern uint8_t remote_IP_cur[4];                   
 
 extern char ab;
 
@@ -25,7 +27,7 @@ extern char      periRec[PERIRECLEN];          // 1er buffer de l'enregistrement
 extern char      periCache[PERIRECLEN*NBPERIF];   // cache des périphériques
 extern byte      periCacheStatus[NBPERIF];     // indicateur de validité du cache d'un périph
   
-extern int       periCur;                      // Numéro du périphérique courant
+extern uint16_t  periCur;                      // Numéro du périphérique courant
 
 extern uint16_t* periNum;                      // ptr ds buffer : Numéro du périphérique courant
 extern int32_t*  periPerRefr;                  // ptr ds buffer : période datasave minimale
@@ -243,4 +245,93 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
           packDate(periLastDateOut,date14+2);
           *periErr=MESSOK;                                // assySet, buildMess, envoi ne génèrent pas d'erreur
           return periSave(periCur,PERISAVESD);            // modifs de periTable et date effacèe par prochain periLoad si pas save
+}
+
+
+void checkdate(uint8_t num)                               // détection des dates invalides (en général défaut de format des messages)
+{
+  if(periLastDateIn[0]==0x66){Serial.print("===>>> date ");Serial.print(num);Serial.print(" HS ");
+    char dateascii[12];
+    unpackDate(dateascii,periLastDateIn);for(uint8_t j=0;j<12;j++){Serial.print(dateascii[j]);if(j==5){Serial.print(" ");}}Serial.println();
+  }
+}
+
+void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRead" en provenance d'un periphérique 
+                                // periInitVar() a été effectué
+                                // controle len,CRC, charge periCur (N° périf du message), effectue periLoad()
+                                // gère les différentes situations présence/absence/création de l'entrée dans la table des périf
+                                // transfère adr mac du message reçu (periMacBuf) vers periRec (periMacr)                                
+                                // retour periMess=MESSOK -> periCur valide, periLoad effectué, tfr données dataRead effectué
+                                //        periMess=MESSFULL -> plus de place libre
+                                //        periMess autres valeurs retour de checkData
+{
+  int i=0;
+  char* k;
+  uint8_t c=0;
+  int ii=0;
+  int perizer=0;
+
+  periCur=0;
+                        // check len,crc
+  periMess=checkData(valf);if(periMess!=MESSOK){periInitVar();return;}         
+  
+                        // len,crc OK
+  valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
+  
+  if(periCur!=0){                                                 // si le périph a un numéro, ctle de l'adr mac
+    periLoad(periCur);
+    if(memcmp(periMacBuf,periMacr,6)!=0){periCur=0;}}
+    
+  if(periCur==0){                                                 // si periCur=0 recherche si mac connu   
+    for(i=1;i<=NBPERIF;i++){                                      // et, au cas où, une place libre
+      periLoad(i);
+      if(compMac(periMacBuf,periMacr)){
+        periCur=i;i=NBPERIF+1;
+        Serial.println(" DataRead/Save Mac connu");
+      }                                                                         // mac trouvé
+      if(memcmp("\0\0\0\0\0\0",periMacr,6)==0 && perizer==0){
+        perizer=i;
+        Serial.println(" DataRead/Save place libre");
+      }        // place libre trouvée
+    }
+  }
+    
+  if(periCur==0 && perizer!=0){                                   // si pas connu utilisation N° perif libre "perizer"
+      Serial.println(" DataRead/Save Mac inconnu");
+      periInitVar();periCur=perizer;periLoad(periCur);
+      periMess=MESSFULL;
+  }
+
+  if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
+    memcpy(periMacr,periMacBuf,6);
+#define PNP 2+1+17+1
+    k=valf+PNP;*periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
+#if PNP != SDPOSTEMP-SDPOSNUMPER
+    periCur/=0;
+#endif     
+    k+=i;convStrToInt(k,&i);                                      // age si save (inutilisé)
+    k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
+    k+=i;strncpy(periVers,k,LENVERSION);                          // version
+    k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);           // nbre sw
+    k+=1; *periSwVal&=0xAA;for(int i=MAXSW-1;i>=0;i--){*periSwVal |= ((*(k+i)-48)&0x01)<< (2*(MAXSW-i)-2);}        // periSwVal états sw
+    k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                       // nbre detec
+    k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}  // détecteurs
+    k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}          // pulse clk status 
+    k+=NBPULSE+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                             // model
+    k+=LENMODEL+1;
+
+    if(memcmp(periVers,"1.h",3)>=0){
+      for(i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}                     // valeur courante pulses
+    }
+    
+    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);         // maj dates
+#ifdef SHDIAGS    
+    periPrint(periCur);
+    Serial.print("periDataRead =");
+#endif    
+    if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
+    memcpy(periIpAddr,remote_IP_cur,4);                                                                            // Ip addr
+    if(remote_Port!=0 && *periProtocol=='U'){*periPort=remote_Port;}                                               // port
+    periSave(periCur,PERISAVESD);checkdate(6);
+  }
 }

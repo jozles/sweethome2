@@ -360,3 +360,8 @@ void printPeriDate(EthernetClient* cli,char* periDate)
   int j;
   unpackDate(dateascii,periDate);for(j=0;j<12;j++){cli->print(dateascii[j]);if(j==5){cli->print(" ");}}cli->println("<br>");
 }
+
+void trailingSpaces(char* data,uint16_t len)
+{
+  for(uint8_t i=len-1;i>=0;i--){if(data[i]==' '){data[i]='\0';}else break;} // erase trailing spaces
+}

@@ -612,7 +612,7 @@ void thermoCfgHtml(EthernetClient* cli)
 
             cli->println("<table>");
               cli->println("<tr>");
-                cli->println("<th>   </th><th>      Nom      </th><th> peri </th><th>  </th><th> low<br> en</th><th> low<br> state</th><th> low<br> value</th><th> low<br> offset</th><th> low<br> det</th><th> </th><th> high<br> en</th><th> high<br> state</th><th> high<br> value</th><th> high<br> offset</th><th> high<br> det</th>");
+                cli->println("<th>   </th><th>      Nom      </th><th> peri </th><th>  </th><th> low<br> en</th><th> low<br> state</th><th> low<br> value</th><th> low<br> pitch</th><th> low<br> det</th><th> </th><th> high<br> en</th><th> high<br> state</th><th> high<br> value</th><th> high<br> offset</th><th> high<br> det</th>");
               cli->println("</tr>");
 
               for(int nb=0;nb<NBTHERMOS;nb++){
