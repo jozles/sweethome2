@@ -188,7 +188,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,unsigned int hport,char* data
   Udp.write(data,strlen(data));
   Udp.endPacket();
   return 1;
-#endif TXRX_UDP
+#endif TXRX_MODE == 'U'
 
 #if TXRX_MODE == 'T'  
   int     cxStatus=0;
@@ -222,8 +222,8 @@ int mess2Server(EthernetClient* cli,IPAddress host,unsigned int hport,char* data
   }
   return 0;
  
-#endif TXRX_TCP
-}
+#endif TXRX_MODE == 'T'
+}       // messToServer
 
 #if TXRX_MODE == 'U'
 int intro_Udp()
@@ -233,14 +233,14 @@ int intro_Udp()
     clipt=0;
     rxIpAddr = (uint32_t) Udp.remoteIP();
     rxPort = (unsigned int) Udp.remotePort();
-    //Serial.print(ipAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
+    //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.println(cliav);
     Udp.read(udpData,cliav);udpData[cliav]='\0';
     t1_01=micros();
     //Serial.println(udpData);
   }
   return cliav;
 }
-#endif
+#endif TXRX_MODE == 'U'
 
 int getHData(char* data,uint16_t* len)
 {
@@ -261,10 +261,10 @@ int getHData(char* data,uint16_t* len)
   if(etatImport==0){messLength=0;data[0]='\0';}
 
 #if TXRX_MODE == 'U'
-  if(clipt>=cliav){intro_Udp();}
+  if(clipt>=cliav){intro_Udp();}     // intro_Udp() charge un éventuel packet 
 #endif
   
-  if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected
+  if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected (does not happen in Udp mode)
   
   switch(etatImport){
     case 0: if(CLIAV>=introLength1){                                                  // attente intro et contrôle     

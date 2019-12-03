@@ -472,15 +472,11 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
     Serial.print("fdatasave>99!! ");Serial.print("fdatasave=");Serial.print(fdatasave);Serial.print(" strfds=");Serial.println(strfds);ledblink(BCODESYSERR);
   }
   char* pc;
-  //float th,np;
   int16_t th_;
   uint8_t np_;
   int lnp=0,nbli=0,nbth=0;
 
-  for(int pp=1;pp<=NBPERIF;pp++){periLoad(pp);*periThmin_=9900;*periThmax_=-9900;
-    Serial.print(pp);Serial.print(" ");Serial.print(*periThmin_);Serial.print(" ");Serial.println(*periThmax_);
-    periSave(pp,PERISAVELOCAL);
-  }
+  for(int pp=1;pp<=NBPERIF;pp++){periLoad(pp);*periThmin_=9900;*periThmax_=-9900;periSave(pp,PERISAVELOCAL);}
                                                                              
                                                                          // acquisition
   fhisto.seek(ptr-ldate);                                                // sur début enregistrement

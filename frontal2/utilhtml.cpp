@@ -174,7 +174,7 @@ void textTableHtml_(EthernetClient* cli,int16_t* valfonct,int16_t* valmin,int16_
       case 'g':cli->print(*(uint32_t*)valfonct);break;    
       default:break;}
 */
-  cli->print((float)*valfonct/100);  
+  cli->print(((float)*valfonct)/100);  
   cli->print("</font>");
   if(br==1){cli->print("<br>");}
   if(td==2 || td==3){cli->println("</td>");}

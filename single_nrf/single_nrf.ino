@@ -445,6 +445,7 @@ void loop() {
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
   //            update tLast (last unix date)
 
+
     int dt=importData(&tLast);
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
 #ifdef DIAG

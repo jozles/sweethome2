@@ -313,8 +313,6 @@ void setup() {                              // =================================
   
   sdInit();
   //sdCardGen();
-
-  dumpstr(periRec,16);
   
   periMaintenance();
   
@@ -331,9 +329,8 @@ void setup() {                              // =================================
   remoteLoad();   //remInit();
   timersLoad();   //timersInit();
   thermosLoad();
-dumpstr((char*)periThmin_,16);
   memDetLoad();   //memDetInit();
-dumpstr((char*)periThmin_,16);
+
 /* >>>>>> ethernet start <<<<<< */
 
   Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
@@ -384,7 +381,6 @@ dumpstr((char*)periThmin_,16);
   sdstore_textdh(&fhisto,".3","RE","<br>\n\0");
 
   Serial.println(">>>>>>>>> fin setup\n");
-  dumpstr((char*)periThmin_,16);
 }
 
 /* ================================== fin setup ================================= */
@@ -684,12 +680,12 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
   if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
     memcpy(periMacr,periMacBuf,6);
 #define PNP 2+1+17+1
-    k=valf+PNP;*periLastVal_=(int16_t)convStrToNum(k,&i)*100;     // température si save
+    k=valf+PNP;*periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
 #if PNP != SDPOSTEMP-SDPOSNUMPER
     periCur/=0;
 #endif     
     k+=i;convStrToInt(k,&i);                                      // age si save (inutilisé)
-    k+=i;*periAlim_=(int16_t)convStrToNum(k,&i)*100;              // alim
+    k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
     k+=i;strncpy(periVers,k,LENVERSION);                          // version
     k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);           // nbre sw
     k+=1; *periSwVal&=0xAA;for(int i=MAXSW-1;i>=0;i--){*periSwVal |= ((*(k+i)-48)&0x01)<< (2*(MAXSW-i)-2);}        // periSwVal états sw
@@ -701,16 +697,16 @@ void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRe
 
     if(memcmp(periVers,"1.h",3)>=0){
       for(i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}                     // valeur courante pulses
-//   k+=LENMODEL+1;//for(int i=MAXSW-1;i>=0;i--){if(*(k+i)=='1'){*periSwVal^(0x02<<(i*2));}} // toggle bits
-//   k+=MAXSW+1;
     }
-    memcpy(periIpAddr,remote_IP_cur,4);            //for(int i=0;i<4;i++){periIpAddr[i]=remote_IP_cur[i];}         // Ip addr
-    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);                      // maj dates
+    
+    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);         // maj dates
 #ifdef SHDIAGS    
     periPrint(periCur);
     Serial.print("periDataRead =");
 #endif    
     if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
+    memcpy(periIpAddr,remote_IP_cur,4);                                                                            // Ip addr
+    if(remote_Port!=0 && *periProtocol=='U'){*periPort=remote_Port;}                                               // port
     periSave(periCur,PERISAVESD);checkdate(6);
   }
 }
@@ -1427,7 +1423,7 @@ void udpPeriServer()
     
       rip = (uint32_t) Udp.remoteIP();
       memcpy(remote_IP,(char*)&rip+4,4);
-      remote_Port = (unsigned int) Udp.remotePort();
+      remote_Port = (uint16_t) Udp.remotePort();
       Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
       
       packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY

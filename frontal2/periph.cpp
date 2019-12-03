@@ -1045,8 +1045,7 @@ int memDetLoad()
     if(sdOpen(FILE_READ,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     fmemdet.seek(0);
     
-    for(uint8_t i=0;i<MDSLEN;i++){*(((byte*)&memDetServ)+i)=fmemdet.read();}
-dumpstr((char*)periThmin_,16);    
+    for(uint8_t i=0;i<MDSLEN;i++){*(((byte*)&memDetServ)+i)=fmemdet.read();}    
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){libDetServ[i][j]=fmemdet.read();}
     }
@@ -1059,7 +1058,7 @@ int memDetSave()
     Serial.print("Save detServ ");
     if(sdOpen(FILE_WRITE,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     fmemdet.seek(0);
-    for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*((&memDetServ)+i));}
+    for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*(((byte*)&memDetServ)+i));}
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){fmemdet.write(libDetServ[i][j]);}
     }

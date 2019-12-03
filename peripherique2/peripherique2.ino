@@ -46,7 +46,7 @@ Ds1820 ds1820;
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif DEVOLO
 
-  const char* host = HOSTIPADDR2;
+  const char* host = HOSTIPADDR2;   // HOSTIPADDR2 est une chaine de car donc de la forme "192.168.0.xxx"
   const int    port = PORTPERISERVER2; 
 
 WiFiClient cli;                 // client local du serveur externe (utilisé pour dataread/save)

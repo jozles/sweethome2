@@ -235,8 +235,8 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
             IPAddress udpAddress;
             memcpy((char*)(&udpAddress)+4,periIpAddr,4);
             Udp.beginPacket(udpAddress,*periPort);
-            /*Serial.print("sending (");Serial.print(strlen(data));Serial.print(")>");Serial.print(data);
-            Serial.print("< to ");Serial.print();Serial.print(":");Serial.println(port);*/
+            /*Serial.print("sending (");Serial.print(strlen(bufServer));Serial.print(")>");Serial.print(bufServer);
+            Serial.print("< to ");serialPrintIp(periIpAddr);Serial.print(":");Serial.println(*periPort);*/
             Udp.write(bufServer,strlen(bufServer));
             Udp.endPacket();
           }
