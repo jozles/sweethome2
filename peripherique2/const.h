@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.h_"
+#define VERSION "1.j_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -39,6 +39,11 @@
  *                                                 swAction corrigé
  *     extinction des PO_MODE et DS_MODE si alim insuffisante
  * 1.g ds18x00 passe en lib
+ * 1.h ?
+ * 1.j révision de la gestion des variables permanentes pour PO_MODE qui réinitialise à chaque démarrage
+ *     l'enregistrement des variables permanentes commence sur l'adresse de cstlen et non plus sur la structure cstRec 
+ *     (bugs possibles dans les autres modes)
+ *     correction conversion/delai conversion 200mS pour 0.25°
  *     
  * 
 Modifier : 
@@ -152,8 +157,8 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRDEV                   // <------------- modèle carte
-#define POWER_MODE NO_MODE            // <------------- type d'alimentation 
+#define CARTE THESP01                   // <------------- modèle carte
+#define POWER_MODE PO_MODE            // <------------- type d'alimentation 
 //#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 
 #if POWER_MODE==NO_MODE
@@ -335,9 +340,6 @@ Modifier :
 
 // timings
 
-#define TCONVERSIONB       500    // millis délai conversion temp
-#define TCONVERSIONS       500    // millis délai conversion temp
-
 #define PERSERVKO 7200/PERTEMP    // secondes période par défaut accès serveur si connexion wifi ko
 #define PERSERV   3600/PERTEMP    // secondes période max entre 2 accès server
 #define TOINCHCLI         4000    // msec max attente car server
@@ -349,7 +351,7 @@ Modifier :
 #define DETIMP            1000    // millis trig cde impulsionnelle
 
 typedef struct {
-  uint8_t   cstlen;               //  1
+  uint8_t   cstlen;               //  1   doit être la 1ère variable (adresse utilisée pour le calcul de longueur)
   byte      swCde;                //  1   2 bits par sw cde/état (*periSwVal) bits 8(sw4), 6(sw3), 4(sw2), 2(sw1)
   char      cstVers[LENVERSION];  //  4  
   char      cstModel[LENMODEL];   //  6
@@ -374,13 +376,13 @@ typedef struct {
   uint16_t  portServer;           //  2   port en mode serveur          
 #define LENFILLERCST 31
   byte      filler[LENFILLERCST]; //  
-  uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer sa position
-             // total 240 = 60 mots ; reste 256 dispo (sizeof(constantValues)=size(membres)+4)
+  uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer la longueur
+             // total 240 = 60 mots ; 256 maxi pour RTC
 } constantValues;
 
 #define STEPDATASAVE 6            // code pour talkstep de dataSave()
 
-#define LENRTC 252
+#define LENRTC 250
 
 
 

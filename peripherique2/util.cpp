@@ -49,17 +49,19 @@ char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                 
 void checkVoltage()
 {
       voltage=(float)ESP.getVcc()/(float)1024;
-      Serial.print(" ");Serial.print(voltage);Serial.print("V ");
+
 #if POWER_MODE != NO_MODE
       if(voltage<3.2){
 #if POWER_MODE == PO_MODE
-       digitalWrite(PINPOFF,HIGH);        // power down
-       pinMode(PINPOFF,OUTPUT);}
+        digitalWrite(PINPOFF,HIGH);        // power down
+        pinMode(PINPOFF,OUTPUT);
 #endif PO_MODE
 #if POWER_MODE == DS_MODE
-       deepsleep(0);}
-#endif DS_MODE        
+        deepsleep(0);
+#endif DS_MODE
+      }        
 #endif NO_MODE
+      Serial.print(" ");Serial.print(voltage);Serial.print("V ");
 }
 
 void trigTemp(){startto(&tempTime,&tempPeriod,cstRec.tempPer);}
@@ -73,11 +75,12 @@ bool readConstant()
 #if CONSTANT==RTCSAVED
   int temp=CONSTANTADDR;
   byte buf[4];
-  system_rtc_mem_read(temp,cstRecA,cstRec.cstlen);  
+  system_rtc_mem_read(temp,&cstRec.cstlen,1);         // charge cstlen
+  system_rtc_mem_read(temp,cstRecA,cstRec.cstlen);    // charge la totalité
 #endif
 
 #if CONSTANT==EEPROMSAVED
-  cstRec.cstlen=EEPROM.read((int)(CONSTANTADDR));  // charge la longueur telle qu'enregistrée
+  cstRec.cstlen=EEPROM.read((int)(CONSTANTADDR));     // charge la longueur telle qu'enregistrée
   for(int temp=0;temp<cstRec.cstlen;temp++){        
     *(cstRecA+temp)=EEPROM.read((int)(temp+CONSTANTADDR));
   }
@@ -88,7 +91,7 @@ Serial.print("/");Serial.print((uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1);
 Serial.print(" crc=");Serial.print(*(cstRecA+cstRec.cstlen-1),HEX);Serial.print(" calc_crc=");
 byte calc_crc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1);Serial.println(calc_crc,HEX);
 //dumpstr((char*)cstRecA,256);
-if(*(cstRecA+cstRec.cstlen-1)==calc_crc){return 1;}
+if(*(cstRecA+cstRec.cstlen-1)==calc_crc && cstRec.cstlen==LENRTC){return 1;}
 return 0;
 }
 
@@ -121,8 +124,8 @@ Serial.print(" numperiph=");Serial.print((char)cstRec.numPeriph[0]);Serial.print
 
 void initConstant()  // inits mise sous tension
 {
-  //cstRec.cstlen=(uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1;    //sizeof(cstRec);
-  cstRec.cstlen=(sizeof(constantValues));  // si le crc est faux, retour à la valeur par défaut
+  cstRec.cstlen=(uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1;  
+  //cstRec.cstlen=(sizeof(constantValues));  // si le crc est faux, retour à la valeur par défaut
   memcpy(cstRec.numPeriph,"00",2);
   cstRec.serverTime=PERSERV+1;             // forçage talkserver à l'init
   cstRec.serverPer=PERSERV;

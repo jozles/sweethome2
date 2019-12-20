@@ -32,7 +32,7 @@ Ds1820 ds1820;
 
   const char* ssid;
   const char* password;
-#define DEVOLO  
+//#define DEVOLO  
 #ifdef DEVOLO
   const char* ssid2= "pinks";
   const char* password2 = "cain ne dormant pas songeait au pied des monts";
@@ -46,17 +46,16 @@ Ds1820 ds1820;
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif DEVOLO
 
-  const char* host = HOSTIPADDR2;   // HOSTIPADDR2 est une chaine de car donc de la forme "192.168.0.xxx"
-  const int    port = PORTPERISERVER2; 
+  const char* host = HOSTIPADDR;   // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
+  const int   port = PORTPERISERVER; 
 
 WiFiClient cli;                 // client local du serveur externe (utilisé pour dataread/save)
 WiFiClient cliext;              // client externe du serveur local
 
 #ifdef  _SERVER_MODE
 WiFiServer server(8888);
-#endif  _SERVER
-
   String headerHttp;
+#endif  _SERVER
 
   char* srvpswd=PERIPASS;
   byte  lsrvpswd=LPWD;
@@ -105,7 +104,7 @@ WiFiServer server(8888);
 
 constantValues cstRec;
 
-char* cstRecA=(char*)&cstRec;
+char* cstRecA=(char*)&cstRec.cstlen;
 
   float voltage=0; // tension alim
   
@@ -163,6 +162,10 @@ delay(1);
   pinMode(PINPOFF,OUTPUT);
 #endif PM==PO_MODE
 
+  Serial.begin(115200);
+  Serial.println("\n");
+  checkVoltage();                   // power off au plus vite si tension insuffisante (no serial)
+
   pinMode(PINLED,OUTPUT);
 
 #if CARTE==VR || CARTE==VRR || CARTE==VRDEV
@@ -210,37 +213,40 @@ delay(1);
 
 /* >>>>>> debut <<<<<< */
 
-  Serial.begin(115200);delay(20);
-
+  Serial.print(" Slave 8266 ");
 #ifdef _MODE_DEVT
-  Serial.print("\nSlave 8266 _MODE_DEVT");
+  Serial.print("MODE_DEVT ");
 #endif _MODE_DEVT
 
-  Serial.print("\n\n");Serial.print(VERSION);Serial.print(" power_mode=");Serial.print(POWER_MODE);
+  Serial.print(VERSION);Serial.print(" power_mode=");Serial.print(POWER_MODE);
   Serial.print(" carte=");Serial.print(CARTE);
   
-  checkVoltage();
+
 
 /* >>>>>> gestion ds18x00 <<<<<< */
 
- byte setds[4]={0,0x7f,0x80,0x3f},readds[8];   // 187mS 10 bits accu 0,25°
- int v=ds1820.setDs(WPIN,setds,readds);if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.println();}
+#define TCONVERSIONB       200    // millis délai conversion temp
+#define TCONVERSIONS       200    // millis délai conversion temp
+
+ byte setds[4]={0,0x7f,0x80,0x3f},readds[8];   // 187mS 10 bits accu 0,25° si changement controler TCONVERSION
+ int v=ds1820.setDs(WPIN,setds,readds);
+ if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.println();}
  else {Serial.print(" DS1820 error ");Serial.println(v);}
   tconversion=TCONVERSIONB;if(readds[0]==0X10){tconversion=TCONVERSIONS;}
-
   
 #if POWER_MODE==NO_MODE
   ds1820.convertDs(WPIN);
   delay(tconversion);
 #endif PM==NO_MODE
 #if POWER_MODE==PO_MODE
-  ds1820.convertDs(WPIN);delay(tconversion);ds1820.convertDs(WPIN);
+  //ds1820.convertDs(WPIN);delay(250);
   debConv=millis();
+  ds1820.convertDs(WPIN); // readTemp() attend la fin de la conversion
 #endif PM==PO_MODE
 
 #if POWER_MODE==DS_MODE
 /* si pas sortie de deep sleep faire une conversion 
-   et initialiser les variables permanentes */
+   et initialiser les variables permanentes sinon les variables permanentes sont supposées valides */
   rst_info *resetInfo;
   resetInfo = ESP.getResetInfoPtr();
   Serial.print("\nresetinfo ");Serial.println(resetInfo->reason);
@@ -258,17 +264,18 @@ delay(1);
 #endif
 
 #if POWER_MODE!=DS_MODE
-/* si le crc des variables permanentes est faux, initialiser
-   et lancer une conversion */
-  cstRec.cstlen=(sizeof(constantValues));            // len par défaut de l'enregistrement
-  if(cstRec.cstlen!=LENRTC){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){};}
-  if(!readConstant()){initConstant();}
+/* si erreur sur les variables permanentes (len ou crc faux), initialiser et lancer une conversion */
+  //la longueur est chargée depuis le 1er car de l'enregistrement ; si fausse ou crc faux readConstant renvoie 0
+  if(!readConstant()){    
+    initConstant();
+    if(cstRec.cstlen!=LENRTC){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){};} // blocage param faux, le programme a changé
+    }
 #endif PM!=DS_MODE
 
   Serial.print("CONSTANT=");Serial.print(CONSTANT);Serial.print(" time=");Serial.print(millis()-debTime);Serial.println(" ready !");
   yield();
   printConstant();
-delay(100);
+delay(20);
 
 #if POWER_MODE==NO_MODE
 
@@ -384,16 +391,18 @@ delay(100);
   #if POWER_MODE==DS_MODE
   /* deep sleep */
     Serial.println(" deep sleep");
-    delay(100);
+    delay(10);
     system_deep_sleep_set_option(4);
     ESP.deepSleep(cstRec.tempPer*1e6); // microseconds
+    while(1){delay(1000);};
   #endif PM==DS_MODE
   #if POWER_MODE==PO_MODE
   /* power off */
     Serial.println(" power down");
-    delay(100);
+    delay(10);
     digitalWrite(PINPOFF,HIGH);        // power down
     pinMode(PINPOFF,OUTPUT);
+    while(1){delay(1000);};
   #endif PM==PO_MODE
 
   yield();
@@ -916,7 +925,7 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
 
       tempAge=millis()/1000;
       Serial.print("temp ");Serial.print(temp);
-      checkVoltage();
+      checkVoltage();             
       Serial.println();
       
 /* temp (suffisament) changée ? */
