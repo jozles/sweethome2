@@ -312,11 +312,19 @@ void selectTableHtml(EthernetClient* cli,char* val,char* ft,int nbre,int len,int
 void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib)
 {
   if(td==1 || td==2){cli->print("<td>");}
-  cli->print("<input type=\"checkbox\" name=\"");cli->print(nomfonct);cli->print("\" id=\"cb1\" value=\"1\"");
-  if((*val & 0x01)!=0){cli->print(" checked");}
-  cli->print(">");cli->print(lib);
-  //cli->print("<label for=\"cb1\">");cli->print(lib);cli->print("</label>");
-  if(etat>=0 && !(*val & 0x01)){etat=2;}
+//  if(etat!=0){
+    cli->print("<input type=\"checkbox\" name=\"");cli->print(nomfonct);cli->print("\" id=\"cb1\" value=\"1\"");
+    if((*val & 0x01)!=0){cli->print(" checked");}
+    cli->print(">");cli->print(lib);
+    //cli->print("<label for=\"cb1\">");cli->print(lib);cli->print("</label>");
+  /*}
+  if(etat==0){
+    if (*val==0) {
+      cli->println("<p><a href=\"/B/on\"><button class=\"button\">ON</button></a></p>");} 
+    else {
+      cli->println("<p><a href=\"/B/off\"><button class=\"button button2\">OFF</button></a></p>");} 
+  }*/
+  if(etat>0 && !(*val & 0x01)){etat=2;}
       switch(etat){
         case 2 :cli->print("___");break;
         case 1 :cli->print("_ON");break;
@@ -326,6 +334,7 @@ void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,
   if(td==1 || td==3){cli->print("</td>");}
   cli->println();
 }
+
 
 void subDSn(EthernetClient* cli,char* fnc,uint32_t val,uint8_t num,char* lib) // checkbox transportant 1 bit 
                                                                     // num le numéro du bit dans le mot

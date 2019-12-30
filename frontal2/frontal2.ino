@@ -455,7 +455,7 @@ void scanThermos()                                                        // pos
       uint8_t per=(uint8_t)thermos[th].peri;
       if(per!=0){
         periLoad(per);
-        if( thermos[th].lowenable && *periLastVal_<=thermos[th].lowvalue){                                                         // set low  (tjrs on si<ref)
+        if( thermos[th].lowenable && *periLastVal_<=thermos[th].lowvalue){                                                        // set low  (tjrs on si<ref)
           thermos[th].lowstate=1;
         }
         else if( thermos[th].lowenable && *periLastVal_>(thermos[th].lowvalue+(thermos[th].lowoffset*thermos[th].lowstate))){     // clr low si > ref+offset*etat prec
@@ -463,18 +463,18 @@ void scanThermos()                                                        // pos
         }
         detSta[thermos[th].lowdetec]+=thermos[th].lowstate;
         
-        if( thermos[th].highenable && *periLastVal_>=thermos[th].highvalue){                                                       // set high (tjrs on si>ref)
+        if( thermos[th].highenable && *periLastVal_>=thermos[th].highvalue){                                                      // set high (tjrs on si>ref)
           thermos[th].highstate=1;
         }
         else if(thermos[th].highenable && *periLastVal_<(thermos[th].highvalue-thermos[th].highoffset*thermos[th].highstate)){    // clr high si < ref+offset*etat prec
           thermos[th].highstate=0;
         }
         detSta[thermos[th].highdetec]+=thermos[th].highstate;
-Serial.print(th);Serial.print(" ");Serial.print(per);Serial.print(" ");Serial.print(*periLastVal_);Serial.print(" ");Serial.print(thermos[th].lowenable);Serial.print(" ");
-Serial.print(thermos[th].lowstate);Serial.print(" ");Serial.print(thermos[th].lowvalue);Serial.print(" ");Serial.print(thermos[th].lowdetec);Serial.print(" ");Serial.println(detSta[thermos[th].lowdetec]);
+//Serial.print(th);Serial.print(" ");Serial.print(per);Serial.print(" ");Serial.print(*periLastVal_);Serial.print(" ");Serial.print(thermos[th].lowenable);Serial.print(" ");
+//Serial.print(thermos[th].lowstate);Serial.print(" ");Serial.print(thermos[th].lowvalue);Serial.print(" ");Serial.print(thermos[th].lowdetec);Serial.print(" ");Serial.println(detSta[thermos[th].lowdetec]);
       }      
     }
-Serial.println();
+//Serial.println();
 
     /* maj détecteurs, tablePerToSend, peripheriques */
     char onoff[]="O\0I";
@@ -482,15 +482,15 @@ Serial.println();
     for(det=0;det<NBDSRV;det++){
 
       if(detLst[det]!=0){
-        Serial.print(det);Serial.print(" ");Serial.print(detSta[det]);Serial.print(" ");memDetPrint();
+        //Serial.print(det);Serial.print(" ");Serial.print(detSta[det]);Serial.print(" ");memDetPrint();
         if(detSta[det]!=0){detSta[det]=1;}
         mds=0;
         if((memDetServ & mDSmaskbit[det])!=0){mds=1;}
-        if((detSta[det] ^ mds)!=0){                                                   // change
+        if((detSta[det] ^ mds)!=0){                                                   // change ?
           poolperif(tablePerToSend,det,&onoff[detSta[det]*2]);              
           memDetServ = memDetServ ^ mDSmaskbit[det];
         }
-        Serial.print(det);Serial.print(" ");Serial.print(detSta[det]);Serial.print(" ");memDetPrint();
+        //Serial.print(det);Serial.print(" ");Serial.print(detSta[det]);Serial.print(" ");memDetPrint();
       }
     }
     perToSend(tablePerToSend,thermosTime);
@@ -579,8 +579,31 @@ void scanTimers()                                             //   recherche tim
     }
 }
 
+void sser(uint8_t det,uint8_t old)
+{
+  uint32_t msk=mDSmaskbit[det];                                                                        
+  uint32_t mem=memDetServ & msk;                                            // current detec value
+  if(old==1){memDetServ |= msk;}                                            // set bit (1)
+  else {memDetServ &= ~msk;}                                                // clr bit (0)
+  if((memDetServ & msk) != mem){                                            // detec chge => poolperif
+    poolperif(tablePerToSend,det," ");}                                     // si le détecteur est utilisé dans un périf, ajout du périf dans tablePerRoSend
+}
 
-void periRemoteUpdate()                        //   recherche remote ayant changé d'état (onoff!=newonoff)
+void exploRemote(uint8_t nbr,char oe,bool* old,bool* nou)
+{  
+  if(*old+*nou==1){                                                        // changement d'état de la remote ?            
+    Serial.print("\n     chgt ");
+    *old=*nou;*nou=0;
+    for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                                  // recherche des détecteurs utilisés dans la remote
+      if(remoteT[nbd].num==nbr+1){                                          // détecteur concerné ? (utilisé pour la remote courante)
+        if(oe=='o'){sser(remoteT[nbd].detec,*old);}                         // changement d'état du détecteur on/off ? 
+        if(oe=='e'){sser(remoteT[nbd].deten,*old);}                         // changement d'état du détecteur enable ? 
+      }
+    }
+  }  
+}
+
+void periRemoteUpdate()                        //   recherche remote ayant changé d'état (onoff!=newonoff ou enable!=newenable)
                                                //     polling table des détecteurs pour trouver les détecteurs concernés
                                                //     màj de memDetServ et poolperif() pour trouver les périf concernés et charger tablePerToSend
 {  
@@ -589,14 +612,23 @@ void periRemoteUpdate()                        //   recherche remote ayant chang
   Serial.println("periRecRemoteUpdate() ");
 
   for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){                                            // boucle des remotes
-    Serial.print("nbr=");Serial.print(nbr);Serial.print("  on/off=");Serial.print(remoteN[nbr].onoff);Serial.print(" new on/off=");Serial.print(remoteN[nbr].newonoff);
-    if(remoteN[nbr].onoff + remoteN[nbr].newonoff==1){                              // remote changée
+    Serial.print("nbr=");Serial.print(nbr);
+    Serial.print("  on/off=");Serial.print(remoteN[nbr].onoff);Serial.print(" new on/off=");Serial.print(remoteN[nbr].newonoff);
+    Serial.print("  enable=");Serial.print(remoteN[nbr].enable);Serial.print(" new enable=");Serial.print(remoteN[nbr].newenable);
+
+    exploRemote(nbr,'o',&remoteN[nbr].onoff,&remoteN[nbr].newonoff);         // le on/off de la remote a-til changé et les détecteurs associés aussi ?
+    exploRemote(nbr,'e',&remoteN[nbr].enable,&remoteN[nbr].newenable);       // le enable de la remote a-til changé et les détecteurs associés aussi ?    
+/*    if((remoteN[nbr].onoff + remoteN[nbr].newonoff==1)||remoteN[nbr].enable + remoteN[nbr].newenable==1){     // remote changée
       Serial.print(" chgt ");
       remoteN[nbr].onoff=remoteN[nbr].newonoff;
       remoteN[nbr].newonoff=0;
-      for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                                        // boucle table des détecteurs utilisés dans les remotes
+      remoteN[nbr].enable=remoteN[nbr].enable;
+      remoteN[nbr].newenable=0;
+      
+      for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                                        // boucle recherche des détecteurs utilisés dans les remotes
         //Serial.print(nbd);Serial.print(" num_rem=");Serial.print(remoteT[nbd].num);Serial.print(" num_det=");Serial.print(remoteT[nbd].detec);
-        if(remoteT[nbd].num==nbr+1){                                                // détecteur concerné (il est utilisé pour la remote courante)
+        if(remoteT[nbd].num==nbr+1){                                                // détecteurs concernés (sont utilisés pour la remote courante)
+                                                                                    // l'exploration est faite pour les 2 détecteurs... on ne sait pas lequel a changé
           uint32_t msk=mDSmaskbit[remoteT[nbd].detec];                                                                        
           uint32_t mem=memDetServ & msk;                                            // current detec value
           //Serial.print(" msk=");dumpfield((char*)&msk,4);Serial.print(" onoff=");Serial.print(remoteN[nbr].onoff);
@@ -609,6 +641,7 @@ void periRemoteUpdate()                        //   recherche remote ayant chang
         }
       }
     }
+*/
   Serial.println();
   }
   remoteSave();
@@ -627,6 +660,7 @@ void periDetecUpdate()                              // détecteurs serveur - upd
       of=3;if(memDetServ&mDSmaskbit[ds]!=0){of=0;}
       poolperif(tablePerToSend,ds,&onoff[of]);}}                      // et si utilisé dans un périf, ajout du périf dans tablePerRoSend
 }
+
 /*
 void checkdate(uint8_t num)                                           // détection des dates invalides (en général défaut de format des messages)
 {
@@ -636,86 +670,6 @@ void checkdate(uint8_t num)                                           // détect
   }
 }
 
-void periDataRead()             // traitement d'une chaine "dataSave" ou "dataRead" en provenance d'un periphérique 
-                                // periInitVar() a été effectué
-                                // controle len,CRC, charge periCur (N° périf du message), effectue periLoad()
-                                // gère les différentes situations présence/absence/création de l'entrée dans la table des périf
-                                // transfère adr mac du message reçu (periMacBuf) vers periRec (periMacr)                                
-                                // retour periMess=MESSOK -> periCur valide, periLoad effectué, tfr données dataRead effectué
-                                //        periMess=MESSFULL -> plus de place libre
-                                //        periMess autres valeurs retour de checkData
-{
-  int i=0;
-  char* k;
-  uint8_t c=0;
-  int ii=0;
-  int perizer=0;
-
-  periCur=0;
-                        // check len,crc
-  periMess=checkData(valf);if(periMess!=MESSOK){periInitVar();return;}         
-  
-                        // len,crc OK
-  valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
-  
-  if(periCur!=0){                                                 // si le périph a un numéro, ctle de l'adr mac
-    periLoad(periCur);
-    if(memcmp(periMacBuf,periMacr,6)!=0){periCur=0;}}
-    
-  if(periCur==0){                                                 // si periCur=0 recherche si mac connu   
-    for(i=1;i<=NBPERIF;i++){                                      // et, au cas où, une place libre
-      periLoad(i);
-      if(compMac(periMacBuf,periMacr)){
-        periCur=i;i=NBPERIF+1;
-        Serial.println(" DataRead/Save Mac connu");
-      }                                                                         // mac trouvé
-      if(memcmp("\0\0\0\0\0\0",periMacr,6)==0 && perizer==0){
-        perizer=i;
-        Serial.println(" DataRead/Save place libre");
-      }        // place libre trouvée
-    }
-  }
-    
-  if(periCur==0 && perizer!=0){                                   // si pas connu utilisation N° perif libre "perizer"
-      Serial.println(" DataRead/Save Mac inconnu");
-      periInitVar();periCur=perizer;periLoad(periCur);
-      periMess=MESSFULL;
-  }
-
-  if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
-    memcpy(periMacr,periMacBuf,6);
-#define PNP 2+1+17+1
-    k=valf+PNP;*periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
-#if PNP != SDPOSTEMP-SDPOSNUMPER
-    periCur/=0;
-#endif     
-    k+=i;convStrToInt(k,&i);                                      // age si save (inutilisé)
-    k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
-    k+=i;strncpy(periVers,k,LENVERSION);                          // version
-    k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);           // nbre sw
-    k+=1; *periSwVal&=0xAA;for(int i=MAXSW-1;i>=0;i--){*periSwVal |= ((*(k+i)-48)&0x01)<< (2*(MAXSW-i)-2);}        // periSwVal états sw
-    k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                       // nbre detec
-    k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}  // détecteurs
-    k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}          // pulse clk status 
-    k+=NBPULSE+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                             // model
-    k+=LENMODEL+1;
-
-    if(memcmp(periVers,"1.h",3)>=0){
-      for(i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}                     // valeur courante pulses
-    }
-    
-    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);         // maj dates
-#ifdef SHDIAGS    
-    periPrint(periCur);
-    Serial.print("periDataRead =");
-#endif    
-    if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
-    memcpy(periIpAddr,remote_IP_cur,4);                                                                            // Ip addr
-    if(remote_Port!=0 && *periProtocol=='U'){*periPort=remote_Port;}                                               // port
-    periSave(periCur,PERISAVESD);checkdate(6);
-  }
-}
-*/
 /* ================================ decodage ligne GET/POST ================================ */
 
 void cliWrite(EthernetClient* cli,char* data)
@@ -1262,15 +1216,22 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                             case 'o': remoteN[nb].onoff=*valf-48;break;                                 // (remotecf) on on/off remote courante
                             case 'u': remoteT[nb].num=*valf-48;                                         // (remotecf) un N° remote table sw
                                       remoteT[nb].enable=0;break;                                       // (remotecf) effacement cb
-                            case 'd': remoteT[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur
-                                      if(remoteT[nb].detec>NBDSRV){remoteT[nb].detec=NBDSRV;}break;       
-                            case 'x': remoteT[nb].enable=*valf-48;break;                                // (remotecf) xe enable table sw
+                            case 'd': remoteT[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off
+                                      if(remoteT[nb].detec>NBDSRV){remoteT[nb].deten=NBDSRV;}break; 
+                            case 'b': remoteT[nb].deten=convStrToInt(valf,&j);                          // (remotecf) n° detecteur enable
+                                      if(remoteT[nb].deten>NBDSRV){remoteT[nb].deten=NBDSRV;}break;                                             
+                            //case 'x': remoteT[nb].enable=*valf-48;break;                                // (remotecf) xe enable table sw !!!! remplacé par 'b' !!!!
                             default:break;
                           }
                        }break;
               case 53: what=9;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // submit depuis remoteHtml (cdes on/off)
-                       if((char)*(libfonctions+2*i)=='n'){remoteN[nb].newonoff=0;}                      // (remote_cn) effacement cb
-                       else {remoteN[nb].newonoff=1;}                                                   // (remote_ct) check cb
+                        switch(*(libfonctions+2*i)){                                               
+                            case 'n': remoteN[nb].newonoff=0;break;                                     // (remote_cn) effacement cb on/off
+                            case 't': remoteN[nb].newonoff=1;break;                                     // (remote_ct) check cb on/off
+                            case 'm': remoteN[nb].newenable=0;break;                                    // (remote_cm) effacement cb enable
+                            case 's': remoteN[nb].newenable=1;break;                                    // (remote_cs) check cb enable
+                            default:break;
+                          }
                        }break;                                                                       
               case 54: Serial.println("remoteHtml()");remoteHtml(&cli);break;                           // remotehtml
               case 55: break;                                                                           //                            *************** dispo

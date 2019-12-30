@@ -163,7 +163,8 @@
 struct SwRemote
 {
   uint8_t  num;           // remote number
-  uint8_t  detec;         // detecteur
+  uint8_t  detec;         // detecteur on/off
+  uint8_t  deten;         // detecteur enable
   bool     enable;        // remote enable
 };
 
@@ -171,8 +172,10 @@ struct Remote
 {
   char    nam[LENREMNAM]; // remote name
   bool    onoff;          // remote on/off
-  bool    enable;         // remote enable
   bool    newonoff;       // buffer pour reception et traitement cb par GET /
+  bool    enable;         // remote enable
+  bool    newenable;      // buffer pour reception et traitement cb par GET /  
+
 };
 
 #define NBTIMERS     8

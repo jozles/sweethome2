@@ -3,8 +3,7 @@
 
 void dumpsd(EthernetClient* cli);
 int  dumpsd0(EthernetClient* cli);
-void htmlIntro0(EthernetClient* cli);
-void htmlIntro(char* titre,EthernetClient* cli);
+void intro(EthernetClient* cli);
 void cfgServerHtml(EthernetClient* cli);
 void cfgRemoteHtml(EthernetClient* cli);
 void cfgThermosHtml(EthernetClient* cli);

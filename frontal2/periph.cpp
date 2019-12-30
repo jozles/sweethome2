@@ -853,6 +853,7 @@ void remPrint(uint8_t num)
 {
   Serial.print("   ");Serial.print(num);Serial.print("/");Serial.print(remoteT[num].num);Serial.print(" ");
   Serial.print(remoteT[num].detec);Serial.print(" ");
+  Serial.print(remoteT[num].deten);Serial.print(" ");
   Serial.print(remoteT[num].enable);Serial.print(" ");
   Serial.println();
 }
@@ -882,6 +883,7 @@ int remLoad(char* remF,uint16_t remL,char* remA)
 int remSave(char* remF,uint16_t remL,char* remA)
 {
     Serial.print("Save ");Serial.print(remF);
+    SD.remove(remF);
     if(sdOpen(FILE_WRITE,&fremote,remF)==SDKO){Serial.println(" KO");return SDKO;}
     fremote.seek(0);
     for(uint16_t i=0;i<remL;i++){fremote.write(*(remA+i));}             
@@ -894,12 +896,14 @@ void remInit()
     for(int nb=0;nb<MAXREMLI;nb++){
       remoteT[nb].num=0;
       remoteT[nb].detec=0;
+      remoteT[nb].deten=0;
       remoteT[nb].enable=0;
     }
 
     for(int nb=0;nb<NBREMOTE;nb++){
       memset(remoteN[nb].nam,'\0',LENNOM);
       remoteN[nb].enable=0;
+      remoteN[nb].newenable=0;
       remoteN[nb].onoff=0;
       remoteN[nb].newonoff=0;
     }
@@ -1056,6 +1060,7 @@ int memDetLoad()
 int memDetSave()
 {
     Serial.print("Save detServ ");
+    SD.remove(MEMDETFNAME);
     if(sdOpen(FILE_WRITE,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     fmemdet.seek(0);
     for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*(((byte*)&memDetServ)+i));}

@@ -328,7 +328,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
             cli->println("<table>");
               cli->println("<tr>");
-              cli->println("<th>  </th><th>remote </th><th>detec </th><th>en</th>");
+              cli->println("<th>  </th><th>remote </th><th>detec on/off</th><th>detec en</th>");
               cli->println("</tr>");
               
               for(int nb=0;nb<MAXREMLI;nb++){
@@ -339,17 +339,24 @@ void cfgRemoteHtml(EthernetClient* cli)
                 numTableHtml(cli,'b',&remoteT[nb].num,nf,1,2,0);
                 if(remoteT[nb].num!=0){cli->print(remoteN[remoteT[nb].num-1].nam);}cli->println(" </td>");
 
-                memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° detec
+                memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° detec on/off
                 numTableHtml(cli,'b',&remoteT[nb].detec,nf,2,2,0);
                 if(remoteT[nb].num!=0){
                   cli->print((char*)(&libDetServ[remoteT[nb].detec][0]));cli->print(" ");
                   cli->print((char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}
                 cli->println(" </td>");
-                
+
+                memcpy(nf,"remotecfb_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° detec enable
+                numTableHtml(cli,'b',&remoteT[nb].deten,nf,2,2,0);
+                if(remoteT[nb].num!=0){
+                  cli->print((char*)(&libDetServ[remoteT[nb].deten][0]));cli->print(" ");
+                  cli->print((char)(((memDetServ>>remoteT[nb].deten)&0x01)+48));}
+                cli->println(" </td>");
+/*                
                 memcpy(nf,"remotecfx_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
                 uint8_t ren=(uint8_t)remoteT[nb].enable;
                 checkboxTableHtml(cli,&ren,nf,-1,1,"");         
-                
+*/                
                 cli->println("</tr>");
               }
               
@@ -381,6 +388,8 @@ void remoteHtml(EthernetClient* cli)
                 
                 cli->print("<td>");cli->print(nb+1);cli->println("</td>");
                 cli->print("<td>");
+                cli->print(" <font size=\"7\">");cli->print(remoteN[nb].nam);cli->println("</font></td>");
+                // slider on/off
                 // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
                 // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
                 // l'input remote_ctx renseigne le passage à 1 éventuel après l'effacement. La variable newonoff stocke le résultat
@@ -388,14 +397,16 @@ void remoteHtml(EthernetClient* cli)
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
                 cli->print("<input type=\"hidden\" name=\"remote_cn");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
-                cli->print(" <font size=\"7\">");cli->print(remoteN[nb].nam);cli->println("</font></td>");
+                sliderHtml(cli,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);
 
-                sliderHtml(cli,(uint8_t*)(&remoteN[nb].onoff),"remote_ctl",nb,0,1);
+                // slider enable idem slider on/off
+                cli->print("<input type=\"hidden\" name=\"remote_cm");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
+                sliderHtml(cli,(uint8_t*)(&remoteN[nb].enable),"remote_cs",nb,0,1);                
                 
-                uint8_t ren=(uint8_t)remoteN[nb].enable;
-                char nf[LENNOM+1]="remote_xe_";nf[LENNOM-1]=(char)(nb+PMFNCHAR);
+/*                uint8_t ren=(uint8_t)remoteN[nb].enable;
+                char nf[LENNOM+1]="remote_xe_";nf[LENNOM-1]=(char)(nb+PMFNCHAR);                
                 checkboxTableHtml(cli,&ren,nf,-1,1,"");
-                            
+*/                
                 cli->println("</tr>");
               }
             }
