@@ -119,6 +119,8 @@ bool     hv=false;    // if true hvv value valid (from hexval)
 uint32_t hvv;
 bool     disp=false;
 bool     contsingle=false;
+unsigned long durat0;
+unsigned long durat1;
 
 #define MAXREFV 250   // max shunt voltage mV
 
@@ -130,6 +132,7 @@ float    current;
 float    cumul;       // pour calcul moyenne
 float    mini,maxi;
 uint32_t kdly=0x0000FF;   // delay entre lectures (commande 'k')
+bool     gain5=false;
 
 
 /* prototypes */
@@ -192,7 +195,7 @@ void setup() {
 
 void menu()
 {
-  Serial.println("d display ; k cont single ; c conversion ; s stop ; f filter ; o instant ; r registers ; C config ; S status ; M mask ; v value ");
+  Serial.println("d display ; k cont single ; c conversion ; s stop ; f filter ; o instant ; r registers ; C config ; S status ; M mask ; Y Cycles ; v value ");
 }
 
 uint32_t dispBuf(byte* data)
@@ -226,19 +229,24 @@ void loop() {
       cs5550RegRead(SS,STATUS,csStatus);      
       cs5550RegRead(SS,AIN1OUT,data);
       if((csStatus[0]&0x80)==0){
+        hexPrint24(csStatus);Serial.println();
         cs5550RegWrite(SS, STATUS,0x7fffff);
       }
       else {
-        delay(10);  // visu scope
+        durat1=micros();
+        //delay(10);  // visu scope
         cs5550RegRead(SS,AIN1FIL,filtd);
         cs5550RegWrite(SS, STATUS,0xffffff);
         cs5550Command(SS,STARTS);
-        
+
+        Serial.print(durat1-durat0);Serial.print(" ");
+        durat0=durat1;
         valueNb++;
         Serial.print(valueNb);Serial.print(" ");
         
         ain1f=dispBuf(filtd);
         current=(float)(ain1f*MAXREFV)/0x3fffff;  //mV
+        if(gain5){current/=5;}
         
         if(valueNb>10){
           cumul+=current;
@@ -248,7 +256,7 @@ void loop() {
           printFloat(current);
           printFloat(mini);
           printFloat(maxi);
-          printFloat(cumul/valueNb);
+          printFloat(cumul/(valueNb-10));
         }
         Serial.println(); 
       }
@@ -328,15 +336,21 @@ void loop() {
 
       case 'S': if(hv){cs5550RegWrite(SS, STATUS,hvv);cs5550ShowReg();menu();hv=false;}break;
 
-      case 'C': if(hv){cs5550RegWrite(SS, CONFIG,hvv);cs5550ShowReg();menu();hv=false;}break;
+      case 'C': if(hv){cs5550RegWrite(SS, CONFIG,hvv);hv=false;
+                  if(((hvv>>16)&0x000000FF)!=0){gain5=true;}
+                  else gain5=false;
+                  cs5550ShowReg();menu();
+                }break;
 
       case 'M': if(hv){cs5550RegWrite(SS, MASK,hvv);cs5550ShowReg();menu();hv=false;}break;
 
+      case 'Y': if(hv){cs5550RegWrite(SS, CYCCOUNT,hvv);cs5550ShowReg();menu();hv=false;}break;
+      
       case 'v': getData(hexval);hexPrint24(hexval);hvv=uint32conv(hexval);hv=true;
                 Serial.print(" ");
                 Serial.println();break;
       
-      case 'y': if(hv){kdly=hvv;}hv=false;break;
+      case 'p': if(hv){kdly=hvv;}hv=false;break;
       
       default: break;
     }
@@ -390,7 +404,7 @@ void cs5550Command(uint8_t ss, uint8_t cd)
 
 void cs5550ShowReg()
 {
-  Serial.print("disp/conv/filt;kdly ");Serial.print(disp);Serial.print(conv);Serial.print(filt);Serial.print(";");Serial.println(kdly);
+  Serial.print("disp/conv/filt/gain5;kdly ");Serial.print(disp);Serial.print(conv);Serial.print(filt);Serial.print(gain5);Serial.print(";");Serial.println(kdly);
   for(int r=0;r<NBREG;r++){
     Serial.print(r);Serial.print(" ");
     if(r<10){Serial.print(' ');}
