@@ -48,6 +48,10 @@
  * 
 Modifier : 
 
+  en deepsleep 10uA+1uA ds18x20 =11uA de consommation de fond ; 
+  une mesure de 2mS*80mA toutes les 2 minutes (conversion pendant sleep)=1,3uA
+  une transmission 50 fois par jour (@6sec connexion)=650uA ; tester si la connexion est plus rapide en deepsleep
+
   généraliser l'automate de séquencement pour la totalité du périphérique : aucune attente ni délai ; création d'une fonction de reprise qui
   stocke l'adresse de la fonction suite du traitement en cours et le délai et time out d'attente pour l'executet.
   

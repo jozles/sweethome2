@@ -158,12 +158,13 @@ delay(1);
 /* >>>>>> pins Init <<<<<< */
 
 #if POWER_MODE==PO_MODE
+  wifi_set_sleep_type(LIGHT_SLEEP_T);
   digitalWrite(PINPOFF,LOW);
   pinMode(PINPOFF,OUTPUT);
 #endif PM==PO_MODE
 
   Serial.begin(115200);
-  Serial.println("\n");
+  Serial.println("\n\n");
   checkVoltage();                   // power off au plus vite si tension insuffisante (no serial)
 
   pinMode(PINLED,OUTPUT);
@@ -225,10 +226,10 @@ delay(1);
 
 /* >>>>>> gestion ds18x00 <<<<<< */
 
-#define TCONVERSIONB       200    // millis délai conversion temp
-#define TCONVERSIONS       200    // millis délai conversion temp
+#define TCONVERSIONB       200    // millis délai conversion temp 187mS 10 bits accu 0,25°
+#define TCONVERSIONS       750    // millis délai conversion temp
 
- byte setds[4]={0,0x7f,0x80,0x3f},readds[8];   // 187mS 10 bits accu 0,25° si changement controler TCONVERSION
+ byte setds[4]={0,0x7f,0x80,0x3f},readds[8];   
  int v=ds1820.setDs(WPIN,setds,readds);
  if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.println();}
  else {Serial.print(" DS1820 error ");Serial.println(v);}
@@ -914,7 +915,8 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
       Serial.print("debConv=");Serial.print(debConv);Serial.print(" millis()=");Serial.print(ms);
       Serial.print(" Tconversion=");Serial.print(tconversion);Serial.print(" delay=");Serial.println((long)tconversion-(ms-debConv));
       if((ms-debConv)<tconversion){
-        delay((long)tconversion-(ms-debConv));}
+        delay((long)tconversion-(ms-debConv));
+      }
 #endif PM==PO_MODE
 
       temp=ds1820.readDs(WPIN);
