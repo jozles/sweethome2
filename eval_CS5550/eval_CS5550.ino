@@ -40,6 +40,11 @@ enum {FAUX, VRAI};
 #define MASK      0x1A
 #define CONTROL   0x1C
 
+/* valeurs pour cycles */
+
+#define T250MS    0x0003B6
+#define T500MS    0x00078B
+
 /* CONFIGURATION BITS */
 
 #define GAIN  0x010000  // AIN1 gain ; 0 gain 10 ; 1 gain 50
@@ -101,18 +106,21 @@ uint8_t savled;
 
 int      i,j;
 byte     data[5];  // buffer registres maxi
+
 byte     csStatus[5];  // buffer status
 byte     tfb[5];  // buffer read/write reg
 int      len;
 uint16_t reg;
 char     a=' ';
 
-uint32_t calOff=0xFE57B0,calGain=0x400000;   // default values for offset and gain calibration 4.5V
+uint32_t cal1Off=0xFE7000,cal1Gain=0x3FF000; //400000;   // default values for offset and gain calibration 4.5V
+uint32_t cal2Off=0x052CA8,cal2Gain=0x3FF000; //400000;   // default values for offset and gain calibration 4.5V
 char     buff[16];
 
 bool     conv=false;  // true running 
 bool     filt=false;  // true mode filtré
 uint32_t val1=VAL1O;  // valeur pour 1 selon filt
+uint32_t val2=VAL1O;  // valeur pour 2 selon filt
 uint32_t valueNb=0;   // compteur affichage
 byte     hexval[DATALEN];
 bool     hv=false;    // if true hvv value valid (from hexval)
@@ -122,17 +130,26 @@ bool     contsingle=false;
 unsigned long durat0;
 unsigned long durat1;
 
-#define MAXREFV 250   // max shunt voltage mV
+#define MAXREFV 25000000   // max shunt voltage mV
+//float    maxref=(float)MAXREFV/(float)0x01000000;
+//uint32_t  maxref=596046;  // E-10
 
-uint32_t ain1;
-uint32_t ain1f;
-byte     filtd[3];
+uint64_t ain1;
+uint64_t ain1f;
+uint64_t ain2;
+uint64_t ain2f;
+uint64_t offset1=0;
+uint64_t offset2=0;
+byte     filtd1[3];
+byte     filtd2[3];
 int      sgn=0;
+float    voltage;
 float    current;
 float    cumul;       // pour calcul moyenne
 float    mini,maxi;
 uint32_t kdly=0x0000FF;   // delay entre lectures (commande 'k')
 bool     gain5=false;
+uint8_t  shunt=1;    // shunt res
 
 
 /* prototypes */
@@ -151,6 +168,7 @@ void hexPrint8(byte b);
 void hexPrint24(byte* data);
 void hexPrint32(byte* data);
 void printFloat(float val);
+uint32_t uint32conv(byte* data);
 
 void setup() {
 
@@ -172,7 +190,7 @@ void setup() {
   //cs5550ShowReg();
 
   cs5550RegWrite(SS,CONFIG,0x000002);     // gain 10 ; clk divide/2
-  cs5550RegWrite(SS,CYCCOUNT,0x000400);   // N=1024 for filters (256mS)
+  cs5550RegWrite(SS,CYCCOUNT,T250MS);
   cs5550RegWrite(SS,CONTROL,NOCPU);
   
   cs5550ShowReg();
@@ -181,11 +199,16 @@ void setup() {
 
   a=inch("input g when shunt shortened ; d default ");
   if(a=='g'){calibrateOffset();}
-  if(a=='d'){cs5550RegWrite(SS, AIN1OFF, calOff);}
+  if(a=='d'){
+    cs5550RegWrite(SS, AIN1OFF, cal1Off);
+    cs5550RegWrite(SS, AIN2OFF, cal2Off);
+    }
   a=inch("input g when max current settled ; d default ");
   if(a=='g'){calibrateGain();}
-  if(a=='d'){cs5550RegWrite(SS, AIN1GAIN, calGain);}
+  if(a=='d'){cs5550RegWrite(SS, AIN1GAIN, cal1Gain);}
 
+  cs5550RegWrite(SS, AIN2GAIN, cal2Gain);
+  
   cs5550RegWrite(SS,STATUS,0xffffff);
   cs5550RegWrite(SS,MASK,0x000000);
 
@@ -195,13 +218,13 @@ void setup() {
 
 void menu()
 {
-  Serial.println("d display ; k cont single ; c conversion ; s stop ; f filter ; o instant ; r registers ; C config ; S status ; M mask ; Y Cycles ; v value ");
+  Serial.println("d display ; k cont single ; c conversion ; s stop ; f filter ; o instant ; r registers ; m clear mini/maxi");Serial.print("H shunt ; C config ; S status ; M mask ; G Gain1 ; F Gain2 ; O Offset1 ; P Offset2 ; Y Cycles ; v value ");
 }
 
-uint32_t dispBuf(byte* data)
+uint32_t cal32(byte* data)
 {
   //hexPrint24(data);Serial.print(" ");
-  return ((uint32_t)data[0]*0x010000+(uint32_t)data[1]*0x0100+(uint32_t)data[2])/4;
+  return ((uint32_t)data[0]*0x010000+(uint32_t)data[1]*0x0100+(uint32_t)data[2]);
 
 }
 
@@ -227,42 +250,66 @@ void loop() {
     if(contsingle && digitalRead(INT)==0){
       
       cs5550RegRead(SS,STATUS,csStatus);      
-      cs5550RegRead(SS,AIN1OUT,data);
+//      cs5550RegRead(SS,AIN1OUT,data1);
+//      cs5550RegRead(SS,AIN2OUT,data2);      
       if((csStatus[0]&0x80)==0){
         hexPrint24(csStatus);Serial.println();
         cs5550RegWrite(SS, STATUS,0x7fffff);
       }
       else {
         durat1=micros();
-        //delay(10);  // visu scope
-        cs5550RegRead(SS,AIN1FIL,filtd);
+
+        cs5550RegRead(SS,AIN1FIL,filtd1);
+        cs5550RegRead(SS,AIN2FIL,filtd2);
         cs5550RegWrite(SS, STATUS,0xffffff);
         cs5550Command(SS,STARTS);
 
-        Serial.print(durat1-durat0);Serial.print(" ");
+//        Serial.print(durat1-durat0);Serial.print(" ");
         durat0=durat1;
         valueNb++;
         Serial.print(valueNb);Serial.print(" ");
         
-        ain1f=dispBuf(filtd);
-        current=(float)(ain1f*MAXREFV)/0x3fffff;  //mV
-        if(gain5){current/=5;}
-        
+                
         if(valueNb>10){
+          
+          hexPrint24(filtd1);
+          ain1f=(uint64_t)cal32(filtd1);                        // 0->2^24
+          Serial.print((float)ain1f);Serial.print(" ");
+          ain1f=ain1f*(uint64_t)250000; //MAXREFV;              // *250000 ref uV
+          //current=(float)ain1f;
+          //printFloat(current);Serial.print(" ");
+          ain1f=ain1f>>24;                                      // /2^24  = uV 
+          if(ain1f>=offset1){ain1f-=offset1;}else ain1f=0;
+          current=(float)(ain1f)/1000;
+          printFloat(current);
+
+/*        
+        ain2f=cal32(filtd2);
+        //current=(float)(ain1f*maxref)/10000000000;  //mV
+        if(gain5){current/=5;}
+        //voltage=(float)ain2f*maxref/5;  // AIN2 gain 5 constant
+
+          
+          current/=shunt;
           cumul+=current;
           if(current<mini && current>0.1){mini=current;}
           if(current>maxi){maxi=current;}
         
-          printFloat(current);
-          printFloat(mini);
-          printFloat(maxi);
-          printFloat(cumul/(valueNb-10));
-        }
+          
+
+          hexPrint24(filtd1);printFloat(current);
+          Serial.print(" ");
+          hexPrint24(filtd2);printFloat(voltage);
+//          printFloat(mini);
+//          printFloat(maxi);
+//          printFloat(cumul/(valueNb-10));
+*/
+        }        
         Serial.println(); 
       }
     }
 
-
+/*
 
     if(conv){
         cs5550RegRead(SS,STATUS,csStatus);    
@@ -272,7 +319,7 @@ void loop() {
           cs5550RegWrite(SS, STATUS,0xffffff);  
         }
     }
-    
+*/    
 /*    
     if(digitalRead(INT)==0 || disp){      
 
@@ -334,6 +381,8 @@ void loop() {
 
       case 'r': cs5550ShowReg();break;
 
+      case 'm': valueNb=0;cumul=0;mini=MAXREFV;maxi=0;break;
+
       case 'S': if(hv){cs5550RegWrite(SS, STATUS,hvv);cs5550ShowReg();menu();hv=false;}break;
 
       case 'C': if(hv){cs5550RegWrite(SS, CONFIG,hvv);hv=false;
@@ -345,6 +394,16 @@ void loop() {
       case 'M': if(hv){cs5550RegWrite(SS, MASK,hvv);cs5550ShowReg();menu();hv=false;}break;
 
       case 'Y': if(hv){cs5550RegWrite(SS, CYCCOUNT,hvv);cs5550ShowReg();menu();hv=false;}break;
+
+      case 'H': if(hv){shunt=(uint8_t)hvv;cs5550ShowReg();menu();hv=false;}break;
+
+      case 'G': if(hv){cs5550RegWrite(SS, AIN1GAIN,hvv);cs5550ShowReg();menu();hv=false;}break;
+
+      case 'F': if(hv){cs5550RegWrite(SS, AIN2GAIN,hvv);cs5550ShowReg();menu();hv=false;}break;
+
+      case 'O': if(hv){cs5550RegWrite(SS, AIN1OFF,hvv);cs5550ShowReg();menu();hv=false;}break;
+
+      case 'P': if(hv){cs5550RegWrite(SS, AIN2OFF,hvv);cs5550ShowReg();menu();hv=false;}break;
       
       case 'v': getData(hexval);hexPrint24(hexval);hvv=uint32conv(hexval);hv=true;
                 Serial.print(" ");
@@ -361,18 +420,15 @@ void loop() {
 
 
 void cs5550RegWrite(uint8_t ss, uint8_t reg,uint32_t data)  
-{
+{ 
   tfb[0]=reg*2 | REGWR;
   
-  tfb[1]=(data>>16)&0x000000FF;
-  tfb[2]=(data>>8)&0x000000FF;
-  tfb[3]=data&0x000000FF;
+  tfb[1]=(data>>16)&0x000000FF;  
+  tfb[2]=(data>>8)&0x000000FF;   
+  tfb[3]=data&0x000000FF;        
 
-/*  Serial.print(data,HEX);Serial.print(" ");
-  hexPrint32((byte*)&data);Serial.print(" ");
-  hexPrint8(reg);Serial.print(" write ");hexPrint32(tfb);
-  Serial.println();
-*/
+//  hexPrint32(tfb);Serial.println();
+
   digitalWrite(ss, LOW);
   SPI.transfer(tfb,DATALEN+1);
   digitalWrite(ss, HIGH);
@@ -404,7 +460,7 @@ void cs5550Command(uint8_t ss, uint8_t cd)
 
 void cs5550ShowReg()
 {
-  Serial.print("disp/conv/filt/gain5;kdly ");Serial.print(disp);Serial.print(conv);Serial.print(filt);Serial.print(gain5);Serial.print(";");Serial.println(kdly);
+  Serial.print("disp/conv/filt/gain5;shunt;kdly ");Serial.print(disp);Serial.print(conv);Serial.print(filt);Serial.print(gain5);Serial.print(";");Serial.print(shunt);Serial.print(";");Serial.println(kdly);
   for(int r=0;r<NBREG;r++){
     Serial.print(r);Serial.print(" ");
     if(r<10){Serial.print(' ');}
@@ -419,15 +475,32 @@ void cs5550ShowReg()
 
 void calibrateOffset()
 {
-  Serial.print("Offset calibration running...");
-  byte csStatus[DATALEN+1];memset(csStatus,0x00,DATALEN);  
+  Serial.print("Offset calibration running... ");
   
+  cs5550RegWrite(SS,STATUS,0xffffff);
   cs5550Command(SS,CAL1O);
-  while(bitTst(csStatus,DRDY)==0){
+  /*while(bitTst(csStatus,DRDY)==0){
     cs5550RegRead(SS, STATUS,csStatus);
-  }
+  }*/
+  delay(2000);
   cs5550Command(SS,CAL1);
-  Serial.println(" offset calibration complete");
+
+  cs5550Command(SS,CAL2O);
+  delay(2000);
+  cs5550Command(SS,CAL2);
+
+  cs5550RegWrite(SS,STATUS,0xffffff);
+
+        cs5550RegWrite(SS, STATUS,0xffffff);
+        cs5550Command(SS,STARTS);
+        delay(1200);
+        cs5550RegRead(SS,AIN1FIL,filtd1);
+        ain1f=(uint64_t)cal32(filtd1);                        // 0->2^24
+        ain1f=ain1f*(uint64_t)250000; //MAXREFV;              // *250000 ref uV
+        ain1f=ain1f>>24;
+        offset1=ain1f;
+        
+  Serial.print((float)offset1/1000);Serial.println(" offset calibration complete ");
 }
 
 void calibrateGain()
@@ -483,8 +556,8 @@ char inch(char* data)
 
 uint32_t uint32conv(byte* data)
 {
-  uint32_t val=0;
-  return data[0]*0x010000+data[1]*0x0100+data[2];  
+  uint32_t val=(uint32_t)data[0]*0x010000+(uint32_t)data[1]*0x0100+(uint32_t)data[2];  
+  return val;
 }
 
 byte cvhex(byte c)
@@ -502,7 +575,7 @@ void getData(byte* data)
   while(Serial.available()){
     a=Serial.read();
     dd[c]=a;
-    Serial.print(c);Serial.print(a);Serial.print(" ");
+    Serial.print(c);Serial.print(":");Serial.print(a);Serial.print(" ");
     c++;if(c>6){break;}
   }
   Serial.print(" ");
@@ -529,6 +602,7 @@ void hexPrint24(byte* data)
   hexPrint8(data[0]);
   hexPrint8(data[1]);
   hexPrint8(data[2]);
+  Serial.print(" ");
 }
 
 void printFloat(float val)
