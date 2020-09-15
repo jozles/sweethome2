@@ -1,4 +1,3 @@
-#include "nrf24l01s_const.h"
 #include "nrf_user_conc.h"
 #include <SPI.h>
 #include "nrf24l01s.h"
@@ -164,13 +163,54 @@ void Nrfp::addrWrite(uint8_t reg,byte* data)
     CSN_HIGH
 }
 
+void Nrfp::powerOn()
+{
+  bitClear(PORT_CLK,BIT_CLK);     //digitalWrite(CLK_PIN,LOW);
+  bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
+      
+  bitClear(PORT_CSN,BIT_CSN);     //digitalWrite(CSN_PIN,LOW);
+  bitSet(DDR_CSN,BIT_CSN);        //pinMode(CSN_PIN,OUTPUT);
+  
+  bitClear(PORT_CE,BIT_CE);       //digitalWrite(CE_PIN,LOW);
+  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);
+  
+  bitClear(PORT_MOSI,BIT_MOSI);   //digitalWrite(MOSI_PIN,LOW);
+  bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);
+  
+  digitalWrite(RPOW_PIN,LOW);     // power on
+  pinMode(RPOW_PIN,OUTPUT);
+
+  bitSet(PORT_CSN,BIT_CSN);         //digitalWrite(CSN_PIN,HIGH);
+  
+  delay(POWONDLY);       // powerOn delay
+  
+  powerUp();
+  setup();                   // registry inits 
+
+}
+
+void Nrfp::powerOff()
+{
+    /* all radio/SPI pins low */
+
+  bitClear(PORT_CLK,BIT_CLK);     //digitalWrite(CLK_PIN,LOW);
+  bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
+      
+  bitClear(PORT_CSN,BIT_CSN);     //digitalWrite(CSN_PIN,LOW);
+  bitSet(DDR_CSN,BIT_CSN);        //pinMode(CSN_PIN,OUTPUT);
+  
+  bitClear(PORT_CE,BIT_CE);       //digitalWrite(CE_PIN,LOW);
+  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);
+  
+  bitClear(PORT_MOSI,BIT_MOSI);   //digitalWrite(MOSI_PIN,LOW);
+  bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);
+
+  digitalWrite(RPOW_PIN,HIGH);    // power off
+  pinMode(RPOW_PIN,OUTPUT);
+}
+
 void Nrfp::powerUp()
 {   
-    CSN_HIGH;
-    CSN_INIT;
-    CE_LOW;
-    CE_INIT;
-
 #ifdef SPI_MODE
     SPI_INIT;
     SPI_START;
@@ -184,7 +224,7 @@ void Nrfp::powerUp()
 
     powerD=false;
 
-    delayMicroseconds(5000);       // powerUp delay
+    delay(POWUPDLY);       // powerUp delay
 }
 
 void Nrfp::powerDown()
@@ -201,11 +241,6 @@ void Nrfp::powerDown()
         SPI_OFF
 #endif SPI_MODE              
     }
-    
-    CSN_HIGH        // powerdown value
-    CSN_INIT
-    CE_LOW          // powerdown value    
-    CE_INIT
 }
 
 void Nrfp::setTx()
@@ -244,6 +279,7 @@ bool Nrfp::letsPrx()      // goto PRX mode
       prxMode=true;
     }
     CE_HIGH
+    PP4_LOW
 }
 
 void Nrfp::rxError()
@@ -377,8 +413,6 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
         SPI.transfer(data,*pldLength);                      // get pld
         CSN_HIGH
 
-        CLR_RXDR
-
 #if NRF_MODE == 'C'
         numP=data[ADDR_LENGTH]-'0';                                       // sender numP
         if(numP!=0 && memcmp(data,tableC[numP].periMac,ADDR_LENGTH)!=0){  // macAddr ko ?
@@ -386,6 +420,7 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 #endif NRF_MODE == 'C'
     }
 
+    CLR_RXDR
     return numP;    // CE stay HIGH in case of subsequent packets 
                     // (so read() caller has to put CE low if rx completed)
 }
@@ -419,15 +454,19 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     while(numP==AV_EMPTY && (readTo>=0)){   // waiting for concentrator answer
         readTo=TO_REGISTER-millis()+time_beg;
         numP=read(message,&pipe,pldLength,NBPERIF);}
+
+    PP4_HIGH
     CE_LOW
     if(numP>=0 && (readTo>=0)){            // no TO && pld ok
         numP=message[ADDR_LENGTH]-48;      // numP
+        PP4
         return numP;}                      // PRX mode still true
 
     if(numP>=0){
 //        CE_LOW
         return ER_RDYTO;}                  // else TO error
     
+    CE_LOW
     return numP;                           // or AV error 
 }
 #endif // NRF_MODE == 'P'

@@ -4,6 +4,8 @@
 #include "nrf24l01s.h"
 #include "nrf_powerSleep.h"
 
+/* gestion user data du concentrateur */
+
 #if NRF_MODE == 'C'
 
 extern struct NrfConTable tableC[NBPERIF];
@@ -436,7 +438,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
 */
 
   if(periMess==MESSOK){
-        packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // mac from set message (LBODY pour "<body>")
+        packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
         nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // numPer from set message
         numT=nrfp.macSearch(fromServerMac,&numPeri);              // numT mac reg nb in conc table ; numPeri from table numPeri 
                                                                   // numPeri should be same as nP (if !=0 && mac found)
@@ -445,8 +447,8 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         int eds=99;
         if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
         else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}    // if numPeri doesnt match message -> error
-        else {eds=nrfp.extDataStore(nP,numT,indata+MPOSPERREFR,SBLINIT);} // format MMMMM_UUUUU_xxxx MMMMM aw_min value ; UUUUU aw_ok value ; xxxx user dispo 
-        t2_1=micros();                                                    // (_P.PP pitch value)
+        else {eds=nrfp.extDataStore(nP,numT,indata+MPOSPERREFR,SBLINIT);} // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+        t2_1=micros();                                                    
         
 #ifdef DIAG                
         Serial.print(">>> getHD ");

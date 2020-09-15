@@ -7,6 +7,12 @@
 #include "nrf_user_peri.h"
 #include "nrf_user_conc.h"
 
+ /* single signifie 1 seul concentrateur avec une seule adresse de réception
+ *  l'option P ou C dans const.h définit si compilation du code pour concentrateur ou périphérique
+ *  nRF24L01.h les constantes du circuit ; nrf24l01s.h header pour nrf24l01s.cpp la lib du circuit
+ *  nrf24l01s_const.h les constantes pour single_nrf
+ */
+ 
 #ifdef DUE
 #include <MemoryFree.h>;
 #endif
@@ -124,7 +130,7 @@ float temp;
 float previousTemp=-99.99;
 float deltaTemp=0.25;
 bool  thSta=true;                     // temp validity
-char  thermo[LTH];                    // thermo name text
+char  thermo[]={THERMO};              // thermo name text
 char  thN;                            // thermo code for version
 
 
@@ -141,9 +147,8 @@ void showRx(bool crlf);
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
 void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,unsigned long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
-int  rxMessage();
+int  rxMessage(unsigned long to);
 void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
-void led(unsigned long dur);
 #if NRF_MODE == 'C'
 char getch();
 void echo();
@@ -162,12 +167,9 @@ void setup() {
 
 #if NRF_MODE == 'P'
 
-  digitalWrite(RPOW_PIN,LOW);     // radio power on
-  pinMode(RPOW_PIN,OUTPUT);
-
   /* external timer calibration sequence */
   hardwarePowerUp();
-  PP4
+  
   wd();                           // watchdog
   iniTemp();
  
@@ -192,24 +194,23 @@ void setup() {
   detachInterrupt(0);
   period=(float)(millis()-beg)/1000;
   led(100000);
-  Serial.print("period ");Serial.print(period);Serial.print("sec ");
+  Serial.print("period ");Serial.print(period);Serial.print("sec "); // external timer period
 
-  getVolts();getVolts();                  // read voltage and temperature
+  getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
 
   /* ------------------- */
   
   userResetSetup();
 
   Serial.print(volts);Serial.print("V ");
-  Serial.print(temp);Serial.println("°C ");
+  Serial.print(temp);Serial.print("°C ");
   
-  nrfp.powerUp();
-  nrfp.setup();
-
+  nrfp.powerOn();
   numT=beginP();                          // registration 
                                           // if radio HS or missing nrfp.lastSta=0xFF
-
+  nrfp.powerOff();                                          
   Serial.print("numT=");Serial.println(numT);
+  
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -291,8 +292,9 @@ void loop() {
   if( (temp<(previousTemp-deltaTemp)) ){
     previousTemp=temp+(deltaTemp/2);
     mustSend=true;}
-    
+
   if(mustSend){Serial.print("!");}
+  
 
 /*#ifdef DIAG
   Serial.print(" ");
@@ -304,7 +306,7 @@ void loop() {
   /* hardware ok, data ready or presence message time or retry -> send */
   if(nrfp.lastSta!=0xFF && ((mustSend==true) || (awakeMinCnt<0) || (retryCnt!=0))){         // anything to send or min or retry
 
-    Serial.print("*");
+    for(int nb=retryCnt;nb>=0;nb--){Serial.print("*");}
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
     uint8_t outLength=ADDR_LENGTH+1;
@@ -321,14 +323,14 @@ void loop() {
 
     /* One transaction is tx+rx ; if both ok reset counters else retry management*/
     t_on1=micros();  
-    nrfp.powerUp();delay(5);                                          // 5mS delay inside    
     t_on2=micros();  
     rdSta=-1;
 
+    nrfp.powerOn();
     trSta=txMessage(NO_ACK,outLength,0);
     if(trSta>=0){
 
-      rdSta=rxMessage();
+      rdSta=rxMessage(0);
       if(rdSta>=0){                                                  // no error
       
         t_on3=micros();
@@ -337,7 +339,7 @@ void loop() {
         if(memcmp(messageIn,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
         else {
           //showRx(false);
-          Serial.println();Serial.print("%");
+          Serial.println();Serial.print("%");          
           importData(messageIn,pldLength);   // user data
         }
         
@@ -347,12 +349,14 @@ void loop() {
           awakeMinCnt=aw_min;            
       }
     }
+    nrfp.powerOff();
     if(trSta<0 || rdSta<0){                                           // error
       //Serial.println(diagMessT);delay(2);               // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
       //Serial.println(diagMessR);delay(2);               // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
     
       showErr(true);
-      numT=0;                                           // tx or rx error : refaire l'inscription au prochain réveil
+      trSta=0;rdSta=0;
+      //numT=0;                                           // tx or rx error : refaire l'inscription au prochain réveil
       switch(retryCnt){
         case 0:retryCnt=aw_retry;break;
         case 1:awakeCnt=aw_ko;awakeMinCnt=aw_ko;
@@ -370,7 +374,6 @@ void loop() {
     awakeCnt=1;
     awakeMinCnt=1;            
   }
-
 #endif // NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -423,7 +426,8 @@ void loop() {
       /* build config */
         memcpy(message,messageIn,ADDR_LENGTH+1);
         memcpy(message+ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);    // build message to perif with server data
-      
+                                                                                                 // server data is MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+                                                                                                 // see importData()
       /* send it to perif */    
         txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);      // end of transaction so auto ACK
         Serial.println(diagMessT);delay(2);
@@ -543,7 +547,7 @@ void echo0(bool ack,uint8_t len,uint8_t numP)
   
   bool waitEcho=true;
   while(waitEcho){
-      rdSta=rxMessage();
+      rdSta=rxMessage(0);
       if(rdSta>=0){
         showRx(true);
         if(memcmp(messageIn,"VVVV",4)==0){waitEcho=false;}
@@ -623,7 +627,7 @@ uint8_t beginP()
       Serial.println();
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                 // force data upload
-PP4      
+      
       break;                          // out of while(1)
     }
 
@@ -631,16 +635,16 @@ PP4
       nrfp.lastSta=0xFF;              // KO mode : radio missing or HS
       break;                          // out of while(1)  
     }
-    
+   
     if(confSta=-4){Serial.println();Serial.print("beginP no answer ");}
-    Serial.print(confSta);delay(2);
+    Serial.print(confSta);delay(1);
     
     sleepPwrDown(0);                  // still waiting (about 4,5+2mS @20mA)
     // in order to minimize power wasting, special sleep needed (like aw_ok 1 time then aw_min)
     // + including double blink  
     
     delayBlk(1,0,250,2,1);            // 2 blinks
-    nrfp.powerUp();                   
+    nrfp.powerOn();                   // after sleep                   
   }
 
   return confSta;                     // peripheral registred or radio HS
@@ -733,16 +737,18 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)
   return trSta;
 }
 
-int rxMessage()
+int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de available/read (0=full, pipe err, length err)
 {
+  time_beg = micros();
+  if(to==0){to=TO_READ;}
   memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
   pldLength=MAX_PAYLOAD_LENGTH;                    // max length
   rdSta=AV_EMPTY;
   readTo=0;
-  time_beg = micros();
   while((rdSta==AV_EMPTY) && (readTo>=0)){
     rdSta=nrfp.read(messageIn,&pipe,&pldLength,NBPERIF);
-    readTo=TO_READ-(micros()-time_beg)/1000;}
+    readTo=to-(micros()-time_beg)/1000;}
+  PP4_HIGH
   if(readTo<0){rdSta=ER_RDYTO;}
   nrfp.readStop();
   time_end=micros();
@@ -780,7 +786,6 @@ void showErr(bool crlf)
 {
 #ifdef DIAG
   Serial.println();Serial.print("$ tx=");Serial.print(trSta);Serial.print(" rx=");Serial.print(rdSta);
-  if(rdSta=-6){Serial.println(" TO rxMessage()");}
   Serial.print(" message ");Serial.print((char*)message);
   Serial.print(" lastSta ");if(nrfp.lastSta<0x10){Serial.print("0");}Serial.print(nrfp.lastSta,HEX);
   Serial.print(" ");Serial.print((char*)kk+(rdSta+6)*LMERR);Serial.print(" $");
@@ -792,7 +797,7 @@ void showErr(bool crlf)
 
 void iniTemp()
 {
-  memcpy(thermo,THERMO,LTH);
+  //memcpy(thermo,THERMO,LTH);
   thN=THN;
   thSta=true;
   
@@ -808,6 +813,7 @@ void readTemp()
 {
   if(retryCnt==0){            // pas de conversion si retry en cours
   thSta=true;
+
   
 #ifdef DS18X20
     checkOn();                                // power on

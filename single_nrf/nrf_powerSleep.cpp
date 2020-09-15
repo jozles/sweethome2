@@ -67,34 +67,19 @@ void int0_ISR()                   // external timer ISR
 void hardwarePowerUp()
 {
   PP4_INIT
-  pinMode(LED,OUTPUT);
+  bitSet(DDR_LED,BIT_LED);        //pinMode(LED,OUTPUT);
   pinMode(REED,INPUT_PULLUP);
 }
 
 
 void hardwarePowerDown()
 {
-  nrfp.powerDown();
   userHardPowerDown();
-  
+  nrfp.powerOff();
+
   bitClear(DDR_LED,BIT_LED);      //pinMode(LED,INPUT);
   bitClear(DDR_PP,BIT_PP);        //pinMode(PP,INPUT);
   bitClear(DDR_REED,BIT_REED);    //pinMode(REED,INPUT);
-
-PP4
-  
-  bitSet(PORT_CSN,BIT_CSN);       //digitalWrite(CSN_PIN,HIGH);
-  bitSet(DDR_CSN,BIT_CSN);        //pinMode(CSN_PIN,OUTPUT);
-  
-  bitClear(PORT_CE,BIT_CE);       //digitalWrite(CE_PIN,LOW);
-  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);
-  
-  bitSet(PORT_CLK,BIT_CLK);       //digitalWrite(CLK_PIN,HIGH);
-  bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
-  
-  bitSet(PORT_MOSI,BIT_MOSI);     //digitalWrite(MOSI_PIN,HIGH);
-  bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);
-  
 }
 
 
@@ -203,6 +188,10 @@ void checkOn()                              // voltage and temperature reading +
 {
   bitSet(PORT_VCHK,BIT_VCHK);               //digitalWrite(VCHECK,VCHECKHL);
   bitSet(DDR_VCHK,BIT_VCHK);                //pinMode(VCHECK,OUTPUT);  
+  /*
+  digitalWrite(VCHECK,HIGH);
+  pinMode(VCHECK,OUTPUT);  
+  */
 }
 
 void checkOff()
@@ -227,10 +216,10 @@ float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_
     ADCSRA  = 0 | (1<<ADEN) | (1<<ADSC) | (1<<ADIF) | (1<<ADPS2) | (0<<ADPS1) | (0<<ADPS0);   // ADC enable + start conversion + prescaler /16
 
     delayMicroseconds(40+dly*48);           // ok with /16 prescaler @8MHz
-   
+
     a=ADCL;
     a+=ADCH*256;
-  
+//  Serial.println();Serial.print(" a=");Serial.print(a);Serial.print("  factor=");Serial.println(factor*100);
     return (float)(a*factor-(offset))+ref;
 }
 
@@ -248,12 +237,17 @@ void getVolts()                     // get unregulated voltage and reset watchdo
 #ifndef DS18X20
   delayMicroseconds(1000);                  // MCP9700 stabilize
   temp=adcRead(TADMUXVAL,TFACTOR,TOFFSET,TREF,0);
-  uint16_t temp0=((int)temp)*100,temp1=(int)(temp*100);         // 0.25°C step
+/* step 0.25 ***  
+  uint16_t temp0=((int)temp)*100,temp1=(int)(temp*100); 
   if((temp1-temp0)>=12 && (temp1-temp0)<38){temp0+=25;}
   else if((temp1-temp0)>=38 && (temp1-temp0)<63){temp0+=50;}
   else if((temp1-temp0)>=63 && (temp1-temp0)<88){temp0+=75;}
   else if((temp1-temp0)>=88){temp0+=100;}
   temp=(float)temp0/100;
+*/
+/* step 0.1 ***/
+  temp=(float)((int)(temp*10))/10;
+//*/
 #endif  
 
   checkOff();

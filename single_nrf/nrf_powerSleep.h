@@ -37,6 +37,8 @@ void getVolts();
 void hardwarePowerUp();
 void hardwarePowerDown();
 
+
+
 #endif // NRF_MODE == 'P'
 
 #endif // NRFPWRSLP_H_INCLUDED

@@ -112,7 +112,6 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define BIT_RPOW    7
   #define RPOW_PIN    7
 
-
   #define ISREDGE    RISING
 #endif
 #ifndef DETS

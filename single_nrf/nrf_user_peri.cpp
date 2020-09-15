@@ -6,6 +6,7 @@
 extern uint16_t aw_ok;
 extern uint16_t aw_min;
 
+/* gestion user data du périphérique */
 
 #if NRF_MODE == 'P'
 
@@ -13,6 +14,7 @@ extern uint16_t aw_min;
 
 #include "shconst2.h"
 #include "shutil2.h"
+
 
 /* user fields */
 
@@ -24,6 +26,7 @@ extern float   temp;
 extern float   deltaTemp;
 extern bool    thSta;
 extern float   period;
+
 
 /* cycle functions */
 
@@ -68,12 +71,12 @@ void importData(byte* data,uint8_t dataLength)
     deltaTemp=(convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead))/100;    // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
                                                                                 // devrait être convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead)/100;
                                                                                 // vérifier srt...   
-                                                                                
+
     for(uint8_t ii=0;ii<dataLength;ii++){Serial.print((char)data[ii]);delayMicroseconds(100);}Serial.println();
     Serial.print("£ per_s=");Serial.print(perRefr);Serial.print(" per_t=");Serial.print(perTemp);Serial.print(" period=");Serial.print(period);                                                                                   
     Serial.print(" aw_min=");Serial.print(aw_min);Serial.print(" aw_ok=");Serial.print(aw_ok);Serial.print(" pth=");Serial.print(deltaTemp);
     Serial.println(" £");                                                                                   
-    delay(4);    
+    delay(4);
 }
 
 

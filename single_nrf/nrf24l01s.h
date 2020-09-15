@@ -74,10 +74,13 @@
 #include "nRF24L01.h"       // mnemonics
 #include "nrf24l01s_const.h"
 
+#define POWONDLY 100       // millis()
+#define POWUPDLY 5         // millis()
+
 #define ACK     true
 #define NO_ACK  false
 
-#define NB_PIPE 2           // nombre pipes utilis�es
+#define NB_PIPE 2          // nombre pipes utilis�es
 #define MAX_PAYLOAD_LENGTH 32
 #define ADDR_LENGTH 5
 
@@ -103,7 +106,10 @@
 
 #ifdef  UNO        // idem for PRO MINI
   #define PP4       bitClear(PORT_PP,BIT_PP);bitSet(PORT_PP,BIT_PP);
-  #define PP4_INIT  bitSet(PORT_PP,BIT_PP);bitSet(DDR_PP,BIT_PP);;
+  #define PP4_INIT  bitSet(PORT_PP,BIT_PP);bitSet(DDR_PP,BIT_PP);
+  #define PP4_OFF   bitClear(DDR_PP,BIT_PP);
+  #define PP4_HIGH  bitSet(DDR_PP,BIT_PP);bitSet(PORT_PP,BIT_PP);
+  #define PP4_LOW   bitSet(DDR_PP,BIT_PP);bitClear(PORT_PP,BIT_PP);  
 #endif UNO
 #ifndef UNO
   #define PP4       digitalWrite(PP,LOW);digitalWrite(PP,HIGH);
@@ -150,6 +156,8 @@ class Nrfp
     void write(byte* data,bool ack,uint8_t len,uint8_t numP);
     int  transmitting(bool ack);
 
+    void powerOn();
+    void powerOff();
     void powerUp();
     void powerDown();
     void regRead(uint8_t reg,byte* data);
