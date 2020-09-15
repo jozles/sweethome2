@@ -141,8 +141,9 @@ void showRx(bool crlf);
 void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
 void delayBlk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb,unsigned long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
-int  rxMessage(unsigned long to);
+int  rxMessage();
 void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
+void led(unsigned long dur);
 #if NRF_MODE == 'C'
 char getch();
 void echo();
@@ -161,6 +162,9 @@ void setup() {
 
 #if NRF_MODE == 'P'
 
+  digitalWrite(RPOW_PIN,LOW);     // radio power on
+  pinMode(RPOW_PIN,OUTPUT);
+
   /* external timer calibration sequence */
   hardwarePowerUp();
   PP4
@@ -169,8 +173,10 @@ void setup() {
  
   delay(100);
   Serial.begin(115200);
-
-  Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");Serial.print(thermo);
+  Serial.println();
+  Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry) ; $ showerr ");
+  Serial.println("£ importData (received to local) ; € diags fin loop");delay(4);
+  Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");Serial.print(thermo);delay(3);
 
   delayBlk(1,0,250,1,2000);               // 2sec blinking
   
@@ -186,10 +192,9 @@ void setup() {
   detachInterrupt(0);
   period=(float)(millis()-beg)/1000;
   led(100000);
-  period=0;
   Serial.print("period ");Serial.print(period);Serial.print("sec ");
 
-  getVolts();                            // read voltage and temperature
+  getVolts();getVolts();                  // read voltage and temperature
 
   /* ------------------- */
   
@@ -203,7 +208,8 @@ void setup() {
 
   numT=beginP();                          // registration 
                                           // if radio HS or missing nrfp.lastSta=0xFF
-  
+
+  Serial.print("numT=");Serial.println(numT);
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -241,6 +247,16 @@ void loop() {
 
 #if NRF_MODE == 'P'
 
+#ifdef DIAG  
+  t_on0=micros();
+  Serial.print("€ ");Serial.print(awakeMinCnt);Serial.print(" min/cnt ");Serial.print(awakeCnt);Serial.print(" ; ");
+  Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS sleep nb ; nbL loop nb
+  Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("/");Serial.print(previousTemp);Serial.print("°C t_on(");
+  Serial.print(t_on1-t_on);Serial.print("/");Serial.print(t_on2-t_on);Serial.print("/");Serial.print(t_on3-t_on);Serial.print("/");
+  Serial.print(t_on0-t_on);Serial.println(") €");
+  delay(4);  // serial
+#endif DIAG
+
   /* timing to usefull awake */
   
   while((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)){           
@@ -269,10 +285,13 @@ void loop() {
   mustSend=false;           
   mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff
 
-  if( (temp>(previousTemp+deltaTemp)) || (temp<(previousTemp-deltaTemp)) ){
-    previousTemp=temp;
+  if( (temp>(previousTemp+deltaTemp)) ){
+    previousTemp=temp-(deltaTemp/2);
     mustSend=true;}
-
+  if( (temp<(previousTemp-deltaTemp)) ){
+    previousTemp=temp+(deltaTemp/2);
+    mustSend=true;}
+    
   if(mustSend){Serial.print("!");}
 
 /*#ifdef DIAG
@@ -309,7 +328,7 @@ void loop() {
     trSta=txMessage(NO_ACK,outLength,0);
     if(trSta>=0){
 
-      rdSta=rxMessage(0);
+      rdSta=rxMessage();
       if(rdSta>=0){                                                  // no error
       
         t_on3=micros();
@@ -318,6 +337,7 @@ void loop() {
         if(memcmp(messageIn,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
         else {
           //showRx(false);
+          Serial.println();Serial.print("%");
           importData(messageIn,pldLength);   // user data
         }
         
@@ -331,7 +351,7 @@ void loop() {
       //Serial.println(diagMessT);delay(2);               // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
       //Serial.println(diagMessR);delay(2);               // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
     
-      showErr(false);
+      showErr(true);
       numT=0;                                           // tx or rx error : refaire l'inscription au prochain réveil
       switch(retryCnt){
         case 0:retryCnt=aw_retry;break;
@@ -350,14 +370,7 @@ void loop() {
     awakeCnt=1;
     awakeMinCnt=1;            
   }
-#ifdef DIAG  
-  t_on0=micros();
-  Serial.print(" ");Serial.print(nbS);Serial.print("/");;Serial.print(nbL);Serial.print(" | ");     // nbS sleep nb ; nbL loop nb
-  Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("°C t_on(");
-  Serial.print(t_on1-t_on);Serial.print("/");Serial.print(t_on2-t_on);Serial.print("/");Serial.print(t_on3-t_on);Serial.print("/");
-  Serial.print(t_on0-t_on);Serial.println(")");
-  delay(2);  // serial
-#endif DIAG
+
 #endif // NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -530,7 +543,7 @@ void echo0(bool ack,uint8_t len,uint8_t numP)
   
   bool waitEcho=true;
   while(waitEcho){
-      rdSta=rxMessage(0);
+      rdSta=rxMessage();
       if(rdSta>=0){
         showRx(true);
         if(memcmp(messageIn,"VVVV",4)==0){waitEcho=false;}
@@ -607,6 +620,7 @@ uint8_t beginP()
 #endif    */
 
     if(confSta>0){
+      Serial.println();
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                 // force data upload
 PP4      
@@ -618,7 +632,8 @@ PP4
       break;                          // out of while(1)  
     }
     
-    Serial.println(confSta);delay(1);
+    if(confSta=-4){Serial.println();Serial.print("beginP no answer ");}
+    Serial.print(confSta);delay(2);
     
     sleepPwrDown(0);                  // still waiting (about 4,5+2mS @20mA)
     // in order to minimize power wasting, special sleep needed (like aw_ok 1 time then aw_min)
@@ -718,17 +733,16 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)
   return trSta;
 }
 
-int rxMessage(unsigned long to)
+int rxMessage()
 {
-  time_beg = micros();
-  if(to==0){to=TO_READ;}
   memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
   pldLength=MAX_PAYLOAD_LENGTH;                    // max length
   rdSta=AV_EMPTY;
   readTo=0;
+  time_beg = micros();
   while((rdSta==AV_EMPTY) && (readTo>=0)){
     rdSta=nrfp.read(messageIn,&pipe,&pldLength,NBPERIF);
-    readTo=to-(micros()-time_beg)/1000;}
+    readTo=TO_READ-(micros()-time_beg)/1000;}
   if(readTo<0){rdSta=ER_RDYTO;}
   nrfp.readStop();
   time_end=micros();
@@ -765,9 +779,11 @@ delay(1);
 void showErr(bool crlf)
 {
 #ifdef DIAG
-  //Serial.print(" message ");Serial.print((char*)message);
+  Serial.println();Serial.print("$ tx=");Serial.print(trSta);Serial.print(" rx=");Serial.print(rdSta);
+  if(rdSta=-6){Serial.println(" TO rxMessage()");}
+  Serial.print(" message ");Serial.print((char*)message);
   Serial.print(" lastSta ");if(nrfp.lastSta<0x10){Serial.print("0");}Serial.print(nrfp.lastSta,HEX);
-  Serial.print(" ");Serial.print((char*)kk+(rdSta+6)*LMERR);
+  Serial.print(" ");Serial.print((char*)kk+(rdSta+6)*LMERR);Serial.print(" $");
   if(crlf){Serial.println();}
 #endif // DIAG
 }

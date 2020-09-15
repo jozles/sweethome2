@@ -32,7 +32,7 @@ Ds1820 ds1820;
 
   const char* ssid;
   const char* password;
-//#define DEVOLO  
+#define DEVOLO  
 #ifdef DEVOLO
   const char* ssid2= "pinks";
   const char* password2 = "cain ne dormant pas songeait au pied des monts";
@@ -46,8 +46,8 @@ Ds1820 ds1820;
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif DEVOLO
 
-  const char* host = HOSTIPADDR;   // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
-  const int   port = PORTPERISERVER; 
+  const char* host = HOSTIPADDR2;   // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
+  const int   port = PORTPERISERVER2; 
 
 WiFiClient cli;                 // client local du serveur externe (utilisé pour dataread/save)
 WiFiClient cliext;              // client externe du serveur local
@@ -166,6 +166,7 @@ delay(1);
   Serial.begin(115200);
   Serial.println("\n\n");
   checkVoltage();                   // power off au plus vite si tension insuffisante (no serial)
+  delay(2);
 
   pinMode(PINLED,OUTPUT);
 
@@ -190,7 +191,7 @@ delay(1);
 // isrD[1]=isrD1;
 // isrD[2]=isrD2;
 // isrD[3]=isrD3;
-#endif PININT_MODE
+#endif
 
 /* >>>>>> inits variables <<<<<< */
 
@@ -488,7 +489,7 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
             int sizeRead;
             cstRec.serverPer=(long)convStrToNum(data+MPOSPERREFR,&sizeRead);    // per refresh server
             cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
-            cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure
+            cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure (100x)
             
             cstRec.swCde='\0';
             for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
@@ -527,8 +528,8 @@ bool talkServerWifiConnect()
 {
       int retry=0;
       while((retry<=WIFINBRETRY)){
-        retry++;
         if(wifiConnexion(ssid,password)){break;}
+        retry++;
       }
       return (retry<=WIFINBRETRY);
 }
@@ -919,34 +920,38 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
       }
 #endif PM==PO_MODE
 
-      temp=ds1820.readDs(WPIN);
-      
-#if POWER_MODE!=PO_MODE
-      ds1820.convertDs(WPIN);     // conversion pendant deep/sleep ou pendant attente prochain accès
-#endif PM!=PO_MODE
-
-      tempAge=millis()/1000;
-      Serial.print("temp ");Serial.print(temp);
-      checkVoltage();             
-      Serial.println();
-      
-/* temp (suffisament) changée ? */
-      temp*=100;
-      if( temp>(cstRec.oldtemp+cstRec.tempPitch) || temp<(cstRec.oldtemp-cstRec.tempPitch)){
-        cstRec.oldtemp=(int16_t)temp;
-        cstRec.talkStep=1;     // temp changée -> talkServer
-        cstRec.serverTime=0;
-      }
-      
 /* avance timer server ------------------- */
       cstRec.serverTime+=tempPeriod0;
       if(cstRec.serverTime>cstRec.serverPer){
+        getTemp();
         cstRec.serverTime=0;
-        cstRec.talkStep=1;
+        cstRec.talkStep=1; 
+      }
+      else if (cstRec.serverPer!=PERSERVKO){  // si dernière cx wifi ko, pas de comm jusqu'à fin de tempo    
+/* temp (suffisament) changée ? */
+        getTemp();
+        temp*=100;  // tempPitch 100x
+        if( temp>(cstRec.oldtemp+cstRec.tempPitch) || temp<(cstRec.oldtemp-cstRec.tempPitch)){
+          cstRec.oldtemp=(int16_t)temp;
+          cstRec.talkStep=1;     // temp changée -> talkServer
+          cstRec.serverTime=0;
+        }
       }
 
 #if POWER_MODE==NO_MODE
     }   // chkTigTemp
 #endif PM==NO_MODE
   }     // talkStep = 0
+}
+
+void getTemp()
+{
+      temp=ds1820.readDs(WPIN);
+#if POWER_MODE!=PO_MODE
+      ds1820.convertDs(WPIN);     // conversion pendant deep/sleep ou pendant attente prochain accès
+#endif PM!=PO_MODE
+      tempAge=millis()/1000;
+      Serial.print("temp ");Serial.print(temp);
+      checkVoltage();             
+      Serial.println();
 }

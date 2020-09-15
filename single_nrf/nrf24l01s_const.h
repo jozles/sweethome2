@@ -39,10 +39,10 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 /************* config ****************/
   
-  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
+  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
   
-//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
@@ -60,7 +60,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #if NRF_MODE == 'P'
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri4"       // MAC_ADDR périphériques
+  #define PER_ADDR  "peri6"       // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
@@ -107,6 +107,11 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
   #define PORT_VCHK   PORTC
   #define DDR_VCHK    DDRC
   #define BIT_VCHK    3
+  #define PORT_RPOW   PORTD
+  #define DDR_RPOW    DDRD
+  #define BIT_RPOW    7
+  #define RPOW_PIN    7
+
 
   #define ISREDGE    RISING
 #endif
@@ -147,9 +152,9 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 #ifdef  DETS
 #define VCHECKADC 7             // VOLTS ADC pin Nb
 #define VADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | VCHECKADC     // internal 1,1V ref + ADC input for volts
-#define VFACTOR 0.00845         // volts conversion 1K+6,8K (MOSFET)
-
-#define TCHECKADC 6             // TEMP  ADC pin Nb (6 DETS1.0 ; 1 DETS2.0)
+//#define VFACTOR 0.00845         // volts conversion 1K+6,8K (MOSFET)
+#define VFACTOR 0.00594         // volts conversion 1,5K+6,8K (MOSFET)
+#define TCHECKADC 1             // TEMP  ADC pin Nb (6 DETS1.0 ; 1 DETS2.0)
 #define TREF      25            // TEMP ref for TOFFSET 
 #define LTH       6             // len thermo name                                 
                                 // temp=(ADCreading/1024*ADCREF(mV)-TOFFSET(mV))/10+TREF                                

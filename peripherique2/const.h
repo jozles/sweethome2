@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.j_"
+#define VERSION "1.k_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -44,6 +44,8 @@
  *     l'enregistrement des variables permanentes commence sur l'adresse de cstlen et non plus sur la structure cstRec 
  *     (bugs possibles dans les autres modes)
  *     correction conversion/delai conversion 200mS pour 0.25°
+ * 1.k correction retry cx wifi qui ne retournait pas le dépassement de nombre d'essais 
+ *     lorsque lea cx wifi a échoué tempo de x heures (PERSERVKO), la lecture et lé controle de la température ne sont plus faits. 
  *     
  * 
 Modifier : 
@@ -156,13 +158,13 @@ Modifier :
 #define THESP12 '2'
 /********************************** 3 config à faire ********************************/
 //                                  1 -- modèle de carte
-//                                  2 -- type alimentation
-//                                  3 -- adresse IP + port serveur + l'ordre des SSID  (peripherique.ino)
+//                                  2 -- type alimentation (POWER_MODE)
+//                                  3 -- adresse IP serveur + port serveur + l'ordre des SSID  (peripherique.ino)
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE THESP01                   // <------------- modèle carte
-#define POWER_MODE PO_MODE            // <------------- type d'alimentation 
+#define CARTE VR                   // <------------- modèle carte
+#define POWER_MODE NO_MODE            // <------------- type d'alimentation 
 //#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 
 #if POWER_MODE==NO_MODE

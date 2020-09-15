@@ -419,13 +419,13 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     while(numP==AV_EMPTY && (readTo>=0)){   // waiting for concentrator answer
         readTo=TO_REGISTER-millis()+time_beg;
         numP=read(message,&pipe,pldLength,NBPERIF);}
-
+    CE_LOW
     if(numP>=0 && (readTo>=0)){            // no TO && pld ok
         numP=message[ADDR_LENGTH]-48;      // numP
         return numP;}                      // PRX mode still true
 
     if(numP>=0){
-        CE_LOW
+//        CE_LOW
         return ER_RDYTO;}                  // else TO error
     
     return numP;                           // or AV error 
