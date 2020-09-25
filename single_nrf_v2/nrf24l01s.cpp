@@ -180,12 +180,12 @@ void Nrfp::powerOn()
   digitalWrite(RPOW_PIN,LOW);     // power on
   pinMode(RPOW_PIN,OUTPUT);
 
-  bitSet(PORT_CSN,BIT_CSN);         //digitalWrite(CSN_PIN,HIGH);
+  bitSet(PORT_CSN,BIT_CSN);       //digitalWrite(CSN_PIN,HIGH);
   
-  delay(POWONDLY);       // powerOn delay
+  delay(POWONDLY);                // powerOn delay ******************** mettre en sleep *********************
   
   powerUp();
-  setup();                   // registry inits 
+  setup();                        // registry inits 
 
 }
 
@@ -220,6 +220,7 @@ void Nrfp::powerUp()
     regWrite(CONFIG,&conf);
 
     flushRx();
+    flushTx();
     CLR_RXDR
 
     powerD=false;
@@ -334,7 +335,7 @@ int Nrfp::transmitting(bool ack)         // busy -> 1 ; sent -> 0 -> Rx ; MAX_RT
         trst=0;
         if(statu & MAX_RT_BIT){
           if(!ack){Serial.print("\nsyst err maxrt without ack ");Serial.println(statu,HEX);delay(2);}
-          trst=-1;}
+          trst=-1;} 
 
         CLR_TXDS_MAXRT
         letsPrx();

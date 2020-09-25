@@ -260,7 +260,6 @@ void getVolts()                     // get unregulated voltage and reset watchdo
 
 uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not included to avoid multiple unusefull power on */
 {                                     /* durat=0 to enable external timer (INT0) */
-    nbS++;
 
     hardwarePowerDown();
 
