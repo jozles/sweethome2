@@ -165,6 +165,7 @@ void Nrfp::addrWrite(uint8_t reg,byte* data)
 
 void Nrfp::powerOn()
 {
+#if NRF_MODE == 'P'  
   bitClear(PORT_CLK,BIT_CLK);     //digitalWrite(CLK_PIN,LOW);
   bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
       
@@ -183,16 +184,33 @@ void Nrfp::powerOn()
   bitSet(PORT_CSN,BIT_CSN);       //digitalWrite(CSN_PIN,HIGH);
   
   delay(POWONDLY);                // powerOn delay ******************** mettre en sleep *********************
+
+#endif NRF_MODE == 'P'
+#if NRF_MODE == 'C'   
+  digitalWrite(CLK_PIN,LOW);
+  pinMode(CLK_PIN,OUTPUT);
+
+  digitalWrite(CSN_PIN,HIGH);
+  pinMode(CSN_PIN,OUTPUT);
+
+  digitalWrite(CE_PIN,LOW);
+  pinMode(CE_PIN,OUTPUT);
+
+  digitalWrite(MOSI_PIN,LOW);
+  pinMode(MOSI_PIN,OUTPUT);
+  digitalWrite(MOSI_PIN,HIGH);  
   
+#endif NRF_MODE == 'C'
+
   powerUp();
   setup();                        // registry inits 
-
 }
 
 void Nrfp::powerOff()
 {
     /* all radio/SPI pins low */
 
+#if NRF_MODE == 'P'
   bitClear(PORT_CLK,BIT_CLK);     //digitalWrite(CLK_PIN,LOW);
   bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
       
@@ -207,6 +225,7 @@ void Nrfp::powerOff()
 
   digitalWrite(RPOW_PIN,HIGH);    // power off
   pinMode(RPOW_PIN,OUTPUT);
+#endif NRF_MODE='P'  
 }
 
 void Nrfp::powerUp()
@@ -280,7 +299,7 @@ bool Nrfp::letsPrx()      // goto PRX mode
       prxMode=true;
     }
     CE_HIGH
-    PP4_LOW
+//    PP4_LOW
 }
 
 void Nrfp::rxError()
@@ -358,6 +377,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     GET_STA
     lastSta=statu;
     if((statu & RX_DR_BIT)==0){                   // RX empty ?
+///*          
         regRead(FIFO_STATUS,&fstatu);
         if((fstatu & RX_EMPTY_BIT)!=0){           // FIFO empty ?
             return AV_EMPTY;                      // --------------- empty
@@ -372,6 +392,8 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
             //CLR_RXDR 
             return AV_EMPTY;}
         }
+//*/
+/*return AV_EMPTY;*/
     }
     // RX full : either (statu & RX_DR_BIT)!=0
     //           either (fstatu & RX_EMPTY_BIT)==0) && ((statu & RX_P_NO_BIT)>>RX_P_NO)==1
@@ -394,7 +416,8 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
 }
 
 int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
-{ 
+{
+   
     /* mode 'C' returns  0  registration to do 
                         >0  valid data table entry nb 
                         <0  empty, pipe err, length err, mac addr table error
@@ -421,7 +444,7 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 #endif NRF_MODE == 'C'
     }
 
-    CLR_RXDR
+    if(numP!=AV_EMPTY){CLR_RXDR PP4}    // ne pas faire CLR_RXDR si numP==empty : un message a pu arriver depuis la lecture du status
     return numP;    // CE stay HIGH in case of subsequent packets 
                     // (so read() caller has to put CE low if rx completed)
 }
@@ -459,7 +482,7 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     PP4_HIGH
     CE_LOW
     if(numP>=0 && (readTo>=0)){            // no TO && pld ok
-        numP=message[ADDR_LENGTH]-48;      // numP
+        numP=message[ADDR_LENGTH]-'0';      // numP
         PP4
         return numP;}                      // PRX mode still true
 

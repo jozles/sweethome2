@@ -1,4 +1,5 @@
 #include "nrf_user.h"
+#include "nrf24l01s.h"
 #include "nrf24l01s_const.h"
 #include "nrf_powerSleep.h"
 

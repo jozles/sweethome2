@@ -179,7 +179,8 @@ void setup() {
   Serial.println();
   Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry) ; $ showerr ");
   Serial.println("£ importData (received to local) ; € diags fin loop");delay(4);
-  Serial.println();Serial.print(PER_ADDR);Serial.print(" start setup ");Serial.print(thermo);delay(3);
+  Serial.println();Serial.print(PER_ADDR);Serial.print(" to ");nrfp.printAddr((char*)CC_ADDR,0);
+  Serial.print(" start setup ");Serial.print(thermo);delay(3);
 
   delayBlk(1,0,250,1,2000);               // 2sec blinking
   
@@ -216,6 +217,7 @@ void setup() {
 
 #if NRF_MODE == 'C'
 
+  PP4_INIT
   delay(100);
   Serial.begin(115200);
 
@@ -230,8 +232,12 @@ void setup() {
   nrfp.tableCInit();//nrfp.tableCPrint();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
 
-  nrfp.powerUp();
-  nrfp.setup();
+  digitalWrite(6,HIGH);pinMode(6,OUTPUT);
+  digitalWrite(6,LOW);digitalWrite(6,HIGH);
+ 
+  nrfp.powerOn();
+  //nrfp.powerUp();
+  //nrfp.setup();
   
 #ifdef DUE
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
@@ -357,7 +363,7 @@ void loop() {
     
       showErr(true);
       trSta=0;rdSta=0;
-      //numT=0;                                           // tx or rx error : refaire l'inscription au prochain réveil
+      numT=0;                                           // tx or rx error : refaire l'inscription au prochain réveil
       switch(retryCnt){
         case 0:retryCnt=aw_retry;break;
         case 1:awakeCnt=aw_ko;awakeMinCnt=aw_ko;
@@ -751,7 +757,7 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
   while((rdSta==AV_EMPTY) && (readTo>=0)){
     rdSta=nrfp.read(messageIn,&pipe,&pldLength,NBPERIF);
     readTo=to-(micros()-time_beg)/1000;}
-  PP4_HIGH
+//  PP4_HIGH
   if(readTo<0){rdSta=ER_RDYTO;}
   nrfp.readStop();
   messageIn[pldLength]=0x00;
