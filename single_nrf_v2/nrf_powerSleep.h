@@ -25,7 +25,7 @@
 /* --------------- @ env 2sec / sleep -------------------- */
 #define  AWAKE_OK_VALUE       15   // nbre réveils entre chaque test de temp
 #define  AWAKE_MIN_VALUE      450  // nbre réveils maxi pour message minimum de présence
-#define  AWAKE_KO_VALUE       1500 // nbre réveils avant prochain test si com HS
+#define  AWAKE_KO_VALUE       20   // debug 1500 // nbre réveils avant prochain test si com HS
 #define  AWAKE_RETRY_VALUE    3    // nbre de retry avant KO
 
 uint16_t sleepPwrDown(uint8_t durat);

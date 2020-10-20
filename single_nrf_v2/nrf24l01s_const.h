@@ -5,7 +5,7 @@
 #include "shconst2.h"
 #include "shutil2.h"
 
-#define VERSION "1.2 "
+#define VERSION "1.3 "
 #define LENVERSION 4
 
 /*
@@ -32,6 +32,9 @@ Si le numT est '0', le concentrateur le recherche et enregistre la macAddr si in
 
 Tous les messages du concentrateur vers un périphériques sont de la forme :
   mmmmmTxxxxxx...xxxxx   mmmmm mac péri ; T rang dans table ; xxx...xxx buffer messages extérieur
+
+v 1.3 La détection d'alim faible est effectuée lors de la lecture de la tension en début de boucle et ne bloque pas la boucle en cours.
+La valeur utilisée comme seuil est la constante VOLTMIN (rien n'est passé depuis le serveur)
 
 */
 
@@ -146,7 +149,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 #if NRF_MODE == 'P'             /* voltage and temp acquisition params */
 
-#define VOLTMIN 3.5             // minimal value to run
+#define VOLTMIN 3.2             // minimal value to run
 #define VCHECK  A3              // volts arduino check pin
 #define VCHECKHL HIGH           // command pin level for reading
 

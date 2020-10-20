@@ -34,6 +34,8 @@
 uint16_t wdtTime[]={16,32,64,125,250,500,1000,2000,4000,8000};   // durées WDT millis
 
 float         volts=0;                           // tension alim (VCC)
+extern bool   lowPower;                          
+extern float  lowPowerValue;                      
 extern float  temp;
 uint8_t       cntTest=0;                         // test watchdog
 
@@ -233,6 +235,7 @@ void getVolts()                     // get unregulated voltage and reset watchdo
   checkOn();
   
   volts=adcRead(VADMUXVAL,VFACTOR,0,0,1);
+  if(volts<=lowPowerValue){lowPower=true;}
 
 #ifndef DS18X20
   delayMicroseconds(1000);                  // MCP9700 stabilize

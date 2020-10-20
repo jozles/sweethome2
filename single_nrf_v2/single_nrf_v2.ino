@@ -107,6 +107,8 @@ int       retryCnt=0;
 uint32_t  nbS=0;                   // nbre com
 uint32_t  nbL=0;                   // nbre loops
 float     durT=0;                  // temps sleep cumulé (mS/10)
+bool      lowPower=false;
+float     lowPowerValue=VOLTMIN;
 
 uint16_t  aw_ok=AWAKE_OK_VALUE;
 uint16_t  aw_min=AWAKE_MIN_VALUE;
@@ -205,14 +207,14 @@ void setup() {
   userResetSetup();
 
   Serial.print(volts);Serial.print("V ");
-  Serial.print(temp);Serial.print("°C ");
+  Serial.print(temp);Serial.println("°C ");
   
-  nrfp.powerOn();
+/*  nrfp.powerOn();
   numT=beginP();                          // registration 
                                           // if radio HS or missing nrfp.lastSta=0xFF
-  nrfp.powerOff();                                          
+  nrfp.powerOff();                                            
   Serial.print("numT=");Serial.println(numT);
-  
+*/  
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -268,12 +270,12 @@ void loop() {
   //*/
   t_on0=micros();  
   Serial.print(t_on0-t_on);Serial.println(") €");
-  delay(1);
+  delay(5);
 #endif DIAG
 
   /* timing to usefull awake */
   
-  while((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)){           
+  while(((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)) || lowPower){           
 
     awakeCnt--;
     awakeMinCnt--;
@@ -294,7 +296,7 @@ void loop() {
   if(awakeMinCnt<0){Serial.print('m');}       // min awake  
   if(retryCnt!=0){Serial.print('r');}         // retry (no sleep)
 */  
-  getVolts();                                 // 1.2 mS include notDS18X20 thermo reading                                     
+  getVolts();                                 // 1.2 mS include notDS18X20 thermo reading and low voltage check (not blocking)                                   
   readTemp();                                 // only for DS18X20
   awakeCnt=aw_ok;
   mustSend=false;           
@@ -339,14 +341,12 @@ void loop() {
 
       t_on21=micros();
       rdSta=rxMessage(0);
-      if(rdSta>=0){                                                  // no error
+      if(rdSta>=0){                                                 // no error
 
         /* echo request ? (address field is 0x5555555555) */
         if(memcmp(messageIn,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
-        else {
-          //showRx(false);
-          //Serial.println();Serial.print("%");          
-          importData(messageIn,pldLength);   // user data
+        else {          
+          importData(messageIn,pldLength);                          // user data
         }
         
         /* tx+rx ok -> every counters reset */
@@ -363,13 +363,13 @@ void loop() {
     
       showErr(true);
       trSta=0;rdSta=0;
-      numT=0;                                           // tx or rx error : refaire l'inscription au prochain réveil
-      switch(retryCnt){
-        case 0:retryCnt=aw_retry;break;
-        case 1:awakeCnt=aw_ko;awakeMinCnt=aw_ko;
-                awakeCnt=0;                             // ********************** debug **************************
+      numT=0;                                             // tx or rx error : refaire l'inscription au prochain réveil
+      switch(retryCnt){                                   
+        case 0:retryCnt=aw_retry;break;                   // retryCnt ==0 -> debut des retry
+        case 1:awakeCnt=aw_ko;awakeMinCnt=aw_ko;          // retryCnt ==1 -> ko (les retry n'ont pas réussi) long delay avant reprise (aw_ko sleeps)
+                awakeCnt=aw_ok;awakeMinCnt=aw_min;        // ********************** debug ************************** (delay normal)
                 retryCnt=0;break;
-        default:retryCnt--;break;
+        default:retryCnt--;break;                         // retryCnt >1  -> retry en cours pas de sleep
       }
     }
   }
@@ -377,6 +377,8 @@ void loop() {
   
   /* if radio HS or missing ; 1 display every 2 sleeps */
   if(nrfp.lastSta==0xFF){
+    Serial.println("radio HS or missing");
+    delayBlk(2000,0,250,1,1);            // 1 long blink
     retryCnt=0;
     awakeCnt=1;
     awakeMinCnt=1;            
@@ -618,7 +620,9 @@ uint8_t beginP()
 {
   int confSta=-1;
   unsigned long bptime=micros();
-  while(1){                                       // confsta>=1 or -5 or wait 
+  uint8_t beginP_retryCnt=2;
+  while(beginP_retryCnt>0){                       // confsta>=1 or -5 or wait 
+    beginP_retryCnt--;
     confSta=nrfp.pRegister(messageIn,&pldLength); // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
                                                   // 0 na ; >=1 ok numT
 /*#ifdef DIAG
@@ -711,17 +715,18 @@ void echo()
 
 #endif NRF_MODE == 'P'
 
-int txMessage(bool ack,uint8_t len,uint8_t numP)
+int txMessage(bool ack,uint8_t len,uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2 registration ko
 {
 #if NRF_MODE=='P'  
-  if(numT==0){numT=beginP();}
+  if(numT==0){numT=beginP();if(numT<=0){trSta=-2;return trSta;}           // beginP n'a pas fonctionné
+  }
 #endif NRF_MODE=='P'
 
   nrfp.write(message,ack,len,numP);
   trSta=1;
   time_beg = micros();
   while(trSta==1){
-    trSta=nrfp.transmitting(ack);}                 // trsta=0 if data sent ok ; -1 if maxRt
+    trSta=nrfp.transmitting(ack);}                // trsta=0 if data sent ok ; -1 if maxRt
 
   time_end=micros();
 
