@@ -229,8 +229,8 @@ void getVolts()                     // get unregulated voltage and reset watchdo
 {
   unsigned long t=micros();
 // free blink while getVolts()
-  bitSet(PORT_LED,BIT_LED);                 //digitalWrite(LED,HIGH);
-  bitSet(DDR_LED,BIT_LED);                  //pinMode(LED,OUTPUT);     
+//  bitSet(PORT_LED,BIT_LED);                 //digitalWrite(LED,HIGH);
+//  bitSet(DDR_LED,BIT_LED);                  //pinMode(LED,OUTPUT);     
 
   checkOn();
   
@@ -254,7 +254,7 @@ void getVolts()                     // get unregulated voltage and reset watchdo
 #endif  
 
   checkOff();
-  bitClear(PORT_LED,BIT_LED);             //digitalWrite(LED,LOW);            
+//  bitClear(PORT_LED,BIT_LED);             //digitalWrite(LED,LOW);            
 
   ADCSRA &= ~(1<<ADEN);                   // ADC shutdown for clean next voltage measurement
   //Serial.println(micros()-t);delay(1);

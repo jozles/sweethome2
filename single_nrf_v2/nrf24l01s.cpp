@@ -481,17 +481,55 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
 
     PP4_HIGH
     CE_LOW
-    if(numP>=0 && (readTo>=0)){            // no TO && pld ok
+    if(numP>=0 && (readTo>=0)){             // no TO && pld ok
         numP=message[ADDR_LENGTH]-'0';      // numP
         PP4
-        return numP;}                      // PRX mode still true
+        return numP;}                       // PRX mode still true
 
     if(numP>=0){
 //        CE_LOW
-        return ER_RDYTO;}                  // else TO error
+        return ER_RDYTO;}                   // else TO error
     
     CE_LOW
-    return numP;                           // or AV error 
+    return numP;                            // or AV error 
+}
+
+int Nrfp::txRx(byte* message,uint8_t* pldLength,int numT)
+{                      // ER_MAXRT ; AV_errors codes ; >=0 numP ok
+
+    memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
+    memcpy(message,MAC_ADDR,ADDR_LENGTH);
+    message[ADDR_LENGTH]='0';
+    
+    write(message,NO_ACK,MAX_PAYLOAD_LENGTH,numT);     // send macAddr + numP=0 to cc_ADDR ; no ACK
+ 
+    int trst=1;
+    while(trst==1){trst=transmitting(NO_ACK);}
+    if(trst<0){return ER_MAXRT;}              // MAX_RT error should not happen (no ACK mode)
+                                              // radio card HS or missing
+
+    unsigned long time_beg = millis();
+    long readTo=0;
+    uint8_t pipe=99;
+    *pldLength=MAX_PAYLOAD_LENGTH;
+    int numP=AV_EMPTY;    
+    while(numP==AV_EMPTY && (readTo>=0)){     // waiting for concentrator answer
+        readTo=TO_REGISTER-millis()+time_beg;
+        numP=read(message,&pipe,pldLength,NBPERIF);}
+
+    PP4_HIGH
+    CE_LOW
+    if(numP>=0 && (readTo>=0)){               // no TO && pld ok
+        numP=message[ADDR_LENGTH]-'0';        // numP
+        PP4
+        return numP;}                         // PRX mode still true
+
+    if(numP>=0){
+//        CE_LOW
+        return ER_RDYTO;}                     // else TO error
+    
+    CE_LOW
+    return numP;                              // or AV error 
 }
 #endif // NRF_MODE == 'P'
 

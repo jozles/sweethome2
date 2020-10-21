@@ -63,7 +63,7 @@ uint8_t pldLength;
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
-extern float   volts;                          // tension alim (VCC)
+extern float   volts;                     // tension alim (VCC)
 
 #define NTESTAD '1'                       // numéro testad dans table
 byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
@@ -100,13 +100,14 @@ unsigned long tLast=0;             // date unix dernier message reçu
 
 /*** gestion sleep ***/
 
-bool      mustSend; 
+bool      mustSend;                 // si une condition générant une transmission est présente
+bool      forceSend=true;           // pour forcer une transmission en l'absence de condition (par exemple en retry)
 int       awakeCnt=0;
 int       awakeMinCnt=0;
 int       retryCnt=0;
-uint32_t  nbS=0;                   // nbre com
-uint32_t  nbL=0;                   // nbre loops
-float     durT=0;                  // temps sleep cumulé (mS/10)
+uint32_t  nbS=0;                    // nbre com
+uint32_t  nbL=0;                    // nbre loops
+float     durT=0;                   // temps sleep cumulé (mS/10)
 bool      lowPower=false;
 float     lowPowerValue=VOLTMIN;
 
@@ -159,6 +160,8 @@ void broadcast(char a);
 #endif NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'
+int  txRxMessage();
+bool checkTemp();
 void int_ISR()
 {
   extTimer=true;
@@ -176,28 +179,28 @@ void setup() {
   wd();                           // watchdog
   iniTemp();
  
-  delay(1000); // pour reset de programmation
+  delay(1000);                    // pour reset de programmation
   Serial.begin(115200);
   Serial.println();
-  Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry) ; $ showerr ");
-  Serial.println("£ importData (received to local) ; € diags fin loop");delay(4);
+  Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry) ; € showerr ");
+  Serial.println("£ importData (received to local) ; $ diags fin loop");delay(4);
   Serial.println();Serial.print(PER_ADDR);Serial.print(" to ");nrfp.printAddr((char*)CC_ADDR,0);
   Serial.print(" start setup ");Serial.print(thermo);delay(3);
 
-  delayBlk(1,0,250,1,2000);               // 2sec blinking
+  delayBlk(500,0,1,1,1);                  // 1 blink 500mS
   
   sleepPwrDown(0);                        // wait for interrupt from external timer to reach beginning of period
 
   long beg=millis();
-  led(100000);                            // external timer calibration begin
+  delayBlk(500,0,1,1,1);                  // 1 blink 500mS - external timer calibration begin (100mS blink)
   
   attachInterrupt(0,int_ISR,ISREDGE);     // external timer interrupt
   EIFR=bit(INTF0);                        // clr flag
-  while(!extTimer){delay(1);}             // évite le blocage à la fin ... ???
-  
+  while(!extTimer){delay(1);}             // évite le blocage à la fin ... ???  
   detachInterrupt(0);
+  
   period=(float)(millis()-beg)/1000;
-  led(100000);
+  delayBlk(500,0,1,1,1);                  // 1 blink 500mS - external timer calibration end
   Serial.print("period ");Serial.print(period);Serial.print("sec "); // external timer period
 
   getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
@@ -208,13 +211,7 @@ void setup() {
 
   Serial.print(volts);Serial.print("V ");
   Serial.print(temp);Serial.println("°C ");
-  
-/*  nrfp.powerOn();
-  numT=beginP();                          // registration 
-                                          // if radio HS or missing nrfp.lastSta=0xFF
-  nrfp.powerOff();                                            
-  Serial.print("numT=");Serial.println(numT);
-*/  
+   
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -238,19 +235,18 @@ void setup() {
   digitalWrite(6,LOW);digitalWrite(6,HIGH);
  
   nrfp.powerOn();
-  //nrfp.powerUp();
-  //nrfp.setup();
   
 #ifdef DUE
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
 #endif  
 
-#endif NRF_MODE == 'C'
-
   time_beg=millis();  
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
 
+#endif NRF_MODE == 'C'
+
   Serial.println("end setup");delay(1);
+ 
 }
 
 void loop() {
@@ -258,9 +254,9 @@ void loop() {
 #if NRF_MODE == 'P'
 
 #ifdef DIAG  
-  Serial.print("€ ");
+  Serial.print("$ ");
   ///*
-  Serial.print(awakeMinCnt);Serial.print(" / ");Serial.print(awakeCnt);Serial.print(" ; ");
+  Serial.print(awakeMinCnt);Serial.print(" / ");Serial.print(awakeCnt);Serial.print(" / ");Serial.print(retryCnt);Serial.print(" ; ");
   //Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS com nb ; nbL loop nb
   Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("/");Serial.print(previousTemp);Serial.print("° t(");
   Serial.print(t_on1-t_on);Serial.print("/");
@@ -269,14 +265,14 @@ void loop() {
   Serial.print(t_on3-t_on);Serial.print("/");
   //*/
   t_on0=micros();  
-  Serial.print(t_on0-t_on);Serial.println(") €");
+  Serial.print(t_on0-t_on);Serial.println(") $");
   delay(5);
 #endif DIAG
+  
+  if(lowPower){lethalSleep();}            
 
   /* timing to usefull awake */
-  
-  while(((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0)) || lowPower){           
-
+  while(((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0))){
     awakeCnt--;
     awakeMinCnt--;
     sleepPwrDown(0);
@@ -291,30 +287,26 @@ void loop() {
   t_on2=t_on;
   t_on21=t_on;  
   t_on3=t_on;
-/*
-  if(awakeCnt<0){Serial.print('a');}          // cyclic awake
-  if(awakeMinCnt<0){Serial.print('m');}       // min awake  
-  if(retryCnt!=0){Serial.print('r');}         // retry (no sleep)
-*/  
+
   getVolts();                                 // 1.2 mS include notDS18X20 thermo reading and low voltage check (not blocking)                                   
   readTemp();                                 // only for DS18X20
   awakeCnt=aw_ok;
-  mustSend=false;           
-  mustSend=checkThings(awakeCnt,awakeMinCnt,retryCnt);           // user staff
 
-  if( (temp>(previousTemp+deltaTemp)) ){
-    previousTemp=temp-(deltaTemp/2);
-    mustSend=true;}
-  if( (temp<(previousTemp-deltaTemp)) ){
-    previousTemp=temp+(deltaTemp/2);
-    mustSend=true;}
-
-  t_on1=micros();    // end of work... now send or sleep
-  if(mustSend){Serial.print("!");}
+  mustSend=false;
+  if( nrfp.lastSta!=0xFF &&                   // hardware HS or missing no com
+      ( checkThings(awakeCnt,awakeMinCnt,retryCnt) || 
+        checkTemp() || 
+        forceSend || 
+        awakeMinCnt<=0 || 
+        retryCnt!=0 
+      )
+    ){mustSend=true;}
   
-  /* hardware ok, data ready or presence message time or retry -> send */
-  if(nrfp.lastSta!=0xFF && ((mustSend==true) || (awakeMinCnt<0) || (retryCnt!=0))){         // anything to send or min or retry
+  t_on1=micros();    // end of work... now send or sleep
 
+  /* hardware ok, data ready or presence message time or retry -> send */
+  if(mustSend){
+    Serial.print("!");
     for(int nb=retryCnt;nb>0;nb--){Serial.print("*");}
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
@@ -336,11 +328,15 @@ void loop() {
     nbS++;
 
     nrfp.powerOn();
-    trSta=txMessage(NO_ACK,outLength,0);
-    if(trSta>=0){
+//    trSta=txMessage(NO_ACK,outLength,0);
+//    if(trSta>=0){
+
+    trSta=0;
+    rdSta=txRxMessage();
+Serial.print("---");Serial.print(pldLength);Serial.print(" ");Serial.print((char*)message);Serial.print(" ");Serial.print((char*)messageIn);Serial.print(" ");Serial.println(pldLength);Serial.print(" ");Serial.println(rdSta);
 
       t_on21=micros();
-      rdSta=rxMessage(0);
+//      rdSta=rxMessage(0);
       if(rdSta>=0){                                                 // no error
 
         /* echo request ? (address field is 0x5555555555) */
@@ -350,17 +346,20 @@ void loop() {
         }
         
         /* tx+rx ok -> every counters reset */
+          forceSend=false;
           retryCnt=0;
           awakeCnt=aw_ok;
           awakeMinCnt=aw_min;            
       }
-    }
+//    }
     nrfp.powerOff();
     t_on3=micros();  // message sent / received or error (rdSta)
+
     if(trSta<0 || rdSta<0){                                           // error
       //Serial.println(diagMessT);delay(2);               // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
       //Serial.println(diagMessR);delay(2);               // 3,6mS ! + 0,6mS prepa dans txmessage=4,2mS
     
+      forceSend=true;
       showErr(true);
       trSta=0;rdSta=0;
       numT=0;                                             // tx or rx error : refaire l'inscription au prochain réveil
@@ -373,12 +372,11 @@ void loop() {
       }
     }
   }
-  //else Serial.print("-");                               // no transmission done
   
   /* if radio HS or missing ; 1 display every 2 sleeps */
   if(nrfp.lastSta==0xFF){
     Serial.println("radio HS or missing");
-    delayBlk(2000,0,250,1,1);            // 1 long blink
+    delayBlk(2000,0,1,1,1);            // 1x2sec blink
     retryCnt=0;
     awakeCnt=1;
     awakeMinCnt=1;            
@@ -625,39 +623,31 @@ uint8_t beginP()
     beginP_retryCnt--;
     confSta=nrfp.pRegister(messageIn,&pldLength); // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
                                                   // 0 na ; >=1 ok numT
-/*#ifdef DIAG
-    int sta=confsta;if(confsta>0){sta=1;)
-    Serial.print(">>> start ");
-    Serial.print((char*)(kk+(sta-(ER_MAXER))*LMERR));
-    Serial.print(" numT=");Serial.print(confSta);
-    Serial.print(" reg ");Serial.println(micros()-bptime);
-    bptime=micros();
-    delay(3);         
-#endif    */
-
+    nrfp.powerOff();                    
+    Serial.print("\nbeginP ");           // après pReg pour que la sortie n'interfère pas avec les tfr SPI
+    Serial.print(confSta);Serial.print(" ");delay(2);    
     if(confSta>0){
-      Serial.println();
       importData(messageIn,pldLength);  // user data available
-      awakeMinCnt=-1;                 // force data upload
-      
-      break;                          // out of while(1)
+      awakeMinCnt=-1;                   // force data upload
+      delayBlk(1,0,125,4,1);            // 4 blinks
+      nrfp.powerOn();
+      break;                            // out of while(1)
     }
 
     if(confSta==-5){
       nrfp.lastSta=0xFF;              // KO mode : radio missing or HS
       break;                          // out of while(1)  
     }
-   
-    if(confSta=-4){Serial.println();Serial.print("beginP no answer ");}
-    Serial.print(confSta);delay(2);
 
-    nrfp.powerOff();
+    delay(1000);
+    if(confSta==-4){Serial.print("   no answer");}
+    else{Serial.print(" error");}
+
     sleepPwrDown(0);                  // still waiting (about 4,5+2mS @20mA)
     // in order to minimize power wasting, special sleep needed (like aw_ok 1 time then aw_min)
     // + including double blink  
-    
-    delayBlk(1,0,250,2,1);            // 2 blinks
-    nrfp.powerOn();                   // after sleep                   
+    delayBlk(1,0,125,2,1);            // 2 blinks
+    nrfp.powerOn();  
   }
 
   return confSta;                     // peripheral registred or radio HS
@@ -713,13 +703,28 @@ void echo()
   Serial.println("stop echo");delay(1);
 }
 
+int txRxMessage()
+{
+  if(numT==0){
+    numT=beginP();
+    if(numT<=0){trSta=-2;return trSta;}           // beginP n'a pas fonctionné
+  }
+  message[ADDR_LENGTH]=numT+48;
+  memcpy(messageIn,message,pldLength);
+
+  return nrfp.txRx(messageIn,&pldLength,numT);
+}
+
 #endif NRF_MODE == 'P'
 
 int txMessage(bool ack,uint8_t len,uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2 registration ko
 {
 #if NRF_MODE=='P'  
-  if(numT==0){numT=beginP();if(numT<=0){trSta=-2;return trSta;}           // beginP n'a pas fonctionné
+  if(numT==0){
+    numT=beginP();
+    if(numT<=0){trSta=-2;return trSta;}           // beginP n'a pas fonctionné
   }
+  message[ADDR_LENGTH]=numT+48;
 #endif NRF_MODE=='P'
 
   nrfp.write(message,ack,len,numP);
@@ -762,7 +767,6 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
   while((rdSta==AV_EMPTY) && (readTo>=0)){
     rdSta=nrfp.read(messageIn,&pipe,&pldLength,NBPERIF);
     readTo=to-(micros()-time_beg)/1000;}
-//  PP4_HIGH
   if(readTo<0){rdSta=ER_RDYTO;}
   nrfp.readStop();
   messageIn[pldLength]=0x00;
@@ -800,10 +804,10 @@ delay(1);
 void showErr(bool crlf)
 {
 #ifdef DIAG
-  Serial.println();Serial.print("$ tx=");Serial.print(trSta);Serial.print(" rx=");Serial.print(rdSta);
+  Serial.println();Serial.print("€ tx=");Serial.print(trSta);Serial.print(" rx=");Serial.print(rdSta);
   Serial.print(" message ");Serial.print((char*)message);
   Serial.print(" lastSta ");if(nrfp.lastSta<0x10){Serial.print("0");}Serial.print(nrfp.lastSta,HEX);
-  Serial.print(" ");Serial.print((char*)kk+(rdSta+6)*LMERR);Serial.print(" $");
+  Serial.print(" ");Serial.print((char*)kk+(rdSta+6)*LMERR);Serial.print(" €");
   if(crlf){Serial.println();}
 #endif // DIAG
 }
@@ -828,8 +832,7 @@ void readTemp()
 {
   if(retryCnt==0){            // pas de conversion si retry en cours
   thSta=true;
-
-  
+ 
 #ifdef DS18X20
     checkOn();                                // power on
     thSta=ds1820.setDs(WPIN,setds,readds);    // setup ds18b20
@@ -838,25 +841,26 @@ void readTemp()
     sleepPwrDown(TCONVDS2);   
     temp=ds1820.readDs(WPIN);
     checkOff();                               // power off
-/*    Serial.print(volts);Serial.print(" ");Serial.print(nbT);Serial.print(" ");Serial.print(temp);
-#ifdef DIAG
-Serial.print("/");Serial.print(previousTemp);
-#endif // DIAG
-    delay(1);
-*/       
 #endif DS18X20
-
   }                        
 }
-  
 
-
+bool checkTemp()
+{
+  if( (temp>(previousTemp+deltaTemp)) ){                                
+    previousTemp=temp-(deltaTemp/2);
+    return true;}
+  if( (temp<(previousTemp-deltaTemp)) ){
+    previousTemp=temp+(deltaTemp/2);
+    return true;}
+  return false;
+}
 
 void sleepDly(uint16_t dly)                                                       // should be (nx250)
 {
   delay(1);                     // serial
-  dly=(dly/250)*250;
-  while(dly>=250){durT+=sleepPwrDown(T250);dly-=250;}
+  dly=(dly/125)*125;
+  while(dly>=125){durT+=sleepPwrDown(T125);dly-=125;}
 }
 
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,int dly)
