@@ -255,15 +255,12 @@ void loop() {
 
 #ifdef DIAG  
   Serial.print("$ ");
-  ///*
   Serial.print(awakeMinCnt);Serial.print(" / ");Serial.print(awakeCnt);Serial.print(" / ");Serial.print(retryCnt);Serial.print(" ; ");
-  //Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS com nb ; nbL loop nb
   Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("/");Serial.print(previousTemp);Serial.print("° t(");
   Serial.print(t_on1-t_on);Serial.print("/");
   Serial.print(t_on2-t_on);Serial.print("/");
   Serial.print(t_on21-t_on);Serial.print("/");
   Serial.print(t_on3-t_on);Serial.print("/");
-  //*/
   t_on0=micros();  
   Serial.print(t_on0-t_on);Serial.println(") $");
   delay(5);
@@ -328,30 +325,26 @@ void loop() {
     nbS++;
 
     nrfp.powerOn();
-//    trSta=txMessage(NO_ACK,outLength,0);
-//    if(trSta>=0){
-
     trSta=0;
     rdSta=txRxMessage();
-Serial.print("---");Serial.print(pldLength);Serial.print(" ");Serial.print((char*)message);Serial.print(" ");Serial.print((char*)messageIn);Serial.print(" ");Serial.println(pldLength);Serial.print(" ");Serial.println(rdSta);
+    Serial.print("\ntxRxM  ");Serial.print(rdSta);
+    
+    t_on21=micros();
+    if(rdSta>=0){                                                 // no error
 
-      t_on21=micros();
-//      rdSta=rxMessage(0);
-      if(rdSta>=0){                                                 // no error
-
-        /* echo request ? (address field is 0x5555555555) */
-        if(memcmp(messageIn,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
-        else {          
-          importData(messageIn,pldLength);                          // user data
-        }
-        
-        /* tx+rx ok -> every counters reset */
-          forceSend=false;
-          retryCnt=0;
-          awakeCnt=aw_ok;
-          awakeMinCnt=aw_min;            
+      /* echo request ? (address field is 0x5555555555) */
+      if(memcmp(messageIn,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
+      else {          
+        importData(messageIn,pldLength);                          // user data
       }
-//    }
+        
+      /* tx+rx ok -> every counters reset */
+      forceSend=false;
+      retryCnt=0;
+      awakeCnt=aw_ok;
+      awakeMinCnt=aw_min;            
+    }
+    
     nrfp.powerOff();
     t_on3=micros();  // message sent / received or error (rdSta)
 
@@ -373,7 +366,7 @@ Serial.print("---");Serial.print(pldLength);Serial.print(" ");Serial.print((char
     }
   }
   
-  /* if radio HS or missing ; 1 display every 2 sleeps */
+  /* if radio HS or missing ; 1 long blink every 2 sleeps */
   if(nrfp.lastSta==0xFF){
     Serial.println("radio HS or missing");
     delayBlk(2000,0,1,1,1);            // 1x2sec blink
@@ -639,10 +632,10 @@ uint8_t beginP()
       break;                          // out of while(1)  
     }
 
-    delay(1000);
-    if(confSta==-4){Serial.print("   no answer");}
+    if(confSta==-4){Serial.print(" no answer");}
     else{Serial.print(" error");}
 
+    delay(2);
     sleepPwrDown(0);                  // still waiting (about 4,5+2mS @20mA)
     // in order to minimize power wasting, special sleep needed (like aw_ok 1 time then aw_min)
     // + including double blink  
@@ -650,6 +643,7 @@ uint8_t beginP()
     nrfp.powerOn();  
   }
 
+  if(confSta<=0){Serial.println();delay(1);}
   return confSta;                     // peripheral registred or radio HS
 }
 
@@ -706,13 +700,16 @@ void echo()
 int txRxMessage()
 {
   if(numT==0){
-    numT=beginP();
-    if(numT<=0){trSta=-2;return trSta;}           // beginP n'a pas fonctionné
+    rdSta=beginP();
+Serial.print("rdSta = ");Serial.print((int)rdSta);
+Serial.print(" message = ");Serial.println((char*)messageIn);delay(5);
+    if(rdSta<=0){rdSta=-2;return rdSta;}           // numT still 0 ; beginP n'a pas fonctionné
+    numT=rdSta;
   }
   message[ADDR_LENGTH]=numT+48;
   memcpy(messageIn,message,pldLength);
 
-  return nrfp.txRx(messageIn,&pldLength,numT);
+  return nrfp.txRx(messageIn,&pldLength);
 }
 
 #endif NRF_MODE == 'P'

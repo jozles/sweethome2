@@ -377,7 +377,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     GET_STA
     lastSta=statu;
     if((statu & RX_DR_BIT)==0){                   // RX empty ?
-///*          
+
         regRead(FIFO_STATUS,&fstatu);
         if((fstatu & RX_EMPTY_BIT)!=0){           // FIFO empty ?
             return AV_EMPTY;                      // --------------- empty
@@ -392,8 +392,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
             //CLR_RXDR 
             return AV_EMPTY;}
         }
-//*/
-/*return AV_EMPTY;*/
+
     }
     // RX full : either (statu & RX_DR_BIT)!=0
     //           either (fstatu & RX_EMPTY_BIT)==0) && ((statu & RX_P_NO_BIT)>>RX_P_NO)==1
@@ -427,9 +426,10 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
     // numP<NBPERIF means "available() allready done with result ok && *pipe set")
     // PRX mode still true if no error
 
-    if(numP>=NBPERIF){                                      // allow to only execute available()
-        numP=available(pipe,pldLength);                     // if necessary
-    } 
+    if(numP>=NBPERIF){
+        numP=available(pipe,pldLength);
+    }
+
     if(numP>=0){
 
         CSN_LOW
@@ -494,14 +494,14 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     return numP;                            // or AV error 
 }
 
-int Nrfp::txRx(byte* message,uint8_t* pldLength,int numT)
+int Nrfp::txRx(byte* message,uint8_t* pldLength)
 {                      // ER_MAXRT ; AV_errors codes ; >=0 numP ok
 
-    memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
+    //memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
+    message[MAX_PAYLOAD_LENGTH]=0x00;
     memcpy(message,MAC_ADDR,ADDR_LENGTH);
-    message[ADDR_LENGTH]='0';
     
-    write(message,NO_ACK,MAX_PAYLOAD_LENGTH,numT);     // send macAddr + numP=0 to cc_ADDR ; no ACK
+    write(message,NO_ACK,MAX_PAYLOAD_LENGTH,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
  
     int trst=1;
     while(trst==1){trst=transmitting(NO_ACK);}
@@ -525,10 +525,8 @@ int Nrfp::txRx(byte* message,uint8_t* pldLength,int numT)
         return numP;}                         // PRX mode still true
 
     if(numP>=0){
-//        CE_LOW
         return ER_RDYTO;}                     // else TO error
     
-    CE_LOW
     return numP;                              // or AV error 
 }
 #endif // NRF_MODE == 'P'

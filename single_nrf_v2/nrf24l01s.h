@@ -169,7 +169,7 @@ class Nrfp
 
 #if NRF_MODE == 'P'
     int     pRegister(byte* message,uint8_t* pldLength);
-    int     txRx(byte* message,uint8_t* pldLength,int numT);
+    int     txRx(byte* message,uint8_t* pldLength);
 #endif // NRF_MODE == 'P'
 #if NRF_MODE == 'C'
     void    tableCInit();
