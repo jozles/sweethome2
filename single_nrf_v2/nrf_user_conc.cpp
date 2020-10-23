@@ -22,11 +22,11 @@ extern Nrfp nrfp;
 
 #if TXRX_MODE == 'T'
 
-  byte        localIp[] = CONCNRFIPADDR;                        // IP fixe pour carte W5x00   (192.168.0.30)
-  int         port      = PORTTCPCONC;                          //
-//byte        host[]    = HOSTIPADDR2;                          // ip server sh devt2
+  byte        localIp[] = CONCNRFIPADDR;      // IP fixe pour carte W5x00   (192.168.0.30)
+  int         port      = PORTTCPCONC;     
+//byte        host[]    = HOSTIPADDR2;        // ip server sh devt2
   byte        host[]    = {82,64,32,56};
-  int         hport     = PORTPERISERVER2;                      // port server sh devt2
+  int         hport     = PORTPERISERVER2;    // port server sh devt2
 
 #define CLICX cli.connected()
 #define CLIAV cli.available()
@@ -322,10 +322,13 @@ int exportData(uint8_t numT)                            // formatting periBuf da
   int sb=0,i=0;
   char x[2]={'\0','\0'};
   
-      sprintf(message,"%02d",tableC[numT].numPeri);                 // N° périf                    
+      sprintf(message,"%02d",tableC[numT].numPeri);                 // N° périf dans table serveur                    
       memcpy(message+2,"_\0",2);                     
       sb=3;
-      unpackMac((char*)(message+sb),tableC[numT].periMac);          // macaddr             
+      unpackMac((char*)(message+sb),tableC[numT].periMac);          // macaddr (last byte is 0x00 ... ADDR_LENGTH is 5 bytes)
+#define MAC_ADDR_LENGTH 6
+      char pattern[]={".00"};
+      if(ADDR_LENGTH<MAC_ADDR_LENGTH){for(uint8_t mk=MAC_ADDR_LENGTH;mk>ADDR_LENGTH;mk--){memcpy(message+sb+(mk-1)*3-1,pattern,3);}}
       sb+=17;
       message[sb-1]='0';
       memcpy(message+sb,"_\0",2);
@@ -439,8 +442,8 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
 
   if(periMess==MESSOK){
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
-        nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // numPer from set message
-        numT=nrfp.macSearch(fromServerMac,&numPeri);              // numT mac reg nb in conc table ; numPeri from table numPeri 
+        nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // nP = numPeri from set message (nb in server table)
+        numT=nrfp.macSearch(fromServerMac,&numPeri);              // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 
                                                                   // numPeri should be same as nP (if !=0 && mac found)
         conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
         t2=micros();

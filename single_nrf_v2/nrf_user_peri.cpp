@@ -89,6 +89,7 @@ void importData(byte* data,uint8_t dataLength)
 void userResetSetup()
 {
   /* initial setup after reset */
+
 }
 
 void userHardPowerDown()

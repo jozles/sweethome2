@@ -13,8 +13,10 @@
 Le circuit NRF n'autorise que 2 adresses en réception : RX0 et RX1 ;
 les autres RX sont "dérivés" du RX1 (seul le LSB change)
 
-L'adresse RX1 est utilisée pour recevoir les messages spécifiques au circuit
-c'est la macAddr du circuit
+L'adresse RX1 est utilisée pour recevoir les messages spécifiques au circuit ;
+elle est utilisée comme macAddr du circuit ; sa longueur est de 5 bytes (ADDR_LENGTH) ;
+pour les communications entre le concentrateur et le serveur sweethome, un sixième byte (0x00) est ajouté.
+Le concentrateur et le périphérique utilisent le 6ème byte dans les messages : c'est le numéro d'entrée dans la table du concentrateur (voir plus loin)
 
 L'adresse RX0 n'est utilisée que par les périphériques pour recevoir
 les messages de broadcast (à traiter)
@@ -22,9 +24,8 @@ les messages de broadcast (à traiter)
 Sur les périphériques l'adresse TX est fixe sur la macAddr du concentrateur
 
 Le concentrateur gère une table qui associe
-    la macAddr du périphérique, son rang dans la table et son numéro de périphérique de sweetHome
-    + un buffer de réception de l'exterieur et un buffer de réception du périphérique
-    (la macAddr est complétée du rang+48 dans la table pour avoir une longueur "normale" de 6 car) 
+    la macAddr du périphérique (dont le 6ème caractère est son rang dans la table) et son numéro de périphérique dans le serveur sweetHome
+    + un buffer de réception de l'exterieur et un buffer de réception du périphérique 
 
 Tous les messages commencent par macAddr/numT (numT rang dans la table 0x30 à 0xFF)
 Le concentrateur contrôle et répond si ok ; sinon l'éventuelle macAddr est effacée de la table.
@@ -35,6 +36,7 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 v 1.3 La détection d'alim faible est effectuée lors de la lecture de la tension en début de boucle et ne bloque pas la boucle en cours.
 La valeur utilisée comme seuil est la constante VOLTMIN (rien n'est passé depuis le serveur)
+Le sixième byte de la macAddr pour le serveur est figé à 0x00 (sinon chaque changement dans la table du concentrateur génère un nouveau périphérique dans le serveur sweethome)
 
 */
 
@@ -42,10 +44,10 @@ La valeur utilisée comme seuil est la constante VOLTMIN (rien n'est passé depu
 
 /************* config ****************/
   
-  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
+  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
   
-  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
@@ -63,14 +65,14 @@ La valeur utilisée comme seuil est la constante VOLTMIN (rien n'est passé depu
 #if NRF_MODE == 'P'
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri9"       // MAC_ADDR périphériques
+  #define PER_ADDR  "peri7"       // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
-  #define SPI_MODE
+  //#define SPI_MODE                // SPI controlé par la lib ethernet
   #define MAC_ADDR  CC_ADDR
 #endif
 
-  #define CC_ADDR   (byte*)"toto_"      // MAC_ADDR concentrateur
+  #define CC_ADDR   (byte*)"ctest" //"toto_"      // MAC_ADDR concentrateur
   #define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
 
 #define CLK_PIN    13

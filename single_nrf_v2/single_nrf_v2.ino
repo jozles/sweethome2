@@ -217,23 +217,21 @@ void setup() {
 #if NRF_MODE == 'C'
 
   PP4_INIT
+  
   delay(100);
   Serial.begin(115200);
 
-  Serial.println();Serial.print(" start setup ");
-
-  Serial.print(TXRX_MODE);
+  Serial.println();Serial.print("start setup PP=");Serial.print(PP);Serial.print(" ");
+  Serial.println(TXRX_MODE);
   delay(100);
 
   pinMode(LED,OUTPUT);
+  
   userResetSetup();
 
   nrfp.tableCInit();//nrfp.tableCPrint();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
 
-  digitalWrite(6,HIGH);pinMode(6,OUTPUT);
-  digitalWrite(6,LOW);digitalWrite(6,HIGH);
- 
   nrfp.powerOn();
   
 #ifdef DUE
@@ -391,17 +389,13 @@ void loop() {
   memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
   rdSta=nrfp.read(messageIn,&pipe,&pldLength,NBPERIF);  // get message from perif (<0 err ; 0 reg to do ; >0 entry nb)
 
-  time_beg=micros();  // ******************************* message reçu **********************************
-  if(rdSta!=AV_EMPTY){Serial.print(rdSta);Serial.print(" ");}
-  if(rdSta>=0){
-    //dumpstr((char*)messageIn,24);
-    Serial.print((char*)messageIn);Serial.print(" ");
-    }    
+  time_beg=micros();  
 
   if(rdSta==0){
     
   // ====== no error registration request ======
-      
+
+      nrfp.printAddr((char*)messageIn,0);
       showRx(false);                                        
       numT=nrfp.cRegister((char*)messageIn);               
       if(numT<(NBPERIF)){                             // registration ok
@@ -431,7 +425,7 @@ void loop() {
       /* send it to perif */    
         txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);      // end of transaction so auto ACK
         // ******************************* réponse passée **********************************
-        Serial.println(diagMessT);delay(2);
+        //Serial.println(diagMessT);delay(2);
         if(trSta==0){tableC[rdSta].periBufSent=true;} 
       /* ======= formatting & tx to server ====== */
         if(numT==0){exportData(rdSta);}               // if not registration (no valid data), tx to server
@@ -463,12 +457,12 @@ void loop() {
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
   //            update tLast (last unix date)
 
-
     int dt=importData(&tLast);
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
 #ifdef DIAG
   if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
 #endif // DIAG
+
 
 
   // ====== menu choice ======  
@@ -790,20 +784,25 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
 void showRx(bool crlf)
 { 
 #ifdef DIAG
-  Serial.print(" l=");Serial.print(pldLength);
+  Serial.print(" reçu l=");Serial.print(pldLength);
   Serial.print(" p=");Serial.print(pipe);
   Serial.print(" ");
   if(crlf){Serial.println();}
-delay(1);
+delay(2);
 #endif // DIAG  
 }
 
 void showErr(bool crlf)
 {
 #ifdef DIAG
-  Serial.println();Serial.print("€ tx=");Serial.print(trSta);Serial.print(" rx=");Serial.print(rdSta);
+#if  NRF_MODE == 'P'
+  Serial.println();
+#endif NRF_MODE == 'P'
+  Serial.print("€ tx=");Serial.print(trSta);Serial.print(" rx=");Serial.print(rdSta);
+#if  NRF_MODE == 'P'
   Serial.print(" message ");Serial.print((char*)message);
   Serial.print(" lastSta ");if(nrfp.lastSta<0x10){Serial.print("0");}Serial.print(nrfp.lastSta,HEX);
+#endif NRF_MODE == 'P'
   Serial.print(" ");Serial.print((char*)kk+(rdSta+6)*LMERR);Serial.print(" €");
   if(crlf){Serial.println();}
 #endif // DIAG

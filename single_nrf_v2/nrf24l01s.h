@@ -127,7 +127,7 @@
 
 struct NrfConTable
 {
-  uint8_t numPeri;                  // numéro périphérique pour serveur
+  uint8_t numPeri;                  // numéro périphérique dans la table du serveur
   byte    periMac[ADDR_LENGTH+2];   // macAddr (ajout 1 car=num entrée de la table pour former une addr mac pour l'extérieur)
   char    servBuf[MAX_PAYLOAD_LENGTH+1];
   uint8_t servBufLength;

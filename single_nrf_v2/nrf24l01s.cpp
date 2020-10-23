@@ -53,7 +53,7 @@
 #define SPI_INIT    SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
 #endif
 #if NRF_MODE == 'C'
-#define SPI_INIT    SPI.beginTransaction(SPISettings(8000000,MSBFIRST,SPI_MODE0));
+#define SPI_INIT    SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
 #endif
 #define SPI_START   SPI.begin();
 #define SPI_OFF     SPI.end();pinMode(MOSI_PIN,INPUT);pinMode(CLK_PIN,INPUT);
@@ -105,11 +105,11 @@ void Nrfp::setup()
     regWrite(DYNPD,&regw);          // dynamic payload length
 
 #if NRF_MODE == 'P'
-    addrWrite(RX_ADDR_P0,CC_ADDR);   // RXP0 pour réception ACK
+    addrWrite(RX_ADDR_P0,CC_ADDR);   // RXP0 pour réception ACK dans pipe 0
     addrWrite(TX_ADDR,CC_ADDR);      // TX sur concentrateur
 #endif // NRF_MODE == 'P'
 
-    addrWrite(RX_ADDR_P1,(byte*)MAC_ADDR);  // RXP1 = macAddr du circuit
+    addrWrite(RX_ADDR_P1,(byte*)MAC_ADDR);  // RXP1 = macAddr du circuit pour réception messages dans pipe 1
 
     regw=CHANNEL;
     regWrite(RF_CH,&regw);
@@ -186,7 +186,10 @@ void Nrfp::powerOn()
   delay(POWONDLY);                // powerOn delay ******************** mettre en sleep *********************
 
 #endif NRF_MODE == 'P'
-#if NRF_MODE == 'C'   
+#if NRF_MODE == 'C'
+
+  PP4
+  
   digitalWrite(CLK_PIN,LOW);
   pinMode(CLK_PIN,OUTPUT);
 
@@ -237,6 +240,7 @@ void Nrfp::powerUp()
 
     conf=CONFREG;                         // powerUP/CRC 1 byte/PRX
     regWrite(CONFIG,&conf);
+    regWrite(CONFIG,&conf);               // twice !!!
 
     flushRx();
     flushTx();
@@ -376,8 +380,12 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
 
     GET_STA
     lastSta=statu;
-    if((statu & RX_DR_BIT)==0){                   // RX empty ?
 
+      if((statu & RX_DR_BIT)==0 && (statu & RX_P_NO_BIT)==RX_P_NO_BIT){                   // RX && FIFO empty ?
+      return AV_EMPTY;}
+      
+/*
+      if((statu & RX_DR_BIT)==0){                   // RX && FIFO empty ?
         regRead(FIFO_STATUS,&fstatu);
         if((fstatu & RX_EMPTY_BIT)!=0){           // FIFO empty ?
             return AV_EMPTY;                      // --------------- empty
@@ -392,12 +400,12 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
             //CLR_RXDR 
             return AV_EMPTY;}
         }
-
     }
+*/    
     // RX full : either (statu & RX_DR_BIT)!=0
     //           either (fstatu & RX_EMPTY_BIT)==0) && ((statu & RX_P_NO_BIT)>>RX_P_NO)==1
 
-    *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;         // get pipe nb ... if not 1 there is trouble
+    *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;         // get pipe nb ... if not 1 ... trouble
    
     if(*pipe==1){
         CSN_LOW
@@ -406,9 +414,9 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
         CSN_HIGH      
     }
     else {err=AV_EMPTY;} //AV_NBPIP;}                          // ---------------- pipe nb error
-
+    
     if(((*pldLength>maxLength) || (*pldLength<=0)) && err==0){
-        err=AV_LMERR;}                            // ---------------- pldLength error
+      err=AV_LMERR;}                              // ---------------- pldLength error
 
     if(err!=0){rxError();}
     return err;                                   // =0 not empty ; <0 error : invalid pipe nb or length
@@ -444,7 +452,7 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
 #endif NRF_MODE == 'C'
     }
 
-    if(numP!=AV_EMPTY){CLR_RXDR PP4}    // ne pas faire CLR_RXDR si numP==empty : un message a pu arriver depuis la lecture du status
+    if(numP!=AV_EMPTY){CLR_RXDR }    // ne pas faire CLR_RXDR si numP==empty : un message a pu arriver depuis la lecture du status
     return numP;    // CE stay HIGH in case of subsequent packets 
                     // (so read() caller has to put CE low if rx completed)
 }
