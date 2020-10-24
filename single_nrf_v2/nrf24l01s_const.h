@@ -15,7 +15,9 @@ les autres RX sont "dérivés" du RX1 (seul le LSB change)
 
 L'adresse RX1 est utilisée pour recevoir les messages spécifiques au circuit ;
 elle est utilisée comme macAddr du circuit ; sa longueur est de 5 bytes (ADDR_LENGTH) ;
-pour les communications entre le concentrateur et le serveur sweethome, un sixième byte (0x00) est ajouté.
+Pour les communications entre le concentrateur et le serveur sweethome, un sixième byte (numConc) est ajouté ce qui forme une adresse unique pour le serveur.
+Le numéro de concentrateur (numConc) provient des bits de port NUMC_BIT0 et NUMC_BIT1.
+Il s'ajoute au poids faible de la macAddr du concentrateur.
 Le concentrateur et le périphérique utilisent le 6ème byte dans les messages : c'est le numéro d'entrée dans la table du concentrateur (voir plus loin)
 
 L'adresse RX0 n'est utilisée que par les périphériques pour recevoir
@@ -68,7 +70,6 @@ Le sixième byte de la macAddr pour le serveur est figé à 0x00 (sinon chaque c
   #define PER_ADDR  "peri7"       // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
-  //#define SPI_MODE                // SPI controlé par la lib ethernet
   #define MAC_ADDR  CC_ADDR
 #endif
 
@@ -132,6 +133,8 @@ Le sixième byte de la macAddr pour le serveur est figé à 0x00 (sinon chaque c
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
   #define PP         7
+  #define NUMC_BIT0 14          // numConc low bit
+  #define NUMC_BIT1 15          // numConc high bit
 #endif
 
   #define CHANNEL    110        // numéro canal radio

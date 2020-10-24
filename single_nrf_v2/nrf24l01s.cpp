@@ -189,9 +189,6 @@ void Nrfp::powerOn()
 #if NRF_MODE == 'C'
 
   PP4
-  
-  digitalWrite(CLK_PIN,LOW);
-  pinMode(CLK_PIN,OUTPUT);
 
   digitalWrite(CSN_PIN,HIGH);
   pinMode(CSN_PIN,OUTPUT);
@@ -199,9 +196,13 @@ void Nrfp::powerOn()
   digitalWrite(CE_PIN,LOW);
   pinMode(CE_PIN,OUTPUT);
 
+#ifdef SPI_MODE  
+  digitalWrite(CLK_PIN,LOW);
+  pinMode(CLK_PIN,OUTPUT);
   digitalWrite(MOSI_PIN,LOW);
   pinMode(MOSI_PIN,OUTPUT);
   digitalWrite(MOSI_PIN,HIGH);  
+#endif
   
 #endif NRF_MODE == 'C'
 

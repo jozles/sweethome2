@@ -67,6 +67,7 @@ char  udpData[LBUFSERVER+1];
 
 int k,k1,k2;    // pour macros TCP/UDP
 char c;         // pour macros TCP/UDP
+extern uint8_t numConc;
 
   byte        mac[]     = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
 
@@ -144,7 +145,13 @@ void userResetSetup()
   ftestb_on__=(strstr(fonctions,"testb_on__")-fonctions)/LENNOM;
      
   unsigned long t_beg=millis();
-  
+
+/*
+    ************* le numéro de la carte s'ajoute au poids faible de la macAddr ****************
+*/
+
+  mac[5]+=numConc;
+
 IPAddress slaveIp(192, 168, 0, 31);
 #define IP slaveIp
 #define PORT 8887
@@ -326,11 +333,11 @@ int exportData(uint8_t numT)                            // formatting periBuf da
       memcpy(message+2,"_\0",2);                     
       sb=3;
       unpackMac((char*)(message+sb),tableC[numT].periMac);          // macaddr (last byte is 0x00 ... ADDR_LENGTH is 5 bytes)
-#define MAC_ADDR_LENGTH 6
-      char pattern[]={".00"};
-      if(ADDR_LENGTH<MAC_ADDR_LENGTH){for(uint8_t mk=MAC_ADDR_LENGTH;mk>ADDR_LENGTH;mk--){memcpy(message+sb+(mk-1)*3-1,pattern,3);}}
+      message[sb+16]=numConc+'0';
+      //#define MAC_ADDR_LENGTH 6
+      //char pattern[]={".00"};
+      //if(ADDR_LENGTH<MAC_ADDR_LENGTH){for(uint8_t mk=MAC_ADDR_LENGTH;mk>ADDR_LENGTH;mk--){memcpy(message+sb+(mk-1)*3-1,pattern,3);}}
       sb+=17;
-      message[sb-1]='0';
       memcpy(message+sb,"_\0",2);
       sb+=1;
       memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+1+8+4,6); // temp                              

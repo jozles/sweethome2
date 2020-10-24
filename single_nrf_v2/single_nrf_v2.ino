@@ -1,4 +1,3 @@
-#include <SPI.h>
 #include "nrf24l01s_const.h"
 #include "nRF24L01.h"
 #include "nrf24l01s.h"
@@ -93,6 +92,8 @@ char    bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
 unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buffer pas plein         
 unsigned long tLast=0;             // date unix dernier message reçu 
 #define PERIMPORT 100
+
+uint8_t numConc=0;
 
 #endif // NRF_MODE == 'C'
 
@@ -222,8 +223,12 @@ void setup() {
   Serial.begin(115200);
 
   Serial.println();Serial.print("start setup PP=");Serial.print(PP);Serial.print(" ");
-  Serial.println(TXRX_MODE);
-  delay(100);
+  Serial.print(TXRX_MODE);
+
+  pinMode(NUMC_BIT0,INPUT_PULLUP);
+  pinMode(NUMC_BIT1,INPUT_PULLUP);
+  numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
+  Serial.print(" numConc=");Serial.println(numConc);
 
   pinMode(LED,OUTPUT);
   
