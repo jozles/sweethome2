@@ -8,6 +8,8 @@ extern uint16_t aw_min;
 extern uint32_t nbS;
 extern uint32_t nbL;
 
+extern bool diags;
+
 /* gestion user data du périphérique */
 
 #if NRF_MODE == 'P'
@@ -73,16 +75,15 @@ void importData(byte* data,uint8_t dataLength)
     deltaTemp=(convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead))/100;    // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
                                                                                 // devrait être convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead)/100;
                                                                                 // vérifier srt...   
-
+    if(diags){
     Serial.println();Serial.print("£ ");
-///*
     Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS com nb ; nbL loop nb
     for(uint8_t ii=0;ii<dataLength;ii++){Serial.print((char)data[ii]);delayMicroseconds(100);}Serial.print(" ");
     Serial.print("per_s=");Serial.print(perRefr);Serial.print(" per_t=");Serial.print(perTemp);Serial.print(" period=");Serial.print(period);                                                                                   
     Serial.print(" aw_min=");Serial.print(aw_min);Serial.print(" aw_ok=");Serial.print(aw_ok);Serial.print(" pth=");Serial.print(deltaTemp);
     delay(4);
-//*/
     Serial.println(" £");                                                                                   
+    }
 }
 
 

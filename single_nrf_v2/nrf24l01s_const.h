@@ -17,11 +17,10 @@ L'adresse RX1 est utilisée pour recevoir les messages spécifiques au circuit ;
 elle est utilisée comme macAddr du circuit ; sa longueur est de 5 bytes (ADDR_LENGTH) ;
 Pour les communications entre le concentrateur et le serveur sweethome, un sixième byte (numConc) est ajouté ce qui forme une adresse unique pour le serveur.
 Le numéro de concentrateur (numConc) provient des bits de port NUMC_BIT0 et NUMC_BIT1.
-Il s'ajoute au poids faible de la macAddr du concentrateur.
+Ca fonctionne en laissant la même macAddr, la même IPAddr et le même numéro de port pour tous les concentrateurs. Si on ne change que la mac Addr le concentrateur ne reçoit plus les messages du serveur.
 Le concentrateur et le périphérique utilisent le 6ème byte dans les messages : c'est le numéro d'entrée dans la table du concentrateur (voir plus loin)
 
-L'adresse RX0 n'est utilisée que par les périphériques pour recevoir
-les messages de broadcast (à traiter)
+L'adresse RX0 n'est utilisée que par les périphériques pour recevoir les messages de broadcast (à traiter)
 
 Sur les périphériques l'adresse TX est fixe sur la macAddr du concentrateur
 
@@ -38,25 +37,24 @@ Tous les messages du concentrateur vers un périphériques sont de la forme :
 
 v 1.3 La détection d'alim faible est effectuée lors de la lecture de la tension en début de boucle et ne bloque pas la boucle en cours.
 La valeur utilisée comme seuil est la constante VOLTMIN (rien n'est passé depuis le serveur)
-Le sixième byte de la macAddr pour le serveur est figé à 0x00 (sinon chaque changement dans la table du concentrateur génère un nouveau périphérique dans le serveur sweethome)
-
+Le sixième byte de la macAddr des périfs pour le serveur prend la valeur du numéro de concentrateur + '0'
+Sur les périfs, l'affichage des diags est controlé par la variable bool diags, true à la frappe d'une touche sur le terminal qui doit être branché avant le reset.
+Sur le concentrateur diags est toujours true.
 */
 
 #define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
 
 /************* config ****************/
   
-  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
+  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
   
-//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
     #define DETS                  // carte DETS (sinon UNO etc)
-#endif NRF_MODE == 'P'    
-
-  #define DIAG                    // affichages diags série
+#endif NRF_MODE == 'C'    
 
   #define TXRX_MODE 'U'           // TCP / UDP
 
@@ -67,7 +65,7 @@ Le sixième byte de la macAddr pour le serveur est figé à 0x00 (sinon chaque c
 #if NRF_MODE == 'P'
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri7"       // MAC_ADDR périphériques
+  #define PER_ADDR  "peri9"       // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR

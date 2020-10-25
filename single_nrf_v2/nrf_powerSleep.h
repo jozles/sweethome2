@@ -28,7 +28,7 @@
 #define  AWAKE_KO_VALUE       20   // debug 1500 // nbre réveils avant prochain test si com HS
 #define  AWAKE_RETRY_VALUE    3    // nbre de retry avant KO
 
-uint16_t sleepPwrDown(uint8_t durat);
+void sleepPwrDown(uint8_t durat);
 void lethalSleep();
 void checkOn();
 void checkOff();

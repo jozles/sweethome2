@@ -31,7 +31,6 @@
 #include <avr/power.h>
 #include <avr/wdt.h>
 
-uint16_t wdtTime[]={16,32,64,125,250,500,1000,2000,4000,8000};   // durées WDT millis
 
 float         volts=0;                           // tension alim (VCC)
 extern bool   lowPower;                          
@@ -41,7 +40,6 @@ uint8_t       cntTest=0;                         // test watchdog
 
 extern Nrfp nrfp;
 
-extern float   durT;
 extern uint32_t nbS;
 
 
@@ -79,7 +77,7 @@ void hardwarePowerDown()
   userHardPowerDown();
   nrfp.powerOff();
 
-  bitClear(DDR_LED,BIT_LED);      //pinMode(LED,INPUT);
+//  bitClear(DDR_LED,BIT_LED);      //pinMode(LED,INPUT); led needed during sleep
   bitClear(DDR_PP,BIT_PP);        //pinMode(PP,INPUT);
   bitClear(DDR_REED,BIT_REED);    //pinMode(REED,INPUT);
 }
@@ -136,10 +134,11 @@ void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à trai
 
     MCUSR &= ~(1<<WDRF);  // pour autoriser WDE=0
 
-#ifdef ATMEGA328  
+#ifdef ATMEGA328
     WDTCSR = (1<<WDCE) | (1<<WDE);    // WDCE ET WDE must be 1
                                       // to write WDP[0-3] and WDE in the following 4 cycles
     WDTCSR = (1<<WDIE) | durat;       // WDCE must be 0 ; WDE=0, WDIE=1 interrupt mode, TXXX 
+                                      // durat=0x00 ne produit pas 16mS mais environ 1.6 sec....
 #endif     
 
     interrupts();
@@ -261,7 +260,7 @@ void getVolts()                     // get unregulated voltage and reset watchdo
 }
 
 
-uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not included to avoid multiple unusefull power on */
+void sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not included to avoid multiple unusefull power on */
 {                                     /* durat=0 to enable external timer (INT0) */
 
     hardwarePowerDown();
@@ -302,8 +301,6 @@ uint16_t sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not i
 
     wd();                                   // watchdog
     hardwarePowerUp();
-
-    return wdtTime[durat]/10;               // not valid if durat=0...
 }
 
 #endif // NRF_MODE == 'P'
