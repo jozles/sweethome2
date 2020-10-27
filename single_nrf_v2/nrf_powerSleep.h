@@ -34,9 +34,6 @@ void checkOn();
 void checkOff();
 void wd();
 void getVolts();
-void hardwarePowerUp();
-void hardwarePowerDown();
-
 
 
 #endif // NRF_MODE == 'P'

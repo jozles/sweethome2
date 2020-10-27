@@ -163,27 +163,35 @@ void Nrfp::addrWrite(uint8_t reg,byte* data)
     CSN_HIGH
 }
 
-void Nrfp::powerOn()
+#if NRF_MODE == 'P'
+void Nrfp::allPinsLow()                     /* all radio/SPI pins low */
 {
-#if NRF_MODE == 'P'  
+  bitClear(PORT_CE,BIT_CE);       //digitalWrite(CE_PIN,LOW);
+  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);
+  
   bitClear(PORT_CLK,BIT_CLK);     //digitalWrite(CLK_PIN,LOW);
   bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
       
   bitClear(PORT_CSN,BIT_CSN);     //digitalWrite(CSN_PIN,LOW);
   bitSet(DDR_CSN,BIT_CSN);        //pinMode(CSN_PIN,OUTPUT);
   
-  bitClear(PORT_CE,BIT_CE);       //digitalWrite(CE_PIN,LOW);
-  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);
-  
   bitClear(PORT_MOSI,BIT_MOSI);   //digitalWrite(MOSI_PIN,LOW);
-  bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);
-  
+  bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);  
+}
+#endif NRF_MODE='P'  
+
+void Nrfp::powerOn()
+{
+#if NRF_MODE == 'P'
+
+  allPinsLow();                   // in order to minimize power during POWONDLY
+      
   digitalWrite(RPOW_PIN,LOW);     // power on
   pinMode(RPOW_PIN,OUTPUT);
 
-  bitSet(PORT_CSN,BIT_CSN);       //digitalWrite(CSN_PIN,HIGH);
-  
   delay(POWONDLY);                // powerOn delay ******************** mettre en sleep *********************
+
+  bitSet(PORT_CSN,BIT_CSN);       //digitalWrite(CSN_PIN,HIGH);
 
 #endif NRF_MODE == 'P'
 #if NRF_MODE == 'C'
@@ -210,25 +218,16 @@ void Nrfp::powerOn()
   setup();                        // registry inits 
 }
 
+
 void Nrfp::powerOff()
 {
-    /* all radio/SPI pins low */
-
 #if NRF_MODE == 'P'
-  bitClear(PORT_CLK,BIT_CLK);     //digitalWrite(CLK_PIN,LOW);
-  bitSet(DDR_CLK,BIT_CLK);        //pinMode(CLK_PIN,OUTPUT);
-      
-  bitClear(PORT_CSN,BIT_CSN);     //digitalWrite(CSN_PIN,LOW);
-  bitSet(DDR_CSN,BIT_CSN);        //pinMode(CSN_PIN,OUTPUT);
   
-  bitClear(PORT_CE,BIT_CE);       //digitalWrite(CE_PIN,LOW);
-  bitSet(DDR_CE,BIT_CE);          //pinMode(CE_PIN,OUTPUT);
-  
-  bitClear(PORT_MOSI,BIT_MOSI);   //digitalWrite(MOSI_PIN,LOW);
-  bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);
+  allPinsLow();
 
   digitalWrite(RPOW_PIN,HIGH);    // power off
   pinMode(RPOW_PIN,OUTPUT);
+
 #endif NRF_MODE='P'  
 }
 

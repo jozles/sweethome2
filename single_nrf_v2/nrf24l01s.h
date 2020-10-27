@@ -200,6 +200,9 @@ class Nrfp
 
     uint8_t regw,statu,fstatu,conf;
 
+#if NRF_MODE == 'P'
+    void allPinsLow();
+#endif NRF_MODE == 'P'
 };
 
 #endif // NRF24L01P INCLUDED

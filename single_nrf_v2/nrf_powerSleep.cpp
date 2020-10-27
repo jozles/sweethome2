@@ -63,25 +63,6 @@ void int0_ISR()                   // external timer ISR
   detachInterrupt(1);
 }
 
- 
-void hardwarePowerUp()
-{
-  PP4_INIT
-  bitSet(DDR_LED,BIT_LED);        //pinMode(LED,OUTPUT);
-  pinMode(REED,INPUT_PULLUP);
-}
-
-
-void hardwarePowerDown()
-{
-  userHardPowerDown();
-  nrfp.powerOff();
-
-//  bitClear(DDR_LED,BIT_LED);      //pinMode(LED,INPUT); led needed during sleep
-  bitClear(DDR_PP,BIT_PP);        //pinMode(PP,INPUT);
-  bitClear(DDR_REED,BIT_REED);    //pinMode(REED,INPUT);
-}
-
 
 void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à traiter)
 {
@@ -158,7 +139,7 @@ void wdtDisable()
 
 void lethalSleep()
 {
-    hardwarePowerDown();
+
     ADCSRA &= ~(1<<ADEN);                   // ADC shutdown    
     power_all_disable();                    // all bits set in PRR register (I/O modules clock halted)
     set_sleep_mode(SLEEP_MODE_PWR_DOWN); 
@@ -167,8 +148,7 @@ void lethalSleep()
 #ifdef ATMEGA328
     sleep_bod_disable();                    // BOD halted if followed by sleep_cpu 
 #endif
-    interrupts();                           // sei();
-    sleep_cpu();
+    sleep_cpu();                            // noInterrupts -> no awake
 }
 
 void clearWd()
@@ -203,9 +183,9 @@ void checkOff()
 
 void wd()
 {
-  checkOn();
+  checkOn();                        // reset strobe on
   clearWd();
-  checkOff();
+  checkOff();                       // reset strobe off
 }
 
 float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_t dly)      // dly=1 if ADC halted
@@ -260,10 +240,8 @@ void getVolts()                     // get unregulated voltage and reset watchdo
 }
 
 
-void sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not included to avoid multiple unusefull power on */
-{                                     /* durat=0 to enable external timer (INT0) */
-
-    hardwarePowerDown();
+void sleepPwrDown(uint8_t durat)  /* *** WARNING *** no hardware PowerUp()/down included    */
+{                                 /*       durat=0 to enable external timer (INT0)          */
 
     ADCSRA &= ~(1<<ADEN);                   // ADC shutdown
     
@@ -299,8 +277,8 @@ void sleepPwrDown(uint8_t durat)  /* *** WARNING *** hardwarePowerUp() not inclu
     if(durat!=0){wdtDisable();}                         
     power_all_enable();                     // all bits clr in PRR register (I/O modules clock running)
 
-    wd();                                   // watchdog
-    hardwarePowerUp();
+    if(durat==0){wd();}                     // watchdog
+   
 }
 
 #endif // NRF_MODE == 'P'

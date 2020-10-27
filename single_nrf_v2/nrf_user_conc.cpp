@@ -444,14 +444,14 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   if(periMess==MESSOK){
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
         nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // nP = numPeri from set message (nb in server table)
-        numT=nrfp.macSearch(fromServerMac,&numPeri);              // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 
+        numT=radio.macSearch(fromServerMac,&numPeri);              // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 
                                                                   // numPeri should be same as nP (if !=0 && mac found)
         conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
         t2=micros();
         int eds=99;
         if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
         else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}    // if numPeri doesnt match message -> error
-        else {eds=nrfp.extDataStore(nP,numT,indata+MPOSPERREFR,SBLINIT);} // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+        else {eds=radio.extDataStore(nP,numT,indata+MPOSPERREFR,SBLINIT);} // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
         t2_1=micros();                                                    
         
         if(diags){                

@@ -5,7 +5,7 @@
 #include "shconst2.h"
 #include "shutil2.h"
 
-#define VERSION "1.3 "
+#define VERSION "1.31"
 #define LENVERSION 4
 
 /*
@@ -40,6 +40,7 @@ La valeur utilisée comme seuil est la constante VOLTMIN (rien n'est passé depu
 Le sixième byte de la macAddr des périfs pour le serveur prend la valeur du numéro de concentrateur + '0'
 Sur les périfs, l'affichage des diags est controlé par la variable bool diags, true à la frappe d'une touche sur le terminal qui doit être branché avant le reset.
 Sur le concentrateur diags est toujours true.
+v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être lethal (à vérifier) ; nrfp. devient radio. ; powerSleep nettoyé pour devenir une lib ; 
 */
 
 #define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
