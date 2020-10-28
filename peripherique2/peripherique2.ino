@@ -32,7 +32,7 @@ Ds1820 ds1820;
 
   const char* ssid;
   const char* password;
-#define DEVOLO  
+//#define DEVOLO  
 #ifdef DEVOLO
   const char* ssid2= "pinks";
   const char* password2 = "cain ne dormant pas songeait au pied des monts";

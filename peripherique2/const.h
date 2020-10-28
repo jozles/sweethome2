@@ -163,8 +163,8 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VR                   // <------------- modèle carte
-#define POWER_MODE NO_MODE            // <------------- type d'alimentation 
+#define CARTE THESP01                   // <------------- modèle carte
+#define POWER_MODE PO_MODE            // <------------- type d'alimentation 
 //#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 
 #if POWER_MODE==NO_MODE
