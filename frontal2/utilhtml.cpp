@@ -149,6 +149,7 @@ void numTableHtml(EthernetClient* cli,char type,void* valfonct,char* nomfonct,in
     case 'd':cli->print(*(uint16_t*)valfonct);break;
     case 'i':cli->print(*(int*)valfonct);break;
     case 'I':cli->print(*(int16_t*)valfonct);break;
+    case 'r':cli->print((float)(*(int16_t*)valfonct)/100);break;
     case 'l':cli->print(*(long*)valfonct);break;
     case 'f':cli->print(*(float*)valfonct);break;
     case 'g':cli->print(*(uint32_t*)valfonct);break;    

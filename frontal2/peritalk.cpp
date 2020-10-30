@@ -114,7 +114,7 @@ void assySet(char* message,int periCur,char* diag,char* date14)
                 strcat(message,"_");
 
                 v2=*periPitch_;
-                sprintf((message+strlen(message)),"%04d",v2);       // periPitch
+                sprintf((message+strlen(message)),"%04d",v2);       // periPitch (100x)
                 strcat(message,"_");
 
                 v1=strlen(message);                                 // 4 bits disjoncteurs switchs (8,6,4,2)

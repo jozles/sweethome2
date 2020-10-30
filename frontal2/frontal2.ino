@@ -153,9 +153,9 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint16_t* periNum;                        // ptr ds buffer : Numéro du périphérique courant
   uint32_t* periPerRefr;                    // ptr ds buffer : période maximale d'accès au serveur
   uint16_t* periPerTemp;                    // ptr ds buffer : période de lecture tempèrature
-  int16_t*  periPitch_;                      // ptr ds buffer : variation minimale de température pour datasave
-  int16_t*  periLastVal_;                    // ptr ds buffer : dernière valeur de température  
-  int16_t*  periAlim_;                       // ptr ds buffer : dernière tension d'alimentation
+  int16_t*  periPitch_;                     // ptr ds buffer : variation minimale de température pour datasave
+  int16_t*  periLastVal_;                   // ptr ds buffer : dernière valeur de température  
+  int16_t*  periAlim_;                      // ptr ds buffer : dernière tension d'alimentation
   char*     periLastDateIn;                 // ptr ds buffer : date/heure de dernière réception
   char*     periLastDateOut;                // ptr ds buffer : date/heure de dernier envoi  
   char*     periLastDateErr;                // ptr ds buffer : date/heure de derniere anomalie com
@@ -1075,7 +1075,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 5:  *toPassword=TO_PASSWORD;conv_atob(valf,toPassword);Serial.print(" topass=");Serial.println(valf);break;                     // to_passwd_
               case 6:  what=2;perrefr=0;conv_atob(valf,&perrefr);                                    // (en tête peritable) periode refresh browser
                        break;                                                                               
-              case 7:  *periThOffset_=0;*periThOffset_=(int16_t)convStrToNum(valf,&j)*100;break;     // (ligne peritable) Th Offset
+              case 7:  *periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break;     // (ligne peritable) Th Offset
               case 8:  periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                       // bouton switchs___ (ligne peritable)
                        periLoad(periCur);                                                            // + bouton refresh  (switchs)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                 // + bouton erase    (switchs)
@@ -1108,7 +1108,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 20: periTableHtml(&cli);break;                                                    // peri table
               case 21: *periProg=*valf-48;break;                                                     // (ligne peritable) peri prog
               case 22: *periSondeNb=*valf-48;if(*periSondeNb>MAXSDE){*periSondeNb=MAXSDE;}break;     // (ligne peritable) peri sonde
-              case 23: *periPitch_=0;*periPitch_=(int16_t)convStrToNum(valf,&j)*100;break;             // (ligne peritable) peri pitch
+              case 23: *periPitch_=0;*periPitch_=(int16_t)(convStrToNum(valf,&j)*100);break;         // (ligne peritable) peri pitch
               case 24: what=4;periCur=0;conv_atob(valf,&periCur);                                    // (input-lignes) submit peri_inp__ set periCur raz cb
                        if(periCur>NBPERIF){periCur=NBPERIF;}periInitVar();periLoad(periCur);
                        *(byte*)(periInput+((uint8_t)(*(libfonctions+2*i+1))-PMFNCHAR)*PERINPLEN+2)&=PERINPACT_MS;  // effacement cb (oldlev/active/edge/en)
@@ -1320,7 +1320,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
           }       // fin boucle nbre params
           
           if(nbreparams>=0){
-            Serial.print("what=");Serial.print(what);Serial.print(" periCur=");Serial.print(periCur);
+            Serial.print((unsigned long)millis());Serial.print(" what=");Serial.print(what);Serial.print(" periCur=");Serial.print(periCur);
 #ifdef SHDIAGS            
             Serial.print(" strSD=");Serial.print(strSD);
 #endif            
@@ -1328,7 +1328,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
           }                                           // 1 ligne par commande GET
 
 /*
-   periAns ou periReq ... periParamsHtml (fait perisave) effectue une réponse ack ou set ou envoie une commande get /set si applelé par perisend
+   periAns ou periReq ... periParamsHtml (fait perisave) effectue une réponse ack ou set ou envoie une commande get /set si appellé par perisend
 */                          
         periMess=MESSOK;
         switch(what){                                           

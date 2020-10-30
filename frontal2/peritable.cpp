@@ -187,7 +187,7 @@ void SwCtlTableHtml(EthernetClient* cli)
       } // pulse suivant
   cli->print("</tr></table></form>");
 
-    cli->println("<table>Règles");
+    cli->println("<table>Règles en=enable, lv=active level, pr=?, es=edge/static ; 1101 OR to set when srce=1, 1001 NOR to clear when srce=0");
       cli->println("<tr><th></th><th>e.l p.e<br>n.v.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
 
       char xfonc1[]="p_inp1____\0";
@@ -359,8 +359,8 @@ void periLineHtml(EthernetClient* cli,int i)
                       numTableHtml(cli,'I',periVmin_,"peri_vmin_",5,0,0);cli->println("<br>");
                       numTableHtml(cli,'I',periVmax_,"peri_vmax_",5,3,0);
                       numTableHtml(cli,'d',(uint32_t*)periPerTemp,"peri_rtemp",5,2,0);cli->println("<br>");
-                      numTableHtml(cli,'I',periPitch_,"peri_pitch",5,0,0);cli->print("<br>");
-                      numTableHtml(cli,'I',periThOffset_,"peri_tofs_",5,3,0);
+                      numTableHtml(cli,'r',periPitch_,"peri_pitch",5,0,0);cli->print("<br>");
+                      numTableHtml(cli,'r',periThOffset_,"peri_tofs_",5,3,0);
                       numTableHtml(cli,'l',(uint32_t*)periPerRefr,"peri_refr_",5,2,0);cli->println("<br>");
                       checkboxTableHtml(cli,(uint8_t*)periProg,"peri_prog_",-1,3,"");
                       numTableHtml(cli,'b',periSwNb,"peri_intnb",1,2,0);cli->println("<br>");

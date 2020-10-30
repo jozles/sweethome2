@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4a"
+#define VERSION "1.4b"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -48,6 +48,8 @@
  * 1.4  réaménagement setup ; udp ; 
  * 1.4a extension thermomètres pour contrôle chaudière/clim ; ajout scanThermos()     
  *      valeurs entières pour températures(x100) dans fichiers peri ; convStrToInt remplace convStrToNum là où c'est possible
+ *      remotes avec 2 detecteurs par ligne
+ * 1.4b correction affichage/saisie de pitch et offset (parenthèses manquantes dans codage en réception et ajout dans numTableHtml du type 'r' : float*100 stocké en int16)
  *      
  * BUGS : 
  *  

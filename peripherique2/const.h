@@ -45,7 +45,8 @@
  *     (bugs possibles dans les autres modes)
  *     correction conversion/delai conversion 200mS pour 0.25°
  * 1.k correction retry cx wifi qui ne retournait pas le dépassement de nombre d'essais 
- *     lorsque lea cx wifi a échoué tempo de x heures (PERSERVKO), la lecture et lé controle de la température ne sont plus faits. 
+ *     lorsque la cx wifi a échoué tempo de x heures (PERSERVKO), le délai de conversion si PO, la lecture et lé controle de la température ne sont plus faits. 
+ *     néanmoins en PO, le temps de démarrage (avant setup) est tel (350mS) que la conso reste très élévée (70mA pendant 350mS toutes les 165sec soit 150uAh - 4mAh par jour)
  *     
  * 
 Modifier : 

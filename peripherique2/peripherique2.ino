@@ -46,13 +46,13 @@ Ds1820 ds1820;
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif DEVOLO
 
-  const char* host = HOSTIPADDR2;   // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
-  const int   port = PORTPERISERVER2; 
+  const char* host = HOSTIPADDR;   // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
+  const int   port = PORTPERISERVER; 
 
 WiFiClient cli;                 // client local du serveur externe (utilisé pour dataread/save)
-WiFiClient cliext;              // client externe du serveur local
 
 #ifdef  _SERVER_MODE
+WiFiClient cliext;              // client externe du serveur local
 WiFiServer server(8888);
   String headerHttp;
 #endif  _SERVER
@@ -166,7 +166,6 @@ delay(1);
   Serial.begin(115200);
   Serial.println("\n\n");
   checkVoltage();                   // power off au plus vite si tension insuffisante (no serial)
-  delay(2);
 
   pinMode(PINLED,OUTPUT);
 
@@ -191,7 +190,7 @@ delay(1);
 // isrD[1]=isrD1;
 // isrD[2]=isrD2;
 // isrD[3]=isrD3;
-#endif
+#endif PININT_MODE
 
 /* >>>>>> inits variables <<<<<< */
 
@@ -231,7 +230,7 @@ delay(1);
 #define TCONVERSIONS       750    // millis délai conversion temp
 
  byte setds[4]={0,0x7f,0x80,0x3f},readds[8];   
- int v=ds1820.setDs(WPIN,setds,readds);
+ int v=ds1820.setDs(WPIN,setds,readds); // init & read rom
  if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.println();}
  else {Serial.print(" DS1820 error ");Serial.println(v);}
   tconversion=TCONVERSIONB;if(readds[0]==0X10){tconversion=TCONVERSIONS;}
@@ -394,9 +393,10 @@ delay(20);
   /* deep sleep */
     Serial.println(" deep sleep");
     delay(10);
-    system_deep_sleep_set_option(4);
-    ESP.deepSleep(cstRec.tempPer*1e6); // microseconds
-    while(1){delay(1000);};
+    
+    ESP.deepSleep(cstRec.tempPer*1e6, WAKE_RF_DEFAULT);    // microseconds
+    //ESP.deepSleep(cstRec.tempPer*1e6, WAKE_RF_DISABLED);   // ne fonctionne pas ... on ne peut pas redémarrer le modem sans redémarrer le 8266
+    while(1){delay(1000);};                  
   #endif PM==DS_MODE
   #if POWER_MODE==PO_MODE
   /* power off */
@@ -619,6 +619,7 @@ switch(cstRec.talkStep){
 
   case 98:      // pas réussi à connecter au WiFi ; tempo 2h
         cstRec.serverPer=PERSERVKO;
+        cstRec.serverTime=0;
 
   case 99:      // mauvaise réponse du serveur ou wifi ko ; raz numPeriph
         memcpy(cstRec.numPeriph,"00",2);
@@ -911,15 +912,6 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
 //      dateon=millis();
 #endif PM==NO_MODE
 
-#if POWER_MODE==PO_MODE
-      unsigned long ms=millis();           // attente éventuelle de la fin de la conversion initiée à l'allumage
-      Serial.print("debConv=");Serial.print(debConv);Serial.print(" millis()=");Serial.print(ms);
-      Serial.print(" Tconversion=");Serial.print(tconversion);Serial.print(" delay=");Serial.println((long)tconversion-(ms-debConv));
-      if((ms-debConv)<tconversion){
-        delay((long)tconversion-(ms-debConv));
-      }
-#endif PM==PO_MODE
-
 /* avance timer server ------------------- */
       cstRec.serverTime+=tempPeriod0;
       if(cstRec.serverTime>cstRec.serverPer){
@@ -930,7 +922,6 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
       else if (cstRec.serverPer!=PERSERVKO){  // si dernière cx wifi ko, pas de comm jusqu'à fin de tempo    
 /* temp (suffisament) changée ? */
         getTemp();
-        temp*=100;  // tempPitch 100x
         if( temp>(cstRec.oldtemp+cstRec.tempPitch) || temp<(cstRec.oldtemp-cstRec.tempPitch)){
           cstRec.oldtemp=(int16_t)temp;
           cstRec.talkStep=1;     // temp changée -> talkServer
@@ -945,11 +936,23 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
 }
 
 void getTemp()
-{
+{  
+#if POWER_MODE==PO_MODE
+      unsigned long ms=millis();           // attente éventuelle de la fin de la conversion initiée à l'allumage
+      Serial.print("debConv=");Serial.print(debConv);Serial.print(" millis()=");Serial.print(ms);
+      Serial.print(" Tconversion=");Serial.print(tconversion);Serial.print(" delay=");Serial.println((long)tconversion-(ms-debConv));
+      if((ms-debConv)<tconversion){
+        delay((long)tconversion-(ms-debConv));
+      }
+#endif PM==PO_MODE
+
       temp=ds1820.readDs(WPIN);
+      temp*=100;  // tempPitch 100x
+
 #if POWER_MODE!=PO_MODE
       ds1820.convertDs(WPIN);     // conversion pendant deep/sleep ou pendant attente prochain accès
 #endif PM!=PO_MODE
+
       tempAge=millis()/1000;
       Serial.print("temp ");Serial.print(temp);
       checkVoltage();             
