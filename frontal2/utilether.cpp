@@ -7,6 +7,7 @@
 #include "const.h"
 #include "periph.h"
 #include "shconst2.h"
+#include "shutil2.h"
 
 extern Ds3231 ds3231;
 
@@ -50,8 +51,8 @@ void sdstore_textdh0(File* fhisto,char* val1,char* val2,char* val3)
         char text[32]={'\0'};
         sprintf(text,"%.8lu",amj);strcat(text," ");       // 9
         sprintf(text+9,"%.6lu",hms);strcat(text," ");     // +7
-        strcat(text,val1);strcat(text," ");               // +3
-        strcat(text,val2);strcat(text,'\0');               // +3
+        strcat(text,val1);strcat(text," ");               // +2
+        strcat(text,val2);strcat(text,'\0');              // +1
 
           //fhisto->print(text);fhisto->print(val3);
           int v=fhisto->write(text);int w=fhisto->write(val3);
@@ -60,9 +61,8 @@ void sdstore_textdh0(File* fhisto,char* val1,char* val2,char* val3)
 
 void sdstore_textdh(File* fhisto,char* val1,char* val2,char* val3)
 {
-  long tm=millis();ds3231.getDate(&hms,&amj,&js,strdate);
+  ds3231.getDate(&hms,&amj,&js,strdate);
   sdstore_textdh0(fhisto,val1,val2,val3);
-  //Serial.print("tdate=");Serial.println(millis()-tm);
 }
 
 void sdInit()

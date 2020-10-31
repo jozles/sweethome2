@@ -50,6 +50,7 @@
  *      valeurs entières pour températures(x100) dans fichiers peri ; convStrToInt remplace convStrToNum là où c'est possible
  *      remotes avec 2 detecteurs par ligne
  * 1.4b correction affichage/saisie de pitch et offset (parenthèses manquantes dans codage en réception et ajout dans numTableHtml du type 'r' : float*100 stocké en int16)
+ *      couleur "teal" pour les date/heure de dernières connexion dans showline si <10% de dépassement     
  *      
  * BUGS : 
  *  

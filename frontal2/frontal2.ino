@@ -94,7 +94,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmldispo_____dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
@@ -1040,7 +1040,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               strcat(strSD," ");strcat(strSD,valf);strcat(strSD,";");strcat(strSD,strSdEnd);}
             else {strSD[strlen(strSD)-strlen(strSdEnd)]='*';}
 
-//Serial.print(i);Serial.print(" numfonct[i]=");Serial.print(numfonct[i]);Serial.print(" valf=");Serial.println(valf);
+Serial.print(i);Serial.print(" numfonct[i]=");Serial.print(numfonct[i]);Serial.print(" valf=");Serial.println(valf);
+Serial.print("strSd=");Serial.println(strSD);
 
             switch (numfonct[i])      
               {
@@ -1063,7 +1064,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        break;                                                                        
               case 4:  {usernum=*(libfonctions+2*i+1)-PMFNCHAR;                                      // user_ref__ (argument : millis() envoyées avec la fonction au chargement de la page)
                         unsigned long cxtime=0;conv_atobl(valf,(uint32_t*)&cxtime);
-                        Serial.print("usr_ref__ : usrnum=");Serial.print(usernum);Serial.print(" millis()/1000=");Serial.print(millis()/1000);Serial.print(" cxtime=");Serial.print(cxtime);Serial.print(" usrtime[nb]=");Serial.print(usrtime[usernum]);Serial.print(" usrpretime[nb]=");Serial.println(usrpretime[usernum]);
+                        Serial.print("usr_ref__ : usrnum=");Serial.print(usernum);Serial.print(" millis()/1000=");Serial.print(millis()/1000);Serial.print(" cxtime=");Serial.print(cxtime);
+                        Serial.print(" usrtime[nb]=");Serial.print(usrtime[usernum]);Serial.print(" usrpretime[nb]=");Serial.println(usrpretime[usernum]);
                         // !( usrtime ok || (html && usrpretime ok) ) || time out  => accueil 
                         if(!(usrtime[usernum]==cxtime || (usrpretime[usernum]==cxtime && memcmp(&fonctions[numfonct[i+1]*LENNOM]+(LENNOM-3),"html",4)==0)) || (millis()-usrtime[usernum])>(*toPassword*1000)){
                           what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;usrtime[usernum]=0;}
@@ -1234,7 +1236,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           }
                        }break;                                                                       
               case 54: Serial.println("remoteHtml()");remoteHtml(&cli);break;                           // remotehtml
-              case 55: break;                                                                           //                            *************** dispo
+              case 55: what=5;periInitVar();periRemove(periCur);break;                                  // peri_raz___                *************** dispo
               case 56: break;                                                                           //                            *************** dispo
               case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis thparams__ (thermosCfg())
                         switch (*(libfonctions+2*i)){
@@ -1324,7 +1326,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 #ifdef SHDIAGS            
             Serial.print(" strSD=");Serial.print(strSD);
 #endif            
-            sdstore_textdh(&fhisto,"ip","CX",strSD);  // utilise getdate() et place date et heure dans l'enregistrement
+            sdstore_textdh(&fhisto,"ip","CX",strSD);
           }                                           // 1 ligne par commande GET
 
 /*
@@ -1393,8 +1395,10 @@ void udpPeriServer()
       memcpy(remote_IP,(char*)&rip+4,4);
       remote_Port = (uint16_t) Udp.remotePort();
       Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
-      
-      packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+6));    // 6=LBODY
+
+//      Serial.print("port=");Serial.println(remote_Port);
+//      dumpstr(udpData,128);
+      packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
       commonserver(cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
       
       Serial.println(" *** end udp");

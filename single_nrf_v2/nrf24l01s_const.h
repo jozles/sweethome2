@@ -47,10 +47,10 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 
 /************* config ****************/
   
-  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
+  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
   
-  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
@@ -72,7 +72,7 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
   #define MAC_ADDR  CC_ADDR
 #endif
 
-  #define CC_ADDR   (byte*)"ctest" //"toto_"      // MAC_ADDR concentrateur
+  #define CC_ADDR   (byte*)"toto_"      //"ctest" //      // MAC_ADDR concentrateur
   #define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
 
 #define CLK_PIN    13
@@ -128,7 +128,7 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 #endif
 
 #if NRF_MODE == 'C'
-  #define LED        2          // 3 sur proto          
+  #define LED        3 // 2          // 3 sur proto          
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
   #define PP         7

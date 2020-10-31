@@ -9,7 +9,7 @@
 #if NRF_MODE == 'C'
 
 extern struct NrfConTable tableC[NBPERIF];
-extern Nrfp nrfp;
+extern Nrfp radio;
 
 /* user includes */
 
@@ -223,7 +223,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,unsigned int hport,char* data
         default:Serial.print(" unknown reason ");break;
     }
     }
-    t3_01=micros();
+    t3_01=micros();                   // t3_0 to t3_01 = cx time
     if(cxStatus){
       cli->write(data);
       //cli->print("\r\n HTTP/1.1\r\n Connection:close\r\n\r\n");
@@ -320,7 +320,7 @@ int exportData(uint8_t numT)                            // formatting periBuf da
 
   if(diags){Serial.print("<<< exportData ");}
 
-  t3=micros();
+  t3=micros();                                          // debut exportData (buildMess+cx+tfr)
   strcpy(bufServer,"GET /cx?\0");
   if(!buildMess("peri_pass_",srvpswd,"?")==MESSOK){
     Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};
@@ -393,7 +393,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);fonction=1;}            // data_save_ -> ack
     buildMess(fonctName,message,"");                                                          // buld message for server
 
-    t3_0=micros();
+    t3_0=micros();                        // fin buildMess
 
 /* send to server */
     

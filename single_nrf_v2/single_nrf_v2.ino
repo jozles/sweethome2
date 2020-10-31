@@ -187,7 +187,7 @@ void setup() {
   delay(100);
   
   diags=false;
-  Serial.print("PER_ADDR=");Serial.print(PER_ADDR);Serial.print(" to ");radio.printAddr((char*)CC_ADDR,0);Serial.print(" une touche pour diags ");
+  Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" PER_ADDR=");Serial.print(PER_ADDR);Serial.print(" to ");radio.printAddr((char*)CC_ADDR,0);Serial.print(" une touche pour diags ");
   while((millis()-t_on)<4000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
   Serial.println();
   if(diags){
@@ -232,7 +232,7 @@ void setup() {
   delay(100);
   Serial.begin(115200);
 
-  Serial.println();Serial.print("start setup PP=");Serial.print(PP);Serial.print(" ");
+  Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" PP=");Serial.print(PP);Serial.print(" ");
   Serial.print(TXRX_MODE);
 
   pinMode(NUMC_BIT0,INPUT_PULLUP);
@@ -456,7 +456,7 @@ void loop() {
     showRx(false);
     showErr(true);}
   
-  if(diags){if(rdSta!=AV_EMPTY){Serial.print(rdSta);Serial.print(" ");Serial.print(micros()-time_beg);Serial.print(" ");Serial.println(trSta);}}
+  if(diags){if(rdSta!=AV_EMPTY){Serial.print("rd=");Serial.print(rdSta);Serial.print(" tr=");Serial.print(trSta);Serial.print(" rx+tx+export=");Serial.println(micros()-time_beg);}}
 
   // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)

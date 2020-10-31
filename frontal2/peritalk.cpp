@@ -221,7 +221,7 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
   char date14[LNOW];ds3231.alphaNow(date14);
 
   Serial.print("\nperiAns(");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
-  Serial.print(" ");serialPrintIp(periIpAddr);Serial.print("/");Serial.print(*periPort);
+  Serial.print(" ");serialPrintIp(periIpAddr);Serial.print("/");Serial.print(*periPort);     
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
     assySet(message,periCur,periDiag(periMess),date14);
     }  // assemblage datas 
@@ -277,7 +277,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   
                         // len,crc OK
   valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
-  
+
   if(periCur!=0){                                                 // si le périph a un numéro, ctle de l'adr mac
     periLoad(periCur);
     if(memcmp(periMacBuf,periMacr,6)!=0){periCur=0;}}
@@ -289,7 +289,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
         periCur=i;i=NBPERIF+1;
         Serial.println(" DataRead/Save Mac connu");
       }                                                                         // mac trouvé
-      if(memcmp("\0\0\0\0\0\0",periMacr,6)==0 && perizer==0){
+      if((memcmp("\0\0\0\0\0\0",periMacr,6)==0 || memcmp("      ",periMacr,6)==0) && perizer==0){
         perizer=i;
         Serial.println(" DataRead/Save place libre");
       }        // place libre trouvée

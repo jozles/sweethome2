@@ -322,7 +322,7 @@ void periLineHtml(EthernetClient* cli,int i)
   cli->println("<body>");            
   cli->println("<form method=\"get\" >");
     cli->print(VERSION);cli->print(" ");
-    char pkdate[7]; // ppour couleurs des temps des périphériques
+    char pkdate[7]; // pour couleurs des temps des périphériques
     cliPrintDateHeure(cli,pkdate);cli->println();
     cli->print(periCur);cli->print("-");cli->print(periNamer);cli->println("<br>");
 
@@ -333,6 +333,8 @@ void periLineHtml(EthernetClient* cli,int i)
     if(*periSwNb!=0){
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
       boutFonction(cli,swf,"","Switchs",3,0,0,0);}
+    boutFonction(cli,"peri_raz___","","Raz",0,0,0,0);
+    
                 
                 periInitVar();periLoad(i);periCur=i;
                 if(*periSwNb>MAXSW){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
@@ -437,13 +439,19 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
                       cli->print(protocStr+LENPROSTR*p);cli->println("<br>");
                       
                       char colourbr[6];
-                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColour(cli,colourbr);
+                      long late;
+                      late=*periPerRefr+*periPerRefr/10;
+                      memcpy(colourbr,"black\0",6);
+                      if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
+                      if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColour(cli,colourbr);
                       printPeriDate(cli,periLastDateOut);
-                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColour(cli,colourbr);
+                      memcpy(colourbr,"black\0",6);
+                      if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
+                      if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColour(cli,colourbr);
                       printPeriDate(cli,periLastDateIn);
                       setColour(cli,"black");
                       cli->println("</font></td>");
-
+                      
                       cli->print("<td>");
                       char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
                       boutFonction(cli,line,"","Periph",0,1,0,0);
