@@ -46,8 +46,8 @@ Ds1820 ds1820;
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif DEVOLO
 
-  const char* host = HOSTIPADDR;   // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
-  const int   port = PORTPERISERVER; 
+  const char* host = HOSTIPADDR2;   // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
+  const int   port = PORTPERISERVER2; 
 
 WiFiClient cli;                 // client local du serveur externe (utilisé pour dataread/save)
 
@@ -226,7 +226,7 @@ delay(1);
 
 /* >>>>>> gestion ds18x00 <<<<<< */
 
-#define TCONVERSIONB       200    // millis délai conversion temp 187mS 10 bits accu 0,25°
+#define TCONVERSIONB       300    // millis délai conversion temp 187mS 10 bits accu 0,25°
 #define TCONVERSIONS       750    // millis délai conversion temp
 
  byte setds[4]={0,0x7f,0x80,0x3f},readds[8];   
