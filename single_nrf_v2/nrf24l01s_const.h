@@ -41,16 +41,17 @@ Le sixième byte de la macAddr des périfs pour le serveur prend la valeur du nu
 Sur les périfs, l'affichage des diags est controlé par la variable bool diags, true à la frappe d'une touche sur le terminal qui doit être branché avant le reset.
 Sur le concentrateur diags est toujours true.
 v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être lethal (à vérifier) ; nrfp. devient radio. ; powerSleep nettoyé pour devenir une lib ; 
+Ajout param PER_PO pour mode 'P' : 'P' if power Off/On radio ; 'N' if radio ever On (compatibilité avec proto) ; ajout VFACTOR et TFACTOR pour proto.
 */
 
 #define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
 
 /************* config ****************/
   
-  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
+  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
   
-//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 //  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
 #if NRF_MODE == 'P'
@@ -64,10 +65,10 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 /**************************************/
 
 #if NRF_MODE == 'P'
-  #define PER_PO 'N'              // 'N' no powoff 'P' powoff
+  #define PER_PO    'P'           // 'N' no powoff 'P' powoff
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri4"       // MAC_ADDR périphériques
+  #define PER_ADDR  "peri8"       // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
@@ -162,8 +163,8 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 #ifdef  DETS
 #define VCHECKADC 7             // VOLTS ADC pin Nb
 #define VADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | VCHECKADC     // internal 1,1V ref + ADC input for volts
-#define VFACTOR 0.00810         // volts conversion 1K+6,8K Proto
-//#define VFACTOR 0.00594         // volts conversion 1,5K+6,8K 
+//#define VFACTOR 0.00810         // volts conversion 1K+6,8K Proto
+#define VFACTOR 0.00594         // volts conversion 1,5K+6,8K 
 #define TCHECKADC 1             // TEMP  ADC pin Nb (6 DETS1.0 ; 1 DETS2.0)
 #define TREF      25            // TEMP ref for TOFFSET 
 #define LTH       6             // len thermo name                                 
@@ -192,8 +193,8 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 #define TADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | TCHECKADC     // internal 1,1V ref + ADC input for temp
 #define THERMO "MCP97 "
 #define THN    'M'
-//#define TFACTOR 0.1074          // temp conversion pour MCP9700
-#define TFACTOR 0.135          // temp conversion pour MCP9700 proto
+#define TFACTOR 0.1074          // temp conversion pour MCP9700
+//#define TFACTOR 0.135          // temp conversion pour MCP9700 proto
 #define TOFFSET 75              // @25°
 #endif MCP9700
 #ifdef DS18X20
