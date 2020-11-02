@@ -183,6 +183,7 @@ void Nrfp::allPinsLow()                     /* all radio/SPI pins low */
 void Nrfp::powerOn()
 {
 #if NRF_MODE == 'P'
+#if PER_PO == 'P'
 
   allPinsLow();                   // in order to minimize power during POWONDLY
       
@@ -193,10 +194,9 @@ void Nrfp::powerOn()
 
   bitSet(PORT_CSN,BIT_CSN);       //digitalWrite(CSN_PIN,HIGH);
 
+#endif PER_PO
 #endif NRF_MODE == 'P'
-#if NRF_MODE == 'C'
-
-  PP4
+#if ((NRF_MODE == 'C') || (PER_PO == 'N'))
 
   digitalWrite(CSN_PIN,HIGH);
   pinMode(CSN_PIN,OUTPUT);

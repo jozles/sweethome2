@@ -64,15 +64,17 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 /**************************************/
 
 #if NRF_MODE == 'P'
+  #define PER_PO 'N'              // 'N' no powoff 'P' powoff
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri9"       // MAC_ADDR périphériques
+  #define PER_ADDR  "peri4"       // MAC_ADDR périphériques
 #endif
 #if NRF_MODE == 'C'
   #define MAC_ADDR  CC_ADDR
 #endif
 
-  #define CC_ADDR   (byte*)"toto_"      //"ctest" //      // MAC_ADDR concentrateur
+  #define CC_ADDR   (byte*)"ctest"      //"toto_"   //      // MAC_ADDR concentrateur
+  #define CB_ADDR   (byte*)"sh_bc"      // adresse fixe de broadcast concentrateurs (recup MAC_ADDR concentrateurs)
   #define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
 
 #define CLK_PIN    13
@@ -128,7 +130,7 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 #endif
 
 #if NRF_MODE == 'C'
-  #define LED        3 // 2          // 3 sur proto          
+  #define LED        2          // 3 sur proto          
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
   #define PP         7
@@ -160,8 +162,8 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 #ifdef  DETS
 #define VCHECKADC 7             // VOLTS ADC pin Nb
 #define VADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | VCHECKADC     // internal 1,1V ref + ADC input for volts
-//#define VFACTOR 0.00845         // volts conversion 1K+6,8K (MOSFET)
-#define VFACTOR 0.00594         // volts conversion 1,5K+6,8K (MOSFET)
+#define VFACTOR 0.00810         // volts conversion 1K+6,8K Proto
+//#define VFACTOR 0.00594         // volts conversion 1,5K+6,8K 
 #define TCHECKADC 1             // TEMP  ADC pin Nb (6 DETS1.0 ; 1 DETS2.0)
 #define TREF      25            // TEMP ref for TOFFSET 
 #define LTH       6             // len thermo name                                 
@@ -190,7 +192,8 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 #define TADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | TCHECKADC     // internal 1,1V ref + ADC input for temp
 #define THERMO "MCP97 "
 #define THN    'M'
-#define TFACTOR 0.1074          // temp conversion pour MCP9700
+//#define TFACTOR 0.1074          // temp conversion pour MCP9700
+#define TFACTOR 0.135          // temp conversion pour MCP9700 proto
 #define TOFFSET 75              // @25°
 #endif MCP9700
 #ifdef DS18X20

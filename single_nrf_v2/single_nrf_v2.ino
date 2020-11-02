@@ -195,7 +195,8 @@ void setup() {
     Serial.println("£ importData (received to local) ; $ diags fin loop");delay(4);
     Serial.print("\n start setup ");Serial.print(thermo);delay(4);
   }
-  
+
+  pinMode(LED,OUTPUT);
   delayBlk(500,0,0,1,1);                  // 1 blink 500mS
  
   sleepNoPwr(0);                          // wait for interrupt from external timer to reach beginning of period
@@ -248,6 +249,7 @@ void setup() {
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
 
   radio.powerOn();
+  radio.addrWrite(RX_ADDR_P2,CB_ADDR);                // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
   
 #ifdef DUE
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
@@ -286,7 +288,7 @@ void loop() {
     awakeCnt--;
     awakeMinCnt--;
     sleepNoPwr(0);
-    if(diags){Serial.print("+");delayMicroseconds(100);}
+    if(diags){Serial.print("+");delayMicroseconds(200);}
     nbL++;
   }
 
@@ -375,7 +377,7 @@ void loop() {
   
   /* if radio HS or missing ; 1 long blink every 2 sleeps */
   if(radio.lastSta==0xFF){
-    if(diags){Serial.println("radio HS or missing");}
+    if(diags){delay(2);Serial.println("radio HS or missing");delay(4);}
     delayBlk(2000,0,0,1,1);            // 1x2sec blink
     retryCnt=0;
     awakeCnt=1;

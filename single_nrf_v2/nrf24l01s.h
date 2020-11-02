@@ -161,6 +161,7 @@ class Nrfp
     void powerUp();
     void powerDown();
     void regRead(uint8_t reg,byte* data);
+    void addrWrite(uint8_t reg,byte* data);
 
     void printAddr(char* addr,char n);
 
@@ -183,7 +184,7 @@ class Nrfp
 
     void regWrite(uint8_t reg,byte* data);
     void addrRead(uint8_t reg,byte* data);
-    void addrWrite(uint8_t reg,byte* data);
+//    void addrWrite(uint8_t reg,byte* data);
     bool letsPrx();
 
     void rxError();
