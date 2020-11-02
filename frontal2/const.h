@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4b"
+#define VERSION "1.4c"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -51,6 +51,8 @@
  *      remotes avec 2 detecteurs par ligne
  * 1.4b correction affichage/saisie de pitch et offset (parenthèses manquantes dans codage en réception et ajout dans numTableHtml du type 'r' : float*100 stocké en int16)
  *      couleur "teal" pour les date/heure de dernières connexion dans showline si <10% de dépassement     
+ * 1.4c raz peri dans periline ; retrig hard watchdog : ledblink(0) dans dumpsd(), blinks dans setup ; ajout soft watchdog : détection WDDELAY sans connexion
+ *      limitation dumpsd à 100000 car ; 
  *      
  * BUGS : 
  *  

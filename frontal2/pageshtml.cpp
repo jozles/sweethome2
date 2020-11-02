@@ -118,6 +118,7 @@ void htmlFavicon(EthernetClient* cli)
 
 void dumpsd(EthernetClient* cli)
 { 
+  ledblink(0);
   htmlIntro(nomserver,cli);
 
   cli->print("<body>");cli->print(VERSION);cli->println("<br>");
@@ -133,7 +134,8 @@ int dumpsd0(EthernetClient* cli)                 // liste le fichier de la carte
   char inch=0;
   
   if(sdOpen(FILE_READ,&fhisto,"fdhisto.txt")==SDKO){return SDKO;}
-  
+
+  ledblink(0);
   long sdsiz=fhisto.size();
   long pos=fhisto.position();
   fhisto.seek(sdpos);
@@ -143,10 +145,14 @@ int dumpsd0(EthernetClient* cli)                 // liste le fichier de la carte
   cli->print("histoSD ");cli->print(sdpos);cli->print("/");cli->print(sdsiz);cli->println("<br>");
 
   long ptr=sdpos;
+  long ptr0=ptr;
+  long ptrc=ptr;
   
   while(ptr<sdsiz){
     inch=fhisto.read();ptr++;
     cli->print(inch);
+    if((ptr-ptrc)>10000){ptrc=ptr;ledblink(0);}
+    if((ptr-ptr0)>100000){break;}
   }
 
   return sdOpen(FILE_WRITE,&fhisto,"fdhisto.txt");

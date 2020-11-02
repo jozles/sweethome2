@@ -119,6 +119,8 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint32_t      pertemp=PTEMP;         // période ech temp sur le serveur
   uint16_t      perrefr=0;             // periode rafraichissement de l'affichage
 
+  unsigned long lastcx=0;              // last server connection for watchdog
+#define WDDELAY 120000                 // watchdog time out if no connection    
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
@@ -306,11 +308,14 @@ void setup() {                              // =================================
   Serial.print("+");delay(100);
 
   initLed(PINLED);
+  digitalWrite(PINLED,HIGH);delay(1);digitalWrite(PINLED,LOW);
   
 /* >>>>>>     config     <<<<<< */  
   
   Serial.println();Serial.print(VERSION);
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.println(freeMemory(), DEC);
+  
+  //Serial.print(lip[0]);Serial.print(".");Serial.print(lip[1]);Serial.print(".");Serial.print(lip[2]);Serial.print(".");Serial.println(lip[3]);
   
   sdInit();
   //sdCardGen();
@@ -332,6 +337,8 @@ void setup() {                              // =================================
   thermosLoad();
   memDetLoad();   //memDetInit();
 
+  digitalWrite(PINLED,HIGH);delay(1);digitalWrite(PINLED,LOW);
+  
 /* >>>>>> ethernet start <<<<<< */
 
   Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
@@ -346,7 +353,8 @@ void setup() {                              // =================================
   if(!Udp.begin(PORTUDP)){Serial.print("ko");while(1){}}
   Serial.println("ok");
 
-
+  digitalWrite(PINLED,HIGH);delay(1);digitalWrite(PINLED,LOW);
+  
   periserv.begin();Serial.println("periserv.begin ");   // serveur périphériques
 
   pilotserv.begin();Serial.println("pilotserv.begin ");  //  remote serveur
@@ -387,7 +395,7 @@ void setup() {                              // =================================
 /* ================================== fin setup ================================= */
 
 void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC)
-{
+{ 
     W5100.readSnDHAR(client->getSocketNumber(), ptremote_MAC);
     W5100.readSnDIPR(client->getSocketNumber(), ptremote_IP);
 }
@@ -411,10 +419,17 @@ void loop()
 
             scanTimers();
 
+            watchdog();
+
 }
 
 
 /* ==================================== tools =================================== */
+
+void watchdog()
+{
+  if(millis()-lastcx>WDDELAY){delay(30000);}      // wait for hardware watchdog
+}
 
 void scanTemp()
 {
@@ -908,7 +923,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 
       Serial.print("\n *** serveur(");Serial.print((char)ab);Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
       
-      cxtime=millis();
+      lastcx=millis();    // trig watchdog
+      cxtime=millis();    // pour rémanence pwd
       
       nbreparams=getnv(&cli,bufData,bufDataLen);Serial.print("\n---- nbreparams ");Serial.println(nbreparams);
         
@@ -916,7 +932,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
     forme ?nom1:valeur1&nom2:valeur2&... etc (NBVAL max)
     le séparateur nom/valeur est ':' ou '=' 
     la liste des noms de fonctions existantes est dans fonctions* ; ils sont de longueur fixe (LENNOM) ; 
-    les 2 derniers caractères peuvent être utilisés pour passer des paramètres, 
+    les 2 derniers caractères du nom de fonction peuvent être utilisés pour passer des paramètres, 
     la recherche du nom dans la table se fait sur une longueur raccourcie si rien n'est trouvé sur la longueur LENNOM.
     (C'est utilisé pour réduire le nombre de noms de fonctions)
     la liste des fonctions trouvées est dans numfonct[]
@@ -1037,11 +1053,11 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 */
             if((strlen(strSD)+strlen(valf)+5+strlen(strSdEnd))<RECCHAR){
               strSD[strlen(strSD)-strlen(strSdEnd)]='\0';sprintf(buf,"%d",numfonct[i]);strcat(strSD,buf);
-              strcat(strSD," ");strcat(strSD,valf);strcat(strSD,";");strcat(strSD,strSdEnd);}
+              strcat(strSD," ");strcat(strSD,(char*)valf);strcat(strSD,";");strcat(strSD,strSdEnd);}
             else {strSD[strlen(strSD)-strlen(strSdEnd)]='*';}
 
-Serial.print(i);Serial.print(" numfonct[i]=");Serial.print(numfonct[i]);Serial.print(" valf=");Serial.println(valf);
-Serial.print("strSd=");Serial.println(strSD);
+//Serial.print(i);Serial.print(" numfonct[i]=");Serial.print(numfonct[i]);Serial.print(" valf=");Serial.println((char*)valf);
+//Serial.print("strSd=");Serial.println(strSD);
 
             switch (numfonct[i])      
               {
