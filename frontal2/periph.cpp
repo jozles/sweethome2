@@ -1020,7 +1020,7 @@ void thermosInit()
 
 int thermosLoad()
 {
-    Serial.print("Load thermos   ");
+    Serial.print("Load thermos  ");
     if(sdOpen(FILE_READ,&fthermos,THERMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     fthermos.seek(0);
     for(uint16_t i=0;i<thermoslen;i++){*(thermosA+i)=fthermos.read();}              

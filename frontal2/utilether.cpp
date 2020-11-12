@@ -68,7 +68,7 @@ void sdstore_textdh(File* fhisto,char* val1,char* val2,char* val3)
 void sdInit()
 {
   Serial.print("\nSD card ");
-  while(!SD.begin(4)){Serial.println("KO");  digitalWrite(PINLED,HIGH);delay(1);digitalWrite(PINLED,LOW);}
+  while(!SD.begin(SDCARD)){Serial.println("KO");  digitalWrite(PINLED,HIGH);delay(1);digitalWrite(PINLED,LOW);}
 //  if(!SD.begin(4)){Serial.println("KO");ledblink(BCODESDCARDKO);}
   Serial.println("OK");
   sdOpen(FILE_WRITE,&fhisto,"fdhisto.txt");

@@ -334,10 +334,11 @@ void setup() {                              // =================================
   periTableLoad();
   remoteLoad();   //remInit();
   timersLoad();   //timersInit();
+  //thermosInit();thermosSave();
   thermosLoad();
   memDetLoad();   //memDetInit();
 
-  digitalWrite(PINLED,HIGH);delay(1);digitalWrite(PINLED,LOW);
+  ledblink(0);
   
 /* >>>>>> ethernet start <<<<<< */
 
@@ -347,13 +348,15 @@ void setup() {                              // =================================
     {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
     Ethernet.begin (mac, localIp); //initialisation de la communication Ethernet
     }
-    Serial.print("localIP=");Serial.println(Ethernet.localIP());
+  Serial.print("localIP=");Serial.println(Ethernet.localIP());
 
+  ledblink(0);
+  
   Serial.print("Udp.begin(");Serial.print(PORTUDP);Serial.print(") ");
   if(!Udp.begin(PORTUDP)){Serial.print("ko");while(1){}}
   Serial.println("ok");
 
-  digitalWrite(PINLED,HIGH);delay(1);digitalWrite(PINLED,LOW);
+  ledblink(0);
   
   periserv.begin();Serial.println("periserv.begin ");   // serveur périphériques
 
@@ -387,7 +390,7 @@ void setup() {                              // =================================
   
   //testUdp();
 
-  sdstore_textdh(&fhisto,".3","RE","<br>\n\0");
+  sdstore_textdh(&fhisto,"R","","<br>\n\0");
 
   Serial.println(">>>>>>>>> fin setup\n");
 }
@@ -428,7 +431,11 @@ void loop()
 
 void watchdog()
 {
-  if(millis()-lastcx>WDDELAY){delay(30000);}      // wait for hardware watchdog
+  if(millis()-lastcx>WDDELAY){
+    ledblink(0);
+    sdstore_textdh(&fhisto,"--","WD","<br>\n\0");
+    Serial.print("no cx for ");Serial.print(WDDELAY/1000);Serial.println("sec");
+    delay(30000);}      // wait for hardware watchdog
 }
 
 void scanTemp()
@@ -440,7 +447,7 @@ void scanTemp()
       ds3231.readTemp(&th);
       if(fabs(th-oldth)>MINTHCHGE){
         oldth=th;sprintf(buf,"%02.02f",th);
-        sdstore_textdh(&fhisto,"T=",buf,"<br>\n\0");
+        sdstore_textdh(&fhisto,"T",buf,"<br>\n\0");
       }
     }       
 }
@@ -541,14 +548,14 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* nf)        // recherc
 int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)       // maj des périphériques repérés dans la table spécifiée 
 {
       periMess=MESSOK;
-      if((millis()-begTime)>1){Serial.print("  durée scan =");Serial.print(millis()-begTime);}
+      //if((millis()-begTime)>1){Serial.print("  durée scan =");Serial.print(millis()-begTime);}
       for(uint16_t np=1;np<=NBPERIF;np++){
         if(tablePerToSend[np-1]!=0){periMess=periReq(&cliext,np,"set_______");} 
       }
-      if((millis()-begTime)>1){
+      /*if((millis()-begTime)>1){
         Serial.print("  durée scan+send =");Serial.print(millis()-begTime);
         Serial.print(" ");
-        for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);Serial.print(" ");}Serial.println();}
+        for(int nnp=0;nnp<NBPERIF;nnp++){Serial.print(tablePerToSend[nnp]);Serial.print(" ");}Serial.println();}*/
       memset(tablePerToSend,0x00,NBPERIF);
       return periMess;
 }
@@ -1342,7 +1349,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 #ifdef SHDIAGS            
             Serial.print(" strSD=");Serial.print(strSD);
 #endif            
-            sdstore_textdh(&fhisto,"ip","CX",strSD);
+            sdstore_textdh(&fhisto,&ab,"",strSD);
           }                                           // 1 ligne par commande GET
 
 /*
