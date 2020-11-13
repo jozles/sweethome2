@@ -125,11 +125,14 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
   unsigned long timerstime=0;          // last millis pour timers
-#define PTIMERS 1;                     // secondes
+#define PTIMERS 1                      // secondes
   uint32_t  pertimers=PTIMERS;         // période ctle timers 
-  unsigned long thermosTime=0;          // last millis pour thermos
-#define PTHERMOS 4;                    // secondes
+  unsigned long thermosTime=0;         // last millis pour thermos
+#define PTHERMOS 4                     // secondes
   uint32_t  perThermos=PTHERMOS;       // période ctle thermos
+  unsigned long datetime=0;            // last millis() pour date 
+#define PDATE 3600*24                  // secondes
+  unsigned long perdate=PDATE;         // période ctle date
   
   int   stime=0;int mtime=0;int htime=0;
   unsigned long  curdate=0;
@@ -299,6 +302,7 @@ void udpPeriServer();
 int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime);
 void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* nf);
 void scanTimers();
+void scanDate();
 void testUdp();
 
 
@@ -319,6 +323,10 @@ void setup() {                              // =================================
   
   sdInit();
   //sdCardGen();
+uint32_t        amj2,hms2;
+byte            js2;
+  ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"R0",""," ");
+  Serial.print(" DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
   
   periMaintenance();
   
@@ -417,6 +425,8 @@ void loop()
             ledblink(0);  
 
             scanTemp(); 
+
+            scanDate();         
             
             scanThermos();
 
@@ -450,6 +460,15 @@ void scanTemp()
         sdstore_textdh(&fhisto,"T",buf,"<br>\n\0");
       }
     }       
+}
+
+void scanDate()
+{
+    if((millis()-datetime)>perdate*1000){   // *** maj date
+      initDate();
+      datetime=millis();
+      sdstore_textdh(&fhisto,"D","","<br>\n\0");
+    }
 }
 
 void scanThermos()                                                        // positionnement détecteurs associés aux thermos

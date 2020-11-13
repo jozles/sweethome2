@@ -53,6 +53,7 @@
  *      couleur "teal" pour les date/heure de dernières connexion dans showline si <10% de dépassement     
  * 1.4c raz peri dans periline ; retrig hard watchdog : ledblink(0) dans dumpsd(), blinks dans setup ; ajout soft watchdog : détection WDDELAY sans connexion
  *      limitation dumpsd à 100000 car ; 
+ * 1.4d scandate (maj date quotidienne)
  *      
  * BUGS : 
  *  

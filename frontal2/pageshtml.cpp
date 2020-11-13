@@ -574,7 +574,7 @@ void thermoShowHtml(EthernetClient* cli)
                     cli->println("<tr>");
                       //cli->print("<td>");cli->print(nuth+1);cli->print("</td>");
                       cli->print("<td>");cli->print(periCur);cli->println("</td>");
-                      cli->print("<td> <font size=\"7\">");cli->print(thermos[nuth].nom+nuth*(LENTHNAME+1));cli->println("</font></td>");
+                      cli->print("<td> <font size=\"7\">");cli->print(thermos[nuth].nom);cli->println("</font></td>");
                       cli->print("<td> <font size=\"7\">");cli->print((float)(*periLastVal_+*periThOffset_)/100);cli->println("</font></td>");
                       cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print((float)*periThmin_/100);cli->println("</div></td>");
                       cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print((float)*periThmax_/100);cli->println("</div></td>");
