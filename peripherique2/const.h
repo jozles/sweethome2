@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.k_"
+#define VERSION "1.m_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -47,7 +47,7 @@
  * 1.k correction retry cx wifi qui ne retournait pas le dépassement de nombre d'essais 
  *     lorsque la cx wifi a échoué tempo de x heures (PERSERVKO), le délai de conversion si PO, la lecture et lé controle de la température ne sont plus faits. 
  *     néanmoins en PO, le temps de démarrage (avant setup) est tel (350mS) que la conso reste très élévée (70mA pendant 350mS toutes les 165sec soit 150uAh - 4mAh par jour)
- *     
+ * 1.m corrections durée conversion DS18X20 ;     
  * 
 Modifier : 
 
@@ -168,6 +168,17 @@ Modifier :
 #define POWER_MODE PO_MODE            // <------------- type d'alimentation 
 //#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 
+/* ds18x20 */
+#define MODEL_S 0x10
+#define MODEL_B 0x28
+
+#define TCONVERSIONB       300    // millis délai conversion temp 187mS 10 bits accu 0,25°
+#define TCONVERSIONS       750    // millis délai conversion temp
+#define T12BITS            0x7F   // 12 bits 750mS 0.0625°
+#define T11BITS            0x5F   // 11 bits 375mS 0.125°
+#define T10BITS            0x3F   // 10 bits 187,5mS 0.25°
+#define T9BITS             0x1F   // 9 bits 93,75mS 0.5°
+
 #if POWER_MODE==NO_MODE
   #define _SERVER_MODE
   /* Mode server */
@@ -179,21 +190,19 @@ Modifier :
 #define RTCSAVED    'R'
 
 #if  POWER_MODE!=PO_MODE
+  #define TBITS T12BITS       // résolution DSX20
   #define CONSTANT RTCSAVED
-  #define CONSTANTADDR 64    // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
+  #define CONSTANTADDR 64     // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
 #endif PM!=PO_MODE
 
 #if POWER_MODE==PO_MODE
+  #define TBITS T10BITS       // résolution DSX20
   #define CONSTANT EEPROMSAVED
   #define CONSTANTADDR 0   // adresse des constantes dans l'EEPROM
 #endif PM==PO_MODE
 
 
 // matériel
-
-/* ds18x00 model */
-#define MODEL_S 0x10
-#define MODEL_B 0x28
 
 #if CARTE==VR
 

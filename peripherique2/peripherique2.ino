@@ -226,14 +226,11 @@ delay(1);
 
 /* >>>>>> gestion ds18x00 <<<<<< */
 
-#define TCONVERSIONB       300    // millis délai conversion temp 187mS 10 bits accu 0,25°
-#define TCONVERSIONS       750    // millis délai conversion temp
-
- byte setds[4]={0,0x7f,0x80,0x3f},readds[8];   
+ byte setds[4]={0,0x7f,0x80,TBITS},readds[8];    // fonction, high alarm, low alarm, config conversion 
  int v=ds1820.setDs(WPIN,setds,readds); // init & read rom
  if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.println();}
  else {Serial.print(" DS1820 error ");Serial.println(v);}
-  tconversion=TCONVERSIONB;if(readds[0]==0X10){tconversion=TCONVERSIONS;}
+  tconversion=TCONVERSIONB;if(readds[0]==0X10 || TBITS==T12BITS){tconversion=TCONVERSIONS;}
   
 #if POWER_MODE==NO_MODE
   ds1820.convertDs(WPIN);
@@ -253,7 +250,7 @@ delay(1);
   Serial.print("\nresetinfo ");Serial.println(resetInfo->reason);
   if((resetInfo->reason)!=5){           // 5 deepsleep awake ; 6 external reset
     ds1820.convertDs(WPIN);
-    delay(TCONVERSION);
+    delay(tconversion);
     initConstant();
     }
 #endif PM==DS_MODE
