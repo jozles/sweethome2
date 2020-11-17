@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4c"
+#define VERSION "1.4d"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -53,7 +53,9 @@
  *      couleur "teal" pour les date/heure de dernières connexion dans showline si <10% de dépassement     
  * 1.4c raz peri dans periline ; retrig hard watchdog : ledblink(0) dans dumpsd(), blinks dans setup ; ajout soft watchdog : détection WDDELAY sans connexion
  *      limitation dumpsd à 100000 car ; 
- * 1.4d scandate (maj date quotidienne)
+ * 1.4d scandate (maj date quotidienne) ; le CS de la SDCard est uniformisé sur le pin 4 
+ *      le time out d'attente d'un serveur est ramené à 2 sec pour réduire le déclcht du wd : TOINCHCLI dans waitRefCli( (shmess2) 
+ *      fonction trigwd();
  *      
  * BUGS : 
  *  

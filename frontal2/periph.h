@@ -1,8 +1,6 @@
 #ifndef _PERIPH_H_
 #define _PERIPH_H_
 
-//void ledblink(uint8_t nbre);
-
 #define PERISAVESD    VRAI                     // copie du cache sur le disque lors de periSave
 #define PERISAVELOCAL FAUX                     // pas de copie du cache sur le disque lors de periSave
 

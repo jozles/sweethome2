@@ -118,7 +118,7 @@ void htmlFavicon(EthernetClient* cli)
 
 void dumpsd(EthernetClient* cli)
 { 
-  ledblink(0);
+  trigwd();
   htmlIntro(nomserver,cli);
 
   cli->print("<body>");cli->print(VERSION);cli->println("<br>");
@@ -135,7 +135,7 @@ int dumpsd0(EthernetClient* cli)                 // liste le fichier de la carte
   
   if(sdOpen(FILE_READ,&fhisto,"fdhisto.txt")==SDKO){return SDKO;}
 
-  ledblink(0);
+  trigwd();
   long sdsiz=fhisto.size();
   long pos=fhisto.position();
   fhisto.seek(sdpos);
@@ -151,7 +151,7 @@ int dumpsd0(EthernetClient* cli)                 // liste le fichier de la carte
   while(ptr<sdsiz){
     inch=fhisto.read();ptr++;
     cli->print(inch);
-    if((ptr-ptrc)>10000){ptrc=ptr;ledblink(0);}
+    if((ptr-ptrc)>10000){ptrc=ptr;trigwd();}
     if((ptr-ptr0)>100000){break;}
   }
 
@@ -520,6 +520,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
       }
     }
   }
+  
   for(uint16_t pp=1;pp<=NBPERIF;pp++){periLoad(pp);if(periMacr[0]!=0x00){periSave(pp,PERISAVESD);}}   // écriture SD
   
   Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);Serial.print(" màj ; millis=");Serial.print(millis()-t0);Serial.println("");
@@ -550,7 +551,8 @@ void intro(EthernetClient* cli)
 }
 
 void thermoShowHtml(EthernetClient* cli)
-{  
+{
+          
             scalcTh(1);          // update periphériques
             intro(cli);
             

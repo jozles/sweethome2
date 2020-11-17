@@ -316,17 +316,17 @@ void setup() {                              // =================================
   
 /* >>>>>>     config     <<<<<< */  
   
-  Serial.println();Serial.print(VERSION);
+  Serial.println();Serial.print(VERSION);Serial.print(" ");
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.println(freeMemory(), DEC);
   
   //Serial.print(lip[0]);Serial.print(".");Serial.print(lip[1]);Serial.print(".");Serial.print(lip[2]);Serial.print(".");Serial.println(lip[3]);
   
   sdInit();
   //sdCardGen();
-uint32_t        amj2,hms2;
-byte            js2;
+  uint32_t        amj2,hms2;
+  byte            js2;
   ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"R0",""," ");
-  Serial.print(" DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
+  Serial.print("DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
   
   periMaintenance();
   
@@ -346,7 +346,7 @@ byte            js2;
   thermosLoad();
   memDetLoad();   //memDetInit();
 
-  ledblink(0);
+  trigwd();
   
 /* >>>>>> ethernet start <<<<<< */
 
@@ -358,13 +358,13 @@ byte            js2;
     }
   Serial.print("localIP=");Serial.println(Ethernet.localIP());
 
-  ledblink(0);
+  trigwd();
   
   Serial.print("Udp.begin(");Serial.print(PORTUDP);Serial.print(") ");
   if(!Udp.begin(PORTUDP)){Serial.print("ko");while(1){}}
   Serial.println("ok");
 
-  ledblink(0);
+  trigwd();
   
   periserv.begin();Serial.println("periserv.begin ");   // serveur périphériques
 
@@ -422,8 +422,8 @@ void loop()
             
             pilotServer();       // *** pilotage
 
-            ledblink(0);  
-
+            ledblink(0);
+            
             scanTemp(); 
 
             scanDate();         
@@ -442,7 +442,7 @@ void loop()
 void watchdog()
 {
   if(millis()-lastcx>WDDELAY){
-    ledblink(0);
+    trigwd();
     sdstore_textdh(&fhisto,"--","WD","<br>\n\0");
     Serial.print("no cx for ");Serial.print(WDDELAY/1000);Serial.println("sec");
     delay(30000);}      // wait for hardware watchdog
@@ -1068,6 +1068,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
         for (i=0;i<=nbreparams;i++){
 
           if(i<NBVAL && i>=0){
+
+            trigwd();
           
             valf=valeurs+nvalf[i];    // valf pointe la ième chaine à traiter dans valeurs[] (terminée par '\0')
                                       // nvalf longueur dans valeurs

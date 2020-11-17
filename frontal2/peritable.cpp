@@ -304,6 +304,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
                 // envoie une commande GET/POST 
                 // et pour assurer l'effacement des bits de checkbox : le navigateur ne renvoie que ceux "checkés"
               showLine(cli,i,pkdate);
+              trigwd();
               }
           cli->println("</table>");
         cli->println("</body></html>");
