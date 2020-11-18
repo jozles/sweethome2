@@ -124,6 +124,11 @@ void actions()          // pour chaque input, test enable,
 
   uint32_t locmem=0;        // mémoire = valeurs intermédiaires d'évaluation
 
+  /* pour actions OR/NOR/AND/NAND */
+  uint8_t curSw[MAXSW];     // valeur courante des SW pendant la lecture des règles (0 au départ)
+  uint8_t usdSw[MAXSW];     // devient 1 si le SW est modifié par une règle
+  for(ndest=0;ndest<MAXSW;ndest++){curSw[ndest]=0;usdSw[ndest]=0;}
+
   for(int inp=0;inp<NBPERINPUT;inp++){
     
     curinp=&cstRec.perInput[inp*PERINPLEN];
@@ -157,8 +162,8 @@ void actions()          // pour chaque input, test enable,
       if(                                                                       // état actif ?
           (
             (((*(curinp+2))&PERINPDETES_VB)==0)                                 // edge
-          &&(detecState!=(((*(curinp+2))>>PERINPOLDLEV_PB)&0x01))               // flanc si curr!=old
-          &&(detecState==(((*(curinp+2))>>PERINPVALID_PB) &0x01))               // flanc ok
+          &&(detecState!=(((*(curinp+2))>>PERINPOLDLEV_PB)&0x01))               // flanc si curr!=old   **************  les actions sur un flanc  **************
+          &&(detecState==(((*(curinp+2))>>PERINPVALID_PB) &0x01))               // flanc ok             ************** sont ignorées pas de flanc **************
           )
           ||                                                                  // ou
           (
@@ -175,8 +180,11 @@ void actions()          // pour chaque input, test enable,
                              case DETYEXT:break;
                              case DETYMEM:locmem |= mDSmaskbit[ndest];break;              // or locmembit,1
                              case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
-                                         digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])|ON));}
-                                         else{digitalWrite(pinSw[ndest],OFF);}
+                                         //digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])|ON));}
+                                         curSw[ndest]|=ON;}
+                                         //else{digitalWrite(pinSw[ndest],OFF);}
+                                         else curSw[ndest]=OFF;
+                                         usdSw[ndest]=1;
                                          break;
                              default:break;
                              }
@@ -188,8 +196,11 @@ void actions()          // pour chaque input, test enable,
                                           locmem |= lmbit;                                // store result
                                           break;
                              case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
-                                         digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])&ON));}
-                                         else{digitalWrite(pinSw[ndest],OFF);}
+                                         //digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])&ON));}
+                                         curSw[ndest]&=ON;}
+                                         //else{digitalWrite(pinSw[ndest],OFF);}
+                                         else curSw[ndest]=OFF;
+                                         usdSw[ndest]=1;
                                          break;
                              default:break;
                              }
@@ -197,7 +208,9 @@ void actions()          // pour chaque input, test enable,
               case PMDCA_LNOR:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest   *** 0->0 ; 1->0 ***
                              case DETYEXT:break;
                              case DETYMEM:locmem &= ~mDSmaskbit[ndest];break;              // raz locmem bit
-                             case DETYSW:digitalWrite(pinSw[ndest],OFF);
+                             case DETYSW://digitalWrite(pinSw[ndest],OFF);
+                                         curSw[ndest]=OFF;
+                                         usdSw[ndest]=1;
                                          break;
                              default:break;
                              }
@@ -209,8 +222,11 @@ void actions()          // pour chaque input, test enable,
                                           locmem |= lmbit;                                // store result
                                           break;
                              case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
-                                         digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])^ON));}
-                                         else{digitalWrite(pinSw[ndest],OFF);}
+                                         //digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])^ON));}
+                                         curSw[ndest]^=ON;}
+                                         //else{digitalWrite(pinSw[ndest],OFF);}
+                                         else curSw[ndest]=OFF;
+                                         usdSw[ndest]=1;
                                          break;
                              default:break;
                              }
@@ -273,15 +289,19 @@ void actions()          // pour chaque input, test enable,
                default:actionSysErr(action);
                     if(tdest==DETYPUL){staPulse[ndest]=PM_DISABLE;}
                     break;
-          } 
+          }
+    //Serial.println();Serial.print(inp);Serial.print("/");Serial.print(action);Serial.print("/");Serial.print(ndest);Serial.print(" ************ ");Serial.print(curSw[ndest]);             
       } else{} // si condition non validée pas d'action : configurer explicitement pour l'inverse si nécessaire
       
       *(curinp+2) &= ~PERINPOLDLEV_VB;                                          // raz bit oldlev
       *(curinp+2) |= (detecState << PERINPOLDLEV_PB);                           // màj bit oldlev
 
     }   // detecFound   
-    }   // enable  
+    }   // enable
   }     // next input
+
+  /* maj des SW */
+  for(ndest=0;ndest<MAXSW;ndest++){if((usdSw[ndest]==1)&&(digitalRead(pinSw[ndest])!=curSw[ndest])){digitalWrite(pinSw[ndest],curSw[ndest]);}}
 }
 
 /* ------------- gestion pulses ------------- */
