@@ -155,6 +155,7 @@
 
 #define MAXSERVACCESS 120                    // (sec) période maximale accés au serveur par défaut
 #define TEMPERPREF   20                      // (sec) période check température par défaut sur périphérique
+#define DEFPITCH     25                      // pitch par defaut pour periInitVar
 #define MINTHCHGE    0.25                    // changement minimal th pour save
 
 #define SDOK 1

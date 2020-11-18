@@ -85,7 +85,7 @@ extern int       nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur
 
 
 void assySet(char* message,int periCur,char* diag,char* date14)     
-// assemblage dats pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
+// assemblage datas pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
 {
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
@@ -298,8 +298,8 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
     
   if(periCur==0 && perizer!=0){                                   // si pas connu utilisation N° perif libre "perizer"
       Serial.println(" DataRead/Save Mac inconnu");
-      periInitVar();periCur=perizer;periLoad(periCur);
-      periMess=MESSFULL;
+      periInitVar();periCur=perizer;periLoad(periCur);            // ???????????????????? pourquoi periLoad ???????????????????????
+      periMess=MESSFULL;                                          // ???????????????????? devrait être MESSOK et MESSFULL avant le test ????????????????????
   }
 
   if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 

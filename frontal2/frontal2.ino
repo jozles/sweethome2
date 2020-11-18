@@ -1125,7 +1125,6 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 8:  periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                       // bouton switchs___ (ligne peritable)
                        periLoad(periCur);                                                            // + bouton refresh  (switchs)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                 // + bouton erase    (switchs)
-                       //else{periSend(periCur,"etat______");}                                       // si pas erase demande d'état
                        else{periReq(&cliext,periCur,"etat______");}                                  // si pas erase demande d'état
                        SwCtlTableHtml(&cli);break;                                                                               
               case 9:  autoreset=VRAI;break;                                                         // bouton reset

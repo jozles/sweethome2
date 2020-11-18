@@ -567,7 +567,7 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   *periNum=0;
   *periPerRefr=MAXSERVACCESS;
   *periPerTemp=TEMPERPREF;
-  *periPitch_=0;
+  *periPitch_=DEFPITCH;
   *periLastVal_=0;
   *periAlim_=0;
   memset(periLastDateIn,0x00,LENPERIDATE);
