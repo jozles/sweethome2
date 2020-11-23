@@ -73,7 +73,7 @@
 /***** config *****/
 
 #if NRF_MODE == 'C'
-struct NrfConTable tableC[NBPERIF];
+struct NrfConTable tableC[NBPERIF+1];
 #endif NRF_MODE == 'C'
 
 
@@ -104,12 +104,7 @@ void Nrfp::setup()
     regw=(DPL_P1_BIT|DPL_P0_BIT);   // (DPL_P5_BIT|DPL_P4_BIT|DPL_P3_BIT|DPL_P2_BIT|DPL_P1_BIT|DPL_P0_BIT);
     regWrite(DYNPD,&regw);          // dynamic payload length
 
-#if NRF_MODE == 'P'
-    addrWrite(RX_ADDR_P0,CC_ADDR);   // RXP0 pour réception ACK dans pipe 0
-    addrWrite(TX_ADDR,CC_ADDR);      // TX sur concentrateur
-#endif // NRF_MODE == 'P'
-
-    addrWrite(RX_ADDR_P1,(byte*)MAC_ADDR);  // RXP1 = macAddr du circuit pour réception messages dans pipe 1
+    addrWrite(RX_ADDR_P1,locAddr);  // RXP1 = macAddr du circuit pour réception messages dans pipe 1
 
     regw=CHANNEL;
     regWrite(RF_CH,&regw);
@@ -328,6 +323,11 @@ void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,le
     addrWrite(RX_ADDR_P0,tableC[numP].periMac); // PER_ADDR);
 #endif // NRF_MODE == 'C'
 
+#if NRF_MODE == 'P'
+    addrWrite(TX_ADDR,ccAddr);
+    addrWrite(RX_ADDR_P0,ccAddr);
+#endif // NRF_MODE == 'P'
+
     setTx();
     flushTx();
     CLR_TXDS_MAXRT
@@ -383,31 +383,13 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
 
       if((statu & RX_DR_BIT)==0 && (statu & RX_P_NO_BIT)==RX_P_NO_BIT){                   // RX && FIFO empty ?
       return AV_EMPTY;}
-      
-/*
-      if((statu & RX_DR_BIT)==0){                   // RX && FIFO empty ?
-        regRead(FIFO_STATUS,&fstatu);
-        if((fstatu & RX_EMPTY_BIT)!=0){           // FIFO empty ?
-            return AV_EMPTY;                      // --------------- empty
-        }
-        else{                                     // FiFO not empty
 
-          GET_STA
-
-          *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;   // get pipe nb
-          if(*pipe!=1){                           // concentrator talking
-            flushRx();                            
-            //CLR_RXDR 
-            return AV_EMPTY;}
-        }
-    }
-*/    
     // RX full : either (statu & RX_DR_BIT)!=0
     //           either (fstatu & RX_EMPTY_BIT)==0) && ((statu & RX_P_NO_BIT)>>RX_P_NO)==1
 
-    *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;         // get pipe nb ... if not 1 ... trouble
+    *pipe=(statu & RX_P_NO_BIT)>>RX_P_NO;         // get pipe nb (1 or 2) ... if 2 conc name req ; if >2 ... trouble
    
-    if(*pipe==1){
+    if(*pipe==1 || *pipe==2){
         CSN_LOW
         SPI.transfer(R_RX_PL_WID);
         *pldLength=SPI.transfer(0xff);            // get pldLength (dynamic length)
@@ -438,7 +420,7 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
         numP=available(pipe,pldLength);
     }
 
-    if(numP>=0){
+    if(numP>=0){                                            // pipe 1 or 2 pld available
 
         CSN_LOW
         SPI.transfer(R_RX_PAYLOAD);
@@ -468,10 +450,10 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
 {                      // ER_MAXRT ; AV_errors codes ; >=0 numP ok
 
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
-    memcpy(message,MAC_ADDR,ADDR_LENGTH);
+    memcpy(message,locAddr,ADDR_LENGTH);
     message[ADDR_LENGTH]='0';
     
-    write(message,NO_ACK,ADDR_LENGTH+1,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
+    write(message,NO_ACK,ADDR_LENGTH+1,0);     // send macAddr + numP=0 to ccAddr ; no ACK
  
     int trst=1;
     while(trst==1){trst=transmitting(NO_ACK);}
@@ -507,9 +489,9 @@ int Nrfp::txRx(byte* message,uint8_t* pldLength)
 
     //memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     message[MAX_PAYLOAD_LENGTH]=0x00;
-    memcpy(message,MAC_ADDR,ADDR_LENGTH);
+    memcpy(message,locAddr,ADDR_LENGTH);
     
-    write(message,NO_ACK,MAX_PAYLOAD_LENGTH,0);     // send macAddr + numP=0 to cc_ADDR ; no ACK
+    write(message,NO_ACK,MAX_PAYLOAD_LENGTH,0);     // send macAddr + numP=0 to ccAddr ; no ACK
  
     int trst=1;
     while(trst==1){trst=transmitting(NO_ACK);}
@@ -561,14 +543,7 @@ uint8_t Nrfp::cRegister(char* message)      // search free line or existing macA
 
           if(exist){
             message[ADDR_LENGTH]=i+48;}
-/*            write((byte*)message,NO_ACK,ADDR_LENGTH+1,i);       // send numP to peri(macAddr) ; no ACK
 
-            int trst=1;
-            while(trst==1){trst=transmitting();}
-
-            if(trst<0){memset(tableC[i].periMac,'0',ADDR_LENGTH);i=NBPERIF+2;}    // MAX_RT -> effacement table ;
-          }                                           // numP du perif sera effac� pour non r�ponse au premier TX
-*/
           return i;
 }
 
@@ -604,7 +579,7 @@ uint8_t Nrfp::extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len)
 
 void Nrfp::tableCPrint()
 {
-  for(int i=0;i<NBPERIF;i++){
+  for(int i=0;i<=NBPERIF;i++){                    // entry #NBPERIF for BR_ADDR requester
     if(i<10){Serial.print(" ");}
     Serial.print(i);Serial.print(" ");
     Serial.print(tableC[i].numPeri);Serial.print(" ");
@@ -620,8 +595,8 @@ void Nrfp::tableCPrint()
 
 void Nrfp::tableCInit()
 {
-  memcpy(tableC[0].periMac,CC_ADDR,ADDR_LENGTH);
-  for(int i=1;i<NBPERIF;i++){
+  memcpy(tableC[0].periMac,locAddr,ADDR_LENGTH);
+  for(int i=1;i<=NBPERIF;i++){                      // entry #NBPERIF for BR_ADDR requester
     tableC[i].numPeri=0;
     memcpy(tableC[i].periMac,"00000",ADDR_LENGTH);
     tableC[i].servBufLength=SBLINIT;

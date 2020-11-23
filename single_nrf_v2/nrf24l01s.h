@@ -47,11 +47,9 @@
  *
  *             ***** pas d'utilisation des pipes *****
  * RX_P1 du concentrateur reçoit tous les périphériques et emmet avec TX et RX_P0
+ * RX_P2 du concentrateur reçoit les requêtes d'adresse de concentrateur des périphériques qui s'apparient
  * RX_P1 des périphériques reçoit les messages du concentrateurs ; TX/RX_P0 fixes sur concentrateur
  * 
- *  Données communes :
- *
- *      CC_ADDR (macAddr du concentrateur) guichet unique d'inscription
  *
  *  périphériques :
  *
@@ -80,7 +78,7 @@
 #define ACK     true
 #define NO_ACK  false
 
-#define NB_PIPE 2          // nombre pipes utilis�es
+#define NB_PIPE 2          // nombre pipes utilisées
 #define MAX_PAYLOAD_LENGTH 32
 #define ADDR_LENGTH 5
 
@@ -167,8 +165,10 @@ class Nrfp
 
     bool powerD=true;         // etat power (true=down)
     uint8_t lastSta=0;
+    byte*   locAddr;          // local Addr
 
 #if NRF_MODE == 'P'
+    byte*   ccAddr;
     int     pRegister(byte* message,uint8_t* pldLength);
     int     txRx(byte* message,uint8_t* pldLength);
 #endif // NRF_MODE == 'P'

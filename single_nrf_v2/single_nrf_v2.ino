@@ -1,3 +1,5 @@
+#include <eepr.h>
+
 #include "nrf24l01s_const.h"
 #include "nRF24L01.h"
 #include "nrf24l01s.h"
@@ -29,6 +31,20 @@ extern struct NrfConTable tableC[NBPERIF];
 bool menu=true;
 #endif NRF_MODE == 'C'
 
+#define CONFIGLEN 37                      // paramètres de config en Eepron
+byte    configData[CONFIGLEN];
+
+byte*  configVers;
+float* thFactor;
+float* thOffset;
+float* vFactor;
+float* vOffset;
+byte*  macAddr;
+byte*  concAddr;
+
+char*  chexa="0123456789ABCDEFabcdef\0";
+
+Eepr eeprom;
 Nrfp radio;
 
 /*** LED ***/
@@ -138,9 +154,20 @@ bool  thSta=true;                     // temp validity
 char  thermo[]={THERMO};              // thermo name text
 char  thN;                            // thermo code for version
 
-
+void sleepNoPwr(uint8_t durat);
+void initConf();
+void configPrint();
+void getConcMac();
 uint8_t beginP();
-void    echo();
+void echo();
+void hardwarePwrUp();
+int  txRxMessage();
+bool checkTemp();
+void int_ISR()
+{
+  extTimer=true;
+  //Serial.println("int_ISR");
+}
 #endif NRF_MODE == 'P'
 
 /* prototypes */
@@ -161,20 +188,20 @@ void echo();
 void broadcast(char a);
 #endif NRF_MODE == 'C'
 
-#if NRF_MODE == 'P'
-void hardwarePwrUp();
-int  txRxMessage();
-bool checkTemp();
-void int_ISR()
-{
-  extTimer=true;
-  //Serial.println("int_ISR");
-}
-#endif NRF_MODE == 'P'
 
 void setup() {
 
 #if NRF_MODE == 'P'
+
+  Serial.begin(115200);
+
+  initConf();
+  if(!eeprom.load(configData,CONFIGLEN)){Serial.println("****KO******");delayBlk(1,0,250,3,1000);}
+  Serial.println("eeprom ok");
+  radio.locAddr=macAddr;
+  if(memcmp(concAddr,CB_ADDR,ADDR_LENGTH)==0){getConcMac();Serial.println("getconcMac");}    // si pas d'adresse individuelle de concentateur -> get it 
+  configPrint();
+  radio.ccAddr=concAddr;
 
   /* external timer calibration sequence */
   t_on=millis();
@@ -182,18 +209,14 @@ void setup() {
   
   wd();                           // watchdog
   iniTemp();
- 
-  Serial.begin(115200);
-  delay(100);
   
   diags=false;
-  Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" PER_ADDR=");Serial.print(PER_ADDR);Serial.print(" to ");radio.printAddr((char*)CC_ADDR,0);Serial.print(" une touche pour diags ");
+  Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" macAddr : ");radio.printAddr((char*)macAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);Serial.print(" ; une touche pour diags ");
   while((millis()-t_on)<4000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
-  Serial.println();
+  Serial.println("");
   if(diags){
-    Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry) ; € showerr ");
-    Serial.println("£ importData (received to local) ; $ diags fin loop");delay(4);
-    Serial.print("\n start setup ");Serial.print(thermo);delay(4);
+    Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry)");
+    Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
   }
 
   pinMode(LED,OUTPUT);
@@ -221,7 +244,7 @@ void setup() {
 
   if(diags){
     Serial.print(volts);Serial.print("V ");
-    Serial.print(temp);Serial.println("°C ");
+    Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);
   }
   ini_t_on();  
 #endif NRF_MODE == 'P'
@@ -245,9 +268,9 @@ void setup() {
   
   userResetSetup();
 
+  radio.locAddr=CC_ADDR;                              // première init à faire !!
   radio.tableCInit();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
-
   radio.powerOn();
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);                // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
   
@@ -326,7 +349,7 @@ void loop() {
     outLength+=9;
  
     messageBuild((char*)message,&outLength);                          // add user data
-    memcpy(message,MAC_ADDR,ADDR_LENGTH);                             // macAddr
+    memcpy(message,macAddr,ADDR_LENGTH);                              // macAddr
     message[ADDR_LENGTH]=numT+48;                                     // numéro du périphérique
     message[outLength]='\0';
 
@@ -388,7 +411,7 @@ void loop() {
 #if NRF_MODE == 'C'
 
   if(menu){
-    radio.printAddr((char*)MAC_ADDR,0);
+    radio.printAddr((char*)ccAddr,0);
     Serial.println(" (e)cho (b)roadcast (t)ableC (q)uit");
     menu=false;
   }
@@ -404,18 +427,27 @@ void loop() {
 
   if(rdSta==0){
     
-  // ====== no error registration request ======
+  // ====== no error registration request or conc macAddr request (pipe 2) ======
 
       radio.printAddr((char*)messageIn,0);
       showRx(false);                                        
-      numT=radio.cRegister((char*)messageIn);               
-      if(numT<(NBPERIF)){                             // registration ok
-        rdSta=numT;                                   // entry is valid -> rdSta >0              
-        radio.printAddr((char*)tableC[numT].periMac,' ');
-        if(diags){Serial.print(" registred as ");Serial.println(numT);}                  // numT = 0-(NBPERIF-1) ; rdSta=numT
+      
+      if(pipe==1){                                      // registration request
+        numT=radio.cRegister((char*)messageIn);               
+        if(numT<(NBPERIF)){                             // registration ok
+          rdSta=numT;                                   // entry is valid -> rdSta >0              
+          radio.printAddr((char*)tableC[numT].periMac,' ');
+          if(diags){Serial.print(" registred as ");Serial.println(numT);}                  // numT = 0-(NBPERIF-1) ; rdSta=numT
+        }
+        else if(numT==(NBPERIF+2)){if(diags){Serial.println(" MAX_RT ... deleted");}}      // numT = NBPERIF+2 ; rdSta=0
+        else {if(diags){Serial.println(" full");}}                                         // numT = NBPERIF   ; rdSta=0
       }
-      else if(numT==(NBPERIF+2)){if(diags){Serial.println(" MAX_RT ... deleted");}}      // numT = NBPERIF+2 ; rdSta=0
-      else {if(diags){Serial.println(" full");}}                                         // numT = NBPERIF   ; rdSta=0
+      if(pipe==2){                                                // conc macAddr request
+        memcpy(tableC[NBPERIF].periMac,messageIn,ADDR_LENGTH+1);  // peri addr in table last entry
+        memcpy(message,messageIn,ADDR_LENGTH+1);
+        memcpy(message+ADDR_LENGTH+1,ccAddr,ADDR_LENGTH);        // build message to perif with conc macAddr
+        txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                // end of transaction so auto ACK
+      }                                                           // rdSta=0 so ... end of loop
   }
 
   // ====== no error && valid entry ======         
@@ -608,15 +640,20 @@ char getch()
 
 #if NRF_MODE == 'P'
 
+void getConcMac()
+{
+  memcpy(concAddr,CC_ADDR,ADDR_LENGTH);
+}
+
 uint8_t beginP()
 {
   int confSta=-1;
   unsigned long bptime=micros();
   uint8_t beginP_retryCnt=2;
-  while(beginP_retryCnt>0){                       // confsta>=1 or -5 or wait 
+  while(beginP_retryCnt>0){                         // confsta>=1 or -5 or wait 
     beginP_retryCnt--;
-    confSta=radio.pRegister(messageIn,&pldLength); // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
-                                                  // 0 na ; >=1 ok numT
+    confSta=radio.pRegister(messageIn,&pldLength);  // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
+                                                    // 0 na ; >=1 ok numT
     radio.powerOff();                    
     if(diags){
       Serial.print("\nbeginP ");           // après pReg pour que la sortie n'interfère pas avec les tfr SPI
@@ -625,7 +662,7 @@ uint8_t beginP()
     if(confSta>0){
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
-      delayBlk(32,0,125,4,1);            // 4 blinks
+      delayBlk(32,0,125,4,1);           // 4 blinks
       radio.powerOn();
       break;                            // out of while(1)
     }
@@ -658,7 +695,7 @@ void echo()
   uint8_t cntErr=0;
   unsigned long to=ECHOTO;
   char echoRef[ADDR_LENGTH+1];
-  memcpy(echoRef,PER_ADDR,ADDR_LENGTH);
+  memcpy(echoRef,radio.locAddr,ADDR_LENGTH);
   echoRef[ADDR_LENGTH]='0'+numT;
   byte echoMess[ECHO_LEN+1];
   
@@ -886,7 +923,7 @@ void sleepNoPwr(uint8_t durat)
 }
 
 void hardwarePwrUp()
-{
+{ 
   PP4_INIT
   bitSet(DDR_LED,BIT_LED);                //pinMode(LED,OUTPUT);
   pinMode(REED,INPUT_PULLUP);
@@ -972,6 +1009,57 @@ void led(unsigned long dur)
   delayMicroseconds(dur);
   digitalWrite(LED,LOW);
 }
+
+void initConf()
+{
+  byte* temp=(byte*)configData;
+
+  byte* configBegOfRecord=(byte*)temp;         // doit être le premier !!!
+
+  configVers=temp+EEPRVERS;
+  temp += EEPRHEADERLENGTH;
+  thFactor=(float*)temp;                           
+  temp +=sizeof(float);
+  thOffset=(float*)temp;
+  temp +=sizeof(float);
+  vFactor=(float*)temp;                           
+  temp +=sizeof(float);
+  vOffset=(float*)temp;
+  temp +=sizeof(float);
+  macAddr=(byte*)temp;
+  temp +=6;
+  concAddr=(byte*)temp;
+  temp +=6;
+
+  byte* configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
+
+  long configLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
+  Serial.print("CONFIGLEN=");Serial.print(CONFIGLEN);Serial.print("/");Serial.println(configLength);
+  delay(10);if(configLength!=CONFIGLEN) {ledblink(BCODECONFIGRECLEN);}
+/*
+  memcpy(configVers,VERSION,2);
+  memcpy(macAddr,DEF_ADDR,6);
+  strncpy((char*)concAddr,CONC,5);
+  *thFactor=0.1071;
+  *thOffset=50;
+  *vFactor=0.0057;
+  *vOffset=0;
+*/
+}
+
+
+void configPrint()
+{
+    uint16_t configLen;memcpy(&configLen,configData+EEPRLENGTH,2);
+    char configVers[3];memcpy(configVers,configData+EEPRVERS,2);configVers[3]='\0';
+    Serial.print("crc     ");dumpfield((char*)configData,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
+    char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
+    Serial.print("MAC  ");dumpstr((char*)macAddr,6);Serial.print("CONC ");dumpstr((char*)concAddr,6);
+
+    Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
+    Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
+}
+
 /*  
  *     utilisation du timer 1        ...... réaction bizarres avec delay()   
  *

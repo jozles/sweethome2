@@ -5,7 +5,7 @@
 #include "shconst2.h"
 #include "shutil2.h"
 
-#define VERSION "1.31"
+#define VERSION "1.4 "
 #define LENVERSION 4
 
 /*
@@ -22,15 +22,20 @@ Le concentrateur et le périphérique utilisent le 6ème byte dans les messages 
 
 L'adresse RX0 n'est utilisée que par les périphériques pour recevoir les messages de broadcast (à traiter)
 
+L'adresse RX2 est utilisée par les concentrateurs avec une adresse générique. Ca permet l'appariemment périphérique/concentrateur.
+Les demandes d'adresse de concentrateur sont faites en faible puissance par le périphérique au contact du concentrateur auquel le connecter.
+
 Sur les périphériques l'adresse TX est fixe sur la macAddr du concentrateur
 
 Le concentrateur gère une table qui associe
     la macAddr du périphérique (dont le 6ème caractère est son rang dans la table) et son numéro de périphérique dans le serveur sweetHome
     + un buffer de réception de l'exterieur et un buffer de réception du périphérique 
+    (la dernière entrée de la table est utilisée pour les demandes d'adresse de concentrateur par les périphériques)
 
 Tous les messages commencent par macAddr/numT (numT rang dans la table 0x30 à 0xFF)
 Le concentrateur contrôle et répond si ok ; sinon l'éventuelle macAddr est effacée de la table.
-Si le numT est '0', le concentrateur le recherche et enregistre la macAddr si inex puis renvoie
+Si le numT est '0', le concentrateur le recherche et enregistre la macAddr si inex puis renvoie.
+Si c'est une demande d'appariement (pipe 2) le concentrateur répond avec son adresse générique en faible puissance.
 
 Tous les messages du concentrateur vers un périphériques sont de la forme :
   mmmmmTxxxxxx...xxxxx   mmmmm mac péri ; T rang dans table ; xxx...xxx buffer messages extérieur
@@ -42,6 +47,7 @@ Sur les périfs, l'affichage des diags est controlé par la variable bool diags,
 Sur le concentrateur diags est toujours true.
 v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être lethal (à vérifier) ; nrfp. devient radio. ; powerSleep nettoyé pour devenir une lib ; 
 Ajout param PER_PO pour mode 'P' : 'P' if power Off/On radio ; 'N' if radio ever On (compatibilité avec proto) ; ajout VFACTOR et TFACTOR pour proto.
+v1.4  EEprom stocke la config : macAddr peri, macAddr conc ; factor vpolts et thermo calibrés avec pgme de test ;
 */
 
 #define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
@@ -67,15 +73,11 @@ Ajout param PER_PO pour mode 'P' : 'P' if power Off/On radio ; 'N' if radio ever
 #if NRF_MODE == 'P'
   #define PER_PO    'P'           // 'N' no powoff 'P' powoff
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
-  #define MAC_ADDR  PER_ADDR
-  #define PER_ADDR  "peri8"       // MAC_ADDR périphériques
-#endif
-#if NRF_MODE == 'C'
-  #define MAC_ADDR  CC_ADDR
+  #define DEF_ADDR  "peri_"
 #endif
 
   #define CC_ADDR   (byte*)"ctest"      //"toto_"   //      // MAC_ADDR concentrateur
-  #define CB_ADDR   (byte*)"sh_bc"      // adresse fixe de broadcast concentrateurs (recup MAC_ADDR concentrateurs)
+  #define CB_ADDR   (byte*)"shcc0"      // adresse fixe de broadcast concentrateurs (recup MAC_ADDR concentrateurs) 0 nécessaire pour read()
   #define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
 
 #define CLK_PIN    13

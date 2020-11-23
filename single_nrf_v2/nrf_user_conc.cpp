@@ -334,9 +334,6 @@ int exportData(uint8_t numT)                            // formatting periBuf da
       sb=3;
       unpackMac((char*)(message+sb),tableC[numT].periMac);          // macaddr (last byte is numConc+'0' ... ADDR_LENGTH is 5 bytes)
       message[sb+16]=numConc+'0';
-      //#define MAC_ADDR_LENGTH 6
-      //char pattern[]={".00"};
-      //if(ADDR_LENGTH<MAC_ADDR_LENGTH){for(uint8_t mk=MAC_ADDR_LENGTH;mk>ADDR_LENGTH;mk--){memcpy(message+sb+(mk-1)*3-1,pattern,3);}}
       sb+=17;
       memcpy(message+sb,"_\0",2);
       sb+=1;
