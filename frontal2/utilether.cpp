@@ -37,6 +37,7 @@ extern char     strdate[33];
 extern uint8_t* chexa;
 
 extern File fhisto;            // fichier histo sd card
+extern long      fhsize;      // remplissage fhisto
 
 int sdOpen(char mode,File* fileS,char* fname)
 {
@@ -48,15 +49,25 @@ int sdOpen(char mode,File* fileS,char* fname)
 
 void sdstore_textdh0(File* fhisto,char* val1,char* val2,char* val3)
 {
-        char text[32]={'\0'};
+  unsigned long t0=micros();
+  char text[32]={'\0'};
+
+    sdOpen(FILE_WRITE,fhisto,"fdhisto.txt");
+  
         sprintf(text,"%.8lu",amj);strcat(text," ");       // 9
         sprintf(text+9,"%.6lu",hms);strcat(text," ");     // +7
         strcat(text,val1);strcat(text," ");               // +2
         strcat(text,val2);strcat(text,'\0');              // +1
 
           //fhisto->print(text);fhisto->print(val3);
-          int v=fhisto->write(text);int w=fhisto->write(val3);
-          if(v==0 || w==0){ledblink(BCODEFHISTO);}
+  
+        int v=fhisto->write(text);int w=fhisto->write(val3);
+        if(v==0 || w==0){ledblink(BCODEFHISTO);}
+
+    fhsize=fhisto->size();
+    fhisto->close();
+          
+    Serial.print(" SDt=");Serial.println(micros()-t0);
 }
 
 void sdstore_textdh(File* fhisto,char* val1,char* val2,char* val3)

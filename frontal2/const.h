@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4d"
+#define VERSION "1.4e"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -56,6 +56,9 @@
  * 1.4d scandate (maj date quotidienne) ; le CS de la SDCard est uniformisé sur le pin 4 
  *      le time out d'attente d'un serveur est ramené à 2 sec pour réduire le déclcht du wd : TOINCHCLI dans waitRefCli( (shmess2) 
  *      fonction trigwd();
+ * 1.4e dumpsd modifié avec buffer 1000 char pour diminuer le nombre de requètes ; idem showline ; fhisto est ouvert/refermé à chaque usage ;
+ *      ajout fonction dans la bouckle d'attente "stop request pour un arrêt 'propre' ... la led passe en blink régulier rapide 300mS. 
+ *      (nécessite un switch sur la pin STOPREQ)
  *      
  * BUGS : 
  *  

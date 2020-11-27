@@ -40,6 +40,7 @@ extern byte       periMacBuf[6];
 
 extern uint16_t   perrefr;
 extern File       fhisto;           // fichier histo sd card
+extern long       fhsize;           // remplissage fhisto
 extern long       sdpos;
 extern char       strSD[RECCHAR];
 
@@ -136,26 +137,32 @@ int dumpsd0(EthernetClient* cli)                 // liste le fichier de la carte
   if(sdOpen(FILE_READ,&fhisto,"fdhisto.txt")==SDKO){return SDKO;}
 
   trigwd();
-  long sdsiz=fhisto.size();
-  long pos=fhisto.position();
+  fhsize=fhisto.size();
   fhisto.seek(sdpos);
-  
-  Serial.print("histoSD ");Serial.print(sdpos);Serial.print("/");Serial.print(sdsiz);
 
-  cli->print("histoSD ");cli->print(sdpos);cli->print("/");cli->print(sdsiz);cli->println("<br>");
+  cli->print("histoSD ");cli->print(sdpos);cli->print("/");cli->print(fhsize);cli->println("<br>");
 
   long ptr=sdpos;
   long ptr0=ptr;
-  long ptrc=ptr;
+  long ptra=ptr;
+  long ptrb=ptr;
   
-  while(ptr<sdsiz){
-    inch=fhisto.read();ptr++;
-    cli->print(inch);
-    if((ptr-ptrc)>10000){ptrc=ptr;trigwd();}
+#define LBUF 1000  
+  char buf[LBUF];
+
+  while(ptr<fhsize){
+    while((ptr-ptra)<(LBUF-2) && ptr<fhsize){           // -1 for end null char
+      buf[ptr-ptra]=fhisto.read();ptr++;
+    }
+    buf[ptr-ptra]='\0';
+    cli->print(buf);
+    ptra=ptr;
+    if((ptr-ptrb)>10000){ptrb=ptr;trigwd();}
     if((ptr-ptr0)>100000){break;}
   }
-
-  return sdOpen(FILE_WRITE,&fhisto,"fdhisto.txt");
+  
+  fhisto.close();
+  return SDOK;
 }
 
 void accueilHtml(EthernetClient* cli)

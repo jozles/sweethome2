@@ -110,6 +110,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   char    strSD[RECCHAR]={0};          // buffer enregistrements sur SD
   char*   strSdEnd="<br>\r\n\0";
   char    buf[6];
+  long    fhsize;                      // remplissage fhisto
 
   char bufServer[LBUFSERVER];          // buffer entrée/sortie dataread/save
 
@@ -120,7 +121,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint16_t      perrefr=0;             // periode rafraichissement de l'affichage
 
   unsigned long lastcx=0;              // last server connection for watchdog
-#define WDDELAY 120000                 // watchdog time out if no connection    
+#define WDDELAY 600000                 // watchdog time out if no connection    
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
@@ -320,15 +321,22 @@ void setup() {                              // =================================
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.println(freeMemory(), DEC);
   
   //Serial.print(lip[0]);Serial.print(".");Serial.print(lip[1]);Serial.print(".");Serial.print(lip[2]);Serial.print(".");Serial.println(lip[3]);
+
+  digitalWrite(PINGNDDS,LOW);pinMode(PINGNDDS,OUTPUT);  
+  digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT); 
+  ds3231.i2cAddr=DS3231_I2C_ADDRESS; // doit être avant getDate
+  Wire.begin();
   
   sdInit();
-  //sdCardGen();
+  
   uint32_t        amj2,hms2;
   byte            js2;
   ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"R0",""," ");
   Serial.print("DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
   
   periMaintenance();
+
+  trigwd();
   
   configInit();  // en attendant un utiliatire de configuration des utilisateurs et ssid....
   configLoad();*toPassword=TO_PASSWORD;
@@ -381,14 +389,6 @@ void setup() {                              // =================================
 /* >>>>>> RTC ON, check date/heure et maj éventuelle par NTP  <<<<<< */
 /* ethernet doit être branché pour l'udp */
 
-  digitalWrite(PINGNDDS,LOW);pinMode(PINGNDDS,OUTPUT);  
-  digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT);  
-
-  ds3231.i2cAddr=DS3231_I2C_ADDRESS;
-  Wire.begin();
-  
-  delay(100);
-
   initDate();
   
 /*  while(1){
@@ -434,10 +434,24 @@ void loop()
 
             watchdog();
 
+            stoprequest();
+
 }
 
 
 /* ==================================== tools =================================== */
+
+void stoprequest()
+{
+  /*
+  if(digitalRead(STOPREQ)==LOW){
+    unsigned long t0=millis();
+    while((millis()-t0)<5000){
+      digitalWrite(PINLED,HIGH);delay(300);digitalWrite(PINLED,LOW);delay(300);
+    }
+  }
+  */
+}
 
 void watchdog()
 {
