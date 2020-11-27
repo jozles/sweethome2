@@ -24,4 +24,18 @@ void printPeriDate(EthernetClient* cli,char* periDate);
 char* cliPrintDateHeure(EthernetClient* cli,char* pkdate);
 void trailingSpaces(char* data,uint16_t len);
 
+void subDSnB(char* buf,char* fnc,uint32_t val,uint8_t num,char* lib);
+void checkboxTableBHtml(char* buf,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib);
+void usrFormBHtml(char* buf,bool hid);
+void usrFormInitBHtml(char* buf,char* nomfonct,bool hid);
+void concat1a(char* buf,char a);
+void concatn(char* buf,unsigned long val);
+void concatns(char* buf,long val);
+void concatnf(char* buf,float val);
+void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol);
+void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td);
+void concatDate(char* buf,char* periDate);
+void setCol(char* buf,char* textColour);
+void boutF(char* buf,char* nomfonct,char* valfonct,char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter);
+
 #endif // _UTILHTML_H_

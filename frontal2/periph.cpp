@@ -75,13 +75,20 @@ extern uint8_t*  periSondeNb;                  // ptr ds buffer : nbre sonde
 extern boolean*  periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
 extern byte*     periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
-extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
-extern int16_t*  periThmin_;                    // ptr ds buffer : mini last 24h
-extern int16_t*  periThmax_;                    // ptr ds buffer : maxi last 24h
-extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini volts
-extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
+extern int16_t*  periThOffset_;                // ptr ds buffer : offset correctif sur mesure température
+extern int16_t*  periThmin_;                   // ptr ds buffer : mini last 24h
+extern int16_t*  periThmax_;                   // ptr ds buffer : maxi last 24h
+extern int16_t*  periVmin_;                    // ptr ds buffer : alarme mini volts
+extern int16_t*  periVmax_;                    // ptr ds buffer : alarme maxi volts
 extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
-extern byte*     periProtocol;                   // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern byte*     periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern uint16_t* periAnal;                     // ptr ds buffer : analog value
+extern uint16_t* periAnalLow;                  // ptr ds buffer : low analog value 
+extern uint16_t* periAnalHigh;                 // ptr ds buffer : high analog value 
+extern uint16_t* periAnalOffset1;              // ptr ds buffer : offset on adc value
+extern float*    periAnalFactor;               // ptr ds buffer : factor to float for analog value
+extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
+
       
 extern byte*     periBegOfRecord;
 extern byte*     periEndOfRecord;
@@ -342,6 +349,8 @@ void  periPrint(uint16_t num)
   periDetServPrint(&memDetServ);Serial.print(" millis=");Serial.println(millis());
   periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo,periSwPulseCurrOne,periSwPulseCurrTwo);
   periInputPrint(periInput);
+  Serial.print("Anal=");Serial.print(*periAnal);Serial.print(" low=");Serial.print(*periAnalLow);Serial.print(" high=");Serial.print(*periAnalHigh);
+  Serial.print(" adcOffset=");Serial.print(*periAnalOffset1);Serial.print(" adcFactor=");Serial.print(*periAnalFactor);Serial.print(" floatOffset=");Serial.println(*periAnalOffset2);
 }
 
 void periSub(uint16_t num,int sta,bool sd)
@@ -539,10 +548,23 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=sizeof(uint16_t);
   periProtocol=(byte*)temp;
   temp +=sizeof(byte);
+  periAnal=(uint16_t*)temp;
+  temp +=sizeof(uint16_t);
+  periAnalLow=(uint16_t*)temp;
+  temp +=sizeof(uint16_t);
+  periAnalHigh=(uint16_t*)temp;
+  temp +=sizeof(uint16_t);
+  periAnalOffset1=(uint16_t*)temp;
+  temp +=sizeof(uint16_t);
+  periAnalFactor=(float*)temp;
+  temp +=sizeof(float);
+  periAnalOffset2=(float*)temp;
+  temp +=sizeof(float);
+
+
   temp +=1*sizeof(byte);
   periEndOfRecord=(byte*)temp;      // doit être le dernier !!!
   temp ++;
-  
 
   periInitVar();
 }
@@ -593,6 +615,14 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   *periVmax_=350;
    memset(periDetServEn,0x00,2);
   *periProtocol=0; 
+  *periAnal=0;      
+  *periAnalLow=0;   
+  *periAnalHigh=0;  
+  *periAnalOffset1=0;
+  *periAnalFactor=1;
+  *periAnalOffset2=0;
+
+  
    periInitVar0();
    // attention : perInitVar ne concerne que les variables de l'enregistrement de périphérique
    // lorsque periLoad est effectué periInitVar n'est oas utile

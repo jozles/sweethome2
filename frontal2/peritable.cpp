@@ -71,13 +71,20 @@ extern uint8_t*  periSondeNb;                  // ptr ds buffer : nbre sonde
 extern boolean*  periProg;                     // ptr ds buffer : flag "programmable" 
 extern byte*     periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
-extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
-extern int16_t*  periThmin_;                    // ptr ds buffer : alarme mini th
-extern int16_t*  periThmax_;                    // ptr ds buffer : alarme maxi th
-extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini volts
-extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
+extern int16_t*  periThOffset_;                // ptr ds buffer : offset correctif sur mesure température
+extern int16_t*  periThmin_;                   // ptr ds buffer : alarme mini th
+extern int16_t*  periThmax_;                   // ptr ds buffer : alarme maxi th
+extern int16_t*  periVmin_;                    // ptr ds buffer : alarme mini volts
+extern int16_t*  periVmax_;                    // ptr ds buffer : alarme maxi volts
 extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*     periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern uint16_t* periAnal;                     // ptr ds buffer : analog value
+extern uint16_t* periAnalLow;                  // ptr ds buffer : low analog value 
+extern uint16_t* periAnalHigh;                 // ptr ds buffer : high analog value 
+extern uint16_t* periAnalOffset1;              // ptr ds buffer : offset on adc value
+extern float*    periAnalFactor;               // ptr ds buffer : factor to float for analog value
+extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
+
 
 extern int8_t    periMess;                     // code diag réception message (voir MESSxxx shconst.h)
 extern byte      periMacBuf[6]; 
@@ -292,11 +299,12 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
         
         cli->println("</form>");
 
+          //detServHtml(cli,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
           detServHtml(cli,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
 
           cli->println("<table>");
-              cli->println("<tr>");
-                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th>"); 
+              cli->println("<tr>");              
+                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th>"); 
               cli->println("</tr>");
  
               for(i=1;i<=NBPERIF;i++){
@@ -343,7 +351,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
 
                 cli->println("<table><tr>");
-                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>__D__l<br>__i__e<br>__s__v</th><th></th><th>mac_addr<br>ip_addr</th><th>version DS18<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
+                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>__D__l<br>__i__e<br>__s__v</th><th>Analog<br>low<br>high</th><th>offs1<br>factor<br>offs2</th><th></th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
                 cli->println("</tr>");
 
                 cli->println("<tr>");
@@ -371,10 +379,18 @@ void periLineHtml(EthernetClient* cli,int i)
                       numTableHtml(cli,'b',periDetNb,"peri_detnb",1,3,0);
                       cli->println("<td>");
                       xradioTableHtml(cli,*periSwVal,"peri_vsw_\0",2,*periSwNb,3);
-                     
-                      cli->print("<td>");
+                      cli->print("</td>");cli->print("<td>");
+                      cli->print(*periAnal);cli->print("<br>");
+                      numTableHtml(cli,'I',periAnalLow,"peri_ana@_",5,0,0);cli->println("<br>");
+                      numTableHtml(cli,'I',periAnalHigh,"peri_anaA_",5,0,0);
+                      cli->print("</td><td>");
+                      numTableHtml(cli,'I',periAnalOffset1,"peri_anaB_",5,0,0);cli->println("<br>");
+                      numTableHtml(cli,'f',periAnalFactor,"peri_anaC_",5,0,0);cli->println("<br>");
+                      numTableHtml(cli,'f',periAnalOffset2,"peri_anaD_",5,0,0);
+                      cli->print("</td><td>");
                       for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){cli->print("<br>");}}
                       cli->println("</td>");
+                      
                       cli->print("<td><input type=\"text\" name=\"peri_mac__\" value=\"");for(int k=0;k<6;k++){cli->print(chexa[periMacr[k]/16]);cli->print(chexa[periMacr[k]%16]);}
                         cli->println("\" size=\"11\" maxlength=\"12\" ><br>");
                       if(*periProg!=0){cli->print("port=");numTableHtml(cli,'d',periPort,"peri_port_",4,0,0);}cli->println("<br>");
@@ -470,103 +486,6 @@ Serial.print(" t=");Serial.println(micros()-t0);
 }
 
 
-void concat1a(char* buf,char a)
-{
-  char b[2];b[1]='\0';
-  b[0]=(char)(a);strcat(buf,b);
-}
-
-void concatn(char* buf,unsigned long val)
-{
-  uint16_t b,s;
-  char* a;  
-  b=strlen(buf);a=buf+b;s=sprintf(a,"%u",val);buf[b+s]='\0';
-}
-
-void concatns(char* buf,long val)
-{
-  uint16_t b,s;  
-  char* a;
-  b=strlen(buf);a=buf+b;s=sprintf(a,"%d",val);buf[b+s]='\0';
-}
-
-void concatnf(char* buf,float val)
-{
-  uint16_t b,s;
-  char* a;
-  b=strlen(buf);a=buf+b;
-  s=sprintf(buf+b,"%.2f",val);buf[b+s]='\0';
-}
-
-void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol)
-{                          
-  if(td==1 || td==2){strcat(buf,"<td>");}
-  if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
-  strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);
-  if(len<=2){strcat(buf,"\" id=\"nt");concatn(buf,len);}
-  strcat(buf,"\" value=\"");
-  switch (type){
-    case 'b':strcat(buf,(char*)valfonct);break;
-    case 'd':concatn(buf,*(uint16_t*)valfonct);break;
-    case 'i':concatns(buf,*(int*)valfonct);break;
-    case 'I':concatns(buf,*(int16_t*)valfonct);break;
-    case 'r':concatnf(buf,(float)(*(int16_t*)valfonct)/100);break;
-    case 'l':concatns(buf,*(long*)valfonct);break;
-    case 'f':concatnf(buf,*(float*)valfonct);break;
-    case 'g':concatn(buf,*(uint32_t*)valfonct);break;    
-    default:break;
-  }
-  int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
-  strcat(buf,"\" size=\"");concatn(buf,sizeHtml);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" >");
-  if(pol!=0){strcat(buf,"</font>");}
-  if(td==1 || td==3){strcat(buf,"</td>\n");}
-}
-
-void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)
-{
-  char colour[6+1];
-  memcpy(colour,"black\0",6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,"red\0",4);}
-  if(td==1 || td==2){strcat(buf,"<td>");}
-  strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
-  concatnf(buf,((float)*valfonct)/100);  
-  strcat(buf,"</font>");
-  if(br==1){strcat(buf,"<br>");}
-  if(td==2 || td==3){strcat(buf,"</td>");}
-}
-
-void concatDate(char* buf,char* periDate)
-{
-  char dateascii[12];
-  int j;
-  unpackDate(dateascii,periDate);for(j=0;j<12;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}strcat(buf,"<br>");
-}
-
-void setCol(char* buf,char* textColour)
-{
-  strcat(buf,"<font color=\"");strcat(buf,textColour);strcat(buf,"\"> ");
-}
-
-
-void boutF(char* buf,char* nomfonct,char* valfonct,char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter)
-/* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
-{
-    if(td==1 || td==2){strcat(buf,"<td>");}
-
-    strcat(buf,"<a href=\"?user_ref_");
-    char b[2];b[1]='\0';
-    b[0]=(char)(usernum+PMFNCHAR);strcat(buf,b);strcat(buf,"=");concatn(buf,usrtime[usernum]);
-    strcat(buf,"?");strcat(buf,nomfonct);strcat(buf,"=");strcat(buf,valfonct);
-    strcat(buf,"\">");
-    if(aligncenter){strcat(buf,"<p align=\"center\">");}
-    strcat(buf,"<input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"");
-    if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"");}
-    if(aligncenter){strcat(buf,"></p></a>");}
-    else{strcat(buf,"></a>");}
-
-    if(br!=0){strcat(buf,"<br>");}
-    if(td==1 || td==3){strcat(buf,"</td>");}
-}
-
 
 void showLine(EthernetClient* cli,int numline,char* pkdate)
 {
@@ -618,8 +537,7 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
                       //cli->print("<td>");cli->print(*periPerRefr);cli->print("<br>");
           strcat(buf,"<td>");concatn(buf,*periPerRefr);strcat(buf,"<br>");
                       //if(*periProg!=0){cli->print("serv");}cli->print("</td>");
-          if(*periProg!=0){strcat(buf,"serv");}strcat(buf,"</td>");
-          
+          if(*periProg!=0){strcat(buf,"serv");}strcat(buf,"</td>");         
                       //cli->print("<td>");cli->print(*periSwNb);cli->print("<br>");cli->print(*periDetNb);cli->print("</td>");cli->println("<td>");
           strcat(buf,"<td>");concatn(buf,*periSwNb);strcat(buf,"<br>");concatn(buf,*periDetNb);strcat(buf,"</td><td>");
                       //for(uint8_t k=0;k<*periSwNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periSwVal>>((k*2)+1))&0x01]);cli->print("_");
@@ -630,9 +548,15 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
                       //cli->print("</td>");cli->print("<td>");
           strcat(buf,"</td><td>");
                       //for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){cli->print("<br>");}}
+          strcat(buf,"<font size=\"2\">");
           for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};concat1a(buf,oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){strcat(buf,"<br>");}}
                       //cli->println("</td>");cli->print("<td>");
-          strcat(buf,"</td>\n");          
+          strcat(buf,"</font></td>\n");
+          strcat(buf,"<td>");
+          concatnf(buf,(float)(*periAnal+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2);strcat(buf,"<br>");
+          concatnf(buf,(float)(*periAnalLow+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2);strcat(buf,"<br>");
+          concatnf(buf,(float)(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2);strcat(buf,"<br>");
+          strcat(buf,"</td>");                    
           strcat(buf,"<td>");
                       //for(int k=0;k<6;k++){cli->print(chexa[periMacr[k]/16]);cli->print(chexa[periMacr[k]%16]);}cli->print("<br>");
           for(int k=0;k<6;k++){concat1a(buf,chexa[periMacr[k]/16]);concat1a(buf,chexa[periMacr[k]%16]);}strcat(buf,"<br>");
@@ -679,8 +603,8 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
 
 if(strlen(buf)>=LBSHOWLINE){Serial.print("trop grand **************************");ledblink(BCODESHOWLINE);}
 
-Serial.print(" Strlen(showline)=");Serial.print(strlen(buf));Serial.print(" t=");Serial.print(micros()-t0);
+//Serial.print(" Strlen(showline)=");Serial.print(strlen(buf));Serial.print(" t=");Serial.print(micros()-t0);
           cli->print(buf);
-Serial.print(" tx=");Serial.println(micros()-t0);          
+//Serial.print(" tx=");Serial.println(micros()-t0);          
 
 }

@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4e"
+#define VERSION "1.4f"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -148,7 +148,7 @@
 
 #define NBPERIF 20                           
 #define PERINAMLEN 16+1                      // longueur nom perif
-#define PERIRECLEN 258 // V1.4a              // longueur record périph
+#define PERIRECLEN 274 // V1.4f              // longueur record périph
 
 #define CONFIGRECLEN 865                     // longueur record config 
 

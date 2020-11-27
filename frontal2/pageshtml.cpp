@@ -738,16 +738,17 @@ void timersHtml(EthernetClient* cli)
 
 void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
 {
-          cli->println("<form>");
-          usrFormInitHtml(cli,"dsrv_init_",1);
-//          cli->println("<p><span style=\"border: 1px solid #dddddd;\">détecteurs serveur (n->0):");
-          cli->println("<fieldset><legend>détecteurs serveur (n->0):</legend>");
+  char buf[1000];buf[0]='\0';
+          strcat(buf,"<form>");
+          usrFormInitBHtml(buf,"dsrv_init_",1);
+          strcat(buf,"<fieldset><legend>détecteurs serveur (n->0):</legend>\n");
           for(int k=NBDSRV-1;k>=0;k--){
             char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
             if(libb[0]=='\0'){convIntToString(libb,k);}
-            subDSn(cli,"mem_dsrv__\0",*mds,k,libb);}          
-          cli->println("<input type=\"submit\" value=\"Per Update\"></fieldset></form>");          
-//          cli->println("<input type=\"submit\" value=\"Per Update\"></span></p></form>");                    
+            subDSnB(buf,"mem_dsrv__\0",*mds,k,libb);
+            cli->print(buf);buf[0]='\0';}
+          strcat(buf,"<input type=\"submit\" value=\"Per Update\"></fieldset></form>\n"); 
+  cli->print(buf);        
 }
 
 void testHtml(EthernetClient* cli)

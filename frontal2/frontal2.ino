@@ -94,7 +94,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
@@ -121,7 +121,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint16_t      perrefr=0;             // periode rafraichissement de l'affichage
 
   unsigned long lastcx=0;              // last server connection for watchdog
-#define WDDELAY 600000                 // watchdog time out if no connection    
+#define MAXCXWD 900000                 // watchdog time out if no connection    
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
@@ -192,6 +192,12 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   int16_t*  periVmax_;                      // ptr ds buffer : alarme maxi volts
   byte*     periDetServEn;                  // ptr ds buffer : 1 byte 8*enable detecteurs serveur
   byte*     periProtocol;                   // ptr ds buffer : protocole ('T'CP/'U'DP)
+  uint16_t* periAnal;                       // ptr ds buffer : analog value
+  uint16_t* periAnalLow;                    // ptr ds buffer : low analog value 
+  uint16_t* periAnalHigh;                   // ptr ds buffer : high analog value 
+  uint16_t* periAnalOffset1;                // ptr ds buffer : offset on adc value
+  float*    periAnalFactor;                 // ptr ds buffer : factor to float for analog value
+  float*    periAnalOffset2;                // ptr ds buffer : offset on float value
     
   int8_t    periMess;                       // code diag réception message (voir MESSxxx shconst.h)
   byte      periMacBuf[6]; 
@@ -314,6 +320,8 @@ void setup() {                              // =================================
 
   initLed(PINLED);
   digitalWrite(PINLED,HIGH);delay(1);digitalWrite(PINLED,LOW);
+
+  pinMode(STOPREQ,INPUT_PULLUP);
   
 /* >>>>>>     config     <<<<<< */  
   
@@ -333,7 +341,7 @@ void setup() {                              // =================================
   byte            js2;
   ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"R0",""," ");
   Serial.print("DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
-  
+
   periMaintenance();
 
   trigwd();
@@ -443,22 +451,23 @@ void loop()
 
 void stoprequest()
 {
-  /*
   if(digitalRead(STOPREQ)==LOW){
-    unsigned long t0=millis();
-    while((millis()-t0)<5000){
+    trigwd();
+    sdstore_textdh(&fhisto,"RQ","","<br>\n\0");
+    Serial.println("Stop request =====");
+
+    while(1){
       digitalWrite(PINLED,HIGH);delay(300);digitalWrite(PINLED,LOW);delay(300);
     }
   }
-  */
 }
 
 void watchdog()
 {
-  if(millis()-lastcx>WDDELAY){
+  if(millis()-lastcx>MAXCXWD){
     trigwd();
-    sdstore_textdh(&fhisto,"--","WD","<br>\n\0");
-    Serial.print("no cx for ");Serial.print(WDDELAY/1000);Serial.println("sec");
+    sdstore_textdh(&fhisto,"WD","","<br>\n\0");
+    Serial.print("no cx for ");Serial.print(MAXCXWD/1000);Serial.println("sec");
     delay(30000);}      // wait for hardware watchdog
 }
 
@@ -1293,7 +1302,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           }
                        }break;                                                                       
               case 54: Serial.println("remoteHtml()");remoteHtml(&cli);break;                           // remotehtml
-              case 55: what=5;periInitVar();periRemove(periCur);break;                                  // peri_raz___                *************** dispo
+              case 55: what=5;periInitVar();periRemove(periCur);break;                                  // peri_raz___  
               case 56: break;                                                                           //                            *************** dispo
               case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis thparams__ (thermosCfg())
                         switch (*(libfonctions+2*i)){
@@ -1370,7 +1379,16 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 68: periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                          // bouton periph periline__ (ligne peritable)
                        periLoad(periCur);                                                            
                        periLineHtml(&cli,periCur);break;                                                                                                    
-              case 69: break;                                                                           // done                        
+              case 69: break;                                                                           // done         
+              case 70: Serial.print(*(libfonctions+2*i));Serial.print("  valf=");Serial.println(*valf);                // peri_ana_
+                        switch(*(libfonctions+2*i)){
+                          case '@': *periAnalLow=0;conv_atob(valf,periAnalLow);break;
+                          case 'A': *periAnalHigh=0;conv_atob(valf,periAnalHigh);break;
+                          case 'B': *periAnalOffset1=0;conv_atob(valf,periAnalOffset1);break;
+                          case 'C': *periAnalFactor=0;*periAnalFactor=convStrToNum(valf,&j);break;
+                          case 'D': *periAnalOffset2=0;*periAnalOffset2=convStrToNum(valf,&j);break;
+                          default: break;
+                        }break;
                               
               default:break;
               }
