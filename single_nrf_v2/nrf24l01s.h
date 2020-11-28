@@ -165,10 +165,10 @@ class Nrfp
 
     bool powerD=true;         // etat power (true=down)
     uint8_t lastSta=0;
-    byte*   locAddr;          // local Addr
+    byte*   locAddr;          // local Addr        
 
 #if NRF_MODE == 'P'
-    byte*   ccAddr;
+    byte*   ccAddr; 
     int     pRegister(byte* message,uint8_t* pldLength);
     int     txRx(byte* message,uint8_t* pldLength);
 #endif // NRF_MODE == 'P'

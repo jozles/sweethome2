@@ -118,7 +118,7 @@ void subModePulseTime(EthernetClient* cli,uint8_t npu,uint32_t* pulse,uint32_t* 
 
 }
 
-void perinpfnc(EthernetClient* cli,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
+void perinpBfnc(char* buf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
 {      // type input src, num det src,type input dest, num det dest, valeur, enable, action, 4*2 modes => 2 fonctions de transport avec 5 bits n°input (libf-2) et n°de paramètre (libf-1)                                                                          
   uint8_t vv=0;
 
@@ -126,11 +126,12 @@ void perinpfnc(EthernetClient* cli,uint8_t nuinp,uint16_t val,char type,uint8_t 
   ft[LENNOM-1]=(char)(nuinp+PMFNCHAR);
   
   switch (type){
-    case 'c':if(val!=0){vv=1;};checkboxTableHtml(cli,&vv,ft,-1,0,"");break;
-    case 'n':numTableHtml(cli,'d',&val,ft,lmax,0,2);break;
+    case 'c':if(val!=0){vv=1;};checkboxTableBHtml(buf,&vv,ft,-1,0,"");break;
+    case 'n':numTf(buf,'d',&val,ft,lmax,0,2);break;
     default: break;
   }
 }
+
 
 void SwCtlTableHtml(EthernetClient* cli)
 {
@@ -193,55 +194,56 @@ void SwCtlTableHtml(EthernetClient* cli)
         cli->print("<br>");for(int tsp=0;tsp<LENTSP;tsp++){cli->print(psps[periSwPulseSta[pu]*LENTSP+tsp]);}cli->print("</td>");         // staPulse 
 
       } // pulse suivant
-  cli->print("</tr></table></form>");
+  
+  /* affichage/saisie règles */
+  
+  char buf[2000];buf[0]='\0';
+  strcat(buf,"</tr></table></form>");
 
-    cli->println("<table>Règles en=enable, lv=active level, pr=?, es=edge/static ; 1101 OR to set when srce=1, 1001 NOR to clear when srce=0");
-      cli->println("<tr><th></th><th>e.l p.e<br>n.v.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
+    strcat(buf,"<table>Règles en=enable, lv=active level, pr=?, es=edge/static ; 1101 OR to set when srce=1, 1001 NOR to clear when srce=0");
+      strcat(buf,"<tr><th></th><th>e.l p.e<br>n.v.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
 
       char xfonc1[]="p_inp1____\0";
       char xfonc2[]="p_inp2____\0";
 
       uint16_t offsetInp=0;
- 
+
+      cli->print(buf);buf[0]='\0';
       for(int ninp=0;ninp<NBPERINPUT;ninp++){     // boucle des inputs
 
-            cli->print("<tr><form method=\"get\" >");    
+            strcat(buf,"<tr><form method=\"get\" >");    
             uint8_t vv;
             byte binp[PERINPLEN];memcpy(binp,periInput+offsetInp,PERINPLEN);
             offsetInp+=PERINPLEN;
 
-           usrPeriCur(cli,"peri_inp__",ninp,2,0);
+           usrPeriCurB(buf,"peri_inp__",ninp,2,0);
 
-           cli->print("<td>");cli->print(ninp);cli->print("</td><td>");
-            vv=(binp[2]  & PERINPEN_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,1);                           // bit enable
-            vv=(binp[2]  & PERINPVALID_VB);;perinpfnc(cli,ninp,vv,'c',1,xfonc1,9);                       // bit active level
-            vv=(binp[2]  & PERINPOLDLEV_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,2);                       // bit prev lev
-            vv=(binp[2]  & PERINPDETES_VB);perinpfnc(cli,ninp,vv,'c',1,xfonc1,3);                        // bit edge/static            
+           strcat(buf,"<td>");concatn(buf,ninp);strcat(buf,"</td><td>");
+            vv=(binp[2]  & PERINPEN_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,1);                           // bit enable
+            vv=(binp[2]  & PERINPVALID_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,9);                       // bit active level
+            vv=(binp[2]  & PERINPOLDLEV_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,2);                       // bit prev lev
+            vv=(binp[2]  & PERINPDETES_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,3);                        // bit edge/static            
            
             vv=(binp[0]  & PERINPNT_MS);                                                                 // type detec source
-            selectTableHtml(cli,inptyps,xfonc1,4,2,vv,4,ninp,2);
+            selectTableBHtml(buf,inptyps,xfonc1,4,2,vv,4,ninp,2);
 
-            vv=(binp[0]>>PERINPNVLS_PB);perinpfnc(cli,ninp,vv,'n',2,xfonc1,5);                           // num detec source
-           cli->println("</td>");            
+            vv=(binp[0]>>PERINPNVLS_PB);perinpBfnc(buf,ninp,vv,'n',2,xfonc1,5);                           // num detec source
+           strcat(buf,"</td>");            
            
             vv=(binp[3]  & PERINPNT_MS);                                                                 // type detec dest
-            selectTableHtml(cli,inptypd,xfonc1,4,2,vv,6,ninp,2);
+            selectTableBHtml(buf,inptypd,xfonc1,4,2,vv,6,ninp,2);
 
-            vv=(binp[3]>>PERINPNVLS_PB);perinpfnc(cli,ninp,vv,'n',2,xfonc1,7);                           // num detec  dest
-           cli->print("</td>");            
-           //cli->print("<td>");
+            vv=(binp[3]>>PERINPNVLS_PB);perinpBfnc(buf,ninp,vv,'n',2,xfonc1,7);                           // num detec  dest
+           strcat(buf,"</td>");            
+           
             vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                   // action 
-            selectTableHtml(cli,inpact,xfonc1,12,5,vv,8,ninp,2);
+            selectTableBHtml(buf,inpact,xfonc1,12,5,vv,8,ninp,2);
 
-           cli->println("</td>");
+           strcat(buf,"</td>");
+           strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
+           strcat(buf,"</form></tr>");
 
-/*            for(int mode=7;mode>=0;mode--){                                                               // 8 bits
-                cli->print(" ");             
-                vv=(binp[1]>>(PERINPRULESLS_PB+mode))&0x01;perinpfnc(cli,ninp,vv,'c',1,xfonc2,mode);
-            } // mode suivant    */
-            cli->println("<td><input type=\"submit\" value=\"MàJ\"></td>");
-            cli->print("</form></tr>");
-                        
+           cli->print(buf);buf[0]='\0';
         } // input suivant
   cli->print("</table></body></html>");
   Serial.print("fin SwCtlTableHtml  cxtime=");Serial.println(millis()-cxtime);

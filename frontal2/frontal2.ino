@@ -1380,15 +1380,14 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        periLoad(periCur);                                                            
                        periLineHtml(&cli,periCur);break;                                                                                                    
               case 69: break;                                                                           // done         
-              case 70: Serial.print(*(libfonctions+2*i));Serial.print("  valf=");Serial.println(*valf);                // peri_ana_
-                        switch(*(libfonctions+2*i)){
+              case 70: switch(*(libfonctions+2*i)){                                                     //analog_
                           case '@': *periAnalLow=0;conv_atob(valf,periAnalLow);break;
                           case 'A': *periAnalHigh=0;conv_atob(valf,periAnalHigh);break;
                           case 'B': *periAnalOffset1=0;conv_atob(valf,periAnalOffset1);break;
                           case 'C': *periAnalFactor=0;*periAnalFactor=convStrToNum(valf,&j);break;
                           case 'D': *periAnalOffset2=0;*periAnalOffset2=convStrToNum(valf,&j);break;
                           default: break;
-                        }break;
+                       }break;
                               
               default:break;
               }

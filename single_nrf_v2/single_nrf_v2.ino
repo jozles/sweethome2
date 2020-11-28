@@ -1,4 +1,3 @@
-#include <eepr.h>
 
 #include "nrf24l01s_const.h"
 #include "nRF24L01.h"
@@ -7,6 +6,10 @@
 #include "nrf_powerSleep.h"
 #include "nrf_user_peri.h"
 #include "nrf_user_conc.h"
+#if NRF_MODE == 'P'
+#include <eepr.h>
+Eepr eeprom;
+#endif NRF_MODE == 'P'
 
  /* single signifie 1 seul concentrateur avec une seule adresse de réception
  *  l'option P ou C dans const.h définit si compilation du code pour concentrateur ou périphérique
@@ -42,9 +45,8 @@ float* vOffset;
 byte*  macAddr;
 byte*  concAddr;
 
-char*  chexa="0123456789ABCDEFabcdef\0";
+//char*  chexa="0123456789ABCDEFabcdef\0";
 
-Eepr eeprom;
 Nrfp radio;
 
 /*** LED ***/
@@ -411,7 +413,7 @@ void loop() {
 #if NRF_MODE == 'C'
 
   if(menu){
-    radio.printAddr((char*)ccAddr,0);
+    radio.printAddr((char*)radio.locAddr,0);
     Serial.println(" (e)cho (b)roadcast (t)ableC (q)uit");
     menu=false;
   }
@@ -445,7 +447,7 @@ void loop() {
       if(pipe==2){                                                // conc macAddr request
         memcpy(tableC[NBPERIF].periMac,messageIn,ADDR_LENGTH+1);  // peri addr in table last entry
         memcpy(message,messageIn,ADDR_LENGTH+1);
-        memcpy(message+ADDR_LENGTH+1,ccAddr,ADDR_LENGTH);        // build message to perif with conc macAddr
+        memcpy(message+ADDR_LENGTH+1,radio.locAddr,ADDR_LENGTH);        // build message to perif with conc macAddr
         txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                // end of transaction so auto ACK
       }                                                           // rdSta=0 so ... end of loop
   }
@@ -975,39 +977,18 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,int dly)
     if(bdelay!=0){sleepDly(bdelay);dly-=bdelay;}
   }
 }
-#endif // NRF_MODE == 'P'
 
 
-#if NRF_MODE == 'C'
-
-void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,int dly)
-/*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 
-    bnb=(on+off) nb in one sequence ; dly=total delay time   */
-{  
-  unsigned long tt=millis(); 
-  blktime=0;bcnt=1;blkdelay=0;
-  while((millis()-tt)<dly){ledblk(dur,bdelay,bint,bnb);dly-=((dur+bint)*bnb+bdelay);}
-}
-#endif // NRF_MODE == 'C'
-
-void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
-{   // dur = durée on ; bdelay = delay entre séquences ; bint = intervalle entre blinks ; bnb = nbre blinks
-  if((millis()-blktime)>blkdelay){
-    if(digitalRead(LED)==LOW){
-      digitalWrite(LED,HIGH);blkdelay=dur;}
-    else{digitalWrite(LED,LOW);
-      if(bcnt<bnb){blkdelay=bint;bcnt++;}
-      else{blkdelay=bdelay;bcnt=1;}}
-    blktime=millis();
-  }
-}
-
-void led(unsigned long dur)
+void configPrint()
 {
-  digitalWrite(LED,HIGH);
-  pinMode(LED,OUTPUT);
-  delayMicroseconds(dur);
-  digitalWrite(LED,LOW);
+    uint16_t configLen;memcpy(&configLen,configData+EEPRLENGTH,2);
+    char configVers[3];memcpy(configVers,configData+EEPRVERS,2);configVers[3]='\0';
+    Serial.print("crc     ");dumpfield((char*)configData,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
+    char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
+    Serial.print("MAC  ");dumpstr((char*)macAddr,6);Serial.print("CONC ");dumpstr((char*)concAddr,6);
+
+    Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
+    Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
 }
 
 void initConf()
@@ -1047,18 +1028,42 @@ void initConf()
 */
 }
 
+#endif // NRF_MODE == 'P'
 
-void configPrint()
-{
-    uint16_t configLen;memcpy(&configLen,configData+EEPRLENGTH,2);
-    char configVers[3];memcpy(configVers,configData+EEPRVERS,2);configVers[3]='\0';
-    Serial.print("crc     ");dumpfield((char*)configData,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
-    char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
-    Serial.print("MAC  ");dumpstr((char*)macAddr,6);Serial.print("CONC ");dumpstr((char*)concAddr,6);
 
-    Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
-    Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
+#if NRF_MODE == 'C'
+
+void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,int dly)
+/*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 
+    bnb=(on+off) nb in one sequence ; dly=total delay time   */
+{  
+  unsigned long tt=millis(); 
+  blktime=0;bcnt=1;blkdelay=0;
+  while((millis()-tt)<dly){ledblk(dur,bdelay,bint,bnb);dly-=((dur+bint)*bnb+bdelay);}
 }
+#endif // NRF_MODE == 'C'
+
+void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
+{   // dur = durée on ; bdelay = delay entre séquences ; bint = intervalle entre blinks ; bnb = nbre blinks
+  if((millis()-blktime)>blkdelay){
+    if(digitalRead(LED)==LOW){
+      digitalWrite(LED,HIGH);blkdelay=dur;}
+    else{digitalWrite(LED,LOW);
+      if(bcnt<bnb){blkdelay=bint;bcnt++;}
+      else{blkdelay=bdelay;bcnt=1;}}
+    blktime=millis();
+  }
+}
+
+void led(unsigned long dur)
+{
+  digitalWrite(LED,HIGH);
+  pinMode(LED,OUTPUT);
+  delayMicroseconds(dur);
+  digitalWrite(LED,LOW);
+}
+
+
 
 /*  
  *     utilisation du timer 1        ...... réaction bizarres avec delay()   

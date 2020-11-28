@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4f"
+#define VERSION "1.4g"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -59,6 +59,8 @@
  * 1.4e dumpsd modifié avec buffer 1000 char pour diminuer le nombre de requètes ; idem showline ; fhisto est ouvert/refermé à chaque usage ;
  *      ajout fonction dans la bouckle d'attente "stop request pour un arrêt 'propre' ... la led passe en blink régulier rapide 300mS. 
  *      (nécessite un switch sur la pin STOPREQ)
+ * 1.4f mode buffer pour memDetServ() ; ajout variables pour entrée analogique des périphériques (periRec,showLine,periLine)
+ * 1.4e transfert datas analogique (val,low,high) avec périphériques : modif assyset() et periDataRead()
  *      
  * BUGS : 
  *  

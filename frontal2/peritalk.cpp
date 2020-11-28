@@ -65,6 +65,13 @@ extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini v
 extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
 extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*     periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern uint16_t* periAnal;                     // ptr ds buffer : analog value
+extern uint16_t* periAnalLow;                  // ptr ds buffer : low analog value 
+extern uint16_t* periAnalHigh;                 // ptr ds buffer : high analog value 
+extern uint16_t* periAnalOffset1;              // ptr ds buffer : offset on adc value
+extern float*    periAnalFactor;               // ptr ds buffer : factor to float for analog value
+extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
+
       
 extern byte*     periBegOfRecord;
 extern byte*     periEndOfRecord;
@@ -124,9 +131,17 @@ void assySet(char* message,int periCur,char* diag,char* date14)
                 }      // periSw (cdes)
                 memcpy(message+v1+MAXSW,"_\0",2);
 
-if(*periProg!=0){
-
                 v1+=MAXSW+1;
+                //dumpstr((char*)periAnalLow,2);
+                //dumpstr((char*)periAnalHigh,2);
+                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalLow+k));}   // analog Low  (2+1) bytes
+                v1+=4;
+                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalHigh+k));}  // analog High (2+1) bytes
+                v1+=4;
+                memcpy(message+v1,"_\0",2);
+                v1+=1;
+          
+if(*periProg!=0){
 
                 for(int k=0;k<NBPULSE*2;k++){                      // 4*2 compteurs (8*(8+1)bytes)
                     sprintf(message+v1+k*(LENVALPULSE+1),"%08u",*(periSwPulseOne+k));
@@ -309,7 +324,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
 #if PNP != SDPOSTEMP-SDPOSNUMPER
     periCur/=0;
 #endif     
-    k+=i;convStrToInt(k,&i);                                      // age si save (inutilisé)
+    k+=i;*periAnal=convStrToInt(k,&i);                            // analog value
     k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
     k+=i;strncpy(periVers,k,LENVERSION);                          // version
     k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);           // nbre sw

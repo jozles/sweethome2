@@ -339,8 +339,12 @@ int exportData(uint8_t numT)                            // formatting periBuf da
       sb+=1;
       memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+1+8+4,6); // temp                              
       sb+=6;
-      memcpy(message+sb,"__\0",3);                                  // âge 
-      sb+=2;
+      memcpy(message+sb,"_\0",2);
+      sb+=1;
+      memcpy(message+sb,"9999",4);                                 // analog value (4 decimal digits maxi) 
+      sb+=4;                                                       
+      memcpy(message+sb,"_\0",2);                                    
+      sb+=1;
       memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+1+8,4);   // volts                              
       sb+=4;
       memcpy(message+sb,"_\0",2);                             
@@ -441,7 +445,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   if(periMess==MESSOK){
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
         nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // nP = numPeri from set message (nb in server table)
-        numT=radio.macSearch(fromServerMac,&numPeri);              // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 
+        numT=radio.macSearch(fromServerMac,&numPeri);             // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 
                                                                   // numPeri should be same as nP (if !=0 && mac found)
         conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
         t2=micros();

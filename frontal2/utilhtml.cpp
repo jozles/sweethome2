@@ -37,12 +37,6 @@ extern byte mask[];
 #define LENCOLOUR 8
   char colour[LENCOLOUR+1];
 
-
-
-
-
-
-
 void concat1a(char* buf,char a)
 {
   char b[2];b[1]='\0';
@@ -55,6 +49,7 @@ void concatn(char* buf,unsigned long val)
   char* a;  
   b=strlen(buf);a=buf+b;s=sprintf(a,"%u",val);buf[b+s]='\0';
 }
+
 
 void concatns(char* buf,long val)
 {
@@ -69,6 +64,40 @@ void concatnf(char* buf,float val)
   char* a;
   b=strlen(buf);a=buf+b;
   s=sprintf(buf+b,"%.2f",val);buf[b+s]='\0';
+}
+
+
+void usrFormBHtml(char* buf,bool hid)                     // pour mettre en tête des formulaires ("<p hidden> .... </p>")
+{
+  if(hid){strcat(buf,"<p hidden>");}
+  strcat(buf,"<input type=\"text\" name=\"user_ref_");concat1a(buf,(char)(usernum+PMFNCHAR));
+  strcat(buf,"\" value=\"");concatn(buf,usrtime[usernum]);strcat(buf,"\">");  
+  if(hid){strcat(buf,"</p>");}
+}
+
+
+void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td)
+{            // val=table des libellés ; ft=fonction ; nbre ds table ; len step table ; sel=n°actuel ; nuv=n°param ; n°inp
+  char a;
+  int i,j;
+
+  ft[LENNOM-2]=(char)(nuv+PMFNCHAR);   
+  ft[LENNOM-1]=(char)(ninp+PMFNCHAR);   
+  
+  if(td==1 || td==2){strcat(buf,"<td>");}
+
+  strcat(buf,"<SELECT name=\"");strcat(buf,ft);strcat(buf,"\">");
+  for(i=0;i<nbre;i++){
+    strcat(buf,"<OPTION");if(i==sel){strcat(buf," selected");};strcat(buf,">");
+    for(j=0;j<len;j++){
+      a=(char)val[i*len+j];
+      if(a!=' '){concat1a(buf,a);}
+    }
+  }
+  strcat(buf,"</SELECT>");
+
+  if(td==1 || td==3){strcat(buf,"</td>");}
+  strcat(buf,"\n");
 }
 
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol)
@@ -93,6 +122,16 @@ void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,
   strcat(buf,"\" size=\"");concatn(buf,sizeHtml);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" >");
   if(pol!=0){strcat(buf,"</font>");}
   if(td==1 || td==3){strcat(buf,"</td>\n");}
+}
+
+
+void usrPeriCurB(char* buf,char* fnct,uint8_t ninp,int len,uint8_t td)
+{                                                                  // pour mettre en tête des formulaires ("<p hidden> .... </p>")
+    strcat(buf,"<p hidden>");
+      usrFormBHtml(buf,0);
+      char fonc[LENNOM+1];memcpy(fonc,fnct,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
+      numTf(buf,'i',&periCur,fonc,len,td,0); // pericur n'est pas modifiable (fixation pericur, periload, cberase)
+    strcat(buf,"</p>");
 }
 
 void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)
@@ -291,14 +330,6 @@ void usrFormHtml(EthernetClient* cli,bool hid)                     // pour mettr
   cli->print("<input type=\"text\" name=\"user_ref_");cli->print((char)(usernum+PMFNCHAR));
   cli->print("\" value=\"");cli->print(usrtime[usernum]);cli->print("\">");  
   if(hid){cli->println("</p>");}
-}
-
-void usrFormBHtml(char* buf,bool hid)                     // pour mettre en tête des formulaires ("<p hidden> .... </p>")
-{
-  if(hid){strcat(buf,"<p hidden>");}
-  strcat(buf,"<input type=\"text\" name=\"user_ref_");concat1a(buf,(char)(usernum+PMFNCHAR));
-  strcat(buf,"\" value=\"");concatn(buf,usrtime[usernum]);strcat(buf,"\">");  
-  if(hid){strcat(buf,"</p>");}
 }
 
 void usrFormInitHtml(EthernetClient* cli,char* nomfonct,bool hid)  // pour mettre en tête des formulaires ("<p hidden> .... </p>")

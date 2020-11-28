@@ -137,8 +137,6 @@ int   dataRead();
 void  dataTransfer(char* data);  
 void  readTemp();
 void  ordreExt();
-bool  talkServerWifiConnect();
-
 
 void tmarker()
 {
@@ -487,6 +485,8 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
             cstRec.serverPer=(long)convStrToNum(data+MPOSPERREFR,&sizeRead);    // per refresh server
             cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
             cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure (100x)
+            conv_atoh(data+MPOSANALH,(byte*)&cstRec.analLow);conv_atoh(data+MPOSANALH+2,(byte*)&cstRec.analLow+1);      // analogLow
+            conv_atoh(data+MPOSANALH+4,(byte*)&cstRec.analHigh);conv_atoh(data+MPOSANALH+6,(byte*)&cstRec.analHigh+1);  // analogHigh
             
             cstRec.swCde='\0';
             for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
@@ -521,16 +521,6 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
         infos("dataTransfer",data,0);
 }
 
-bool talkServerWifiConnect()
-{
-      int retry=0;
-      while((retry<=WIFINBRETRY)){
-        if(wifiConnexion(ssid,password)){break;}
-        retry++;
-      }
-      return (retry<=WIFINBRETRY);
-}
-
 int talkServer()    // si numPeriph est à 0, dataRead pour se faire reconnaitre ; 
                     // si ça fonctionne réponse numPeriph!=0 ; dataSave 
                     // renvoie 0 et periMess valorisé si la com ne s'est pas bien passée.
@@ -542,18 +532,16 @@ int talkServer()    // si numPeriph est à 0, dataRead pour se faire reconnaitre
 
 int v=0;
 
-infos(" talkServer","",cstRec.talkStep);
-
 switch(cstRec.talkStep){
   case 1:
       ssid=ssid1;password=password1;
-      if(talkServerWifiConnect()){cstRec.talkStep=4;}
+      if(wifiConnexion(ssid,password)){cstRec.talkStep=4;}
       else {cstRec.talkStep=2;}
       break;
       
   case 2:
       ssid=ssid2;password=password2; // tentative sur ssid bis
-      if(talkServerWifiConnect()){cstRec.talkStep=4;}
+      if(wifiConnexion(ssid,password)){cstRec.talkStep=4;}
       else {cstRec.talkStep=98;}
       break;
 
@@ -596,7 +584,7 @@ switch(cstRec.talkStep){
                   // sinon recommencer au prochain timing
 
        fServer(fack_______);
-       memset(cstRec.swToggle,0x00,MAXSW);                  // effacement bits toggle après fin du transfert
+       
        // le num de périph a été mis à 0 si la com ne s'est pas bien passée
        cstRec.talkStep=9;
        break;  
@@ -610,11 +598,10 @@ switch(cstRec.talkStep){
     server.begin(cstRec.portServer);
     Serial.print("server.begin(");Serial.print((int)cstRec.portServer);Serial.print(") durée=");Serial.println(millis()-timeservbegin);
 #endif  def_SERVER_MODE*/
-
        break;
 
 
-  case 98:      // pas réussi à connecter au WiFi ; tempo 2h
+  case 98:      // pas réussi à connecter au WiFi ; tempo longue
         cstRec.serverPer=PERSERVKO;
         cstRec.serverTime=0;
 
@@ -625,7 +612,6 @@ switch(cstRec.talkStep){
         
   default: break;
   }
- 
 }
 
 #ifdef _SERVER_MODE
@@ -716,7 +702,7 @@ void talkClient(char* etat) // réponse à une requête
 
 //***************** dataRead/dataSave
 
-int buildReadSave(char* nomfonction,char* data,char* toggle)   //   assemble et envoie read/save (sortie MESSCX connexion échouée)
+int buildReadSave(char* nomfonction,char* data)   //   assemble et envoie read/save (sortie MESSCX connexion échouée)
                                                   //   password__=nnnnpppppp..cc?
                                                   //   data_rs.._=nnnnppmm.mm.mm.mm.mm.mm_[-xx.xx_aaaaaaa_v.vv]_r.r_siiii_diiii_ffff_cc
 {
@@ -737,7 +723,7 @@ int buildReadSave(char* nomfonction,char* data,char* toggle)   //   assemble et 
 #if PNP != SDPOSTEMP-SDPOSNUMPER-1
   sb/=0;
 #endif       
-      strcat(message,data);strcat(message,"_");                       // temp, âge (dans data_save seul) - 15
+      strcat(message,data);strcat(message,"_");                       // temp, analog (dans data_save seul) - 15
 
       sb=strlen(message);
       sprintf(message+sb,"%1.2f",voltage);                            // alim                        - 5
@@ -793,21 +779,15 @@ int dataSave()
       sprintf(tempstr,"%+02.2f",temp/100);                                // 6 car
       if(strstr(tempstr,"nan")!=0){strcpy(tempstr,"+00.00\0");}
       strcat(tempstr,"_");                                                // 1 car
-      sprintf((char*)(tempstr+strlen(tempstr)),"%07d",(cstRec.cxDurat/
-#if POWER_MODE!=NO_MODE       
-      1));  // 7 car (ms soit 10000 sec)
-#endif PM!=NO_MODE
-#if POWER_MODE==NO_MODE       
-      10000));  // 7 car (dizaines de sec soit 38 mois)
-#endif PM==NO_MODE       
+      sprintf((char*)(tempstr+strlen(tempstr)),"%06d",cstRec.analVal);    // 6 car
       strcat(tempstr,"\0");                                               // 1 car
       
-      return buildReadSave("data_save_",tempstr,(char*)cstRec.swToggle);
+      return buildReadSave("data_save_",tempstr);
 }
 
 int dataRead()
 {
-      return buildReadSave("data_read_","_","0000");
+      return buildReadSave("data_read_","_");
 }
 
 void wifiStatusValues()
@@ -837,20 +817,10 @@ bool wifiConnexion(const char* ssid,const char* password)
     ledblink(BCODEONBLINK);
 
     //WiFi.forceSleepWake();delay(1);
-    
     //WiFi.forceSleepEnd();       // réveil modem
     
-    
     int wifistatus=printWifiStatus();
-    if(wifistatus!=WL_CONNECTED){           
-
-/*
-      if(cstRec.IpLocal!=IPAddress(0,0,0,0)){
-      IPAddress dns(192,168,0,254);
-      IPAddress gateway(192,168,0,254);
-      IPAddress subnet(255,255,255,0);
-      WiFi.config(cstRec.IpLocal, dns, gateway, subnet);
-*/
+    if(wifistatus!=WL_CONNECTED){    
 /*
       WL_CONNECTED after successful connection is established
       WL_NO_SSID_AVAIL in case configured SSID cannot be reached

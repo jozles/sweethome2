@@ -1,6 +1,7 @@
 #ifndef _UTILHTML_H_
 #define _UTILHTML_H_
 
+
 void htmlIntro0(EthernetClient* cli);
 void htmlIntro(char* titre,EthernetClient* cli);
 void cliPrintMac(EthernetClient* cli, byte* mac);
@@ -24,6 +25,8 @@ void printPeriDate(EthernetClient* cli,char* periDate);
 char* cliPrintDateHeure(EthernetClient* cli,char* pkdate);
 void trailingSpaces(char* data,uint16_t len);
 
+void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td);
+void usrPeriCurB(char* buf,char* fnct,uint8_t ninp,int len,uint8_t td);
 void subDSnB(char* buf,char* fnc,uint32_t val,uint8_t num,char* lib);
 void checkboxTableBHtml(char* buf,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib);
 void usrFormBHtml(char* buf,bool hid);

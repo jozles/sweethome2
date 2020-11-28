@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.m_"
+#define VERSION "1.n_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -48,6 +48,8 @@
  *     lorsque la cx wifi a échoué tempo de x heures (PERSERVKO), le délai de conversion si PO, la lecture et lé controle de la température ne sont plus faits. 
  *     néanmoins en PO, le temps de démarrage (avant setup) est tel (350mS) que la conso reste très élévée (70mA pendant 350mS toutes les 165sec soit 150uAh - 4mAh par jour)
  * 1.m corrections durée conversion DS18X20 ; correction du codage des actions dans la boucle des règles (actions()/dynam.cpp)   
+ * 1.n transfert lecture analogique et réception seuils ; à faire : lecture de l'entrée analogique.
+ *     correction gestion connexion wifi (suppresseion talkServerWifiConnect() : les retrys sont dans wifiConnexion, fonction du temps WIFI_TO_CONNEXION )
  * 
 Modifier : 
 
@@ -164,7 +166,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRDEV                   // <------------- modèle carte
+#define CARTE VRR                   // <------------- modèle carte
 #define POWER_MODE NO_MODE            // <------------- type d'alimentation 
 //#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 
@@ -173,7 +175,7 @@ Modifier :
 #define MODEL_B 0x28
 
 #define TCONVERSIONB       300    // millis délai conversion temp 187mS 10 bits accu 0,25°
-#define TCONVERSIONS       750    // millis délai conversion temp
+#define TCONVERSIONS       800    // millis délai conversion temp
 #define T12BITS            0x7F   // 12 bits 750mS 0.0625°
 #define T11BITS            0x5F   // 11 bits 375mS 0.125°
 #define T10BITS            0x3F   // 10 bits 187,5mS 0.25°
@@ -387,13 +389,15 @@ typedef struct {
   byte      memDetec[MAXDET];     //  4   image mem des détecteurs physiques (1 byte par détecteur)   
   uint32_t  extDetec;             //  4   1 bit par detecteur externe
   IPAddress IpLocal;              //  4
-  uint32_t  cxDurat;              //  4   durée last connexion
-  byte      swToggle[MAXSW];      //  4   toogle switch (raz après dataSave)   ---------- inutilisé  
+  uint16_t  analVal;              //  2   dernière valeur analogique lue
+  uint16_t  analLow;              //  2   seuil analogique low
+  uint16_t  analHigh;             //  2   seuil analogique high
+  uint16_t  dispo;                //  2                               ---------- inutilisé  
   uint16_t  portServer;           //  2   port en mode serveur          
 #define LENFILLERCST 31
   byte      filler[LENFILLERCST]; //  
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer la longueur
-             // total 240 = 60 mots ; 256 maxi pour RTC
+             // total 238 = 60 mots ; 256 maxi pour RTC
 } constantValues;
 
 #define STEPDATASAVE 6            // code pour talkstep de dataSave()

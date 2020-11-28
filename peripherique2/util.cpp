@@ -98,7 +98,7 @@ return 0;
 void writeConstant()
 {
 memcpy(cstRec.cstVers,VERSION,LENVERSION);
-cstRec.cxDurat=millis()-dateon;
+cstRec.analVal=0;
 cstRec.cstcrc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1); 
   
 #if CONSTANT==RTCSAVED
@@ -148,7 +148,7 @@ void initConstant()  // inits mise sous tension
   memcpy(cstRec.cstModel,model,LENMODEL);
   memset(cstRec.perInput,0x00,NBPERINPUT*PERINPLEN);
   cstRec.extDetec=0;
-  cstRec.cxDurat=0;
+  cstRec.analVal=0;
   cstRec.portServer=9999;
   memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
   Serial.println("Init Constant done");
@@ -227,7 +227,8 @@ void printConstant()
   for(int s=MAXSW;s>=1;s--){Serial.print((char)(((cstRec.swCde>>(2*s-1))&0x01)+48));}
   Serial.print(" serverTime=");Serial.print(cstRec.serverTime);Serial.print(" serverPer=");Serial.print(cstRec.serverPer);
   Serial.print(" oldtemp=");Serial.print(cstRec.oldtemp);Serial.print(" tempPer=");Serial.print(cstRec.tempPer);
-  Serial.print(" tempPitch=");Serial.print(cstRec.tempPitch);Serial.print("  last durat=");Serial.print(cstRec.cxDurat);
+  Serial.print(" tempPitch=");Serial.print(cstRec.tempPitch);Serial.print("  last analog=");Serial.print(cstRec.analVal);
+  Serial.print(" analog low=");Serial.print(cstRec.analLow);Serial.print(" analog high=");Serial.print(cstRec.analHigh);
   //Serial.print(" staPulse=");for(int s=0;s<MAXSW;s++){Serial.print(s);Serial.print("-");Serial.print(staPulse[s],HEX);
   //Serial.print(" ");}Serial.println("  C=DIS 0=IDLE 5=RUN1 7=RUN2 4=END1 6=END2");
   //Serial.print("memDetec (0-n)=");for(int s=0;s<(MAXDET);s++){Serial.print(s);Serial.print("-");
