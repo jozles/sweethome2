@@ -11,6 +11,7 @@
 #include "utilhtml.h"
 #include "pageshtml.h"
 
+#include <MemoryFree.h>;
 
 extern Ds3231 ds3231;
 
@@ -135,39 +136,45 @@ void perinpBfnc(char* buf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char
 
 void SwCtlTableHtml(EthernetClient* cli)
 {
-  Serial.print("début SwCtlTableHtml -- periCur=");Serial.print(periCur);Serial.print("  cxtime=");Serial.println(millis()-cxtime);
+  char buf[2500];buf[0]='\0';
+  
+  Serial.print("début SwCtlTableHtml -- periCur=");Serial.print(periCur);Serial.print("  cxtime=");Serial.print(millis()-cxtime);
+  Serial.print("  free=");Serial.println(freeMemory(), DEC);
 
   // periCur est transféré via les fonctions d'en-tête peri_inp__ et peri_t_sw
 
-  htmlIntro(nomserver,cli);
-  cli->println("<body>");            
-  cli->println("<form method=\"get\" >");
-    cli->print(VERSION);cli->print(" ");
+  htmlIntroB(buf,nomserver,cli);
+  
+  strcat(buf,"<body>");            
+  strcat(buf,"<form method=\"get\" >");
+    strcat(buf,VERSION);strcat(buf," ");
     char pkdate[7]; // pour couleurs des temps des périphériques
-    cliPrintDateHeure(cli,pkdate);cli->println();
-    cli->print(periCur);cli->print("-");cli->print(periNamer);cli->print(" ");
-    cli->print("<font size=\"2\">");for(int j=0;j<4;j++){cli->print(periIpAddr[j]);if(j<3){cli->print(".");}}
-    if(*periProg!=0){cli->print("/port=");cli->print(*periPort);cli->print(" ");}
-    for(int j=0;j<LENVERSION;j++){cli->print(periVers[j]);}
-    cli->println("<br>");//cli->println("</font><br>");
+    bufPrintDateHeure(buf,pkdate);strcat(buf,"\n");
+    concatn(buf,periCur);strcat(buf,"-");strcat(buf,periNamer);strcat(buf," ");
+    strcat(buf,"<font size=\"2\">");for(int j=0;j<4;j++){concatn(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}}
+    if(*periProg!=0){strcat(buf,"/port=");concatn(buf,*periPort);strcat(buf," ");}
+    for(int j=0;j<LENVERSION;j++){concat1a(buf,periVers[j]);}
+    strcat(buf,"<br>\n");
 
-  usrPeriCur(cli,"peri_t_sw_",0,2,0);    
+  usrPeriCurB(buf,"peri_t_sw_",0,2,0);
 
-    boutRetour(cli,"retour",0,0);cli->print(" ");  
-    cli->println("<input type=\"submit\" value=\" MàJ \">");cli->print(" ");
+    boutRetourB(buf,"retour",0,0);
+    strcat(buf," <input type=\"submit\" value=\" MàJ \"> ");
     char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-    boutFonction(cli,swf,"","refresh",0,0,1,0);cli->print(" ");
+    boutF(buf,swf,"","refresh",0,0,1,0);strcat(buf," ");
     swf[LENNOM-2]='X';
-    boutFonction(cli,swf,""," erase ",0,0,1,0);cli->print(" ");
+    boutF(buf,swf,""," erase ",0,0,1,0);strcat(buf," ");
     
-    cli->print("<br> détecteurs serveur ");
+    strcat(buf,"<br> détecteurs serveur ");
     char hl[]={"LH"};
     
-    for(int k=NBDSRV-1;k>=0;k--){cli->print(hl[(memDetServ>>k)&0x01]);cli->print(" ");}
-    cli->println("<br>");
+    for(int k=NBDSRV-1;k>=0;k--){concat1a(buf,hl[(memDetServ>>k)&0x01]);strcat(buf," ");}
+    strcat(buf,"<br>");
 
-    cli->println("<table>Pulses");                  // pulses
-      cli->println("<tr><th></th><th>time One<br>time Two</th><th>free<br>run</th>");
+    strcat(buf,"<table>Pulses");                  // pulses
+      strcat(buf,"<tr><th></th><th>time One<br>time Two</th><th>free<br>run</th>");
+
+    cli->print(buf);buf[0]='\0';
 
       char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
       char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
@@ -197,11 +204,9 @@ void SwCtlTableHtml(EthernetClient* cli)
   
   /* affichage/saisie règles */
   
-  char buf[2000];buf[0]='\0';
   strcat(buf,"</tr></table></form>");
-
-    strcat(buf,"<table>Règles en=enable, lv=active level, pr=?, es=edge/static ; 1101 OR to set when srce=1, 1001 NOR to clear when srce=0");
-      strcat(buf,"<tr><th></th><th>e.l p.e<br>n.v.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
+  strcat(buf,"<table>Règles en=enable, lv=active level, pr=?, es=edge/static ; 1101 OR to set when srce=1, 1001 NOR to clear when srce=0");
+  strcat(buf,"<tr><th></th><th>e.l p.e<br>n.v.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
 
       char xfonc1[]="p_inp1____\0";
       char xfonc2[]="p_inp2____\0";
@@ -242,10 +247,10 @@ void SwCtlTableHtml(EthernetClient* cli)
            strcat(buf,"</td>");
            strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
            strcat(buf,"</form></tr>");
-
-           cli->print(buf);buf[0]='\0';
+           if(strlen(buf)>sizeof(buf)*0.4){cli->print(buf);buf[0]='\0';}
         } // input suivant
-  cli->print("</table></body></html>");
+  strcat(buf,"</table></body></html>");
+  cli->print(buf);
   Serial.print("fin SwCtlTableHtml  cxtime=");Serial.println(millis()-cxtime);
 }
 
@@ -253,7 +258,6 @@ void periTableHtml(EthernetClient* cli)
 {
   int i,j;
   int savePeriCur=periCur;   // save periCur et restore à la fin de periTable
-
 
 Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.print(" cxtime=");Serial.println(millis()-cxtime); 
 
@@ -274,6 +278,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           #endif _MODE_DEVT2
 
           char pkdate[7];cliPrintDateHeure(cli,pkdate);
+          cli->println("<font size=\"2\">");
           cli->println("; local IP ");cli->print(Ethernet.localIP());cli->println(" ");
           cli->print(th);cli->println("°C<br>");
 
@@ -299,9 +304,8 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           boutFonction(cli,"timershtml","","timershtml",0,0,0,0);
           boutFonction(cli,"dsrvhtml__","","detsrvhtml",0,0,0,0);                 
         
-        cli->println("</form>");
+        //cli->println("</form>");
 
-          //detServHtml(cli,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
           detServHtml(cli,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
 
           cli->println("<table>");
@@ -318,7 +322,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
               trigwd();
               }
           cli->println("</table>");
-        cli->println("</body></html>");
+        cli->println("</form></body></html>");
 periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
 Serial.print("fin péritable - cxtime=");Serial.println(millis()-cxtime); 
 }

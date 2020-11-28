@@ -39,6 +39,10 @@ void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,
 void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td);
 void concatDate(char* buf,char* periDate);
 void setCol(char* buf,char* textColour);
+void boutRetourB(char* buf,char* lib,uint8_t td,uint8_t br);
 void boutF(char* buf,char* nomfonct,char* valfonct,char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter);
+void bufPrintDateHeure(char* buf,char* pkdate);
+void htmlIntro0B(char* buf);
+void htmlIntroB(char* buf,char* titre,EthernetClient* cli);
 
 #endif // _UTILHTML_H_

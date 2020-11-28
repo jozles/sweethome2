@@ -180,6 +180,93 @@ void boutF(char* buf,char* nomfonct,char* valfonct,char* lib,uint8_t td,uint8_t 
 }
 
 
+void boutRetourB(char* buf,char* lib,uint8_t td,uint8_t br)
+{
+    if(td==1 || td==2){strcat(buf,"<td>");}
+    strcat(buf,"<a href=\"?user_ref_");concat1a(buf,(char)(usernum+PMFNCHAR));strcat(buf,"=");concatn(buf,usrtime[usernum]);
+    strcat(buf,"\"><input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"></a>");
+    if(br!=0){strcat(buf,"<br>");}
+    if(td==1 || td==3){strcat(buf,"</td>");}
+    strcat(buf,"\n");
+}
+
+void bufPrintDateHeure(char* buf,char* pkdate)
+{
+  char bufdate[LNOW];ds3231.alphaNow(bufdate);packDate(pkdate,bufdate+2); // skip siècle
+  for(int zz=0;zz<14;zz++){concat1a(buf,bufdate[zz]);if(zz==7){strcat(buf,"-");}}
+  strcat(buf," GMT ");
+}
+
+void htmlIntro0B(char* buf)    // suffisant pour commande péripheriques
+{
+  strcat(buf,"HTTP/1.1 200 OK\n");
+  //cli->println("Location: http://82.64.32.56:1789/");
+  //cli->println("Cache-Control: private");
+  strcat(buf,"CONTENT-Type: text/html; charset=UTF-8\n");
+  strcat(buf,"Connection: close\n\n");
+  strcat(buf,"<!DOCTYPE HTML ><html>\n");
+}
+
+void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
+{
+
+  htmlIntro0B(buf);
+
+  strcat(buf,"<head>");
+  char locbuf[10]={0};
+  if(perrefr!=0){strcat(buf,"<meta HTTP-EQUIV=\"Refresh\" content=\"");sprintf(locbuf,"%d",perrefr);strcat(buf,locbuf);strcat(buf,"\">");}
+  strcat(buf,"\<title>");strcat(buf,titre);strcat(buf,"</title>\n");
+  
+          strcat(buf,"<style>");         
+
+            strcat(buf,"table {");
+              strcat(buf,"font-family: Courier, sans-serif;");
+              strcat(buf,"border-collapse: collapse;");
+              //cli->println("width: 100%;");
+              strcat(buf,"overflow: auto;\n");
+              strcat(buf,"white-space:nowrap;"); 
+            strcat(buf,"}\n");
+
+ cli->print(buf);buf[0]='\0';
+
+            strcat(buf,"td, th {");
+              strcat(buf,"font-family: Courier, sans-serif;\n");
+              strcat(buf,"border: 1px solid #dddddd;\n");
+              strcat(buf,"text-align: left;\n"); 
+            strcat(buf,"}\n");
+
+            strcat(buf,"#nt1{width:10px;}\n");
+            strcat(buf,"#nt2{width:18px;}\n");
+            strcat(buf,"#cb1{width:10px; padding:0px; margin:0px; text-align: center};\n");
+            strcat(buf,"#cb2{width:20px; text-align: center};\n");
+
+            strcat(buf,".button {background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
+            strcat(buf,"text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}\n");
+            strcat(buf,".button2 {background-color: #77878A;}\n");
+
+  cli->print(buf);buf[0]='\0';
+      
+            /* big sliders */
+            strcat(buf,".switch {position: relative;display: inline-block;width: 220px;height: 100px; margin: 16px;}\n");
+            strcat(buf,".switch input {opacity: 0;width: 0;hight: 0;}\n");
+            strcat(buf,".slider {position: absolute;cursor: pointer;");
+            strcat(buf,"  top: 0;left: 0;right: 0;bottom: 0;background-color: #ccc;-webkit-transition: .4s;transition: .4s;}\n");
+            strcat(buf,".slider:before {position: absolute;content: \"\";");
+            strcat(buf,"  height: 84px;width: 84px;left: 8px;bottom: 8px;background-color: white;-webkit-transition: .4s;transition: .4s;}\n");
+
+            strcat(buf,"input:checked + .slider {background-color: #2196F3;}\n");
+            strcat(buf,"input:focus + .slider {box-shadow: 0 0 1px #2196F3;}\n");
+            strcat(buf,"input:checked + .slider:before {-webkit-transform: translateX(110px);-ms-transform: translateX(55px);transform: translateX(110px);}\n");
+            /* Rounded sliders */
+            strcat(buf,".slider.round {border-radius: 50px;}\n");
+            strcat(buf,".slider.round:before {border-radius: 50%;}\n");
+
+          strcat(buf,"</style>\n");  
+  strcat(buf,"</head>\n");
+  cli->print(buf);buf[0]='\0';
+}
+
+
 void htmlIntro0(EthernetClient* cli)    // suffisant pour commande péripheriques
 {
   cli->println("HTTP/1.1 200 OK");
