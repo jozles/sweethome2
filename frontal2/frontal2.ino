@@ -198,6 +198,12 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint16_t* periAnalOffset1;                // ptr ds buffer : offset on adc value
   float*    periAnalFactor;                 // ptr ds buffer : factor to float for analog value
   float*    periAnalOffset2;                // ptr ds buffer : offset on float value
+  uint8_t*  periAnalCb;                     // ptr ds buffer : 5 x 4 bits pour checkbox
+  uint8_t*  periAnalDet;                    // ptr ds buffer : 5 x n° détect serveur
+  uint8_t*  periAnalMemo;                   // ptr ds buffer : 5 x n° mémo dans table mémos
+  uint8_t*  periInputCb;                    // ptr ds buffer : 5 x 4 bits pour checkbox
+  uint8_t*  periInputDet;                   // ptr ds buffer : 5 x n° détect serveur
+  uint8_t*  periInputMemo;                  // ptr ds buffer : 5 x n° mémo dans table mémos
     
   int8_t    periMess;                       // code diag réception message (voir MESSxxx shconst.h)
   byte      periMacBuf[6]; 

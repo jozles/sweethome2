@@ -267,6 +267,24 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
 }
 
 
+void checkboxTableBHtml(char* buf,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib)
+{
+  if(td==1 || td==2){strcat(buf,"<td>");}
+
+    strcat(buf,"<input type=\"checkbox\" name=\"");strcat(buf,nomfonct);strcat(buf,"\" id=\"cb1\" value=\"1\"");
+    if((*val & 0x01)!=0){strcat(buf," checked");}
+    strcat(buf,">");strcat(buf,lib);
+  if(etat>0 && !(*val & 0x01)){etat=2;}
+      switch(etat){
+        case 2 :strcat(buf,"___");break;
+        case 1 :strcat(buf,"_ON");break;
+        case 0 :strcat(buf,"OFF");break;
+        default:break;
+      }
+  if(td==1 || td==3){strcat(buf,"</td>");}
+  strcat(buf,"\n");
+}
+
 void htmlIntro0(EthernetClient* cli)    // suffisant pour commande péripheriques
 {
   cli->println("HTTP/1.1 200 OK");
@@ -546,25 +564,6 @@ void selectTableHtml(EthernetClient* cli,char* val,char* ft,int nbre,int len,int
   if(td==1 || td==3){cli->print("</td>");}
   cli->println();
 }
-
-void checkboxTableBHtml(char* buf,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib)
-{
-  if(td==1 || td==2){strcat(buf,"<td>");}
-
-    strcat(buf,"<input type=\"checkbox\" name=\"");strcat(buf,nomfonct);strcat(buf,"\" id=\"cb1\" value=\"1\"");
-    if((*val & 0x01)!=0){strcat(buf," checked");}
-    strcat(buf,">");strcat(buf,lib);
-  if(etat>0 && !(*val & 0x01)){etat=2;}
-      switch(etat){
-        case 2 :strcat(buf,"___");break;
-        case 1 :strcat(buf,"_ON");break;
-        case 0 :strcat(buf,"OFF");break;
-        default:break;
-      }
-  if(td==1 || td==3){strcat(buf,"</td>");}
-  strcat(buf,"\n");
-}
-
 
 void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib)
 {
