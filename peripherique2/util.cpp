@@ -69,6 +69,7 @@ bool chkTrigTemp(){return ctlto(tempTime,tempPeriod);}
 void forceTrigTemp(){tempPeriod=0;}     // -------------> utilisé pour forcer une communication avec le serveur
                                         //                après une éventuelle comm en cours
 
+
 bool readConstant()
 {
 

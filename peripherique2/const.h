@@ -166,7 +166,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRR                   // <------------- modèle carte
+#define CARTE VRDEV                   // <------------- modèle carte
 #define POWER_MODE NO_MODE            // <------------- type d'alimentation 
 //#define PININT_MODE                   // <------------- avec/sans pin d'interruption
 
@@ -182,8 +182,7 @@ Modifier :
 #define T9BITS             0x1F   // 9 bits 93,75mS 0.5°
 
 #if POWER_MODE==NO_MODE
-  #define _SERVER_MODE
-  /* Mode server */
+  #define _SERVER_MODE          /* Mode server */
 #endif PM==NO_MODE
 
 // stockage deep sleep / power off  (EEPROM pour PO_MODE seul )

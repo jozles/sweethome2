@@ -74,7 +74,6 @@ WiFiServer server(8888);
   unsigned long  tempTime=0;               // (millis) timer température pour mode loop
   uint16_t tempPeriod=PERTEMP;    // (sec) période courante check température 
   char  ageSeconds[8];     // secondes 9999999s=115 jours
-  unsigned long  tempAge=1;         // secondes
   bool  tempchg=FAUX;
   unsigned long  timeservbegin;
 
@@ -231,6 +230,7 @@ delay(1);
   tconversion=TCONVERSIONB;if(readds[0]==0X10 || TBITS==T12BITS){tconversion=TCONVERSIONS;}
   
 #if POWER_MODE==NO_MODE
+  debConv=millis();
   ds1820.convertDs(WPIN);
   delay(tconversion);
 #endif PM==NO_MODE
@@ -904,24 +904,33 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
 
 void getTemp()
 {  
-#if POWER_MODE==PO_MODE
+#if POWER_MODE!=DS_MODE
       unsigned long ms=millis();           // attente éventuelle de la fin de la conversion initiée à l'allumage
       Serial.print("debConv=");Serial.print(debConv);Serial.print(" millis()=");Serial.print(ms);
-      Serial.print(" Tconversion=");Serial.print(tconversion);Serial.print(" delay=");Serial.println((long)tconversion-(ms-debConv));
-      if((ms-debConv)<tconversion){
+      Serial.print(" Tconversion=");Serial.println(tconversion);    // Serial.print(" delay=");Serial.println(tconversion-((long)ms-(long)debConv));
+#endif PM!=DS_MODE
+#if POWER_MODE==PO_MODE
+      if(((long)ms-(long)debConv)<tconversion){
         delay((long)tconversion-(ms-debConv));
       }
 #endif PM==PO_MODE
-
+#if POWER_MODE!=NO_MODE
       temp=ds1820.readDs(WPIN);
-      temp*=100;  // tempPitch 100x
-
-#if POWER_MODE!=PO_MODE
+      temp*=100;                    // tempPitch 100x
+#endif PM!=NO_MODE
+#if POWER_MODE==NO_MODE
+      if(((long)ms-(long)debConv)>tconversion){
+        temp=ds1820.readDs(WPIN);
+        temp*=100;                  // tempPitch 100x
+        ds1820.convertDs(WPIN);     // conversion pendant pendant attente prochain accès
+        debConv=millis();          
+      }
+#endif PM==NO_MODE
+#if POWER_MODE==DS_MODE
       ds1820.convertDs(WPIN);     // conversion pendant deep/sleep ou pendant attente prochain accès
-#endif PM!=PO_MODE
+#endif PM!=DS_MODE
 
-      tempAge=millis()/1000;
-      Serial.print("temp ");Serial.print(temp);
+      Serial.print("temp ");Serial.print(temp/100);
       checkVoltage();             
       Serial.println();
 }
