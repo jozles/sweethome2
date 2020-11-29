@@ -210,9 +210,10 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct)     // fonction set ou
           periMess=messToServer(cli,host,*periPort,bufServer);
           uint8_t fonct;
           if(periMess==MESSOK){
+              trigwd();
               periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct);
               if(periMess==MESSOK && fonct!=fdone){periMess=MESSFON;}
-              delay(1);                                 // (?)
+              delay(1);                                 // (? pour Serial.print de la réponse ?)
               purgeServer(cli);
               }
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}

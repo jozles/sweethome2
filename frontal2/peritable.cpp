@@ -304,7 +304,8 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           boutFonction(cli,"timershtml","","timershtml",0,0,0,0);
           boutFonction(cli,"dsrvhtml__","","detsrvhtml",0,0,0,0);                 
         
-        //cli->println("</form>");
+        cli->println("</form>");        // le formulaire NE DOIT PAS intégrer detServHtml qui a son propre usrFormHtml pour gérer les mots de passe
+                                        // sinon la fonction user_ref__ serait 2 fois dans la liste et la 2nde (fausse) enverrait à l'accueil        
 
           detServHtml(cli,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
 
@@ -322,7 +323,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
               trigwd();
               }
           cli->println("</table>");
-        cli->println("</form></body></html>");
+        cli->println("</body></html>");
 periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
 Serial.print("fin péritable - cxtime=");Serial.println(millis()-cxtime); 
 }
@@ -357,7 +358,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
 
                 cli->println("<table><tr>");
-                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>__D__l<br>__i__e<br>__s__v</th><th>Analog<br>low<br>high</th><th>offs1<br>factor<br>offs2</th><th></th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
+                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>Analog<br>low<br>high</th><th>offs1<br>factor<br>offs2</th><th></th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
                 cli->println("</tr>");
 
                 cli->println("<tr>");

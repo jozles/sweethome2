@@ -60,7 +60,8 @@
  *      ajout fonction dans la bouckle d'attente "stop request pour un arrêt 'propre' ... la led passe en blink régulier rapide 300mS. 
  *      (nécessite un switch sur la pin STOPREQ)
  * 1.4f mode buffer pour memDetServ() ; ajout variables pour entrée analogique des périphériques (periRec,showLine,periLine)
- * 1.4e transfert datas analogique (val,low,high) avec périphériques : modif assyset() et periDataRead()
+ * 1.4g transfert datas analogique (val,low,high) avec périphériques : modif assyset() et periDataRead()
+ *      TOINCHCLI augmenté à 4000 pour laisser le temps de répondre en cas de périReq (annule modif 1.4d) ; trigwd() avant d'appeler getHttpResp()
  *      
  * BUGS : 
  *  

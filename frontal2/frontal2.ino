@@ -262,7 +262,7 @@ unsigned long   thermoslen=(sizeof(Thermo))*NBTHERMOS;
  *    nom_client.read() réception d'un car jusqu'à ce que available soit faux
  *    nom_client.write(char) envoie un car au client
  *    nom_client.print(variable) envoie la variable en ascii
- *    nom_client.flush() attente vidage buffer vers client
+ *    nom_client.flush() vidage buffer vers client
  *  
  *    en fin de transaction : nom_client.stop() déconnecte le client du serveur 
  *    et on reboucle sur nom_serveur.available ou nom_client.connect selon le cas
@@ -917,6 +917,7 @@ void testSwitch(char* command,char* perihost,int periport)
             int z=messToServer(&cliext,perihost,periport,bufServer);
             Serial.println(z);
             if(z==MESSOK){
+              trigwd();
               periMess=getHttpResponse(&cliext,bufServer,LBUFSERVER,&fonct);
               Serial.println(periMess);
             }
@@ -1034,8 +1035,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 */
         periInitVar();        // pas de rémanence des données des périphériques entre 2 accès au serveur
 
-        memset(strSD,0x00,sizeof(strSD)); memset(buf,0,sizeof(buf));charIp((byte*)&remote_IP,strSD);       // histo :
-        sprintf(buf,"%d",nbreparams+1);strcat(strSD," ");strcat(strSD,buf);strcat(strSD," = ");    // une ligne par transaction
+        memset(strSD,0x00,sizeof(strSD)); memset(buf,0,sizeof(buf));charIp((byte*)&remote_IP,strSD);        // histo :
+        sprintf(buf,"%d",nbreparams+1);strcat(strSD," ");strcat(strSD,buf);strcat(strSD," = ");             // une ligne par transaction
         strcat(strSD,strSdEnd);
 
 /*      
@@ -1081,9 +1082,10 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
     
 */     
 
-      if(numfonct[0]!=fperipass){
-        if((numfonct[0]!=fusername || numfonct[1]!=fpassword) && numfonct[0]!=fuserref){
-          what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;}    // -->> accueil en cas d'anomalie
+      if(numfonct[0]!=fperipass){                                                                   // si la première fonction n'est pas peri_pass_ (mot de passe des périfs)
+        if((numfonct[0]!=fusername || numfonct[1]!=fpassword) && numfonct[0]!=fuserref){            //   si (la 1ère fonct n'est pas username__ ou la 2nde pas password__ ) et la 1ère pas user_ref__
+                                                                                                    //   ... en résumé : ni un périf, ni une nlle cx utilisateur, ni une continuation d'utilisateur
+          what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;}    // -->> accueil en cas d'anomalie     //      --> accueil   (voir plus haut les explications)
       }
 /*
     boucle des fonctions accumulées par getnv
@@ -1110,7 +1112,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 //Serial.print(i);Serial.print(" numfonct[i]=");Serial.print(numfonct[i]);Serial.print(" valf=");Serial.println((char*)valf);
 //Serial.print("strSd=");Serial.println(strSD);
 
-            switch (numfonct[i])      
+            switch (numfonct[i])
               {
               case 0:  pertemp=0;conv_atobl(valf,&pertemp);break;                                           // pertemp serveur
               case 1:  if(checkData(valf)==MESSOK){                                                         // peri_pass_
