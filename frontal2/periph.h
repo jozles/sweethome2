@@ -46,4 +46,10 @@ void  memDetInit();
 int   memDetLoad();
 int   memDetSave();
 
+int   memosLoad(int m);
+int   memosSave(int m);
+void  memosPrint();
+void  memosInit();
+
+
 #endif // _PERIPH_

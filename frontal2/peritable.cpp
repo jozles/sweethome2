@@ -32,6 +32,8 @@ extern unsigned long*     usrtime;
 extern int       usernum;
 extern char*     thermonames;
 extern int16_t*  thermoperis;
+extern char      memosTable[LMEMO*NBMEMOS];
+
 extern uint16_t* toPassword;
 
 extern unsigned long      cxtime;
@@ -340,30 +342,45 @@ periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
 Serial.print("fin péritable - cxtime=");Serial.println(millis()-cxtime); 
 }
 
-void subCbdet(EthernetClient* cli,char* title,char* nfonc,uint8_t nbLi,char* lib,uint8_t libsize,void* value,uint8_t* cb,uint8_t* det,uint8_t* memo)
+void subCbdet(EthernetClient* cli,char* title,char* nfonc,uint8_t nbLi,char* lib,uint8_t libsize,uint8_t* cb,uint8_t* det,uint8_t* memo)
 {
+  
   uint8_t k;
-  char nfonct[LENNOM+1];memcpy(nfonct,nfonc,LENNOM);
-  char buf[500];buf[0]='\0';  
-  strcat(buf,title);strcat(buf,"<br><table>");
-  for(int i=0;i<nbLi;i++){
-    nfonct[LENNOM-1]='c';nfonct[LENNOM]=(char)(i+PMFNCHAR);
-    strcat(buf,"<td>");strcat(buf,(char*)(lib+i*libsize));strcat(buf,"</td>");
-    if(value!=0){strcat(buf,"<td>");concatn(buf,((*((uint8_t*)value+i))>>i)&0x01);strcat(buf,"</td>");}
+  char nfonct[LENNOM+1];memcpy(nfonct,nfonc,LENNOM);nfonct[LENNOM]='\0';
+  char buf[5000];buf[0]='\0';  
+  char a[]={"  \0"},colnb=PMFNCHAR;
+  
+  char submitFname[LENNOM+1];memcpy(submitFname,nfonc,4);memcpy(submitFname+4,"_init_\0",7);
+  strcat(buf,"<form><fieldset><legend>");strcat(buf,title);strcat(buf," :</legend>\n");
+  usrFormInitBHtml(buf,submitFname,1);
+  strcat(buf,"<table>");
+  
+  for(int i=0;i<nbLi;i++){    
+    strcat(buf,"<tr>");    
+    nfonct[LENNOM-1]=(char)(i+PMFNCHAR); // le dernier caractère est le n° de ligne ; l'avant dernier le n° de colonne
+    strcat(buf,"<td>");a[0]=(char)(i+'1');strcat(buf,a);strcat(buf,(char*)(lib+i*libsize));strcat(buf,"</td>");
+   
+    strcat(buf,"<td>"); 
     for(uint8_t j=0;j<4;j++){
       k=(*cb>>j)&0x01;
-      nfonct[LENNOM]=(char)(j+PMFNCHAR);checkboxTableBHtml(buf,&k,nfonct,-1,0,"");       // calcul du dernier car de nfonct à finaliser
-    }
-    strcat(buf,"\n");
-    nfonct[LENNOM-1]='d';nfonct[LENNOM]=(char)(i+PMFNCHAR);numTf(buf,'d',&det[i],nfonct,2,0,0);    // calcul du dernier car de nfonct à finaliser
-    nfonct[LENNOM-1]='m';nfonct[LENNOM]=(char)(i+PMFNCHAR);
-    strcat(buf,"</td>\n<td><input type=\"text\" name=\"");strcat(buf,nfonct);strcat(buf,"\" value=\"");
-#define LMEMO 16
-#define NBMEMO 16
-char memoTable[LMEMO*NBMEMO];    
-    strcat(buf,&memoTable[memo[i]*LMEMO]);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LMEMO-1);strcat(buf,"\" ></td>\n");
+      nfonct[LENNOM-2]=(char)(colnb);checkboxTableBHtml(buf,&k,nfonct,-1,0,"");       // n° de colonne
+      colnb++;}      
+   
+    nfonct[LENNOM-2]=colnb;colnb++;numTf(buf,'s',&det[i],nfonct,2,0,0);
+    nfonct[LENNOM-2]=colnb;   
+    strcat(buf,"</td>\n");  
+
+    strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nfonct);strcat(buf,"\" value=\"");
+    strcat(buf,&memosTable[(memo[i]-1)*LMEMO]);
+    strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LMEMO-1);strcat(buf,"\"></td>");
+
+    strcat(buf,"</tr>\n");
+    cli->print(buf);buf[0]='\0';    // max len pour cli-print() 2048 ???
   }
-  strcat(buf,"<br></table>");
+  strcat(buf,"</table><br>");
+  strcat(buf,"<input type=\"submit\" value=\"MàJ\">");
+  strcat(buf,"</fieldset></form>\n"); 
+
   cli->print(buf);buf[0]='\0';
 }
 
@@ -405,7 +422,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
 
                 cli->println("<table><tr>");
-                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>Analog<br>low<br>high</th><th>offs1<br>factor<br>offs2</th><th></th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
+                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th></th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
                 cli->println("</tr>");
 
                 cli->println("<tr>");
@@ -433,7 +450,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       cli->println("<td>");
                       xradioTableHtml(cli,*periSwVal,"peri_vsw_\0",2,*periSwNb,3);
                       cli->print("</td>");
-                    
+ /*                   
                       cli->print("<td>");
                       cli->print(*periAnal);cli->print("<br>");
                       numTableHtml(cli,'I',periAnalLow,"peri_ana@_",5,0,0);cli->println("<br>");
@@ -443,7 +460,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       numTableHtml(cli,'f',periAnalFactor,"peri_anaC_",5,0,0);cli->println("<br>");
                       numTableHtml(cli,'f',periAnalOffset2,"peri_anaD_",5,0,0);
                       cli->print("</td>");
-                      
+*/                      
                       cli->print("<td>");
                       for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){cli->print("<br>");}}
                       cli->println("</td>");
@@ -468,43 +485,49 @@ void periLineHtml(EthernetClient* cli,int i)
                       
                       //cli->println("<td><input type=\"submit\" value=\"   MàJ   \"><br>");
 
-                cli->println("</tr></table></form>");
-                return;
+                cli->println("</tr></table>");
 
 /* table analogique */
-                cli->println("Analog<br><table><tr>");
-                cli->println("<th></th><th></th><th></th><th></th>");
-                cli->println("</tr>");
+                cli->println("Analog Input<br><table>");
+                //cli->println("<tr><th></th><th></th><th></th><th></th>");
+                //cli->println("</tr>");
                 
                 cli->println("<tr>");
-                    cli->print("<td>Val<br>Low<br>High</td");
+                    cli->print("<td>Val<br>Low<br>High</td>");
                     cli->print("<td>");
                       cli->print(*periAnal);cli->print("<br>");
                       numTableHtml(cli,'I',periAnalLow,"peri_ana@_",5,0,0);cli->println("<br>");
                       numTableHtml(cli,'I',periAnalHigh,"peri_anaA_",5,0,0);
                     cli->print("</td>");
-                    cli->print("<td>Off1<br>Fact<br>Off2</td");
+                    cli->print("<td>Off1<br>Fact<br>Off2</td>");
                     cli->print("<td>");
                       numTableHtml(cli,'I',periAnalOffset1,"peri_anaB_",5,0,0);cli->println("<br>");
                       numTableHtml(cli,'f',periAnalFactor,"peri_anaC_",5,0,0);cli->println("<br>");
                       numTableHtml(cli,'f',periAnalOffset2,"peri_anaD_",5,0,0);
                     cli->print("</td>");
-                cli->print("</tr<br>\n");   
+                cli->print("</tr></table><br></form>\n");
+            
+#define ANASIZLIB   3
+    char aLibState[]={"> \0=>\0><\0=<\0< "};
 
-#define ANANBSTATES 5
-#define ANASIZLIB   2
-#define NOVALUE     'N'
-char anaLibState[]={"> =>><=<< "};
-long bid=0;
+                subCbdet(cli,"Analog Input Rules","aninp___",NBANST,aLibState,ANASIZLIB,periAnalCb,periAnalDet,periAnalMemo);
+                periPrint(3);dumpstr((char*)periAnalCb,27);
 
-                subCbdet(cli,"Analog Input","aninp___",ANANBSTATES,anaLibState,ANASIZLIB,(uint8_t*)bid,periAnalCb,periAnalDet,periAnalMemo);
+  /* table inputs */
+#define INPUTSIZLIB 3
+    char dLibState[MAXDET*INPUTSIZLIB];
+    memset(dLibState,0x00,MAXDET*INPUTSIZLIB);
+    
+/*    for(uint8_t i=MAXDET-1;i>=0;i--){
+      dLibState[i*INPUTSIZLIB]=(*periDetVal>>((MAXDET-i)*2))&0x01+'0';
+      dLibState[i*INPUTSIZLIB+1]=' ';}
+*/    
+    for(uint8_t k=0;k<*periDetNb;k++){
+      char oi[2]={'O','I'};
+      dLibState[k*INPUTSIZLIB]=oi[(*periDetVal>>(k*2))&DETBITLH_VB];
+      dLibState[i*INPUTSIZLIB+1]='_';}
 
-/* table inputs */
-#define INPUTSNB    4
-#define INPUTSIZLIB 2
-char inputLibState[]={"1 2 3 4 "};
-
-                subCbdet(cli,"Digital Inputs","dginp___",INPUTSNB,inputLibState,INPUTSIZLIB,periInput,periInputCb,periInputDet,periInputMemo);
+                subCbdet(cli,"Digital Inputs Rules","dginp___",*periDetNb,dLibState,INPUTSIZLIB,periInputCb,periInputDet,periInputMemo);
 }
 
 

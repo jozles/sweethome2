@@ -88,6 +88,12 @@ extern uint16_t* periAnalHigh;                 // ptr ds buffer : high analog va
 extern uint16_t* periAnalOffset1;              // ptr ds buffer : offset on adc value
 extern float*    periAnalFactor;               // ptr ds buffer : factor to float for analog value
 extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
+extern uint8_t*  periAnalCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
+extern uint8_t*  periAnalDet;                  // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
+extern uint8_t*  periInputCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
+extern uint8_t*  periInputDet;                 // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periInputMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
 
       
 extern byte*     periBegOfRecord;
@@ -123,6 +129,9 @@ File fthermos;    // fichier thermos
 
 extern char   libDetServ[NBDSRV][LENLIBDETSERV];
 File fmemdet;     // fichier détecteurs serveur
+
+extern char   memosTable[LMEMO*NBMEMOS];
+File fmemos;      // fichier memos
 
 extern char strdate[33];
 extern char temp[3],temp0[3],humid[3];
@@ -351,6 +360,8 @@ void  periPrint(uint16_t num)
   periInputPrint(periInput);
   Serial.print("Anal=");Serial.print(*periAnal);Serial.print(" low=");Serial.print(*periAnalLow);Serial.print(" high=");Serial.print(*periAnalHigh);
   Serial.print(" adcOffset=");Serial.print(*periAnalOffset1);Serial.print(" adcFactor=");Serial.print(*periAnalFactor);Serial.print(" floatOffset=");Serial.println(*periAnalOffset2);
+  for(int k=0;k<NBANST;k++){Serial.print(" an Cb(0-F)=");Serial.print(periAnalCb[k]),HEX;Serial.print(" an Det=");Serial.print(periAnalDet[k]);Serial.print(" an n° memo=");Serial.println(periAnalMemo[k]);}Serial.println();
+  for(int k=0;k<MAXDET;k++){Serial.print(" dg Cb(0-F)=");Serial.print(periInputCb[k],HEX);Serial.print(" dg Det=");Serial.print(periInputDet[k]);Serial.print(" dg n° memo=");Serial.println(periInputMemo[k]);}Serial.println();
 }
 
 void periSub(uint16_t num,int sta,bool sd)
@@ -493,7 +504,7 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   periLastDateErr=(char*)temp;
   temp +=LENPERIDATE;
   periErr=(int8_t*)temp;
-  temp +=sizeof(int8_t);   
+  temp +=sizeof(int8_t);
   periNamer=(char*)temp;
   temp +=PERINAMLEN;
   periVers=(char*)temp;
@@ -560,7 +571,18 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=sizeof(float);
   periAnalOffset2=(float*)temp;
   temp +=sizeof(float);
-
+  periAnalCb=(uint8_t*)temp;
+  temp +=NBANST*sizeof(uint8_t);
+  periAnalDet=(uint8_t*)temp;
+  temp +=NBANST*sizeof(uint8_t);  
+  periAnalMemo=(uint8_t*)temp;
+  temp +=NBANST*sizeof(uint8_t);  
+  periInputCb=(uint8_t*)temp;
+  temp +=MAXDET*sizeof(uint8_t);  
+  periInputDet=(uint8_t*)temp;
+  temp +=MAXDET*sizeof(uint8_t);  
+  periInputMemo=(uint8_t*)temp;
+  temp +=MAXDET*sizeof(uint8_t);  
 
   temp +=1*sizeof(byte);
   periEndOfRecord=(byte*)temp;      // doit être le dernier !!!
@@ -621,6 +643,12 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   *periAnalOffset1=0;
   *periAnalFactor=1;
   *periAnalOffset2=0;
+  memset(periAnalCb,0x00,NBANST);
+  memset(periAnalDet,0x00,NBANST);
+  memset(periAnalMemo,0x00,NBANST);
+  memset(periInputCb,0x00,MAXDET);
+  memset(periInputDet,0x00,MAXDET);
+  memset(periInputMemo,0x00,MAXDET);
 
   
    periInitVar0();
@@ -818,6 +846,15 @@ Serial.print(" save ");
 
 void periMaintenance()
 {
+/*  
+for(int i=0;i=NBPERIF;i++){
+  periLoad(i);
+  memset(periAnalDet,0x00,MAXDET);memset(periAnalMemo,0x00,MAXDET);memset(periAnalCb,0x00,MAXDET);
+  memset(periInputDet,0x00,NBANST);memset(periInputMemo,0x00,NBANST);memset(periInputCb,0x00,NBANST);
+  periSave(i,PERISAVESD);
+}
+while(1){}
+*/
 /*
 for(i=0;i<50;i++){
   Serial.print(i);if(i<10){Serial.print(" ");}Serial.print(" ");
@@ -1101,7 +1138,6 @@ int memDetSave()
     return SDOK;  
 }
 
-
 void memDetInit()
 {
     memcpy(&libDetServ[31][0],"hcreuses",LENLIBDETSERV);
@@ -1114,6 +1150,55 @@ void memDetPrint()
     dumpfield((char*)&memDetServ,4);Serial.print(" ");
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){Serial.print(libDetServ[i][j]);}Serial.print("/");
+    }
+    Serial.println();
+}
+
+/************** memos **************/
+
+int memosLoad(int m)        // si <0 tout le fichier
+{
+    Serial.print("Load Memos ");Serial.print(m);Serial.print(" ");
+    if(sdOpen(FILE_READ,&fmemos,MEMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    uint16_t sk=0;if(m>=0){sk=m*LMEMO;}
+    fmemos.seek(0);fmemos.seek(sk);    
+
+    uint16_t lm=LMEMO;if(m<0){lm*=NBMEMOS;}
+    for(uint16_t i=0;i<lm;i++){memosTable[sk+i]=fmemdet.read();}    
+    
+    fmemos.close();Serial.println(" OK");
+    return SDOK;
+}
+
+int memosSave(int m)        // si <0 tout le fichier
+{
+    Serial.print("Save Memos ");
+    SD.remove(MEMOSFNAME);
+    if(sdOpen(FILE_WRITE,&fmemos,MEMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    uint16_t sk=0;if(m>=0){sk=m*LMEMO;}
+    fmemos.seek(0);fmemos.seek(sk);
+    
+    uint16_t lm=LMEMO;if(m<0){lm*=NBMEMOS;}
+    for(uint16_t i=0;i<lm;i++){fmemos.write(memosTable[sk+i]);}    
+    
+    fmemos.close();Serial.println(" OK");
+    return SDOK;  
+}
+
+
+
+void memosInit()
+{
+    memset(memosTable,0x00,LMEMO*NBMEMOS);
+}
+
+void memosPrint()
+{
+    for(uint8_t i=0;i<NBMEMOS;i++){
+      Serial.print(i);Serial.print("  ");
+      for(uint8_t j=0;j<LMEMO;j++){
+        Serial.print(memosTable[i*LMEMO+j]);}
+      Serial.println();
     }
     Serial.println();
 }

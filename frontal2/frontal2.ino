@@ -94,7 +94,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__aninp___dginp___anin_init_dgin_init_last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
@@ -235,6 +235,8 @@ struct Thermo thermos[NBTHERMOS];
 char*  thermosA=(char*)&thermos;
 unsigned long   thermoslen=(sizeof(Thermo))*NBTHERMOS;
 
+char   memosTable[LMEMO*NBMEMOS];
+
 /* DS3231 */
 
 #define PINVCCDS 19   // alim + DS3231
@@ -367,6 +369,8 @@ void setup() {                              // =================================
   //thermosInit();thermosSave();
   thermosLoad();
   memDetLoad();   //memDetInit();
+  //memosInit();memosSave(-1);
+  memosLoad(-1);
 
   trigwd();
   
@@ -1396,6 +1400,27 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           case 'D': *periAnalOffset2=0;*periAnalOffset2=convStrToNum(valf,&j);break;
                           default: break;
                        }break;
+              case 71: {uint8_t li=*(libfonctions+2*i+1)-PMFNCHAR;                                       // aninp___ analog input rules
+                       switch(*(libfonctions+2*i)-PMFNCHAR){
+                          case 0:break;
+                          case 1:break;
+                          case 2:break;
+                          case 3:break;
+                          case 4:break;
+                          case 5:break;
+                          default:break;
+                       }}break;
+              case 72: {uint8_t li=*(libfonctions+2*i+1)-PMFNCHAR;                                       // dginp___ digital input_rules
+                       switch(*(libfonctions+2*i)-PMFNCHAR){
+                          case 0:break;
+                          case 1:break;
+                          case 2:break;
+                          case 3:break;
+                          case 4:break;
+                          default:break;
+                       }}break;
+              case 73: what=10;break;                                                                   // bouton submit anin_init_ analog input
+              case 74: what=10;break;                                                                   // bouton submit dgin_init_ digital inputs
                               
               default:break;
               }

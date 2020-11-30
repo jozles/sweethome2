@@ -110,6 +110,7 @@ void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,
   switch (type){
     case 'b':strcat(buf,(char*)valfonct);break;
     case 'd':concatn(buf,*(uint16_t*)valfonct);break;
+    case 's':concatn(buf,*(uint16_t*)valfonct);break;
     case 'i':concatns(buf,*(int*)valfonct);break;
     case 'I':concatns(buf,*(int16_t*)valfonct);break;
     case 'r':concatnf(buf,(float)(*(int16_t*)valfonct)/100);break;
@@ -265,7 +266,6 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
   strcat(buf,"</head>\n");
   cli->print(buf);buf[0]='\0';
 }
-
 
 void checkboxTableBHtml(char* buf,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib)
 {

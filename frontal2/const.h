@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4g"
+#define VERSION "1.4h"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -62,6 +62,7 @@
  * 1.4f mode buffer pour memDetServ() ; ajout variables pour entrée analogique des périphériques (periRec,showLine,periLine)
  * 1.4g transfert datas analogique (val,low,high) avec périphériques : modif assyset() et periDataRead()
  *      TOINCHCLI augmenté à 4000 pour laisser le temps de répondre en cas de périReq (annule modif 1.4d) ; trigwd() avant d'appeler getHttpResp()
+ * 1.4h ajout règles d'update des detserv depuis une valeur analogique et depuis les det des périphériques (modif periRec) + fonctions adhoc
  *      
  * BUGS : 
  *  
@@ -151,7 +152,7 @@
 
 #define NBPERIF 20                           
 #define PERINAMLEN 16+1                      // longueur nom perif
-#define PERIRECLEN 274 // V1.4f              // longueur record périph
+#define PERIRECLEN 301 // V1.4h              // longueur record périph
 
 #define CONFIGRECLEN 865                     // longueur record config 
 
@@ -236,6 +237,11 @@ struct Thermo
 
 #define MEMDETFNAME "MEM_DETS"
 #define LENLIBDETSERV 9
+
+#define LMEMO 16
+#define NBMEMOS 16
+#define MEMOSFNAME "MEMOS___"
+
 
 /* codes fonctions (mettre à jour...)
 00 per_temp__ valorisation période de la mesure et enregistrement de température du serveur
