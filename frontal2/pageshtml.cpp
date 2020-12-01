@@ -740,7 +740,7 @@ void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
 {
   char buf[1000];buf[0]='\0';
           strcat(buf,"<form>");
-          usrFormInitBHtml(buf,"dsrv_init_",1);
+          usrFormInitBHtml(buf,"dsrv_init_");
           strcat(buf,"<fieldset><legend>détecteurs serveur (n->0):</legend>\n");
           for(int k=NBDSRV-1;k>=0;k--){
             char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);

@@ -50,6 +50,7 @@ int   memosLoad(int m);
 int   memosSave(int m);
 void  memosPrint();
 void  memosInit();
+int   memosFind();
 
 
 #endif // _PERIPH_

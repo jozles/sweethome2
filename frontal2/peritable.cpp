@@ -90,9 +90,9 @@ extern float*    periAnalOffset2;              // ptr ds buffer : offset on floa
 extern uint8_t*  periAnalCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
 extern uint8_t*  periAnalDet;                  // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*  periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
-extern uint8_t*  periInputCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
-extern uint8_t*  periInputDet;                 // ptr ds buffer : 5 x n° détect serveur
-extern uint8_t*  periInputMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
+extern uint8_t*  periDigitCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
+extern uint8_t*  periDigitDet;                 // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
 
 
 extern int8_t    periMess;                     // code diag réception message (voir MESSxxx shconst.h)
@@ -229,14 +229,14 @@ void SwCtlTableHtml(EthernetClient* cli)
       cli->print(buf);buf[0]='\0';
       for(int ninp=0;ninp<NBPERINPUT;ninp++){     // boucle des inputs
 
-            strcat(buf,"<tr><form method=\"get\" >");    
+            strcat(buf,"<tr>\n<form method=\"get\" >");    
             uint8_t vv;
             byte binp[PERINPLEN];memcpy(binp,periInput+offsetInp,PERINPLEN);
             offsetInp+=PERINPLEN;
 
            usrPeriCurB(buf,"peri_inp__",ninp,2,0);
 
-           strcat(buf,"<td>");concatn(buf,ninp);strcat(buf,"</td><td>");
+           strcat(buf,"\n<td>");concatn(buf,ninp);strcat(buf,"</td><td>");
             vv=(binp[2]  & PERINPEN_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,1);                           // bit enable
             vv=(binp[2]  & PERINPVALID_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,9);                       // bit active level
             vv=(binp[2]  & PERINPOLDLEV_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,2);                       // bit prev lev
@@ -246,20 +246,20 @@ void SwCtlTableHtml(EthernetClient* cli)
             selectTableBHtml(buf,inptyps,xfonc1,4,2,vv,4,ninp,2);
 
             vv=(binp[0]>>PERINPNVLS_PB);perinpBfnc(buf,ninp,vv,'n',2,xfonc1,5);                           // num detec source
-           strcat(buf,"</td>");            
+           strcat(buf,"</td>\n");            
            
             vv=(binp[3]  & PERINPNT_MS);                                                                 // type detec dest
             selectTableBHtml(buf,inptypd,xfonc1,4,2,vv,6,ninp,2);
 
             vv=(binp[3]>>PERINPNVLS_PB);perinpBfnc(buf,ninp,vv,'n',2,xfonc1,7);                           // num detec  dest
-           strcat(buf,"</td>");            
+           strcat(buf,"</td>\n");            
            
             vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                   // action 
             selectTableBHtml(buf,inpact,xfonc1,12,5,vv,8,ninp,2);
 
            strcat(buf,"</td>");
            strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
-           strcat(buf,"</form></tr>");
+           strcat(buf,"</form></tr>\n");
            if(strlen(buf)>sizeof(buf)*0.4){cli->print(buf);buf[0]='\0';}
         } // input suivant
 
@@ -342,37 +342,40 @@ periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
 Serial.print("fin péritable - cxtime=");Serial.println(millis()-cxtime); 
 }
 
-void subCbdet(EthernetClient* cli,char* title,char* nfonc,uint8_t nbLi,char* lib,uint8_t libsize,uint8_t* cb,uint8_t* det,uint8_t* memo)
-{
+void subCbdet(EthernetClient* cli,uint8_t nbfonc,char* title,char* nfonc,uint8_t nbLi,char* lib,uint8_t libsize,uint8_t* cb,uint8_t* det,uint8_t* memo)
+{                                 // le n° de fonction permet une seule fonction d'init pour plusieurs formulaires de même structure
   
   uint8_t k;
-  char nfonct[LENNOM+1];memcpy(nfonct,nfonc,LENNOM);nfonct[LENNOM]='\0';
+  char namfonct[LENNOM+1];memcpy(namfonct,nfonc,LENNOM);namfonct[LENNOM]='\0';
   char buf[5000];buf[0]='\0';  
   char a[]={"  \0"},colnb=PMFNCHAR;
-  
-  char submitFname[LENNOM+1];memcpy(submitFname,nfonc,4);memcpy(submitFname+4,"_init_\0",7);
+
   strcat(buf,"<form><fieldset><legend>");strcat(buf,title);strcat(buf," :</legend>\n");
-  usrFormInitBHtml(buf,submitFname,1);
-  strcat(buf,"<table>");
+  char inifonc[LENNOM];memcpy(inifonc,nfonc,4);memcpy(inifonc+4,"init__",LENNOM-4);
+  usrPeriCurB(buf,inifonc,nbfonc,2,0);
+  
+  strcat(buf,"<table><th></th><th>e.l. p.e<br>n.v. r.s</th><th>det</th>");
   
   for(int i=0;i<nbLi;i++){    
     strcat(buf,"<tr>");    
-    nfonct[LENNOM-1]=(char)(i+PMFNCHAR); // le dernier caractère est le n° de ligne ; l'avant dernier le n° de colonne
+    namfonct[LENNOM-1]=(char)(i+PMFNCHAR); // le dernier caractère est le n° de ligne ; l'avant dernier le n° de colonne
     strcat(buf,"<td>");a[0]=(char)(i+'1');strcat(buf,a);strcat(buf,(char*)(lib+i*libsize));strcat(buf,"</td>");
    
-    strcat(buf,"<td>"); 
+    strcat(buf,"<td>");
+    colnb=PMFNCHAR;
     for(uint8_t j=0;j<4;j++){
-      k=(*cb>>j)&0x01;
-      nfonct[LENNOM-2]=(char)(colnb);checkboxTableBHtml(buf,&k,nfonct,-1,0,"");       // n° de colonne
+      k=(*(cb+i)>>3-j)&0x01;
+      namfonct[LENNOM-2]=(char)(colnb);checkboxTableBHtml(buf,&k,namfonct,-1,0,"");       // n° de colonne
       colnb++;}      
-   
-    nfonct[LENNOM-2]=colnb;colnb++;numTf(buf,'s',&det[i],nfonct,2,0,0);
-    nfonct[LENNOM-2]=colnb;   
+    strcat(buf,"</td><td>");
+    namfonct[LENNOM-2]=colnb;colnb++;numTf(buf,'s',&det[i],namfonct,2,0,0);
+    namfonct[LENNOM-2]=colnb;   
     strcat(buf,"</td>\n");  
 
-    strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nfonct);strcat(buf,"\" value=\"");
-    strcat(buf,&memosTable[(memo[i]-1)*LMEMO]);
+    strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,namfonct);strcat(buf,"\" value=\"");
+    if(memo[i]>=0 && memo[i]<NBMEMOS){strcat(buf,&memosTable[memo[i]*LMEMO]);}
     strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LMEMO-1);strcat(buf,"\"></td>");
+    memset(memosTable+i*LMEMO,0x00,LMEMO);
 
     strcat(buf,"</tr>\n");
     cli->print(buf);buf[0]='\0';    // max len pour cli-print() 2048 ???
@@ -509,14 +512,13 @@ void periLineHtml(EthernetClient* cli,int i)
             
 #define ANASIZLIB   3
     char aLibState[]={"> \0=>\0><\0=<\0< "};
-
-                subCbdet(cli,"Analog Input Rules","aninp___",NBANST,aLibState,ANASIZLIB,periAnalCb,periAnalDet,periAnalMemo);
-                periPrint(3);dumpstr((char*)periAnalCb,27);
+                Serial.print("          periLine()=========");periPrint(periCur);
+                subCbdet(cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,periAnalCb,periAnalDet,periAnalMemo);
 
   /* table inputs */
-#define INPUTSIZLIB 3
-    char dLibState[MAXDET*INPUTSIZLIB];
-    memset(dLibState,0x00,MAXDET*INPUTSIZLIB);
+#define DIGITSIZLIB 3
+    char dLibState[MAXDET*DIGITSIZLIB];
+    memset(dLibState,0x00,MAXDET*DIGITSIZLIB);
     
 /*    for(uint8_t i=MAXDET-1;i>=0;i--){
       dLibState[i*INPUTSIZLIB]=(*periDetVal>>((MAXDET-i)*2))&0x01+'0';
@@ -524,10 +526,10 @@ void periLineHtml(EthernetClient* cli,int i)
 */    
     for(uint8_t k=0;k<*periDetNb;k++){
       char oi[2]={'O','I'};
-      dLibState[k*INPUTSIZLIB]=oi[(*periDetVal>>(k*2))&DETBITLH_VB];
-      dLibState[i*INPUTSIZLIB+1]='_';}
+      dLibState[k*DIGITSIZLIB]=oi[(*periDetVal>>(k*2))&DETBITLH_VB];
+      dLibState[i*DIGITSIZLIB+1]='_';}
 
-                subCbdet(cli,"Digital Inputs Rules","dginp___",*periDetNb,dLibState,INPUTSIZLIB,periInputCb,periInputDet,periInputMemo);
+                subCbdet(cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,periDigitCb,periDigitDet,periDigitMemo);
 }
 
 

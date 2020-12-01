@@ -66,6 +66,30 @@ void concatnf(char* buf,float val)
   s=sprintf(buf+b,"%.2f",val);buf[b+s]='\0';
 }
 
+void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol)
+{                          
+  if(td==1 || td==2){strcat(buf,"<td>");}
+  if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
+  strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);
+  if(len<=2){strcat(buf,"\" id=\"nt");concatn(buf,len);}
+  strcat(buf,"\" value=\"");
+  switch (type){
+    case 'b':strcat(buf,(char*)valfonct);break;
+    case 'd':concatn(buf,*(uint16_t*)valfonct);break;
+    case 's':concatn(buf,*(uint8_t*)valfonct);break;
+    case 'i':concatns(buf,*(int*)valfonct);break;
+    case 'I':concatns(buf,*(int16_t*)valfonct);break;
+    case 'r':concatnf(buf,(float)(*(int16_t*)valfonct)/100);break;
+    case 'l':concatns(buf,*(long*)valfonct);break;
+    case 'f':concatnf(buf,*(float*)valfonct);break;
+    case 'g':concatn(buf,*(uint32_t*)valfonct);break;    
+    default:break;
+  }
+  int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
+  strcat(buf,"\" size=\"");concatn(buf,sizeHtml);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" >");
+  if(pol!=0){strcat(buf,"</font>");}
+  if(td==1 || td==3){strcat(buf,"</td>\n");}
+}
 
 void usrFormBHtml(char* buf,bool hid)                     // pour mettre en tête des formulaires ("<p hidden> .... </p>")
 {
@@ -75,6 +99,26 @@ void usrFormBHtml(char* buf,bool hid)                     // pour mettre en têt
   if(hid){strcat(buf,"</p>");}
 }
 
+void usrFormInitBHtml(char* buf,char* nomfonct)            // pour mettre en tête des formulaires ("<p hidden> .... </p>")
+{                                                          // ajoute une fonction invisible sans valeur associée pour faire des opérations préalables quand le bouton submit
+                                                           // est appuyé (genre effacement de cb) 
+    strcat(buf,"<p hidden>");
+      usrFormBHtml(buf,0);
+      strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);strcat(buf,"\">");
+    strcat(buf,"</p>");
+}
+
+void usrPeriCurB(char* buf,char* fnct,uint8_t ninp,int len,uint8_t td)
+{                                                         // pour mettre en tête des formulaires ("<p hidden> .... </p>")
+                                                          // ajoute une fonction invisible pour faire des opérations préalables quand le bouton submit
+                                                          // est appuyé sa associée valeur est periCur (genre effacement de cb)
+                                                          // le n° de fonction ninp permet une seule fonction d'init pour plusieurs formulaires de même structure
+    strcat(buf,"<p hidden>");
+      usrFormBHtml(buf,0);
+      char fonc[LENNOM+1];memcpy(fonc,fnct,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
+      numTf(buf,'i',&periCur,fonc,len,td,0); // pericur n'est pas modifiable (fixation pericur, periload, cberase)
+    strcat(buf,"</p>");
+}
 
 void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td)
 {            // val=table des libellés ; ft=fonction ; nbre ds table ; len step table ; sel=n°actuel ; nuv=n°param ; n°inp
@@ -98,41 +142,6 @@ void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint
 
   if(td==1 || td==3){strcat(buf,"</td>");}
   strcat(buf,"\n");
-}
-
-void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol)
-{                          
-  if(td==1 || td==2){strcat(buf,"<td>");}
-  if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
-  strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);
-  if(len<=2){strcat(buf,"\" id=\"nt");concatn(buf,len);}
-  strcat(buf,"\" value=\"");
-  switch (type){
-    case 'b':strcat(buf,(char*)valfonct);break;
-    case 'd':concatn(buf,*(uint16_t*)valfonct);break;
-    case 's':concatn(buf,*(uint16_t*)valfonct);break;
-    case 'i':concatns(buf,*(int*)valfonct);break;
-    case 'I':concatns(buf,*(int16_t*)valfonct);break;
-    case 'r':concatnf(buf,(float)(*(int16_t*)valfonct)/100);break;
-    case 'l':concatns(buf,*(long*)valfonct);break;
-    case 'f':concatnf(buf,*(float*)valfonct);break;
-    case 'g':concatn(buf,*(uint32_t*)valfonct);break;    
-    default:break;
-  }
-  int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
-  strcat(buf,"\" size=\"");concatn(buf,sizeHtml);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" >");
-  if(pol!=0){strcat(buf,"</font>");}
-  if(td==1 || td==3){strcat(buf,"</td>\n");}
-}
-
-
-void usrPeriCurB(char* buf,char* fnct,uint8_t ninp,int len,uint8_t td)
-{                                                                  // pour mettre en tête des formulaires ("<p hidden> .... </p>")
-    strcat(buf,"<p hidden>");
-      usrFormBHtml(buf,0);
-      char fonc[LENNOM+1];memcpy(fonc,fnct,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
-      numTf(buf,'i',&periCur,fonc,len,td,0); // pericur n'est pas modifiable (fixation pericur, periload, cberase)
-    strcat(buf,"</p>");
 }
 
 void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)
@@ -443,14 +452,6 @@ void usrFormInitHtml(EthernetClient* cli,char* nomfonct,bool hid)  // pour mettr
       usrFormHtml(cli,0);
       cli->print("<input type=\"text\" name=\"");cli->print(nomfonct);cli->print("\">");
     cli->println("</p>");
-}
-
-void usrFormInitBHtml(char* buf,char* nomfonct,bool hid)  // pour mettre en tête des formulaires ("<p hidden> .... </p>")
-{
-    strcat(buf,"<p hidden>");
-      usrFormBHtml(buf,0);
-      strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);strcat(buf,"\">");
-    strcat(buf,"</p>");
 }
 
 void usrPeriCur(EthernetClient* cli,char* fnct,uint8_t ninp,int len,uint8_t td)

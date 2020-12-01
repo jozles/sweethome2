@@ -91,9 +91,9 @@ extern float*    periAnalOffset2;              // ptr ds buffer : offset on floa
 extern uint8_t*  periAnalCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
 extern uint8_t*  periAnalDet;                  // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*  periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
-extern uint8_t*  periInputCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
-extern uint8_t*  periInputDet;                 // ptr ds buffer : 5 x n° détect serveur
-extern uint8_t*  periInputMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
+extern uint8_t*  periDigitCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
+extern uint8_t*  periDigitDet;                 // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
 
       
 extern byte*     periBegOfRecord;
@@ -151,12 +151,12 @@ memset(userpass,0x00,LPWD+1);memcpy(userpass,USRPASS,strlen(SRVPASS));
 memset(modpass,0x00,LPWD+1);memcpy(modpass,MODPASS,strlen(MODPASS));
 memset(peripass,0x00,LPWD+1);memcpy(peripass,SRVPASS,strlen(PERIPASS));
 memset(ssid,0x00,MAXSSID*(LENSSID+1));
-memcpy(ssid,SSID1,strlen(SSID1));memcpy(ssid+LENSSID+1,SSID2,strlen(SSID2));   
+//memcpy(ssid,SSID1,strlen(SSID1));memcpy(ssid+LENSSID+1,SSID2,strlen(SSID2));   
 memset(passssid,0x00,MAXSSID*(LPWSSID+1));
-memcpy(passssid,PWDSSID1,strlen(PWDSSID1));memcpy(passssid+LPWSSID+1,PWDSSID2,strlen(PWDSSID2));
+//memcpy(passssid,PWDSSID1,strlen(PWDSSID1));memcpy(passssid+LPWSSID+1,PWDSSID2,strlen(PWDSSID2));
 *nbssid = MAXSSID;
 memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
-memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
+//memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
 memset(usrtime,0x00,NBUSR*sizeof(long));
 memset(usrpretime,0x00,NBUSR*sizeof(long));
 *toPassword=TO_PASSWORD;
@@ -361,7 +361,7 @@ void  periPrint(uint16_t num)
   Serial.print("Anal=");Serial.print(*periAnal);Serial.print(" low=");Serial.print(*periAnalLow);Serial.print(" high=");Serial.print(*periAnalHigh);
   Serial.print(" adcOffset=");Serial.print(*periAnalOffset1);Serial.print(" adcFactor=");Serial.print(*periAnalFactor);Serial.print(" floatOffset=");Serial.println(*periAnalOffset2);
   for(int k=0;k<NBANST;k++){Serial.print(" an Cb(0-F)=");Serial.print(periAnalCb[k]),HEX;Serial.print(" an Det=");Serial.print(periAnalDet[k]);Serial.print(" an n° memo=");Serial.println(periAnalMemo[k]);}Serial.println();
-  for(int k=0;k<MAXDET;k++){Serial.print(" dg Cb(0-F)=");Serial.print(periInputCb[k],HEX);Serial.print(" dg Det=");Serial.print(periInputDet[k]);Serial.print(" dg n° memo=");Serial.println(periInputMemo[k]);}Serial.println();
+  for(int k=0;k<MAXDET;k++){Serial.print(" dg Cb(0-F)=");Serial.print(periDigitCb[k],HEX);Serial.print(" dg Det=");Serial.print(periDigitDet[k]);Serial.print(" dg n° memo=");Serial.println(periDigitMemo[k]);}Serial.println();
 }
 
 void periSub(uint16_t num,int sta,bool sd)
@@ -414,18 +414,18 @@ int periSave(uint16_t num,bool sd)
       fperi.close();
       Serial.print("done ");Serial.print(periFile);
       for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}*/
-#ifdef SHDIAGS
-      Serial.print(periFile);    
-#endif
+//#ifdef SHDIAGS
+      Serial.print("periSave ");Serial.print(periFile);    
+//#endif
       SD.remove(periFile);
       if(fperi=SD.open(periFile,FILE_WRITE)){
         sta=SDOK;
         //fperi.seek(0);
         for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
         fperi.close();
-#ifdef SHDIAGS           
-        Serial.print(" ok ");
-#endif
+//#ifdef SHDIAGS           
+        Serial.println(" ok ");
+//#endif
         for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
       }
       else{sta=SDKO;Serial.print(" ko ");}
@@ -577,11 +577,11 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=NBANST*sizeof(uint8_t);  
   periAnalMemo=(uint8_t*)temp;
   temp +=NBANST*sizeof(uint8_t);  
-  periInputCb=(uint8_t*)temp;
+  periDigitCb=(uint8_t*)temp;
   temp +=MAXDET*sizeof(uint8_t);  
-  periInputDet=(uint8_t*)temp;
+  periDigitDet=(uint8_t*)temp;
   temp +=MAXDET*sizeof(uint8_t);  
-  periInputMemo=(uint8_t*)temp;
+  periDigitMemo=(uint8_t*)temp;
   temp +=MAXDET*sizeof(uint8_t);  
 
   temp +=1*sizeof(byte);
@@ -646,9 +646,9 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   memset(periAnalCb,0x00,NBANST);
   memset(periAnalDet,0x00,NBANST);
   memset(periAnalMemo,0x00,NBANST);
-  memset(periInputCb,0x00,MAXDET);
-  memset(periInputDet,0x00,MAXDET);
-  memset(periInputMemo,0x00,MAXDET);
+  memset(periDigitCb,0x00,MAXDET);
+  memset(periDigitDet,0x00,MAXDET);
+  memset(periDigitMemo,0x00,MAXDET);
 
   
    periInitVar0();
@@ -850,7 +850,7 @@ void periMaintenance()
 for(int i=0;i=NBPERIF;i++){
   periLoad(i);
   memset(periAnalDet,0x00,MAXDET);memset(periAnalMemo,0x00,MAXDET);memset(periAnalCb,0x00,MAXDET);
-  memset(periInputDet,0x00,NBANST);memset(periInputMemo,0x00,NBANST);memset(periInputCb,0x00,NBANST);
+  memset(periDigitDet,0x00,NBANST);memset(periDigitMemo,0x00,NBANST);memset(periDigitCb,0x00,NBANST);
   periSave(i,PERISAVESD);
 }
 while(1){}
@@ -1164,16 +1164,24 @@ int memosLoad(int m)        // si <0 tout le fichier
     fmemos.seek(0);fmemos.seek(sk);    
 
     uint16_t lm=LMEMO;if(m<0){lm*=NBMEMOS;}
-    for(uint16_t i=0;i<lm;i++){memosTable[sk+i]=fmemdet.read();}    
+    for(uint16_t i=0;i<lm;i++){memosTable[sk+i]=fmemos.read();}    
     
     fmemos.close();Serial.println(" OK");
     return SDOK;
 }
 
+int memosFind()                 // return -1 full 
+{   
+    int m=-1;
+    for(uint8_t i=0;i<NBMEMOS;i++){
+      if(memosTable[i*LMEMO]=='\0'){m=i;break;}}
+    return m;
+}
+
 int memosSave(int m)        // si <0 tout le fichier
 {
     Serial.print("Save Memos ");
-    SD.remove(MEMOSFNAME);
+    if(m<0){SD.remove(MEMOSFNAME);}
     if(sdOpen(FILE_WRITE,&fmemos,MEMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
     uint16_t sk=0;if(m>=0){sk=m*LMEMO;}
     fmemos.seek(0);fmemos.seek(sk);
@@ -1185,8 +1193,6 @@ int memosSave(int m)        // si <0 tout le fichier
     return SDOK;  
 }
 
-
-
 void memosInit()
 {
     memset(memosTable,0x00,LMEMO*NBMEMOS);
@@ -1194,6 +1200,8 @@ void memosInit()
 
 void memosPrint()
 {
+  dumpstr(memosTable,256);
+  /*
     for(uint8_t i=0;i<NBMEMOS;i++){
       Serial.print(i);Serial.print("  ");
       for(uint8_t j=0;j<LMEMO;j++){
@@ -1201,6 +1209,7 @@ void memosPrint()
       Serial.println();
     }
     Serial.println();
+*/
 }
 
 /********************* génération SD card *************************/
