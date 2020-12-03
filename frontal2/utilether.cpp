@@ -49,11 +49,13 @@ int sdOpen(char mode,File* fileS,char* fname)
 
 void sdstore_textdh0(File* fhisto,char* val1,char* val2,char* val3)
 {
-  unsigned long t0=micros();
+  unsigned long t2,t1,t0=micros();
   char text[32]={'\0'};
 
     sdOpen(FILE_WRITE,fhisto,"fdhisto.txt");
-  
+
+t1=micros();Serial.print(" SDst open=");Serial.print(t1-t0);  
+
         sprintf(text,"%.8lu",amj);strcat(text," ");       // 9
         sprintf(text+9,"%.6lu",hms);strcat(text," ");     // +7
         strcat(text,val1);strcat(text," ");               // +2
@@ -63,11 +65,12 @@ void sdstore_textdh0(File* fhisto,char* val1,char* val2,char* val3)
   
         int v=fhisto->write(text);int w=fhisto->write(val3);
         if(v==0 || w==0){ledblink(BCODEFHISTO);}
+t2=micros();Serial.print(" write=");Serial.print(t2-t1);
 
     fhsize=fhisto->size();
     fhisto->close();
           
-    Serial.print(" SDt=");Serial.println(micros()-t0);
+Serial.print(" close=");Serial.println(micros()-t2);
 }
 
 void sdstore_textdh(File* fhisto,char* val1,char* val2,char* val3)

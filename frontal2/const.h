@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4h"
+#define VERSION "1.4k"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -63,6 +63,7 @@
  * 1.4g transfert datas analogique (val,low,high) avec périphériques : modif assyset() et periDataRead()
  *      TOINCHCLI augmenté à 4000 pour laisser le temps de répondre en cas de périReq (annule modif 1.4d) ; trigwd() avant d'appeler getHttpResp()
  * 1.4h ajout règles d'update des detserv depuis une valeur analogique et depuis les det des périphériques (modif periRec) + fonctions adhoc
+ * 1.4k ajout memdet ref + opération logique sur règles analog + det physiques     
  *      
  * BUGS : 
  *  
@@ -152,7 +153,7 @@
 
 #define NBPERIF 20                           
 #define PERINAMLEN 16+1                      // longueur nom perif
-#define PERIRECLEN 301 // V1.4h              // longueur record périph
+#define PERIRECLEN 310 // V1.4k              // longueur record périph
 
 #define CONFIGRECLEN 865                     // longueur record config 
 

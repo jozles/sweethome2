@@ -4,6 +4,9 @@
 #define PERISAVESD    VRAI                     // copie du cache sur le disque lors de periSave
 #define PERISAVELOCAL FAUX                     // pas de copie du cache sur le disque lors de periSave
 
+#define NBRULOP 7
+#define LENRULOP 5
+
 void  sdCardGen();
 
 int   periLoad(uint16_t num);

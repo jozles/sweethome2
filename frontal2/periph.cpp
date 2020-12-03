@@ -89,10 +89,12 @@ extern uint16_t* periAnalOffset1;              // ptr ds buffer : offset on adc 
 extern float*    periAnalFactor;               // ptr ds buffer : factor to float for analog value
 extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
 extern uint8_t*  periAnalCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
-extern uint8_t*  periAnalDet;                  // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periAnalDestDet;              // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periAnalRefDet;               // ptr ds buffer : 5 x n° détect serveur pour op logique (0xff si rien)
 extern int8_t*   periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
 extern uint8_t*  periDigitCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
-extern uint8_t*  periDigitDet;                 // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periDigitDestDet;             // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periDigitRefDet;              // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
 extern int8_t*   periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
 
       
@@ -104,7 +106,7 @@ extern byte      periMacBuf[6];
 
 extern byte      lastIpAddr[4];
 
-char rulop[]={"     0    1    OR   AND  XOR  =    "};      // libellés opérations regles analog & digital inputs péri
+char rulop[]={"     0    1    OR   AND  XOR  TO   "};      // libellés opérations regles analog & digital inputs péri
 
 char inptyps[]="meexphpu??";                  // libellés types sources regles switchs
 char inptypd[]="meexswpu??";                  // libellés types destinations regles switchs
@@ -130,7 +132,9 @@ extern long   thermoslen;
 File fthermos;    // fichier thermos
 
 extern char   libDetServ[NBDSRV][LENLIBDETSERV];
+extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
 File fmemdet;     // fichier détecteurs serveur
+extern uint32_t  mDSmaskbit[];
 
 extern char   memosTable[LMEMO*NBMEMOS];
 File fmemos;      // fichier memos
@@ -362,8 +366,8 @@ void  periPrint(uint16_t num)
   periInputPrint(periInput);
   Serial.print("Anal=");Serial.print(*periAnal);Serial.print(" low=");Serial.print(*periAnalLow);Serial.print(" high=");Serial.print(*periAnalHigh);
   Serial.print(" adcOffset=");Serial.print(*periAnalOffset1);Serial.print(" adcFactor=");Serial.print(*periAnalFactor);Serial.print(" floatOffset=");Serial.println(*periAnalOffset2);
-  for(int k=0;k<NBANST;k++){byte p=periAnalCb[k];Serial.print(" an Cb(0-FF)=");Serial.print(p,HEX);Serial.print(" an Det=");Serial.print(periAnalDet[k]);Serial.print(" an n° memo=");Serial.println(periAnalMemo[k]);}Serial.println();
-  for(int k=0;k<MAXDET;k++){Serial.print(" dg Cb(0-FF)=");Serial.print(*(byte*)&periDigitCb[k],HEX);Serial.print(" dg Det=");Serial.print(periDigitDet[k]);Serial.print(" dg n° memo=");Serial.println(periDigitMemo[k]);}Serial.println();
+  for(int k=0;k<NBANST;k++){byte p=periAnalCb[k];Serial.print(" an Cb(0-FF)=");Serial.print(p,HEX);Serial.print(" an Det=");Serial.print(periAnalDestDet[k]);Serial.print(" an Ref Det=");Serial.print(periAnalRefDet[k]);Serial.print(" an n° memo=");Serial.println(periAnalMemo[k]);}Serial.println();
+  for(int k=0;k<MAXDET;k++){Serial.print(" dg Cb(0-FF)=");Serial.print(*(byte*)&periDigitCb[k],HEX);Serial.print(" dg Det=");Serial.print(periDigitDestDet[k]);Serial.print(" dg Ref Det=");Serial.print(periDigitRefDet[k]);Serial.print(" dg n° memo=");Serial.println(periDigitMemo[k]);}Serial.println();
 }
 
 void periSub(uint16_t num,int sta,bool sd)
@@ -394,11 +398,57 @@ if(num<=0 || num>NBPERIF){ledblink(BCODENUMPER);}
   //Serial.print(" periLoad(");periSub(num,sta,sd);
   return sta;
 }
+    
+void periDSU(uint32_t mds,uint8_t dd,byte cb,uint8_t res)
+{
+    uint8_t ds=0;if(mds && mDSmaskbit[dd] !=0){ds=1;};      // ds état du detServ
+        switch(cb>>4){
+          case 0: break;
+          case 1: if(res==1){mds &= ~mDSmaskbit[dd];}break;
+          case 2: if(res==1){mds |= mDSmaskbit[dd];}break;
+          case 3: if(ds+res!=0){mds |= mDSmaskbit[dd];}
+                  else {mds &= ~mDSmaskbit[dd];}break;
+          case 4: if(ds+res==2){mds |= mDSmaskbit[dd];}
+                  else {mds &= ~mDSmaskbit[dd];}break;
+          case 5: if((ds+res!=0)&&(ds+res!=2)){mds |= mDSmaskbit[dd];}
+                  else {mds &= ~mDSmaskbit[dd];}break;
+          case 6: if(res==1){mds |= mDSmaskbit[dd];}
+                  else {mds &= ~mDSmaskbit[dd];}break;
+          default: break;
+        }
+}
 
+void periDetServUpdate()
+{
+  /* analog */
+  for(int i=0;i<NBANST;i++){
+    uint8_t result=0;
+    if(periAnalCb[i]&0x08!=0){            // enable ?      
+      uint8_t r=periAnalCb[i]&0x04;       // active level
+      switch(i){
+        case 0: if((*periAnal>*periAnalHigh && r==1) || (*periAnal<=*periAnalHigh && r==0) ){result=1;}break;
+        case 1: if((*periAnal=*periAnalHigh && r==1) || (*periAnal!=*periAnalHigh && r==0) ){result=1;}break;
+        case 2: if(((*periAnal<*periAnalHigh && *periAnal>*periAnalLow) && r==1) || ((*periAnal>=*periAnalHigh && *periAnal<=*periAnalLow) && r==0) ){result=1;};break;
+        case 3: if((*periAnal=*periAnalLow && r==1) || (*periAnal!=*periAnalLow && r==0) ){result=1;}break;
+        case 4: if((*periAnal<*periAnalLow && r==1) || (*periAnal>=*periAnalLow && r==0) ){result=1;}break;
+        default: break;
+      }
+      periDSU(memDetServ,periAnalDestDet[i],periAnalCb[i],result);        
+    }
+  }
+
+  /*  digital */
+  for(int i=0;i<*periDetNb;i++){
+    if(periDigitCb[i]&0x08!=0){             // enable ?
+      uint8_t val=(*periDetVal>>(i*2))&DETBITLH_VB;
+      uint8_t result=0;if(((periDigitCb[i]&0x04)>>2)==val){result=1;}     // 1 direct, 2 inverse
+      periDSU(memDetServ,periDigitDestDet[i],periDigitCb[i],result);        
+    }
+  }
+}
 
 int periSave(uint16_t num,bool sd)
 {
-
   int i=0;
   int sta;
   char periFile[7];periFname(num,periFile);
@@ -416,21 +466,26 @@ int periSave(uint16_t num,bool sd)
       fperi.close();
       Serial.print("done ");Serial.print(periFile);
       for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}*/
-//#ifdef SHDIAGS
+
       Serial.print("periSave ");Serial.print(periFile);    
-//#endif
+      
+      long t4,t3,t2,t1,t0=micros();
       SD.remove(periFile);
+t1=micros();Serial.print(" SDp remove=");Serial.print(t1-t0);
       if(fperi=SD.open(periFile,FILE_WRITE)){
+t2=micros();Serial.print(" open=");Serial.print(t2-t1);
         sta=SDOK;
         //fperi.seek(0);
         for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
+t3=micros();Serial.print(" write=");Serial.print(t3-t2);
         fperi.close();
-//#ifdef SHDIAGS           
-        Serial.println(" ok ");
-//#endif
+t4=micros();Serial.print(" close=");Serial.print(t4-t3);
         for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
+        periDetServUpdate();
+Serial.print(" pDSU=");Serial.print(micros()-t4);        
+      Serial.println(" ok ");      
       }
-      else{sta=SDKO;Serial.print(" ko ");}
+      else{sta=SDKO;Serial.println(" ko ");}
     }
 #ifdef SHDIAGS    
     Serial.print(" periSave(");periSub(num,sta,sd);
@@ -472,6 +527,15 @@ void periConvert()
     if(periLoad(i)!=SDOK){Serial.print(" load KO");}
     else{
       SD.remove(periFile);
+  memset(periAnalCb,0x00,NBANST);
+  memset(periAnalDestDet,0x00,NBANST);
+  memset(periAnalRefDet,0xFF,NBANST);  
+  memset(periAnalMemo,0xFF,NBANST);
+  memset(periDigitCb,0x00,MAXDET);
+  memset(periDigitDestDet,0x00,MAXDET);
+  memset(periDigitRefDet,0xFF,MAXDET);  
+  memset(periDigitMemo,0xFF,MAXDET);
+      
       if(periSave(i,PERISAVESD)!=SDOK){Serial.print(" save KO");} 
     }
     Serial.println();
@@ -575,17 +639,20 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=sizeof(float);
   periAnalCb=(uint8_t*)temp;
   temp +=NBANST*sizeof(uint8_t);
-  periAnalDet=(uint8_t*)temp;
+  periAnalDestDet=(uint8_t*)temp;
+  temp +=NBANST*sizeof(uint8_t);  
+  periAnalRefDet=(uint8_t*)temp;
   temp +=NBANST*sizeof(uint8_t);  
   periAnalMemo=(int8_t*)temp;
   temp +=NBANST*sizeof(int8_t);  
   periDigitCb=(uint8_t*)temp;
   temp +=MAXDET*sizeof(uint8_t);  
-  periDigitDet=(uint8_t*)temp;
-  temp +=MAXDET*sizeof(uint8_t);  
+  periDigitDestDet=(uint8_t*)temp;
+  temp +=MAXDET*sizeof(uint8_t);
+  periDigitRefDet=(uint8_t*)temp;
+  temp +=MAXDET*sizeof(uint8_t);
   periDigitMemo=(int8_t*)temp;
   temp +=MAXDET*sizeof(int8_t);  
-
   temp +=1*sizeof(byte);
   periEndOfRecord=(byte*)temp;      // doit être le dernier !!!
   temp ++;
@@ -646,16 +713,18 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   *periAnalFactor=1;
   *periAnalOffset2=0;
   memset(periAnalCb,0x00,NBANST);
-  memset(periAnalDet,0x00,NBANST);
+  memset(periAnalDestDet,0x00,NBANST);
+  memset(periAnalRefDet,0xFF,NBANST);  
   memset(periAnalMemo,0xFF,NBANST);
   memset(periDigitCb,0x00,MAXDET);
-  memset(periDigitDet,0x00,MAXDET);
+  memset(periDigitDestDet,0x00,MAXDET);
+  memset(periDigitRefDet,0xFF,MAXDET);  
   memset(periDigitMemo,0xFF,MAXDET);
 
   
    periInitVar0();
    // attention : perInitVar ne concerne que les variables de l'enregistrement de périphérique
-   // lorsque periLoad est effectué periInitVar n'est oas utile
+   // lorsque periLoad est effectué periInitVar n'est pas utile
 }
 
 void periTableLoad()                 // au démarrage du systeme
@@ -851,8 +920,8 @@ void periMaintenance()
 /*  
 for(int i=0;i=NBPERIF;i++){
   periLoad(i);
-  memset(periAnalDet,0x00,MAXDET);memset(periAnalMemo,0x00,MAXDET);memset(periAnalCb,0x00,MAXDET);
-  memset(periDigitDet,0x00,NBANST);memset(periDigitMemo,0x00,NBANST);memset(periDigitCb,0x00,NBANST);
+  memset(periAnalDestDet,0x00,MAXDET);memset(periAnalMemo,0x00,MAXDET);memset(periAnalCb,0x00,MAXDET);
+  memset(periDigitDestDet,0x00,NBANST);memset(periDigitMemo,0x00,NBANST);memset(periDigitCb,0x00,NBANST);
   periSave(i,PERISAVESD);
 }
 while(1){}

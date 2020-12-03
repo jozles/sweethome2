@@ -174,7 +174,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint16_t* periPort;                       // ptr ds buffer : port periph server
   byte*     periSwNb;                       // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
   byte*     periSwVal;                      // ptr ds buffer : état/cde des inter  
-  byte*     periInput;                      // ptr ds buffer : table des inputs           
+  byte*     periInput;                      // ptr ds buffer : table des règles switchs           
   uint32_t* periSwPulseOne;                 // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
   uint32_t* periSwPulseTwo;                 // ptr ds buffer : durée pulses sec OFF(mode astable)
   uint32_t* periSwPulseCurrOne;             // ptr ds buffer : temps courant pulses ON
@@ -199,10 +199,12 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   float*    periAnalFactor;                 // ptr ds buffer : factor to float for analog value
   float*    periAnalOffset2;                // ptr ds buffer : offset on float value
   uint8_t*  periAnalCb;                     // ptr ds buffer : 5 x (4 bits pour checkbox + 4 bits pour operation logique)
-  uint8_t*  periAnalDet;                    // ptr ds buffer : 5 x n° détect serveur
+  uint8_t*  periAnalDestDet;                // ptr ds buffer : 5 x n° détect serveur
+  uint8_t*  periAnalRefDet;                 // ptr ds buffer : 5 x n° détect serveur pour op logique (0xff si rien)
   int8_t*   periAnalMemo;                   // ptr ds buffer : 5 x n° mémo dans table mémos
   uint8_t*  periDigitCb;                    // ptr ds buffer : 5 x (4 bits pour checkbox + 4 bits pour operation logique)
-  uint8_t*  periDigitDet;                   // ptr ds buffer : 5 x n° détect serveur
+  uint8_t*  periDigitDestDet;               // ptr ds buffer : 4 x n° détect serveur
+  uint8_t*  periDigitRefDet;                // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
   int8_t*   periDigitMemo;                  // ptr ds buffer : 5 x n° mémo dans table mémos
     
   int8_t    periMess;                       // code diag réception message (voir MESSxxx shconst.h)
@@ -351,12 +353,12 @@ void setup() {                              // =================================
   ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"R0",""," ");
   Serial.print("DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
 
+//periConvert();
   periMaintenance();
 
   trigwd();
   
-  configInit();  // en attendant un utilitaire de configuration des utilisateurs et ssid....
-  configLoad();*toPassword=TO_PASSWORD;
+  configInit();configLoad();*toPassword=TO_PASSWORD;
   memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
   configPrint();
 
@@ -945,24 +947,32 @@ void textfonc(char* nf,int len)
   memcpy(nf,valf,nvalf[i+1]-nvalf[i]);
 }
 
-void rulesfonc(uint8_t* cb,uint8_t* det,int8_t* memo)            // traitement des fonctions 'rules' de périf
+void rulesfonc(uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)            // traitement des fonctions 'rules' de périf
 {                                                                 //  (4*cb 1*det 1*memo)
   uint8_t li=*(libfonctions+2*i+1)-PMFNCHAR;                      // row
   uint8_t co=*(libfonctions+2*i)-PMFNCHAR;                        // column 
-  Serial.print("  rules li=");Serial.print(li);Serial.print(" co=");Serial.print(co);
-  if(co<4){cb[li]|=maskbit[co*2+1];Serial.print(" mb=");Serial.print(maskbit[co*2+1],HEX);Serial.print(" ");Serial.println(cb[li]);}    // cb
-  if(co==4){inpsub(cb+li,0xf0,4,rulop,5);Serial.print(" cb+li=");Serial.println(*(cb+li),HEX);}                        // opération logique
-  if(co==5){det[li]=0;                                            // det
-            uint16_t d;conv_atob(valf,&d);det[li]=(uint8_t)d;Serial.print(" det=");Serial.println(det[li]);}
-  if(co==6){                                                      // memo
+  //Serial.print("  rules li=");Serial.print(li);Serial.print(" co=");Serial.print(co);
+  if(co<4){cb[li]|=maskbit[(3-co)*2+1]; //Serial.print(" mb=");Serial.print(maskbit[(3-co)*2+1],HEX);Serial.print(" ");Serial.println(cb[li]);
+            }                                                     // cb
+  if(co==4){inpsub(cb+li,0xf0,4,rulop,5);//Serial.print(" cb+li=");Serial.println(*(cb+li),HEX);
+            }                                                     // opération logique
+  if(co==5){rdet[li]=0xff;                                        // det
+            uint16_t d;
+            if(nvalf[i+1]-nvalf[i]>1){conv_atob(valf,&d);rdet[li]=(uint8_t)d;}               // si rien 0xff (refDet facultatif)
+            //Serial.print(" nvalf[i+1]-nvalf[i]=");Serial.print(nvalf[i+1]-nvalf[i]);Serial.print(" refDet=");Serial.println(rdet[li]);
+            }
+  if(co==6){det[li]=0;                                            // det
+            uint16_t d;conv_atob(valf,&d);det[li]=(uint8_t)d;//Serial.print(" destDet=");Serial.println(det[li]);
+            }
+  if(co==7){                                                      // memo
     char bm[LMEMO];memset(bm,0x00,LMEMO);
-    uint8_t lm=nvalf[i+1]-nvalf[i];Serial.print(" valf=");Serial.print(valf);
+    uint8_t lm=nvalf[i+1]-nvalf[i];//Serial.print(" valf=");Serial.print(valf);
     if(lm>=LMEMO-1){lm=LMEMO-1;}
     memcpy(bm,valf,lm);
     trailingSpaces(bm,LMEMO-1);
-    Serial.print(" lm=");Serial.print(lm);
+    //Serial.print(" lm=");Serial.print(lm);
     if(bm[0]!=0 && lm!=0){
-      memo[li]=memosFind();Serial.print(" mF=");Serial.print(memo[i]);
+      memo[li]=memosFind();//Serial.print(" mF=");Serial.print(memo[i]);
       if(memo[li]>=0){
         memcpy(memosTable+memo[li]*LMEMO,bm,LMEMO-1);Serial.print(" mT=");Serial.print(bm);}
         //memosSave(memo[li]);memosPrint();}                        // devrait enregistrer un memo à la fois ; 
@@ -985,7 +995,7 @@ void inpsub(byte* ptr,byte mask,byte lshift,char* libel,uint8_t len)
     char* p=strstr(libel,typ);
     if(p>=0){  
       v=(byte)((p-libel)/len);
-      Serial.print(" p=");Serial.print((long)p);Serial.print(" pos=");Serial.print(p-libel);Serial.print(" rang=");Serial.print(v);
+      //Serial.print(" p=");Serial.print((long)p);Serial.print(" pos=");Serial.print(p-libel);Serial.print(" rang=");Serial.print(v);
       v = v << lshift;
     }
   }
@@ -1438,8 +1448,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           case 'D': *periAnalOffset2=0;*periAnalOffset2=convStrToNum(valf,&j);break;
                           default: break;
                        }break;
-              case 71: what=13;rulesfonc(periAnalCb,periAnalDet,periAnalMemo);break;                    // anrul___ analog input rules
-              case 72: what=13;rulesfonc(periDigitCb,periDigitDet,periDigitMemo);break;                 // dgrul___ digital input_rules
+              case 71: what=13;rulesfonc(periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo);break;         // anrul___ analog input rules
+              case 72: what=13;rulesfonc(periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);break;     // dgrul___ digital input_rules
               case 73: {uint8_t nf=*(libfonctions+2*i+1)-PMFNCHAR;                                      // bouton submit rul_init__                                                                                                        
                                                                                                         // n° de la fonction qui utilise rul_init__
                        periCur=0;conv_atob(valf,&periCur);                                              // (0-n, 0=analog input rules ; 1=digital)                                                                                                
@@ -1475,7 +1485,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
             Serial.print(" strSD=");Serial.print(strSD);
 #endif            
             sdstore_textdh(&fhisto,&ab,"",strSD);
-            Serial.print(" what=================");periPrint(periCur);            
+            //Serial.print(" what=================");periPrint(periCur);            
           }                                           // 1 ligne par commande GET
 
 /*

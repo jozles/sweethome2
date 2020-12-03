@@ -76,7 +76,7 @@ void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,
   switch (type){
     case 'b':strcat(buf,(char*)valfonct);break;
     case 'd':concatn(buf,*(uint16_t*)valfonct);break;
-    case 's':concatn(buf,*(uint8_t*)valfonct);break;
+    case 's':if(*(uint8_t*)valfonct==0xff){break;}concatn(buf,*(uint8_t*)valfonct);break;
     case 'i':concatns(buf,*(int*)valfonct);break;
     case 'I':concatns(buf,*(int16_t*)valfonct);break;
     case 'r':concatnf(buf,(float)(*(int16_t*)valfonct)/100);break;
