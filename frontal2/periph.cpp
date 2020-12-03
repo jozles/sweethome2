@@ -90,10 +90,10 @@ extern float*    periAnalFactor;               // ptr ds buffer : factor to floa
 extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
 extern uint8_t*  periAnalCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
 extern uint8_t*  periAnalDet;                  // ptr ds buffer : 5 x n° détect serveur
-extern uint8_t*  periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
+extern int8_t*   periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
 extern uint8_t*  periDigitCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
 extern uint8_t*  periDigitDet;                 // ptr ds buffer : 5 x n° détect serveur
-extern uint8_t*  periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
+extern int8_t*   periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
 
       
 extern byte*     periBegOfRecord;
@@ -104,8 +104,10 @@ extern byte      periMacBuf[6];
 
 extern byte      lastIpAddr[4];
 
-char inptyps[]="meexphpu??";                  // libellés types sources inputs
-char inptypd[]="meexswpu??";                  // libellés types destinations inputs
+char rulop[]={"     0    1    OR   AND  XOR  =    "};      // libellés opérations regles analog & digital inputs péri
+
+char inptyps[]="meexphpu??";                  // libellés types sources regles switchs
+char inptypd[]="meexswpu??";                  // libellés types destinations regles switchs
 char inpact[]={"     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR                      "};      // libellés actions
 char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                                          // libellés staPulse
 
@@ -360,8 +362,8 @@ void  periPrint(uint16_t num)
   periInputPrint(periInput);
   Serial.print("Anal=");Serial.print(*periAnal);Serial.print(" low=");Serial.print(*periAnalLow);Serial.print(" high=");Serial.print(*periAnalHigh);
   Serial.print(" adcOffset=");Serial.print(*periAnalOffset1);Serial.print(" adcFactor=");Serial.print(*periAnalFactor);Serial.print(" floatOffset=");Serial.println(*periAnalOffset2);
-  for(int k=0;k<NBANST;k++){Serial.print(" an Cb(0-F)=");Serial.print(periAnalCb[k]),HEX;Serial.print(" an Det=");Serial.print(periAnalDet[k]);Serial.print(" an n° memo=");Serial.println(periAnalMemo[k]);}Serial.println();
-  for(int k=0;k<MAXDET;k++){Serial.print(" dg Cb(0-F)=");Serial.print(periDigitCb[k],HEX);Serial.print(" dg Det=");Serial.print(periDigitDet[k]);Serial.print(" dg n° memo=");Serial.println(periDigitMemo[k]);}Serial.println();
+  for(int k=0;k<NBANST;k++){byte p=periAnalCb[k];Serial.print(" an Cb(0-FF)=");Serial.print(p,HEX);Serial.print(" an Det=");Serial.print(periAnalDet[k]);Serial.print(" an n° memo=");Serial.println(periAnalMemo[k]);}Serial.println();
+  for(int k=0;k<MAXDET;k++){Serial.print(" dg Cb(0-FF)=");Serial.print(*(byte*)&periDigitCb[k],HEX);Serial.print(" dg Det=");Serial.print(periDigitDet[k]);Serial.print(" dg n° memo=");Serial.println(periDigitMemo[k]);}Serial.println();
 }
 
 void periSub(uint16_t num,int sta,bool sd)
@@ -575,14 +577,14 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=NBANST*sizeof(uint8_t);
   periAnalDet=(uint8_t*)temp;
   temp +=NBANST*sizeof(uint8_t);  
-  periAnalMemo=(uint8_t*)temp;
-  temp +=NBANST*sizeof(uint8_t);  
+  periAnalMemo=(int8_t*)temp;
+  temp +=NBANST*sizeof(int8_t);  
   periDigitCb=(uint8_t*)temp;
   temp +=MAXDET*sizeof(uint8_t);  
   periDigitDet=(uint8_t*)temp;
   temp +=MAXDET*sizeof(uint8_t);  
-  periDigitMemo=(uint8_t*)temp;
-  temp +=MAXDET*sizeof(uint8_t);  
+  periDigitMemo=(int8_t*)temp;
+  temp +=MAXDET*sizeof(int8_t);  
 
   temp +=1*sizeof(byte);
   periEndOfRecord=(byte*)temp;      // doit être le dernier !!!
@@ -645,10 +647,10 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   *periAnalOffset2=0;
   memset(periAnalCb,0x00,NBANST);
   memset(periAnalDet,0x00,NBANST);
-  memset(periAnalMemo,0x00,NBANST);
+  memset(periAnalMemo,0xFF,NBANST);
   memset(periDigitCb,0x00,MAXDET);
   memset(periDigitDet,0x00,MAXDET);
-  memset(periDigitMemo,0x00,MAXDET);
+  memset(periDigitMemo,0xFF,MAXDET);
 
   
    periInitVar0();
@@ -1183,12 +1185,10 @@ int memosSave(int m)        // si <0 tout le fichier
     Serial.print("Save Memos ");
     if(m<0){SD.remove(MEMOSFNAME);}
     if(sdOpen(FILE_WRITE,&fmemos,MEMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
-    uint16_t sk=0;if(m>=0){sk=m*LMEMO;}
-    fmemos.seek(0);fmemos.seek(sk);
-    
-    uint16_t lm=LMEMO;if(m<0){lm*=NBMEMOS;}
-    for(uint16_t i=0;i<lm;i++){fmemos.write(memosTable[sk+i]);}    
-    
+    if(m<0){
+      fmemos.seek(0);
+      for(uint16_t i=0;i<LMEMO*NBMEMOS;i++){fmemos.write(memosTable[i]);}}
+    else {fmemos.seek(m*LMEMO);fmemos.write(memosTable+m*LMEMO);}
     fmemos.close();Serial.println(" OK");
     return SDOK;  
 }
@@ -1200,7 +1200,8 @@ void memosInit()
 
 void memosPrint()
 {
-  dumpstr(memosTable,256);
+  memosLoad(-1);
+  dumpstr(memosTable,300);
   /*
     for(uint8_t i=0;i<NBMEMOS;i++){
       Serial.print(i);Serial.print("  ");

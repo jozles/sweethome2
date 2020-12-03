@@ -513,17 +513,17 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
     buf[pt]='\0';
     nbli++;
     pc=strchr(buf,';');
-    if(memcmp(buf+ldate+1,"ip",2)==0 && memcmp(pc+1,strfds,2)==0){       // datasave (après ';' soit '\n' soit'<' soit num fonction)
-      np_=(uint8_t)convStrToInt(pc+SDPOSNUMPER,&lnp);                              // num périphérique
-      th_=(int16_t)(convStrToNum(pc+SDPOSTEMP,&lnp)*100);                          // temp périphérique
+    if(memcmp(pc+1,strfds,2)==0){                                         // datasave (après ';' soit '\n' soit'<' soit num fonction)
+      np_=(uint8_t)convStrToInt(pc+SDPOSNUMPER,&lnp);                     // num périphérique
+      th_=(int16_t)(convStrToNum(pc+SDPOSTEMP,&lnp)*100);                 // temp périphérique
       periLoad(np_);
-    Serial.print(np_);Serial.print(" ");Serial.print(*periThmin_);Serial.print(" ");Serial.println(*periThmax_);
+//    Serial.print(np_);Serial.print(" ");Serial.print(*periThmin_);Serial.print(" ");Serial.println(*periThmax_);
       packMac(periMacBuf,pc+SDPOSMAC);                       
       if(compMac(periMacBuf,periMacr) && th_<9900 && th_>-9900){                                  // contrôle mac
-        Serial.println(buf);Serial.print(" per=");Serial.print(np_);Serial.print(" th=");Serial.print(th_);Serial.print(" thmin=");Serial.print(*periThmin_);Serial.print(" thmax=");Serial.print(*periThmax_);Serial.print(" - ");
+//        Serial.println(buf);Serial.print(" per=");Serial.print(np_);Serial.print(" th=");Serial.print(th_);Serial.print(" thmin=");Serial.print(*periThmin_);Serial.print(" thmax=");Serial.print(*periThmax_);Serial.print(" - ");
         if(*periThmin_>th_){*periThmin_=(int16_t)th_;periSave(np_,PERISAVELOCAL);nbth++;Serial.print(" maj ");}
         if(*periThmax_<th_){*periThmax_=(int16_t)th_;periSave(np_,PERISAVELOCAL);nbth++;Serial.print(" maj ");} 
-        Serial.println();
+//        Serial.println();
       }
     }
   }

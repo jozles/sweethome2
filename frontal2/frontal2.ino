@@ -198,12 +198,12 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint16_t* periAnalOffset1;                // ptr ds buffer : offset on adc value
   float*    periAnalFactor;                 // ptr ds buffer : factor to float for analog value
   float*    periAnalOffset2;                // ptr ds buffer : offset on float value
-  uint8_t*  periAnalCb;                     // ptr ds buffer : 5 x 4 bits pour checkbox
+  uint8_t*  periAnalCb;                     // ptr ds buffer : 5 x (4 bits pour checkbox + 4 bits pour operation logique)
   uint8_t*  periAnalDet;                    // ptr ds buffer : 5 x n° détect serveur
-  uint8_t*  periAnalMemo;                   // ptr ds buffer : 5 x n° mémo dans table mémos
-  uint8_t*  periDigitCb;                    // ptr ds buffer : 5 x 4 bits pour checkbox
+  int8_t*   periAnalMemo;                   // ptr ds buffer : 5 x n° mémo dans table mémos
+  uint8_t*  periDigitCb;                    // ptr ds buffer : 5 x (4 bits pour checkbox + 4 bits pour operation logique)
   uint8_t*  periDigitDet;                   // ptr ds buffer : 5 x n° détect serveur
-  uint8_t*  periDigitMemo;                  // ptr ds buffer : 5 x n° mémo dans table mémos
+  int8_t*   periDigitMemo;                  // ptr ds buffer : 5 x n° mémo dans table mémos
     
   int8_t    periMess;                       // code diag réception message (voir MESSxxx shconst.h)
   byte      periMacBuf[6]; 
@@ -213,6 +213,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   byte      lastIpAddr[4]; 
 
+extern char rulop[];                        // libellés opérations logiques regles analog/digital inputs
 extern char inptyps[];                      // libellés types sources inputs
 extern char inptypd[];                      // libellés types destinations inputs
 extern char inpact[];                       // libellés actions  
@@ -944,46 +945,51 @@ void textfonc(char* nf,int len)
   memcpy(nf,valf,nvalf[i+1]-nvalf[i]);
 }
 
-void rulesfonc(uint8_t* cb,uint8_t* det,uint8_t* memo)            // traitement des fonctions 'rules' de périf
+void rulesfonc(uint8_t* cb,uint8_t* det,int8_t* memo)            // traitement des fonctions 'rules' de périf
 {                                                                 //  (4*cb 1*det 1*memo)
   uint8_t li=*(libfonctions+2*i+1)-PMFNCHAR;                      // row
   uint8_t co=*(libfonctions+2*i)-PMFNCHAR;                        // column 
   Serial.print("  rules li=");Serial.print(li);Serial.print(" co=");Serial.print(co);
-  if(co<4){cb[li]|=maskbit[co*2+1];Serial.print(" mb=");Serial.print(maskbit[co*2+1],HEX);Serial.print(" ");Serial.println(cb[li]);}                  // cb
-  if(co==4){det[li]=0;                                            // det
+  if(co<4){cb[li]|=maskbit[co*2+1];Serial.print(" mb=");Serial.print(maskbit[co*2+1],HEX);Serial.print(" ");Serial.println(cb[li]);}    // cb
+  if(co==4){inpsub(cb+li,0xf0,4,rulop,5);Serial.print(" cb+li=");Serial.println(*(cb+li),HEX);}                        // opération logique
+  if(co==5){det[li]=0;                                            // det
             uint16_t d;conv_atob(valf,&d);det[li]=(uint8_t)d;Serial.print(" det=");Serial.println(det[li]);}
-  if(co==5){                                                      // memo
+  if(co==6){                                                      // memo
     char bm[LMEMO];memset(bm,0x00,LMEMO);
     uint8_t lm=nvalf[i+1]-nvalf[i];Serial.print(" valf=");Serial.print(valf);
-    if(lm>=LMEMO){lm=LMEMO;}
+    if(lm>=LMEMO-1){lm=LMEMO-1;}
     memcpy(bm,valf,lm);
     trailingSpaces(bm,LMEMO-1);
     Serial.print(" lm=");Serial.print(lm);
     if(bm[0]!=0 && lm!=0){
       memo[li]=memosFind();Serial.print(" mF=");Serial.print(memo[i]);
       if(memo[li]>=0){
-        memcpy(memosTable+memo[li]*LMEMO,bm,LMEMO-1);Serial.print(" mT=");Serial.print(bm);
-        memosSave(memo[li]);}
+        memcpy(memosTable+memo[li]*LMEMO,bm,LMEMO-1);Serial.print(" mT=");Serial.print(bm);}
+        //memosSave(memo[li]);memosPrint();}                        // devrait enregistrer un memo à la fois ; 
+        //memosSave(-1);memosPrint();}                              // fmemos.write(...) ne fonctionne apparemment qu'en "append"
     }                       
   Serial.println();
   }
 }
 
-void inpsub(byte* ptr,byte PNT_MS,byte PNTLS_PB,char* libel,uint8_t len)
+void inpsub(byte* ptr,byte mask,byte lshift,char* libel,uint8_t len)
 {
   uint8_t lreel;
   char typ[8];
   for(int i=0;i<8;i++){if(*(valf+i)==0x00){lreel=i;i=8;}}
   
-  byte v;
+  byte v=0;
+  
   if(lreel>0 && lreel<8 && len>0 && len<8){
     memcpy(typ,valf,lreel);for(int i=lreel;i<len;i++){typ[i]=' ';}typ[len]=0x00;
-    v=(byte)(strstr(libel,typ)-libel)/len;
-    Serial.print(strstr(libel,typ));Serial.print("-");Serial.print(strstr(libel,typ)-libel);
-    v = v << PNTLS_PB;
+    char* p=strstr(libel,typ);
+    if(p>=0){  
+      v=(byte)((p-libel)/len);
+      Serial.print(" p=");Serial.print((long)p);Serial.print(" pos=");Serial.print(p-libel);Serial.print(" rang=");Serial.print(v);
+      v = v << lshift;
+    }
   }
-  else{v=0;}
-  *ptr &= ~PNT_MS;
+  *ptr &= ~mask;
   *ptr |= v;
 
 //Serial.print(" valf=");Serial.print(valf);Serial.print(" len=");
@@ -1130,7 +1136,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 /*
     boucle des fonctions accumulées par getnv
 */   
-if(periCur==3){Serial.print(" intro serveur ================");periPrint(periCur);}
+//if(periCur==3){Serial.print(" intro serveur ================");periPrint(periCur);}
         for (i=0;i<=nbreparams;i++){
 
           if(i<NBVAL && i>=0){
@@ -1183,7 +1189,8 @@ if(periCur==3){Serial.print(" intro serveur ================");periPrint(periCur
                           usrtime[usernum]=millis();
                           usrpretime[usernum]=cxtime;
                           if(nbreparams==0){what=2;}}
-                        }if(periCur==3){Serial.println("user_ref_ =================");periPrint(periCur);}break;                                                                        
+                        }//if(periCur==3){Serial.println("user_ref_ =================");periPrint(periCur);}
+                        break;  
               case 5:  *toPassword=TO_PASSWORD;conv_atob(valf,toPassword);Serial.print(" topass=");Serial.println(valf);break;                     // to_passwd_
               case 6:  what=2;perrefr=0;conv_atob(valf,&perrefr);                                    // (en tête peritable) periode refresh browser
                        break;                                                                               
@@ -1234,7 +1241,7 @@ if(periCur==3){Serial.print(" intro serveur ================");periPrint(periCur
                         *periSwVal &= (byte)maskbit[val];
                         if((byte)*valf!='0'){*periSwVal |= (byte)maskbit[val+1];}
                        }break;
-              case 31: what=4;periCur=0;conv_atob(valf,&periCur);                                    // (input-tête) submit pulses (peri_t_sw_)
+              case 31: what=4;periCur=0;conv_atob(valf,&periCur);                                    // (regles switchs-tête) submit pulses (peri_t_sw_)
                        if(periCur>NBPERIF){periCur=NBPERIF;}
                        periInitVar();periLoad(periCur);                                             
                        {memset(periSwPulseCtl,0x00,PCTLLEN);                                         // effact bits otf enable pulses et free run 
@@ -1250,7 +1257,7 @@ if(periCur==3){Serial.print(" intro serveur ================");periPrint(periCur
                         sh=sh<<pu*PCTLBIT;
                         *(uint16_t*)periSwPulseCtl|=sh;
                        }break;       
-              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;   // (inputs) p_inp1__  
+              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;   // (regles switchss) p_inp1__  
                         uint8_t offs=nuinp*PERINPLEN;                                                     // (enable/type/num detec/action)
                         uint16_t vl=0;
                         // pericur est à jour via peri_inp_
@@ -1437,15 +1444,22 @@ if(periCur==3){Serial.print(" intro serveur ================");periPrint(periCur
                                                                                                         // n° de la fonction qui utilise rul_init__
                        periCur=0;conv_atob(valf,&periCur);                                              // (0-n, 0=analog input rules ; 1=digital)                                                                                                
                        if(periCur>NBPERIF){periCur=NBPERIF;}periInitVar();periLoad(periCur); 
-                       Serial.print(" fonct 73======");periPrint(periCur);
-                       uint8_t* cb;                                                                     // effacement check box
+                       //Serial.print(" fonct 73======");periPrint(periCur);
+                       uint8_t* cb;
+                       int8_t* memo;                                                                    // effacement check box et memos précédents
                        uint8_t ncb=0;
                        switch(nf){
-                         case 0: cb=periAnalCb;ncb=5;break;
-                         case 1: cb=periDigitCb;ncb=4;break;
+                         case 0: cb=periAnalCb;ncb=5;memo=periAnalMemo;break;
+                         case 1: cb=periDigitCb;ncb=4;memo=periDigitMemo;break;
                          default: break;
                        }
-                       if(nf<2){memset(cb,0x00,ncb);}
+                       if(nf<2){
+                          memset(cb,0x00,ncb);                                                          // cb
+                          for(uint8_t nm=0;nm<ncb;nm++){                                                // memos
+                            memset(memosTable+memo[nm]*LMEMO,0x00,LMEMO);
+                            memo[nm]=-1;
+                          }
+                       }
                        }break;                                                                           
                        
                               
@@ -1500,7 +1514,9 @@ if(periCur==3){Serial.print(" intro serveur ================");periPrint(periCur
                   periMess=perToSend(tablePerToSend,srvdettime);break;
           case 11:memDetSave();cfgDetServHtml(&cli);break;                // bouton cfgdetserv puis submit         
           case 12:thermosSave();thermoCfgHtml(&cli);break;                // thermos
-          case 13:Serial.println("   save=========");memosPrint();periPrint(periCur);periSave(periCur,PERISAVESD);                          // bouton submit periLine (MàJ/analog/digital)                                             
+          case 13://Serial.println(" what=13 ========");memosPrint();periPrint(periCur);
+                  memosSave(-1);
+                  periSave(periCur,PERISAVESD);                          // bouton submit periLine (MàJ/analog/digital)                                             
                   periLineHtml(&cli,periCur);break;                                                                                                           
 
           default:accueilHtml(&cli);break;
