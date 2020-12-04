@@ -31,6 +31,7 @@ void subDSnB(char* buf,char* fnc,uint32_t val,uint8_t num,char* lib);
 void checkboxTableBHtml(char* buf,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib);
 void usrFormBHtml(char* buf,bool hid);
 void usrFormInitBHtml(char* buf,char* nomfonct);
+void concatIp(char* buf,byte* ip);
 void concat1a(char* buf,char a);
 void concatn(char* buf,unsigned long val);
 void concatns(char* buf,long val);

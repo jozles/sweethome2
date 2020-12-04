@@ -1129,6 +1129,10 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
     ====== ATTENTION ===== pericur n'est pas valide lorsque getnv décode la ligne GET ; il faut le fixer en ajoutant dans la fonction d'init qui suit usr_ref_ (produite avec usrPeriCur)
     Si usrtime a changé ou si le délai de validité est dépassé ---> accueil.
     Le délai est modifiable dans la config (commun à tous les utilisateurs)
+    ------------------------------------------------------------------------------------------------------------------------------------------------------
+    la structure des pages doit être : <form> (éventuellemnt dans pageHeader) usrPericur() {boutons etc... toute la page - Un bouton de MàJ par formulaire} </form>
+    <form>...</form> délimite l'espace d'action de sbmit du bouton MàJ  ;  plusieurs formulaires possibles dans une page
+    ------------------------------------------------------------------------------------------------------------------------------------------------------
                                        
 
     Sécurité à développer : pour assurer que le mot de passe n'est pas dérobable et que sans mot de passe on ne peut avoir de réponse du serveur,
@@ -1503,10 +1507,11 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                   cli.stop();
                   cliext.stop();
                   periMess=periReq(&cliext,periCur,"set_______");break;
-          case 5: periMess=periSave(periCur,PERISAVESD);periTableHtml(&cli); // browser modif ligne de peritable
+          case 5: periMess=periSave(periCur,PERISAVESD);                // (periLine) modif ligne de peritable
+                  periTableHtml(&cli); 
                   cli.stop();
                   cliext.stop();
-                  periPrint(periCur);periMess=periReq(&cliext,periCur,"set_______");break;
+                  periMess=periReq(&cliext,periCur,"set_______");break;
           case 6: configSave();cfgServerHtml(&cli);break;               // config serveur
           case 7: timersSave();timersHtml(&cli);break;                  // timers
           case 8: remoteSave();cfgRemoteHtml(&cli);break;               // bouton remotecfg puis submit

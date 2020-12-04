@@ -63,7 +63,7 @@
  * 1.4g transfert datas analogique (val,low,high) avec périphériques : modif assyset() et periDataRead()
  *      TOINCHCLI augmenté à 4000 pour laisser le temps de répondre en cas de périReq (annule modif 1.4d) ; trigwd() avant d'appeler getHttpResp()
  * 1.4h ajout règles d'update des detserv depuis une valeur analogique et depuis les det des périphériques (modif periRec) + fonctions adhoc
- * 1.4k ajout memdet ref + opération logique sur règles analog + det physiques     
+ * 1.4k ajout memdet ref + opération logique sur règles analog + digital     
  *      
  * BUGS : 
  *  
@@ -78,8 +78,6 @@
  *    timers : ajouter option "1 jour sur n" : dhdebcycle=1ère date... calculer si date courante ok (récupérer un bool inutile - cyclic? )
  *    pulses : option entrée clock depuis input 
  *    
- *    ajouter alarmes dans peritable : alim+/- temp+/- detecteurs temps non communication et envoi mails
- *     
  *    dans fenetre switchs ; table inputs avec pour chaque ligne boutons poubelle/validation, + (nouv ligne), xmit(pertosend)
  *                           ajouter visu diag/état des inputs(?)
  *                           

@@ -114,7 +114,40 @@ extern byte mask[];
 char protoChar[]=PROTOCHAR;
 char protocStr[]=PROTOCSTR;
 
+char pkdate[7];
+
 void showLine(EthernetClient* cli,int i,char* pkdate);
+
+void pageHeader(char* buf)
+{ 
+  float th;                                  // pour temp DS3231
+  ds3231.readTemp(&th);
+  
+  strcat(buf,"<body>");            
+  strcat(buf,"<form method=\"get\" >");
+  strcat(buf,VERSION);strcat(buf," ");
+
+  #ifdef _MODE_DEVT
+  strcat(buf,"MODE_DEVT ");
+  #endif _MODE_DEVT
+  #ifdef _MODE_DEVT2
+  strcat(buf,"MODE_DEVT2 ");
+  #endif _MODE_DEVT2
+
+  bufPrintDateHeure(buf,pkdate);
+  uint32_t bufIp=Ethernet.localIP();
+  strcat(buf,"<font size=\"2\">; local IP ");charIp((byte*)&bufIp,buf);strcat(buf," ");
+  concatnf(buf,th);strcat(buf,"°C<br>\n");
+}
+
+void perifHeader(char* buf)
+{
+    concatn(buf,periCur);strcat(buf,"-");strcat(buf,periNamer);strcat(buf," ");
+    strcat(buf,"<font size=\"2\">");for(int j=0;j<4;j++){concatn(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}}
+    if(*periProg!=0){strcat(buf," / port=");concatn(buf,*periPort);strcat(buf,"  v");}
+    for(int j=0;j<LENVERSION;j++){concat1a(buf,periVers[j]);}
+    strcat(buf,"<br>\n");
+}
 
 void subModePulseTime(EthernetClient* cli,uint8_t npu,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo)
 {
@@ -155,23 +188,13 @@ void SwCtlTableHtml(EthernetClient* cli)
 
   // periCur est transféré via les fonctions d'en-tête peri_inp__ et peri_t_sw
 
-  htmlIntroB(buf,nomserver,cli);
-  
-  strcat(buf,"<body>");            
-  strcat(buf,"<form method=\"get\" >");
+    htmlIntroB(buf,nomserver,cli);
 
 /* en-tête (vers-dh-IP serv-modele) */
-    strcat(buf,VERSION);strcat(buf," ");
-    char pkdate[7]; // pour couleurs des temps des périphériques
-    bufPrintDateHeure(buf,pkdate);strcat(buf,"\n");
-    concatn(buf,periCur);strcat(buf,"-");strcat(buf,periNamer);strcat(buf," ");
-    strcat(buf,"<font size=\"2\">");for(int j=0;j<4;j++){concatn(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}}
-    if(*periProg!=0){strcat(buf,"/port=");concatn(buf,*periPort);strcat(buf," ");}
-    for(int j=0;j<LENVERSION;j++){concat1a(buf,periVers[j]);}
-    strcat(buf,"<br>\n");
+    pageHeader(buf);
+    perifHeader(buf);
 
-
-  usrPeriCurB(buf,"peri_t_sw_",0,2,0);
+    usrPeriCurB(buf,"peri_t_sw_",0,2,0);
 
 /* boutons */
     boutRetourB(buf,"retour",0,0);
@@ -274,33 +297,17 @@ void SwCtlTableHtml(EthernetClient* cli)
 
 void periTableHtml(EthernetClient* cli)
 {
+  char buf[1000];buf[0]=0;
   int i,j;
   int savePeriCur=periCur;   // save periCur et restore à la fin de periTable
 
 Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.print(" cxtime=");Serial.println(millis()-cxtime); 
 
-  htmlIntro(nomserver,cli);
+          htmlIntroB(buf,nomserver,cli);
 
-  float th;                                  // pour temp DS3231
-  ds3231.readTemp(&th);
-
-        cli->println("<body>");
-        cli->println("<form method=\"GET \">");
-
-          cli->print(VERSION);cli->print(" ");
-          #ifdef _MODE_DEVT
-            cli->print("MODE_DEVT ");
-          #endif _MODE_DEVT
-          #ifdef _MODE_DEVT2
-            cli->print("MODE_DEVT2 ");
-          #endif _MODE_DEVT2
-
-          char pkdate[7];cliPrintDateHeure(cli,pkdate);
-          cli->println("<font size=\"2\">");
-          cli->println("; local IP ");cli->print(Ethernet.localIP());cli->println(" ");
-          cli->print(th);cli->println("°C<br>");
-
-          usrFormHtml(cli,1);
+          pageHeader(buf);
+          usrFormBHtml(buf,1);
+          cli->print(buf);buf[0]=0;
 
           boutRetour(cli,"refresh",0,0);
           
@@ -405,24 +412,18 @@ void subCbdet(EthernetClient* cli,uint8_t nbfonc,char* title,char* nfonc,uint8_t
 
 void periLineHtml(EthernetClient* cli,int i)
 {
+  char buf[1000];buf[0]=0;
   int j;
 
   Serial.print("début periLineHtml -- periCur=");Serial.print(periCur);Serial.print("/");Serial.println(i);
   // en principe periCur est à jour 
 
-  htmlIntro(nomserver,cli);
-  cli->println("<body>");            
-  cli->println("<form method=\"get\" >");
+  htmlIntroB(buf,nomserver,cli);
+  pageHeader(buf);
+  perifHeader(buf);
 
-/* en-tête (vers-dh-IP serv-modele) */    
-    cli->print(VERSION);cli->print(" ");
-    char pkdate[7]; // pour couleurs des temps des périphériques
-    cliPrintDateHeure(cli,pkdate);cli->println();
-    cli->print(periCur);cli->print("-");cli->print(periNamer);cli->println("<br>");
-    cli->print("<font size=\"2\">");for(int j=0;j<4;j++){cli->print(periIpAddr[j]);if(j<3){cli->print(".");}}
-    if(*periProg!=0){cli->print("/port=");cli->print(*periPort);cli->print(" ");}
-    for(int j=0;j<LENVERSION;j++){cli->print(periVers[j]);}
-    cli->print("<br>\n");
+  usrPeriCurB(buf,"peri_cur__",0,2,3);
+  cli->print(buf);buf[0]=0;
 
 /* boutons */
     boutRetour(cli,"retour",0,0);cli->print(" ");  
@@ -435,6 +436,7 @@ void periLineHtml(EthernetClient* cli,int i)
     boutFonction(cli,"peri_raz___","","Raz",0,0,0,0);
     
 /* ligne périphérique */                
+
                 periInitVar();periLoad(i);periCur=i;
                 if(*periSwNb>MAXSW){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
@@ -447,7 +449,6 @@ void periLineHtml(EthernetClient* cli,int i)
                       
                       cli->print("<td>");
                       cli->println(periCur);
-                      usrPeriCur(cli,"peri_cur__",0,2,3);
                       cli->print("<td><input type=\"text\" name=\"peri_nom__\" value=\"");
                         cli->print(periNamer);cli->print("\" size=\"12\" maxlength=\"");cli->print(PERINAMLEN-1);cli->println("\" ></td>");
                       textTableHtml_(cli,periLastVal_,periThmin_,periThmax_,1,1);
@@ -468,7 +469,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       cli->println("<td>");
                       xradioTableHtml(cli,*periSwVal,"peri_vsw_\0",2,*periSwNb,3);
                       cli->print("</td>");
- /*                   
+                   
                       cli->print("<td>");
                       cli->print(*periAnal);cli->print("<br>");
                       numTableHtml(cli,'I',periAnalLow,"peri_ana@_",5,0,0);cli->println("<br>");
@@ -478,7 +479,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       numTableHtml(cli,'f',periAnalFactor,"peri_anaC_",5,0,0);cli->println("<br>");
                       numTableHtml(cli,'f',periAnalOffset2,"peri_anaD_",5,0,0);
                       cli->print("</td>");
-*/                      
+                      
                       cli->print("<td>");
                       for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){cli->print("<br>");}}
                       cli->println("</td>");
@@ -505,7 +506,7 @@ void periLineHtml(EthernetClient* cli,int i)
 
                 cli->println("</tr></table>");
 
-/* table analogique */
+// table analogique 
                 cli->println("Analog Input<br><table>");
                 //cli->println("<tr><th></th><th></th><th></th><th></th>");
                 //cli->println("</tr>");
@@ -540,79 +541,6 @@ void periLineHtml(EthernetClient* cli,int i)
 
                 subCbdet(cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);
 }
-
-
-void showLineA(EthernetClient* cli,int numline,char* pkdate)
-{
-  unsigned long t0=micros();
-  int j;
-                periInitVar();periLoad(numline);periCur=numline;
-                if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}     //periCheck(numline,"SwNb");periInitVar();periSave(numline,PERISAVESD);}
-                if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}  //periCheck(numline,"detNb");periInitVar();periSave(numline,PERISAVESD);}
-
-                cli->println("<tr>");
-                  cli->println("<form method=\"GET \">");
-                      
-                      cli->print("<td>");
-                      cli->println(periCur);
-                      usrPeriCur(cli,"peri_cur__",0,2,3);
-                      cli->print("<td>");cli->print(periNamer);cli->print("</td>");
-                      textTableHtml_(cli,periLastVal_,periThmin_,periThmax_,1,1);
-                      cli->print((float)*periThmin_/100);cli->println("<br>");
-                      cli->print((float)*periThmax_/100);cli->print("</td>");
-                      textTableHtml_(cli,periAlim_,periVmin_,periVmax_,1,1);
-                      cli->print((float)*periVmin_/100);cli->println("<br>");
-                      cli->print((float)*periVmax_/100);cli->print("</td>");
-                      cli->print("<td>");cli->print(*periPerTemp);cli->print("<br>");
-                      cli->print((float)*periPitch_/100);cli->print("<br>");
-                      cli->print((float)*periThOffset_/100);cli->print("</td>");
-                      cli->print("<td>");cli->print(*periPerRefr);cli->print("<br>");
-                      if(*periProg!=0){cli->print("serv");}cli->print("</td>");
-                      cli->print("<td>");cli->print(*periSwNb);cli->print("<br>");cli->print(*periDetNb);cli->print("</td>");
-                      cli->println("<td>");
-                      for(uint8_t k=0;k<*periSwNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periSwVal>>((k*2)+1))&0x01]);
-                      cli->print("_");
-                      cli->print(oi[(*periSwVal>>((k*2)))&0x01]);if(k<*periSwNb-1){cli->print("<br>");}}
-                      cli->print("</td>");                     
-                      cli->print("<td>");
-                      for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){cli->print("<br>");}}
-                      cli->println("</td>");
-                      cli->print("<td>");
-                      for(int k=0;k<6;k++){cli->print(chexa[periMacr[k]/16]);cli->print(chexa[periMacr[k]%16]);}cli->print("<br>");
-                      if(*periProg!=0 || *periProtocol=='U'){cli->print("port=");cli->print(*periPort);}cli->print("<br>");
-                      cli->print("<font size=\"2\">");for(j=0;j<4;j++){cli->print(periIpAddr[j]);if(j<3){cli->print(".");}}cli->println("</font></td>");
-                      cli->print("<td><font size=\"2\">");for(j=0;j<LENVERSION;j++){cli->print(periVers[j]);}
-                      cli->println(" ");long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}
-                      cli->print(protocStr+LENPROSTR*p);cli->println("<br>");
-                      
-                      char colourbr[6];
-                      long late;
-                      late=*periPerRefr+*periPerRefr/10;
-                      memcpy(colourbr,"black\0",6);
-                      if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
-                      if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColour(cli,colourbr);
-                      printPeriDate(cli,periLastDateOut);
-                      memcpy(colourbr,"black\0",6);
-                      if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
-                      if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColour(cli,colourbr);
-                      printPeriDate(cli,periLastDateIn);
-                      setColour(cli,"black");
-                      cli->println("</font></td>");
-                      
-                      cli->print("<td>");
-                      char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-                      boutFonction(cli,line,"","Periph",0,1,0,0);
-                      
-                      if(*periSwNb!=0){
-                        char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-                        boutFonction(cli,swf,"","Switchs",0,0,0,0);}
-                      cli->print("</td>"); 
-
-                  cli->print("</form>");
-                cli->println("</tr>");
-Serial.print(" t=");Serial.println(micros()-t0);
-}
-
 
 
 void showLine(EthernetClient* cli,int numline,char* pkdate)
