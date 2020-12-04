@@ -55,6 +55,8 @@ WiFiClient cli;                 // client local du serveur externe (utilisé pou
 WiFiClient cliext;              // client externe du serveur local
 WiFiServer server(8888);
   String headerHttp;
+  #define LHTTPMESS 500
+  char   httpMess[LHTTPMESS];   // buffer d'entrée en mode serveur
 #endif  _SERVER
 
   char* srvpswd=PERIPASS;
@@ -620,25 +622,34 @@ switch(cstRec.talkStep){
 
 void ordreExt()
 {
+  uint16_t hm=0;
+  memset(httpMess,0x00,LHTTPMESS);
+  
   cliext = server.available();
 
   if (cliext) {
+    unsigned long tcx2,tcx1,tcx0=millis();
+    char c;
     Serial.println("\nCliext");
-    String input = "";                    // buffer ligne
-    headerHttp = "";                      // buffer en-tête
+    //String input = "";                    // buffer ligne
+    //headerHttp = "";                      // buffer en-tête
     while (cliext.connected()) {
       if (cliext.available()) {
-        char c = cliext.read();
-        headerHttp+=c;                    //remplissage en-tête
-        Serial.write(c);
+        c = cliext.read();
+        //headerHttp+=c;                    //remplissage en-tête
+        httpMess[hm]=c;
+        //Serial.write(c);
         if (c == '\n') {                  // LF fin de ligne
-            if (input.length() == 0) {    // si ligne vide fin de requête
+            //if (input.length() == 0) {    // si ligne vide fin de requête
+            if(hm==0){  
               //Serial.println("\n 2 fois LF fin de la requête HTTP");
               break;                      // sortie boucle while
             }
-            else {input = "";}            // si 1 LF vidage buffer ligne pour recevoir la ligne suivante
+            //else {input = "";}            // si 1 LF vidage buffer ligne pour recevoir la ligne suivante
+            else hm=0;
         }
-        else if(c != '\r'){input+=c;}   // remplissage ligne
+        //else if(c != '\r'){input+=c;}   // remplissage ligne
+      if(hm<LHTTPMESS){hm++;}
       }
     }
     // headerHttp contient la totalité de l'en-tête 
@@ -647,16 +658,27 @@ void ordreExt()
     //                                             nnnn nombre de car décimal zéros à gauche 
     //                                             .... éventuels arguments de la fonction
     //                                             CC crc
-    int v0=headerHttp.indexOf("GET /");
+    tcx1=millis();
+    //int v0=headerHttp.indexOf("GET /");
+    Serial.print(" reçu=");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);
+    int v0=-1;
+    char* vx=strstr(httpMess,"GET /");
+    if(vx>=0){v0=vx-httpMess;}
     if(v0>=0){                            // si commande GET trouvée contrôles et décodage nom fonction 
-      int jj=4,ii=convStrToNum(&headerHttp[0]+v0+5+10+1,&jj);   // recup eventuelle longueur
-      headerHttp[v0+5+10+1+ii+2]=0x00;    // place une fin ; si long invalide check sera invalide
+      //int jj=4,ii=convStrToNum(&headerHttp[0]+v0+5+10+1,&jj);   // recup eventuelle longueur
+      int jj=4,ii=convStrToNum(httpMess+v0+5+10+1,&jj);   // recup eventuelle longueur
+      //headerHttp[v0+5+10+1+ii+2]=0x00;    // place une fin ; si long invalide check sera invalide
+      httpMess[v0+5+10+1+ii+2]=0x00;    // place une fin ; si long invalide check sera invalide
       //Serial.print("len=");Serial.print(ii);Serial.print(" ");Serial.println(headerHttp+v0);
-    
-      if(checkHttpData(&headerHttp[v0+5],&fonction)==MESSOK){
+
+      tcx2=millis();
+      //if(checkHttpData(&headerHttp[v0+5],&fonction)==MESSOK){
+      if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
+        Serial.print(tcx1-tcx0);Serial.print("  ");Serial.print(tcx2-tcx1);Serial.print("  ");
         Serial.print("reçu message fonction=");Serial.println(fonction);
         switch(fonction){
-            case 0:dataTransfer(&headerHttp[v0+5]);break;  // set
+            case 0://dataTransfer(&headerHttp[v0+5]);break;  // set
+                     dataTransfer(&httpMess[v0+5]);break;  // set
             case 1:break;                             // ack ne devrait pas se produire (page html seulement)
             case 2:cstRec.talkStep=1;break;           // etat -> dataread/save   http://192.168.0.6:80/etat______=0006AB8B
             case 3:break;                             // sleep (future use)
