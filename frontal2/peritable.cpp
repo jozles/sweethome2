@@ -526,7 +526,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 cli->print("</tr></table><br></form>\n");
             
 #define ANASIZLIB   3
-                char aLibState[]={"> \0=>\0><\0=<\0< "};
+                char aLibState[]={">H\0=H\0><\0=L\0<L"};
                 subCbdet(cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,NBRULOP,LENRULOP,rulop,periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo);
 
 

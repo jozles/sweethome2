@@ -398,22 +398,35 @@ if(num<=0 || num>NBPERIF){ledblink(BCODENUMPER);}
   //Serial.print(" periLoad(");periSub(num,sta,sd);
   return sta;
 }
-    
-void periDSU(uint32_t mds,uint8_t dd,byte cb,uint8_t res)
+
+void memDetPrint(uint32_t ds)
 {
-    uint8_t ds=0;if(mds && mDSmaskbit[dd] !=0){ds=1;};      // ds état du detServ
+  Serial.print(" memDet=");
+  for(int i=3;i>=0;i--){
+    for(int j=7;j>=0;j--){char a=0x30+((ds>>(i*8+j))&0x01);Serial.print(a);}Serial.print(" ");
+  }
+}
+
+   
+void periDSU(uint32_t* mds,uint8_t dd,byte cb,uint8_t res)
+{    
+    //memDetPrint(*mds);Serial.print(" cb=");Serial.print(cb,HEX);
+    //Serial.print(" destDet=");Serial.print(dd);Serial.print(" res=");Serial.print(res);
+    
+    uint8_t ds=0;if((*mds & mDSmaskbit[dd]) !=0){ds=1;};      // ds état du detServ
+    //Serial.print(" ds=");Serial.println(ds);
         switch(cb>>4){
           case 0: break;
-          case 1: if(res==1){mds &= ~mDSmaskbit[dd];}break;
-          case 2: if(res==1){mds |= mDSmaskbit[dd];}break;
-          case 3: if(ds+res!=0){mds |= mDSmaskbit[dd];}
-                  else {mds &= ~mDSmaskbit[dd];}break;
-          case 4: if(ds+res==2){mds |= mDSmaskbit[dd];}
-                  else {mds &= ~mDSmaskbit[dd];}break;
-          case 5: if((ds+res!=0)&&(ds+res!=2)){mds |= mDSmaskbit[dd];}
-                  else {mds &= ~mDSmaskbit[dd];}break;
-          case 6: if(res==1){mds |= mDSmaskbit[dd];}
-                  else {mds &= ~mDSmaskbit[dd];}break;
+          case 1: if(res==1){*mds &= ~mDSmaskbit[dd];}break;
+          case 2: if(res==1){*mds |= mDSmaskbit[dd];}break;
+          case 3: if(ds+res!=0){*mds |= mDSmaskbit[dd];}
+                  else {*mds &= ~mDSmaskbit[dd];}break;
+          case 4: if(ds+res==2){*mds |= mDSmaskbit[dd];}
+                  else {*mds &= ~mDSmaskbit[dd];}break;
+          case 5: if((ds+res!=0)&&(ds+res!=2)){*mds |= mDSmaskbit[dd];}
+                  else {*mds &= ~mDSmaskbit[dd];}break;
+          case 6: if(res==1){*mds |= mDSmaskbit[dd];}
+                  else {*mds &= ~mDSmaskbit[dd];}break;
           default: break;
         }
 }
@@ -421,9 +434,12 @@ void periDSU(uint32_t mds,uint8_t dd,byte cb,uint8_t res)
 void periDetServUpdate()
 {
   /* analog */
+  //Serial.println("\nAnalog ");
   for(int i=0;i<NBANST;i++){
     uint8_t result=0;
-    if(periAnalCb[i]&0x08!=0){            // enable ?      
+    byte c=periAnalCb[i];
+    //Serial.print(" i=");Serial.print(i);Serial.print(" cb=");Serial.print(c,HEX);
+    if((c&0x08)!=0){            // enable ?      
       uint8_t r=periAnalCb[i]&0x04;       // active level
       switch(i){
         case 0: if((*periAnal>*periAnalHigh && r==1) || (*periAnal<=*periAnalHigh && r==0) ){result=1;}break;
@@ -433,17 +449,22 @@ void periDetServUpdate()
         case 4: if((*periAnal<*periAnalLow && r==1) || (*periAnal>=*periAnalLow && r==0) ){result=1;}break;
         default: break;
       }
-      periDSU(memDetServ,periAnalDestDet[i],periAnalCb[i],result);        
+      periDSU(&memDetServ,periAnalDestDet[i],c,result);        
     }
+    //Serial.println();
   }
 
   /*  digital */
+  //Serial.println("Digital ");
   for(int i=0;i<*periDetNb;i++){
-    if(periDigitCb[i]&0x08!=0){             // enable ?
+    byte c=periDigitCb[i];
+    //Serial.print(" i=");Serial.print(i);Serial.print(" cb=");Serial.print(c,HEX);
+    if((c&0x08)!=0){             // enable ?
       uint8_t val=(*periDetVal>>(i*2))&DETBITLH_VB;
       uint8_t result=0;if(((periDigitCb[i]&0x04)>>2)==val){result=1;}     // 1 direct, 2 inverse
-      periDSU(memDetServ,periDigitDestDet[i],periDigitCb[i],result);        
+      periDSU(&memDetServ,periDigitDestDet[i],c,result);        
     }
+    //Serial.println();
   }
 }
 
@@ -459,13 +480,6 @@ int periSave(uint16_t num,bool sd)
   *periNum=num;
   sta=SDOK;
   if(sd){
-/*    if(sdOpen(FILE_WRITE,&fperi,periFile)!=SDKO){
-      fperi.seek(0);
-      for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
-//for(i=0;i<PERIRECLEN+sizeof(uint16_t);i++){fperi.write(periRec[i]);}      // ajouter les longueurs des variables ajoutées avant de modifier PERIRECLEN
-      fperi.close();
-      Serial.print("done ");Serial.print(periFile);
-      for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}*/
 
       Serial.print("periSave ");Serial.print(periFile);    
       
@@ -475,17 +489,16 @@ t1=micros();Serial.print(" SDp remove=");Serial.print(t1-t0);
       if(fperi=SD.open(periFile,FILE_WRITE)){
 t2=micros();Serial.print(" open=");Serial.print(t2-t1);
         sta=SDOK;
-        //fperi.seek(0);
-        for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
-t3=micros();Serial.print(" write=");Serial.print(t3-t2);
-        fperi.close();
-t4=micros();Serial.print(" close=");Serial.print(t4-t3);
-        for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
         periDetServUpdate();
-Serial.print(" pDSU=");Serial.print(micros()-t4);        
-      Serial.println(" ok ");      
+t3=micros();Serial.print(" pDSU=");Serial.print(t3-t2);
+        for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
+t4=micros();Serial.print(" write=");Serial.print(t4-t3);
+        fperi.close();
+Serial.print(" close=");Serial.print(micros()-t4);
+        for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
+        Serial.println(" OK ");      
       }
-      else{sta=SDKO;Serial.println(" ko ");}
+      else{sta=SDKO;Serial.println(" KO ");}
     }
 #ifdef SHDIAGS    
     Serial.print(" periSave(");periSub(num,sta,sd);
