@@ -470,7 +470,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       xradioTableHtml(cli,*periSwVal,"peri_vsw_\0",2,*periSwNb,3);
                       cli->print("</td>");
                    
-                      cli->print("<td>");
+/*                     cli->print("<td>");
                       cli->print(*periAnal);cli->print("<br>");
                       numTableHtml(cli,'I',periAnalLow,"peri_ana@_",5,0,0);cli->println("<br>");
                       numTableHtml(cli,'I',periAnalHigh,"peri_anaA_",5,0,0);
@@ -483,7 +483,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       cli->print("<td>");
                       for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){cli->print("<br>");}}
                       cli->println("</td>");
-                      
+*/                      
                       cli->print("<td><input type=\"text\" name=\"peri_mac__\" value=\"");for(int k=0;k<6;k++){cli->print(chexa[periMacr[k]/16]);cli->print(chexa[periMacr[k]%16]);}
                         cli->println("\" size=\"11\" maxlength=\"12\" ><br>");
                       if(*periProg!=0){cli->print("port=");numTableHtml(cli,'d',periPort,"peri_port_",4,0,0);}cli->println("<br>");

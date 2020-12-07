@@ -281,7 +281,7 @@ void cfgDetServHtml(EthernetClient* cli)
                 uint8_t decal=0;if(nb>=16){decal=16;}
                 cli->println("<tr>");
                 
-                cli->print("<td>");cli->print(nb+1);cli->print("</td>");                       // n° detserv
+                cli->print("<td>");cli->print(nb);cli->print("</td>");                       // n° detserv
                 cli->print("<td><input type=\"text\" name=\"libdsrv__");cli->print((char)(nb+decal+PMFNCHAR));cli->print("\" value=\"");
                         cli->print((char*)&libDetServ[nb][0]);cli->print("\" size=\"12\" maxlength=\"");cli->print(LENLIBDETSERV-1);cli->println("\" ></td>");
                    
