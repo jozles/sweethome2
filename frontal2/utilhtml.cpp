@@ -66,6 +66,17 @@ void concatnf(char* buf,float val)
   s=sprintf(buf+b,"%.2f",val);buf[b+s]='\0';
 }
 
+void concatnf(char* buf,float val,uint8_t dec)
+{
+  uint16_t b,s;
+  char* a;
+  char d[]="%.2f";
+  d[2]=(char)(dec+0x30);
+  b=strlen(buf);a=buf+b;
+  s=sprintf(buf+b,d,val);buf[b+s]='\0';
+}
+
+
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol)
 {                          
   if(td==1 || td==2){strcat(buf,"<td>");}
@@ -90,6 +101,33 @@ void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,
   if(pol!=0){strcat(buf,"</font>");}
   if(td==1 || td==3){strcat(buf,"</td>\n");}
 }
+
+void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
+{                          
+  if(td==1 || td==2){strcat(buf,"<td>");}
+  if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
+  strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);
+  if(len<=2){strcat(buf,"\" id=\"nt");concatn(buf,len);}
+  strcat(buf,"\" value=\"");
+  switch (type){
+    case 'b':strcat(buf,(char*)valfonct);break;
+    case 'd':concatn(buf,*(uint16_t*)valfonct);break;
+    case 's':if(*(uint8_t*)valfonct==0xff){break;}concatn(buf,*(uint8_t*)valfonct);break;
+    case 'i':concatns(buf,*(int*)valfonct);break;
+    case 'I':concatns(buf,*(int16_t*)valfonct);break;
+    case 'r':concatnf(buf,(float)(*(int16_t*)valfonct)/100);break;
+    case 'l':concatns(buf,*(long*)valfonct);break;
+    case 'f':concatnf(buf,*(float*)valfonct);break;
+    case 'F':concatnf(buf,*(float*)valfonct,dec);break;
+    case 'g':concatn(buf,*(uint32_t*)valfonct);break;    
+    default:break;
+  }
+  int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
+  strcat(buf,"\" size=\"");concatn(buf,sizeHtml);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" >");
+  if(pol!=0){strcat(buf,"</font>");}
+  if(td==1 || td==3){strcat(buf,"</td>\n");}
+}
+
 
 void usrFormBHtml(char* buf,bool hid)                     // pour mettre en tête des formulaires ("<p hidden> .... </p>")
 {

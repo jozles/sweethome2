@@ -353,12 +353,11 @@ periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
 Serial.print("fin péritable - cxtime=");Serial.println(millis()-cxtime); 
 }
 
-void subCbdet(EthernetClient* cli,uint8_t nbfonc,char* title,char* nfonc,uint8_t nbLi,char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)
+void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfonc,uint8_t nbLi,char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)
 {                                 // le n° de fonction permet une seule fonction d'init pour plusieurs formulaires de même structure
   
   uint8_t k,op;
   char namfonct[LENNOM+1];memcpy(namfonct,nfonc,LENNOM);namfonct[LENNOM]='\0';
-  char buf[5000];buf[0]='\0';  
   char a[]={"  \0"},colnb=PMFNCHAR;
 
   strcat(buf,"<form><fieldset><legend>");strcat(buf,title);strcat(buf," :</legend>\n");
@@ -426,14 +425,15 @@ void periLineHtml(EthernetClient* cli,int i)
   cli->print(buf);buf[0]=0;
 
 /* boutons */
-    boutRetour(cli,"retour",0,0);cli->print(" ");  
-    cli->println("<input type=\"submit\" value=\" MàJ \">");cli->print(" ");
+    boutRetourB(buf,"retour",0,0);
+    strcat(buf," <input type=\"submit\" value=\" MàJ \"> ");
     char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    boutFonction(cli,line,"","refresh",0,0,1,0);cli->print(" ");
+    boutF(buf,line,"","refresh",0,0,1,0);strcat(buf," ");
     if(*periSwNb!=0){
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-      boutFonction(cli,swf,"","Switchs",3,0,0,0);}
-    boutFonction(cli,"peri_raz___","","Raz",0,0,0,0);
+      boutF(buf,swf,"","Switchs",3,0,0,0);}
+    boutF(buf,"peri_raz___","","Raz",0,0,0,0);
+    cli->print(buf);buf[0]='\0';
     
 /* ligne périphérique */                
 
@@ -442,7 +442,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
 
                 cli->println("<table><tr>");
-                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th></th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
+                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
                 cli->println("</tr>");
 
                 cli->println("<tr>");
@@ -506,29 +506,29 @@ void periLineHtml(EthernetClient* cli,int i)
 
                 cli->println("</tr></table>");
 
-// table analogique 
-                cli->println("Analog Input<br><table>");
-                //cli->println("<tr><th></th><th></th><th></th><th></th>");
-                //cli->println("</tr>");
+// table analogique
+                buf[0]='\0'; 
                 
-                cli->println("<tr>");
-                    cli->print("<td>Val<br>Low<br>High</td>");
-                    cli->print("<td>");
-                      cli->print(*periAnal);cli->print("<br>");
-                      numTableHtml(cli,'I',periAnalLow,"peri_ana@_",5,0,0);cli->println("<br>");
-                      numTableHtml(cli,'I',periAnalHigh,"peri_anaA_",5,0,0);
-                    cli->print("</td>");
-                    cli->print("<td>Off1<br>Fact<br>Off2</td>");
-                    cli->print("<td>");
-                      numTableHtml(cli,'I',periAnalOffset1,"peri_anaB_",5,0,0);cli->println("<br>");
-                      numTableHtml(cli,'f',periAnalFactor,"peri_anaC_",5,0,0);cli->println("<br>");
-                      numTableHtml(cli,'f',periAnalOffset2,"peri_anaD_",5,0,0);
-                    cli->print("</td>");
-                cli->print("</tr></table><br></form>\n");
+                strcat(buf,"Analog Input<br><table>");
+                strcat(buf,"<tr>");                
+                    strcat(buf,"<td>Val<br>Low<br>High</td>");
+                    strcat(buf,"<td>");
+                      concatn(buf,*periAnal);strcat(buf,"<br>");
+                      numTf(buf,'I',periAnalLow,"peri_ana@_",5,0,0);strcat(buf,"<br>");
+                      numTf(buf,'I',periAnalHigh,"peri_anaA_",5,0,0);
+                    strcat(buf,"</td>\n");
+                    strcat(buf,"<td>Off1<br>Fact<br>Off2</td>");
+                    strcat(buf,"<td>");
+                      numTf(buf,'I',periAnalOffset1,"peri_anaB_",5,0,0);strcat(buf,"<br>");                      
+                      numTf(buf,'F',periAnalFactor,"peri_anaC_",7,0,0,4);strcat(buf,"<br>");
+                      numTf(buf,'F',periAnalOffset2,"peri_anaD_",7,0,0,4);
+                    strcat(buf,"</td>");
+                strcat(buf,"</tr></table><br></form>\n");
+                cli->print(buf);buf[0]='\0';
             
 #define ANASIZLIB   3
                 char aLibState[]={">H\0=H\0><\0=L\0<L"};
-                subCbdet(cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,NBRULOP,LENRULOP,rulop,periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo);
+                subCbdet(buf,cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,NBRULOP,LENRULOP,rulop,periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo);
 
 
 #define DIGITSIZLIB 3
@@ -539,7 +539,7 @@ void periLineHtml(EthernetClient* cli,int i)
                   dLibState[k*DIGITSIZLIB]=oi[(*periDetVal>>(k*2))&DETBITLH_VB];
                   dLibState[i*DIGITSIZLIB+1]='_';}
 
-                subCbdet(cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);
+                subCbdet(buf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);
 }
 
 
@@ -551,17 +551,11 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
   char buf[1000];buf[0]='\0';
 
                 periInitVar();periLoad(numline);periCur=numline;
-                if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}     //periCheck(numline,"SwNb");periInitVar();periSave(numline,PERISAVESD);}
-                if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}  //periCheck(numline,"detNb");periInitVar();periSave(numline,PERISAVESD);}
+                if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}  
+                if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}
 
-                //cli->println("<tr>");
-                  //cli->println("<form method=\"GET \">");
-                      
-                      //cli->print("<td>");
           strcat(buf,"<tr>\n<form method=\"GET \"><td>");
-                      //cli->println(periCur);
           concatn(buf,periCur);
-                      //usrPeriCur(cli,"peri_cur__",0,2,3);                      
           strcat(buf,"\n<p hidden><input type=\"text\" name=\"user_ref_");
           concat1a(buf,(char)(usernum+PMFNCHAR));
           strcat(buf,"\" value=\"");
@@ -570,61 +564,41 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
           char fonc[]="peri_cur__\0\0";concat1a(fonc,(char)(PMFNCHAR));
           numTf(buf,'i',&periCur,fonc,2,3,0);
           strcat(buf,"</p>\n");
-                      //cli->print("<td>");cli->print(periNamer);cli->print("</td>");
+/* th */          
           strcat(buf,"<td>");strcat(buf,periNamer);strcat(buf,"</td>");
-                      //textTableHtml_(cli,periLastVal_,periThmin_,periThmax_,1,1);
           textTbl(buf,periLastVal_,periThmin_,periThmax_,1,1);
-                      //cli->print((float)*periThmin_/100);cli->println("<br>");                      
           concatnf(buf,(float)*periThmin_/100);strcat(buf,"<br>");
-                      //cli->print((float)*periThmax_/100);cli->print("</td>");
           concatnf(buf,(float)*periThmax_/100);strcat(buf,"</td>\n");                                
-                      //textTableHtml_(cli,periAlim_,periVmin_,periVmax_,1,1);                      
           textTbl(buf,periAlim_,periVmin_,periVmax_,1,1);          
-                      //cli->print((float)*periVmin_/100);cli->println("<br>");
           concatnf(buf,(float)*periVmin_/100);strcat(buf,"<br>\n");
-                      //cli->print((float)*periVmax_/100);cli->print("</td>");
           concatnf(buf,(float)*periVmax_/100);strcat(buf,"</td>");
-                      //cli->print("<td>");cli->print(*periPerTemp);cli->print("<br>");                      
+/* pertemp/pitch/offset */         
           strcat(buf,"<td>");concatn(buf,*periPerTemp);strcat(buf,"<br>");
-                      //cli->print((float)*periPitch_/100);cli->print("<br>");
           concatnf(buf,(float)*periPitch_/100);strcat(buf,"<br>");
-                      //cli->print((float)*periThOffset_/100);cli->print("</td>");
           concatnf(buf,(float)*periThOffset_/100);strcat(buf,"</td>");
-                      //cli->print("<td>");cli->print(*periPerRefr);cli->print("<br>");
           strcat(buf,"<td>");concatn(buf,*periPerRefr);strcat(buf,"<br>");
-                      //if(*periProg!=0){cli->print("serv");}cli->print("</td>");
           if(*periProg!=0){strcat(buf,"serv");}strcat(buf,"</td>");         
-                      //cli->print("<td>");cli->print(*periSwNb);cli->print("<br>");cli->print(*periDetNb);cli->print("</td>");cli->println("<td>");
           strcat(buf,"<td>");concatn(buf,*periSwNb);strcat(buf,"<br>");concatn(buf,*periDetNb);strcat(buf,"</td><td>");
-                      //for(uint8_t k=0;k<*periSwNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periSwVal>>((k*2)+1))&0x01]);cli->print("_");
           for(uint8_t k=0;k<*periSwNb;k++){
                       char oi[2]={'O','I'};concat1a(buf,oi[(*periSwVal>>((k*2)+1))&0x01]);strcat(buf,"_");
-                      //cli->print(oi[(*periSwVal>>((k*2)))&0x01]);if(k<*periSwNb-1){cli->print("<br>");}}
           concat1a(buf,oi[(*periSwVal>>((k*2)))&0x01]);if(k<*periSwNb-1){strcat(buf,"<br>");}}
-                      //cli->print("</td>");cli->print("<td>");
           strcat(buf,"</td><td>");
-                      //for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){cli->print("<br>");}}
           strcat(buf,"<font size=\"2\">");
           for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};concat1a(buf,oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){strcat(buf,"<br>");}}
-                      //cli->println("</td>");cli->print("<td>");
           strcat(buf,"</font></td>\n");
           strcat(buf,"<td>");
-          concatnf(buf,(float)(*periAnal+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2);strcat(buf,"<br>");
-          concatnf(buf,(float)(*periAnalLow+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2);strcat(buf,"<br>");
-          concatnf(buf,(float)(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2);strcat(buf,"<br>");
+/* analog */          
+          concatnf(buf,(float)(*periAnal+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2,4);strcat(buf,"<br>");
+          concatnf(buf,(float)(*periAnalLow+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2,4);strcat(buf,"<br>");
+          concatnf(buf,(float)(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2,4);strcat(buf,"<br>");
           strcat(buf,"</td>");                    
-          strcat(buf,"<td>");
-                      //for(int k=0;k<6;k++){cli->print(chexa[periMacr[k]/16]);cli->print(chexa[periMacr[k]%16]);}cli->print("<br>");
+/* mac */          
+          strcat(buf,"<td>");                      
           for(int k=0;k<6;k++){concat1a(buf,chexa[periMacr[k]/16]);concat1a(buf,chexa[periMacr[k]%16]);}strcat(buf,"<br>");
-                      //if(*periProg!=0 || *periProtocol=='U'){cli->print("port=");cli->print(*periPort);}cli->print("<br>");
           if(*periProg!=0 || *periProtocol=='U'){strcat(buf,"port=");concatn(buf,*periPort);}strcat(buf,"<br>");
-                      //cli->print("<font size=\"2\">");for(j=0;j<4;j++){cli->print(periIpAddr[j]);if(j<3){cli->print(".");}}cli->println("</font></td>");
           strcat(buf,"<font size=\"2\">");for(j=0;j<4;j++){concatn(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}}strcat(buf,"</font></td>\n");
-                      //cli->print("<td><font size=\"2\">");for(j=0;j<LENVERSION;j++){cli->print(periVers[j]);}
           strcat(buf,"<td><font size=\"2\">");for(j=0;j<LENVERSION;j++){concat1a(buf,periVers[j]);}
-                      //cli->println(" ");long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}
           strcat(buf," ");long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}
-                      //cli->print(protocStr+LENPROSTR*p);cli->println("<br>");
           char* a=protocStr+LENPROSTR*p;strcat(buf,a);strcat(buf,"<br>\n");
    
                       char colourbr[6];
@@ -632,29 +606,21 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
                       late=*periPerRefr+*periPerRefr/10;
                       memcpy(colourbr,"black\0",6);
                       if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
-                      if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setCol(buf,colourbr);
-                      //printPeriDate(cli,periLastDateOut);
+                      if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setCol(buf,colourbr);                      
           concatDate(buf,periLastDateOut);
                       memcpy(colourbr,"black\0",6);
                       if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
-                      if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setCol(buf,colourbr);
-                      //printPeriDate(cli,periLastDateIn);
+                      if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setCol(buf,colourbr);                      
           concatDate(buf,periLastDateIn);
-                      setCol(buf,"black");
-                      //cli->println("</font></td>");cli->print("<td>");
-          strcat(buf,"</font></td><td>");
-                       
-                      char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-                      //boutFonction(cli,line,"","Periph",0,1,0,0);
+                      setCol(buf,"black");                      
+          strcat(buf,"</font></td><td>");                       
+                      char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';                      
           boutF(buf,line,"","Periph",0,1,0,0);
                       
                       if(*periSwNb!=0){
                         char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
                         //boutFonction(cli,swf,"","Switchs",0,0,0,0);}
-          boutF(buf,swf,"","Switchs",0,0,0,0);}              
-                      //cli->print("</td>"); 
-
-  
+          boutF(buf,swf,"","Switchs",0,0,0,0);}                                    
           strcat(buf,"</form></tr>");
 
 if(strlen(buf)>=LBSHOWLINE){Serial.print("trop grand **************************");ledblink(BCODESHOWLINE);}
