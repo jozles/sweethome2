@@ -48,9 +48,8 @@ char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                 
 
 void checkVoltage()
 {
+#if POWER_MODE != NO_MODE  
       voltage=(float)ESP.getVcc()/(float)1024;
-
-#if POWER_MODE != NO_MODE
       if(voltage<3.2){
 #if POWER_MODE == PO_MODE
         digitalWrite(PINPOFF,HIGH);        // power down

@@ -114,7 +114,9 @@ char* cstRecA=(char*)&cstRec.cstlen;
 
   int   cntreq=0;
 
+#if POWER_MODE != NO_MODE
   ADC_MODE(ADC_VCC);
+#endif
 
   char*     chexa="0123456789ABCDEFabcdef\0";
   byte      mask[]={0x00,0x01,0x03,0x07,0x0F};
@@ -348,7 +350,7 @@ delay(20);
                       case 4:   pulseClkisr();break;
                       case 5:   break;
                       case 6:   pulseClkisr();break;
-                      case 7:   break;
+                      case 7:   readAnalog();break;
                       case 8:   pulseClkisr();break;
                       case 9:   readTemp();break;
                       case 10:  pulseClkisr();
@@ -434,6 +436,8 @@ ordreExt() test présence/réception et chargement message reçu en mode serveur
 talkClient() réponse à un message reçu en mode serveur
 
 wifiConnexion()
+
+readAnalog() (pour NO_MODE seul : les autres modes utilisent l'ADC pour lire l'alim)
 
 readTemp() gestion communications cycliques (déclenche talkServer)
 
@@ -946,6 +950,13 @@ void modemsleep()
   delay(100);
 }
 
+/* Read analog ----------------------- */
+
+void readAnalog()
+{
+ cstRec.analVal=analogRead(A0); 
+}
+
 
 /* Read temp ------------------------- */
  
@@ -1010,7 +1021,7 @@ void getTemp()
       if(((long)ms-(long)debConv)>tconversion){
         temp=ds1820.readDs(WPIN);
         temp*=100;                  // tempPitch 100x
-        ds1820.convertDs(WPIN);     // conversion pendant pendant attente prochain accès
+        ds1820.convertDs(WPIN);     // conversion pendant attente prochain accès
         debConv=millis();          
       }
 #endif PM==NO_MODE

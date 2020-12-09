@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.n_"
+#define VERSION "1.p_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -50,6 +50,8 @@
  * 1.m corrections durée conversion DS18X20 ; correction du codage des actions dans la boucle des règles (actions()/dynam.cpp)   
  * 1.n transfert lecture analogique et réception seuils ; à faire : lecture de l'entrée analogique.
  *     correction gestion connexion wifi (suppresseion talkServerWifiConnect() : les retrys sont dans wifiConnexion, fonction du temps WIFI_TO_CONNEXION )
+ * 1.p réception ordreExt() <5mS suppression de l'attente de déco avec TO de 2mS sur cli.available()
+ *     lecture valeur analogique et tfr en NO_MODE (les autres modes utilisent l'ADC pour l'alim)
  * 
 Modifier : 
 
