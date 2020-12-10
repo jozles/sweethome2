@@ -64,6 +64,7 @@
  *      TOINCHCLI augmenté à 4000 pour laisser le temps de répondre en cas de périReq (annule modif 1.4d) ; trigwd() avant d'appeler getHttpResp()
  * 1.4h ajout règles d'update des detserv depuis une valeur analogique et depuis les det des périphériques (modif periRec) + fonctions adhoc
  * 1.4k ajout memdet ref + opération logique sur règles analog + digital     
+ * 1.4m ajout source détecteurs, modif memDetServHtml + valorisations depuis periline, SwCtlTable, thermomètres et timers
  *      
  * BUGS : 
  *  
@@ -236,6 +237,12 @@ struct Thermo
 
 #define MEMDETFNAME "MEM_DETS"
 #define LENLIBDETSERV 9
+#define MDSPER 0x01
+#define MDSREM 0x02
+#define MDSTHE 0x03
+#define MDSTIM 0x04
+#define MDSNBSRC 0x3f
+
 
 #define LMEMO 16
 #define NBMEMOS 16

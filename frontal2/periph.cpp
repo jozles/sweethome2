@@ -7,13 +7,11 @@
 #include "shutil2.h"
 #include "periph.h"
 
-/* >>>>>>>> fichier config <<<<<<< */
+
+
+/* >>>>>>>> config <<<<<<< */
 
 File fconfig;     // fichier config
-
-extern uint32_t memDetServ;  // image mémoire NBDSRV détecteurs
-extern uint16_t perrefr;
-
 
 extern char configRec[CONFIGRECLEN];
   
@@ -36,7 +34,7 @@ extern byte*    configBegOfRecord;
 extern byte*    configEndOfRecord;
 
 
-/* >>>>>>> fichier périphériques <<<<<<<  */
+/* >>>>>>> périphériques <<<<<<<  */
 
 File fperi;       // fichiers perif
 
@@ -96,7 +94,6 @@ extern uint8_t*  periDigitCb;                  // ptr ds buffer : 5 x 4 bits pou
 extern uint8_t*  periDigitDestDet;             // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*  periDigitRefDet;              // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
 extern int8_t*   periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
-
       
 extern byte*     periBegOfRecord;
 extern byte*     periEndOfRecord;
@@ -113,32 +110,51 @@ char inptypd[]="meexswpu??";                  // libellés types destinations re
 char inpact[]={"     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR                      "};      // libellés actions
 char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                                          // libellés staPulse
 
+/* >>>>>>> remotes <<<<<<<  */
+
+File fremote;     // fichier remotes
+
 extern struct SwRemote remoteT[MAXREMLI];
 extern char*  remoteTA;
 extern long   remoteTlen;
 extern struct Remote remoteN[NBREMOTE];
 extern char*  remoteNA;
 extern long   remoteNlen;
-File fremote;     // fichier remotes
+
+/* >>>>>>> Timers <<<<<<<  */
+
+File ftimers;     // fichier timers
 
 extern struct Timers timersN[NBTIMERS];
 extern char*  timersNA;
 extern long   timersNlen;
-File ftimers;     // fichier timers
+
+/* >>>>>>> Thermos <<<<<<<  */
+
+File fthermos;    // fichier thermos
 
 extern struct Thermo thermos[NBTHERMOS];
 extern char*  thermosA;
 extern long   thermoslen;
-File fthermos;    // fichier thermos
 
-extern char   libDetServ[NBDSRV][LENLIBDETSERV];
-extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
+/* >>>>>>> détecteurs serveur <<<<<<<  */
+
 File fmemdet;     // fichier détecteurs serveur
+
+extern char      libDetServ[NBDSRV][LENLIBDETSERV];
+extern uint16_t  sourceDetServ[NBDSRV];   // actionneurs (ssnnnnnn ss type 00, 01 perif, 10 remote, 11 timer / nnnnnn n°)
+extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
+
 extern uint32_t  mDSmaskbit[];
 
-extern char   memosTable[LMEMO*NBMEMOS];
-File fmemos;      // fichier memos
+/* >>>>>>> Memos <<<<<<<  */
 
+File fmemos;      // fichier memos
+extern char   memosTable[LMEMO*NBMEMOS];
+
+
+
+extern uint16_t perrefr;
 extern char strdate[33];
 extern char temp[3],temp0[3],humid[3];
 
@@ -229,7 +245,6 @@ byte* temp=(byte*)configRec;
   Serial.print("  nbfonct=");Serial.println(nbfonct);
   Serial.print("RECCHAR=");Serial.print(RECCHAR);Serial.print(" LBUFSERVER=");Serial.println(LBUFSERVER);
 }
-
 
 
 void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned long* cxtime)
@@ -1204,6 +1219,8 @@ int memDetLoad()
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){libDetServ[i][j]=fmemdet.read();}
     }
+
+    for(uint8_t i=0;i<NBDSRV;i++){sourceDetServ[i]==fmemdet.read();}
     fmemdet.close();Serial.println(" OK");
     return SDOK;
 }
@@ -1217,6 +1234,7 @@ int memDetSave()
     for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*(((byte*)&memDetServ)+i));}
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){fmemdet.write(libDetServ[i][j]);}
+    for(uint8_t i=0;i<NBDSRV;i++){fmemdet.write(sourceDetServ[i]);}
     }
     fmemdet.close();Serial.println(" OK");
     return SDOK;  
@@ -1231,9 +1249,12 @@ void memDetInit()
 
 void memDetPrint()
 {
-    dumpfield((char*)&memDetServ,4);Serial.print(" ");
+    dumpfield((char*)&memDetServ,4);Serial.println(" ");
     for(uint8_t i=0;i<NBDSRV;i++){
-      for(uint8_t j=0;j<LENLIBDETSERV;j++){Serial.print(libDetServ[i][j]);}Serial.print("/");
+      Serial.print(i);if(i<10){Serial.print(" ");}Serial.print("  ");
+      Serial.print((memDetServ>>i)&0x01);Serial.print("  ");
+      for(uint8_t j=0;j<LENLIBDETSERV;j++){Serial.print(libDetServ[i][j]);}Serial.print(" ");
+      if(sourceDetServ[i]<16){Serial.print('0');};Serial.println(sourceDetServ[i],HEX);
     }
     Serial.println();
 }

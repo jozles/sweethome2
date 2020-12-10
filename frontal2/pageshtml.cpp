@@ -69,9 +69,10 @@ extern char*     periNamer;                    // ptr ds buffer : description p�
 
 extern int       fdatasave;
 
-extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
+extern char      mdsSrc[];
+extern uint32_t  memDetServ;                   // image mémoire NBDSRV détecteurs
 extern char      libDetServ[NBDSRV][LENLIBDETSERV];
-
+extern uint16_t  sourceDetServ[NBDSRV];
 
    // Un formulaire ou une page html nécessite dans l'ordre :
    //      1) une fonction user_ref_ avec ses paramètres pour éviter le retour au mot de passe
@@ -742,13 +743,18 @@ void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
           strcat(buf,"<form>");
           usrFormInitBHtml(buf,"dsrv_init_");
           strcat(buf,"<fieldset><legend>détecteurs serveur (n->0):</legend>\n");
+          cli->print(buf);buf[0]='\0';
           for(int k=NBDSRV-1;k>=0;k--){
             char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
             if(libb[0]=='\0'){convIntToString(libb,k);}
             subDSnB(buf,"mem_dsrv__\0",*mds,k,libb);
+            strcat(buf,"<font size=\"1\"> (");concat1a(buf,mdsSrc[sourceDetServ[k]/256]);
+            if(sourceDetServ[k]/256!=0){concatn(buf,sourceDetServ[k]&0x00ff);}
+            else{strcat(buf,"--");}
+            strcat(buf,") </font>");
             cli->print(buf);buf[0]='\0';}
           strcat(buf,"<input type=\"submit\" value=\"Per Update\"></fieldset></form>\n"); 
-  cli->print(buf);        
+  cli->print(buf);buf[0]='\0';        
 }
 
 void testHtml(EthernetClient* cli)

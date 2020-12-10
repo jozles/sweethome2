@@ -142,6 +142,8 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
   char      libDetServ[NBDSRV][LENLIBDETSERV];
+  char      mdsSrc[]=" PRTD";
+  uint16_t  sourceDetServ[NBDSRV];   // actionneurs (sssnnnnnnnn ss type 000, P 001 perif, R 010 remote, T 011 thermos, D 100 timers / nnnnnnnn n°)
   uint32_t  mDSmaskbit[]={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
                        0x00000100,0x00000200,0x00000400,0x00000800,0x00001000,0x00002000,0x00004000,0x00008000,
                        0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
@@ -330,10 +332,14 @@ void setup() {                              // =================================
   Serial.print("+");delay(100);
 
   initLed(PINLED);
-  digitalWrite(PINLED,HIGH);delay(1);digitalWrite(PINLED,LOW);
+  digitalWrite(PINLED,HIGH);delay(10);digitalWrite(PINLED,LOW);
 
   pinMode(STOPREQ,INPUT_PULLUP);
-  
+
+//  while(1){ledblink(0);}
+
+
+
 /* >>>>>>     config     <<<<<< */  
   
   Serial.println();Serial.print(VERSION);Serial.print(" ");
@@ -941,60 +947,33 @@ void testSwitch(char* command,char* perihost,int periport)
 
 /* ================================ utilitaires serveur ================================= */
 
+void setSourceDet(uint8_t detNb,uint8_t sourceCod,uint8_t sourceNb)
+{
+  sourceDetServ[detNb]=sourceCod*256+sourceNb;
+  Serial.print(" ====================setSourceDet Nb=");Serial.print(detNb);Serial.print(" Cod=");Serial.print(sourceCod);Serial.print(" ---");Serial.println(sourceDetServ[detNb],HEX);
+}
+
 void textfonc(char* nf,int len)
 {
   memset(nf,0x00,len);
   memcpy(nf,valf,nvalf[i+1]-nvalf[i]);
 }
 
-void rulesfonc(uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)            // traitement des fonctions 'rules' de périf
-{                                                                 //  (4*cb 1*det 1*memo)
-  uint8_t li=*(libfonctions+2*i+1)-PMFNCHAR;                      // row
-  uint8_t co=*(libfonctions+2*i)-PMFNCHAR;                        // column 
-  //Serial.print("  rules li=");Serial.print(li);Serial.print(" co=");Serial.print(co);
-  if(co<4){cb[li]|=maskbit[(3-co)*2+1]; //Serial.print(" mb=");Serial.print(maskbit[(3-co)*2+1],HEX);Serial.print(" ");Serial.println(cb[li]);
-            }                                                     // cb
-  if(co==4){inpsub(cb+li,0xf0,4,rulop,5);//Serial.print(" cb+li=");Serial.println(*(cb+li),HEX);
-            }                                                     // opération logique
-  if(co==5){rdet[li]=0xff;                                        // det
-            uint16_t d;
-            if(nvalf[i+1]-nvalf[i]>1){conv_atob(valf,&d);rdet[li]=(uint8_t)d;}               // si rien 0xff (refDet facultatif)
-            //Serial.print(" nvalf[i+1]-nvalf[i]=");Serial.print(nvalf[i+1]-nvalf[i]);Serial.print(" refDet=");Serial.println(rdet[li]);
-            }
-  if(co==6){det[li]=0;                                            // det
-            uint16_t d;conv_atob(valf,&d);det[li]=(uint8_t)d;//Serial.print(" destDet=");Serial.println(det[li]);
-            }
-  if(co==7){                                                      // memo
-    char bm[LMEMO];memset(bm,0x00,LMEMO);
-    uint8_t lm=nvalf[i+1]-nvalf[i];//Serial.print(" valf=");Serial.print(valf);
-    if(lm>=LMEMO-1){lm=LMEMO-1;}
-    memcpy(bm,valf,lm);
-    trailingSpaces(bm,LMEMO-1);
-    //Serial.print(" lm=");Serial.print(lm);
-    if(bm[0]!=0 && lm!=0){
-      memo[li]=memosFind();//Serial.print(" mF=");Serial.print(memo[i]);
-      if(memo[li]>=0){
-        memcpy(memosTable+memo[li]*LMEMO,bm,LMEMO-1);Serial.print(" mT=");Serial.print(bm);}
-        //memosSave(memo[li]);memosPrint();}                        // devrait enregistrer un memo à la fois ; 
-        //memosSave(-1);memosPrint();}                              // fmemos.write(...) ne fonctionne apparemment qu'en "append"
-    }                       
-  Serial.println();
-  }
-}
-
-void inpsub(byte* ptr,byte mask,byte lshift,char* libel,uint8_t len)
+byte inpsub(byte* ptr,byte mask,byte lshift,char* libel,uint8_t len)    // entre dans la ligne de règle *ptr à la position lshift,mask le n° du libellé valf trouvé dans libel au pas de len
 {
   uint8_t lreel;
   char typ[8];
   for(int i=0;i<8;i++){if(*(valf+i)==0x00){lreel=i;i=8;}}
   
   byte v=0;
+  byte num=0xff;
   
   if(lreel>0 && lreel<8 && len>0 && len<8){
     memcpy(typ,valf,lreel);for(int i=lreel;i<len;i++){typ[i]=' ';}typ[len]=0x00;
     char* p=strstr(libel,typ);
     if(p>=0){  
       v=(byte)((p-libel)/len);
+      num=v;
       //Serial.print(" p=");Serial.print((long)p);Serial.print(" pos=");Serial.print(p-libel);Serial.print(" rang=");Serial.print(v);
       v = v << lshift;
     }
@@ -1004,7 +983,49 @@ void inpsub(byte* ptr,byte mask,byte lshift,char* libel,uint8_t len)
 
 //Serial.print(" valf=");Serial.print(valf);Serial.print(" len=");
 //Serial.print(len);Serial.print(" lreel=");Serial.print(lreel);Serial.print(" typ=");Serial.print(typ);Serial.print(" libel=");Serial.print(libel);Serial.print(" v=");Serial.println(v,HEX);
+  return num;
 }
+
+
+void rulesfonc(uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)            // traitement des fonctions 'rules' de périf
+{                                                                 //  (4*cb 1*det 1*memo)
+  uint8_t li=*(libfonctions+2*i+1)-PMFNCHAR;                      // row
+  uint8_t co=*(libfonctions+2*i)-PMFNCHAR;                        // column 
+    
+  if(co<4){cb[li]|=maskbit[(3-co)*2+1];
+            }                                                     // cb
+  if(co==4){inpsub(cb+li,0xf0,4,rulop,5);
+            }                                                     // opération logique
+  if(co==5){sourceDetServ[rdet[li]]=0x00;                         // det
+            rdet[li]=0xff;
+            uint16_t d;
+            if(nvalf[i+1]-nvalf[i]>1){                            // si rien 0xff (refDet facultatif)
+              conv_atob(valf,&d);rdet[li]=(uint8_t)d;
+              setSourceDet(rdet[li],MDSPER,periCur);
+              }               
+            }
+  if(co==6){sourceDetServ[det[li]]=0x00;                          // det
+            det[li]=0xff;                    
+            uint16_t d;conv_atob(valf,&d);det[li]=(uint8_t)d;
+            setSourceDet(det[li],MDSPER,periCur);
+            }
+  if(co==7){                                                      // memo
+    char bm[LMEMO];memset(bm,0x00,LMEMO);
+    uint8_t lm=nvalf[i+1]-nvalf[i];
+    if(lm>=LMEMO-1){lm=LMEMO-1;}
+    memcpy(bm,valf,lm);
+    trailingSpaces(bm,LMEMO-1);
+    if(bm[0]!=0 && lm!=0){memo[li]=memosFind();
+      if(memo[li]>=0){
+        memcpy(memosTable+memo[li]*LMEMO,bm,LMEMO-1);
+        //memosSave(memo[li]);memosPrint();}                        // devrait enregistrer un memo à la fois ; 
+        //memosSave(-1);memosPrint();}                              // fmemos.write(...) ne fonctionne apparemment qu'en "append"
+      }
+    }                       
+  Serial.println();
+  }
+}
+
 
 /* ================================ serveur ================================= */
 
@@ -1151,6 +1172,9 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
     boucle des fonctions accumulées par getnv
 */   
 //if(periCur==3){Serial.print(" intro serveur ================");periPrint(periCur);}
+
+        uint16_t transferVal;         // pour passer "quelque chose" entre 2 fonctions 
+        
         for (i=0;i<=nbreparams;i++){
 
           if(i<NBVAL && i>=0){
@@ -1271,7 +1295,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                         sh=sh<<pu*PCTLBIT;
                         *(uint16_t*)periSwPulseCtl|=sh;
                        }break;       
-              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;   // (regles switchss) p_inp1__  
+              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;   // (regles switchs) p_inp1__  
                         uint8_t offs=nuinp*PERINPLEN;                                                     // (enable/type/num detec/action)
                         uint16_t vl=0;
                         // pericur est à jour via peri_inp_
@@ -1283,16 +1307,20 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           case 5:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
                                  *(periInput+offs)&=~PERINPV_MS;
                                  *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;                   // num detec src
-                          case 6:inpsub((periInput+3+offs),PERINPNT_MS,PERINPNTLS_PB,inptypd,2);break;    // type dest
+                          case 6:if(((*(periInput+3+offs)&PERINPNT_MS)>>PERINPNTLS_PB)==DETYEXT){
+                            sourceDetServ[offs/PERINPLEN]=0x00;} // si la dest  était un detServ il faut effacer sourceDetServ
+                                 transferVal=(uint16_t)inpsub((periInput+3+offs),PERINPNT_MS,PERINPNTLS_PB,inptypd,2);break;    // type dest
                           case 7:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
                                  *(periInput+3+offs)&=~PERINPV_MS;
-                                 *(periInput+3+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;                 // num detec dest                                 
+                                 *(periInput+3+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);
+                                 if(transferVal==DETYEXT){setSourceDet(vl,MDSPER,periCur);}  // si la dest est un detServ màj sourceDetServ (periCur from peri_inp_)
+                                 break;                                                                   // num detec dest                                 
                           case 8:inpsub((periInput+2+offs),PERINPACT_MS,PERINPACTLS_PB,inpact,LENTACT);break;    // action
                           case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;            // active level
                           default:break;
                         }
                        }break;                                                                      
-              case 34: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (perinput) p_inp2__  8 bits inutilisés
+              case 34: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (règles switchs) p_inp2__  8 bits inutilisés
                         uint8_t offs=nuinp*PERINPLEN;
                         // pericur est à jour via peri_inp_
                         *(uint8_t*)(periInput+offs+1)|=(uint8_t)PERINPRULESLS_VB<<nfct;}break;
@@ -1348,8 +1376,11 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                             case 'o': remoteN[nb].onoff=*valf-48;break;                                 // (remotecf) on on/off remote courante
                             case 'u': remoteT[nb].num=*valf-48;                                         // (remotecf) un N° remote table sw
                                       remoteT[nb].enable=0;break;                                       // (remotecf) effacement cb
-                            case 'd': remoteT[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off
-                                      if(remoteT[nb].detec>NBDSRV){remoteT[nb].deten=NBDSRV;}break; 
+                            case 'd': sourceDetServ[remoteT[nb].detec]=0x00;                 
+                                      remoteT[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off
+                                      if(remoteT[nb].detec>NBDSRV){remoteT[nb].deten=NBDSRV;}
+                                      if(remoteT[nb].detec!=0){setSourceDet(remoteT[nb].detec,MDSREM,nb+1);}
+                                      break; 
                             case 'b': remoteT[nb].deten=convStrToInt(valf,&j);                          // (remotecf) n° detecteur enable
                                       if(remoteT[nb].deten>NBDSRV){remoteT[nb].deten=NBDSRV;}break;                                             
                             //case 'x': remoteT[nb].enable=*valf-48;break;                                // (remotecf) xe enable table sw !!!! remplacé par 'b' !!!!
@@ -1385,16 +1416,23 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=(int16_t)convStrToInt(valf,&j);break;     // value high
                           case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=(int16_t)convStrToInt(valf,&j);break;     // offset low
                           case 'O':thermos[nb].highoffset=0;thermos[nb].highoffset=(int16_t)convStrToInt(valf,&j);break;   // offset high
-                          case 'd':thermos[nb].lowdetec=0;thermos[nb].lowdetec=convStrToInt(valf,&j);
-                                   if(thermos[nb].lowdetec>NBDSRV){thermos[nb].lowdetec=NBDSRV;}break;            // det low
+                          case 'd':sourceDetServ[remoteT[nb].detec]=0;                 
+                                   thermos[nb].lowdetec=0;thermos[nb].lowdetec=convStrToInt(valf,&j);
+                                   if(thermos[nb].lowdetec>NBDSRV){thermos[nb].lowdetec=NBDSRV;}
+                                   if(thermos[nb].lowdetec!=0){setSourceDet(thermos[nb].lowdetec,MDSTHE,nb+1);}
+                                   break;                                                                           // det low
                           case 'D':thermos[nb].highdetec=0;thermos[nb].highdetec=convStrToInt(valf,&j);
-                                   if(thermos[nb].highdetec>NBDSRV){thermos[nb].highdetec=NBDSRV;}break;          // det high                          
+                                   if(thermos[nb].highdetec>NBDSRV){thermos[nb].highdetec=NBDSRV;}
+                                   if(thermos[nb].highdetec!=0){setSourceDet(thermos[nb].highdetec,MDSTHE,nb+1);}
+                                   break;                                                                           // det high                          
                           default:break;
                         } 
                        }break;
               case 58: thermoShowHtml(&cli);break;                                                      // thermoshow
               case 59: thermoCfgHtml(&cli);thermosPrint();break;                                        // thermos___ (bouton thermo_cfg)
-              case 60: *periPort=0;conv_atob(valf,periPort);break;                                      // (ligne peritable) peri_port_
+              case 60: *periPort=0;conv_atob(valf,periPort);
+              Serial.print(" ========================periport=");Serial.println(*periPort);
+              break;                                      // (ligne peritable) peri_port_
               case 61: what=7;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (timers) tim_name__
                        textfonc(timersN[nb].nom,LENTIMNAM);
                        //Serial.print("efface cb timers ");Serial.print(nb);Serial.print(" ");Serial.print(timersN[nb].nom);
@@ -1470,13 +1508,12 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        if(nf<2){
                           memset(cb,0x00,ncb);                                                          // cb
                           for(uint8_t nm=0;nm<ncb;nm++){                                                // memos
-                            memset(memosTable+memo[nm]*LMEMO,0x00,LMEMO);
-                            memo[nm]=-1;
+                            if(memo[nm]<NBMEMOS && memo[nm]>=0){memset(memosTable+memo[nm]*LMEMO,0x00,LMEMO);memo[nm]=-1;}
                           }
                        }
-                       }break;                                                                           
-                       
-                              
+                       }break;                                                                                                        
+              
+              /* fin des case */
               default:break;
               }
               
@@ -1508,6 +1545,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                   cliext.stop();
                   periMess=periReq(&cliext,periCur,"set_______");break;
           case 5: periMess=periSave(periCur,PERISAVESD);                // (periLine) modif ligne de peritable
+                  periPrint(periCur);
                   periTableHtml(&cli); 
                   cli.stop();
                   cliext.stop();

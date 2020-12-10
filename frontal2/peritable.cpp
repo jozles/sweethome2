@@ -21,6 +21,8 @@ extern long      fhsize;      // remplissage fhisto
 extern char*     nomserver;
 extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
 extern char      libDetServ[NBDSRV][LENLIBDETSERV];
+extern uint16_t  sourceDetServ();
+
 extern uint16_t  perrefr;
 
 extern char*     userpass;            // mot de passe browser
