@@ -60,7 +60,7 @@ void checkVoltage()
 #endif DS_MODE
       }        
 #endif NO_MODE
-      Serial.print(" ");Serial.print(voltage);Serial.print("V ");
+      Serial.print(" ");Serial.print(voltage);Serial.println("V ");
 }
 
 void trigTemp(){startto(&tempTime,&tempPeriod,cstRec.tempPer);}

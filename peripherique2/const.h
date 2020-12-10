@@ -183,27 +183,29 @@ Modifier :
 #define T10BITS            0x3F   // 10 bits 187,5mS 0.25°
 #define T9BITS             0x1F   // 9 bits 93,75mS 0.5°
 
-#if POWER_MODE==NO_MODE
-  #define _SERVER_MODE          /* Mode server */
-#endif PM==NO_MODE
-
 // stockage deep sleep / power off  (EEPROM pour PO_MODE seul )
 
 #define EEPROMSAVED 'E'
 #define RTCSAVED    'R'
 
-#if  POWER_MODE!=PO_MODE
+#if POWER_MODE==NO_MODE
+  #define _SERVER_MODE          /* Mode server */
   #define TBITS T12BITS       // résolution DSX20
   #define CONSTANT RTCSAVED
   #define CONSTANTADDR 64     // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
-#endif PM!=PO_MODE
+#endif PM==NO_MODE
 
 #if POWER_MODE==PO_MODE
   #define TBITS T10BITS       // résolution DSX20
   #define CONSTANT EEPROMSAVED
-  #define CONSTANTADDR 0   // adresse des constantes dans l'EEPROM
+  #define CONSTANTADDR 0      // adresse des constantes dans l'EEPROM
 #endif PM==PO_MODE
 
+#if POWER_MODE==DS_MODE
+  #define TBITS T10BITS       // résolution DSX20
+  #define CONSTANT RTCSAVED
+  #define CONSTANTADDR 64     // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
+#endif PM==DS_MODE
 
 // matériel
 

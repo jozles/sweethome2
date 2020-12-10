@@ -229,14 +229,14 @@ delay(1);
 
  byte setds[4]={0,0x7f,0x80,TBITS},readds[8];    // fonction, high alarm, low alarm, config conversion 
  int v=ds1820.setDs(WPIN,setds,readds); // init & read rom
- if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.println();}
+ tconversion=TCONVERSIONB;if(readds[0]==0X10 || TBITS==T12BITS){tconversion=TCONVERSIONS;}
+ if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.println("Tconv=");Serial.println(tconversion);}
  else {Serial.print(" DS1820 error ");Serial.println(v);}
-  tconversion=TCONVERSIONB;if(readds[0]==0X10 || TBITS==T12BITS){tconversion=TCONVERSIONS;}
   
 #if POWER_MODE==NO_MODE
   debConv=millis();
-  ds1820.convertDs(WPIN);
-  delay(tconversion);
+  ds1820.convertDs(WPIN); // readTemp ignoré jusqu'à fin de la conversion
+  //delay(tconversion);
 #endif PM==NO_MODE
 #if POWER_MODE==PO_MODE
   //ds1820.convertDs(WPIN);delay(250);
@@ -285,14 +285,9 @@ delay(20);
   memdetinit();pulsesinit();
   yield();
   
-  #ifdef  _SERVER_MODE
-//    wifiConnexion("devolo-5d3","JNCJTRONJMGZEEQL");
-/*    timeservbegin=millis();
-    server.begin(PORTSERVPERI);
-    Serial.print("server.begin(");Serial.print((int)PORTSERVPERI);Serial.print(") durée=");Serial.println(millis()-timeservbegin);
-*/
+#ifdef  _SERVER_MODE
   clkFastStep=1;cstRec.talkStep=1 ; // forçage com pour acquisition port perif server
-  #endif  def_SERVER_MODE
+#endif  def_SERVER_MODE
 
   }    // fin setup NO_MODE
   void loop(){  //=== NO_MODE =================================      
@@ -975,7 +970,6 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
     if(chkTrigTemp()){
       uint16_t tempPeriod0=(millis()-tempTime)/1000;   // (sec) durée depuis dernier check température
       trigTemp();
-//      dateon=millis();
 #endif PM==NO_MODE
 
 /* avance timer server ------------------- */
@@ -1016,11 +1010,13 @@ void getTemp()
 #if POWER_MODE!=NO_MODE
       temp=ds1820.readDs(WPIN);
       temp*=100;                    // tempPitch 100x
+      Serial.print(" temp ");Serial.print(temp/100);
 #endif PM!=NO_MODE
 #if POWER_MODE==NO_MODE
       if(((long)ms-(long)debConv)>tconversion){
         temp=ds1820.readDs(WPIN);
         temp*=100;                  // tempPitch 100x
+        Serial.print("temp ");Serial.print(temp/100);
         ds1820.convertDs(WPIN);     // conversion pendant attente prochain accès
         debConv=millis();          
       }
@@ -1029,7 +1025,5 @@ void getTemp()
       ds1820.convertDs(WPIN);     // conversion pendant deep/sleep ou pendant attente prochain accès
 #endif PM!=DS_MODE
 
-      Serial.print("temp ");Serial.print(temp/100);
-      checkVoltage();             
-      Serial.println();
+      checkVoltage();
 }
