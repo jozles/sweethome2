@@ -43,6 +43,14 @@ void concat1a(char* buf,char a)
   b[0]=(char)(a);strcat(buf,b);
 }
 
+void concat1aH(char* buf,char a)
+{
+  char b[]="\0\0\0";
+  if(a<16){b[0]='0';}
+  else b[0]=chexa[a>>4];b[1]=a&0x0f;
+  strcat(buf,b);
+}
+
 void concatn(char* buf,unsigned long val)
 {
   uint16_t b,s;

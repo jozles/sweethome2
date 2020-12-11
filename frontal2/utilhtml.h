@@ -33,6 +33,7 @@ void usrFormBHtml(char* buf,bool hid);
 void usrFormInitBHtml(char* buf,char* nomfonct);
 void concatIp(char* buf,byte* ip);
 void concat1a(char* buf,char a);
+void concat1aH(char* buf,char a);
 void concatn(char* buf,unsigned long val);
 void concatns(char* buf,long val);
 void concatnf(char* buf,float val);

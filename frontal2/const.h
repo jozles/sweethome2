@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.4k"
+#define VERSION "1.4m"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
  * 1.1a ajout volts et version dans table
  * 1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -64,7 +64,7 @@
  *      TOINCHCLI augmenté à 4000 pour laisser le temps de répondre en cas de périReq (annule modif 1.4d) ; trigwd() avant d'appeler getHttpResp()
  * 1.4h ajout règles d'update des detserv depuis une valeur analogique et depuis les det des périphériques (modif periRec) + fonctions adhoc
  * 1.4k ajout memdet ref + opération logique sur règles analog + digital     
- * 1.4m ajout source détecteurs, modif memDetServHtml + valorisations depuis periline, SwCtlTable, thermomètres et timers
+ * 1.4m ajout source détecteurs, modif memDetServHtml + valorisations depuis periline, SwCtlTable, thermomètres, remotes et timers
  *      
  * BUGS : 
  *  

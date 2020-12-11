@@ -180,7 +180,7 @@ void accueilHtml(EthernetClient* cli)
             cli->println("</form></body></html>");
 }          
 
-void sscb(EthernetClient* cli,bool val,char* nomfonct,int nuf,int etat,uint8_t td,uint8_t nb)
+void sscb(char* buf,bool val,char* nomfonct,int nuf,int etat,uint8_t td,uint8_t nb)
 {                                                                               // saisie checkbox ; 
                                                                                 // le nom de fonction reçoit 2 caractères
   char nf[LENNOM+1];
@@ -188,9 +188,18 @@ void sscb(EthernetClient* cli,bool val,char* nomfonct,int nuf,int etat,uint8_t t
   nf[LENNOM]='\0';
   nf[LENNOM-1]=(char)(nb+PMFNCHAR);
   nf[LENNOM-2]=(char)(nuf+PMFNCHAR);
-  checkboxTableHtml(cli,(uint8_t*)&val,nf,etat,td,"");
+  checkboxTableBHtml(buf,(uint8_t*)&val,nf,etat,td,"");
 }
 
+void sscfgtB(char* buf,char* nom,uint8_t nb,void* value,int len,uint8_t type)  // type=0 value ok ; type =1 (char)value modulo len*nt ; type =2 (uint16_t)value modulo nb
+{
+  int sizbx=len-3;if(sizbx<=0){sizbx=1;}
+  strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nom);concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
+  if(type==0){strcat(buf,(char*)value);strcat(buf,"\" size=\"");concatn(buf,sizbx);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>");}
+  if(type==2){concatn(buf,*((int16_t*)value+nb));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>");}
+  if(type==1){strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatn(buf,len);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");}
+  if(type==3){concatn(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
+}
 
 void sscfgt(EthernetClient* cli,char* nom,uint8_t nb,void* value,int len,uint8_t type)  // type=0 value ok ; type =1 (char)value modulo len*nt ; type =2 (uint16_t)value modulo nb
 {
@@ -308,7 +317,6 @@ void cfgRemoteHtml(EthernetClient* cli)
             boutRetour(cli,"retour",0,0);
             cli->println(" <input type=\"submit\" value=\"MàJ\">");
             char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
-            //detServHtml(cli,&memDetServ,&libDetServ[0][0]);            
 
 /* table remotes */
 
@@ -633,7 +641,6 @@ void thermoCfgHtml(EthernetClient* cli)
             boutFonction(cli,"thermoscfg","","refresh",0,0,1,0);cli->print(" ");
             
             char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
-            //detServHtml(cli,&memDetServ,&libDetServ[0][0]);            
 
 /* table thermos */
 
@@ -678,63 +685,70 @@ void timersHtml(EthernetClient* cli)
   int nucb;           
   char a;
   char bufdate[LNOW];ds3231.alphaNow(bufdate);
+  char buf[1000];buf[0]=0;
   
             Serial.println("saisie timers");
-            htmlIntro(nomserver,cli);
+            htmlIntroB(buf,nomserver,cli);
             
-            cli->print("<body>");cli->print(VERSION);cli->print(" ");
+            strcat(buf,"<body>");strcat(buf,VERSION);strcat(buf," ");
             
-            boutRetour(cli,"retour",0,0);cli->print(" ");
-            boutFonction(cli,"timershtml","","refresh",0,0,1,0);cli->print(" ");
+            boutRetourB(buf,"retour",0,0);strcat(buf," ");
+            boutF(buf,"timershtml","","refresh",0,0,1,0);strcat(buf," ");
 
-            char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
+            char pkdate[7];bufPrintDateHeure(buf,pkdate);strcat(buf,"\n");
+            cli->print(buf);buf[0]=0; // detServ print son propre buf
             detServHtml(cli,&memDetServ,&libDetServ[0][0]);
 
-         cli->println("<table>");
-              cli->println("<tr>");
-                cli->println("<th></th><th>nom</th><th>det</th><th>h_beg</th><th>h_end</th><th>OI det</th><th>e_p_c_</th><th>7_d_l_m_m_j_v_s</th><th>dh_beg_cycle</th><th>dh_end_cycle</th>");
-              cli->println("</tr>");
+            strcat(buf,"<table>");
+              strcat(buf,"<tr>");
+                strcat(buf,"<th></th><th>nom</th><th>det</th><th>h_beg</th><th>h_end</th><th>OI det</th><th>e_p_c_</th><th>7_d_l_m_m_j_v_s</th><th>dh_beg_cycle</th><th>dh_end_cycle</th>");
+              strcat(buf,"</tr>");
 
               for(int nt=0;nt<NBTIMERS;nt++){
 
-                    cli->println("<tr>");
-                    cli->println("<form method=\"GET \">");
-                      usrFormHtml(cli,1);
-                      cli->print("<td>");cli->print(nt+1);cli->println("</td>");
-                      
-                      sscfgt(cli,"tim_name_",nt,timersN[nt].nom,LENTIMNAM,0);
-                      sscfgt(cli,"tim_det__",nt,&timersN[nt].detec,2,3);                                            
-                      sscfgt(cli,"tim_hdf_d",nt,timersN[nt].hdeb,6,0);                                            
-                      sscfgt(cli,"tim_hdf_f",nt,timersN[nt].hfin,6,0);                   
-                      
-                      char oi[]="OI",md=memDetServ>>timersN[nt].detec;
-                      cli->print("<td>");cli->print("_");
-                      cli->print(oi[timersN[nt].curstate]);cli->print("__");
-                      cli->print((memDetServ>>timersN[nt].detec)&0x01);
-                      cli->println("</td><td>");
-                      
-                      nucb=0;sscb(cli,timersN[nt].enable,"tim_chkb__",nucb,-1,0,nt);
-                      nucb++;sscb(cli,timersN[nt].perm,"tim_chkb__",nucb,-1,0,nt);
-                      nucb++;sscb(cli,timersN[nt].cyclic,"tim_chkb__",nucb,-1,0,nt);   
-                      //nucb++;sscb(cli,timersN[nt].forceonoff,"tim_chkb__",nucb,-1,0,nt);
+                    strcat(buf,"<tr>");
+                    strcat(buf,"<form method=\"GET \">");
+                      usrFormBHtml(buf,1);
+                      strcat(buf,"<td>");concatn(buf,nt+1);strcat(buf,"</td>");
                      
-                      cli->println("</td><td>");
+                      sscfgtB(buf,"tim_name_",nt,timersN[nt].nom,LENTIMNAM,0);
+                      sscfgtB(buf,"tim_det__",nt,&timersN[nt].detec,2,3);                                            
+                      sscfgtB(buf,"tim_hdf_d",nt,timersN[nt].hdeb,6,0);                                            
+                      sscfgtB(buf,"tim_hdf_f",nt,timersN[nt].hfin,6,0);                   
+                    
+                      char oi[]="OI",md=memDetServ>>timersN[nt].detec;
+                      strcat(buf,"<td>_");
+                      concat1a(buf,oi[timersN[nt].curstate]);strcat(buf,"__");
+                      concatn(buf,(memDetServ>>timersN[nt].detec)&0x01);                      
+                      strcat(buf,"</td><td>");
+                      
+                      nucb=0;sscb(buf,timersN[nt].enable,"tim_chkb__",nucb,-1,0,nt);
+                      nucb++;sscb(buf,timersN[nt].perm,"tim_chkb__",nucb,-1,0,nt);
+                      nucb++;sscb(buf,timersN[nt].cyclic,"tim_chkb__",nucb,-1,0,nt);   
+cli->print(buf);buf[0]=0;                     
+                      strcat(buf,"</td><td>");
                       for(int nj=7;nj>=0;nj--){
                         bool vnj; 
                         vnj=(timersN[nt].dw>>nj)&0x01;
-                        nucb++;sscb(cli,vnj,"tim_chkb__",nucb,-1,0,nt);
+                        nucb++;sscb(buf,vnj,"tim_chkb__",nucb,-1,0,nt);
                       }
-                      cli->println("</td>");
-                      sscfgt(cli,"tim_hdf_b",nt,&timersN[nt].dhdebcycle,14,0);
-                      sscfgt(cli,"tim_hdf_e",nt,&timersN[nt].dhfincycle,14,0); 
-                      cli->print("<td>");cli->print(" <input type=\"submit\" value=\"MàJ\"><br>");cli->println("</td>");
-                    cli->print("<td>");cli->print(timersN[nt].dw,HEX);cli->print(" ");cli->print(maskbit[1+bufdate[14]*2],HEX);cli->println("</td>");
-                    cli->println("</form>");
-                    cli->println("</tr>");
+                      strcat(buf,"</td>");
+                    
+                      sscfgtB(buf,"tim_hdf_b",nt,&timersN[nt].dhdebcycle,14,0);
+                      sscfgtB(buf,"tim_hdf_e",nt,&timersN[nt].dhfincycle,14,0); 
+                      strcat(buf,"<td> <input type=\"submit\" value=\"MàJ\"><br></td>");
+                    strcat(buf,"<td>");concat1aH(buf,timersN[nt].dw);strcat(buf," ");concat1aH(buf,maskbit[1+bufdate[14]*2]);                    
+                    strcat(buf,"</td>");
+ 
+                    strcat(buf,"</form>");
+                    strcat(buf,"</tr>\n");
+
+                    cli->print(buf);buf[0]='\0';
                   }
 
-        cli->println("</table>");
-        cli->println("</body></html>");
+        strcat(buf,"</table>");
+        strcat(buf,"</body></html>");
+        cli->print(buf);buf[0]='\0';
 }
 
 void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)

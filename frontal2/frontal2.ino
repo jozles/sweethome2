@@ -142,8 +142,8 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
   char      libDetServ[NBDSRV][LENLIBDETSERV];
-  char      mdsSrc[]=" PRTD";
-  uint16_t  sourceDetServ[NBDSRV];   // actionneurs (sssnnnnnnnn ss type 000, P 001 perif, R 010 remote, T 011 thermos, D 100 timers / nnnnnnnn n°)
+  char      mdsSrc[]=" PRHT";
+  uint16_t  sourceDetServ[NBDSRV];   // actionneurs (sssnnnnnnnn ss type 000, P 001 perif, R 010 remote, H 011 thermos, T 100 timers / nnnnnnnn n°)
   uint32_t  mDSmaskbit[]={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
                        0x00000100,0x00000200,0x00000400,0x00000800,0x00001000,0x00002000,0x00004000,0x00008000,
                        0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
@@ -996,7 +996,7 @@ void rulesfonc(uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)            /
             }                                                     // cb
   if(co==4){inpsub(cb+li,0xf0,4,rulop,5);
             }                                                     // opération logique
-  if(co==5){sourceDetServ[rdet[li]]=0x00;                         // det
+  if(co==5){sourceDetServ[rdet[li]]=0;                            // det
             rdet[li]=0xff;
             uint16_t d;
             if(nvalf[i+1]-nvalf[i]>1){                            // si rien 0xff (refDet facultatif)
@@ -1004,7 +1004,7 @@ void rulesfonc(uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)            /
               setSourceDet(rdet[li],MDSPER,periCur);
               }               
             }
-  if(co==6){sourceDetServ[det[li]]=0x00;                          // det
+  if(co==6){sourceDetServ[det[li]]=0;                             // det
             det[li]=0xff;                    
             uint16_t d;conv_atob(valf,&d);det[li]=(uint8_t)d;
             setSourceDet(det[li],MDSPER,periCur);
@@ -1308,7 +1308,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                                  *(periInput+offs)&=~PERINPV_MS;
                                  *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;                   // num detec src
                           case 6:if(((*(periInput+3+offs)&PERINPNT_MS)>>PERINPNTLS_PB)==DETYEXT){
-                            sourceDetServ[offs/PERINPLEN]=0x00;} // si la dest  était un detServ il faut effacer sourceDetServ
+                            sourceDetServ[offs/PERINPLEN]=0;}     // si la dest  était un detServ il faut effacer sourceDetServ
                                  transferVal=(uint16_t)inpsub((periInput+3+offs),PERINPNT_MS,PERINPNTLS_PB,inptypd,2);break;    // type dest
                           case 7:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
                                  *(periInput+3+offs)&=~PERINPV_MS;
@@ -1376,7 +1376,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                             case 'o': remoteN[nb].onoff=*valf-48;break;                                 // (remotecf) on on/off remote courante
                             case 'u': remoteT[nb].num=*valf-48;                                         // (remotecf) un N° remote table sw
                                       remoteT[nb].enable=0;break;                                       // (remotecf) effacement cb
-                            case 'd': sourceDetServ[remoteT[nb].detec]=0x00;                 
+                            case 'd': sourceDetServ[remoteT[nb].detec]=0;                 
                                       remoteT[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off
                                       if(remoteT[nb].detec>NBDSRV){remoteT[nb].deten=NBDSRV;}
                                       if(remoteT[nb].detec!=0){setSourceDet(remoteT[nb].detec,MDSREM,nb+1);}
@@ -1443,9 +1443,11 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        timersN[nb].forceonoff=0;
                        timersN[nb].dw=0;
                        }break;
-              case 62: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_det___                                  
+              case 62: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_det___      
+                       sourceDetServ[timersN[nb].detec]=0;                            
                        timersN[nb].detec=convStrToInt(valf,&j);
                        if(timersN[nb].detec>NBDSRV){timersN[nb].detec=NBDSRV;}
+                       setSourceDet(timersN[nb].detec,MDSTIM,nb+1);
                        }break;
               case 63: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_hdf___
                         switch (*(libfonctions+2*i)){         

@@ -366,7 +366,7 @@ void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfo
   char inifonc[LENNOM];memcpy(inifonc,nfonc,4);memcpy(inifonc+4,"init__",LENNOM-4);
   usrPeriCurB(buf,inifonc,nbfonc,2,0);
   
-  strcat(buf,"<table><th></th><th>e.l. p.e<br>n.v. r.s</th><th> op </th><th>rdet</th><th>det</th>");
+  strcat(buf,"<table><th></th><th>e.l. p.e<br>n.v. r.s</th><th> op </th><th>rdet</th><th>det</th>\n");
   
   for(int i=0;i<nbLi;i++){    
     strcat(buf,"<tr>");    
@@ -444,7 +444,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
 
                 cli->println("<table><tr>");
-                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
+                cli->println("<th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
                 cli->println("</tr>");
 
                 cli->println("<tr>");
@@ -519,7 +519,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       numTf(buf,'I',periAnalLow,"peri_ana@_",5,0,0);strcat(buf,"<br>");
                       numTf(buf,'I',periAnalHigh,"peri_anaA_",5,0,0);
                     strcat(buf,"</td>\n");
-                    strcat(buf,"<td>Off1<br>Fact<br>Off2</td>");
+                    strcat(buf,"<td>Off1<br>Fact<br>Off2</td>\n");
                     strcat(buf,"<td>");
                       numTf(buf,'I',periAnalOffset1,"peri_anaB_",5,0,0);strcat(buf,"<br>");                      
                       numTf(buf,'F',periAnalFactor,"peri_anaC_",7,0,0,4);strcat(buf,"<br>");
