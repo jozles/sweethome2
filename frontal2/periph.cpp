@@ -1234,7 +1234,7 @@ int memDetSave()
     fmemdet.seek(0);
     for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*(((byte*)&memDetServ)+i));}
     for(uint8_t i=0;i<NBDSRV;i++){
-      for(uint8_t j=0;j<LENLIBDETSERV;j++){fmemdet.write(libDetServ[i][j]);}
+      for(uint8_t j=0;j<LENLIBDETSERV;j++){fmemdet.write(libDetServ[i][j]);}}
     for(uint8_t i=0;i<NBDSRV;i++){fmemdet.write(sourceDetServ[i]);}
     
     fmemdet.close();Serial.println(" OK");
