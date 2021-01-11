@@ -49,7 +49,7 @@ v1.31 Optimisation blinkDly pour diminuer la conso ; lethalSleep devrait être l
 Ajout param PER_PO pour mode 'P' : 'P' if power Off/On radio ; 'N' if radio ever On (compatibilité avec proto) ; ajout VFACTOR et TFACTOR pour proto.
 v1.4  EEprom stocke la config : macAddr peri, macAddr conc ; factor volts et thermo calibrés avec pgme de test ;
 v1.5  transfert valeur entrée analogique + seuils (user_conc exportData()) le stockage des seuils est à faire dans importData() ; la lecture de l'entrée analogique aussi ;
-v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résistance 11.2K
+v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résistance 11.2K ; ajout calcul/affichage du temps de diag
 */
 
 #define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)

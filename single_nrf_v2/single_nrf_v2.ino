@@ -63,12 +63,14 @@ bool diags=true;
 #define TO_READ 30                        // mS rxMessage time out 
 long readTo;                              // compteur TO read()
 uint32_t      tBeg=0;                     // date unix du 1er message reçu
+unsigned long tdiag;                      // cumul des traitements de diag
 unsigned long t_on;
 unsigned long t_on0;
 unsigned long t_on1;
 unsigned long t_on2;
 unsigned long t_on21;
 unsigned long t_on3;
+unsigned long t_on4;
 unsigned long time_beg=millis();
 unsigned long time_end;
 byte    message[MAX_PAYLOAD_LENGTH+1];    // buffer pour write()
@@ -161,7 +163,7 @@ void sleepNoPwr(uint8_t durat);
 void initConf();
 void configPrint();
 void getConcMac();
-uint8_t beginP();
+int  beginP();
 void echo();
 void hardwarePwrUp();
 int  txRxMessage();
@@ -202,7 +204,7 @@ void setup() {
 //diagT("reset",10);
 
   initConf();
-  if(!eeprom.load(configData,CONFIGLEN)){Serial.println("****KO******");delayBlk(1,0,250,3,1000);}
+  if(!eeprom.load(configData,CONFIGLEN)){Serial.println("***EEPROM KO***");delayBlk(1,0,250,3,10000);lethalSleep();}
   Serial.println("eeprom ok");
   radio.locAddr=macAddr;
   if(memcmp(concAddr,CB_ADDR,ADDR_LENGTH)==0){getConcMac();Serial.println("getconcMac");}    // si pas d'adresse individuelle de concentateur -> get it 
@@ -302,6 +304,7 @@ void loop() {
 #if NRF_MODE == 'P'
 
   if(diags){  
+    t_on4=micros();
     Serial.print("$ ");
     Serial.print(awakeMinCnt);Serial.print(" / ");Serial.print(awakeCnt);Serial.print(" / ");Serial.print(retryCnt);Serial.print(" ; ");
     Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("/");Serial.print(previousTemp);Serial.print("° t(");
@@ -309,9 +312,11 @@ void loop() {
     Serial.print(t_on2-t_on);Serial.print("/");
     Serial.print(t_on21-t_on);Serial.print("/");
     Serial.print(t_on3-t_on);Serial.print("/");
-    t_on0=micros();  
-    Serial.print(t_on0-t_on);Serial.println(") $");
+    Serial.print(micros()-t_on+5000+1000+1000);Serial.print("/diag="); // 1mS pour 4xSerial.print
     delay(5);
+    tdiag+=micros()-t_on4+1000;
+    Serial.print(tdiag);Serial.println(") $");
+    delay(1);
   }
   
   if(lowPower){lethalSleep();}            
@@ -320,7 +325,6 @@ void loop() {
   while(((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0))){
     awakeCnt--;
     awakeMinCnt--;
-//diagT("pre-sleep",10);
     sleepNoPwr(0);
     if(diags){Serial.print("+");delayMicroseconds(200);}
     nbL++;
@@ -348,8 +352,11 @@ void loop() {
 
   /* hardware ok, data ready or presence message time or retry -> send */
   if(mustSend){
-    if(diags){Serial.print("!");}
-    if(diags){for(int nb=retryCnt;nb>0;nb--){Serial.print("*");}}
+    if(diags){
+      unsigned long localTdiag=micros();    
+      Serial.print("!");
+      for(int nb=retryCnt;nb>0;nb--){Serial.print("*");}
+      tdiag+=(micros()-localTdiag);}
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
     uint8_t outLength=ADDR_LENGTH+1;
@@ -365,17 +372,21 @@ void loop() {
     message[outLength]='\0';
 
     /* One transaction is tx+rx ; if both ok reset counters else retry management*/  
-    t_on2=micros();  // message build ... send
+    
     rdSta=-1;
     nbS++;
 
+    t_on2=micros();                   // message build ... send
     radio.powerOn();
-//diagT("radio on",10);
     trSta=0;
     rdSta=txRxMessage();
-    if(diags){Serial.print("\ntxRxM  ");Serial.print(rdSta);}
-    
     t_on21=micros();
+    
+    if(diags){
+      unsigned long localTdiag=micros();    
+      Serial.print("\ntxRxM  ");Serial.print(rdSta);
+      tdiag+=(micros()-localTdiag);}
+    
     if(rdSta>=0){                                                 // no error
 
       /* echo request ? (address field is 0x5555555555) */
@@ -392,7 +403,6 @@ void loop() {
     }
     
     radio.powerOff();
-//diagT("radio off",10);
     t_on3=micros();  // message sent / received or error (rdSta)
 
     if(trSta<0 || rdSta<0){                                           // error
@@ -404,18 +414,20 @@ void loop() {
       switch(retryCnt){                                   
         case 0:retryCnt=aw_retry;break;                   // retryCnt ==0 -> debut des retry
         case 1:awakeCnt=aw_ko;awakeMinCnt=aw_ko;          // retryCnt ==1 -> ko (les retry n'ont pas réussi) long delay avant reprise (aw_ko sleeps)
-                awakeCnt=aw_ok;awakeMinCnt=aw_min;        // ********************** debug ************************** (delay normal)
-                retryCnt=0;break;
+               retryCnt=0;break;
         default:retryCnt--;break;                         // retryCnt >1  -> retry en cours pas de sleep
       }
     }
     //================================ version sans retry ===========================
-    retryCnt=0;
+    retryCnt=0;awakeCnt=aw_ok;awakeMinCnt=aw_min;
   }
   
   /* if radio HS or missing ; 1 long blink every 2 sleeps */
   if(radio.lastSta==0xFF){
-    if(diags){delay(2);Serial.println("radio HS or missing");delay(4);}
+    if(diags){
+      unsigned long localTdiag=micros();    
+      delay(2);Serial.println("radio HS or missing");delay(4);
+      tdiag+=(micros()-localTdiag);}
     delayBlk(2000,0,0,1,1);            // 1x2sec blink
     retryCnt=0;
     awakeCnt=1;
@@ -660,7 +672,7 @@ void getConcMac()
   memcpy(concAddr,CC_ADDR,ADDR_LENGTH);
 }
 
-uint8_t beginP()
+int beginP()                        // manage registration ; output value >0 is numT else error with radio.powerOff()
 {
   int confSta=-1;
   unsigned long bptime=micros();
@@ -671,41 +683,49 @@ uint8_t beginP()
                                                     // 0 na ; >=1 ok numT
     radio.powerOff();                    
     if(diags){
-      Serial.print("\nbeginP ");           // après pReg pour que la sortie n'interfère pas avec les tfr SPI
+      unsigned long localTdiag=micros();          
+      Serial.print("\nbeginP ");        // après pReg pour que la sortie n'interfère pas avec les tfr SPI
       Serial.print(confSta);Serial.print(" ");delay(2);    
+      tdiag+=(micros()-localTdiag);
     }
     if(confSta>0){
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
       delayBlk(32,0,125,4,1);           // 4 blinks
-      radio.powerOn();
-      break;                            // out of while(1)
+      radio.powerOn();                  // txRx or other running
+      break;                            // ok -> out of while(beginP_retryCnt>0)
     }
 
     if(confSta==-5){
       radio.lastSta=0xFF;               // KO mode : radio missing or HS
-      break;                            // out of while(1)  
+      break;                            // ko -> out of while(beginP_retryCnt>0)  
     }
 
     if(diags){
+      unsigned long localTdiag=micros();    
       if(confSta==-4){Serial.print(" no answer");}
       else{Serial.print(" error");}
       delay(2);
+      tdiag+=(micros()-localTdiag);
     }
 
-    sleepNoPwr(0);                    
-    delayBlk(1,0,125,2,1);            // 2 blinks
-    radio.powerOn();  
+    if(beginP_retryCnt>0){
+      sleepNoPwr(0);                    
+      delayBlk(1,0,125,2,1);          // 2 blinks
+      radio.powerOn();}   
   }                                   // next attempt
 
-  if(diags){if(confSta<=0){Serial.println();delay(1);}}
-  return confSta;                     // peripheral registred or radio HS
+  if(diags){
+    unsigned long localTdiag=micros();    
+    if(confSta<=0){Serial.println();delay(1);}
+    tdiag+=(micros()-localTdiag);}
+  return confSta;                     // peripheral registered or radio HS
 }
 
 void echo()
 {
-#define MAXECHOERR 3                 // max consecutive errors to leave
-#define ECHOTO  10000                // TO mS
+#define MAXECHOERR 3                  // max consecutive errors to leave
+#define ECHOTO  10000                 // TO mS
 
   uint8_t cntErr=0;
   unsigned long to=ECHOTO;
@@ -757,8 +777,10 @@ int txRxMessage()
   if(numT==0){
     rdSta=beginP();
     if(diags){
+      unsigned long localTdiag=micros();
       Serial.print("rdSta = ");Serial.print((int)rdSta);
       Serial.print(" message = ");Serial.println((char*)messageIn);delay(5);
+      tdiag+=(micros()-localTdiag);
     }
     if(rdSta<=0){rdSta=-2;return rdSta;}           // numT still 0 ; beginP n'a pas fonctionné
     numT=rdSta;
@@ -873,11 +895,13 @@ if(diags){
 
 void ini_t_on()
 {
+  tdiag=0;
   t_on=micros();
   t_on1=t_on;
   t_on2=t_on;
   t_on21=t_on;  
   t_on3=t_on;
+  t_on4=t_on;  
 }
 
 #if NRF_MODE == 'P'
