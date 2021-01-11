@@ -42,7 +42,10 @@ extern Nrfp nrfp;
 
 extern uint32_t nbS;
 
-
+void diagT2(char* texte,int duree)
+{
+  Serial.println(texte);delay(duree*1000);
+}
 
 ISR(WDT_vect)                     // ISR interrupt service for MPU INT WDT vector
 {
@@ -231,7 +234,7 @@ void getVolts()                     // get unregulated voltage and reset watchdo
   temp=(float)((int)(temp*10))/10;
 //*/
 #endif  
-
+//diagT2("getVolt",10);
   checkOff();
 //  bitClear(PORT_LED,BIT_LED);             //digitalWrite(LED,LOW);            
 

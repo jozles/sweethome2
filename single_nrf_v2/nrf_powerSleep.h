@@ -23,10 +23,10 @@
 #define T8000 0b00100001
 
 /* --------------- @ env 2sec / sleep -------------------- */
-#define  AWAKE_OK_VALUE       15   // nbre réveils entre chaque test de temp
-#define  AWAKE_MIN_VALUE      450  // nbre réveils maxi pour message minimum de présence
-#define  AWAKE_KO_VALUE       20   // debug 1500 // nbre réveils avant prochain test si com HS
-#define  AWAKE_RETRY_VALUE    3    // nbre de retry avant KO
+#define  AWAKE_OK_VALUE       10    // nbre réveils entre chaque test de temp 
+#define  AWAKE_MIN_VALUE      120   // nbre réveils maxi pour message minimum de présence
+#define  AWAKE_KO_VALUE       120   // debug 1500 // nbre réveils avant prochain test si com HS
+#define  AWAKE_RETRY_VALUE    3     // nbre de retry avant KO
 
 void sleepPwrDown(uint8_t durat);
 void lethalSleep();

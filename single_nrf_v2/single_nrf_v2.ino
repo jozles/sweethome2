@@ -45,8 +45,6 @@ float* vOffset;
 byte*  macAddr;
 byte*  concAddr;
 
-//char*  chexa="0123456789ABCDEFabcdef\0";
-
 Nrfp radio;
 
 /*** LED ***/
@@ -61,6 +59,7 @@ uint8_t       bcnt=0;
 /*** scratch ***/
 
 bool diags=true;
+
 #define TO_READ 30                        // mS rxMessage time out 
 long readTo;                              // compteur TO read()
 uint32_t      tBeg=0;                     // date unix du 1er message reçu
@@ -118,6 +117,8 @@ uint8_t numConc=0;
 
 #if NRF_MODE == 'P'
 
+char*  chexa="0123456789ABCDEFabcdef\0";
+
 /*** gestion sleep ***/
 
 bool      mustSend;                 // si une condition générant une transmission est présente
@@ -170,6 +171,7 @@ void int_ISR()
   extTimer=true;
   //Serial.println("int_ISR");
 }
+void diagT(char* texte,int duree);
 #endif NRF_MODE == 'P'
 
 /* prototypes */
@@ -196,6 +198,8 @@ void setup() {
 #if NRF_MODE == 'P'
 
   Serial.begin(115200);
+
+//diagT("reset",10);
 
   initConf();
   if(!eeprom.load(configData,CONFIGLEN)){Serial.println("****KO******");delayBlk(1,0,250,3,1000);}
@@ -249,6 +253,10 @@ void setup() {
     Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);
   }
   ini_t_on();  
+
+//diagT("sleepNoPower à suivre",10);
+//sleepNoPwr(T8000);
+
 #endif NRF_MODE == 'P'
 
 #if NRF_MODE == 'C'
@@ -312,6 +320,7 @@ void loop() {
   while(((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0))){
     awakeCnt--;
     awakeMinCnt--;
+//diagT("pre-sleep",10);
     sleepNoPwr(0);
     if(diags){Serial.print("+");delayMicroseconds(200);}
     nbL++;
@@ -361,6 +370,7 @@ void loop() {
     nbS++;
 
     radio.powerOn();
+//diagT("radio on",10);
     trSta=0;
     rdSta=txRxMessage();
     if(diags){Serial.print("\ntxRxM  ");Serial.print(rdSta);}
@@ -382,6 +392,7 @@ void loop() {
     }
     
     radio.powerOff();
+//diagT("radio off",10);
     t_on3=micros();  // message sent / received or error (rdSta)
 
     if(trSta<0 || rdSta<0){                                           // error
@@ -398,6 +409,8 @@ void loop() {
         default:retryCnt--;break;                         // retryCnt >1  -> retry en cours pas de sleep
       }
     }
+    //================================ version sans retry ===========================
+    retryCnt=0;
   }
   
   /* if radio HS or missing ; 1 long blink every 2 sleeps */
@@ -651,7 +664,7 @@ uint8_t beginP()
 {
   int confSta=-1;
   unsigned long bptime=micros();
-  uint8_t beginP_retryCnt=2;
+  int8_t beginP_retryCnt=1; // 2; // ================================================= version sans retry 
   while(beginP_retryCnt>0){                         // confsta>=1 or -5 or wait 
     beginP_retryCnt--;
     confSta=radio.pRegister(messageIn,&pldLength);  // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
@@ -670,8 +683,8 @@ uint8_t beginP()
     }
 
     if(confSta==-5){
-      radio.lastSta=0xFF;              // KO mode : radio missing or HS
-      break;                          // out of while(1)  
+      radio.lastSta=0xFF;               // KO mode : radio missing or HS
+      break;                            // out of while(1)  
     }
 
     if(diags){
@@ -1063,7 +1076,10 @@ void led(unsigned long dur)
   digitalWrite(LED,LOW);
 }
 
-
+void diagT(char* texte,int duree)
+{
+    Serial.println(texte);delay(duree*1000);
+}
 
 /*  
  *     utilisation du timer 1        ...... réaction bizarres avec delay()   
