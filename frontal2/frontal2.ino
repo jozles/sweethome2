@@ -3,10 +3,13 @@
 #include <Ethernet.h> //bibliothèque W5x00 Ethernet
 #include <EthernetUdp.h>
 #include <Wire.h>     //biblio I2C pour RTC 3231
+#include "SdFat.h"
 #include "ds3231.h"
 #include <shconst2.h>
 #include <shutil2.h>
 #include <shmess2.h>
+#include <MemoryFree.h>
+#include "FreeStack.h"
 #include "const.h"
 #include "utilether.h"
 #include "periph.h"
@@ -15,8 +18,9 @@
 #include "pageshtml.h"
 #include "utilhtml.h"
 
-#include <MemoryFree.h>;
-
+SdFat32 sd32;
+File32 fhisto;            // fichier histo sd card
+File32 fhtml;             // fichiers pages html
 
 //#define _AVEC_AES
 #ifdef _AVEC_AES
@@ -94,7 +98,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_sd___sd_pos____data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_his__hist_pos__data_save_data_read_peri_swb__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
@@ -107,8 +111,8 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
 #define LENCDEHTTP 6
   char*   cdes="GET   POST  \0";       // commandes traitées par le serveur
-  char    strSD[RECCHAR]={0};          // buffer enregistrements sur SD
-  char*   strSdEnd="<br>\r\n\0";
+  char    strHisto[RECCHAR]={0};          // buffer enregistrement histo SD
+  char*   strHistoEnd="<br>\r\n\0";
   char    buf[6];
   long    fhsize;                      // remplissage fhisto
 
@@ -288,13 +292,10 @@ char strdate[33]; // buffer date
 char strd3[4]={0};
 byte js=0;
 uint32_t amj=0, hms=0;
- 
-File fhisto;            // fichier histo sd card
-File fhtml;             // fichiers pages html
 
-char cxdx[]="RE";       // param pour l'enregistrement dans SD (CX connexion, 
-uint32_t sdsiz=0;       // SD current size
-uint32_t sdpos=0;       // SD current pos. pour dump
+
+uint32_t histoPos=0;       // SD current pos. pour dump
+
 
 boolean autoreset=FAUX;  // VRAI déclenche l'autoreset
 
@@ -309,10 +310,7 @@ byte  mask[]={0x00,0x01,0x03,0x07,0x0F};
 /* prototypes */
 
 int  getnv(EthernetClient* cli);
-
-int  sdOpen(char mode,File* fileSlot,char* fname);
 void xcrypt();
-//void periDataRead();
 void frecupptr(char* nomfonct,uint8_t* v,uint8_t* b,uint8_t lenpersw);
 void bitvSwCtl(byte* data,uint8_t sw,uint8_t datalen,uint8_t shift,byte msk);
 void test2Switchs();
@@ -324,6 +322,7 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* nf);
 void scanTimers();
 void scanDate();
 void testUdp();
+void cidDmp();
 
 
 void setup() {                              // ====================================
@@ -338,12 +337,10 @@ void setup() {                              // =================================
 
 //  while(1){ledblink(0);}
 
-
-
 /* >>>>>>     config     <<<<<< */  
   
   Serial.println();Serial.print(VERSION);Serial.print(" ");
-  Serial.print(MODE_EXEC);Serial.print(" free=");Serial.println(freeMemory(), DEC);
+  Serial.print(MODE_EXEC);Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" FreeStack: ");Serial.println(FreeStack());
   
   //Serial.print(lip[0]);Serial.print(".");Serial.print(lip[1]);Serial.print(".");Serial.print(lip[2]);Serial.print(".");Serial.println(lip[3]);
 
@@ -356,11 +353,11 @@ void setup() {                              // =================================
   
   uint32_t        amj2,hms2;
   byte            js2;
-  ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"R0",""," ");
+  ds3231.getDate(&hms2,&amj2,&js2,strdate);histoStore_textdh0("R0",""," ");
   Serial.print("DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
 
 //periConvert();
-  periMaintenance();
+//periMaintenance();
 
   trigwd();
   
@@ -424,7 +421,7 @@ void setup() {                              // =================================
   
   //testUdp();
 
-  sdstore_textdh(&fhisto,"R","","<br>\n\0");
+  histoStore_textdh("R","","<br>\n\0");
 
   Serial.println(">>>>>>>>> fin setup\n");
 }
@@ -471,7 +468,7 @@ void stoprequest()
 {
   if(digitalRead(STOPREQ)==LOW){
     trigwd();
-    sdstore_textdh(&fhisto,"RQ","","<br>\n\0");
+    histoStore_textdh("RQ","","<br>\n\0");
     Serial.println("Stop request =====");
 
     while(1){
@@ -484,7 +481,7 @@ void watchdog()
 {
   if(millis()-lastcx>MAXCXWD){
     trigwd();
-    sdstore_textdh(&fhisto,"WD","","<br>\n\0");
+    histoStore_textdh("WD","","<br>\n\0");
     Serial.print("no cx for ");Serial.print(MAXCXWD/1000);Serial.println("sec");
     delay(30000);}      // wait for hardware watchdog
 }
@@ -498,7 +495,7 @@ void scanTemp()
       ds3231.readTemp(&th);
       if(fabs(th-oldth)>MINTHCHGE){
         oldth=th;sprintf(buf,"%02.02f",th);
-        sdstore_textdh(&fhisto,"T",buf,"<br>\n\0");
+        histoStore_textdh("T",buf,"<br>\n\0");
       }
     }       
 }
@@ -508,7 +505,7 @@ void scanDate()
     if((millis()-datetime)>perdate*1000){   // *** maj date
       initDate();
       datetime=millis();
-      sdstore_textdh(&fhisto,"D","","<br>\n\0");
+      histoStore_textdh("D","","<br>\n\0");
     }
 }
 
@@ -1109,9 +1106,9 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 */
         periInitVar();        // pas de rémanence des données des périphériques entre 2 accès au serveur
 
-        memset(strSD,0x00,sizeof(strSD)); memset(buf,0,sizeof(buf));charIp((byte*)&remote_IP,strSD);        // histo :
-        sprintf(buf,"%d",nbreparams+1);strcat(strSD," ");strcat(strSD,buf);strcat(strSD," = ");             // une ligne par transaction
-        strcat(strSD,strSdEnd);
+        memset(strHisto,0x00,sizeof(strHisto)); memset(buf,0,sizeof(buf));charIp((byte*)&remote_IP,strHisto);        // histo :
+        sprintf(buf,"%d",nbreparams+1);strcat(strHisto," ");strcat(strHisto,buf);strcat(strHisto," = ");             // une ligne par transaction
+        strcat(strHisto,strHistoEnd);
 
 /*      
     Un formulaire (<form>....</form>) contient des champs de saisie dont le nom et la valeur sont transmis dans l'ordre d'arrivée 
@@ -1187,22 +1184,22 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                                       // c'est obligatoirement le cas pour data_read_ et data_save_ qui terminent le message
             
 /*            
-    controle de dépassement de capacité du buffer strSD ; si ok, ajout de la fonction, sinon ajout de '*'  
+    controle de dépassement de capacité du buffer strHisto ; si ok, ajout de la fonction, sinon ajout de '*'  
 */
-            if((strlen(strSD)+strlen(valf)+5+strlen(strSdEnd))<RECCHAR){
-              strSD[strlen(strSD)-strlen(strSdEnd)]='\0';sprintf(buf,"%d",numfonct[i]);strcat(strSD,buf);
-              strcat(strSD," ");strcat(strSD,(char*)valf);strcat(strSD,";");strcat(strSD,strSdEnd);}
-            else {strSD[strlen(strSD)-strlen(strSdEnd)]='*';}
+            if((strlen(strHisto)+strlen(valf)+5+strlen(strHistoEnd))<RECCHAR){
+              strHisto[strlen(strHisto)-strlen(strHistoEnd)]='\0';sprintf(buf,"%d",numfonct[i]);strcat(strHisto,buf);
+              strcat(strHisto," ");strcat(strHisto,(char*)valf);strcat(strHisto,";");strcat(strHisto,strHistoEnd);}
+            else {strHisto[strlen(strHisto)-strlen(strHistoEnd)]='*';}
 
 //Serial.print(i);Serial.print(" numfonct[i]=");Serial.print(numfonct[i]);Serial.print(" valf=");Serial.println((char*)valf);
-//Serial.print("strSd=");Serial.println(strSD);
+//Serial.print("strHisto=");Serial.println(strHisto);
 
             switch (numfonct[i])
               {
               case 0:  pertemp=0;conv_atobl(valf,&pertemp);break;                                           // pertemp serveur
               case 1:  if(checkData(valf)==MESSOK){                                                         // peri_pass_
                          periPassOk=ctlpass(valf+5,peripass);                                               // skip len
-                         if(periPassOk==FAUX){memset(remote_IP_cur,0x00,4);sdstore_textdh(&fhisto,"pp","ko",strSD);}
+                         if(periPassOk==FAUX){memset(remote_IP_cur,0x00,4);histoStore_textdh("pp","ko",strHisto);}
                          else {memcpy(remote_IP_cur,(byte*)&remote_IP,4);}
                        }break;
               case 2:  usernum=searchusr(valf);if(usernum<0){                                        // username__
@@ -1213,7 +1210,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        break;
               case 3:  if(!ctlpass(valf,usrpass+usernum*LENUSRPASS)){                                // password__
                          what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;usrtime[usernum]=0;          // si faux accueil (what=-1)
-                         sdstore_textdh(&fhisto,"pw","ko",strSD);}                                   
+                         histoStore_textdh("pw","ko",strHisto);}                                   
                        else {Serial.println("password ok");usrtime[usernum]=millis();if(nbreparams==1){what=2;}}
                        break;                                                                        
               case 4:  {usernum=*(libfonctions+2*i+1)-PMFNCHAR;                                      // user_ref__ (argument : millis() envoyées avec la fonction au chargement de la page)
@@ -1239,8 +1236,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        else{periReq(&cliext,periCur,"etat______");}                                  // si pas erase demande d'état
                        SwCtlTableHtml(&cli);break;                                                                               
               case 9:  autoreset=VRAI;break;                                                         // bouton reset
-              case 10: dumpsd(&cli);break;                                                           // bouton dump_sd
-              case 11: what=2;sdpos=0;conv_atobl(valf,&sdpos);break;                                 // (en-tete peritable) SD pos
+              case 10: dumpHisto(&cli);break;                                                        // bouton dump_histo
+              case 11: what=2;histoPos=0;conv_atobl(valf,&histoPos);break;                                 // (en-tete peritable) histo   pos
               case 12: if(periPassOk==VRAI){what=1;periDataRead(valf);periPassOk==FAUX;}break;       // data_save
               case 13: if(periPassOk==VRAI){what=3;periDataRead(valf);periPassOk==FAUX;}break;       // data_read
               case 14: what=5;{                                                                      // (bouton testsw ?duplic ) peri swb 
@@ -1525,9 +1522,9 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
           if(nbreparams>=0){
             Serial.print((unsigned long)millis());Serial.print(" what=");Serial.print(what);Serial.print(" periCur=");Serial.print(periCur);
 #ifdef SHDIAGS            
-            Serial.print(" strSD=");Serial.print(strSD);
+            Serial.print(" strHisto=");Serial.print(strHisto);
 #endif            
-            sdstore_textdh(&fhisto,&ab,"",strSD);
+            histoStore_textdh(&ab,"",strHisto);
             //Serial.print(" what=================");periPrint(periCur);            
           }                                           // 1 ligne par commande GET
 

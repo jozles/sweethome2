@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <SPI.h>      //bibliothéqe SPI pour W5100
 #include <Ethernet.h>
-#include <SD.h>
+//#include <SD.h>
 #include "ds3231.h"
 #include <shutil2.h>
 #include <shconst2.h>
@@ -15,8 +15,8 @@
 
 extern Ds3231 ds3231;
 
-extern File      fhisto;      // fichier histo sd card
-extern long      sdpos;
+extern File32    fhisto;      // fichier histo sd card
+extern long      histoPos;
 extern long      fhsize;      // remplissage fhisto
 extern char*     nomserver;
 extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
@@ -316,11 +316,11 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           numTableHtml(cli,'d',&perrefr,"per_refr__",4,0,0);
 
           cli->print("(");cli->print(fhsize);cli->println(") ");
-          numTableHtml(cli,'i',(uint32_t*)&sdpos,"sd_pos____",9,0,0);
+          numTableHtml(cli,'i',(uint32_t*)&histoPos,"hist_pos__",9,0,0);
           
           cli->println("<input type=\"submit\" value=\"ok\"> ");
           
-          boutFonction(cli,"dump_sd___","","dump SD",0,0,0,0);    
+          boutFonction(cli,"dump_his__","","histo",0,0,0,0);    
           boutFonction(cli,"reset_____","","reset",0,0,0,0);
           boutFonction(cli,"cfgserv___","","config",0,0,0,0);
           cli->print("<br>");

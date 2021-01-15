@@ -1,8 +1,8 @@
 #ifndef _PAGESHTML_H_
 #define _PAGESHTML_H_
 
-void dumpsd(EthernetClient* cli);
-int  dumpsd0(EthernetClient* cli);
+void dumpHisto(EthernetClient* cli);
+int  dumpHisto0(EthernetClient* cli);
 void intro(EthernetClient* cli);
 void cfgServerHtml(EthernetClient* cli);
 void cfgRemoteHtml(EthernetClient* cli);

@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
-#include <SD.h>
+#include "SdFat.h"
 #include "ds3231.h"
 #include "const.h"
 #include "periph.h"
@@ -10,6 +10,12 @@
 #include "shutil2.h"
 
 extern Ds3231 ds3231;
+
+const uint8_t SD_CS_PIN = 4;
+#define SPI_CLOCK SD_SCK_MHZ(8)
+#define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
+extern SdFat32 sd32;
+#define error(s) sd32.errorHalt(&Serial, F(s))
 
 #ifdef UDPUSAGE
 
@@ -34,25 +40,26 @@ extern uint32_t amj,hms;
 extern byte     js;
 extern char     strdate[33];
 
-extern uint8_t* chexa;
+extern char*    chexa;
 
-extern File fhisto;            // fichier histo sd card
-extern long      fhsize;      // remplissage fhisto
 
-int sdOpen(char mode,File* fileS,char* fname)
+extern File32 fhisto;           // fichier histo sd card
+extern long   fhsize;           // remplissage fhisto
+
+int sdOpen(char* fname,File32* file32)
 {
-  fileS->close();
-  if(!(*fileS=SD.open(fname,mode))){Serial.print(fname);Serial.println(" inaccessible");return SDKO;}
-
+  if (!file32->open(fname, O_RDWR)) {
+    Serial.print(fname);Serial.println(" inaccessible");return SDKO;
+  }
   return SDOK;
 }
 
-void sdstore_textdh0(File* fhisto,char* val1,char* val2,char* val3)
+void histoStore_textdh0(char* val1,char* val2,char* val3)
 {
   unsigned long t2,t1,t0=micros();
   char text[32]={'\0'};
 
-    sdOpen(FILE_WRITE,fhisto,"fdhisto.txt");
+  sdOpen("fdhisto.txt",&fhisto);
 
 t1=micros();Serial.print(" SDst open=");Serial.print(t1-t0);  
 
@@ -60,34 +67,64 @@ t1=micros();Serial.print(" SDst open=");Serial.print(t1-t0);
         sprintf(text+9,"%.6lu",hms);strcat(text," ");     // +7
         strcat(text,val1);strcat(text," ");               // +2
         strcat(text,val2);strcat(text,'\0');              // +1
-
-          //fhisto->print(text);fhisto->print(val3);
   
-        int v=fhisto->write(text);int w=fhisto->write(val3);
+        int v=fhisto.write(text);int w=fhisto.write(val3);
+        fhisto.sync();
         if(v==0 || w==0){ledblink(BCODEFHISTO);}
 t2=micros();Serial.print(" write=");Serial.print(t2-t1);
 
-    fhsize=fhisto->size();
-    fhisto->close();
+    fhsize=fhisto.size();
+    fhisto.close();
           
 Serial.print(" close=");Serial.println(micros()-t2);
 }
 
-void sdstore_textdh(File* fhisto,char* val1,char* val2,char* val3)
+void histoStore_textdh(char* val1,char* val2,char* val3)
 {
   ds3231.getDate(&hms,&amj,&js,strdate);
-  sdstore_textdh0(fhisto,val1,val2,val3);
+  histoStore_textdh0(val1,val2,val3);
+}
+
+void cidDmp() {
+  cid_t cid;
+  if (!sd32.card()->readCID(&cid)) {error("readCID failed");
+  }
+  Serial.print("Manufacturer ID: ");Serial.print(int(cid.mid),HEX);
+  Serial.print(" OEM ID: ");Serial.print(cid.oid[0]);Serial.println(cid.oid[1]);
+  Serial.print("Product: ");
+  for (uint8_t i = 0; i < 5; i++) {Serial.print(cid.pnm[i]);}
+  Serial.print(" Version: ");Serial.print(int(cid.prv_n));Serial.print(".");Serial.println(int(cid.prv_m));
+  Serial.print("Serial number: ");Serial.println(cid.psn,HEX);
+  Serial.print("Manufacturing date: ");Serial.print(int(cid.mdt_month));Serial.print('/');
+  Serial.println((2000 + cid.mdt_year_low + 10 * cid.mdt_year_high));
 }
 
 void sdInit()
 {
-  Serial.print("\nSD card ");
-  while(!SD.begin(SDCARD)){Serial.println("KO");  digitalWrite(PINLED,HIGH);delay(5);digitalWrite(PINLED,LOW);}
-//  if(!SD.begin(4)){Serial.println("KO");ledblink(BCODESDCARDKO);}
-  Serial.println("OK");
-  sdOpen(FILE_WRITE,&fhisto,"fdhisto.txt");
+  if (!sd32.begin(SD_CONFIG)) {
+    sd32.initErrorHalt(&Serial);
+  }
+
+  Serial.print("\nSD FAT");Serial.print((int)sd32.fatType());
+
+  uint32_t size = sd32.card()->sectorCount();
+  if (size == 0) {
+    Serial.print("\nCan't determine the card size.\n");
+    Serial.print("Try another SD card or reduce the SPI bus speed.\n");
+    Serial.print("Edit SPI_SPEED in this program to change it.\n");
+    while(1){delay(1);}
+  }
+
+  uint32_t sizeMB = 0.000512 * size + 0.5;
+  Serial.print(" Card size: ");Serial.print(sizeMB);
+  Serial.println(" MB (MB = 1,000,000 bytes)");
+  //Serial.print("Volume is FAT");Serial.print((int)(sd32.vol()->fatType()));
+  Serial.print("Cluster size (bytes): ");Serial.println(sd32.vol()->bytesPerCluster());
+
+  cidDmp();
 }
 
+/*
 int htmlSave(File* fhtml,char* fname,char* buff)                           // enregistre 1 buffer html
 {
   char inch;
@@ -123,7 +160,7 @@ int htmlPrint(EthernetClient* cli,File* fhtml,char* fname)                 // li
    fhtml->close();
    return SDOK;
 }
-
+*/
 
 void convertNTP(unsigned long *dateUnix,int *year,int *month,int *day,byte *js,int *hour,int *minute,int *second)
 {
@@ -205,7 +242,7 @@ void calcDate(int bd,int* yy,int*mm,int* dd,int* js,int*hh,int* mi,int* ss)     
 #ifndef UDPUSAGE
 void initDate()
 {
-  ds3231.getDate(&hms2,&amj2,&js2,strdate);sdstore_textdh0(&fhisto,"ST","RE"," ");
+  ds3231.getDate(&hms2,&amj2,&js2,strdate);histoStore_textdh0("ST","RE"," ");
   Serial.print(" DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
 
 #endif UDPUSAGE

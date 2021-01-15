@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <SD.h>
+#include <SdFat.h>
 #include "const.h"
 #include <Wire.h>
 #include "utilether.h"
@@ -11,7 +11,7 @@
 
 /* >>>>>>>> config <<<<<<< */
 
-File fconfig;     // fichier config
+File32 fconfig;     // fichier config
 
 extern char configRec[CONFIGRECLEN];
   
@@ -36,7 +36,7 @@ extern byte*    configEndOfRecord;
 
 /* >>>>>>> périphériques <<<<<<<  */
 
-File fperi;       // fichiers perif
+File32 fperi;       // fichiers perif
 
 extern char      periRec[PERIRECLEN];          // 1er buffer de l'enregistrement de périphérique
 extern char      periCache[PERIRECLEN*NBPERIF];   // cache des périphériques
@@ -112,7 +112,7 @@ char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                 
 
 /* >>>>>>> remotes <<<<<<<  */
 
-File fremote;     // fichier remotes
+File32 fremote;     // fichier remotes
 
 extern struct SwRemote remoteT[MAXREMLI];
 extern char*  remoteTA;
@@ -123,7 +123,7 @@ extern long   remoteNlen;
 
 /* >>>>>>> Timers <<<<<<<  */
 
-File ftimers;     // fichier timers
+File32 ftimers;     // fichier timers
 
 extern struct Timers timersN[NBTIMERS];
 extern char*  timersNA;
@@ -131,7 +131,7 @@ extern long   timersNlen;
 
 /* >>>>>>> Thermos <<<<<<<  */
 
-File fthermos;    // fichier thermos
+File32 fthermos;    // fichier thermos
 
 extern struct Thermo thermos[NBTHERMOS];
 extern char*  thermosA;
@@ -139,7 +139,7 @@ extern long   thermoslen;
 
 /* >>>>>>> détecteurs serveur <<<<<<<  */
 
-File fmemdet;     // fichier détecteurs serveur
+File32 fmemdet;     // fichier détecteurs serveur
 
 extern char      libDetServ[NBDSRV][LENLIBDETSERV];
 extern uint16_t  sourceDetServ[NBDSRV];   // actionneurs (ssnnnnnn ss type 00, 01 perif, 10 remote, 11 timer / nnnnnn n°)
@@ -149,7 +149,7 @@ extern uint32_t  mDSmaskbit[];
 
 /* >>>>>>> Memos <<<<<<<  */
 
-File fmemos;      // fichier memos
+File32 fmemos;      // fichier memos
 extern char   memosTable[LMEMO*NBMEMOS];
 
 
@@ -279,7 +279,7 @@ int configLoad()
 {
   int i=0;
   char configFile[]="srvconf\0";
-  if(sdOpen(FILE_READ,&fconfig,configFile)==SDKO){return SDKO;}
+  if(sdOpen(configFile,&fconfig)==SDKO){return SDKO;}
   for(i=0;i<CONFIGRECLEN;i++){configRec[i]=fconfig.read();}
   fconfig.close();
   return SDOK;
@@ -291,7 +291,7 @@ int configSave()
   int sta;
   char configFile[]="srvconf\0";
   
-  if(sdOpen(FILE_WRITE,&fconfig,configFile)!=SDKO){
+  if(sdOpen(configFile,&fconfig)!=SDKO){
     sta=SDOK;
     fconfig.seek(0);
     for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
@@ -399,7 +399,7 @@ if(num<=0 || num>NBPERIF){ledblink(BCODENUMPER);}
   if(sd==0){
     char periFile[7];periFname(num,periFile);
     //Serial.print(periFile);
-    if(sdOpen(FILE_READ,&fperi,periFile)==SDOK){
+    if(sdOpen(periFile,&fperi)==SDOK){
       for(i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=fperi.read();}              // periRec[i]=fperi.read();}
       fperi.close();
       periCacheStatus[num]=1;
@@ -499,12 +499,13 @@ int periSave(uint16_t num,bool sd)
       Serial.print("periSave ");Serial.print(periFile);    
       
       long t4,t3,t2,t1,t0=micros();
-      SD.remove(periFile);
+      //SD.remove(periFile);
 t1=micros();Serial.print(" SDp remove=");Serial.print(t1-t0);
-      if(fperi=SD.open(periFile,FILE_WRITE)){
+      if(sdOpen(periFile,&fperi)==SDOK){
 t2=micros();Serial.print(" open=");Serial.print(t2-t1);
         sta=SDOK;
         periDetServUpdate();
+        fperi.seek(0);
 t3=micros();Serial.print(" pDSU=");Serial.print(t3-t2);
         for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
 t4=micros();Serial.print(" write=");Serial.print(t4-t3);
@@ -525,7 +526,7 @@ int periRemove(uint16_t num)
 {
   int i=0;
   char periFile[7];periFname(num,periFile);
-  if(SD.exists(periFile)){SD.remove(periFile);}
+  if(sdOpen(periFile,&fperi)==SDOK){fperi.remove();}
   return SDOK;
 }
 
@@ -554,15 +555,15 @@ void periConvert()
     periFname(i,periFile);Serial.print(periFile);
     if(periLoad(i)!=SDOK){Serial.print(" load KO");}
     else{
-      SD.remove(periFile);
-  memset(periAnalCb,0x00,NBANST);
-  memset(periAnalDestDet,0x00,NBANST);
-  memset(periAnalRefDet,0xFF,NBANST);  
-  memset(periAnalMemo,0xFF,NBANST);
-  memset(periDigitCb,0x00,MAXDET);
-  memset(periDigitDestDet,0x00,MAXDET);
-  memset(periDigitRefDet,0xFF,MAXDET);  
-  memset(periDigitMemo,0xFF,MAXDET);
+        fperi.remove();
+        memset(periAnalCb,0x00,NBANST);
+        memset(periAnalDestDet,0x00,NBANST);
+        memset(periAnalRefDet,0xFF,NBANST);  
+        memset(periAnalMemo,0xFF,NBANST);
+        memset(periDigitCb,0x00,MAXDET);
+        memset(periDigitDestDet,0x00,MAXDET);
+        memset(periDigitRefDet,0xFF,MAXDET);  
+        memset(periDigitMemo,0xFF,MAXDET);
       
       if(periSave(i,PERISAVESD)!=SDOK){Serial.print(" save KO");} 
     }
@@ -1040,7 +1041,7 @@ void remotePrint()
 int remLoad(char* remF,uint16_t remL,char* remA)
 {
     Serial.print("Load ");Serial.print(remF);Serial.print(" ");
-    if(sdOpen(FILE_READ,&fremote,remF)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(remF,&fremote)==SDKO){Serial.println(" KO");return SDKO;}
     for(uint16_t i=0;i<remL;i++){*(remA+i)=fremote.read();}              
     fremote.close();Serial.println(" OK");
     return SDOK;
@@ -1049,8 +1050,7 @@ int remLoad(char* remF,uint16_t remL,char* remA)
 int remSave(char* remF,uint16_t remL,char* remA)
 {
     Serial.print("Save ");Serial.print(remF);
-    SD.remove(remF);
-    if(sdOpen(FILE_WRITE,&fremote,remF)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(remF,&fremote)==SDKO){Serial.println(" KO");return SDKO;}
     fremote.seek(0);
     for(uint16_t i=0;i<remL;i++){fremote.write(*(remA+i));}             
     fremote.close();Serial.println(" OK");
@@ -1129,7 +1129,7 @@ void timersInit()
 int timersLoad()
 {
     Serial.print("Load timers   ");
-    if(sdOpen(FILE_READ,&ftimers,TIMERSNFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(TIMERSNFNAME,&ftimers)==SDKO){Serial.println(" KO");return SDKO;}
     ftimers.seek(0);
     for(uint16_t i=0;i<timersNlen;i++){*(timersNA+i)=ftimers.read();}             
     ftimers.close();Serial.println(" OK");
@@ -1139,8 +1139,7 @@ int timersLoad()
 int timersSave()
 {
     Serial.print("Save timers ");
-    SD.remove(TIMERSNFNAME);
-    if(sdOpen(FILE_WRITE,&ftimers,TIMERSNFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(TIMERSNFNAME,&ftimers)==SDKO){Serial.println(" KO");return SDKO;}
     ftimers.seek(0);
     for(uint16_t i=0;i<timersNlen;i++){ftimers.write(*(timersNA+i));}             
     ftimers.close();Serial.println(" OK");
@@ -1187,7 +1186,7 @@ void thermosInit()
 int thermosLoad()
 {
     Serial.print("Load thermos  ");
-    if(sdOpen(FILE_READ,&fthermos,THERMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(THERMOSFNAME,&fthermos)==SDKO){Serial.println(" KO");return SDKO;}
     fthermos.seek(0);
     for(uint16_t i=0;i<thermoslen;i++){*(thermosA+i)=fthermos.read();}              
     fthermos.close();Serial.println(" OK");
@@ -1198,8 +1197,7 @@ int thermosSave()
 {
     
     Serial.print("Save thermos ");
-    SD.remove(THERMOSFNAME);
-    if(sdOpen(FILE_WRITE,&fthermos,THERMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(THERMOSFNAME,&fthermos)==SDKO){Serial.println(" KO");return SDKO;}
     fthermos.seek(0);
     for(uint16_t i=0;i<thermoslen;i++){fthermos.write(*(thermosA+i));}             
     fthermos.close();Serial.println(" OK");
@@ -1212,7 +1210,7 @@ int thermosSave()
 int memDetLoad()
 {
     Serial.print("Load detServ  ");
-    if(sdOpen(FILE_READ,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(MEMDETFNAME,&fmemdet)==SDKO){Serial.println(" KO");return SDKO;}
     fmemdet.seek(0);
     
     for(uint8_t i=0;i<MDSLEN;i++){*(((byte*)&memDetServ)+i)=fmemdet.read();}    
@@ -1228,8 +1226,7 @@ int memDetLoad()
 int memDetSave()
 {
     Serial.print("Save detServ ");
-    SD.remove(MEMDETFNAME);
-    if(sdOpen(FILE_WRITE,&fmemdet,MEMDETFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(MEMDETFNAME,&fmemdet)==SDKO){Serial.println(" KO");return SDKO;}
     
     fmemdet.seek(0);
     for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*(((byte*)&memDetServ)+i));}
@@ -1265,7 +1262,7 @@ void memDetPrint()
 int memosLoad(int m)        // si <0 tout le fichier
 {
     Serial.print("Load Memos ");Serial.print(m);Serial.print(" ");
-    if(sdOpen(FILE_READ,&fmemos,MEMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(MEMOSFNAME,&fmemos)==SDKO){Serial.println(" KO");return SDKO;}
     uint16_t sk=0;if(m>=0){sk=m*LMEMO;}
     fmemos.seek(0);fmemos.seek(sk);    
 
@@ -1287,8 +1284,7 @@ int memosFind()                 // return -1 full
 int memosSave(int m)        // si <0 tout le fichier
 {
     Serial.print("Save Memos ");
-    if(m<0){SD.remove(MEMOSFNAME);}
-    if(sdOpen(FILE_WRITE,&fmemos,MEMOSFNAME)==SDKO){Serial.println(" KO");return SDKO;}
+    if(sdOpen(MEMOSFNAME,&fmemos)==SDKO){Serial.println(" KO");return SDKO;}
     if(m<0){
       fmemos.seek(0);
       for(uint16_t i=0;i<LMEMO*NBMEMOS;i++){fmemos.write(memosTable[i]);}}

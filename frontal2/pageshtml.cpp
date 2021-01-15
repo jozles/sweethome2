@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <SD.h>
 #include "ds3231.h"
 #include "const.h"
 //#include <Wire.h>
@@ -39,10 +38,10 @@ extern char*      periModel;                    // ptr ds buffer : model du pér
 extern byte       periMacBuf[6]; 
 
 extern uint16_t   perrefr;
-extern File       fhisto;           // fichier histo sd card
+extern File32     fhisto;           // fichier histo sd card
 extern long       fhsize;           // remplissage fhisto
-extern long       sdpos;
-extern char       strSD[RECCHAR];
+extern long       histoPos;
+extern char       strHisto[RECCHAR];
 
 
 extern char*      ssid;
@@ -56,7 +55,7 @@ extern int        usernum;
 
 extern byte*      periSwVal;                    // ptr ds buffer peri : état/cde des inter 
 
-File fimg;     // fichier image
+File32 fimg;     // fichier image
 
 extern struct SwRemote remoteT[MAXREMLI];
 extern struct Remote remoteN[NBREMOTE];
@@ -92,8 +91,8 @@ extern uint16_t  sourceDetServ[NBDSRV];
 int htmlImg(EthernetClient* cli,char* fimgname)    // suffisant pour commande péripheriques
 {
         Serial.print(fimgname);
-        File fimg; // = SD.open(fimgname,FILE_READ);
-        if(sdOpen(FILE_READ,&fimg,fimgname)==SDKO){return SDKO;}
+        File32 fimg; // = SD.open(fimgname,FILE_READ);
+        if(sdOpen(fimgname,&fimg)==SDKO){return SDKO;}
         else {
   
           cli->println("HTTP/1.1 200 OK");
@@ -118,32 +117,32 @@ void htmlFavicon(EthernetClient* cli)
   htmlImg(cli,"sweeth.png");
 }
 
-void dumpsd(EthernetClient* cli)
+void dumpHisto(EthernetClient* cli)
 { 
   trigwd();
   htmlIntro(nomserver,cli);
 
   cli->print("<body>");cli->print(VERSION);cli->println("<br>");
   boutRetour(cli,"retour",0,1);
-  if(dumpsd0(cli)!=SDOK){cli->println("SDKO");}
+  if(dumpHisto0(cli)!=SDOK){cli->println("SDKO");}
   boutRetour(cli,"retour",0,1);
   
   cli->println("</body></html>");
 }
 
-int dumpsd0(EthernetClient* cli)                 // liste le fichier de la carte sd
+int dumpHisto0(EthernetClient* cli)                 // liste le fichier histo
 {
   char inch=0;
   
-  if(sdOpen(FILE_READ,&fhisto,"fdhisto.txt")==SDKO){return SDKO;}
+  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){return SDKO;}
 
   trigwd();
   fhsize=fhisto.size();
-  fhisto.seek(sdpos);
+  fhisto.seek(histoPos);
 
-  cli->print("histoSD ");cli->print(sdpos);cli->print("/");cli->print(fhsize);cli->println("<br>");
+  cli->print("histoSD ");cli->print(histoPos);cli->print("/");cli->print(fhsize);cli->println("<br>");
 
-  long ptr=sdpos;
+  long ptr=histoPos;
   long ptr0=ptr;
   long ptra=ptr;
   long ptrb=ptr;
@@ -451,25 +450,25 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
 
   int   yy,mm,dd,js,hh,mi,ss;
   byte  yb,mb,db,dsb,hb,ib,sb;
-  ds3231.readTime(&sb,&ib,&hb,&dsb,&db,&mb,&yb);           // get date(now)
+  ds3231.readTime(&sb,&ib,&hb,&dsb,&db,&mb,&yb);          // get date(now)
   yy=yb+2000;mm=mb;dd=db;hh=hb;mi=ib;ss=sb;
-  calcDate(bd,&yy,&mm,&dd,&js,&hh,&mi,&ss);               // get new date
+  calcDate(bd,&yy,&mm,&dd,&js,&hh,&mi,&ss);               // compute date-bd
   uint32_t amj=yy*10000L+mm*100+dd;
   uint32_t hms=hh*10000L+mi*100+ss;
   char     dhasc[ldate+1];
   sprintf(dhasc,"%.8lu",amj);strcat(dhasc," ");
-  sprintf(dhasc+9,"%.6lu",hms);dhasc[15]='\0';            // dhasc date/heure recherchée
+  sprintf(dhasc+9,"%.6lu",hms);dhasc[15]='\0';            // dhasc date/heure recherchée imprimable
 //  Serial.print("dhasc=");Serial.println(dhasc);
   
-  if(sdOpen(FILE_READ,&fhisto,"fdhisto.txt")==SDKO){return SDKO;}
+  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){return SDKO;}
   
-  long sdsiz=fhisto.size();
+  long histoSiz=fhisto.size();
   long searchStep=100000;
-  long ptr,curpos=sdsiz;
+  long ptr,curpos=histoSiz;
   fhisto.seek(curpos);
   long pos=fhisto.position();  
   
-  Serial.print("--- start search date at ");Serial.print(curpos-searchStep);Serial.print(" sdsiz=");Serial.print(sdsiz);Serial.print(" pos=");Serial.print(pos);Serial.print(" (millis=");Serial.print(millis());Serial.println(")");
+  Serial.print("--- start search date at ");Serial.print(curpos-searchStep);Serial.print(" histoSiz=");Serial.print(histoSiz);Serial.print(" pos=");Serial.print(pos);Serial.print(" (millis=");Serial.print(millis());Serial.println(")");
 
 /* --- recherche 1ère ligne --- */
 
@@ -477,7 +476,8 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   char buf[RECCHAR];
   bool fini=FAUX;
   int pt;
-    
+
+/* recherche rétrograde de la date début */
   while(curpos>0 && !fini){
     curpos-=searchStep;if(curpos<0){curpos=0;}ptr=curpos;
     fhisto.seek(curpos);
@@ -523,11 +523,11 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
     nbli++;
     pc=strchr(buf,';');
     if(memcmp(pc+1,strfds,2)==0){                                         // datasave (après ';' soit '\n' soit'<' soit num fonction)
-      np_=(uint8_t)convStrToInt(pc+SDPOSNUMPER,&lnp);                     // num périphérique
-      th_=(int16_t)(convStrToNum(pc+SDPOSTEMP,&lnp)*100);                 // temp périphérique
+      np_=(uint8_t)convStrToInt(pc+HISTOPOSNUMPER,&lnp);                     // num périphérique
+      th_=(int16_t)(convStrToNum(pc+HISTOPOSTEMP,&lnp)*100);                 // temp périphérique
       periLoad(np_);
 //    Serial.print(np_);Serial.print(" ");Serial.print(*periThmin_);Serial.print(" ");Serial.println(*periThmax_);
-      packMac(periMacBuf,pc+SDPOSMAC);                       
+      packMac(periMacBuf,pc+HISTOPOSMAC);                       
       if(compMac(periMacBuf,periMacr) && th_<9900 && th_>-9900){                                  // contrôle mac
 //        Serial.println(buf);Serial.print(" per=");Serial.print(np_);Serial.print(" th=");Serial.print(th_);Serial.print(" thmin=");Serial.print(*periThmin_);Serial.print(" thmax=");Serial.print(*periThmax_);Serial.print(" - ");
         if(*periThmin_>th_){*periThmin_=(int16_t)th_;periSave(np_,PERISAVELOCAL);nbth++;Serial.print(" maj ");}
@@ -542,7 +542,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);Serial.print(" màj ; millis=");Serial.print(millis()-t0);Serial.println("");
  
   fhisto.seek(pos);
-  return sdOpen(FILE_WRITE,&fhisto,"fdhisto.txt");
+  return sdOpen("fdhisto.txt",&fhisto);
 }
 
 void intro(EthernetClient* cli)

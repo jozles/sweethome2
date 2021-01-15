@@ -3,10 +3,7 @@
 #include <Ethernet.h> //bibliothèque W5100 Ethernet
 #include <EthernetUdp.h>
 #include "ds3231.h"
-//#include <SD.h>
 #include "const.h"
-//#include <Wire.h>
-//#include "utilether.h"
 #include "shconst2.h"
 #include <shmess2.h>
 #include "shutil2.h"
@@ -322,7 +319,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
     memcpy(periMacr,periMacBuf,6);
 #define PNP 2+1+17+1
     k=valf+PNP;*periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
-#if PNP != SDPOSTEMP-SDPOSNUMPER
+#if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
     periCur/=0;
 #endif     
     k+=i;*periAnal=convStrToInt(k,&i);                            // analog value
