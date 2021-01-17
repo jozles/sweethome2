@@ -284,7 +284,7 @@ void SwCtlTableHtml(EthernetClient* cli)
            strcat(buf,"</td>\n");            
            
             vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                   // action 
-            selectTableBHtml(buf,inpact,xfonc1,12,5,vv,8,ninp,2);
+            selectTableBHtml(buf,inpact,xfonc1,NBACT,5,vv,8,ninp,2);
 
            strcat(buf,"</td>");
            strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
@@ -375,7 +375,7 @@ void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfo
 /* libellé ligne */
     strcat(buf,"<td>");a[0]=(char)(i+'1');strcat(buf,a);strcat(buf,(char*)(lib+i*libsize));strcat(buf,"</td>");
 /* checkbox */
-    strcat(buf,"<td>");
+    strcat(buf,"<td>\n");
     colnb=PMFNCHAR;
     for(uint8_t j=0;j<4;j++){
       k=(*(cb+i)>>3-j)&0x01;
@@ -529,7 +529,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 cli->print(buf);buf[0]='\0';
             
 #define ANASIZLIB   3
-                char aLibState[]={">H\0=H\0><\0=L\0<L"};
+                char aLibState[]={">H\0=H\0><\0=L\0-L\0"};
                 subCbdet(buf,cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,NBRULOP,LENRULOP,rulop,periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo);
 
 

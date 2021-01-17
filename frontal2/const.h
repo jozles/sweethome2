@@ -66,7 +66,7 @@
    1.4k ajout memdet ref + opération logique sur règles analog + digital
    1.4m ajout source détecteurs, modif memDetServHtml + valorisations depuis periline, SwCtlTable, thermomètres, remotes et timers
    1.5_ sd devient le plus souvent histo dans les noms de paramètres, de variables et de fonctions ;
-   1.50 la librairie sdFat remplace sd
+   1.50 la librairie sdFat remplace sd ; ajout actions pour règles périphériques
 
    BUGS :
 

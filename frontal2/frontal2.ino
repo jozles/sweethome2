@@ -1394,7 +1394,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           }
                        }break;                                                                       
               case 54: Serial.println("remoteHtml()");remoteHtml(&cli);break;                           // remotehtml
-              case 55: what=5;periInitVar();periRemove(periCur);break;                                  // peri_raz___  
+              case 55: what=5;periInitVar();periRaz(periCur);break;                                     // peri_raz___  
               case 56: break;                                                                           //                            *************** dispo
               case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis thparams__ (thermosCfg())
                         switch (*(libfonctions+2*i)){

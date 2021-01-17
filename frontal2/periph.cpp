@@ -107,7 +107,7 @@ char rulop[]={"     0    1    OR   AND  XOR  TO   "};      // libellés opérati
 
 char inptyps[]="meexphpu??";                  // libellés types sources regles switchs
 char inptypd[]="meexswpu??";                  // libellés types destinations regles switchs
-char inpact[]={"     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR                      "};      // libellés actions
+char inpact[]={"     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-       "};      // libellés actions
 char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                                          // libellés staPulse
 
 /* >>>>>>> remotes <<<<<<<  */
@@ -499,8 +499,8 @@ int periSave(uint16_t num,bool sd)
       Serial.print("periSave ");Serial.print(periFile);    
       
       long t4,t3,t2,t1,t0=micros();
-      //SD.remove(periFile);
-t1=micros();Serial.print(" SDp remove=");Serial.print(t1-t0);
+      t1=micros();
+     
       if(sdOpen(periFile,&fperi)==SDOK){
 t2=micros();Serial.print(" open=");Serial.print(t2-t1);
         sta=SDOK;
@@ -529,6 +529,26 @@ int periRemove(uint16_t num)
   if(sdOpen(periFile,&fperi)==SDOK){fperi.remove();}
   return SDOK;
 }
+
+int periRaz(uint16_t num)
+{
+  periRemove(num);
+  
+  char periFile[7];periFname(num,periFile);
+
+  if (!fperi.open(periFile, O_RDWR | O_CREAT | O_TRUNC)) {
+    Serial.print(periFile);Serial.println(" create failed");
+    return SDKO;
+  }
+// contiguous clusters
+  fperi.truncate(0);
+  if (!fperi.preAllocate(1000)) {
+    Serial.print(periFile);Serial.println(" preallocation failed");
+  } 
+  fperi.close();
+  return SDOK;
+}
+
 
 
 void periConvert()        
