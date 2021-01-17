@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.p_"
+#define VERSION "1.q_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep

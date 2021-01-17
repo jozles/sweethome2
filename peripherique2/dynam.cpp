@@ -44,8 +44,12 @@ extern uint32_t  mDSmaskbit[];
     Les paramètres de fonctionnement (enable/edge-static/active level/old level/action) 
     la destination (type N°) pour identifier ce sur quoi agir (switch, mémoire, détecteur externe, pulse)
 
-  l'action indique ce qui doit être fait lorsque les paramètres appliqués à la source matchent
-  certaines actions concernent exclusivement les générateurs de pulses, 
+  l'action indique ce qui doit être fait lorsque les paramètres appliqués à la source matchent.
+  A partir de la version 1.q les nouvelles actions "0" et "1" sont disponibles qui forcent le résultat
+  indépendament des conditions d'entrée. La valeur de destination devient le résultat de l'opération logique
+  entre la valeur évaluée "en cours" et la valeur trouvée via la règle. 
+  Les actions "0" et "1" permettent d'initialiser la valeur "en cours".
+  Certaines actions concernent exclusivement les générateurs de pulses, 
   les autres actions pour switchs, mémoire et externes.
   
   détecteurs (sources) :
@@ -68,9 +72,14 @@ extern uint32_t  mDSmaskbit[];
       - short         compteur courant au max ; stapulse inchangé
       - impulsion     si impDetTime < DETIMP effectue raz sinon sans effet
       (autres)
-      - toogle        inverse l'état de la destination
-      - OR            force à 1 la destination
-      - NAND          force à 0 la destination 
+      - toogle        inverse la valeur "en cours" si la condition d'entrée est validée (anciennement - inverse l'état de la destination)
+      - OR            effectue OR de l'entrée avec la valeur "en cours" (anciennement - force à 1 la destination)
+      - NOR           effectue NOR de l'entrée avec la valeur "en cours" (anciennement - force à 0 la destination)
+      - XOR           effectue XOR de l'entrée avec la valeur "en cours" 
+      - AND           effectue AND de l'entrée avec la valeur "en cours"
+      - NAND          effectue NAND de l'entrée avec la valeur "en cours"
+      - -0-           force la valeur "en cours" à 0
+      - -1-           force la valeur "en cours" à 1      
   
   Les pulses sont commandés par les actions (donc au rythme du polling des inputs)
   et animés lors de l'appel de pulseClkisr()
@@ -121,6 +130,7 @@ void actions()          // pour chaque input, test enable,
   uint8_t nsrce;            // n° source
   uint8_t ndest;            // n° destination
   byte    tdest;            // type destination
+  uint8_t curValue=0;       // valeur en cours pour l'évaluation des règles
 
   uint32_t locmem=0;        // mémoire = valeurs intermédiaires d'évaluation
 
@@ -130,7 +140,8 @@ void actions()          // pour chaque input, test enable,
   for(ndest=0;ndest<MAXSW;ndest++){curSw[ndest]=0;usdSw[ndest]=0;}
 
   for(int inp=0;inp<NBPERINPUT;inp++){
-    
+
+    curValue=0;
     curinp=&cstRec.perInput[inp*PERINPLEN];
     nsrce=(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);
     ndest=(((*(curinp+3))&PERINPV_MS)>>PERINPNVLS_PB);
@@ -157,7 +168,7 @@ void actions()          // pour chaque input, test enable,
         default:break;
       }                                                         
 
-    if(detecFound!=0){
+    if(detecFound!=0){                                           // detecState évaluation valide (0 ou 1)
 
       if(                                                                       // état actif ?
           (
@@ -165,7 +176,7 @@ void actions()          // pour chaque input, test enable,
           &&(detecState!=(((*(curinp+2))>>PERINPOLDLEV_PB)&0x01))               // flanc si curr!=old   **************  les actions sur un flanc  **************
           &&(detecState==(((*(curinp+2))>>PERINPVALID_PB) &0x01))               // flanc ok             ************** sont ignorées pas de flanc **************
           )
-          ||                                                                  // ou
+          ||                                                                    // ou
           (
             (((*(curinp+2))&PERINPDETES_VB)!=0)                                 // static
           &&(detecState==(((*(curinp+2))>>PERINPVALID_PB) &0x01))               // état ok          
@@ -173,64 +184,99 @@ void actions()          // pour chaque input, test enable,
         ){ 
 //Serial.print("input=");Serial.print(inp);Serial.print(" enable=");Serial.print((*(curinp+2))&PERINPEN_VB);Serial.print(" oldlev=");Serial.print((*(curinp+2))&PERINPOLDLEV_VB);Serial.print(" e/s=");Serial.print((*(curinp+2))&PERINPDETES_VB);Serial.print(" active=");Serial.print((*(curinp+2))&PERINPVALID_VB);Serial.print(" types=");Serial.print((*curinp)&PERINPNT_MS);Serial.print(" num=");Serial.print(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);Serial.print(" detecFound=");Serial.print(detecFound);Serial.print(" detecState=");Serial.print(detecState);Serial.print(" disjonct=");Serial.print((cstRec.swCde>>(ndest*2+1))&0x01);Serial.print("/");Serial.print(cstRec.swCde,HEX);Serial.print("/");Serial.print(ndest,HEX);Serial.print(" typed=");Serial.print((*(curinp+3))&PERINPNT_MS);Serial.print(" action=");Serial.println((*(curinp+2))>>PERINPACTLS_PB);
 
-          uint32_t lmbit;
+          uint32_t lmbit0=locmem &= ~(mDSmaskbit[ndest]);                       // locmem result 0
+          uint32_t lmbit1=locmem |= mDSmaskbit[ndest];                          // locmem result 1
           byte action=(*(curinp+2))>>PERINPACTLS_PB;
-          switch(action){                                                        // exécution action
-              case PMDCA_LOR:switch(tdest){                                               // type dest   *** 0->1 ; 1->1 ***
-                             case DETYEXT:break;
-                             case DETYMEM:locmem |= mDSmaskbit[ndest];break;              // or locmembit,1
-                             case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
-                                         //digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])|ON));}
-                                         curSw[ndest]|=ON;}
-                                         //else{digitalWrite(pinSw[ndest],OFF);}
-                                         else curSw[ndest]=OFF;
-                                         usdSw[ndest]=1;
-                                         break;
-                             default:break;
-                             }
-                             break;
-              case PMDCA_LAND:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest   *** 0->0 ; 1->1 *** sans effet !
-                             case DETYEXT:break;
-                             case DETYMEM:lmbit=locmem & mDSmaskbit[ndest];               // get anded locmembit,1
-                                          locmem &= ~mDSmaskbit[ndest];                   // raz locmem bit
-                                          locmem |= lmbit;                                // store result
-                                          break;
-                             case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
-                                         //digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])&ON));}
-                                         curSw[ndest]&=ON;}
-                                         //else{digitalWrite(pinSw[ndest],OFF);}
-                                         else curSw[ndest]=OFF;
-                                         usdSw[ndest]=1;
-                                         break;
-                             default:break;
-                             }
-                             break;
-              case PMDCA_LNOR:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest   *** 0->0 ; 1->0 ***
-                             case DETYEXT:break;
-                             case DETYMEM:locmem &= ~mDSmaskbit[ndest];break;              // raz locmem bit
-                             case DETYSW://digitalWrite(pinSw[ndest],OFF);
-                                         curSw[ndest]=OFF;
-                                         usdSw[ndest]=1;
-                                         break;
-                             default:break;
-                             }
-                             break;                             
-              case PMDCA_LXOR:switch((byte)((*(curinp+3))&PERINPNT_MS)){                  // type dest   *** 0->1 ; 1->0 *** equiv NAND 
-                             case DETYEXT:break;
-                             case DETYMEM:lmbit=(locmem ^ 0xffffffff) & mDSmaskbit[ndest];// get eored locmem bit
-                                          locmem &= ~mDSmaskbit[ndest];                   // raz locmem bit
-                                          locmem |= lmbit;                                // store result
-                                          break;
-                             case DETYSW:if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){       // no disjoncteur ?
-                                         //digitalWrite(pinSw[ndest],(digitalRead(pinSw[ndest])^ON));}
-                                         curSw[ndest]^=ON;}
-                                         //else{digitalWrite(pinSw[ndest],OFF);}
-                                         else curSw[ndest]=OFF;
-                                         usdSw[ndest]=1;
-                                         break;
-                             default:break;
-                             }
-                             break;
+          switch(action){                                                       // exécution action
+              case PMDCA_0:
+                            curValue = 0;
+                            switch(tdest){                                                  // type dest
+                              case DETYEXT: break;                                          // transfert vers detServ à développer    
+                              case DETYMEM: locmem=lmbit0;                                  // locmem=0
+                                            break;
+                              case DETYSW:  if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){      // disjoncteur ON ?
+                                              curSw[ndest]= curValue;}                      // curValue -> curSw
+                                            break;                                         
+                              default:break;
+                            }
+                            break;
+              case PMDCA_1:
+                            curValue = 1;
+                            switch(tdest){                                                  // type dest
+                              case DETYEXT: break;                                          // transfert vers detServ à développer    
+                              case DETYMEM: locmem=lmbit1;                                  // locmem=1
+                                            break;
+                              case DETYSW:  if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){      // disjoncteur ON ?
+                                              curSw[ndest]= curValue;}                      // curValue -> curSw
+                                            break;                                         
+                              default:break;
+                            }
+                            break;
+              case PMDCA_LOR:
+                            curValue |= detecState;
+                            switch(tdest){                                                  // type dest
+                              case DETYEXT: break;                                          // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue==1){locmem=lmbit1;}                 // locmem=1
+                                            else locmem=lmbit0;                             // locmem=0
+                                            break;
+                              case DETYSW:  if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){      // disjoncteur ON ?
+                                              curSw[ndest]= curValue;}                      // curValue -> curSw
+                                            break;                                         
+                              default:break;
+                            }
+                            break;
+              case PMDCA_LNOR:
+                            curValue |= detecState;
+                            switch(tdest){                                                  // type dest
+                              case DETYEXT: break;                                          // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue==1){locmem=lmbit0;}                 // locmem=0
+                                            else locmem=lmbit1;                             // locmem=1
+                                            break;
+                              case DETYSW:  if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){      // disjoncteur ON ?
+                                              curSw[ndest]= curValue;}                      // curValue -> curSw
+                                            break;                                         
+                              default:break;              
+                            }
+                            break;                             
+              case PMDCA_LXOR:
+                            curValue ^= detecState;
+                            switch(tdest){                                                  // type dest
+                              case DETYEXT: break;                                          // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue==1){locmem=lmbit1;}                 // locmem=0
+                                            else locmem=lmbit0;                             // locmem=1
+                                            break;
+                              case DETYSW:  if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){      // disjoncteur ON ?
+                                              curSw[ndest]= curValue;}                      // curValue -> curSw
+                                            break;                                         
+                              default:break;              
+                            }
+                            break;
+              case PMDCA_LAND:
+                            curValue &= detecState;
+                            switch(tdest){                                                    // type dest
+                              case DETYEXT:break;                                             // transfert vers detServ à développer    
+                              case DETYMEM:   if(curValue==1 && (locmem & mDSmaskbit[ndest])!=0){locmem=lmbit1;}   // locmem=1
+                                              else locmem=lmbit0;                             // locmem=0
+                                              break;
+                              case DETYSW:    if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){      // disjoncteur ON ?
+                                                curSw[ndest]= curValue;}                      // curValue -> curSw
+                                              break;
+                              default:break;
+                            }
+                            break;
+              case PMDCA_LNAND:
+                            curValue &= detecState;
+                            switch(tdest){                                                    // type dest
+                              case DETYEXT:break;                                             // transfert vers detServ à développer    
+                              case DETYMEM:   if(curValue==1 && (locmem & mDSmaskbit[ndest])!=0){locmem=lmbit0;}   // locmem=1
+                                              else locmem=lmbit1;                             // locmem=1
+                                              break;
+                              case DETYSW:    if(((cstRec.swCde>>(ndest*2+1))&0x01)!=0){      // disjoncteur ON ?
+                                                curSw[ndest]= curValue;}                      // curValue -> curSw
+                                              break;
+                              default:break;
+                            }
+                            break;
                case PMDCA_STOP: Serial.print(" stop(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if(staPulse[ndest]==PM_RUN1){
