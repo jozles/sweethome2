@@ -39,6 +39,8 @@ extern unsigned long     dateon;
 extern unsigned long     tempTime;
 extern uint16_t tempPeriod;
 
+extern bool     diags;
+
 extern float    voltage;
 
 char inptyps[]="meexphpu??";                  // libellés types sources inputs
@@ -194,7 +196,7 @@ uint32_t sppp(uint32_t cnt)
 }
 
 void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo,uint32_t* cntOne,uint32_t* cntTwo)
-{
+ {
   Serial.print("pulses(f-e 1 e 2)  ");
   for(int pu=0;pu<NBPULSE;pu++){
     Serial.print((*(uint16_t*)pulseCtl>>(PMFRO_PB+pu*PCTLBIT))&0x01);sp("-",0);         // fr bit
@@ -218,6 +220,7 @@ void periDetServPrint(uint32_t* detserv)
 
 void printConstant()
 {
+if(diags){  
   uint64_t swctl=0; 
   char buf[3],buff[32];memcpy(buf,cstRec.numPeriph,2);buf[2]='\0';
   Serial.print("numPeriph=");Serial.print(buf);Serial.print(" IpLocal=");Serial.print(IPAddress(cstRec.IpLocal));
@@ -245,4 +248,5 @@ void printConstant()
   periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo,(uint32_t*)&cstRec.cntPulseOne,(uint32_t*)&cstRec.cntPulseTwo);
   periInputPrint((byte*)&cstRec.perInput);
 #endif NO_MODE  
+} // diags
 }

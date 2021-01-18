@@ -91,14 +91,14 @@ WiFiServer server(8888);
   unsigned long  detTime[MAXDET]={millis(),millis(),millis(),millis()};    // temps pour debounce
 
 
-  uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};      // les switchs
-  byte    staPulse[NBPULSE];                               // état clock pulses
-  unsigned long    impDetTime[NBPULSE];                             // timer pour gestion commandes impulsionnelles     
-  uint8_t pinDet[MAXDET]={PINDTA,PINDTB,PINDTC,PINDTD};    // les détecteurs
+  /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
-  
-//  void (*isrD[4])(void);                                 // tableau de pointeurs de fonctions
-//  unsigned long isrTime=0;                                        // durée isr
+  uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};       // switchs pins
+  uint8_t cloSw[MAXSW]={CLOSA,CLOSB,CLOSC,CLOSD};           // close value for every switchs (relay/triac etc ON)
+  uint8_t openSw[MAXSW]={OPENA,OPENB,OPENC,OPEND};          // open value for every switchs (relay/triac etc OFF)
+  byte    staPulse[NBPULSE];                                // état clock pulses
+  unsigned long    impDetTime[NBPULSE];                     // timer pour gestion commandes impulsionnelles     
+  uint8_t pinDet[MAXDET]={PINDTA,PINDTB,PINDTC,PINDTD};     // les détecteurs
 
   int   i=0,j=0,k=0;
   uint8_t oldswa[]={0,0,0,0};         // 1 par switch
@@ -126,6 +126,9 @@ char* cstRecA=(char*)&cstRec.cstlen;
                        0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
                        0x01000000,0x02000000,0x04000000,0x08000000,0x10000000,0x20000000,0x40000000,0x80000000};
 
+  bool diags=FAUX;
+
+
    /* prototypes */
 
 int  talkServer();
@@ -140,6 +143,7 @@ int   dataRead();
 void  dataTransfer(char* data);  
 void  readTemp();
 void  ordreExt();
+void  outputCtl();
 
 void tmarker()
 {
@@ -171,10 +175,9 @@ delay(1);
   pinMode(PINLED,OUTPUT);
 
 #if CARTE==VR || CARTE==VRR || CARTE==VRDEV
-  digitalWrite(PINSWA,LOW);
-  digitalWrite(PINSWB,LOW);
-  pinMode(PINSWA,OUTPUT);
-  pinMode(PINSWB,OUTPUT);
+  for(uint8_t sw=0;sw<MAXSW;sw++){
+    digitalWrite(pinSw[sw],openSw[sw]);
+    pinMode(pinSw[sw],OUTPUT);}
 
   pinMode(PINDTA,INPUT_PULLUP);
   pinMode(PINDTB,INPUT_PULLUP);  
@@ -331,7 +334,7 @@ delay(20);
           case 3:   timeOvfSet(3);ordreExt();timeOvfCtl(3);break;
           case 4:   break;
           case 5:   timeOvfSet(5);actions();timeOvfCtl(5);break;
-          case 6:   break;
+          case 6:   outputCtl();break;
           case 7:   break;
           case 8:   swDebounce();break;                                 // doit être avant polDx
           case 9:   timeOvfSet(9);polAllDet();timeOvfCtl(9);break;      // polDx doit être après swDebounce                            
@@ -489,8 +492,9 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
             conv_atoh(data+MPOSANALH,(byte*)&cstRec.analLow);conv_atoh(data+MPOSANALH+2,(byte*)&cstRec.analLow+1);      // analogLow
             conv_atoh(data+MPOSANALH+4,(byte*)&cstRec.analHigh);conv_atoh(data+MPOSANALH+6,(byte*)&cstRec.analHigh+1);  // analogHigh
             
-            cstRec.swCde='\0';
+            uint8_t mskSw[] = {0xfd,0xf7,0xdf,0x7f};
             for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
+              cstRec.swCde &= mskSw[i];
               cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
 
             uint8_t i1=NBPERINPUT*PERINPLEN;                                    // size inputs
@@ -658,7 +662,8 @@ void ordreExt()
     //                                             .... éventuels arguments de la fonction
     //                                             CC crc
     tcx1=millis();
-    Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);
+    
+    if(diags){Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);}
 /*
     dumpstr(httpMess,500);
     Serial.print("ccur=");Serial.println(ccur);
@@ -673,22 +678,22 @@ void ordreExt()
     if(vx>=0){v0=vx-httpMess;}
     if(v0>=0){                            // si commande GET trouvée contrôles et décodage nom fonction 
       int jj=4,ii=convStrToNum(httpMess+v0+5+10+1,&jj);   // recup eventuelle longueur
-      httpMess[v0+5+10+1+ii+2]=0x00;    // place une fin ; si long invalide check sera invalide
+      httpMess[v0+5+10+1+ii+2]=0x00;      // place une fin ; si long invalide check sera invalide
 
       tcx2=millis();
       if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
         //Serial.print(tcx1-tcx0);Serial.print("  ");Serial.print(tcx2-tcx1);Serial.print("  ");
         Serial.print("reçu message fonction=");Serial.println(fonction);
         switch(fonction){
-            case 0:dataTransfer(&httpMess[v0+5]);break;  // set
-            case 1:break;                             // ack ne devrait pas se produire (page html seulement)
-            case 2:cstRec.talkStep=1;break;           // etat -> dataread/save   http://192.168.0.6:80/etat______=0006AB8B
-            case 3:break;                             // sleep (future use)
-            case 4:break;                             // reset (future use)
-            case 5:digitalWrite(PINSWA,CLOSA);break;  // test off A        http://192.168.0.6:80/testaoff__=0006AB8B
-            case 6:digitalWrite(PINSWA,OPENA);break;  // test on  A        http://192.168.0.6:80/testa_on__=0006AB8B
-            case 7:digitalWrite(PINSWB,CLOSB);break;  // test off B        http://192.168.0.6:80/testboff__=0006AB8B
-            case 8:digitalWrite(PINSWB,OPENB);break;  // test on  B        http://192.168.0.6:80/testb_on__=0006AB8B
+            case 0: dataTransfer(&httpMess[v0+5]);break;      // set
+            case 1: break;                                    // ack ne devrait pas se produire (page html seulement)
+            case 2: cstRec.talkStep=1;break;                  // etat -> dataread/save   http://192.168.0.6:80/etat______=0006AB8B
+            case 3: break;                                    // sleep (future use)
+            case 4: break;                                    // reset (future use)
+            case 5: digitalWrite(pinSw[0],cloSw[0]);break;    // test on  A        http://192.168.0.6:80/testaoff__=0006AB8B
+            case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test off A        http://192.168.0.6:80/testa_on__=0006AB8B
+            case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test on  B        http://192.168.0.6:80/testboff__=0006AB8B
+            case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test off B        http://192.168.0.6:80/testb_on__=0006AB8B
             
             default:break;
         }
@@ -735,23 +740,23 @@ void ordreExt0()          // version avec string
     //                                             .... éventuels arguments de la fonction
     //                                             CC crc
     int v0=headerHttp.indexOf("GET /");
-    Serial.print(" reçu=");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);
+    if(diags){Serial.print(" reçu=");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);}
     if(v0>=0){                            // si commande GET trouvée contrôles et décodage nom fonction 
       int jj=4,ii=convStrToNum(&headerHttp[0]+v0+5+10+1,&jj);   // recup eventuelle longueur
       headerHttp[v0+5+10+1+ii+2]=0x00;    // place une fin ; si long invalide check sera invalide
       //Serial.print("len=");Serial.print(ii);Serial.print(" ");Serial.println(headerHttp+v0);
       if(checkHttpData(&headerHttp[v0+5],&fonction)==MESSOK){
-        Serial.print("reçu message fonction=");Serial.println(fonction);
+        if(diags){Serial.print("reçu message fonction=");Serial.println(fonction);}
         switch(fonction){
             case 0:dataTransfer(&headerHttp[v0+5]);break;  // set
             case 1:break;                             // ack ne devrait pas se produire (page html seulement)
             case 2:cstRec.talkStep=1;break;           // etat -> dataread/save   http://192.168.0.6:80/etat______=0006AB8B
             case 3:break;                             // sleep (future use)
             case 4:break;                             // reset (future use)
-            case 5:digitalWrite(PINSWA,CLOSA);break;  // test off A        http://192.168.0.6:80/testaoff__=0006AB8B
-            case 6:digitalWrite(PINSWA,OPENA);break;  // test on  A        http://192.168.0.6:80/testa_on__=0006AB8B
-            case 7:digitalWrite(PINSWB,CLOSB);break;  // test off B        http://192.168.0.6:80/testboff__=0006AB8B
-            case 8:digitalWrite(PINSWB,OPENB);break;  // test on  B        http://192.168.0.6:80/testb_on__=0006AB8B
+            case 5: digitalWrite(pinSw[0],cloSw[0]);break;    // test off A        http://192.168.0.6:80/testaoff__=0006AB8B
+            case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test on  A        http://192.168.0.6:80/testa_on__=0006AB8B
+            case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test off B        http://192.168.0.6:80/testboff__=0006AB8B
+            case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test on  B        http://192.168.0.6:80/testb_on__=0006AB8B
             
             default:break;
         }
@@ -952,6 +957,18 @@ void readAnalog()
  cstRec.analVal=analogRead(A0); 
 }
 
+/* Output control -------------------- */
+
+void outputCtl()
+{
+  for(uint8_t sw=0;sw<NBSW;sw++){
+    if(((cstRec.swCde>>(sw*2+1))&0x01)!=0){                                 // disjoncteur ON
+      digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                  // open/close value
+    }
+    else {digitalWrite(pinSw[sw],openSw[sw]);                               // open value
+    }
+  }
+}
 
 /* Read temp ------------------------- */
  
