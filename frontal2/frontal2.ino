@@ -1380,7 +1380,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                                       break; 
                             case 'b': remoteT[nb].deten=convStrToInt(valf,&j);                          // (remotecf) n° detecteur enable
                                       if(remoteT[nb].deten>NBDSRV){remoteT[nb].deten=NBDSRV;}break;                                             
-                            //case 'x': remoteT[nb].enable=*valf-48;break;                                // (remotecf) xe enable table sw !!!! remplacé par 'b' !!!!
+                            //case 'x': remoteT[nb].enable=*valf-48;break;                              // (remotecf) xe enable table sw !!!! remplacé par 'b' !!!!
                             default:break;
                           }
                        }break;
@@ -1389,11 +1389,11 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                             case 'n': remoteN[nb].newonoff=0;break;                                     // (remote_cn) effacement cb on/off
                             case 't': remoteN[nb].newonoff=1;break;                                     // (remote_ct) check cb on/off
                             case 'm': remoteN[nb].newenable=0;break;                                    // (remote_cm) effacement cb enable
-                            case 's': remoteN[nb].newenable=1;break;                                    // (remote_cs) check cb enable
+                            case 's': remoteN[nb].newenable=*valf-48;break;                                    // (remote_cs) check cb enable
                             default:break;
                           }
                        }break;                                                                       
-              case 54: Serial.println("remoteHtml()");remoteHtml(&cli);break;                           // remotehtml
+              case 54: remoteHtml(&cli);break;                                                          // remotehtml
               case 55: what=5;periInitVar();periRaz(periCur);break;                                     // peri_raz___  
               case 56: break;                                                                           //                            *************** dispo
               case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis thparams__ (thermosCfg())

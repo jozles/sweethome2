@@ -26,14 +26,16 @@ extern int        periCur;          // Numéro du périphérique courant
 
 extern byte*      periMacr;                     // ptr ds buffer : mac address 
 extern char*      periNamer;                    // ptr ds buffer : description périphérique
-extern int16_t*   periLastVal_;                  // ptr ds buffer : dernière valeur de température  
-extern int16_t*   periThmin_;                    // ptr ds buffer : alarme mini th
-extern int16_t*   periThmax_;                    // ptr ds buffer : alarme maxi th
-extern int16_t*   periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
+extern int16_t*   periLastVal_;                 // ptr ds buffer : dernière valeur de température  
+extern int16_t*   periThmin_;                   // ptr ds buffer : alarme mini th
+extern int16_t*   periThmax_;                   // ptr ds buffer : alarme maxi th
+extern int16_t*   periThOffset_;                // ptr ds buffer : offset correctif sur mesure température
 extern char*      periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
 extern char*      periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
 extern char*      periVers;                     // ptr ds buffer : version logiciel du périphérique
 extern char*      periModel;                    // ptr ds buffer : model du périphérique
+extern byte*      periSwVal;                    // ptr ds buffer peri : état/cde des inter 
+extern char*      periNamer;                    // ptr ds buffer : description périphérique
 
 extern byte       periMacBuf[6]; 
 
@@ -53,7 +55,6 @@ extern uint16_t*  toPassword;
 
 extern int        usernum;
 
-extern byte*      periSwVal;                    // ptr ds buffer peri : état/cde des inter 
 
 File32 fimg;     // fichier image
 
@@ -63,8 +64,6 @@ extern struct Remote remoteN[NBREMOTE];
 extern struct Timers timersN[NBTIMERS];
 
 extern struct Thermo thermos[NBTHERMOS];
-
-extern char*     periNamer;                    // ptr ds buffer : description périphérique
 
 extern int       fdatasave;
 
@@ -389,8 +388,33 @@ void cfgRemoteHtml(EthernetClient* cli)
 void remoteHtml(EthernetClient* cli)
 {  
             Serial.println("remote control");
-            htmlIntro(nomserver,cli);
             
+            char buf[4000];buf[0]=0x00;
+            htmlIntroB(buf,nomserver,cli);
+/*
+            htmlIntro0(cli);
+            cli->println("<head>");
+            cli->print("<title>");cli->print("coucou");cli->println("</title>");
+            cli->println("<style>");
+
+            strcat(buf,"@import url(\"https://fonts.googleapis.com/css?family=Roboto:400,400i,700\");\n");
+            strcat(buf,":root {  --txt-color: #00B7E8;}\n");
+            strcat(buf,"body { margin: 2rem;font-family: Roboto, sans-serif;}\n");
+            strcat(buf,".content {display:flex;flex-wrap:wrap;gap:1rem;justify-content:flex-start;}\n");
+            strcat(buf,".content > div{flex-basis:200px;border:1px solid #ccc;padding:1rem;box-shadow: 0px 1px 1px rgba(0,0,0,0.2), 0px 1px 1px rgba(0,0,0,0.2);}\n");
+            strcat(buf,"h1{font-weight: normal; color: var(--txt-color);}\n");
+            strcat(buf,"h2 {font-size: 1.1rem;color: var(--txt-color);font-weight: normal;text-transform: uppercase;margin:0 0 2rem;border-bottom: 1px solid #ccc;}\n");
+            strcat(buf,"input[type=\"radio\"].demo2 {display: none;}\n");
+            strcat(buf,"input[type=\"radio\"].demo2 + label {padding: 0.5rem 1rem;font-size: 1.25rem;line-height: 1.5;border-radius: 0.3rem;color: #fff;background-color: #6c757d;border: 1px solid transparent;transition: all 0.15s ease-in-out;}\n");
+            strcat(buf,"input[type=\"radio\"].demo2.demono:hover + label { background-color: #218838;border-color: #1e7e34;}\n");
+            strcat(buf,"input[type=\"radio\"].demo2.demono:checked + label { background-color: #28a745;border-color: #28a745;}\n");
+            strcat(buf,"input[type=\"radio\"].demo2.demoyes:hover + label { background-color: #c82333;border-color: #bd2130;}\n");
+            strcat(buf,"input[type=\"radio\"].demo2.demoyes:checked + label { background-color: #dc3545;border-color: #dc3545;}\n");
+
+            cli->print(buf);
+            cli->println("</style>");
+            cli->println("</head>");
+*/           
             cli->println("<body><form method=\"get\" >");
             cli->println(VERSION);cli->println(" ");
 
@@ -413,7 +437,7 @@ void remoteHtml(EthernetClient* cli)
                 // slider on/off
                 // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
                 // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
-                // l'input remote_ctx renseigne le passage à 1 éventuel après l'effacement. La variable newonoff stocke le résultat
+                // l'input remote_ctx renseigne le passage à "1" éventuel après l'effacement. La variable newonoff stocke le résultat
                 // et la comparaison avec onoff permet de connaitre la transition (ou non transition) 
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
@@ -421,13 +445,12 @@ void remoteHtml(EthernetClient* cli)
                 sliderHtml(cli,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);
 
                 // slider enable idem slider on/off
-                cli->print("<input type=\"hidden\" name=\"remote_cm");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
-                sliderHtml(cli,(uint8_t*)(&remoteN[nb].enable),"remote_cs",nb,0,1);                
-                
-/*                uint8_t ren=(uint8_t)remoteN[nb].enable;
-                char nf[LENNOM+1]="remote_xe_";nf[LENNOM-1]=(char)(nb+PMFNCHAR);                
-                checkboxTableHtml(cli,&ren,nf,-1,1,"");
-*/                
+                //        cli->print("<input type=\"hidden\" name=\"remote_cm");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
+                //        sliderHtml(cli,(uint8_t*)(&remoteN[nb].enable),"remote_cs",nb,0,1);                                
+                cli->print("<td>- - - - - - - -</td>");
+                bool vert=VRAI;
+                yradioTableHtml(cli,remoteN[nb].enable,"remote_cs",2,vert,nb,1);
+              
                 cli->println("</tr>");
               }
             }

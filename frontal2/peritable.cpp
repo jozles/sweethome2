@@ -247,8 +247,8 @@ void SwCtlTableHtml(EthernetClient* cli)
   
 /* affichage/saisie règles */
   strcat(buf,"</tr></table></form>");
-  strcat(buf,"<table>Règles en=enable, lv=active level, pr=?, es=edge/static ; 1101 OR to set when srce=1, 1001 NOR to clear when srce=0");
-  strcat(buf,"<tr><th></th><th>e.l p.e<br>n.v.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
+  strcat(buf,"<table>Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-");
+  strcat(buf,"<tr><th></th><th>e.r p.e<br>n.f.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
 
       char xfonc1[]="p_inp1____\0";
       char xfonc2[]="p_inp2____\0";

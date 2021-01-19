@@ -317,6 +317,26 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,".slider.round {border-radius: 50px;}\n");
             strcat(buf,".slider.round:before {border-radius: 50%;}\n");
 
+  cli->print(buf);buf[0]='\0';            
+  
+            /* pour bouton radio carrés */     
+            strcat(buf,"@import url(\"https://fonts.googleapis.com/css?family=Roboto:400,400i,700\");\n");
+            //strcat(buf,":root {  --txt-color: #00B7E8;}\n");
+            //strcat(buf,"body { margin: 2rem;font-family: Roboto, sans-serif;}\n");
+            strcat(buf,".content {display:flex;flex-wrap:wrap;gap:1rem;justify-content:flex-start;}\n");
+            strcat(buf,".content > div{flex-basis:200px;border:1px solid #ccc;padding:1rem;box-shadow: 0px 1px 1px rgba(0,0,0,0.2), 0px 1px 1px rgba(0,0,0,0.2);}\n");
+            strcat(buf,"h1{font-weight: normal; color: var(--txt-color);}\n");
+            strcat(buf,"h2 {font-size: 1.1rem;color: var(--txt-color);font-weight: normal;text-transform: uppercase;margin:0 0 2rem;border-bottom: 1px solid #ccc;}\n");
+  
+  cli->print(buf);buf[0]='\0';            
+            
+            strcat(buf,"input[type=\"radio\"].sqbr {display: none;}\n");
+            strcat(buf,"input[type=\"radio\"].sqbr + label {padding: 0.5rem 1rem;font-size: 1.50rem;line-height: 1.5;border-radius: 0.3rem;color: #fff;background-color: #6c757d;border: 1px solid transparent;transition: all 0.15s ease-in-out;}\n");
+            strcat(buf,"input[type=\"radio\"].sqbr.br_off:hover + label { background-color: #218838;border-color: #1e7e34;}\n");
+            strcat(buf,"input[type=\"radio\"].sqbr.br_off:checked + label { background-color: #28a745;border-color: #28a745;}\n");
+            strcat(buf,"input[type=\"radio\"].sqbr.br_on:hover + label { background-color: #c82333;border-color: #bd2130;}\n");
+            strcat(buf,"input[type=\"radio\"].sqbr.br_on:checked + label { background-color: #dc3545;border-color: #dc3545;}\n");
+
           strcat(buf,"</style>\n");  
   strcat(buf,"</head>\n");
   cli->print(buf);buf[0]='\0';
@@ -579,13 +599,52 @@ void xradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,byte nbval,i
       //Serial.print("swVal=");Serial.println(*periSwVal,HEX);
       for(int j=0;j<nbval;j++){
         if(type&0x02!=0){
-          cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(i+48));cli->print("\" value=\"");cli->print((char)(PMFNCVAL+j));cli->print("\"");
+          cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(i+PMFNCHAR));
+          cli->print("\" value=\"");cli->print((char)(PMFNCVAL+j));cli->print("\"");
           if(a==j){cli->print(" checked");}cli->print("/>");
         }
       }
       if(type&0x01!=0){cli->print(" ");cli->print(oi[b]);}
       cli->println("<br>");
     }
+}
+
+void yradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td)                 // 1 line ; nb = page row
+{                                                                                                                                  // sqbr square button
+                                                                                                                                   // nbval à traiter
+  if(td==1 || td==2){cli->print("<td>");}  
+    valeur&=0x01;                                                               
+  
+//  cli->print("<div><div>\n");
+  
+  cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(nb+PMFNCHAR));
+  cli->print("\" class=\"sqbr br_off\" id=\"sqbrb");cli->print((char)(nb+PMFNCHAR));cli->print("\"");
+  cli->print("\" value=\"");cli->print((char)(PMFNCVAL+0));cli->print("\"");
+  if(valeur==0){cli->print(" checked");}cli->print(">");
+  cli->print("<label for=\"sqbrb");cli->print((char)(nb+PMFNCHAR));cli->print("\">OFF</label>");
+  
+  if(vert){cli->print("<br><br>\n");}
+  
+  cli->print(" <input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(nb+PMFNCHAR));
+  cli->print("\" class=\"sqbr br_on\" id=\"sqbra");cli->print((char)(nb+PMFNCHAR));cli->print("\"");
+  cli->print("\" value=\"");cli->print((char)(PMFNCVAL+1));cli->print("\"");
+  if(valeur==1){cli->print(" checked");}cli->print(">");
+  cli->print("<label for=\"sqbra");cli->print((char)(nb+PMFNCHAR));cli->print("\">ON</label>\n");
+  
+//  cli->print("</div> </div>\n\n");
+
+
+/*
+  for(int i=nbval-1;i>=0;i++){
+      cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(nb+PMFNCHAR));
+      cli->print("\" value=\"");cli->print((char)(PMFNCVAL+i));cli->print("\"");
+      if(valeur==i){cli->print(" checked");}cli->print("/>");
+      if(i>0 && vert){cli->print("<br>");}
+  }
+*/  
+
+  if(td==1 || td==3){cli->print("</td>");}      
+  cli->println("<br>");
 }
 
 void selectTableHtml(EthernetClient* cli,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td)
