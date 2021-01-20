@@ -126,7 +126,8 @@ char* cstRecA=(char*)&cstRec.cstlen;
                        0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
                        0x01000000,0x02000000,0x04000000,0x08000000,0x10000000,0x20000000,0x40000000,0x80000000};
 
-  bool diags=FAUX;
+  bool diags=true;
+  unsigned long t_on=millis();
 
 
    /* prototypes */
@@ -153,7 +154,7 @@ void tmarker()
 
 void setup() 
 { 
-
+//pinMode(5,OUTPUT);pinMode(2,OUTPUT);digitalWrite(5,1);digitalWrite(2,1);while(1){};
 /*#if POWER_MODE!=NO_MODE
 WiFi.disconnect();
 WiFi.forceSleepBegin();
@@ -169,8 +170,15 @@ delay(1);
 #endif PM==PO_MODE
 
   Serial.begin(115200);
-  Serial.println("\n\n");
+
   checkVoltage();                   // power off au plus vite si tension insuffisante (no serial)
+
+#if POWER_MODE==NO_MODE
+  diags=false;
+  Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" ; une touche pour diags ");
+  while((millis()-t_on)<4000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
+  Serial.println();
+#endif PM==NO_MODE  
 
   pinMode(PINLED,OUTPUT);
 
@@ -233,7 +241,7 @@ delay(1);
  byte setds[4]={0,0x7f,0x80,TBITS},readds[8];    // fonction, high alarm, low alarm, config conversion 
  int v=ds1820.setDs(WPIN,setds,readds); // init & read rom
  tconversion=TCONVERSIONB;if(readds[0]==0X10 || TBITS==T12BITS){tconversion=TCONVERSIONS;}
- if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.println("Tconv=");Serial.println(tconversion);}
+ if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.print(" Tconv=");Serial.println(tconversion);}
  else {Serial.print(" DS1820 error ");Serial.println(v);}
   
 #if POWER_MODE==NO_MODE
@@ -287,6 +295,7 @@ delay(20);
 
   memdetinit();pulsesinit();
   yield();
+  Serial.println(">>>> fin setup\n");
   
 #ifdef  _SERVER_MODE
   clkFastStep=1;cstRec.talkStep=1 ; // forçage com pour acquisition port perif server
@@ -456,8 +465,8 @@ void fServer(uint8_t fwaited)          // réception du message réponse du serv
                                        // contrôles et transfert 
                                        // retour periMess  
 {      
-        periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction);
-        Serial.print("fserver periMess=");Serial.println(periMess); 
+        periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction,diags);
+        if(diags){Serial.print("fserver periMess=");Serial.print(periMess);} 
         infos("gHResp",bufServer,0);
         if(periMess==MESSOK){
 
@@ -635,28 +644,22 @@ void ordreExt()
     unsigned long trx=0,trxx=millis();
     unsigned long tcx2,tcx1,tcx0=millis();
     char c;
-    Serial.println("\nCliext");
+    Serial.print("\nCliext ");
     while (cliext.connected()) {
 #define TO_ORDREXT 2
       if(trx==0){trx=millis();}
       if((millis()-(unsigned long)trx)>TO_ORDREXT){break;}
       if (cliext.available()) {
-        //trx0[ccur]=millis()-trx;            // attente available
         c = cliext.read();
-        //trx1[ccur]=millis()-trx-(unsigned long)trx0[ccur]; // chargement char
         httpMess[hm]=c;
         if (c == '\n') {                  
           if(hm==0){break;}                      // sortie boucle while
             else hm=0;
         }
-      if(hm<LHTTPMESS){hm++;}
-      //if(ccur>498){Serial.println("ccur overflow");while(1){}}
-      //trx2[ccur]=millis()-trxx;
-      //ccur++;
-      trx=0;
+        if(hm<LHTTPMESS){hm++;}
+        trx=0;
       }
     }
-    //if(trx!=0){trx0[ccur]=millis()-trx;}
     // format message "GET /FFFFFFFFFF=nnnn....CC" FFFFFFFFFF instruction (ETAT___, SET____ etc)
     //                                             nnnn nombre de car décimal zéros à gauche 
     //                                             .... éventuels arguments de la fonction
@@ -682,7 +685,6 @@ void ordreExt()
 
       tcx2=millis();
       if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
-        //Serial.print(tcx1-tcx0);Serial.print("  ");Serial.print(tcx2-tcx1);Serial.print("  ");
         Serial.print("reçu message fonction=");Serial.println(fonction);
         switch(fonction){
             case 0: dataTransfer(&httpMess[v0+5]);break;      // set
@@ -704,7 +706,7 @@ void ordreExt()
       cntreq++;
     }                     // une éventuelle connexion a été traitée
                           // si controles ko elle est ignorée
-    purgeServer(&cliext);
+    purgeServer(&cliext,diags);
   }
 }
 
@@ -799,8 +801,8 @@ int buildReadSave(char* nomfonction,char* data)   //   assemble et envoie read/s
                                                   //   data_rs.._=nnnnppmm.mm.mm.mm.mm.mm_[-xx.xx_aaaaaaa_v.vv]_r.r_siiii_diiii_ffff_cc
 {
   strcpy(bufServer,"GET /cx?\0");
-  if(!buildMess("peri_pass_",srvpswd,"?")==MESSOK){
-    Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};
+  if(!buildMess("peri_pass_",srvpswd,"?",diags)==MESSOK){
+    if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};}
 
   char message[LENVAL];
   int sb=0,i=0,k;
@@ -860,7 +862,7 @@ int buildReadSave(char* nomfonction,char* data)   //   assemble et envoie read/s
 
 if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
   
-  buildMess(nomfonction,message,"");
+  buildMess(nomfonction,message,"",diags);
   infos("buildReadSave",bufServer,port);
   return messToServer(&cli,host,port,bufServer); 
 }
@@ -895,7 +897,7 @@ int printWifiStatus()
 {
   char* wifiSta="WL_IDLE_STATUS   \0WL_NO_SSID_AVAIL \0WL_UKN           \0WL_CONNECTED     \0WL_CONNECT_FAILED\0WL_UKN           \0WL_DISCONNECTED  \0";
   int ws=WiFi.status();
-  Serial.print(ws);Serial.print(" WiFiStatus=");Serial.println((char*)(wifiSta+18*ws));
+  Serial.println();Serial.print(ws);Serial.print(" WiFiStatus=");Serial.print((char*)(wifiSta+18*ws));
   return ws;
 }
 
@@ -903,7 +905,7 @@ bool wifiConnexion(const char* ssid,const char* password)
 {
 
   int i=0;
-  unsigned long beg=millis();
+  unsigned long beg=micros();
   bool cxstatus=VRAI;
 
     ledblink(BCODEONBLINK);
@@ -926,20 +928,20 @@ bool wifiConnexion(const char* ssid,const char* password)
       delay(1000);
       wifistatus=printWifiStatus();
       while(wifistatus!=WL_CONNECTED){
-        if((millis()-beg)>WIFI_TO_CONNEXION){cxstatus=FAUX;break;}
+        if((millis()-beg/1000)>WIFI_TO_CONNEXION){cxstatus=FAUX;break;}
         delay(500);wifistatus=printWifiStatus();
       }
     }
     if(cxstatus){
       if(nbreBlink==BCODEWAITWIFI){ledblink(BCODEWAITWIFI+100);}
-      Serial.print(" connected ; local IP : ");Serial.println(WiFi.localIP());
+      Serial.print(" local IP : ");Serial.println(WiFi.localIP());
       cstRec.IpLocal=WiFi.localIP();        
       WiFi.macAddress(mac);
       //serialPrintMac(mac,1);
       cstRec.serverPer=PERSERV;
       }
     else {Serial.println("\nfailed");if(nbreBlink==0){ledblink(BCODEWAITWIFI);}}
-    Serial.print("cxtime(ms)=");Serial.println(millis()-beg);
+    if(diags){Serial.print("cxtime(micros)=");Serial.println(micros()-beg);}
     return cxstatus;
 }
 
@@ -1016,8 +1018,8 @@ void getTemp()
 {  
 #if POWER_MODE!=DS_MODE
       unsigned long ms=millis();           // attente éventuelle de la fin de la conversion initiée à l'allumage
-      Serial.print("debConv=");Serial.print(debConv);Serial.print(" millis()=");Serial.print(ms);
-      Serial.print(" Tconversion=");Serial.println(tconversion);    // Serial.print(" delay=");Serial.println(tconversion-((long)ms-(long)debConv));
+      if(diags){
+        Serial.print(" Tconv=");Serial.print(tconversion);Serial.print(" delay=");Serial.println((long)ms-(long)debConv);}
 #endif PM!=DS_MODE
 #if POWER_MODE==PO_MODE
       if(((long)ms-(long)debConv)<tconversion){
@@ -1033,7 +1035,7 @@ void getTemp()
       if(((long)ms-(long)debConv)>tconversion){
         temp=ds1820.readDs(WPIN);
         temp*=100;                  // tempPitch 100x
-        Serial.print("temp ");Serial.print(temp/100);
+        Serial.print(" temp ");Serial.print(temp/100);
         ds1820.convertDs(WPIN);     // conversion pendant attente prochain accès
         debConv=millis();          
       }
