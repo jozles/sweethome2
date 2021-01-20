@@ -47,9 +47,9 @@ extern int       periCur;                      // Numéro du périphérique cour
 extern uint16_t* periNum;                      // ptr ds buffer : Numéro du périphérique courant
 extern int32_t*  periPerRefr;                  // ptr ds buffer : période datasave minimale
 extern uint16_t* periPerTemp;                  // ptr ds buffer : période de lecture tempèrature
-extern int16_t*  periPitch_;                    // ptr ds buffer : variation minimale de température pour datasave
-extern int16_t*  periLastVal_;                  // ptr ds buffer : dernière valeur de température  
-extern int16_t*  periAlim_;                     // ptr ds buffer : dernière tension d'alimentation
+extern int16_t*  periPitch_;                   // ptr ds buffer : variation minimale de température pour datasave
+extern int16_t*  periLastVal_;                 // ptr ds buffer : dernière valeur de température  
+extern int16_t*  periAlim_;                    // ptr ds buffer : dernière tension d'alimentation
 extern char*     periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
 extern char*     periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
 extern char*     periLastDateErr;              // ptr ds buffer : date/heure de derniere anomalie com
@@ -1042,6 +1042,8 @@ void remPrint(uint8_t num)
   Serial.print(remoteT[num].detec);Serial.print(" ");
   Serial.print(remoteT[num].deten);Serial.print(" ");
   Serial.print(remoteT[num].enable);Serial.print(" ");
+  Serial.print(remoteT[num].peri);Serial.print(" ");
+  Serial.print(remoteT[num].sw);Serial.print(" ");
   Serial.println();
 }
 
@@ -1051,7 +1053,7 @@ void remotePrint()
     Serial.print(num+1);Serial.print(" ");Serial.print(remoteN[num].nam);for(int nr=LENREMNAM-strlen(remoteN[num].nam);nr>=0;nr--){Serial.print(" ");}
     for(uint8_t numd=0;numd<MAXREMLI;numd++){
       if(remoteT[numd].num==num){
-        remPrint(numd);  
+        remPrint(numd);
       }
     }
   }
@@ -1072,7 +1074,7 @@ int remSave(char* remF,uint16_t remL,char* remA)
     Serial.print("Save ");Serial.print(remF);
     if(sdOpen(remF,&fremote)==SDKO){Serial.println(" KO");return SDKO;}
     fremote.seek(0);
-    for(uint16_t i=0;i<remL;i++){fremote.write(*(remA+i));}             
+    for(uint16_t i=0;i<remL;i++){fremote.write(*(remA+i));}
     fremote.close();Serial.println(" OK");
     return SDOK;
 }
@@ -1084,6 +1086,8 @@ void remInit()
       remoteT[nb].detec=0;
       remoteT[nb].deten=0;
       remoteT[nb].enable=0;
+      remoteT[nb].peri=0;
+      remoteT[nb].sw=0;
     }
 
     for(int nb=0;nb<NBREMOTE;nb++){

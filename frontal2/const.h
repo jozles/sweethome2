@@ -179,20 +179,25 @@
 #define REMOTENFNAME "noms_rem"
 #define REMOTETFNAME "tablerem"
 
-struct SwRemote
-{
-  uint8_t  num;           // remote number
+struct SwRemote           // liste des détecteurs modifiables par les remotes
+{                         // une remote peut agir sur plusieurs détecteurs on/off ou enable 
+                          // elle peut donc exister plusieurs fois dans la table
+                          // le détecteur 0 sert "d'élément neutre" et est donc inutilisable comme détecteur
+                          
+  uint8_t  num;           // remote number (numéro dans table des noms)
   uint8_t  detec;         // detecteur on/off
   uint8_t  deten;         // detecteur enable
   bool     enable;        // remote enable
+  uint8_t  peri;          // périphérique dont un disjoncteur est sous controle de enable (0 pas de périphérique)
+  uint8_t  sw;            // sw concerné du périphérique 
 };
 
-struct Remote
+struct Remote             // liste des remotes
 {
   char    nam[LENREMNAM]; // remote name
-  bool    onoff;          // remote on/off
+  bool    onoff;          // état on/off
   bool    newonoff;       // buffer pour reception et traitement cb par GET /
-  bool    enable;         // remote enable
+  bool    enable;         // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
   bool    newenable;      // buffer pour reception et traitement cb par GET /
 
 };

@@ -48,7 +48,7 @@ extern long   fhsize;           // remplissage fhisto
 
 int sdOpen(char* fname,File32* file32)
 {
-  if (!file32->open(fname, O_RDWR)) {
+  if (!file32->open(fname, O_RDWR | O_CREAT)) {
     Serial.print(fname);Serial.println(" inaccessible");return SDKO;
   }
   return SDOK;

@@ -330,8 +330,6 @@ void cfgRemoteHtml(EthernetClient* cli)
                 cli->print("<td><input type=\"text\" name=\"remotecfn");cli->print((char)(nb+PMFNCHAR));cli->print("\" value=\"");
                         cli->print(remoteN[nb].nam);cli->print("\" size=\"12\" maxlength=\"");cli->print(LENREMNAM-1);cli->println("\" ></td>");
 
-                //sliderHtml(cli,(uint8_t*)(&remoteN[nb].onoff),"remotecfo_",nb,0,1);
-
                 memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // état on/off
                 val=(uint8_t)remoteN[nb].onoff;
                 checkboxTableHtml(cli,&val,nf,-1,1,"");         
@@ -348,7 +346,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
             cli->println("<table>");
               cli->println("<tr>");
-              cli->println("<th>  </th><th>remote </th><th>detec on/off</th><th>detec en</th>");
+              cli->println("<th>  </th><th>remote </th><th>detec on/off</th><th>detec en</th><th>peri</th><th>switch</th>");
               cli->println("</tr>");
               
               for(int nb=0;nb<MAXREMLI;nb++){
@@ -372,11 +370,17 @@ void cfgRemoteHtml(EthernetClient* cli)
                   cli->print((char*)(&libDetServ[remoteT[nb].deten][0]));cli->print(" ");
                   cli->print((char)(((memDetServ>>remoteT[nb].deten)&0x01)+48));}
                 cli->println(" </td>");
-/*                
-                memcpy(nf,"remotecfx_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
-                uint8_t ren=(uint8_t)remoteT[nb].enable;
-                checkboxTableHtml(cli,&ren,nf,-1,1,"");         
-*/                
+                
+                memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° périphérique
+                numTableHtml(cli,'b',&remoteT[nb].peri,nf,2,2,0);
+                uint8_t rp=remoteT[nb].peri;
+                if(rp!=0){periLoad(rp);periCur=rp;cli->print(periNamer);cli->print(" ");}
+                cli->println(" </td>");
+
+                memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° switch
+                numTableHtml(cli,'b',&remoteT[nb].sw,nf,2,2,0);
+                cli->println(" </td>");
+                
                 cli->println("</tr>");
               }
               
@@ -391,30 +395,6 @@ void remoteHtml(EthernetClient* cli)
             
             char buf[4000];buf[0]=0x00;
             htmlIntroB(buf,nomserver,cli);
-/*
-            htmlIntro0(cli);
-            cli->println("<head>");
-            cli->print("<title>");cli->print("coucou");cli->println("</title>");
-            cli->println("<style>");
-
-            strcat(buf,"@import url(\"https://fonts.googleapis.com/css?family=Roboto:400,400i,700\");\n");
-            strcat(buf,":root {  --txt-color: #00B7E8;}\n");
-            strcat(buf,"body { margin: 2rem;font-family: Roboto, sans-serif;}\n");
-            strcat(buf,".content {display:flex;flex-wrap:wrap;gap:1rem;justify-content:flex-start;}\n");
-            strcat(buf,".content > div{flex-basis:200px;border:1px solid #ccc;padding:1rem;box-shadow: 0px 1px 1px rgba(0,0,0,0.2), 0px 1px 1px rgba(0,0,0,0.2);}\n");
-            strcat(buf,"h1{font-weight: normal; color: var(--txt-color);}\n");
-            strcat(buf,"h2 {font-size: 1.1rem;color: var(--txt-color);font-weight: normal;text-transform: uppercase;margin:0 0 2rem;border-bottom: 1px solid #ccc;}\n");
-            strcat(buf,"input[type=\"radio\"].demo2 {display: none;}\n");
-            strcat(buf,"input[type=\"radio\"].demo2 + label {padding: 0.5rem 1rem;font-size: 1.25rem;line-height: 1.5;border-radius: 0.3rem;color: #fff;background-color: #6c757d;border: 1px solid transparent;transition: all 0.15s ease-in-out;}\n");
-            strcat(buf,"input[type=\"radio\"].demo2.demono:hover + label { background-color: #218838;border-color: #1e7e34;}\n");
-            strcat(buf,"input[type=\"radio\"].demo2.demono:checked + label { background-color: #28a745;border-color: #28a745;}\n");
-            strcat(buf,"input[type=\"radio\"].demo2.demoyes:hover + label { background-color: #c82333;border-color: #bd2130;}\n");
-            strcat(buf,"input[type=\"radio\"].demo2.demoyes:checked + label { background-color: #dc3545;border-color: #dc3545;}\n");
-
-            cli->print(buf);
-            cli->println("</style>");
-            cli->println("</head>");
-*/           
             cli->println("<body><form method=\"get\" >");
             cli->println(VERSION);cli->println(" ");
 
@@ -438,7 +418,7 @@ void remoteHtml(EthernetClient* cli)
                 // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
                 // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
                 // l'input remote_ctx renseigne le passage à "1" éventuel après l'effacement. La variable newonoff stocke le résultat
-                // et la comparaison avec onoff permet de connaitre la transition (ou non transition) 
+                // et la comparaison avec onoff permet de connaitre la transition (ou non transition)
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
                 cli->print("<input type=\"hidden\" name=\"remote_cn");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
