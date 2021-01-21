@@ -5,9 +5,9 @@
 #include "SdFat.h"
 #include "ds3231.h"
 #include "const.h"
+#include <shconst2.h>
+#include <shutil2.h>
 #include "periph.h"
-#include "shconst2.h"
-#include "shutil2.h"
 
 extern Ds3231 ds3231;
 

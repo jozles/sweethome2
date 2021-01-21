@@ -2,10 +2,10 @@
 #include "ds3231.h"
 #include "const.h"
 //#include <Wire.h>
+#include <shconst2.h>
+#include <shutil2.h>
 #include "utilether.h"
 #include "utilhtml.h"
-#include "shconst2.h"
-#include "shutil2.h"
 #include "periph.h"
 #include "pageshtml.h"
 
@@ -407,13 +407,35 @@ void remoteHtml(EthernetClient* cli)
 
             cli->println("<table>");
 
-            for(int nb=0;nb<NBREMOTE;nb++){
+            for(uint8_t nb=0;nb<NBREMOTE;nb++){
               if(remoteN[nb].nam[0]!='\0'){
                 cli->println("<tr>");
-                
-                cli->print("<td>");cli->print(nb+1);cli->println("</td>");
+
+                cli->print("<td>");cli->print(nb+1);cli->println("</td>");  // numéro de ligne
+
+                // affichage état d'un éventuel switch
+                // boucle des détecteurs pour trouver un switch                
                 cli->print("<td>");
-                cli->print(" <font size=\"7\">");cli->print(remoteN[nb].nam);cli->println("</font></td>");
+                for(uint8_t td=0;td<MAXREMLI;td++){
+                  if(remoteT[td].num==nb+1 && remoteT[td].peri!=0){           // même remote et présence périphérique
+                    periCur=remoteT[td].peri;periLoad(periCur);
+                    
+/*                      cli->print(nb+1);cli->print(" ");
+                      cli->print(td);cli->print(" ");
+                      cli->print(periCur);cli->print(" ");
+                      cli->print(remoteT[td].sw);cli->print(" ");
+                      cli->print((uint8_t)*periSwVal);cli->print(" ");
+                      cli->print(((*periSwVal)>>((remoteT[td].sw)/2))&0x01);
+*/
+                    if((((*periSwVal)>>((remoteT[td].sw)*2))&0x01)==1){     // switch ON
+                      cli->print(" ON <div id=\"rond_jaune\"></div>");
+                    }
+                    else {
+                      cli->print(" OFF ");}
+                  }
+                }
+                
+                cli->print("</td><td> <font size=\"7\">");cli->print(remoteN[nb].nam);cli->println("</font></td>");      // nom remote
                 // slider on/off
                 // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
                 // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
@@ -422,14 +444,14 @@ void remoteHtml(EthernetClient* cli)
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
                 cli->print("<input type=\"hidden\" name=\"remote_cn");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
-                sliderHtml(cli,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);
+                sliderHtml(cli,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);                              // slider
 
                 // slider enable idem slider on/off
                 //        cli->print("<input type=\"hidden\" name=\"remote_cm");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
                 //        sliderHtml(cli,(uint8_t*)(&remoteN[nb].enable),"remote_cs",nb,0,1);                                
-                cli->print("<td>- - - - - - - -</td>");
-                bool vert=VRAI;
-                yradioTableHtml(cli,remoteN[nb].enable,"remote_cs",2,vert,nb,1);
+                cli->print("<td>- - - - -</td>");
+                bool vert=FAUX;
+                yradioTableHtml(cli,remoteN[nb].enable,"remote_cs",2,vert,nb,1);                                // disjoncteur
               
                 cli->println("</tr>");
               }

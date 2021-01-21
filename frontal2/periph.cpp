@@ -2,9 +2,9 @@
 #include <SdFat.h>
 #include "const.h"
 #include <Wire.h>
+#include <shconst2.h>
+#include <shutil2.h>
 #include "utilether.h"
-#include "shconst2.h"
-#include "shutil2.h"
 #include "periph.h"
 
 
@@ -379,10 +379,11 @@ void  periPrint(uint16_t num)
   periDetServPrint(&memDetServ);Serial.print(" millis=");Serial.println(millis());
   periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo,periSwPulseCurrOne,periSwPulseCurrTwo);
   periInputPrint(periInput);
-  Serial.print("Anal=");Serial.print(*periAnal);Serial.print(" low=");Serial.print(*periAnalLow);Serial.print(" high=");Serial.print(*periAnalHigh);
+/*  Serial.print("Anal=");Serial.print(*periAnal);Serial.print(" low=");Serial.print(*periAnalLow);Serial.print(" high=");Serial.print(*periAnalHigh);
   Serial.print(" adcOffset=");Serial.print(*periAnalOffset1);Serial.print(" adcFactor=");Serial.print(*periAnalFactor);Serial.print(" floatOffset=");Serial.println(*periAnalOffset2);
   for(int k=0;k<NBANST;k++){byte p=periAnalCb[k];Serial.print(" an Cb(0-FF)=");Serial.print(p,HEX);Serial.print(" an Det=");Serial.print(periAnalDestDet[k]);Serial.print(" an Ref Det=");Serial.print(periAnalRefDet[k]);Serial.print(" an n° memo=");Serial.println(periAnalMemo[k]);}Serial.println();
   for(int k=0;k<MAXDET;k++){Serial.print(" dg Cb(0-FF)=");Serial.print(*(byte*)&periDigitCb[k],HEX);Serial.print(" dg Det=");Serial.print(periDigitDestDet[k]);Serial.print(" dg Ref Det=");Serial.print(periDigitRefDet[k]);Serial.print(" dg n° memo=");Serial.println(periDigitMemo[k]);}Serial.println();
+*/
 }
 
 void periSub(uint16_t num,int sta,bool sd)

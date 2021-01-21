@@ -6,8 +6,8 @@
 #include "SdFat.h"
 #include "ds3231.h"
 #include <shconst2.h>
-#include <shutil2.h>
 #include <shmess2.h>
+#include <shutil2.h>
 #include <MemoryFree.h>
 #include "FreeStack.h"
 #include "const.h"
@@ -670,7 +670,7 @@ void sser(uint8_t det,uint8_t old)
 void exploRemote(uint8_t nbr,char oe,bool* old,bool* nou)
 {  
   if(*old+*nou==1){                                                        // changement d'état de la remote ?            
-    Serial.print("\n     chgt ");
+//    Serial.print("\n     chgt ");
     *old=*nou;*nou=0;
     for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                                  // recherche des détecteurs utilisés dans la remote
       if(remoteT[nbd].num==nbr+1){                                          // détecteur concerné ? (utilisé pour la remote courante)
@@ -690,13 +690,13 @@ void periRemoteUpdate()                        //   recherche remote ayant chang
   Serial.println("periRecRemoteUpdate() ");
 
   for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){                                            // boucle des remotes
-    Serial.print("nbr=");Serial.print(nbr);
+/*    Serial.print("nbr=");Serial.print(nbr);
     Serial.print("  on/off=");Serial.print(remoteN[nbr].onoff);Serial.print(" new on/off=");Serial.print(remoteN[nbr].newonoff);
     Serial.print("  enable=");Serial.print(remoteN[nbr].enable);Serial.print(" new enable=");Serial.print(remoteN[nbr].newenable);
-
+*/
     exploRemote(nbr,'o',&remoteN[nbr].onoff,&remoteN[nbr].newonoff);         // le on/off de la remote a-til changé et les détecteurs associés aussi ?
     exploRemote(nbr,'e',&remoteN[nbr].enable,&remoteN[nbr].newenable);       // le enable de la remote a-til changé et les détecteurs associés aussi ?    
-  Serial.println();
+//  Serial.println();
   }
   remoteSave();
 }

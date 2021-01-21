@@ -3,8 +3,8 @@
 #include <Ethernet.h>
 //#include <SD.h>
 #include "ds3231.h"
-#include <shutil2.h>
 #include <shconst2.h>
+#include <shutil2.h>
 #include "const.h"
 #include "periph.h"
 #include "utilether.h"
@@ -581,6 +581,7 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
           strcat(buf,"<td>");concatn(buf,*periPerRefr);strcat(buf,"<br>");
           if(*periProg!=0){strcat(buf,"serv");}strcat(buf,"</td>");         
           strcat(buf,"<td>");concatn(buf,*periSwNb);strcat(buf,"<br>");concatn(buf,*periDetNb);strcat(buf,"</td><td>");
+          concat1aH(buf,(char)(*periSwVal));strcat(buf,"<br>");
           for(uint8_t k=0;k<*periSwNb;k++){
                       char oi[2]={'O','I'};concat1a(buf,oi[(*periSwVal>>((k*2)+1))&0x01]);strcat(buf,"_");
           concat1a(buf,oi[(*periSwVal>>((k*2)))&0x01]);if(k<*periSwNb-1){strcat(buf,"<br>");}}

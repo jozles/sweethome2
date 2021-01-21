@@ -4,7 +4,7 @@
 #include <EthernetUdp.h>
 #include "ds3231.h"
 #include "const.h"
-#include "shconst2.h"
+#include <shconst2.h>
 #include <shmess2.h>
 #include "shutil2.h"
 #include "periph.h"

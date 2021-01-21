@@ -3,8 +3,8 @@
 #include <Ethernet.h>
 //#include <SD.h>
 #include "ds3231.h"
-#include <shutil2.h>
 #include <shconst2.h>
+#include <shutil2.h>
 #include "const.h"
 #include "periph.h"
 #include "utilether.h"
@@ -47,7 +47,8 @@ void concat1aH(char* buf,char a)
 {
   char b[]="\0\0\0";
   if(a<16){b[0]='0';}
-  else b[0]=chexa[a>>4];b[1]=a&0x0f;
+  else {b[0]=chexa[a>>4];}
+  b[1]=chexa[a&0x0f];
   strcat(buf,b);
 }
 
@@ -336,6 +337,11 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,"input[type=\"radio\"].sqbr.br_off:checked + label { background-color: #28a745;border-color: #28a745;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_on:hover + label { background-color: #c82333;border-color: #bd2130;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_on:checked + label { background-color: #dc3545;border-color: #dc3545;}\n");
+
+  cli->print(buf);buf[0]='\0';            
+  
+            /* rond jaune */
+            strcat(buf,"#rond_jaune {width: 40px;height: 40px;border-radius: 20px;background: yellow;}");
 
           strcat(buf,"</style>\n");  
   strcat(buf,"</head>\n");
