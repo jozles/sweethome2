@@ -52,7 +52,14 @@
  *     correction gestion connexion wifi (suppresseion talkServerWifiConnect() : les retrys sont dans wifiConnexion, fonction du temps WIFI_TO_CONNEXION )
  * 1.p réception ordreExt() <5mS suppression de l'attente de déco avec TO de 2mS sur cli.available()
  *     lecture valeur analogique et tfr en NO_MODE (les autres modes utilisent l'ADC pour l'alim)
- * 
+ * 1.q les règles deviennent de vraies opérations logiques entre la valeur courante et la valeur source
+ *     création des fonctions -0- et -1- pour forcer une valeur initiale
+ *     les conditions appliquées à la source sont statique/flanc, montant/descendant si flanc ou direct/inversé si statique
+ *     affichage des diags optionnels pour 'NO_MODE'
+ *     accès au param PERIF via shconstp2.h 
+ *     problème avec l'accès mixte server/client : après une connexion en mode server, positionner talkstep pour envoyer l'état des switchs bloque le mode client
+ *     (connexion serveur(0) échouée raison inconnue)... Essai sans succès de fixer l'IP et le port.
+ *     
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 =11uA de consommation de fond ; 

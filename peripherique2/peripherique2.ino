@@ -2,11 +2,11 @@
 #define _MODE_DEVT    
 /* Mode développement */
 
-#include <defper.h>
+#include <shconst2.h>
 
 #include <ESP8266WiFi.h>
 #include "const.h"
-#include <shconst2.h>
+
 #include <shutil2.h>
 #include <shmess2.h>
 #include <ds18x20.h>
@@ -335,8 +335,12 @@ delay(20);
   
       if(millis()>(clkTime+PERFASTCLK)){        // période 5mS/step
         switch(clkFastStep++){
-/* En 1 toujours talkstep pour le forçage de communication d'acquisition du port au reset */
-/* clkFastStep et cstRec.talkStep == 1 */          
+
+/* En 1 toujours talkstep pour le forçage de communication d'acquisition du port au reset 
+ * En 2 ordreExt() pour assurer que le traitement des commandes reçues et la collecte des données soit effectués pour le prochain dataSave
+ * (ordreExt() positionne cstRec.talkStep!=0)
+ * clkFastStep et cstRec.talkStep == 1 
+*/
           case 1:   timeOvfSet(1);if(cstRec.talkStep!=0){talkServer();}timeOvfCtl(1);
                     break;
           case 2:   break;
@@ -438,7 +442,7 @@ dataRead()
 
 dataSave()
 
-ordreExt() test présence/réception et chargement message reçu en mode serveur
+ordreExt() test présence/réception et chargement message reçu en mode serveur (declenche talkServer pour envoyer le résultat des commandes - position switchs)
 
 talkClient() réponse à un message reçu en mode serveur
 
@@ -574,17 +578,15 @@ switch(cstRec.talkStep){
         
   case 5:          // gestion réponse au dataRead
 
-      fServer(fset_______);  // récupération adr mac, numPériph, tempPer et tempPitch dans bufServer (ctle CRC & adr mac)
-                             // le num de périph est mis à 0 si la com ne s'est pas bien passée
-     cstRec.talkStep=6;      // si le numéro de périphérique n'est pas 00 ---> ok (datasave), ctle réponse et maj params
+      fServer(fset_______);   // récupération adr mac, numPériph, tempPer et tempPitch dans bufServer (ctle CRC & adr mac)
+                              // le num de périph est mis à 0 si la com ne s'est pas bien passée
+     cstRec.talkStep=6;       // si le numéro de périphérique n'est pas 00 ---> ok (datasave), ctle réponse et maj params
      writeConstant();
      break;
       
-  case 6:         // si numPeriph !=0 ou réponse au dataread ok -> datasave
-                  // sinon recommencer au prochain timing
-      
-      if(cstRec.talkStep!=STEPDATASAVE){ledblink(BCODESYSERR);}
-    
+  case STEPDATASAVE:          // (6) si numPeriph !=0 ou réponse au dataread ok -> datasave
+                              // sinon recommencer au prochain timing
+                              
       if(memcmp(cstRec.numPeriph,"00",2)==0){cstRec.talkStep=9;}
       else {  
         v=dataSave();infos("  dataSave","",v);
@@ -702,6 +704,7 @@ void ordreExt()
         char etat[]="done______=0006AB8B\0";
         talkClient(etat);
         Serial.println();
+        //cstRec.talkStep=6;      // après maj des sw et collecte des données -> dataSave
       }
       cntreq++;
     }                     // une éventuelle connexion a été traitée
