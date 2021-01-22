@@ -704,7 +704,8 @@ void ordreExt()
         char etat[]="done______=0006AB8B\0";
         talkClient(etat);
         Serial.println();
-        //cstRec.talkStep=6;      // après maj des sw et collecte des données -> dataSave
+        cstRec.talkStep=6;      // après maj des sw et collecte des données -> dataSave       
+        cstRec.serverTime=0;
       }
       cntreq++;
     }                     // une éventuelle connexion a été traitée

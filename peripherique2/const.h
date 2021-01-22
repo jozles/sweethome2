@@ -56,13 +56,11 @@
  *     création des fonctions -0- et -1- pour forcer une valeur initiale
  *     les conditions appliquées à la source sont statique/flanc, montant/descendant si flanc ou direct/inversé si statique
  *     affichage des diags optionnels pour 'NO_MODE'
- *     accès au param PERIF via shconstp2.h 
- *     problème avec l'accès mixte server/client : après une connexion en mode server, positionner talkstep pour envoyer l'état des switchs bloque le mode client
- *     (connexion serveur(0) échouée raison inconnue)... Essai sans succès de fixer l'IP et le port.
+ *     dataSave après chaque réception via ordrext (cstRec.talkStep=6 et cstRec.serverTime=0 sinon blocage)
  *     
 Modifier : 
 
-  en deepsleep 10uA+1uA ds18x20 =11uA de consommation de fond ; 
+  en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
   une mesure de 2mS*80mA toutes les 2 minutes (conversion pendant sleep)=1,3uA
   une transmission 50 fois par jour (@6sec connexion)=650uA ; tester si la connexion est plus rapide en deepsleep
 
