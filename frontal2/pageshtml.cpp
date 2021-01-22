@@ -427,7 +427,7 @@ void remoteHtml(EthernetClient* cli)
                       cli->print((uint8_t)*periSwVal);cli->print(" ");
                       cli->print(((*periSwVal)>>((remoteT[td].sw)/2))&0x01);
 */
-                    if((((*periSwVal)>>((remoteT[td].sw)*2))&0x01)==1){     // switch ON
+                    if(periSwLev(remoteT[td].sw)==1){                         // switch ON
                       cli->print(" ON <div id=\"rond_jaune\"></div>");
                     }
                     else {

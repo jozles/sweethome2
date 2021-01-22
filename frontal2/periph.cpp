@@ -375,7 +375,7 @@ void  periPrint(uint16_t num)
   Serial.print(" sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.print(*periDetNb);Serial.print(" ");
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
   Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(") ");
-  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((*periSwVal>>(2*s-1))&0x01)+48));}
+  for(int s=MAXSW;s>=1;s--){Serial.print(periSwCde(s));}
   periDetServPrint(&memDetServ);Serial.print(" millis=");Serial.println(millis());
   periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo,periSwPulseCurrOne,periSwPulseCurrTwo);
   periInputPrint(periInput);
@@ -777,7 +777,45 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
    // lorsque periLoad est effectué periInitVar n'est pas utile
 }
 
-void periTableLoad()                 // au démarrage du systeme
+void periSwCdUpdate(uint8_t sw,uint8_t stat)
+{
+  byte msk=(byte)0x01<<(sw*2+1);                // 02 08 20 80 disjoncteurs
+  *periSwVal &= ~msk;
+  if(stat==1){*periSwVal |= msk;}
+}
+
+byte periSwCde(uint8_t sw)
+{
+  return (*periSwVal>>(sw*2+1))&0x01;
+}
+
+void periSwLevUpdate(uint8_t sw,uint8_t stat)
+{
+  byte msk=(byte)0x01<<(sw*2);                  // 01 04 10 40 levels
+  *periSwVal &= ~msk;
+  if(stat==1){*periSwVal |= msk;}  
+}
+
+byte periSwLev(uint8_t sw)
+{
+  return (*periSwVal>>(sw*2))&0x01;
+}
+
+void periSwSync()                               // sychronisation periSwVal sur remotes au démarrage
+{
+  uint8_t nbsync=0;
+  for(uint8_t k=0;k<MAXREMLI;k++){
+    if(remoteT[k].peri!=0 && remoteT[k].peri<=NBPERIF && remoteT[k].sw<MAXSW){
+      periCur=remoteT[k].peri;periLoad(periCur);
+      periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);
+      periSave(periCur,PERISAVELOCAL);
+      nbsync++;
+    }
+  }
+  Serial.print("sync ");Serial.print(nbsync);Serial.println(" switchs");
+}
+
+void periTableLoad()                            // au démarrage du systeme
 {
   Serial.print("Load table perif ");
   periInit();

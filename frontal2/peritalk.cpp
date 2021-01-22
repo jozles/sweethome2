@@ -123,9 +123,7 @@ void assySet(char* message,int periCur,char* diag,char* date14)
 
                 v1=strlen(message);                                 // 4 bits disjoncteurs switchs (8,6,4,2)
                 for(int k=MAXSW;k>0;k--){
-                    byte a=*periSwVal;
-                    message[v1+MAXSW-k]=(char)( 48+ ((a>>((k*2)-1)) &0x01) );
-                }      // periSw (cdes)
+                    message[v1+MAXSW-k]=(char)(PMFNCVAL + periSwCde(k-1));}
                 memcpy(message+v1+MAXSW,"_\0",2);
 
                 v1+=MAXSW+1;
@@ -217,7 +215,7 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct)     // fonction set ou
           *periErr=periMess;
         }
         cli->stop();
-        int8_t zz=periSave(periCur,PERISAVESD);          // modifs de periTable et date effacèe par prochain periLoad si pas save
+        int8_t zz=periSave(periCur,PERISAVELOCAL);          // modifs de periTable et date effacèe par prochain periLoad si pas save
         if(periMess==MESSOK){periMess=zz;}
         return periMess;
 }
@@ -257,7 +255,7 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
           }
           packDate(periLastDateOut,date14+2);
           *periErr=MESSOK;                                // assySet, buildMess, envoi ne génèrent pas d'erreur
-          return periSave(periCur,PERISAVESD);            // modifs de periTable et date effacèe par prochain periLoad si pas save
+          return periSave(periCur,PERISAVELOCAL);            // modifs de periTable et date effacèe par prochain periLoad si pas save
 }
 
 
@@ -326,11 +324,11 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
     k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
     k+=i;strncpy(periVers,k,LENVERSION);                          // version
     k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);           // nbre sw
-    k+=1; *periSwVal&=0xAA;for(int i=MAXSW-1;i>=0;i--){*periSwVal |= ((*(k+i)-48)&0x01)<< (2*(MAXSW-i)-2);}        // periSwVal états sw
-    k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                       // nbre detec
-    k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}  // détecteurs
-    k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}          // pulse clk status 
-    k+=NBPULSE+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                             // model
+    k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                           // periSwVal états sw
+    k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
+    k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
+    k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
+    k+=NBPULSE+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                              // model
     k+=LENMODEL+1;
 
     if(memcmp(periVers,"1.h",3)>=0){
@@ -345,6 +343,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
     if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
     memcpy(periIpAddr,remote_IP_cur,4);                                                                            // Ip addr
     if(remote_Port!=0 && *periProtocol=='U'){*periPort=remote_Port;}                                               // port
-    periSave(periCur,PERISAVESD);checkdate(6);
+    periSave(periCur,PERISAVELOCAL);
+    checkdate(6);
   }
 }

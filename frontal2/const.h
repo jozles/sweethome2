@@ -66,12 +66,18 @@
    1.4k ajout memdet ref + opération logique sur règles analog + digital
    1.4m ajout source détecteurs, modif memDetServHtml + valorisations depuis periline, SwCtlTable, thermomètres, remotes et timers
    1.5_ sd devient le plus souvent histo dans les noms de paramètres, de variables et de fonctions ;
-   1.50 la librairie sdFat remplace sd ; ajout actions pour règles périphériques
+   1.50 la librairie sdFat remplace sd ; ajout actions pour règles périphériques ; 
+        ajout peri et sw dans tables detecteurs des remotes ; branchement disjoncteur et maj croisée remotes<->periline + voyant ; 
+        le disjoncteur a besoin d'un dét mémo pour être "réactif" dans les règles (sinon il n'est pas vu par poolPerif)
+        les lectures et modifs de periSwVal deviennent les fonctions periSwLev et Cd / Update pour en simplifier l'accès.
+        periSave devient LOCAL pour toutes les opérations de communication périf/serveur ; ajouter une sauvegarde horaire du cache
+        
 
    BUGS :
 
    à faire :
-
+   
+      ajouter sauvegarde horaire du cache des périphériques
       gérer le periLoad KO dans periTableLoad
       remplacer date14 par date unix sur 8 digits dans les messages ACK et SET
 
@@ -195,10 +201,10 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
 struct Remote             // liste des remotes
 {
   char    nam[LENREMNAM]; // remote name
-  bool    onoff;          // état on/off
-  bool    newonoff;       // buffer pour reception et traitement cb par GET /
-  bool    enable;         // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
-  bool    newenable;      // buffer pour reception et traitement cb par GET /
+  uint8_t onoff;          // état on/off
+  uint8_t newonoff;       // buffer pour reception et traitement cb par GET /
+  uint8_t enable;         // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
+  uint8_t newenable;      // buffer pour reception et traitement cb par GET /
 
 };
 

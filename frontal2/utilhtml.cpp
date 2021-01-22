@@ -597,22 +597,30 @@ void lnkTableHtml(EthernetClient* cli,char* nomfonct,char* lib)
   cli->print(lib);cli->println("</a>");
 }
 
-void xradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,byte nbval,int nbli,byte type)
-{
+/*void xradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,int nbli)             // saisie peri Sw Cde bits et affiche peri Sw Lev bits
+{                                                                                         // valeur = periSwVal ; nbLi = nbSw
     for(int i=0;i<nbli;i++){
       char oi[]="OI";
-      byte b,a=valeur; a=a >> i*2 ;b=a&0x01;a&=0x02;a=a>>1;          // mode periSwVal        a bit poids fort commande ; b bit poids faible état
-      //Serial.print("swVal=");Serial.println(*periSwVal,HEX);
-      for(int j=0;j<nbval;j++){
-        if(type&0x02!=0){
+      byte b,a=valeur; a=a >> i*2 ;b=a&0x01;a&=0x02;a=a>>1;          // mode periSwVal    a bit poids fort commande ; b bit poids faible état
+      
+      for(int j=0;j<2;j++){
           cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(i+PMFNCHAR));
           cli->print("\" value=\"");cli->print((char)(PMFNCVAL+j));cli->print("\"");
           if(a==j){cli->print(" checked");}cli->print("/>");
-        }
       }
       if(type&0x01!=0){cli->print(" ");cli->print(oi[b]);}
       cli->println("<br>");
     }
+}*/
+
+void radioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbval)        // nbval boutons radio
+{                                                                                        // valeur = checked (0-n) 
+      cli->print(valeur);cli->print("<br>");
+      for(uint8_t j=0;j<nbval;j++){
+          cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);
+          cli->print("\" value=\"");cli->print((char)(PMFNCVAL+j));cli->print("\"");
+          if(j==valeur){cli->print(" checked");}cli->print("/>");
+      }
 }
 
 void yradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td)                 // 1 line ; nb = page row
@@ -621,7 +629,6 @@ void yradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbva
   if(td==1 || td==2){cli->print("<td>");}  
     valeur&=0x01;                                                               
   
-//  cli->print("<div><div>\n");
   
   cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(nb+PMFNCHAR));
   cli->print("\" class=\"sqbr br_off\" id=\"sqbrb");cli->print((char)(nb+PMFNCHAR));cli->print("\"");
@@ -636,18 +643,6 @@ void yradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbva
   cli->print("\" value=\"");cli->print((char)(PMFNCVAL+1));cli->print("\"");
   if(valeur==1){cli->print(" checked");}cli->print(">");
   cli->print("<label for=\"sqbra");cli->print((char)(nb+PMFNCHAR));cli->print("\">ON</label>\n");
-  
-//  cli->print("</div> </div>\n\n");
-
-
-/*
-  for(int i=nbval-1;i>=0;i++){
-      cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(nb+PMFNCHAR));
-      cli->print("\" value=\"");cli->print((char)(PMFNCVAL+i));cli->print("\"");
-      if(valeur==i){cli->print(" checked");}cli->print("/>");
-      if(i>0 && vert){cli->print("<br>");}
-  }
-*/  
 
   if(td==1 || td==3){cli->print("</td>");}      
   cli->println("<br>");

@@ -288,6 +288,7 @@ void SwCtlTableHtml(EthernetClient* cli)
 
            strcat(buf,"</td>");
            strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
+                                                                                  //strcat(buf, ajouter nom de la source si det
            strcat(buf,"</form></tr>\n");
            if(strlen(buf)>sizeof(buf)*0.4){cli->print(buf);buf[0]='\0';}
         } // input suivant
@@ -469,7 +470,9 @@ void periLineHtml(EthernetClient* cli,int i)
                       numTableHtml(cli,'b',periSwNb,"peri_intnb",1,2,0);cli->println("<br>");
                       numTableHtml(cli,'b',periDetNb,"peri_detnb",1,3,0);
                       cli->println("<td>");
-                      xradioTableHtml(cli,*periSwVal,"peri_vsw_\0",2,*periSwNb,3);
+                      //xradioTableHtml(cli,*periSwVal,"peri_vsw_\0",*periSwNb,3);
+                      char fonc[]={"peri_vsw__\0"},oi[]={"OI"};
+                      for(int k=0;k<*periSwNb;k++){fonc[LENNOM-1]=PMFNCHAR+k;radioTableHtml(cli,periSwCde(k),fonc,2);cli->print(oi[periSwLev(k)]);if(k<*periSwNb-1){cli->print("<br>");}cli->println();}
                       cli->print("</td>");
                    
 /*                     cli->print("<td>");
@@ -583,8 +586,8 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
           strcat(buf,"<td>");concatn(buf,*periSwNb);strcat(buf,"<br>");concatn(buf,*periDetNb);strcat(buf,"</td><td>");
           concat1aH(buf,(char)(*periSwVal));strcat(buf,"<br>");
           for(uint8_t k=0;k<*periSwNb;k++){
-                      char oi[2]={'O','I'};concat1a(buf,oi[(*periSwVal>>((k*2)+1))&0x01]);strcat(buf,"_");
-          concat1a(buf,oi[(*periSwVal>>((k*2)))&0x01]);if(k<*periSwNb-1){strcat(buf,"<br>");}}
+                      char oi[2]={'O','I'};concat1a(buf,oi[periSwCde(k)]);strcat(buf,"_");
+                      concat1a(buf,oi[periSwLev(k)]);if(k<*periSwNb-1){strcat(buf,"<br>");}}
           strcat(buf,"</td><td>");
           strcat(buf,"<font size=\"2\">");
           for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};concat1a(buf,oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){strcat(buf,"<br>");}}
