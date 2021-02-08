@@ -124,8 +124,10 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint32_t      pertemp=PTEMP;         // période ech temp sur le serveur
   uint16_t      perrefr=0;             // periode rafraichissement de l'affichage
 
-  unsigned long lastcx=0;              // last server connection for watchdog
-#define MAXCXWD 600000                 // watchdog time out if no connection    
+  unsigned long lastcxt=0;             // last TCP server connection for watchdog
+  unsigned long lastcxu=0;             // last UDP server connection for watchdog  
+#define MAXCXWT  60000                 // time out delay if no TCP connection    
+#define MAXCXWU 600000                 // time out delay if no UDP connection    
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
@@ -321,6 +323,8 @@ int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime);
 void poolperif(uint8_t* tablePerToSend,uint8_t detec,char* nf);
 void scanTimers();
 void scanDate();
+void scanTemp();
+void scanThermos();
 void testUdp();
 void cidDmp();
 
@@ -478,11 +482,16 @@ void stoprequest()
 
 void watchdog()
 {
-  if(millis()-lastcx>MAXCXWD){
+  if(millis()-lastcxt>MAXCXWT){wdReboot("T",MAXCXWT);}
+  if(millis()-lastcxu>MAXCXWU){wdReboot("U",MAXCXWU);}
+}
+
+void wdReboot(char* a,unsigned long maxCx)
+{
     trigwd();
-    histoStore_textdh("WD","","<br>\n\0");
-    Serial.print("no cx for ");Serial.print(MAXCXWD/1000);Serial.println("sec");
-    delay(30000);}      // wait for hardware watchdog
+    histoStore_textdh("W",a,"<br>\n\0");
+    Serial.print("no cx for ");Serial.print(maxCx/1000);Serial.println("sec");
+    delay(30000);      // wait for hardware watchdog
 }
 
 void scanTemp()
@@ -1029,7 +1038,6 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 
       Serial.print("\n *** serveur(");Serial.print((char)ab);Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
       
-      lastcx=millis();    // trig watchdog
       cxtime=millis();    // pour rémanence pwd
       
       nbreparams=getnv(&cli,bufData,bufDataLen);Serial.print("\n---- nbreparams ");Serial.println(nbreparams);
@@ -1589,6 +1597,8 @@ void udpPeriServer()
 //      Serial.print("port=");Serial.println(remote_Port);
 //      dumpstr(udpData,128);
       packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
+      
+      lastcxu=millis();     // trig watchdog
       commonserver(cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
       
       Serial.println(" *** end udp");
@@ -1606,6 +1616,7 @@ void tcpPeriServer()
         getremote_IP(&cli_a,remote_IP,remote_MAC);      
         //serialPrintIp(remote_IP);Serial.println(" connecté");
         if (cli_a.connected()){         
+          lastcxt=millis();             // trig watchdog
           commonserver(cli_a," ",1);}
       Serial.println(" *** end tcp");
       }
@@ -1618,10 +1629,11 @@ void pilotServer()
      {
         getremote_IP(&cli_b,remote_IP,remote_MAC);      
         //serialPrintIp(remote_IP);Serial.println(" connecté");
-        if (cli_b.connected()){commonserver(cli_b," ",1);}
+        if (cli_b.connected()){
+          lastcxt=millis();             // trig watchdog
+          commonserver(cli_b," ",1);}
      }     
 }
-
 
 
 void testUdp()

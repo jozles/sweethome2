@@ -150,13 +150,14 @@ int dumpHisto0(EthernetClient* cli)                 // liste le fichier histo
   char buf[LBUF];
 
   while(ptr<fhsize){
+    trigwd();
     while((ptr-ptra)<(LBUF-2) && ptr<fhsize){           // -1 for end null char
       buf[ptr-ptra]=fhisto.read();ptr++;
     }
     buf[ptr-ptra]='\0';
     cli->print(buf);
     ptra=ptr;
-    if((ptr-ptrb)>10000){ptrb=ptr;trigwd();}
+    if((ptr-ptrb)>10000){ptrb=ptr;}
     if((ptr-ptr0)>100000){break;}
   }
   
