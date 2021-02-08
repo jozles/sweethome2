@@ -59,15 +59,15 @@ void histoStore_textdh0(char* val1,char* val2,char* val3)
   unsigned long t2,t1,t0=micros();
   char text[32]={'\0'};
 
-  sdOpen("fdhisto.txt",&fhisto);
-
 t1=micros();Serial.print(" SDst open=");Serial.print(t1-t0);  
 
         sprintf(text,"%.8lu",amj);strcat(text," ");       // 9
         sprintf(text+9,"%.6lu",hms);strcat(text," ");     // +7
         strcat(text,val1);strcat(text," ");               // +2
         strcat(text,val2);strcat(text,'\0');              // +1
-  
+          
+        sdOpen("fdhisto.txt",&fhisto);
+        fhisto.seekEnd(0);
         int v=fhisto.write(text);int w=fhisto.write(val3);
         fhisto.sync();
         if(v==0 || w==0){ledblink(BCODEFHISTO);}

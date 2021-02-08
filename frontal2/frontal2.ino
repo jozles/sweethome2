@@ -125,7 +125,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint16_t      perrefr=0;             // periode rafraichissement de l'affichage
 
   unsigned long lastcx=0;              // last server connection for watchdog
-#define MAXCXWD 900000                 // watchdog time out if no connection    
+#define MAXCXWD 600000                 // watchdog time out if no connection    
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
@@ -682,7 +682,7 @@ void exploRemote(uint8_t nbr,char oe,uint8_t* old,uint8_t* nou)                 
           sser(remoteT[nbd].deten,*old);                                    // vérif changement d'état du détecteur enable pour maj perif
           if(remoteT[nbd].peri!=0 && remoteT[nbd].peri<=NBPERIF){           // maj periSwVal si peri/sw ok
             periCur=remoteT[nbd].peri;periLoad(periCur);
-            periSwCdUpdate(remoteT[nbd].sw,*old);periSave(periCur,1);
+            periSwCdUpdate(remoteT[nbd].sw,*old);periSave(periCur,PERISAVESD);
             Serial.print("=");Serial.print(*periSwVal,HEX);
           }
           Serial.println();
@@ -1467,7 +1467,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        periLoad(periCur);                                                            
                        periLineHtml(&cli,periCur);break;                                                                                                    
               case 69: break;                                                                           // done         
-              case 70: switch(*(libfonctions+2*i)){                                                     //analog_
+              case 70: switch(*(libfonctions+2*i)){                                                     // analog_
                           case '@': *periAnalLow=0;conv_atob(valf,periAnalLow);break;
                           case 'A': *periAnalHigh=0;conv_atob(valf,periAnalHigh);break;
                           case 'B': *periAnalOffset1=0;conv_atob(valf,periAnalOffset1);break;

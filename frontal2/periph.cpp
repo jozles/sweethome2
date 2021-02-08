@@ -543,7 +543,7 @@ int periRaz(uint16_t num)
   }
 // contiguous clusters
   fperi.truncate(0);
-  if (!fperi.preAllocate(1000)) {
+  if (!fperi.preAllocate(PERIRECLEN+100)) {
     Serial.print(periFile);Serial.println(" preallocation failed");
   } 
   fperi.close();
