@@ -17,6 +17,7 @@ extern Ds3231 ds3231;
 
 extern File32    fhisto;      // fichier histo sd card
 extern long      histoPos;
+extern char      histoDh[LDATEA];
 extern long      fhsize;      // remplissage fhisto
 extern char*     nomserver;
 extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
@@ -120,27 +121,6 @@ char pkdate[7];
 
 void showLine(EthernetClient* cli,int i,char* pkdate);
 
-void pageHeader(char* buf)
-{ 
-  float th;                                  // pour temp DS3231
-  ds3231.readTemp(&th);
-  
-  strcat(buf,"<body>");            
-  strcat(buf,"<form method=\"get\" >");
-  strcat(buf,VERSION);strcat(buf," ");
-
-  #ifdef _MODE_DEVT
-  strcat(buf,"MODE_DEVT ");
-  #endif _MODE_DEVT
-  #ifdef _MODE_DEVT2
-  strcat(buf,"MODE_DEVT2 ");
-  #endif _MODE_DEVT2
-
-  bufPrintDateHeure(buf,pkdate);
-  uint32_t bufIp=Ethernet.localIP();
-  strcat(buf,"<font size=\"2\">; local IP ");charIp((byte*)&bufIp,buf);strcat(buf," ");
-  concatnf(buf,th);strcat(buf,"°C<br>\n");
-}
 
 void perifHeader(char* buf)
 {
@@ -310,19 +290,22 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
 
           pageHeader(buf);
           usrFormBHtml(buf,1);
+          boutRetourB(buf,"refresh",0,0);
           cli->print(buf);buf[0]=0;
 
-          boutRetour(cli,"refresh",0,0);
+          //boutRetour(cli,"refresh",0,0);
           
           numTableHtml(cli,'d',&perrefr,"per_refr__",4,0,0);
 
           cli->print("(");cli->print(fhsize);cli->println(") ");
-          numTableHtml(cli,'i',(uint32_t*)&histoPos,"hist_pos__",9,0,0);
+          numTableHtml(cli,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0);
+          alphaTableHtmlB(buf,histoDh,"hist_sh_D_",LDATEA-2);cli->print(buf);buf[0]=0;
           
           cli->println("<input type=\"submit\" value=\"ok\"> ");
           
           boutFonction(cli,"dump_his__","","histo",0,0,0,0);    
-          boutFonction(cli,"reset_____","","reset",0,0,0,0);
+          boutFonction(cli,"deco______","","deco",0,0,0,0);
+          boutFonction(cli,"deco____R_","","reboot",0,0,0,0);
           boutFonction(cli,"cfgserv___","","config",0,0,0,0);
           cli->print("<br>");
           boutFonction(cli,"remote____","","remote_cfg",0,0,0,0);
@@ -397,9 +380,9 @@ void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfo
     namfonct[LENNOM-2]=colnb;   
     strcat(buf,"</td>\n");  
 /* mémo */
-    strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,namfonct);strcat(buf,"\" value=\"");
-    if(memo[i]>=0 && memo[i]<NBMEMOS){strcat(buf,&memosTable[memo[i]*LMEMO]);}
-    strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LMEMO-1);strcat(buf,"\"></td>");
+    char* mem="\0";
+    if(memo[i]>=0 && memo[i]<NBMEMOS){mem=&memosTable[memo[i]*LMEMO];}
+    alphaTableHtmlB(buf,mem,namfonct,LMEMO-1);
 
     strcat(buf,"</tr>\n");
     cli->print(buf);buf[0]='\0';    // max len pour cli-print() 2048 ???
@@ -452,11 +435,9 @@ void periLineHtml(EthernetClient* cli,int i)
                       
                       cli->print("<td>");
                       cli->println(periCur);
-                      cli->print("<td><input type=\"text\" name=\"peri_nom__\" value=\"");
-                        cli->print(periNamer);cli->print("\" size=\"12\" maxlength=\"");cli->print(PERINAMLEN-1);cli->println("\" ></td>");
+                      
+                      alphaTableHtmlB(buf,periNamer,"peri_nom__",PERINAMLEN-1);cli->print(buf);buf[0]='\0';
                       textTableHtml_(cli,periLastVal_,periThmin_,periThmax_,1,1);
-                      //numTableHtml(cli,'I',periThmin_,"peri_thmin",5,0,0);cli->println("<br>");
-                      //numTableHtml(cli,'I',periThmax_,"peri_thmax",5,3,0);
                       cli->print(*periThmin_);cli->println("<br>");
                       cli->print(*periThmax_);
                       textTableHtml_(cli,periAlim_,periVmin_,periVmax_,1,1);
@@ -543,8 +524,9 @@ void periLineHtml(EthernetClient* cli,int i)
                   char oi[2]={'O','I'};
                   dLibState[k*DIGITSIZLIB]=oi[(*periDetVal>>(k*2))&DETBITLH_VB];
                   dLibState[i*DIGITSIZLIB+1]='_';}
-
-                subCbdet(buf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);
+                if(*periDetNb>0){
+                  subCbdet(buf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);
+                }
 }
 
 

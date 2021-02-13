@@ -33,6 +33,7 @@ extern int       usernum;
 //extern int       chge_pwd;
 
 extern byte mask[];
+extern char pkdate[7];
 
 #define LENCOLOUR 8
   char colour[LENCOLOUR+1];
@@ -85,6 +86,11 @@ void concatnf(char* buf,float val,uint8_t dec)
   s=sprintf(buf+b,d,val);buf[b+s]='\0';
 }
 
+void alphaTableHtmlB(char* buf,char* valfonct,char* nomfonct,int len)
+{
+  strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nomfonct);strcat(buf,"\" value=\"");
+  strcat(buf,valfonct);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");
+}
 
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol)
 {                          
@@ -348,6 +354,29 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
   cli->print(buf);buf[0]='\0';
 }
 
+void pageHeader(char* buf)
+{ 
+  float th;                                  // pour temp DS3231
+  ds3231.readTemp(&th);
+  
+  strcat(buf,"<body>");            
+  strcat(buf,"<form method=\"get\" >");
+  strcat(buf,VERSION);strcat(buf," ");
+
+  #ifdef _MODE_DEVT
+  strcat(buf,"MODE_DEVT ");
+  #endif _MODE_DEVT
+  #ifdef _MODE_DEVT2
+  strcat(buf,"MODE_DEVT2 ");
+  #endif _MODE_DEVT2
+
+  bufPrintDateHeure(buf,pkdate);
+  uint32_t bufIp=Ethernet.localIP();
+  strcat(buf,"<font size=\"2\">; local IP ");charIp((byte*)&bufIp,buf);strcat(buf," ");
+  concatnf(buf,th);strcat(buf,"°C<br>\n");
+}
+
+
 void checkboxTableBHtml(char* buf,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib)
 {
   if(td==1 || td==2){strcat(buf,"<td>");}
@@ -487,7 +516,7 @@ void numTableHtml(EthernetClient* cli,char type,void* valfonct,char* nomfonct,in
   int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
   cli->print("\" size=\"");cli->print(sizeHtml);cli->print("\" maxlength=\"");cli->print(len);cli->print("\" >");
   if(pol!=0){cli->print("</font>");}
-  if(td==1 || td==3){cli->println("</td>");}
+  if(td==1 || td==3){cli->println("</td>\n");}
 }
 
 void textTableHtml_(EthernetClient* cli,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)

@@ -98,7 +98,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___reset_____dump_his__hist_pos__data_save_data_read_dispo_____peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_dispo_____peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
@@ -127,7 +127,14 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   unsigned long lastcxt=0;             // last TCP server connection for watchdog
   unsigned long lastcxu=0;             // last UDP server connection for watchdog  
 #define MAXCXWT  60000                 // time out delay if no TCP connection    
-#define MAXCXWU 600000                 // time out delay if no UDP connection    
+#define MAXCXWU 900000                 // time out delay if no UDP connection    
+#define WDSD    "W"                    // Watchdog record
+#define TCPWD   "T"                    // TCP watchdog event
+#define UDPWD   "U"                    // UDP watchdog event
+#define HALTREQ "H"                    // Halt request record
+#define TEMP    "T"                    // Temp record
+#define RESET   "R"                    // Reset record
+#define BOOT    "B"                    // Boot record
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
@@ -139,7 +146,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
   uint32_t  perThermos=PTHERMOS;       // période ctle thermos
   unsigned long datetime=0;            // last millis() pour date 
 #define PDATE 3600*24                  // secondes
-  unsigned long perdate=PDATE;         // période ctle date
+  unsigned long perdate=PDATE;         // période ctle date & perisave general
   
   int   stime=0;int mtime=0;int htime=0;
   unsigned long  curdate=0;
@@ -288,18 +295,14 @@ char   memosTable[LMEMO*NBMEMOS];
  *  
 */
 
-
 char inch=' ';
-char strdate[33]; // buffer date
+char strdate[LDATEB];       // buffer date
 char strd3[4]={0};
 byte js=0;
 uint32_t amj=0, hms=0;
 
-
 uint32_t histoPos=0;       // SD current pos. pour dump
-
-
-boolean autoreset=FAUX;  // VRAI déclenche l'autoreset
+char histoDh[LDATEA]={'\0'};   // SD dh pour dump
 
 int   i=0,j=0;
 char  c=' ';
@@ -372,11 +375,11 @@ void setup() {                              // =================================
     
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
+  memDetLoad();                     // le premier pour Sync 
   periTableLoad();
   remoteLoad();periSwSync();  
   timersLoad();  
   thermosLoad();
-  memDetLoad();
   //memosInit();memosSave(-1);  
   memosLoad(-1);
 
@@ -424,7 +427,7 @@ void setup() {                              // =================================
   
   //testUdp();
 
-  histoStore_textdh("R","","<br>\n\0");
+  histoStore_textdh(RESET,"","<br>\n\0");
 
   Serial.println(">>>>>>>>> fin setup\n");
 }
@@ -471,8 +474,8 @@ void stoprequest()
 {
   if(digitalRead(STOPREQ)==LOW){
     trigwd();
-    histoStore_textdh("RQ","","<br>\n\0");
-    Serial.println("Stop request =====");
+    histoStore_textdh(HALTREQ,"","<br>\n\0");
+    Serial.println("Halt request =====");
 
     while(1){
       digitalWrite(PINLED,HIGH);delay(300);digitalWrite(PINLED,LOW);delay(300);
@@ -482,14 +485,15 @@ void stoprequest()
 
 void watchdog()
 {
-  if(millis()-lastcxt>MAXCXWT){wdReboot("T",MAXCXWT);}
-  if(millis()-lastcxu>MAXCXWU){wdReboot("U",MAXCXWU);}
+  if(millis()-lastcxt>MAXCXWT){wdReboot(TCPWD,MAXCXWT);}
+  if(millis()-lastcxu>MAXCXWU){wdReboot(UDPWD,MAXCXWU);}
 }
 
 void wdReboot(char* a,unsigned long maxCx)
 {
     trigwd();
-    histoStore_textdh("W",a,"<br>\n\0");
+    histoStore_textdh(WDSD,a,"<br>\n\0");
+    for(uint8_t i=1;i<=NBPERIF;i++){trigwd();periSave(i,PERISAVESD);}
     Serial.print("no cx for ");Serial.print(maxCx/1000);Serial.println("sec");
     delay(30000);      // wait for hardware watchdog
 }
@@ -503,7 +507,7 @@ void scanTemp()
       ds3231.readTemp(&th);
       if(fabs(th-oldth)>MINTHCHGE){
         oldth=th;sprintf(buf,"%02.02f",th);
-        histoStore_textdh("T",buf,"<br>\n\0");
+        histoStore_textdh(TEMP,buf,"<br>\n\0");
       }
     }       
 }
@@ -514,6 +518,7 @@ void scanDate()
       initDate();
       datetime=millis();
       histoStore_textdh("D","","<br>\n\0");
+      for(uint8_t i=1;i<=NBPERIF;i++){trigwd();periSave(i,PERISAVESD);}
     }
 }
 
@@ -1228,9 +1233,14 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                 // + bouton erase    (switchs)
                        else{periReq(&cliext,periCur,"etat______");}                                  // si pas erase demande d'état
                        SwCtlTableHtml(&cli);break;                                                                               
-              case 9:  autoreset=VRAI;break;                                                         // bouton reset
+              case 9:  {byte a=*(libfonctions+2*i);
+                        if(a=='B'){wdReboot(BOOT,millis());}
+                       }break;                                                                       // si pas 'R' déco donc -> accueil                                             
               case 10: dumpHisto(&cli);break;                                                        // bouton dump_histo
-              case 11: what=2;histoPos=0;conv_atobl(valf,&histoPos);break;                           // (en-tete peritable) histo   pos
+              case 11: {what=2;byte a=*(libfonctions+2*i);                                           // (en-tete peritable) saisie histo pos/histo dh pour dump
+                        if(a=='D'){memcpy(histoDh,valf,LDATEA-2);if(histoDh[8]==0x2B){histoDh[8]=0x20;}}  // saisie date/heure au format "AAAAMMDD HHMMSS"
+                        else {histoPos=0;conv_atobl(valf,&histoPos);}                                // saisie position
+                       }break;                           
               case 12: if(periPassOk==VRAI){what=1;periDataRead(valf);periPassOk==FAUX;}break;       // data_save
               case 13: if(periPassOk==VRAI){what=3;periDataRead(valf);periPassOk==FAUX;}break;       // data_read
               case 14: break;                                                                        // dispo
@@ -1506,7 +1516,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        }
                        }break;                                                                                                        
               
-              /* fin des case */
+              /* fin des fonctions */
               default:break;
               }
               

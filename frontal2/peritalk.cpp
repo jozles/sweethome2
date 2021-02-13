@@ -281,10 +281,11 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   uint8_t c=0;
   int ii=0;
   int perizer=0;
+  int messLen;
 
   periCur=0;
                         // check len,crc
-  periMess=checkData(valf);if(periMess!=MESSOK){periInitVar();return;}         
+  periMess=checkData(valf,&messLen);if(periMess!=MESSOK){periInitVar();return;}         
   
                         // len,crc OK
   valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
@@ -313,33 +314,37 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       periMess=MESSFULL;                                          // ???????????????????? devrait être MESSOK et MESSFULL avant le test ????????????????????
   }
 
+#define PNP 2+1+17+1                                              // (4 length +1) + 2 N° peri +1 + 17 Mac +1 message court de présence
   if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
     memcpy(periMacr,periMacBuf,6);
-#define PNP 2+1+17+1
-    k=valf+PNP;*periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
-#if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
-    periCur/=0;
-#endif     
-    k+=i;*periAnal=convStrToInt(k,&i);                            // analog value
-    k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
-    k+=i;strncpy(periVers,k,LENVERSION);                          // version
-    k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);           // nbre sw
-    k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                           // periSwVal états sw
-    k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
-    k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
-    k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
-    k+=NBPULSE+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                              // model
-    k+=LENMODEL+1;
+    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);            // maj dates
 
-    if(memcmp(periVers,"1.h",3)>=0){
-      for(i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}                     // valeur courante pulses
-    }
+    if(messLen>PNP+5){ 
+      k=valf+PNP;*periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
+#if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
+  periCur/=0;
+#endif     
+      k+=i;*periAnal=convStrToInt(k,&i);                            // analog value
+      k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
+      k+=i;strncpy(periVers,k,LENVERSION);                          // version
+      k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);           // nbre sw
+      k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                   // periSwVal états sw
+      k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
+      k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
+      k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
+      k+=NBPULSE+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                              // model
+      k+=LENMODEL+1;
+
+      if(memcmp(periVers,"1.h",3)>=0){
+        for(i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}                     // valeur courante pulses
+      }
     
-    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);         // maj dates
 #ifdef SHDIAGS    
-    periPrint(periCur);
-    Serial.print("periDataRead =");
+  periPrint(periCur);
+  Serial.print("periDataRead =");
 #endif    
+    
+    }
     if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
     memcpy(periIpAddr,remote_IP_cur,4);                                                                            // Ip addr
     if(remote_Port!=0 && *periProtocol=='U'){*periPort=remote_Port;}                                               // port

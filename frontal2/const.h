@@ -165,6 +165,9 @@
 
 #define CONFIGRECLEN 865                     // longueur record config 
 
+#define LDATEA 17                            // len date alpha
+#define LDATEB 33                            // len buffer date classe DS3231
+
 #define TO_PASSWORD 600                      // sec (pour initialiser toPassword à la mise sous tension
 
 #define MAXIMGLEN   4000                     // longueur maxi pour fichiers image

@@ -4,6 +4,7 @@
 
 void htmlIntro0(EthernetClient* cli);
 void htmlIntro(char* titre,EthernetClient* cli);
+void pageHeader(char* buf);
 void cliPrintMac(EthernetClient* cli, byte* mac);
 void usrFormHtml(EthernetClient* cli,bool hid);
 void usrFormInitHtml(EthernetClient* cli,char* nomfonct,bool hid);
@@ -42,6 +43,7 @@ void concatnf(char* buf,float val,uint8_t dec);
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol);
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
 void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td);
+void alphaTableHtmlB(char* buf,char* valfonct,char* nomfonct,int len);
 void concatDate(char* buf,char* periDate);
 void setCol(char* buf,char* textColour);
 void boutRetourB(char* buf,char* lib,uint8_t td,uint8_t br);

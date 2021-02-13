@@ -43,6 +43,7 @@ extern uint16_t   perrefr;
 extern File32     fhisto;           // fichier histo sd card
 extern long       fhsize;           // remplissage fhisto
 extern long       histoPos;
+extern char       histoDh[LDATEA];
 extern char       strHisto[RECCHAR];
 
 
@@ -118,37 +119,131 @@ void htmlFavicon(EthernetClient* cli)
 
 void dumpHisto(EthernetClient* cli)
 { 
-  trigwd();
-  htmlIntro(nomserver,cli);
+  char buf[1000];buf[0]=0;
+  long pos=histoPos;
+  char file[]={"fdhisto.txt"};
 
-  cli->print("<body>");cli->print(VERSION);cli->println("<br>");
-  boutRetour(cli,"retour",0,1);
-  if(dumpHisto0(cli)!=SDOK){cli->println("SDKO");}
-  boutRetour(cli,"retour",0,1);
-  
-  cli->println("</body></html>");
+  trigwd();
+  htmlIntroB(buf,nomserver,cli);
+  pageHeader(buf);
+  boutRetourB(buf,"retour",0,1);
+  cli->print(buf);buf[0]=0;
+
+  trigwd();
+  cli->print("histoSD ");
+  if(sdOpen(file,&fhisto)==SDKO){cli->println("KO");return;}
+  fhsize=fhisto.size();
+
+  if(histoDh[0]=='2'){
+    shDateHist(histoDh,&pos);
+    cli->print(histoDh);cli->print(" - ");
+  }
+  dumpHisto0(cli,pos);
+
+  boutRetourB(buf,"retour",0,1);
+  strcat(buf,"</body></html>");
+  cli->print(buf);buf[0]=0;
 }
 
-int dumpHisto0(EthernetClient* cli)                 // liste le fichier histo
-{
+void shDateHist(char* dhasc,long* pos)
+{ 
+  long searchStep=100000;
+  long ptr,curpos=fhisto.size();
+  fhisto.seek(curpos);
+  long pos0=curpos;  
+  long t0=millis();
   char inch=0;
+  char buf[RECCHAR];memset(buf,0x00,RECCHAR);
+  int v;
+  bool fini=FAUX;
+  uint8_t trigcnt=10,pt,ldate=LDATEA-2;
+
+/* recherche rétrograde de la date */
+
+  while(curpos>0 && !fini){
+    curpos-=searchStep;if(curpos<0){curpos=0;}
+    fhisto.seek(curpos);                                                        // curpos sur bloc courant
+    ptr=curpos;                                                                 // ptr dans bloc courant           
+                        
+    while(ptr<curpos+searchStep && inch!='\n'){inch=fhisto.read();ptr++;}       // lit jusqu'au 1er \n 
+    if(inch!='\n'){fini=VRAI;break;}                                            // pas de \n donc fini
+    inch='0';
+    for(pt=0;pt<ldate;pt++){buf[pt]=fhisto.read();ptr++;}                       // \n trouvé : get date
+    v=memcmp(buf,dhasc,ldate);
+    trigcnt++;if(trigcnt>10){trigwd();trigcnt=0;}
+    if(v<0){                                                                    // buf<dhasc la date trouvée est plus petite,
+                                                                                // chercher la première >= dans le bloc courant
+                                                                                // si fin du bloc, date(pos0) est la bonne
+      while(ptr<curpos+searchStep){  
+        inch=fhisto.read();ptr++;                                               // lit jusqu'au \n suivant
+        if(inch=='\n'){                                                         // pas de \n donc fini
+          for(pt=0;pt<ldate;pt++){buf[pt]=fhisto.read();ptr++;}                 // '\n' trouvé : get date
+          v=memcmp(buf,dhasc,ldate);                                            // si la date trouvée est plus petite continuer sinon terminé
+          trigcnt++;if(trigcnt>10){trigwd();trigcnt=0;}
+          if(v>=0){fini=VRAI;pos0=ptr-ldate;break;}                             // date plus grande ou égale -> fin
+        }
+      }fini=VRAI;                                                               // pas trouvé de date plus grande donc date(pos0) est ok
+    }  
+    else if (v==0){fini=VRAI;pos0=ptr-ldate;}                                   // date trouvée égale
+    else pos0=ptr-ldate;                                                        // si la date trouvée est plus grande explorer le bloc précédent                                                                             
+                                                                                // s'il ne contient que de plus petites date(pos0) est ok
+  }
+  *pos=pos0;
+  Serial.print("--- fin recherche ptr=");Serial.print(pos0);Serial.print(" millis=");Serial.println(millis()-t0);
+}
+
+void shDicDateHist(char* dhasc,long* but)
+{ 
+  long fhsize=fhisto.size();
+  long pos=fhsize/2;
+  long searchStep=fhsize;
+  long ptr;
+  long t0=millis();
+  char inch=0;
+  char buf[RECCHAR];
+  bool fini=FAUX;
+  uint8_t pt,v;
+  uint8_t ldate=LDATEA-2;
+  int miniL=50; // ???
+
+/* recherche dichotomique de la date */
+
+  *but=fhsize;
+
+  while(searchStep>miniL && ptr<pos+searchStep && !fini){
+
+    ptr=pos;
+    inch=' ';
+    while(inch!='\n' && ptr<pos+searchStep){inch=fhisto.read();}
+    if(inch!='\n'){fini=VRAI;}
+    else {
+      fhisto.seek(ptr);
+      for(pt=0;pt<ldate;pt++){buf[pt]=fhisto.read();ptr++;}              
+      v=memcmp(buf,dhasc,ldate);
+      if(v>0){*but=ptr;searchStep/=2;pos-=searchStep;}
+      else if(v=0){*but=ptr;fini=VRAI;}
+      else {searchStep/=2;pos+=searchStep;}
+    }
+  }
+    
+  Serial.print("--- fin recherche ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
+}
+
+void dumpHisto0(EthernetClient* cli,long histoPos)                 // liste le fichier histo depuis une adresse
+{  
+  long fhsiz=fhisto.size();
+  cli->print(histoPos);cli->print("/");cli->print(fhsize);cli->println("<br>");
   
-  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){return SDKO;}
-
-  trigwd();
-  fhsize=fhisto.size();
-  fhisto.seek(histoPos);
-
-  cli->print("histoSD ");cli->print(histoPos);cli->print("/");cli->print(fhsize);cli->println("<br>");
-
+  char inch=0;
   long ptr=histoPos;
   long ptr0=ptr;
   long ptra=ptr;
-  long ptrb=ptr;
   
-#define LBUF 1000  
-  char buf[LBUF];
+#define LBUF 2000  
+  char buf[LBUF];buf[0]='\0';
 
+  fhisto.seek(histoPos);
+  
   while(ptr<fhsize){
     trigwd();
     while((ptr-ptra)<(LBUF-2) && ptr<fhsize){           // -1 for end null char
@@ -157,12 +252,10 @@ int dumpHisto0(EthernetClient* cli)                 // liste le fichier histo
     buf[ptr-ptra]='\0';
     cli->print(buf);
     ptra=ptr;
-    if((ptr-ptrb)>10000){ptrb=ptr;}
-    if((ptr-ptr0)>100000){break;}
+    if((ptr-ptr0)>1000000){break;}
   }
   
   fhisto.close();
-  return SDOK;
 }
 
 void accueilHtml(EthernetClient* cli)
@@ -395,13 +488,13 @@ void remoteHtml(EthernetClient* cli)
             Serial.println("remote control");
             
             char buf[4000];buf[0]=0x00;
+ 
             htmlIntroB(buf,nomserver,cli);
-            cli->println("<body><form method=\"get\" >");
-            cli->println(VERSION);cli->println(" ");
-
-            usrFormHtml(cli,1);
+            pageHeader(buf);
+            usrFormBHtml(buf,1);
+            boutRetourB(buf,"retour",0,0);
+            cli->print(buf);buf[0]=0;
             
-            boutRetour(cli,"retour",0,0);cli->print(" ");          
             cli->println("<br>");
 
 /* table remotes */
@@ -421,13 +514,6 @@ void remoteHtml(EthernetClient* cli)
                   if(remoteT[td].num==nb+1 && remoteT[td].peri!=0){           // même remote et présence périphérique
                     periCur=remoteT[td].peri;periLoad(periCur);
                     
-/*                      cli->print(nb+1);cli->print(" ");
-                      cli->print(td);cli->print(" ");
-                      cli->print(periCur);cli->print(" ");
-                      cli->print(remoteT[td].sw);cli->print(" ");
-                      cli->print((uint8_t)*periSwVal);cli->print(" ");
-                      cli->print(((*periSwVal)>>((remoteT[td].sw)/2))&0x01);
-*/
                     if(periSwLev(remoteT[td].sw)==1){                         // switch ON
                       cli->print(" ON <div id=\"rond_jaune\"></div>");
                     }
@@ -472,7 +558,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   
 /* --- calcul date début --- */
   
-  int   ldate=15;
+  int   ldate=LDATEA;
 
   int   yy,mm,dd,js,hh,mi,ss;
   byte  yb,mb,db,dsb,hb,ib,sb;
@@ -521,11 +607,11 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
       }
     }
   }
-  unsigned long t0=millis();
   Serial.print("--- fin recherche ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.print(millis());Serial.println("");
 
 /* --- balayage et màj --- */
-  
+
+  unsigned long t0=millis();
   char strfds[3];memset(strfds,0x00,3);
   if(convIntToString(strfds,fdatasave)>2){
     Serial.print("fdatasave>99!! ");Serial.print("fdatasave=");Serial.print(fdatasave);Serial.print(" strfds=");Serial.println(strfds);ledblink(BCODESYSERR);

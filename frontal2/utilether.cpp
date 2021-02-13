@@ -38,7 +38,7 @@ uint32_t        amj2,hms2;
 byte            js2;
 extern uint32_t amj,hms;
 extern byte     js;
-extern char     strdate[33];
+extern char     strdate[LDATEB];
 
 extern char*    chexa;
 
