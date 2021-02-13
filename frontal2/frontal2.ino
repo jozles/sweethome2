@@ -166,8 +166,8 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
     (voir periInit() pour l'ordre physique des champs + periSave et periLoad=
 */
   char      periRec[PERIRECLEN];                // 1er buffer de l'enregistrement de périphérique
-  char      periCache[PERIRECLEN*(NBPERIF+1)];  // cache des périphériques
-  byte      periCacheStatus[(NBPERIF+1)];       // indicateur de validité du cache d'un périph  
+  char      periCache[PERIRECLEN*(NBPERIF+1)];  // cache des périphériques  
+  bool      periCacheStatus[(NBPERIF+1)];       // indicateur de validité du cache d'un périph  (vaut CACHEISFILE si cache==fichier)
   
   uint16_t  periCur=0;                      // Numéro du périphérique courant
   
@@ -493,7 +493,7 @@ void wdReboot(char* a,unsigned long maxCx)
 {
     trigwd();
     histoStore_textdh(WDSD,a,"<br>\n\0");
-    for(uint8_t i=1;i<=NBPERIF;i++){trigwd();periSave(i,PERISAVESD);}
+    periTableSave();
     Serial.print("no cx for ");Serial.print(maxCx/1000);Serial.println("sec");
     delay(30000);      // wait for hardware watchdog
 }
@@ -518,7 +518,7 @@ void scanDate()
       initDate();
       datetime=millis();
       histoStore_textdh("D","","<br>\n\0");
-      for(uint8_t i=1;i<=NBPERIF;i++){trigwd();periSave(i,PERISAVESD);}
+      periTableSave();
     }
 }
 

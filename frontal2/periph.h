@@ -3,6 +3,7 @@
 
 #define PERISAVESD    VRAI                     // copie du cache sur le disque lors de periSave
 #define PERISAVELOCAL FAUX                     // pas de copie du cache sur le disque lors de periSave
+                                               // periCacheStatus[num] vaut CACHEISFILE si fichier == cache ;
 
 #define NBRULOP 7
 #define LENRULOP 5
@@ -11,6 +12,8 @@ void  sdCardGen();
 
 int   periLoad(uint16_t num);
 int   periSave(uint16_t num,bool sd);
+int   periCacheSave(uint16_t num);
+int   periCacheLoad(uint16_t num);
 int   peri (uint16_t num);
 int   periRaz(uint16_t num);
 void  periModif();
@@ -26,6 +29,7 @@ void  periSwSync();                             // synchro disjoncteurs switchs 
 void  periCheck(uint16_t num,char* text);
 void  periPrint(uint16_t num);
 void  periTableLoad();
+void  periTableSave();
 void  periMaintenance();
 
 void  configInit();

@@ -305,7 +305,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           
           boutFonction(cli,"dump_his__","","histo",0,0,0,0);    
           boutFonction(cli,"deco______","","deco",0,0,0,0);
-          boutFonction(cli,"deco____R_","","reboot",0,0,0,0);
+          boutFonction(cli,"deco____B_","","reboot",0,0,0,0);
           boutFonction(cli,"cfgserv___","","config",0,0,0,0);
           cli->print("<br>");
           boutFonction(cli,"remote____","","remote_cfg",0,0,0,0);

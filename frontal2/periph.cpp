@@ -40,7 +40,7 @@ File32 fperi;       // fichiers perif
 
 extern char      periRec[PERIRECLEN];          // 1er buffer de l'enregistrement de périphérique
 extern char      periCache[PERIRECLEN*NBPERIF];   // cache des périphériques
-extern byte      periCacheStatus[NBPERIF];     // indicateur de validité du cache d'un périph
+extern bool      periCacheStatus[NBPERIF];     // indicateur de validité du cache d'un périph
   
 extern int       periCur;                      // Numéro du périphérique courant
 
@@ -391,27 +391,31 @@ void periSub(uint16_t num,int sta,bool sd)
   Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(")status=");Serial.print(sta);Serial.print(";save=");Serial.print(sd);Serial.print(" NbSw=");Serial.print(*periSwNb);Serial.print(" srv=");Serial.print(*periProg);Serial.print(" port=");Serial.println(*periPort);
 }
 
+int periCacheLoad(uint16_t num)
+{
+    char periFile[7];periFname(num,periFile);
+    Serial.print(periFile);
+    if(sdOpen(periFile,&fperi)==SDOK){
+      for(int i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=fperi.read();}              
+      fperi.close();
+      periCacheStatus[num]=CACHEISFILE;           // le cache est à l'image du fichier
+      return SDOK;    
+    }
+    return SDKO;
+}  
+
 int periLoad(uint16_t num)
 {
 if(num<=0 || num>NBPERIF){ledblink(BCODENUMPER);} 
   int i=0;
   int sta=SDOK;
-  bool sd=periCacheStatus[num];
-  if(sd==0){
-    char periFile[7];periFname(num,periFile);
-    //Serial.print(periFile);
-    if(sdOpen(periFile,&fperi)==SDOK){
-      for(i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=fperi.read();}              // periRec[i]=fperi.read();}
-      fperi.close();
-      periCacheStatus[num]=1;
-      //Serial.print(" ok ");    
-    }
-    else {
-      //Serial.println(" ko");
-      sta=SDKO;}
-  }
-  for(i=0;i<PERIRECLEN;i++){periRec[i]=periCache[(num-1)*PERIRECLEN+i];}
-  //Serial.print(" periLoad(");periSub(num,sta,sd);
+  
+  //if(periCacheStatus[num]!=CACHEISFILE){sta=periCacheLoad(num);}
+  if(sta==SDOK){
+    for(i=0;i<PERIRECLEN;i++){periRec[i]=periCache[(num-1)*PERIRECLEN+i];}    // copie dans variables  
+    Serial.println(" OK");}
+  else {Serial.println(" KO");}
+  
   return sta;
 }
 
@@ -484,44 +488,70 @@ void periDetServUpdate()
   }
 }
 
-int periSave(uint16_t num,bool sd)
-{
-  int i=0;
-  int sta;
-  char periFile[7];periFname(num,periFile);
-  
-  for(i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=periRec[i];}    // copie dans cache
-  periCacheStatus[num]=1;                                                   // cache ok
+int periCacheSave(uint16_t num)
+{     
+    int sta=SDOK;
+    char periFile[7];periFname(num,periFile);
+    long t4,t3,t2,t1,t0=micros();
+    t1=micros();
 
-  *periNum=num;
-  sta=SDOK;
-  if(sd){
-
-      Serial.print("periSave ");Serial.print(periFile);    
-      
-      long t4,t3,t2,t1,t0=micros();
-      t1=micros();
-     
+    if(periCacheStatus[num]!=CACHEISFILE){                          // si le fichier n'est pas à jour du cache -> sauvegarde
+      Serial.print("periCacheSave ");Serial.print(periFile);
       if(sdOpen(periFile,&fperi)==SDOK){
 t2=micros();Serial.print(" open=");Serial.print(t2-t1);
-        sta=SDOK;
         periDetServUpdate();
         fperi.seek(0);
 t3=micros();Serial.print(" pDSU=");Serial.print(t3-t2);
-        for(i=0;i<PERIRECLEN;i++){fperi.write(periRec[i]);}
+        for(int i=0;i<PERIRECLEN;i++){fperi.write(periCache[(num-1)*PERIRECLEN+i]);}
 t4=micros();Serial.print(" write=");Serial.print(t4-t3);
         fperi.close();
+        periCacheStatus[num]=CACHEISFILE;                           // le fichier est à l'image du cache
 Serial.print(" close=");Serial.print(micros()-t4);
         for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
         Serial.println(" OK ");      
       }
       else{sta=SDKO;Serial.println(" KO ");}
     }
-#ifdef SHDIAGS    
-    Serial.print(" periSave(");periSub(num,sta,sd);
-#endif
     return sta;
 }
+
+int periSave(uint16_t num,bool sd)
+{
+  int i=0;
+  int sta;
+  
+  for(i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=periRec[i];}    // copie dans cache
+  periCacheStatus[num]=CACHEISFILE;                                                   // cache ok
+
+  *periNum=num;
+  sta=SDOK;
+  periCacheStatus[num]=!CACHEISFILE;                                 // le fichier n'est pas à l'image du cache
+  if(sd){
+    sta=periCacheSave(num);                                         // le fichier est à l'image du cache
+  }
+#ifdef SHDIAGS    
+  Serial.print(" periSave(");periSub(num,sta,sd);
+#endif
+  return sta;
+}
+
+void periTableLoad()                            // au démarrage du systeme
+{
+  Serial.print("Load table perif ");
+  periInit();
+  long periRecLength=(long)periEndOfRecord-(long)periBegOfRecord+1;
+  Serial.print("PERIRECLEN=");Serial.print(PERIRECLEN);Serial.print("/");Serial.print(periRecLength);
+  delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
+
+  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periCacheLoad(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" OK");
+}  
+
+void periTableSave()                            // à l'arret du systeme
+{
+  Serial.print("Save table perif ");
+  
+  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periCacheSave(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" OK");
+}  
 
 int periRemove(uint16_t num)
 {
@@ -596,7 +626,7 @@ void periConvert()
 
 void periInit()                 // pointeurs de l'enregistrement de table courant
 {
-  for(uint16_t nbp=0;nbp<NBPERIF;nbp++){periCacheStatus[nbp]=0x00;}
+  for(uint16_t nbp=0;nbp<NBPERIF;nbp++){periCacheStatus[nbp]=!CACHEISFILE;}
   
   periCur=0;
   int* filler;
@@ -814,18 +844,6 @@ void periSwSync()                               // sychronisation periSwVal sur 
   }
   Serial.print("sync ");Serial.print(nbsync);Serial.println(" switchs");
 }
-
-void periTableLoad()                            // au démarrage du systeme
-{
-  Serial.print("Load table perif ");
-  periInit();
-  long periRecLength=(long)periEndOfRecord-(long)periBegOfRecord+1;
-  Serial.print("PERIRECLEN=");Serial.print(PERIRECLEN);Serial.print("/");Serial.print(periRecLength);
-  delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
-
-  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periLoad(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" OK");
-}  
-
 
 void periModif()
 /*    Pour modifier la structure des données 

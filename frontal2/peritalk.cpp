@@ -22,7 +22,7 @@ extern char ab;
 
 extern char      periRec[PERIRECLEN];          // 1er buffer de l'enregistrement de périphérique
 extern char      periCache[PERIRECLEN*NBPERIF];   // cache des périphériques
-extern byte      periCacheStatus[NBPERIF];     // indicateur de validité du cache d'un périph
+extern bool      periCacheStatus[NBPERIF];     // indicateur de validité du cache d'un périph
   
 extern uint16_t  periCur;                      // Numéro du périphérique courant
 

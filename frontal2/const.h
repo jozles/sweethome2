@@ -180,6 +180,8 @@
 #define SDOK 1
 #define SDKO 0
 
+#define CACHEISFILE 1
+
 //enum {FAUX,VRAI};
 
 #define LENREMNAM 16    // remote name length
