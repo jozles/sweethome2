@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.q_"
+#define VERSION "1.r_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -57,7 +57,8 @@
  *     les conditions appliquées à la source sont statique/flanc, montant/descendant si flanc ou direct/inversé si statique
  *     affichage des diags optionnels pour 'NO_MODE'
  *     dataSave après chaque réception via ordrext (cstRec.talkStep=6 et cstRec.serverTime=0 sinon blocage)
- *     
+ * 1.r en mode NO_MODE pas de PERSERVKO pour ne pas risquer de déclencher le watchdog TCP/UDP du server     
+ * 
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
@@ -173,9 +174,9 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRDEV                   // <------------- modèle carte
-#define POWER_MODE NO_MODE            // <------------- type d'alimentation 
-//#define PININT_MODE                   // <------------- avec/sans pin d'interruption
+#define CARTE VRDEV             // <------------- modèle carte
+#define POWER_MODE NO_MODE      // <------------- type d'alimentation 
+//#define PININT_MODE             // <------------- avec/sans pin d'interruption
 
 /* ds18x20 */
 #define MODEL_S 0x10
@@ -366,8 +367,9 @@ Modifier :
 
 // timings
 
-#define PERSERVKO 7200/PERTEMP    // secondes période par défaut accès serveur si connexion wifi ko
-#define PERSERV   3600/PERTEMP    // secondes période max entre 2 accès server
+#define PERSERVKO 7200/PERTEMP    // secondes période par défaut accès serveur si connexion server ko
+#define PERSERV   120/PERTEMP     // secondes période max entre 2 accès server (modifié par le serveur dès la prmeière connexion)g
+
 #define TOINCHCLI         4000    // msec max attente car server
 #define WIFI_TO_CONNEXION 8000    // msec
 #define WIFINBRETRY          2    // wifiConnexion

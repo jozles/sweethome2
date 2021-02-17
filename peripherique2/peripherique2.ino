@@ -618,7 +618,10 @@ switch(cstRec.talkStep){
 
 
   case 98:      // pas réussi à connecter au WiFi ; tempo longue
-        cstRec.serverPer=PERSERVKO;
+#if POWER_MODE!=NO_MODE
+        cstRec.serverPer=PERSERVKO;     // pas de modif en NO_MODE pour ne pas risquer le déclenchement du WD
+#endif
+        
         cstRec.serverTime=0;
 
   case 99:      // mauvaise réponse du serveur ou wifi ko ; raz numPeriph
