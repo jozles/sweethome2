@@ -18,6 +18,8 @@ extern uint16_t*  portserver;
 extern char*      userpass;         // mot de passe browser
 extern char*      modpass;          // mot de passe modif
 extern char*      peripass;         // mot de passe périphériques
+extern unsigned long* maxCxWt;
+extern unsigned long* maxCxWu;
 
 extern char*      chexa;
 extern byte       maskbit[];
@@ -354,7 +356,9 @@ void cfgServerHtml(EthernetClient* cli)
             subcfgtable(cli,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
           
             //subcfgtable(cli,"THERMO",NBTHERMO,"thername_",thermonames,LENTHNAME,1,"therperi_",thermoperis,-1,"peri",2);
-            
+
+            cli->print("maxCxWt ");numTableHtml(cli,'l',maxCxWt,"ethcfg___q",8,0,0);
+            cli->print(" maxCxWu ");numTableHtml(cli,'l',maxCxWu,"ethcfg___r",8,0,0);cli->println("<br>");
             cli->println("</form></body></html>");
 }
 

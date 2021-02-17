@@ -77,6 +77,8 @@ char configRec[CONFIGRECLEN];
   unsigned long* usrtime;     // user cx time
   unsigned long* usrpretime;  // user cx time précédent
   uint16_t* toPassword;       // Délai validité password en sec !
+  unsigned long* maxCxWt;     // Délai WD TCP
+  unsigned long* maxCxWu;     // Délai WD UDP
 
   byte* configBegOfRecord;
   byte* configEndOfRecord;
@@ -126,8 +128,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   unsigned long lastcxt=0;             // last TCP server connection for watchdog
   unsigned long lastcxu=0;             // last UDP server connection for watchdog  
-#define MAXCXWT  60000                 // time out delay if no TCP connection    
-#define MAXCXWU 900000                 // time out delay if no UDP connection    
+   
 #define WDSD    "W"                    // Watchdog record
 #define TCPWD   "T"                    // TCP watchdog event
 #define UDPWD   "U"                    // UDP watchdog event
@@ -367,7 +368,7 @@ void setup() {                              // =================================
 
   trigwd();
   
-  configInit();configLoad();*toPassword=TO_PASSWORD;
+  configInit();configLoad();*toPassword=TO_PASSWORD;if(*maxCxWt==0 || *maxCxWu==0){*maxCxWt=MAXCXWT;*maxCxWu=MAXCXWU;configSave();}
   memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
   configPrint();
 
@@ -424,10 +425,11 @@ void setup() {                              // =================================
   int udpav=Udp.parsePacket();
   char c;if(udpav>0){Udp.read(&c,1);Serial.print(c);}
   }*/
-  
-  //testUdp();
 
   histoStore_textdh(RESET,"","<br>\n\0");
+
+  lastcxt=millis();
+  lastcxu=millis();
 
   Serial.println(">>>>>>>>> fin setup\n");
 }
@@ -485,8 +487,8 @@ void stoprequest()
 
 void watchdog()
 {
-  if(millis()-lastcxt>MAXCXWT){wdReboot(TCPWD,MAXCXWT);}
-  if(millis()-lastcxu>MAXCXWU){wdReboot(UDPWD,MAXCXWU);}
+  if(millis()-lastcxt>*maxCxWt){wdReboot(TCPWD,*maxCxWt);}
+  if(millis()-lastcxu>*maxCxWu){wdReboot(UDPWD,*maxCxWu);}
 }
 
 void wdReboot(char* a,unsigned long maxCx)
@@ -1359,6 +1361,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 //                                    for(j=0;j<4;j++){conv_atob(valf,localIp+j);}break;   // **** à faire ****
                           case 'p': *portserver=0;conv_atob(valf,portserver);break;                     // (config) portserver
                           case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;                // (config) mac
+                          case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                          // (config) TO sans TCP
+                          case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                          // (config) TO sans UDP
                           default: break;
                        }
                        break;

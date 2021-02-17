@@ -30,6 +30,8 @@ extern char*    usrpass;
 extern unsigned long* usrtime;
 extern unsigned long* usrpretime;
 extern uint16_t* toPassword;
+extern unsigned long* maxCxWt;    
+extern unsigned long* maxCxWu;   
 extern byte*    configBegOfRecord;
 extern byte*    configEndOfRecord;
 
@@ -182,6 +184,8 @@ memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
 memset(usrtime,0x00,NBUSR*sizeof(long));
 memset(usrpretime,0x00,NBUSR*sizeof(long));
 *toPassword=TO_PASSWORD;
+*maxCxWt=MAXCXWT;
+*maxCxWu=MAXCXWU;
 }
 
 
@@ -221,6 +225,10 @@ byte* temp=(byte*)configRec;
   temp+=sizeof(uint16_t);
   usrpretime=(unsigned long*)temp;
   temp+=NBUSR*sizeof(long);
+  maxCxWt=(unsigned long*)temp;
+  temp+=sizeof(long);    
+  maxCxWu=(unsigned long*)temp;
+  temp+=sizeof(long);    
 
   configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
 
@@ -273,6 +281,7 @@ void configPrint()
   Serial.print("password=");Serial.print(userpass);Serial.print(" modpass=");Serial.print(modpass);Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.println("table ssid ");subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
   Serial.println("table user ");subcprint(usrnames,usrpass,NBUSR,LENUSRNAME,LENUSRPASS,usrtime);
+  Serial.print("maxCxWt ");Serial.print(*maxCxWt);Serial.print("maxCxWu ");Serial.println(*maxCxWu);
 }
 
 int configLoad()
@@ -289,17 +298,28 @@ int configSave()
 {
   int i=0;
   int sta;
+  int cl=CONFIGRECLEN;
   char configFile[]="srvconf\0";
   
   if(sdOpen(configFile,&fconfig)!=SDKO){
     sta=SDOK;
     fconfig.seek(0);
     for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
-//for(i=0;i<CONFIGRECLEN+4*sizeof(float)+2*sizeof(byte);i++){fconfig.write(configRec[i]);}      // ajouter les longueurs des variables ajoutées avant de modifier PERIRECLEN
+// pour ajouter des variables à l'enregistrement de config :
+//        1) créer les pointeurs dans frontal et las ajouter en extern dans periph.cpp
+//        2) ajouter configSave() dans le setup juste après configLoad() + while(1){};
+//        3) modifier la ligne de save ci-après avec les longueurs supplémentaires et mettre en rem la ligne "normale"
+//        4) télécharger
+//        5) enlever le configSave() dans le setup (mais pas le while(1){} mettre en rem la ligne ci-aprés et rebrancher la ligne normale
+//        6) ajouter les nouvelles variables à la suite dans configInit()
+//        7) télécharger ; l'erreur donne la nouvelle valeur pour PERIRECLEN
+//        8) modifier PERIRECLEN et télécharger
+//        9) si tout est ok enlever le while(1){}
+//cl=CONFIGRECLEN+2*sizeof(unsigned long);for(i=0;i<cl;i++){fconfig.write(configRec[i]);}      // ajouter les longueurs des variables ajoutées avant de modifier PERIRECLEN
     fconfig.close();
   }
   else sta=SDKO;
-  Serial.print("configSave status=");Serial.println(sta);
+  Serial.print("configSave status=");Serial.print(sta);Serial.print(" len=");Serial.println(cl);
   return sta;
 }
 
@@ -394,13 +414,13 @@ void periSub(uint16_t num,int sta,bool sd)
 int periCacheLoad(uint16_t num)
 {
     char periFile[7];periFname(num,periFile);
-    Serial.print(periFile);
     if(sdOpen(periFile,&fperi)==SDOK){
       for(int i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=fperi.read();}              
       fperi.close();
       periCacheStatus[num]=CACHEISFILE;           // le cache est à l'image du fichier
       return SDOK;    
     }
+    Serial.print(periFile);
     return SDKO;
 }  
 
@@ -410,11 +430,11 @@ if(num<=0 || num>NBPERIF){ledblink(BCODENUMPER);}
   int i=0;
   int sta=SDOK;
   
-  //if(periCacheStatus[num]!=CACHEISFILE){sta=periCacheLoad(num);}
-  if(sta==SDOK){
+  //if(periCacheStatus[num]!=CACHEISFILE){sta=periCacheLoad(num);}            // --->>>>>>>> le cache est toujours à jour des variables
+  //if(sta==SDOK){
     for(i=0;i<PERIRECLEN;i++){periRec[i]=periCache[(num-1)*PERIRECLEN+i];}    // copie dans variables  
-    Serial.println(" OK");}
-  else {Serial.println(" KO");}
+  //  Serial.println(" OK-periLoad");}
+  //else {Serial.println(" KO");}
   
   return sta;
 }
@@ -496,7 +516,7 @@ int periCacheSave(uint16_t num)
     t1=micros();
 
     if(periCacheStatus[num]!=CACHEISFILE){                          // si le fichier n'est pas à jour du cache -> sauvegarde
-      Serial.print("periCacheSave ");Serial.print(periFile);
+      Serial.print("periCacheSave ");
       if(sdOpen(periFile,&fperi)==SDOK){
 t2=micros();Serial.print(" open=");Serial.print(t2-t1);
         periDetServUpdate();
@@ -508,9 +528,8 @@ t4=micros();Serial.print(" write=");Serial.print(t4-t3);
         periCacheStatus[num]=CACHEISFILE;                           // le fichier est à l'image du cache
 Serial.print(" close=");Serial.print(micros()-t4);
         for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
-        Serial.println(" OK ");      
       }
-      else{sta=SDKO;Serial.println(" KO ");}
+      else{Serial.print(periFile);sta=SDKO;}
     }
     return sta;
 }
@@ -543,14 +562,14 @@ void periTableLoad()                            // au démarrage du systeme
   Serial.print("PERIRECLEN=");Serial.print(PERIRECLEN);Serial.print("/");Serial.print(periRecLength);
   delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
 
-  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periCacheLoad(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" OK");
+  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periCacheLoad(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" ALL OK");
 }  
 
 void periTableSave()                            // à l'arret du systeme
 {
   Serial.print("Save table perif ");
   
-  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periCacheSave(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" OK");
+  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");if(periCacheSave(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" ALL OK");
 }  
 
 int periRemove(uint16_t num)

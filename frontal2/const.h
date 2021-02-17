@@ -71,7 +71,7 @@
         le disjoncteur a besoin d'un dét mémo pour être "réactif" dans les règles (sinon il n'est pas vu par poolPerif)
         les lectures et modifs de periSwVal deviennent les fonctions periSwLev et Cd / Update pour en simplifier l'accès.
         periSave devient LOCAL pour toutes les opérations de communication périf/serveur ; ajouter une sauvegarde horaire du cache
-        
+        ajout maxCxWt et maxCxWu (TO pour absence de cx TCP/UDP) dans config        
 
    BUGS :
 
@@ -163,7 +163,10 @@
 #define PERINAMLEN 16+1                      // longueur nom perif
 #define PERIRECLEN 310 // V1.4k              // longueur record périph
 
-#define CONFIGRECLEN 865                     // longueur record config 
+#define CONFIGRECLEN 873                     // longueur record config 
+
+#define MAXCXWT 120000                 // time out delay if no TCP connection (à mettre dans la config)    
+#define MAXCXWU 900000                 // time out delay if no UDP connection (à mettre dans la config)    
 
 #define LDATEA 17                            // len date alpha
 #define LDATEB 33                            // len buffer date classe DS3231
