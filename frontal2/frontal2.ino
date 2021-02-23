@@ -100,10 +100,10 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_dispo_____peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
-  int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0;
+  int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0;
   char    valeurs[LENVALEURS];         // les valeurs associées à chaque fonction trouvée
   uint16_t nvalf[NBVAL];               // offset dans valeurs[] des valeurs trouvées (séparées par '\0')
   char*   valf;                        // pointeur dans valeurs en cours de décodage
@@ -1245,7 +1245,17 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        }break;                           
               case 12: if(periPassOk==VRAI){what=1;periDataRead(valf);periPassOk==FAUX;}break;       // data_save
               case 13: if(periPassOk==VRAI){what=3;periDataRead(valf);periPassOk==FAUX;}break;       // data_read
-              case 14: break;                                                                        // dispo
+              case 14: {byte a=*(libfonctions+2*i);char fptst[LENNOM+1];                             // (ligne peritable) - tests de perif serveur
+                        char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
+                        uint8_t k=0;uint8_t zer[]={1,0};
+                        periCur=*(libfonctions+2*i+1)-PMFNCHAR;periLoad(periCur);
+                        if(a=='m'){k=4;}
+                        else {k=zer[periSwCde(a-PMFNCVAL)]+(a-PMFNCVAL)*2;}
+                        memcpy(fptst,swcd+LENNOM*k,LENNOM);
+                        periReq(&cli,periCur,fptst);
+                        Serial.print("=========== periCur=");Serial.print(periCur);Serial.print(" k=");Serial.print(k);Serial.print(" a=");Serial.print(a-PMFNCVAL);Serial.print(" ~swcd=");Serial.print(zer[periSwCde(a-PMFNCVAL)]);Serial.print(" peritst=");Serial.println(fptst);
+                        periLineHtml(&cli,periCur);
+                       }break;                                                                       
               case 15: what=5;periCur=0;conv_atob(valf,&periCur);                                    // submit modifs dans ligne de peritable (peri cur)
                        if(periCur>NBPERIF){periCur=NBPERIF;}                                         
                        periInitVar();periLoad(periCur);
@@ -1274,7 +1284,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 30: {uint8_t sw=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (ligne peritable) peri Sw Val 
                        uint8_t cd=*valf-PMFNCVAL;
                        periSwCdUpdate(sw,cd);                                                        // + maj remotes concernées
-                       Serial.print("===========");Serial.print(periCur);Serial.print("/");Serial.print(sw);Serial.print("/");Serial.print(cd);Serial.print("/");Serial.print(*periSwVal,HEX);
+                       //Serial.print("===========");Serial.print(periCur);Serial.print("/");Serial.print(sw);Serial.print("/");Serial.print(cd);Serial.print("/");Serial.print(*periSwVal,HEX);
                        for(uint8_t k=0;k<MAXREMLI;k++){if(remoteT[k].peri==periCur && remoteT[k].sw==sw){remoteN[remoteT[k].num-1].enable=cd;Serial.print("=");Serial.print(remoteT[k].num);}}Serial.println();
                        }break;
               case 31: what=4;periCur=0;conv_atob(valf,&periCur);                                    // (regles switchs-tête) submit pulses (peri_t_sw_)
@@ -1487,7 +1497,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        }break;
               case 68: periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                          // bouton periph periline__ (ligne peritable)
                        periLoad(periCur);                                                            
-                       periLineHtml(&cli,periCur);break;                                                                                                    
+                       periLineHtml(&cli,periCur);
+                       break;                                                                                                    
               case 69: break;                                                                           // done         
               case 70: switch(*(libfonctions+2*i)){                                                     // analog_
                           case '@': *periAnalLow=0;conv_atob(valf,periAnalLow);break;
