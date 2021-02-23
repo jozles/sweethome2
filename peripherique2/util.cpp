@@ -18,8 +18,6 @@ extern Ds1820 ds1820;
 extern WiFiClient cli;                 // client local du serveur externe
 extern WiFiClient cliext;              // client externe du serveur local
 
-extern constantValues cstRec;
-
 extern char model[LENMODEL];
 
 extern const char* host;
@@ -121,7 +119,12 @@ Serial.print((long)cstRecA,HEX);
 Serial.print(" len=");Serial.print((char*)&cstRec.cstcrc-cstRecA+1);
 Serial.print("/");Serial.print(cstRec.cstlen);
 Serial.print(" crc=");Serial.print(cstRec.cstcrc,HEX);Serial.print(" ");Serial.print((long)&cstRec.cstcrc,HEX);
-Serial.print(" numperiph=");Serial.print((char)cstRec.numPeriph[0]);Serial.println((char)cstRec.numPeriph[1]);
+Serial.print(" numperiph=");Serial.print((char)cstRec.numPeriph[0]);Serial.print((char)cstRec.numPeriph[1]);
+#ifdef _SERVER_MODE
+Serial.print(" portServer=");Serial.println(cstRec.portServer);
+#endif
+Serial.println();
+
 }
 
 void initConstant()  // inits mise sous tension

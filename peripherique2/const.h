@@ -58,6 +58,7 @@
  *     affichage des diags optionnels pour 'NO_MODE'
  *     dataSave après chaque réception via ordrext (cstRec.talkStep=6 et cstRec.serverTime=0 sinon blocage)
  * 1.r en mode NO_MODE pas de PERSERVKO pour ne pas risquer de déclencher le watchdog TCP/UDP du server     
+ *     les fonctions de test sont opérationnelles ; incorporation des mails
  * 
 Modifier : 
 
@@ -339,6 +340,7 @@ Modifier :
 #endif CARTE==THESP12
 
 #if CARTE==VRDEV
+#define MAIL_SENDER
 #define WPIN   4        // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
 #define NBSW   2        // nbre switchs
 #define PINSWA 5        // pin sortie switch A

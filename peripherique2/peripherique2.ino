@@ -2,16 +2,19 @@
 #define _MODE_DEVT    
 /* Mode développement */
 
-#include <shconst2.h>
-
 #include <ESP8266WiFi.h>
-#include "const.h"
-
+#include <shconst2.h>
 #include <shutil2.h>
 #include <shmess2.h>
 #include <ds18x20.h>
+#include "const.h"
+#include "utilWifi.h"
 #include "util.h"
 #include "dynam.h"
+
+#ifdef MAIL_SENDER
+#include "mailSender.h"
+#endif MAIL_SENDER
 
 
 extern "C" {                  
@@ -64,24 +67,24 @@ WiFiServer server(8888);
 
 // enregistrement pour serveur externe
 
-  char  bufServer[LBUFSERVER];   // buffer des envois/réceptions de messages
-  int   periMess;                // diag de réception de message
+  char  bufServer[LBUFSERVER];      // buffer des envois/réceptions de messages
+  int   periMess;                   // diag de réception de message
 
-  char* fonctions={"set_______ack_______etat______reset_____sleep_____testaoff__testa_on__testboff__testb_on__last_fonc_"};
-  uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__;;
+  char* fonctions={"set_______ack_______etat______reset_____sleep_____sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______last_fonc_"};
+  uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__,fmail______;
   int     nbfonct;
-  uint8_t fonction;      // la dernière fonction reçue
+  uint8_t fonction;                 // la dernière fonction reçue
 
   float temp;
-  unsigned long  tempTime=0;               // (millis) timer température pour mode loop
-  uint16_t tempPeriod=PERTEMP;    // (sec) période courante check température 
-  char  ageSeconds[8];     // secondes 9999999s=115 jours
+  unsigned long  tempTime=0;        // (millis) timer température pour mode loop
+  uint16_t tempPeriod=PERTEMP;      // (sec) période courante check température 
+  char  ageSeconds[8];              // secondes 9999999s=115 jours
   bool  tempchg=FAUX;
   unsigned long  timeservbegin;
 
-  unsigned long  clkTime=millis();   // timer automate rapide
-  uint8_t clkFastStep=0;    // stepper automate rapide
-  uint8_t clkSlowStep=0;    // stepper automate /10
+  unsigned long  clkTime=millis();  // timer automate rapide
+  uint8_t clkFastStep=0;            // stepper automate rapide
+  uint8_t clkSlowStep=0;            // stepper automate /10
   extern uint8_t nbreBlink;
   unsigned long  blkTime=millis();
   int   blkPer=2000;
@@ -107,10 +110,10 @@ constantValues cstRec;
 
 char* cstRecA=(char*)&cstRec.cstlen;
 
-  float voltage=0; // tension alim
+  float voltage=0;                    // tension alim
   
   byte  mac[6];
-  char  buf[3]; //={0,0,0};
+  char  buf[3];                       //={0,0,0};
 
   int   cntreq=0;
 
@@ -138,13 +141,14 @@ void talkClient(char* etat);
 int act2sw(int sw1,int sw2);
 uint8_t runPulse(uint8_t sw);
 
-bool  wifiConnexion(const char* ssid,const char* password);
 int   dataSave();
 int   dataRead();
 void  dataTransfer(char* data);  
 void  readTemp();
 void  ordreExt();
 void  outputCtl();
+
+
 
 void tmarker()
 {
@@ -223,6 +227,7 @@ delay(1);
   ftesta_on__=(strstr(fonctions,"testa_on__")-fonctions)/LENNOM;
   ftestboff__=(strstr(fonctions,"testboff__")-fonctions)/LENNOM;  
   ftestb_on__=(strstr(fonctions,"testb_on__")-fonctions)/LENNOM;
+  fmail______=(strstr(fonctions,"mail______")-fonctions)/LENNOM;
 
 /* >>>>>> debut <<<<<< */
 
@@ -470,10 +475,10 @@ void fServer(uint8_t fwaited)          // réception du message réponse du serv
                                        // retour periMess  
 {      
         periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction,diags);
-        if(diags){Serial.print("fserver periMess=");Serial.print(periMess);} 
+        if(diags){Serial.print("fserver (OK=");Serial.print(MESSOK);Serial.print(") periMess=");Serial.print(periMess);Serial.print(" fwaited=");Serial.print(fwaited);Serial.print(" recu=");Serial.print(fonction);} 
         infos("gHResp",bufServer,0);
         if(periMess==MESSOK){
-
+          
           if(fonction==fwaited){dataTransfer(bufServer);}
           else {periMess=MESSFON;}
         }
@@ -496,6 +501,7 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
         else if(!compMac(mac,fromServerMac)){periMess=MESSMAC;}
         else {
                              // si ok transfert des données
+if(diags){Serial.print(" dataTransfer()");}                              
             memcpy(cstRec.numPeriph,data+MPOSNUMPER,2);                         // num périph
 
             int sizeRead;
@@ -530,7 +536,6 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
               }   
 
             cstRec.portServer=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
-
             printConstant();
         }
         if(periMess!=MESSOK){
@@ -694,14 +699,15 @@ void ordreExt()
         switch(fonction){
             case 0: dataTransfer(&httpMess[v0+5]);break;      // set
             case 1: break;                                    // ack ne devrait pas se produire (page html seulement)
-            case 2: cstRec.talkStep=1;break;                  // etat -> dataread/save   http://192.168.0.6:80/etat______=0006AB8B
+            case 2: cstRec.talkStep=1;break;                  // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
             case 3: break;                                    // sleep (future use)
             case 4: break;                                    // reset (future use)
-            case 5: digitalWrite(pinSw[0],cloSw[0]);break;    // test on  A        http://192.168.0.6:80/testaoff__=0006AB8B
-            case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test off A        http://192.168.0.6:80/testa_on__=0006AB8B
-            case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test on  B        http://192.168.0.6:80/testboff__=0006AB8B
-            case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test off B        http://192.168.0.6:80/testb_on__=0006AB8B
-            
+            case 5: digitalWrite(pinSw[0],cloSw[0]);break;    // test on  A        http://192.168.0.6:80/sw0__ON___=0005_5A
+            case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
+            case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
+            case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
+            case 9: mail("sh_test","lamenace777@gmail.com","test sweet_home");break;                 
+                        
             default:break;
         }
         char etat[]="done______=0006AB8B\0";
@@ -762,10 +768,11 @@ void ordreExt0()          // version avec string
             case 2:cstRec.talkStep=1;break;           // etat -> dataread/save   http://192.168.0.6:80/etat______=0006AB8B
             case 3:break;                             // sleep (future use)
             case 4:break;                             // reset (future use)
-            case 5: digitalWrite(pinSw[0],cloSw[0]);break;    // test off A        http://192.168.0.6:80/testaoff__=0006AB8B
-            case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test on  A        http://192.168.0.6:80/testa_on__=0006AB8B
-            case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test off B        http://192.168.0.6:80/testboff__=0006AB8B
-            case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test on  B        http://192.168.0.6:80/testb_on__=0006AB8B
+            case 5: digitalWrite(pinSw[0],cloSw[0]);break;    // test on  A        http://192.168.0.6:80/sw0__ON___=0006xxxx
+            case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0006xxxx
+            case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test on  B        http://192.168.0.6:80/sw1__ON___=0006xxxx
+            case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0006xxxx
+            case 9: mail("sweet_home test mail","lamenace777@gmail.com","message de test");break;                 
             
             default:break;
         }
@@ -794,12 +801,12 @@ void talkClient(char* etat) // réponse à une requête
             //cliext.println("<head></head>");
             
             cliext.print("<body>");
-            cliext.print(etat);Serial.print(etat);
+            cliext.print(etat);//Serial.print(etat);
             cliext.println("</body></html>");
 }
+
+
 #endif def_SERVER_MODE
-
-
 
 //***************** dataRead/dataSave
 
@@ -891,73 +898,7 @@ int dataRead()
       return buildReadSave("data_read_","_");
 }
 
-void wifiStatusValues()
-{
-  Serial.print(WL_CONNECTED);Serial.println(" WL_CONNECTED ");
-  Serial.print(WL_CONNECT_FAILED);Serial.println(" WL_CONNECT_FAILED ");
-  Serial.print(WL_DISCONNECTED);Serial.println(" WL_DISCONNECTED ");
-  Serial.print(WL_IDLE_STATUS);Serial.println(" WL_IDLE_STATUS ");
-  Serial.print(WL_NO_SSID_AVAIL);Serial.println(" WL_NO_SSID_AVAIL ");
-}
 
-int printWifiStatus()
-{
-  char* wifiSta="WL_IDLE_STATUS   \0WL_NO_SSID_AVAIL \0WL_UKN           \0WL_CONNECTED     \0WL_CONNECT_FAILED\0WL_UKN           \0WL_DISCONNECTED  \0";
-  int ws=WiFi.status();
-  Serial.println();Serial.print(ws);Serial.print(" WiFiStatus=");Serial.print((char*)(wifiSta+18*ws));
-  return ws;
-}
-
-bool wifiConnexion(const char* ssid,const char* password)
-{
-
-  int i=0;
-  unsigned long beg=micros();
-  bool cxstatus=VRAI;
-
-    ledblink(BCODEONBLINK);
-
-    //WiFi.forceSleepWake();delay(1);
-    //WiFi.forceSleepEnd();       // réveil modem
-    
-    int wifistatus=printWifiStatus();
-    if(wifistatus!=WL_CONNECTED){    
-/*
-      WL_CONNECTED after successful connection is established
-      WL_NO_SSID_AVAIL in case configured SSID cannot be reached
-      WL_CONNECT_FAILED if password is incorrect
-      WL_IDLE_STATUS when Wi-Fi is in process of changing between statuses
-      WL_DISCONNECTED if module is not configured in station mode
-*/
-      unsigned long startcx=millis();  
-      Serial.print(" WIFI connecting to ");Serial.println(ssid);
-      WiFi.begin(ssid,password);
-      delay(1000);
-      wifistatus=printWifiStatus();
-      while(wifistatus!=WL_CONNECTED){
-        if((millis()-beg/1000)>WIFI_TO_CONNEXION){cxstatus=FAUX;break;}
-        delay(500);wifistatus=printWifiStatus();
-      }
-    }
-    if(cxstatus){
-      if(nbreBlink==BCODEWAITWIFI){ledblink(BCODEWAITWIFI+100);}
-      Serial.print(" local IP : ");Serial.println(WiFi.localIP());
-      cstRec.IpLocal=WiFi.localIP();        
-      WiFi.macAddress(mac);
-      //serialPrintMac(mac,1);
-      cstRec.serverPer=PERSERV;
-      }
-    else {Serial.println("\nfailed");if(nbreBlink==0){ledblink(BCODEWAITWIFI);}}
-    if(diags){Serial.print("cxtime(micros)=");Serial.println(micros()-beg);}
-    return cxstatus;
-}
-
-void modemsleep()
-{
-  WiFi.disconnect();
-  WiFi.forceSleepBegin();
-  delay(100);
-}
 
 /* Read analog ----------------------- */
 
