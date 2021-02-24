@@ -13,7 +13,9 @@
 #include "dynam.h"
 
 #ifdef MAIL_SENDER
-#include "mailSender.h"
+#include <EMailSender.h>
+EMailSender emailSend("lucieliu66", "eicul666");
+EMailSender::EMailMessage message;
 #endif MAIL_SENDER
 
 
@@ -147,7 +149,7 @@ void  dataTransfer(char* data);
 void  readTemp();
 void  ordreExt();
 void  outputCtl();
-
+void mail(char* subj,char* dest,char* msg);
 
 
 void tmarker()
@@ -706,7 +708,8 @@ void ordreExt()
             case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
             case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
             case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
-            case 9: mail("sh_test","lamenace777@gmail.com","test sweet_home");break;                 
+            case 9: {char msg[32]={"test sweet_home "};sprintf(msg+16,"%+02.2f",temp/100);msg[22]='\0';strcat(msg,"°C");
+                    mail("sh_speaking","pinkasfeld@combox.fr",msg);}break;                 
                         
             default:break;
         }
@@ -723,7 +726,21 @@ void ordreExt()
   }
 }
 
+void mail(char* subj,char* dest,char* msg)
+{
+#ifdef MAIL_SENDER
 
+    wifiConnexion(ssid,password);
+    
+    message.subject = subj;
+    message.message = msg;
+
+    EMailSender::Response resp = emailSend.send(dest, message);
+
+#endif MAIL_SENDER
+}
+
+/*
 void ordreExt0()          // version avec string
 {
   cliext = server.available();
@@ -772,7 +789,7 @@ void ordreExt0()          // version avec string
             case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0006xxxx
             case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test on  B        http://192.168.0.6:80/sw1__ON___=0006xxxx
             case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0006xxxx
-            case 9: mail("sweet_home test mail","lamenace777@gmail.com","message de test");break;                 
+            case 9: mail("s_h test","jozles@hotmail.fr","message de test sweet_home");break;                 
             
             default:break;
         }
@@ -788,7 +805,7 @@ void ordreExt0()          // version avec string
     purgeServer(&cliext);
   }
 }
-
+*/
 void talkClient(char* etat) // réponse à une requête
 {
   
