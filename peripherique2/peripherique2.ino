@@ -687,7 +687,7 @@ void ordreExt()
       Serial.print(trx0[cc]);Serial.print("  ");Serial.print(trx1[cc]);Serial.print("  ");Serial.println(trx2[cc]);}
 */
 
-    cliext.stop();
+    //cliext.stop();
     int v0=-1;
     char* vx=strstr(httpMess,"GET /");
     if(vx>=0){v0=vx-httpMess;}
@@ -708,10 +708,18 @@ void ordreExt()
             case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
             case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
             case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
-            case 9: Serial.print(" ++++++++++++ len=");Serial.print(jj);Serial.print(" data=");Serial.println(httpMess); //+v0+5+10+1);
-                    {char msg[128]={"test sweet_home "};sprintf(msg+16,"%+02.2f",temp/100);msg[22]='\0';
-                    strcat(msg,"°C ");strcat(msg,httpMess+v0+5+10+1);
-                    mail("sh_speaking","pinkasfeld@combox.fr",msg);}break;                 
+            case 9: Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);
+                    v0+=21;
+                    {httpMess[strlen(httpMess)-2]='\0';             // erase CRC                   
+                    uint16_t v1=strstr(httpMess,"==")-httpMess;
+                    httpMess[v1]='\0';Serial.print("<<<<");Serial.println(httpMess+v0);
+                    uint16_t v2=strstr(httpMess+v1+1,"==")-httpMess;
+                    httpMess[v2]='\0';Serial.print("<<<<");Serial.println(httpMess+v1+2);
+                    char a[10];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
+                    strcat(a,"°C ");strcat(httpMess+v2+2,a);
+                    Serial.print("<<<<");Serial.println(httpMess+v2+2);                    
+                    mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
+                    }break;                 
                         
             default:break;
         }
@@ -724,6 +732,7 @@ void ordreExt()
       cntreq++;
     }                     // une éventuelle connexion a été traitée
                           // si controles ko elle est ignorée
+    cliext.stop();
     purgeServer(&cliext,diags);
   }
 }
@@ -735,9 +744,10 @@ void mail(char* subj,char* dest,char* msg)
 unsigned long beg=millis();
 
     wifiConnexion(ssid,password);
-    
-    message.subject = subj;
-    message.message = msg;
+
+    char s[32]={"sh speaking "};strcat(s,subj);
+    message.subject = s;
+    message.message = msg ;
 
     EMailSender::Response resp = emailSend.send(dest, message);
 
