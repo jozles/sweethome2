@@ -83,6 +83,11 @@ char configRec[CONFIGRECLEN];
   byte* configBegOfRecord;
   byte* configEndOfRecord;
 
+// =============================================================== à intégrer dans config ================================
+  char mailToAddr[]="pinkasfeld@combox.fr";
+  uint16_t periMail=3;  
+// =============================================================== à intégrer dans config ================================
+
   bool    periPassOk=FAUX;  // contrôle du mot de passe des périphériques
   int     usernum=-1;       // numéro(0-n) de l'utilisateur connecté (valide durant commonserver)   
 
@@ -487,8 +492,8 @@ void stoprequest()
 
 void watchdog()
 {
-  if(millis()-lastcxt>*maxCxWt){wdReboot(TCPWD,*maxCxWt);}
-  if(millis()-lastcxu>*maxCxWu){wdReboot(UDPWD,*maxCxWu);}
+  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot(TCPWD,*maxCxWt);}
+  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot(UDPWD,*maxCxWu);}
 }
 
 void wdReboot(char* a,unsigned long maxCx)
@@ -496,6 +501,9 @@ void wdReboot(char* a,unsigned long maxCx)
     trigwd();
     histoStore_textdh(WDSD,a,"<br>\n\0");
     periTableSave();
+    #define LMSG 64
+    char msg[LMSG]="reboot\n";strcat(msg,mailToAddr);if(strlen(a)<=(LMSG-strlen(msg))){strcat(msg,a);}
+    periReq(&cliext,periMail,"mail______",msg);
     Serial.print("no cx for ");Serial.print(maxCx/1000);Serial.println("sec");
     delay(30000);      // wait for hardware watchdog
 }
@@ -694,7 +702,7 @@ void exploRemote(uint8_t nbr,char oe,uint8_t* old,uint8_t* nou)                 
       if(remoteT[nbd].num==nbr+1){                                          // détecteur concerné ? (utilisé pour la remote courante)
         if(oe=='o'){sser(remoteT[nbd].detec,*old);}                         // vérif changement d'état du détecteur on/off 
         if(oe=='e'){
-          Serial.print(nbr);Serial.print("/");Serial.print(nbd);Serial.print(" ============ ");Serial.print(remoteT[nbd].peri);Serial.print("/");Serial.print(remoteT[nbd].sw);Serial.print("/");Serial.print(*old);
+          Serial.print(nbr);Serial.print("/");Serial.print(nbd);Serial.print(" == ");Serial.print(remoteT[nbd].peri);Serial.print("/");Serial.print(remoteT[nbd].sw);Serial.print("/");Serial.print(*old);
           sser(remoteT[nbd].deten,*old);                                    // vérif changement d'état du détecteur enable pour maj perif
           if(remoteT[nbd].peri!=0 && remoteT[nbd].peri<=NBPERIF){           // maj periSwVal si peri/sw ok
             periCur=remoteT[nbd].peri;periLoad(periCur);
@@ -1245,14 +1253,16 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        }break;                           
               case 12: if(periPassOk==VRAI){what=1;periDataRead(valf);periPassOk==FAUX;}break;       // data_save
               case 13: if(periPassOk==VRAI){what=3;periDataRead(valf);periPassOk==FAUX;}break;       // data_read
-              case 14: {byte a=*(libfonctions+2*i);char fptst[LENNOM+1];                             // (ligne peritable) - tests de perif serveur
+              case 14: {byte a=*(libfonctions+2*i);byte b=*(libfonctions+2*i+1);                     // (ligne peritable) - tests de perif serveur
+                        char fptst[LENNOM+1];                            
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
                         uint8_t k=0;uint8_t zer[]={1,0};
-                        periCur=*(libfonctions+2*i+1)-PMFNCHAR;periLoad(periCur);
+                        char msg[64]="test\n";strcat(msg,mailToAddr);strcat(msg,"\ntest peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';
+                        periCur=b-PMFNCHAR;periLoad(periCur);
                         if(a=='m'){k=4;}
                         else {k=zer[periSwCde(a-PMFNCVAL)]+(a-PMFNCVAL)*2;}
                         memcpy(fptst,swcd+LENNOM*k,LENNOM);
-                        periReq(&cli,periCur,fptst);
+                        periReq(&cli,periCur,fptst,msg);
                         Serial.print("=========== periCur=");Serial.print(periCur);Serial.print(" k=");Serial.print(k);Serial.print(" a=");Serial.print(a-PMFNCVAL);Serial.print(" ~swcd=");Serial.print(zer[periSwCde(a-PMFNCVAL)]);Serial.print(" peritst=");Serial.println(fptst);
                         periLineHtml(&cli,periCur);
                        }break;                                                                       

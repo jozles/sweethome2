@@ -78,7 +78,7 @@ v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résis
   #define DEF_ADDR  "peri_"
 #endif
 
-  #define CC_ADDR   (byte*)"ctest"      //"toto_"   //      // MAC_ADDR concentrateur
+  #define CC_ADDR   (byte*)"ctest"      //"toto_"   //      // MAC_ADDR concentrateur ; provient de l'EEPROM sur perif
   #define CB_ADDR   (byte*)"shcc0"      // adresse fixe de broadcast concentrateurs (recup MAC_ADDR concentrateurs) 0 nécessaire pour read()
   #define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
 

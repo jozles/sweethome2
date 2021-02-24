@@ -61,8 +61,8 @@ void setup()
       from="lucieliu66@gmail.com";
       mess="message de test";
 
-      #define B64ADDRESS
-      #define B64PASSWORD
+      #define B64ADDRESS  "bHVjaWVsaXU2NkBnbWFpbC5jb20="
+      #define B64PASSWORD "ZWljdWw2NjY="
 
       if(cxServer(server,port) && sendEmail(sujet,dest,from,mess)){             
         Serial.println("Message sent");

@@ -8,6 +8,7 @@
 #include <shmess2.h>
 #include "shutil2.h"
 #include "periph.h"
+#include "peritalk.h"
 
 extern Ds3231 ds3231;
 
@@ -173,15 +174,20 @@ if(*periProg!=0){
   }  // pericur != 0            
 }
 
+int  periReq(EthernetClient* cli,uint16_t np,char* nfonct)
+{
+  periReq(cli,np,nfonct,"");
+}
 
-int periReq(EthernetClient* cli,uint16_t np,char* nfonct)     // fonction set ou ack vers périphérique
+int periReq(EthernetClient* cli,uint16_t np,char* nfonct,char* msg)     // fonction set ou ack vers périphérique
                     // envoie cde GET dans bufServer via messToServer + getHttpResp         (fonction set suite à modif dans periTable)
                     //                            status retour de messToServer ou getHttpResponse ou fonct invalide (doit être done___)
                     // np=periCur à jour (0 ou n) si periCur = 0 message set réduit
                     // format bufServer GET /message...
                     // format message   nomfonction_=nnnndatas...cc                nnnn len mess ; cc crc
-                    // format datas     NN_mm.mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._    NN numpériph ; mm.mm... mac
-{                   
+                    // si set ou ack :
+                    //    format datas     NN_mm.mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._   NN numpériph ; mm.mm... mac
+{                   // sinon chaine libre issue de msg
 
   char message[LENMESS]={'\0'};
   char date14[LNOW];ds3231.alphaNow(date14);
@@ -190,34 +196,38 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct)     // fonction set ou
   periCur=np;periLoad(periCur);
   
   Serial.print("\nperiReq(");Serial.print((char)*periProtocol);Serial.print(" peri=");Serial.print(periCur);
-  Serial.print("-port=");Serial.print(*periPort);Serial.println(")");
+  Serial.print(" port=");Serial.print(*periPort);Serial.println(")");
   
-    if(*periProg!=0 && *periPort!=0){charIp(periIpAddr,host);}
+  if(*periProg!=0 && *periPort!=0){charIp(periIpAddr,host);}
   
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
-    assySet(message,periCur,periDiag(periMess),date14);}  // assemblage datas 
+        assySet(message,periCur,periDiag(periMess),date14);}  // assemblage datas 
+  else if(strlen(msg)<LENMESS){strcat(message,msg);}
+  
   *bufServer='\0';
-
-        memcpy(bufServer,"GET /\0",6);                  // commande directe de périphérique en mode serveur
-        buildMess(nfonct,message,"");                   // bufServer complété   
-
-        if(*periProtocol=='T'){                         // UDP à développer
+  memcpy(bufServer,"GET /\0",6);                  // commande directe de périphérique en mode serveur
+  buildMess(nfonct,message,"");                   // bufServer complété   
+  
+  if(*periProtocol=='T'){                         // UDP à développer
           periMess=messToServer(cli,host,*periPort,bufServer);
+          Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(" periMess(messToServer)=");Serial.println(periMess);
           uint8_t fonct;
           if(periMess==MESSOK){
               trigwd();
-              periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct);
+              periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct,AVEC_DIAGS);
+              Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(" periMess(gHttpR)=");Serial.println(periMess);
               if(periMess==MESSOK && fonct!=fdone){periMess=MESSFON;}
               delay(1);                                 // (? pour Serial.print de la réponse ?)
               purgeServer(cli);
               }
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=periMess;
-        }
-        cli->stop();
-        int8_t zz=periSave(periCur,PERISAVELOCAL);          // modifs de periTable et date effacèe par prochain periLoad si pas save
-        if(periMess==MESSOK){periMess=zz;}
-        return periMess;
+  }
+  cli->stop();
+  int8_t zz=periSave(periCur,PERISAVELOCAL);          // modifs de periTable et date effacèe par prochain periLoad si pas save
+  if(periMess==MESSOK){periMess=zz;}
+  Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(" periMess(periReq)=");Serial.println(periMess);
+  return periMess;
 }
 
 int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cli ... ou udp(remote_IP,remote_Port)
@@ -281,11 +291,11 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   uint8_t c=0;
   int ii=0;
   int perizer=0;
-  int messLen;
-
+  int messLen=strlen(valf)-2;   // longueur hors crc
+  Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" valf=");Serial.println((char*)valf);
   periCur=0;
                         // check len,crc
-  periMess=checkData(valf,&messLen);if(periMess!=MESSOK){periInitVar();return;}         
+  periMess=checkData(valf);if(periMess!=MESSOK){periInitVar();return;}         
   
                         // len,crc OK
   valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
@@ -314,41 +324,56 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       periMess=MESSFULL;                                          // ???????????????????? devrait être MESSOK et MESSFULL avant le test ????????????????????
   }
 
-#define PNP 2+1+17+1                                              // (4 length +1) + 2 N° peri +1 + 17 Mac +1 message court de présence
-  if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
+#define PNP 2+1+17+1                                                // (4 length +1) + 2 N° peri +1 + 17 Mac +1 message court de présence
+  if(periCur!=0){                                                   // si ni trouvé, ni place libre, periCur=0 
     memcpy(periMacr,periMacBuf,6);
     char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);            // maj dates
 
-    if(messLen>PNP+5){ 
+    messLen-=(PNP+5);if(messLen>0){                                 // PNP + (4 length +1) longueur hors CRC si message terminé
       k=valf+PNP;*periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
+  Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);      
 #if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
-  periCur/=0;
-#endif     
+      cancelCompil();
+#endif
+    }
+    messLen-=i;if(messLen>0){
       k+=i;*periAnal=convStrToInt(k,&i);                            // analog value
+    }
+    messLen-=i;if(messLen>0){
       k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
+    }
+    messLen-=i;if(messLen>0){    
       k+=i;strncpy(periVers,k,LENVERSION);                          // version
-      k+=strchr(k,'_')-k+1; uint8_t qsw=(uint8_t)(*k-48);           // nbre sw
+      i=strchr(k,'_')-k+1;                                          // ????? LENVERSION variable ?
+    }
+Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);
+    messLen-=i;if(messLen>0){      
+      k+=i;uint8_t qsw=(uint8_t)(*k-48);                            // nbre sw
       k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                   // periSwVal états sw
       k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
       k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
+    }
+    messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){
       k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
+    }
+    messLen-=(NBPULSE+1);if(messLen>0){
       k+=NBPULSE+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                              // model
+    }
+    messLen-=(LENMODEL+1);if(messLen>0){
       k+=LENMODEL+1;
-
-      if(memcmp(periVers,"1.h",3)>=0){
-        for(i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}                     // valeur courante pulses
-      }
-    
+      for(i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}                     // valeur courante pulses
+    }
+/*    messLen-=(2*i+1);if(messLen>0){
+Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);      
+    }*/
 #ifdef SHDIAGS    
-  periPrint(periCur);
-  Serial.print("periDataRead =");
+    periPrint(periCur);Serial.print("periDataRead =");
 #endif    
     
-    }
-    if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
-    memcpy(periIpAddr,remote_IP_cur,4);                                                                            // Ip addr
-    if(remote_Port!=0 && *periProtocol=='U'){*periPort=remote_Port;}                                               // port
-    periSave(periCur,PERISAVELOCAL);
-    checkdate(6);
   }
+  if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
+  memcpy(periIpAddr,remote_IP_cur,4);                                                                            // Ip addr
+  if(remote_Port!=0 && *periProtocol=='U'){*periPort=remote_Port;}                                               // port
+  periSave(periCur,PERISAVELOCAL);
+  checkdate(6);
 }

@@ -708,7 +708,9 @@ void ordreExt()
             case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
             case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
             case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
-            case 9: {char msg[32]={"test sweet_home "};sprintf(msg+16,"%+02.2f",temp/100);msg[22]='\0';strcat(msg,"°C");
+            case 9: Serial.print(" ++++++++++++ len=");Serial.print(jj);Serial.print(" data=");Serial.println(httpMess); //+v0+5+10+1);
+                    {char msg[128]={"test sweet_home "};sprintf(msg+16,"%+02.2f",temp/100);msg[22]='\0';
+                    strcat(msg,"°C ");strcat(msg,httpMess+v0+5+10+1);
                     mail("sh_speaking","pinkasfeld@combox.fr",msg);}break;                 
                         
             default:break;
@@ -730,6 +732,8 @@ void mail(char* subj,char* dest,char* msg)
 {
 #ifdef MAIL_SENDER
 
+unsigned long beg=millis();
+
     wifiConnexion(ssid,password);
     
     message.subject = subj;
@@ -737,6 +741,7 @@ void mail(char* subj,char* dest,char* msg)
 
     EMailSender::Response resp = emailSend.send(dest, message);
 
+Serial.print(">>> email millis()=");Serial.println(millis()-beg);
 #endif MAIL_SENDER
 }
 

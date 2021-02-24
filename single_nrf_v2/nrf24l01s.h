@@ -65,14 +65,12 @@
  *
  *
  */
-
-
 #include <Arduino.h>
 
 #include "nRF24L01.h"       // mnemonics
 #include "nrf24l01s_const.h"
 
-#define POWONDLY 100       // millis()
+#define POWONDLY 100       // millis()  - 100 -
 #define POWUPDLY 5         // millis()
 
 #define ACK     true

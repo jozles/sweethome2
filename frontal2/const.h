@@ -71,7 +71,8 @@
         le disjoncteur a besoin d'un dét mémo pour être "réactif" dans les règles (sinon il n'est pas vu par poolPerif)
         les lectures et modifs de periSwVal deviennent les fonctions periSwLev et Cd / Update pour en simplifier l'accès.
         periSave devient LOCAL pour toutes les opérations de communication périf/serveur ; ajouter une sauvegarde horaire du cache
-        ajout maxCxWt et maxCxWu (TO pour absence de cx TCP/UDP) dans config        
+        ajout maxCxWt et maxCxWu (TO pour absence de cx TCP/UDP) dans config  
+        ajout buffer pour les données de mail dans periReq + boutons de test dans periLine
 
    BUGS :
 
