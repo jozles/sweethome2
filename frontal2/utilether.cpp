@@ -46,12 +46,23 @@ extern char*    chexa;
 extern File32 fhisto;           // fichier histo sd card
 extern long   fhsize;           // remplissage fhisto
 
+
 int sdOpen(char* fname,File32* file32)
 {
   if (!file32->open(fname, O_RDWR | O_CREAT)) {
     Serial.print(fname);Serial.println(" inaccessible");return SDKO;
   }
   return SDOK;
+}
+
+char* alphaDate()
+{
+  ds3231.getDate(&hms,&amj,&js,strdate);
+  memset(strdate,' ',LDATEB);strdate[15]='\0';
+  
+  sprintf(strdate,"%.8lu",amj);       // 9
+  sprintf(strdate+9,"%.6lu",hms);     // +7
+  return strdate;
 }
 
 void histoStore_textdh0(char* val1,char* val2,char* val3)

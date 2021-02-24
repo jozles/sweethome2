@@ -482,6 +482,7 @@ void stoprequest()
   if(digitalRead(STOPREQ)==LOW){
     trigwd();
     histoStore_textdh(HALTREQ,"","<br>\n\0");
+    periTableSave();
     Serial.println("Halt request =====");
 
     while(1){
@@ -492,18 +493,26 @@ void stoprequest()
 
 void watchdog()
 {
-  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot(TCPWD,*maxCxWt);}
-  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot(UDPWD,*maxCxWu);}
+  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("TCP cx lost",*maxCxWt);}
+  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("UDP cx lost",*maxCxWu);}
 }
 
-void wdReboot(char* a,unsigned long maxCx)
+void mail(char* a,char* mm)
+{
+      #define LMSG 64  
+      char ms[LMSG];
+      strcat(ms,a);strcat(ms,"==");
+      strcat(ms,mailToAddr);strcat(ms,"==");
+      if(strlen(mm)<=(LMSG-strlen(ms))){strcat(ms,mm);}
+      periReq(&cliext,periMail,"mail______",ms);  
+}
+
+void wdReboot(char* msg,unsigned long maxCx)
 {
     trigwd();
-    histoStore_textdh(WDSD,a,"<br>\n\0");
+    histoStore_textdh(WDSD,msg,"<br>\n\0");
     periTableSave();
-    #define LMSG 64
-    char msg[LMSG]="reboot\n";strcat(msg,mailToAddr);if(strlen(a)<=(LMSG-strlen(msg))){strcat(msg,a);}
-    periReq(&cliext,periMail,"mail______",msg);
+    mail("reBOOT",msg);
     Serial.print("no cx for ");Serial.print(maxCx/1000);Serial.println("sec");
     delay(30000);      // wait for hardware watchdog
 }
@@ -529,6 +538,8 @@ void scanDate()
       datetime=millis();
       histoStore_textdh("D","","<br>\n\0");
       periTableSave();
+      
+      mail("DATE",alphaDate());
     }
 }
 
@@ -1257,7 +1268,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                         char fptst[LENNOM+1];                            
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
                         uint8_t k=0;uint8_t zer[]={1,0};
-                        char msg[64]="test\n";strcat(msg,mailToAddr);strcat(msg,"\ntest peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';
+                        char msg[64]="TEST==";strcat(msg,mailToAddr);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';
                         periCur=b-PMFNCHAR;periLoad(periCur);
                         if(a=='m'){k=4;}
                         else {k=zer[periSwCde(a-PMFNCVAL)]+(a-PMFNCVAL)*2;}

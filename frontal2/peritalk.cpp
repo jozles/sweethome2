@@ -203,7 +203,7 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct,char* msg)     // fonct
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
         assySet(message,periCur,periDiag(periMess),date14);}  // assemblage datas 
   else if(strlen(msg)<LENMESS){strcat(message,msg);}
-  
+
   *bufServer='\0';
   memcpy(bufServer,"GET /\0",6);                  // commande directe de périphérique en mode serveur
   buildMess(nfonct,message,"");                   // bufServer complété   
@@ -214,7 +214,7 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct,char* msg)     // fonct
           uint8_t fonct;
           if(periMess==MESSOK){
               trigwd();
-              periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct,AVEC_DIAGS);
+              periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct);
               Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(" periMess(gHttpR)=");Serial.println(periMess);
               if(periMess==MESSOK && fonct!=fdone){periMess=MESSFON;}
               delay(1);                                 // (? pour Serial.print de la réponse ?)
@@ -292,7 +292,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   int ii=0;
   int perizer=0;
   int messLen=strlen(valf)-2;   // longueur hors crc
-  Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" valf=");Serial.println((char*)valf);
+//Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" valf=");Serial.println((char*)valf);
   periCur=0;
                         // check len,crc
   periMess=checkData(valf);if(periMess!=MESSOK){periInitVar();return;}         
@@ -331,7 +331,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
 
     messLen-=(PNP+5);if(messLen>0){                                 // PNP + (4 length +1) longueur hors CRC si message terminé
       k=valf+PNP;*periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
-  Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);      
+//Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);      
 #if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
       cancelCompil();
 #endif
@@ -346,7 +346,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       k+=i;strncpy(periVers,k,LENVERSION);                          // version
       i=strchr(k,'_')-k+1;                                          // ????? LENVERSION variable ?
     }
-Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);
+//Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);
     messLen-=i;if(messLen>0){      
       k+=i;uint8_t qsw=(uint8_t)(*k-48);                            // nbre sw
       k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                   // periSwVal états sw
