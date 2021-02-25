@@ -266,11 +266,13 @@ void accueilHtml(EthernetClient* cli)
             htmlIntro(nomserver,cli);
 
             cli->println("<body><form method=\"get\" >");
+            cli->println("<h1 class=\"point\">");
             cli->println(VERSION);cli->println("<br>");
 
-            cli->println("<p>user <input type=\"username\" placeholder=\"Username\" name=\"username__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");            
-            cli->println("<p>pass <input type=\"password\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");
-                        cli->println(" <input type=\"submit\" value=\"login\"><br>");
+            cli->println("<p><input type=\"username\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Username\" name=\"username__\"  value=\"\" size=\"6\" maxlength=\"8\" ></p>");            
+            cli->println("<p><input type=\"password\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");
+                        cli->println(" <input type=\"submit\" text style=\"width:300px;height:60px;font-size:40px\" value=\"login\"><br>");
+            cli->println("</h1>");
             cli->println("</form></body></html>");
 }          
 

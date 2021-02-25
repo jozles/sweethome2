@@ -58,10 +58,12 @@ int sdOpen(char* fname,File32* file32)
 char* alphaDate()
 {
   ds3231.getDate(&hms,&amj,&js,strdate);
-  memset(strdate,' ',LDATEB);strdate[15]='\0';
+  memset(strdate,'\0',LDATEB);
   
   sprintf(strdate,"%.8lu",amj);       // 9
+  strcat(strdate," ");
   sprintf(strdate+9,"%.6lu",hms);     // +7
+
   return strdate;
 }
 

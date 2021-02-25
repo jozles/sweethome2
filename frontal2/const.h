@@ -73,6 +73,7 @@
         periSave devient LOCAL pour toutes les opérations de communication périf/serveur ; ajouter une sauvegarde horaire du cache
         ajout maxCxWt et maxCxWu (TO pour absence de cx TCP/UDP) dans config  
         ajout buffer pour les données de mail dans periReq + boutons de test dans periLine
+        dataTransfer peut recevoir un message amputé ; gros caractères pour accueil ; envoi de mails via periReq -> START/BOOT/TEST/DATE...
 
    BUGS :
 

@@ -247,7 +247,7 @@ void boutRetourB(char* buf,char* lib,uint8_t td,uint8_t br)
 {
     if(td==1 || td==2){strcat(buf,"<td>");}
     strcat(buf,"<a href=\"?user_ref_");concat1a(buf,(char)(usernum+PMFNCHAR));strcat(buf,"=");concatn(buf,usrtime[usernum]);
-    strcat(buf,"\"><input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"></a>");
+    strcat(buf,"\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");strcat(buf,lib);strcat(buf,"\"></a>");
     if(br!=0){strcat(buf,"<br>");}
     if(td==1 || td==3){strcat(buf,"</td>");}
     strcat(buf,"\n");
@@ -303,7 +303,7 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,"#cb1{width:10px; padding:0px; margin:0px; text-align: center};\n");
             strcat(buf,"#cb2{width:20px; text-align: center};\n");
 
-            strcat(buf,".button {background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
+            strcat(buf,".button {background-color: #195B6A; border: none; color: white; padding: 32px 80px:"); //16px 40px;");
             strcat(buf,"text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}\n");
             strcat(buf,".button2 {background-color: #77878A;}\n");
 
@@ -569,7 +569,7 @@ void boutRetour(EthernetClient* cli,char* lib,uint8_t td,uint8_t br)
 {
     if(td==1 || td==2){cli->print("<td>");}
     cli->print("<a href=\"?user_ref_");cli->print((char)(usernum+PMFNCHAR));cli->print("=");cli->print(usrtime[usernum]);
-    cli->print("\"><input type=\"button\" value=\"");cli->print(lib);cli->print("\"></a>");
+    cli->print("\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");cli->print(lib);cli->print("\"></a>");
     if(br!=0){cli->print("<br>");}
     if(td==1 || td==3){cli->print("</td>");}
     cli->println();

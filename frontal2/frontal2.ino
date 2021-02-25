@@ -432,9 +432,7 @@ void setup() {                              // =================================
   }*/
 
   histoStore_textdh(RESET,"","<br>\n\0");
-
-  lastcxt=millis();
-  lastcxu=millis();
+  mail("START","");
 
   Serial.println(">>>>>>>>> fin setup\n");
 }
@@ -499,11 +497,13 @@ void watchdog()
 
 void mail(char* a,char* mm)
 {
-      #define LMSG 64  
+      #define LMSG 128
       char ms[LMSG];
       strcat(ms,a);strcat(ms,"==");
       strcat(ms,mailToAddr);strcat(ms,"==");
       if(strlen(mm)<=(LMSG-strlen(ms))){strcat(ms,mm);}
+      strcat(ms," ");strcat(ms,alphaDate());strcat(ms," ");
+      
       periReq(&cliext,periMail,"mail______",ms);  
 }
 
@@ -539,7 +539,7 @@ void scanDate()
       histoStore_textdh("D","","<br>\n\0");
       periTableSave();
       
-      mail("DATE",alphaDate());
+      mail("DATE","");
     }
 }
 
@@ -1268,7 +1268,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                         char fptst[LENNOM+1];                            
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
                         uint8_t k=0;uint8_t zer[]={1,0};
-                        char msg[64]="TEST==";strcat(msg,mailToAddr);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';
+                        char msg[64]="TEST==";strcat(msg,mailToAddr);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';strcat(msg,alphaDate());
                         periCur=b-PMFNCHAR;periLoad(periCur);
                         if(a=='m'){k=4;}
                         else {k=zer[periSwCde(a-PMFNCVAL)]+(a-PMFNCVAL)*2;}
