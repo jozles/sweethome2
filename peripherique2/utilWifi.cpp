@@ -64,7 +64,7 @@ bool wifiConnexion(const char* ssid,const char* password)
       Serial.print(" local IP : ");Serial.print(WiFi.localIP());
       cstRec.IpLocal=WiFi.localIP();        
       WiFi.macAddress(mac);
-      //serialPrintMac(mac,1);
+      Serial.print(" ");serialPrintMac(mac,1);
       cstRec.serverPer=PERSERV;
       }
     else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI);}}
