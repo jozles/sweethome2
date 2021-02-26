@@ -31,6 +31,15 @@ String outputAState = "off";
 const int outputB = PINB;
 const int outputA = PINA;
 
+unsigned long cxtime=0;
+#define CXTO 60000
+
+int getcde();
+void buttonsHtml();
+void accueilHtml();
+void introHttp();
+void cxEnd();
+
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -83,32 +92,37 @@ void loop(){
     else{perled=PERLEDOFF;}
   }
 
-  int cde=getcde();if(cde!=2){Serial.print("cde=");Serial.print(cde);Serial.print(" header=");Serial.print(header);
-                              Serial.print(" ix=");Serial.println(header.indexOf("GET /?username__=admin&password__=17515A"));}
+  if(millis()-cxtime>CXTO){cxtime=0;}
+
+  int cde=getcde();if(cde!=2){Serial.print("cde=");Serial.println(cde);Serial.print("header=");Serial.print(header);
+                              Serial.print("<<< ix=");Serial.print(header.indexOf("GET /?username__=admin&password__=17515A"));
+                              Serial.print(" cxtime=");Serial.println(cxtime);}
   switch(cde){
     case 0: accueilHtml();break;
     case 1: if (header.indexOf("GET /?username__=admin&password__=17515A") >= 0) {
-              buttonsHtml();
-            } else if (header.indexOf("GET /B/on") >= 0) {
-              Serial.println("GPIO B on");
-              outputBState = "on";
-              digitalWrite(outputB, HIGH);
-              buttonsHtml();
-            } else if (header.indexOf("GET /B/off") >= 0) {
-              Serial.println("GPIO B off");
-              outputBState = "off";
-              digitalWrite(outputB, LOW);
-              buttonsHtml();
-            } else if (header.indexOf("GET /A/on") >= 0) {
-              Serial.println("GPIO A on");
-              outputAState = "on";
-              digitalWrite(outputA, HIGH);
-              buttonsHtml();
-            } else if (header.indexOf("GET /A/off") >= 0) {
-              Serial.println("GPIO A off");
-              outputAState = "off";
-              digitalWrite(outputA, LOW);
-              buttonsHtml();
+              buttonsHtml();}
+            else if(cxtime!=0){
+              if (header.indexOf("GET /B/on") >= 0) {
+                Serial.println("GPIO B on");
+                outputBState = "on";
+                digitalWrite(outputB, HIGH);
+                buttonsHtml();
+              } else if (header.indexOf("GET /B/off") >= 0) {
+                Serial.println("GPIO B off");
+                outputBState = "off";
+                digitalWrite(outputB, LOW);
+                buttonsHtml();
+              } else if (header.indexOf("GET /A/on") >= 0) {
+                Serial.println("GPIO A on");
+                outputAState = "on";
+                digitalWrite(outputA, HIGH);
+                buttonsHtml();
+              } else if (header.indexOf("GET /A/off") >= 0) {
+                Serial.println("GPIO A off");
+                outputAState = "off";
+                digitalWrite(outputA, LOW);
+                buttonsHtml();
+              } else accueilHtml(); 
             } else accueilHtml();
             break;
     default:break;
@@ -136,9 +150,11 @@ void introHttp()
 
 void accueilHtml()
 {            
+              cxtime=0;
               introHttp();
               
               client.println("<!DOCTYPE html><html>");  
+              client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
               client.println("<body><form method=\"get\" >");
 
               client.println("<p>user <input type=\"username\" placeholder=\"Username\" name=\"username__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");            
@@ -151,24 +167,25 @@ void accueilHtml()
 
 void buttonsHtml()
 {
+            Serial.println("buttons");
+            cxtime=millis();
+            
             introHttp();
               
             // Display the HTML web page
             client.println("<!DOCTYPE html><html>");
             client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
             client.println("<link rel=\"icon\" href=\"data:,\">");
-            // CSS to style the on/off buttons 
-            // Feel free to change the background-color and font-size attributes to fit your preferences
+
             client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
             client.println(".button { background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
             client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
             client.println(".button2 {background-color: #77878A;}</style></head>");
             
-            // Web Page ng
-            client.println("<body><h1>ESP8266 Web Server</hHeadi1>");
+            client.println("<body><h1>ESP8266 mini-Web Server  v3.0</hHeadi1>");
             
-            // Display current state, and ON/OFF buttons for GPIO 5  
             client.print("<p>GPIO B (");client.println(PINB);client.println(") - State " + outputBState + "</p>");
+            client.print("<p> server ctl </p>");
             // If the outputBState is off, it displays the ON button       
             if (outputBState=="off") {
               client.println("<p><a href=\"/B/on\"><button class=\"button\">ON</button></a></p>");
@@ -187,6 +204,7 @@ void buttonsHtml()
             client.println("</body></html>");
 
             cxEnd();
+
 }
 
 int getcde()
@@ -201,8 +219,8 @@ int getcde()
     header="";
     while (client.connected()) {            // loop while the client's connected
       if (client.available()) {             // if there's bytes to read from the client,
-        char c = client.read();             // read a byte, then
-        Serial.write(c);                    // print it out the serial monitor
+        char c = client.read();             
+        //Serial.write(c);                  
         header += c;
         if (c == '\n') {                    // if the byte is a newline character
           // if the current line is blank, you got two newline characters in a row.
@@ -213,7 +231,7 @@ int getcde()
         else if (c != '\r') {currentLine += c;}           // if you got anything else but a carriage return character add it      
       }
     }
-    return 0;                                             // currentLine valorisée                               
+    return 0;                                             // got something                               
   }
   return 2;                                               // pas de client
 }
