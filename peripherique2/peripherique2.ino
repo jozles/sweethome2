@@ -745,7 +745,7 @@ unsigned long beg=millis();
 
     wifiConnexion(ssid,password);
 
-    char s[32]={"sh speaking "};strcat(s,subj);
+    char s[64]={"sh speaking "};strcat(s,subj);
     message.subject = s;
     message.message = msg ;
 
