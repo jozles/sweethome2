@@ -83,11 +83,6 @@ char configRec[CONFIGRECLEN];
   byte* configBegOfRecord;
   byte* configEndOfRecord;
 
-// =============================================================== à intégrer dans config ================================
-  char mailToAddr[]="pinkasfeld@combox.fr";
-  uint16_t periMail=3;  
-// =============================================================== à intégrer dans config ================================
-
   bool    periPassOk=FAUX;  // contrôle du mot de passe des périphériques
   int     usernum=-1;       // numéro(0-n) de l'utilisateur connecté (valide durant commonserver)   
 
@@ -404,7 +399,7 @@ void setup() {                              // =================================
   trigwd();
   
   Serial.print("Udp.begin(");Serial.print(PORTUDP);Serial.print(") ");
-  if(!Udp.begin(PORTUDP)){Serial.print("ko");while(1){}}
+  if(!Udp.begin(PORTUDP)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd();delay(1000);}}
   Serial.println("ok");
 
   trigwd();
@@ -493,18 +488,6 @@ void watchdog()
 {
   if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("TCP cx lost",*maxCxWt);}
   if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("UDP cx lost",*maxCxWu);}
-}
-
-void mail(char* a,char* mm)
-{
-      #define LMSG 128
-      char ms[LMSG];
-      strcat(ms,a);strcat(ms,"==");
-      strcat(ms,mailToAddr);strcat(ms,"==");
-      if(strlen(mm)<=(LMSG-strlen(ms))){strcat(ms,mm);}
-      strcat(ms," ");strcat(ms,alphaDate());strcat(ms," ");
-      
-      periReq(&cliext,periMail,"mail______",ms);  
 }
 
 void wdReboot(char* msg,unsigned long maxCx)
@@ -1268,6 +1251,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                         char fptst[LENNOM+1];                            
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
                         uint8_t k=0;uint8_t zer[]={1,0};
+                        extern char mailToAddr[];
                         char msg[64]="TEST==";strcat(msg,mailToAddr);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';strcat(msg,alphaDate());
                         periCur=b-PMFNCHAR;periLoad(periCur);
                         if(a=='m'){k=4;}
@@ -1688,7 +1672,8 @@ void testUdp()
 
   Serial.println("\nlancer le test Udp sur l'autre machine \n");
   
-  while(1){ 
+  while(1){
+    trigwd(); 
     int packetSize = Udp.parsePacket(); 
     IPAddress ipAddr;
     unsigned int rxPort;

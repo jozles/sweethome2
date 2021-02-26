@@ -4,6 +4,8 @@
 #include <Ethernet.h>
 #include "SdFat.h"
 
+void mail(char* a,char* mm);
+
 int  sdOpen(char* fname,File32* file32);
 void sdInit();
 

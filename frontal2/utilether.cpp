@@ -8,6 +8,8 @@
 #include <shconst2.h>
 #include <shutil2.h>
 #include "periph.h"
+#include "peritalk.h"
+#include "utilether.h"
 
 extern Ds3231 ds3231;
 
@@ -45,6 +47,27 @@ extern char*    chexa;
 
 extern File32 fhisto;           // fichier histo sd card
 extern long   fhsize;           // remplissage fhisto
+
+
+extern EthernetClient cliext;
+// =============================================================== à intégrer dans config ================================
+  char mailToAddr[]="pinkasfeld@combox.fr";
+  uint16_t periMail=3;  
+// =============================================================== à intégrer dans config ================================
+
+
+
+void mail(char* a,char* mm)
+{
+      #define LMSG 128
+      char ms[LMSG];
+      strcat(ms,a);strcat(ms,"==");
+      strcat(ms,mailToAddr);strcat(ms,"==");
+      if(strlen(mm)<=(LMSG-strlen(ms))){strcat(ms,mm);}
+      strcat(ms," ");strcat(ms,alphaDate());strcat(ms," ");
+      
+      periReq(&cliext,periMail,"mail______",ms);  
+}
 
 
 int sdOpen(char* fname,File32* file32)
@@ -115,6 +138,8 @@ void cidDmp() {
 void sdInit()
 {
   if (!sd32.begin(SD_CONFIG)) {
+    mail("SD_INIT_ERROR_HALT","");
+    while(1){trigwd();delay(1000);}
     sd32.initErrorHalt(&Serial);
   }
 
@@ -125,7 +150,8 @@ void sdInit()
     Serial.print("\nCan't determine the card size.\n");
     Serial.print("Try another SD card or reduce the SPI bus speed.\n");
     Serial.print("Edit SPI_SPEED in this program to change it.\n");
-    while(1){delay(1);}
+    mail("SD_INIT_SIZE_HALTED","");
+    while(1){trigwd();delay(1000);}
   }
 
   uint32_t sizeMB = 0.000512 * size + 0.5;

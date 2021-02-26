@@ -123,6 +123,7 @@
 
 */
 
+
 #define _MODE_DEVT2    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
 #ifdef _MODE_DEVT2

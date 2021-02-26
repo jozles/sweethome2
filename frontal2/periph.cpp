@@ -563,14 +563,14 @@ void periTableLoad()                            // au démarrage du systeme
   Serial.print("PERIRECLEN=");Serial.print(PERIRECLEN);Serial.print("/");Serial.print(periRecLength);
   delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
 
-  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periCacheLoad(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" ALL OK");
+  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periCacheLoad(h)==SDKO){Serial.println(" KO");mail("PERITABLE_LOAD_HALT","");while(1){trigwd();delay(1000);}};}Serial.println(" ALL OK");
 }  
 
 void periTableSave()                            // à l'arret du systeme
 {
   Serial.print("Save table perif ");
   
-  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");if(periCacheSave(h)==SDKO){Serial.println(" KO");while(1){}};}Serial.println(" ALL OK");
+  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");if(periCacheSave(h)==SDKO){Serial.println(" KO");mail("PERITABLE_SAVE_ERROR_HALT","");while(1){trigwd();delay(1000);}};}Serial.println(" ALL OK");
 }  
 
 int periRemove(uint16_t num)
