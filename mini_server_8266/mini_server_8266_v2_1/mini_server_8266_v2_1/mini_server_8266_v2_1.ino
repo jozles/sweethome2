@@ -16,6 +16,12 @@
 long tmpLed=millis();
 int perled=0;
 
+unsigned long cxTime=0;
+#define CXDLY 60000
+
+unsigned long activeTime=0;
+#define ACTDLY 300000
+
 // Replace with your network credentials
 //const char* ssid     = "pinks";
 //const char* password = "cain ne dormant pas songeait au pied des monts";
@@ -90,6 +96,18 @@ void loop(){
     if(!led){perled=PERLEDON;}
     else{perled=PERLEDOFF;}
   }
+
+  if ( cxTime+CXDLY<millis() && cxTime!=0 ){cxTime=0;Serial.println("cxTime=0");}
+
+//  if ( activeTime+ACTDLY<millis()){x=cliext.connect(hostExt,portExt);cliext.stop();}
+
+  delay(500);
+  int count=0;
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    count++;
+  }
+  if(count>2){Serial.println(count);}
   
   WiFiClient client = server.available();   // Listen for incoming clients
 
@@ -111,26 +129,7 @@ void loop(){
             client.println("Content-type:text/html");
             client.println("Connection: close");
             client.println();
-            
-            // turns the GPIOs on and off
-            if (header.indexOf("GET /B/on") >= 0) {
-              Serial.println("GPIO B on");
-              outputBState = "on";
-              digitalWrite(outputB, HIGH);
-            } else if (header.indexOf("GET /B/off") >= 0) {
-              Serial.println("GPIO B off");
-              outputBState = "off";
-              digitalWrite(outputB, LOW);
-            } else if (header.indexOf("GET /A/on") >= 0) {
-              Serial.println("GPIO A on");
-              outputAState = "on";
-              digitalWrite(outputA, HIGH);
-            } else if (header.indexOf("GET /A/off") >= 0) {
-              Serial.println("GPIO A off");
-              outputAState = "off";
-              digitalWrite(outputA, LOW);
-            }
-            
+
             // Display the HTML web page
             client.println("<!DOCTYPE html><html>");
             client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
@@ -143,39 +142,84 @@ void loop(){
             client.println(".button2 {background-color: #77878A;}</style></head>");
             
             // Web Page ng
-            client.println("<body><h1>ESP8266 Web Server</hHeadi1>");
+            client.println("<body><h1>ESP8266 Web Server v2.1</h1>");
+
+            if (header.indexOf("GET / HTTP")>=0){cxTime=0;}         // pas de commande
             
-            // Display current state, and ON/OFF buttons for GPIO 5  
-            client.print("<p>GPIO B (");client.println(PINB);client.println(") - State " + outputBState + "</p>");
-            // If the outputBState is off, it displays the ON button       
-            if (outputBState=="off") {
-              client.println("<p><a href=\"/B/on\"><button class=\"button\">ON</button></a></p>");
-            } else {
-              client.println("<p><a href=\"/B/off\"><button class=\"button button2\">OFF</button></a></p>");
-            } 
+            if (cxTime!=0 || header.indexOf("?username__=admin&password__=17515A") >= 0){
+
+            /* GPIO command waited */
+
+              Serial.println("buttons");
+              cxTime=millis();
+              
+              // turns the GPIOs on and off
+              if (header.indexOf("GET /B/on") >= 0) {
+                Serial.println("GPIO B on");
+                outputBState = "on";
+                digitalWrite(outputB, HIGH);
+              } else if (header.indexOf("GET /B/off") >= 0) {
+                Serial.println("GPIO B off");
+                outputBState = "off";
+                digitalWrite(outputB, LOW);
+              } else if (header.indexOf("GET /A/on") >= 0) {
+                Serial.println("GPIO A on");
+                outputAState = "on";
+                digitalWrite(outputA, HIGH);
+              } else if (header.indexOf("GET /A/off") >= 0) {
+                Serial.println("GPIO A off");
+                outputAState = "off";
+                digitalWrite(outputA, LOW);
+              }
+              
+              // Display current state, and ON/OFF buttons for GPIO 5  
+              client.print("<p>GPIO B (");client.println(PINB);client.println(") - State " + outputBState + "</p>");
+              // If the outputBState is off, it displays the ON button       
+              if (outputBState=="off") {
+                client.println("<p><a href=\"/B/on\"><button class=\"button\">ON</button></a></p>");
+              } else {
+                client.println("<p><a href=\"/B/off\"><button class=\"button button2\">OFF</button></a></p>");
+              } 
                
-            // Display current state, and ON/OFF buttons for GPIO 4  
-            client.print("<p>GPIO A (");client.println(PINA);client.println( ") - State " + outputAState + "</p>"); 
-            // If the outputAState is off, it displays the ON button       
-            if (outputAState=="off") {
-              client.println("<p><a href=\"/A/on\"><button class=\"button\">ON</button></a></p>");
-            } else {
-              client.println("<p><a href=\"/A/off\"><button class=\"button button2\">OFF</button></a></p>");
+              // Display current state, and ON/OFF buttons for GPIO 4  
+              client.print("<p>GPIO A (");client.println(PINA);client.println( ") - State " + outputAState + "</p>"); 
+              // If the outputAState is off, it displays the ON button       
+              if (outputAState=="off") {
+                client.println("<p><a href=\"/A/on\"><button class=\"button\">ON</button></a></p>");
+              } else {
+                client.println("<p><a href=\"/A/off\"><button class=\"button button2\">OFF</button></a></p>");
+              }
+            }             // cxtime !=0 and CXDLY not reached => end of buttons
+
+            else {
+
+            /* accueil */              
+                          
+              Serial.println("accueil");
+              cxTime=0;
+                            
+              client.println("<form>");                                   
+              client.println("<p>user <input type=\"username\" placeholder=\"Username\" name=\"username__\" value=\"\" size=\"6\" maxlength=\"8\" >");        
+              client.println("<p>pass <input type=\"password\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");
+              client.println("<input type=\"submit\" value=\"login\">");
+              client.println("</form>");         
             }
-            client.println("</body></html>");
             
+            // html ends
+            client.println("</body></html>");            
             // The HTTP response ends with another blank line
             client.println();
             // Break out of the while loop
             break;
+        
           } else { // if you got a newline, then clear currentLine
             currentLine = "";
           }
         } else if (c != '\r') {  // if you got anything else but a carriage return character,
           currentLine += c;      // add it to the end of the currentLine
         }
-      }
-    }
+      }     // client.available()
+    }       // client.connected()
     // Clear the header variable
     header = "";
     // Close the connection

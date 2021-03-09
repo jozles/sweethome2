@@ -24,15 +24,15 @@ WiFiClient client;
 
 String header;
 
-char icon[2048];
-char f0[128]={0x42,0x4d,0x76,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x76,0x00,0x00,0x00,0x28,0x00,
-              0x00,0x00,0x20,0x00,0x00,0x00,0x20,0x00,0x00,0x00,0x01,0x00,0x04,0x00,0x00,0x00,
-              0x00,0x00,0x00,0x02,0x00,0x00,0xc4,0x0e,0x00,0x00,0xc4,0x0e,0x00,0x00,0x00,0x00,
-              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x80,
-              0x00,0x00,0x00,0x80,0x80,0x00,0x80,0x00,0x00,0x00,0x80,0x00,0x80,0x00,0x80,0x80,
-              0x00,0x00,0x80,0x80,0x80,0x00,0xc0,0xc0,0xc0,0x00,0x00,0x00,0xff,0x00,0x00,0xff,
-              0x00,0x00,0x00,0xff,0xff,0x00,0xff,0x00,0x00,0x00,0xff,0x00,0xff,0x00,0xff,0xff,
-              0x00,0x00,0xff,0xff,0xff,0x00,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+char icon[1024];
+//char f0[128]={0x42,0x4d,0x76,0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x76,0x00,0x00,0x00,0x28,0x00,
+//              0x00,0x00,0x20,0x00,0x00,0x00,0x20,0x00,0x00,0x00,0x01,0x00,0x04,0x00,0x00,0x00,
+//              0x00,0x00,0x00,0x02,0x00,0x00,0xc4,0x0e,0x00,0x00,0xc4,0x0e,0x00,0x00,0x00,0x00,
+//              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x80,
+//              0x00,0x00,0x00,0x80,0x80,0x00,0x80,0x00,0x00,0x00,0x80,0x00,0x80,0x00,0x80,0x80,
+//              0x00,0x00,0x80,0x80,0x80,0x00,0xc0,0xc0,0xc0,0x00,0x00,0x00,0xff,0x00,0x00,0xff,
+//              0x00,0x00,0x00,0xff,0xff,0x00,0xff,0x00,0x00,0x00,0xff,0x00,0xff,0x00,0xff,0xff,
+char f0[16]={0x00,0x00,0xff,0xff,0xff,0x00,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
 
 char f1[128]={0x66,0x0F,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xf0,0x66,0x66,0x66,0x66,0x66,
               0x66,0x0F,0xff,0xff,0xff,0xff,0xff,0xff,0xf9,0x99,0xf0,0x66,0x66,0x66,0x66,0x66,
@@ -101,9 +101,10 @@ void setup() {
   Serial.println(WiFi.localIP());
   server.begin();
 
-  memset(icon,0xff,2048);
-  memcpy(icon,f0,128);
-  memcpy(icon+384,f1,128);
+  memset(icon,0xff,1024);
+  icon[1023]=0x00;
+  memcpy(icon,f0,16);
+  memcpy(icon+256,f1,128);
 }
 
 void loop(){
@@ -127,15 +128,15 @@ void loop(){
                               Serial.println("...");
                               Serial.print("<<< ix=");Serial.print(header.indexOf("GET /?username__=admin&password__=17515A"));
                               Serial.print(" cxtime=");Serial.println(cxtime);}
-  switch(cde){
+//if(cde!=2){accueilHtml();}
+    switch(cde){
     case 0: accueilHtml();break;
     case 1: if (header.indexOf("GET /?username__=admin&password__=17515A") >= 0) {
-              buttonsHtml();}
-            else if(cxtime!=0){
-              if (header.indexOf("GET /favicon.ico") >=0) {
+              buttonsHtml();
+            } else if (header.indexOf("GET /favicon.ico") >=0) {
                 favicon();                
-              }
-              else if (header.indexOf("GET /B/on") >= 0) {
+            } else if(cxtime!=0){
+              if (header.indexOf("GET /B/on") >= 0) {
                 Serial.println("GPIO B on");
                 outputBState = "on";
                 digitalWrite(outputB, HIGH);
@@ -161,10 +162,12 @@ void loop(){
     case 2:break;
     default:break;
   }
+  
 }
 
 void cxEnd()
 {
+    delay(10);
     client.stop();
     Serial.println("Client disconnected.");
     Serial.println("");
@@ -172,9 +175,6 @@ void cxEnd()
 
 void introHttp()
 {
-  // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-  // and a content-type so the client knows what's coming, then a blank line:
-  
             client.println("HTTP/1.1 200 OK");
             client.println("Content-type:text/html");
             client.println("Connection: close");
@@ -192,9 +192,12 @@ void accueilHtml()
               client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
               client.println("<body><form method=\"get\" >");
 
-              client.println("<p>user <input type=\"username\" placeholder=\"Username\" name=\"username__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");            
+              client.println("<form>");                     
+              
+              client.println("<p>user <input type=\"username\" placeholder=\"Username\" name=\"username__\" value=\"\" size=\"6\" maxlength=\"8\" >");            
               client.println("<p>pass <input type=\"password\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");
-              client.println(" <input type=\"submit\" value=\"login\"><br>");
+              //client.println(" <input type=\"submit\" value=\"login\"><br>");
+              client.println("<a href=\"\"><input type=\"submit\" value=\"login\"></a>");            
               client.println("</form></body></html>");                  
 
               cxEnd();
@@ -217,25 +220,31 @@ void buttonsHtml()
             client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
             client.println(".button2 {background-color: #77878A;}</style></head>");
             
-            client.println("<body><h1>ESP8266 mini-Web Server  v3.0</hHeadi1>");
+            client.println("<body><h1>ESP8266 mini-Web Server  v4.0</h1>");
             
             client.print("<p>GPIO B (");client.println(PINB);client.println(") - State " + outputBState + "</p>");
             client.print("<p> server ctl </p>");
+            //client.print("<form>");
             // If the outputBState is off, it displays the ON button       
             if (outputBState=="off") {
               client.println("<p><a href=\"/B/on\"><button class=\"button\">ON</button></a></p>");
             } else {
               client.println("<p><a href=\"/B/off\"><button class=\"button button2\">OFF</button></a></p>");
             } 
+            //client.println("</form>");
                
             // Display current state, and ON/OFF buttons for GPIO 4  
             client.print("<p>GPIO A (");client.println(PINA);client.println( ") - State " + outputAState + "</p>"); 
+            client.print("<form>");
             // If the outputAState is off, it displays the ON button       
             if (outputAState=="off") {
-              client.println("<p><a href=\"/A/on\"><button class=\"button\">ON</button></a></p>");
+              client.println("<a href=\"/A/on\">"); //<button class=\"button\">ON</button></a></p>");
+              client.println("<input type=\"button\" value=\"ON\"></a>");
             } else {
-              client.println("<p><a href=\"/A/off\"><button class=\"button button2\">OFF</button></a></p>");
+              client.println("<a href=\"/A/off\">"); //<button class=\"button button2\">OFF</button></a>");
+              client.println("<input type=\"button\" value=\"OFF\"></a>");
             }
+            client.print("</form>");
             client.println("</body></html>");
 
             cxEnd();
@@ -268,7 +277,9 @@ int getcde()
         if (c == '\n') {                    // if the byte is a newline character
           // if the current line is blank, got two newline characters in a row.
           // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {return 1;}      // two newline, response to send
+          if (currentLine.length() == 0) {
+            while(client.available()){c = client.read();Serial.write(c);}
+            return 1;}      // two newline, response to send
           else {currentLine = "";}                       
         }
         else if (c != '\r') {currentLine += c;}           // if you got anything else but a carriage return character add it      
