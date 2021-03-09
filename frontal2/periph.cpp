@@ -851,13 +851,20 @@ byte periSwLev(uint8_t sw)
   return (*periSwVal>>(sw*2))&0x01;
 }
 
-void periSwSync()                               // sychronisation periSwVal sur remotes au démarrage
+void periSwSync()                               // sychronisation periSwVal et memdetserv sur remotes au démarrage
 {
+  /*   remoteN[k].onoff   etat du bit k memDetServ remoteT[k].detec
+   *   remoteN[k].enable  etat du bit k memDetServ remoteT[k].deten (dijoncteur)
+   */
   uint8_t nbsync=0;
   for(uint8_t k=0;k<MAXREMLI;k++){
     if(remoteT[k].peri!=0 && remoteT[k].peri<=NBPERIF && remoteT[k].sw<MAXSW){
       periCur=remoteT[k].peri;periLoad(periCur);
-      periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);
+      periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);             // update disjoncteur perif
+      memDetServ&=~mDSmaskbit[remoteT[k].deten];                                  // update memDetServ disj
+      if(remoteN[remoteT[k].num-1].enable!=0){memDetServ|=mDSmaskbit[remoteT[k].deten];}
+      memDetServ&=~mDSmaskbit[remoteT[k].detec];                                  // update memDetServ on/off
+      if(remoteN[remoteT[k].num-1].onoff!=0){memDetServ|=mDSmaskbit[remoteT[k].detec];}
       periSave(periCur,PERISAVELOCAL);
       nbsync++;
     }
@@ -1343,7 +1350,6 @@ void memDetInit()
 {
     memcpy(&libDetServ[31][0],"hcreuses",LENLIBDETSERV);
     memcpy(&libDetServ[30][0],"chauffe ",LENLIBDETSERV);
-    memcpy(&libDetServ[29][0],"tv      ",LENLIBDETSERV);
 }
 
 void memDetPrint()

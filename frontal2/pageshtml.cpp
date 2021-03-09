@@ -104,10 +104,13 @@ int htmlImg(EthernetClient* cli,char* fimgname)    // suffisant pour commande pÃ
 
           long fimgSiz=fimg.size();
           byte c;
+          char icon[2048];memset(icon,0x00,2048);
+          long ll=0;
           Serial.print(" size=");Serial.print(fimgSiz);
-          while (fimgSiz>0){c=fimg.read();cli->write(&c,1);fimgSiz--;}
+          while (fimgSiz>0){c=fimg.read();cli->write(&c,1);fimgSiz--;icon[ll]=c;ll++;}
           fimg.close();
-          delay(1);   
+          delay(1);
+          dumpstr(icon,512);
         }
         Serial.println(" terminÃ©");
         cli->stop();
