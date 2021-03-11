@@ -292,8 +292,6 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           usrFormBHtml(buf,1);
           boutRetourB(buf,"refresh",0,0);
           cli->print(buf);buf[0]=0;
-
-          //boutRetour(cli,"refresh",0,0);
           
           numTableHtml(cli,'d',&perrefr,"per_refr__",4,0,0);
 
@@ -304,10 +302,10 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           cli->println("<input type=\"submit\" value=\"ok\"> ");
           
           boutFonction(cli,"dump_his__","","histo",0,0,0,0);    
-          boutFonction(cli,"deco______","","deco",0,0,0,0);
-          boutFonction(cli,"deco____B_","","reboot",0,0,0,0);
-          boutFonction(cli,"cfgserv___","","config",0,0,0,0);
           cli->print("<br>");
+          boutFonction(cli,"deco______","","_  deco  _",0,0,0,0);
+          boutFonction(cli,"deco____B_","","_ reboot _",0,0,0,0);
+          boutFonction(cli,"cfgserv___","","_ config _",0,0,0,0);
           boutFonction(cli,"remote____","","remote_cfg",0,0,0,0);
           boutFonction(cli,"remotehtml","","remotehtml",0,0,0,0);
           boutFonction(cli,"thermoscfg","","thermo_cfg",0,0,0,0);
@@ -315,7 +313,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           boutFonction(cli,"timershtml","","timershtml",0,0,0,0);
           boutFonction(cli,"dsrvhtml__","","detsrvhtml",0,0,0,0);                 
         
-        cli->println("</form>");        // le formulaire NE DOIT PAS intégrer detServHtml qui a son propre usrFormHtml pour gérer les mots de passe
+          cli->println("</form>");      // le formulaire NE DOIT PAS intégrer detServHtml qui a son propre usrFormHtml pour gérer les mots de passe
                                         // sinon la fonction user_ref__ serait 2 fois dans la liste et la 2nde (fausse) enverrait à l'accueil        
 
           detServHtml(cli,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur

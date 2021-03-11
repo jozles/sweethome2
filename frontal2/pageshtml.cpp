@@ -509,6 +509,50 @@ void remoteHtml(EthernetClient* cli)
 /* table remotes */
 
             cli->println("<table>");
+/*            
+            for(uint8_t nb=0;nb<NBREMOTE;nb++){
+              if(remoteT[nb].num!=0){
+                cli->println("<tr>");
+
+                cli->print("<td>");cli->print(nb+1);cli->println("</td>");  // numéro de ligne
+
+                // affichage état d'un éventuel switch
+                // boucle des détecteurs pour trouver un switch                
+                cli->print("<td>");
+                //for(uint8_t td=0;td<MAXREMLI;td++){
+                if(remoteT[nb].peri!=0){                                    // présence périphérique
+                    periCur=remoteT[nb].peri;periLoad(periCur);
+                    
+                    if(periSwLev(remoteT[nb].sw)==1){                       // switch ON
+                      cli->print(" ON <div id=\"rond_jaune\"></div>");
+                    }
+                    else {
+                      cli->print(" OFF ");}
+                  }
+                }
+                
+                cli->print("</td><td> <font size=\"7\">");cli->print(remoteN[remoteT[nb].num].nam);cli->println("</font></td>");      // nom remote
+                // slider on/off
+                // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
+                // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
+                // l'input remote_ctx renseigne le passage à "1" éventuel après l'effacement. La variable newonoff stocke le résultat
+                // et la comparaison avec onoff permet de connaitre la transition (ou non transition)
+                // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
+                // pour la maj via PerToSend des périphériques concernés
+                cli->print("<input type=\"hidden\" name=\"remote_cn");cli->print((char)(remoteT[nb].num+PMFNCHAR));cli->println("\">");
+                sliderHtml(cli,(uint8_t*)(&remoteN[remoteT[nb].num].onoff),"remote_ct",remoteT[nb].num,0,1);                              // slider
+
+                // slider enable idem slider on/off
+                //        cli->print("<input type=\"hidden\" name=\"remote_cm");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
+                //        sliderHtml(cli,(uint8_t*)(&remoteN[nb].enable),"remote_cs",nb,0,1);                                
+                cli->print("<td>- - - - -</td>");
+                bool vert=FAUX;
+                yradioTableHtml(cli,remoteN[remoteT[nb].num].enable,"remote_cs",2,vert,remoteT[nb].num,1);                                // disjoncteur
+              
+                cli->println("</tr>");
+              }
+*/            
+
 
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               if(remoteN[nb].nam[0]!='\0'){
@@ -554,7 +598,7 @@ void remoteHtml(EthernetClient* cli)
             }
             cli->println("</table>");
             
-            cli->println("<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"><br>");
+            cli->println("<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>");
             boutFonction(cli,"thermoshow","","températures",0,0,7,0);cli->print(" ");
             boutFonction(cli,"remotehtml","","refresh",0,0,7,0);
             cli->print("</p>");

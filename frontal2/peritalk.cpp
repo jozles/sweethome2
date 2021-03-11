@@ -174,12 +174,21 @@ if(*periProg!=0){
   }  // pericur != 0            
 }
 
+
+
 int  periReq(EthernetClient* cli,uint16_t np,char* nfonct)
 {
-  periReq(cli,np,nfonct,"");
+    periCur=np;periLoad(periCur);
+    periReq0(cli,nfonct,"");
 }
 
 int periReq(EthernetClient* cli,uint16_t np,char* nfonct,char* msg)     // fonction set ou ack vers périphérique
+{
+    periCur=np;periLoad(periCur);
+    periReq0(cli,nfonct,msg);
+}
+
+int periReq0(EthernetClient* cli,char* nfonct,char* msg)                // fonction set ou ack vers périphérique ; periCur/periload() ok
                     // envoie cde GET dans bufServer via messToServer + getHttpResp         (fonction set suite à modif dans periTable)
                     //                            status retour de messToServer ou getHttpResponse ou fonct invalide (doit être done___)
                     // np=periCur à jour (0 ou n) si periCur = 0 message set réduit
@@ -193,7 +202,7 @@ int periReq(EthernetClient* cli,uint16_t np,char* nfonct,char* msg)     // fonct
   char date14[LNOW];ds3231.alphaNow(date14);
   char host[16];memset(host,'\0',16);
 
-  periCur=np;periLoad(periCur);
+
   
   Serial.print("\nperiReq(");Serial.print((char)*periProtocol);Serial.print(" peri=");Serial.print(periCur);
   Serial.print(" port=");Serial.print(*periPort);Serial.println(")");

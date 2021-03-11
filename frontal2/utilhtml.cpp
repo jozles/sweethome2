@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <SPI.h>      //bibliothéqe SPI pour W5100
 #include <Ethernet.h>
-//#include <SD.h>
 #include "ds3231.h"
 #include <shconst2.h>
 #include <shutil2.h>
@@ -585,7 +584,11 @@ void boutFonction(EthernetClient* cli,char* nomfonct,char* valfonct,char* lib,ui
     cli->print("\">");
     if(aligncenter){cli->print("<p align=\"center\">");}
     cli->print("<input type=\"button\" value=\"");cli->print(lib);cli->print("\"");
-    if(sizfnt==7){cli->print(" style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"");}
+    if(sizfnt==2){cli->print(" style=\"width:100px;height:20px;font-size:14px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
+    if(sizfnt==3){cli->print(" style=\"width:150px;height:33px;font-size:22px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
+    if(sizfnt==4){cli->print(" style=\"width:200px;height:45px;font-size:30px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
+    if(sizfnt==5){cli->print(" style=\"width:300px;height:60px;font-size:40px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
+    if(sizfnt==7){cli->print(" style=\"width:400px;height:120px;font-size:50px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
     if(aligncenter){cli->println("></p></a>");}
     else{cli->print("></a>");}
 

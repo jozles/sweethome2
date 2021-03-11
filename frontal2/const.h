@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.50"
+#define VERSION "1.51"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
    1.1a ajout volts et version dans table
    1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -74,6 +74,9 @@
         ajout maxCxWt et maxCxWu (TO pour absence de cx TCP/UDP) dans config  
         ajout buffer pour les données de mail dans periReq + boutons de test dans periLine
         dataTransfer peut recevoir un message amputé ; gros caractères pour accueil ; envoi de mails via periReq -> START/BOOT/TEST/DATE...
+        correction sync
+   1.51 periSwVal, remotes, memdet sont en miroir ; modifier l'un modifie les 2 autres et met à jour le périphérique
+        yield() redefini avec trigwd() inside ;
 
    BUGS :
 
@@ -195,6 +198,11 @@
 #define MAXREMLI 16     // sw items total
 #define REMOTENFNAME "noms_rem"
 #define REMOTETFNAME "tablerem"
+#define PERILINE    1     // une modif de periline a eu lieu -> update remotes et memDet 
+#define MEMDET      2     // une modif de memDet a eu lieu   -> update remotes et perif 
+#define REM_ENABLE  1     // une modif de remote a eu lieu sur enable -> maj memDet correspondant
+#define REM_DETEC   2     // une modif de remote a eu lieu sur detec  -> maj memDet correspondant
+
 
 struct SwRemote           // liste des détecteurs modifiables par les remotes
 {                         // une remote peut agir sur plusieurs détecteurs on/off ou enable 
