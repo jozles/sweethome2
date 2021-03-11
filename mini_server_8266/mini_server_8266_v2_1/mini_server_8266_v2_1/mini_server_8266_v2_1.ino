@@ -107,7 +107,7 @@ void loop(){
     delay(500);
     count++;
   }
-  if(count>2){Serial.println(count);}
+  if(count>2){Serial.print("wifi retrys=");Serial.println(count);}
   
   WiFiClient client = server.available();   // Listen for incoming clients
 
