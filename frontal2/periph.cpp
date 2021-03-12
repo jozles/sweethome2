@@ -31,10 +31,17 @@ extern unsigned long* usrtime;
 extern unsigned long* usrpretime;
 extern uint16_t* toPassword;
 extern unsigned long* maxCxWt;    
-extern unsigned long* maxCxWu;   
+extern unsigned long* maxCxWu;
+
+extern char*    mailFromAddr; 
+extern char*    mailPass;     
+extern char*    mailToAddr1;  
+extern char*    mailToAddr2;  
+extern uint16_t* periMail1;    
+extern uint16_t* periMail2;
+       
 extern byte*    configBegOfRecord;
 extern byte*    configEndOfRecord;
-
 
 /* >>>>>>> périphériques <<<<<<<  */
 
@@ -228,7 +235,21 @@ byte* temp=(byte*)configRec;
   maxCxWt=(unsigned long*)temp;
   temp+=sizeof(long);    
   maxCxWu=(unsigned long*)temp;
-  temp+=sizeof(long);    
+  temp+=sizeof(long);
+
+  mailFromAddr=(char*)temp;
+  temp+=LMAILADD+1;
+  mailPass=(char*)temp;     
+  temp+=LMAILPWD+1;
+  mailToAddr1=(char*)temp;
+  temp+=LMAILADD+1;
+  mailToAddr2=(char*)temp;
+  temp+=LMAILADD+1;
+  periMail1=(uint16_t*)temp;
+  temp+=sizeof(uint16_t);
+  periMail2=(uint16_t*)temp;
+  temp+=sizeof(uint16_t);
+            
 
   configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
 
@@ -237,7 +258,7 @@ byte* temp=(byte*)configRec;
   long configRecLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
   Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configRecLength);Serial.print("  ");
   Serial.print("MLMSET/LENMESS=");Serial.print(MLMSET);Serial.print("/");Serial.print(LENMESS);
-  delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
+  //delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
   
   nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;
   faccueil=(strstr(fonctions,"accueil___")-fonctions)/LENNOM;

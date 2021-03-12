@@ -76,7 +76,8 @@
         dataTransfer peut recevoir un message amputé ; gros caractères pour accueil ; envoi de mails via periReq -> START/BOOT/TEST/DATE...
         correction sync
    1.51 periSwVal, remotes, memdet sont en miroir ; modifier l'un modifie les 2 autres et met à jour le périphérique
-        yield() redefini avec trigwd() inside ;
+        timers et thermos utilisent periDetecUpdate lors de la mise à jour des memDet ;
+        yield() redefini avec trigwd() inside ; integration params mail dans config ; 
 
    BUGS :
 
@@ -169,7 +170,7 @@
 #define PERINAMLEN 16+1                      // longueur nom perif
 #define PERIRECLEN 310 // V1.4k              // longueur record périph
 
-#define CONFIGRECLEN 873                     // longueur record config 
+#define CONFIGRECLEN 993                     // longueur record config 
 
 #define MAXCXWT 120000                 // time out delay if no TCP connection (à mettre dans la config)    
 #define MAXCXWU 900000                 // time out delay if no UDP connection (à mettre dans la config)    

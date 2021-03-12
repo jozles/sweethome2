@@ -28,7 +28,6 @@ char timeServer[] = "ntp-p1.obspm.fr\0";  //"ntp-p1.obspm.fr\0";      // 145.238
 const int NTP_PACKET_SIZE = 48;           // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[ NTP_PACKET_SIZE];      // buffer to hold incoming and outgoing packets
 
-// UDP instance
 EthernetUDP Udp;
 
 #endif UDPUSAGE
@@ -44,29 +43,26 @@ extern char     strdate[LDATEB];
 
 extern char*    chexa;
 
+extern char*    mailToAddr1;
+extern uint16_t* periMail1;
 
 extern File32 fhisto;           // fichier histo sd card
 extern long   fhsize;           // remplissage fhisto
 
 
 extern EthernetClient cliext;
-// =============================================================== à intégrer dans config ================================
-  char mailToAddr[]="pinkasfeld@combox.fr";
-  uint16_t periMail=3;  
-// =============================================================== à intégrer dans config ================================
-
-
 
 void mail(char* a,char* mm)
 {
       #define LMSG 128
       char ms[LMSG];
+    
       strcat(ms,a);strcat(ms,"==");
-      strcat(ms,mailToAddr);strcat(ms,"==");
+      strcat(ms,mailToAddr1);strcat(ms,"==");
       if(strlen(mm)<=(LMSG-strlen(ms))){strcat(ms,mm);}
       strcat(ms," ");strcat(ms,alphaDate());strcat(ms," ");
-      
-      periReq(&cliext,periMail,"mail______",ms);  
+
+      periReq(&cliext,*periMail1,"mail______",ms);  
 }
 
 
@@ -113,6 +109,8 @@ t2=micros();Serial.print(" write=");Serial.print(t2-t1);
     fhisto.close();
           
 Serial.print(" close=");Serial.println(micros()-t2);
+/* void* stackPtr = alloca(4); // This returns a pointer to the current bottom of the stack
+  Serial.print("StackPtr ");Serial.println((unsigned long)stackPtr);delay(10);*/
 }
 
 void histoStore_textdh(char* val1,char* val2,char* val3)

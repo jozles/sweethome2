@@ -21,6 +21,13 @@ extern char*      peripass;         // mot de passe périphériques
 extern unsigned long* maxCxWt;
 extern unsigned long* maxCxWu;
 
+extern char*      mailFromAddr; 
+extern char*      mailPass;     
+extern char*      mailToAddr1;  
+extern char*      mailToAddr2;  
+extern uint16_t*  periMail1;    
+extern uint16_t*  periMail2;
+
 extern char*      chexa;
 extern byte       maskbit[];
 
@@ -361,6 +368,13 @@ void cfgServerHtml(EthernetClient* cli)
             subcfgtable(cli,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
           
             //subcfgtable(cli,"THERMO",NBTHERMO,"thername_",thermonames,LENTHNAME,1,"therperi_",thermoperis,-1,"peri",2);
+
+            cli->print(" mail From <input type=\"text\" name=\"mailcfg__f\" value=\"");cli->print(mailFromAddr);cli->print("\" size=\"16\" maxlength=\"");cli->print(LMAILPWD);cli->println("\" >");
+            cli->print(" password  <input type=\"text\" name=\"mailcfg__w\" value=\"");cli->print(mailPass);cli->print("\" size=\"16\" maxlength=\"");cli->print(LMAILPWD);cli->println("\" ><br>");            
+            cli->print(" mail To 1 <input type=\"text\" name=\"mailcfg__1\" value=\"");cli->print(mailToAddr1);cli->print("\" size=\"16\" maxlength=\"");cli->print(LMAILADD);cli->println("\" >");
+            cli->print(" perif 1 ");numTableHtml(cli,'d',periMail1,"mailcfg__p",2,0,0);cli->println("<br>");
+            cli->print(" mail To 2 <input type=\"text\" name=\"mailcfg__2\" value=\"");cli->print(mailToAddr2);cli->print("\" size=\"16\" maxlength=\"");cli->print(LMAILADD);cli->println("\" >");
+            cli->print(" perif 2 ");numTableHtml(cli,'d',periMail1,"mailcfg__q",2,0,0);cli->println("<br>");
 
             cli->print("maxCxWt ");numTableHtml(cli,'l',maxCxWt,"ethcfg___q",8,0,0);
             cli->print(" maxCxWu ");numTableHtml(cli,'l',maxCxWu,"ethcfg___r",8,0,0);cli->println("<br>");

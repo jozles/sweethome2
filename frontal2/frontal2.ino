@@ -49,14 +49,6 @@ char ab;
     
   extern EthernetUDP Udp;
     
-/*    
-    IPAddress test(82,64,32,56);
-    IPAddress espdev(192,168,0,38);
-    IPAddress esptv(192,168,0,208);
-    IPAddress gggg(74,125,232,128);    
-*/
-
-//    unsigned long mill=millis();
     
 /* >>>> config server <<<<<< */
 
@@ -80,6 +72,13 @@ char configRec[CONFIGRECLEN];
   unsigned long* maxCxWt;     // Délai WD TCP
   unsigned long* maxCxWu;     // Délai WD UDP
 
+  char* mailFromAddr;         // Adresse exp mail
+  char* mailPass;             // mot de passe exp
+  char* mailToAddr1;          // Adresse dest mail 1
+  char* mailToAddr2;          // Adresse dest mail 2
+  uint16_t* periMail1;        // N° perif mail 1
+  uint16_t* periMail2;        // N° perif mail 2
+
   byte* configBegOfRecord;
   byte* configEndOfRecord;
 
@@ -90,17 +89,17 @@ EthernetServer periserv(PORTSERVER);  // serveur perif et table port 1789 servic
 EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   uint8_t lip[]=LOCALSERVERIP;                       
-  uint8_t remote_IP[4]={0,0,0,0};           // periserver
-  uint8_t remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
-  uint8_t remote_IP_Mac[4]={0,0,0,0};       // maintenance periserver
-  uint8_t remote_IPb[4]={0,0,0,0};          // pilotserver
-  byte    remote_MAC[6]={0,0,0,0,0,0};      // periserver
-  byte    remote_MACb[6]={0,0,0,0,0,0};     // pilotserver
-  uint16_t remote_Port=0;                   
+  uint8_t   remote_IP[4]={0,0,0,0};           // periserver
+  uint8_t   remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
+//  uint8_t   remote_IP_Mac[4]={0,0,0,0};       // maintenance periserver
+//  uint8_t   remote_IPb[4]={0,0,0,0};          // pilotserver
+  byte      remote_MAC[6]={0,0,0,0,0,0};      // periserver
+//  byte      remote_MACb[6]={0,0,0,0,0,0};     // pilotserver
+  uint16_t  remote_Port=0;                   
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___dispo_____thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___mailcfg___thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0;
@@ -343,6 +342,9 @@ void setup() {                              // =================================
   Serial.begin (115200);delay(1000);
   Serial.print("+");delay(100);
 
+  /* void* stackPtr = alloca(4); // This returns a pointer to the current bottom of the stack
+  printf("StackPtr %d\n", stackPtr); */
+
   initLed(PINLED);
   digitalWrite(PINLED,HIGH);delay(10);digitalWrite(PINLED,LOW);
 
@@ -352,8 +354,6 @@ void setup() {                              // =================================
   
   Serial.println();Serial.print(VERSION);Serial.print(" ");
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" FreeStack: ");Serial.println(FreeStack());
-  
-  //Serial.print(lip[0]);Serial.print(".");Serial.print(lip[1]);Serial.print(".");Serial.print(lip[2]);Serial.print(".");Serial.println(lip[3]);
 
   digitalWrite(PINGNDDS,LOW);pinMode(PINGNDDS,OUTPUT);  
   digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT); 
@@ -373,7 +373,8 @@ void setup() {                              // =================================
 
   trigwd();
   
-  configInit();configLoad();*toPassword=TO_PASSWORD;if(*maxCxWt==0 || *maxCxWu==0){*maxCxWt=MAXCXWT;*maxCxWu=MAXCXWU;configSave();}
+  configInit();configLoad();
+  *toPassword=TO_PASSWORD;if(*maxCxWt==0 || *maxCxWu==0){*maxCxWt=MAXCXWT;*maxCxWu=MAXCXWU;configSave();}
   memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
   configPrint();
 
@@ -536,6 +537,7 @@ void scanThermos()                                                        // pos
   if((millis()-thermosTime)>perThermos*1000){
     
   thermosTime=millis();
+  bakDetServ=memDetServ;
   memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
 
   uint8_t th,det,mds;
@@ -588,7 +590,8 @@ void scanThermos()                                                        // pos
         }
       }
     }
-    perToSend(tablePerToSend,thermosTime);
+    periDetecUpdate();                        // mise à jour remotes, fichier perif et tablePerToSend
+    perToSend(tablePerToSend,thermosTime);    // mise à jour périphériques de tablePerToSend
   }
 }
 
@@ -1278,7 +1281,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
                         uint8_t k=0;uint8_t zer[]={1,0};
                         extern char mailToAddr[];
-                        char msg[64]="TEST==";strcat(msg,mailToAddr);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';strcat(msg,alphaDate());
+                        char msg[64]="TEST==";strcat(msg,mailToAddr1);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';strcat(msg,alphaDate());
                         periCur=b-PMFNCHAR;periLoad(periCur);
                         if(a=='m'){k=4;}
                         else {k=zer[periSwCde(a-PMFNCVAL)]+(a-PMFNCVAL)*2;}
@@ -1394,9 +1397,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 48: what=6;                                                                          // submit depuis cfgServervHtml 1ère fonction 
                        memset(userpass,0x00,LPWD);memcpy(userpass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) pwdcfg____
               case 49: memset(modpass,0x00,LPWD);memcpy(modpass,valf,nvalf[i+1]-nvalf[i]);break;        // (config) modpcfg___
-              case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__
-              case 51: char eth;eth=*(libfonctions+2*i+1);                                              // (config) eth config
-                       switch(eth){
+              case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__                               
+              case 51: switch(*(libfonctions+2*i+1)){                                                   // (config) eth config
                           case 'i': break;memset(localIp,0x00,4);                                       // (config) localIp
 //                                    for(j=0;j<4;j++){conv_atob(valf,localIp+j);}break;   // **** à faire ****
                           case 'p': *portserver=0;conv_atob(valf,portserver);break;                     // (config) portserver
@@ -1444,8 +1446,23 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           }
                        }break;                                                                       
               case 54: remoteHtml(&cli);break;                                                          // remotehtml
-              case 55: what=5;periInitVar();periRaz(periCur);break;                                     // peri_raz___  
-              case 56: break;                                                                           //                            *************** dispo
+              case 55: what=5;periInitVar();periRaz(periCur);break;                                     // peri_raz__  
+              case 56: {switch (*(libfonctions+2*i+1)){                                                 // mailcfg___
+                          case 'f':memset(mailFromAddr,0x00,LMAILADD+1);                                // (config) mailFrom
+                                   memcpy(mailFromAddr,valf,nvalf[i+1]-nvalf[i]);break;
+                          case 'w':memset(mailPass,0x00,LMAILPWD+1);                                    // (config) pwd mailFrom
+                                   memcpy(mailPass,valf,nvalf[i+1]-nvalf[i]);break;
+                          case '1':memset(mailToAddr1,0x00,LMAILADD+1);                                 // (config) mailTo1
+                                   memcpy(mailToAddr1,valf,nvalf[i+1]-nvalf[i]);break;
+                          case '2':memset(mailToAddr2,0x00,LMAILADD+1);                                 // (config) mailTo2
+                                   memcpy(mailToAddr2,valf,nvalf[i+1]-nvalf[i]);break;                          
+                          case 'p':conv_atob(valf,periMail1);                                           // (config) peri1
+                                   if(*periMail1>NBPERIF){*periMail1=NBPERIF;}     
+                          case 'q':conv_atob(valf,periMail2);                                           // (config) peri2
+                                   if(*periMail2>NBPERIF){*periMail2=NBPERIF;}     
+                          default:break;
+                        } 
+                       }break;
               case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis thparams__ (thermosCfg())
                         switch (*(libfonctions+2*i)){
                           case 'n':memset(&thermos[nb].nom,0x00,LENTHNAME+1);
@@ -1455,23 +1472,23 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToInt(valf,&j);
                                    if((thermos[nb].peri)>NBPERIF){(thermos[nb].peri)=NBPERIF;}
                                    break;
-                          case 'e':thermos[nb].lowenable=*valf-48;break;                                           // enable low
-                          case 'E':thermos[nb].highenable=*valf-48;break;                                          // enable high
-                          case 's':thermos[nb].lowstate=*valf-48;break;                                            // state  low
-                          case 'S':thermos[nb].highstate=*valf-48;break;                                           // state  high
-                          case 'v':thermos[nb].lowvalue=0;thermos[nb].lowvalue=(int16_t)convStrToInt(valf,&j);break;       // value low
-                          case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=(int16_t)convStrToInt(valf,&j);break;     // value high
-                          case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=(int16_t)convStrToInt(valf,&j);break;     // offset low
-                          case 'O':thermos[nb].highoffset=0;thermos[nb].highoffset=(int16_t)convStrToInt(valf,&j);break;   // offset high
-                          case 'd':sourceDetServ[remoteT[nb].detec]=0;                 
+                          case 'e':thermos[nb].lowenable=*valf-48;break;                                                  // enable low
+                          case 'E':thermos[nb].highenable=*valf-48;break;                                                 // enable high
+                          case 's':thermos[nb].lowstate=*valf-48;break;                                                   // state  low
+                          case 'S':thermos[nb].highstate=*valf-48;break;                                                  // state  high
+                          case 'v':thermos[nb].lowvalue=0;thermos[nb].lowvalue=(int16_t)convStrToInt(valf,&j);break;      // value low
+                          case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=(int16_t)convStrToInt(valf,&j);break;    // value high
+                          case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=(int16_t)convStrToInt(valf,&j);break;    // offset low
+                          case 'O':thermos[nb].highoffset=0;thermos[nb].highoffset=(int16_t)convStrToInt(valf,&j);break;  // offset high
+                          case 'd':sourceDetServ[remoteT[nb].detec]=0;                                                    // det low
                                    thermos[nb].lowdetec=0;thermos[nb].lowdetec=convStrToInt(valf,&j);
                                    if(thermos[nb].lowdetec>NBDSRV){thermos[nb].lowdetec=NBDSRV;}
                                    if(thermos[nb].lowdetec!=0){setSourceDet(thermos[nb].lowdetec,MDSTHE,nb+1);}
-                                   break;                                                                           // det low
-                          case 'D':thermos[nb].highdetec=0;thermos[nb].highdetec=convStrToInt(valf,&j);
+                                   break;                                                                                 
+                          case 'D':thermos[nb].highdetec=0;thermos[nb].highdetec=convStrToInt(valf,&j);                   // det high
                                    if(thermos[nb].highdetec>NBDSRV){thermos[nb].highdetec=NBDSRV;}
                                    if(thermos[nb].highdetec!=0){setSourceDet(thermos[nb].highdetec,MDSTHE,nb+1);}
-                                   break;                                                                           // det high                          
+                                   break;                                                                                                           
                           default:break;
                         } 
                        }break;

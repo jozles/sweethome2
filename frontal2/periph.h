@@ -14,7 +14,7 @@ int   periLoad(uint16_t num);
 int   periSave(uint16_t num,bool sd);
 int   periCacheSave(uint16_t num);
 int   periCacheLoad(uint16_t num);
-int   peri (uint16_t num);
+//int   peri (uint16_t num);
 int   periRaz(uint16_t num);
 void  periModif();
 void  periConvert();
