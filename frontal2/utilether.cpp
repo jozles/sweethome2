@@ -86,19 +86,47 @@ char* alphaDate()
   return strdate;
 }
 
+
 void histoStore_textdh0(char* val1,char* val2,char* val3)
 {
+  #define LT 32
+  char text[LT];
+  int v,w;
+  unsigned long t0=micros();
+
+        sprintf(text,"%.8lu",amj);text[8]=' ';            // 9
+        sprintf(text+9,"%.6lu",hms);text[13]=' ';         // +7
+        if(strlen(val1)+strlen(text)+1<LT){strcat(text,val1);strcat(text," ");}
+        if(strlen(val2)+strlen(text)<LT){strcat(text,val2);}      
+          
+        //fhisto.open("fdhisto.txt", O_RDWR | O_CREAT);
+        sdOpen("fdhisto.txt",&fhisto);
+        fhisto.seekEnd(0);
+        v=fhisto.write(text);w=fhisto.write(val3);
+        if(v==0 || w==0){ledblink(BCODEFHISTO);}
+        fhisto.sync();
+        fhsize=fhisto.size();
+        fhisto.close();
+
+//Serial.print("histoStore=");Serial.println(micros()-t0);
+}
+
+void histoStore_textdhx(char* val1,char* val2,char* val3)
+{
   unsigned long t2,t1,t0=micros();
-  char text[32]={'\0'};
+  #define LT 32
+  char text[LT]={'\0'};
 
 t1=micros();Serial.print(" SDst open=");Serial.print(t1-t0);  
-
+memDump("input1");
         sprintf(text,"%.8lu",amj);strcat(text," ");       // 9
         sprintf(text+9,"%.6lu",hms);strcat(text," ");     // +7
+Serial.println();dumpstr(text,48);
         strcat(text,val1);strcat(text," ");               // +2
         strcat(text,val2);strcat(text,'\0');              // +1
-          
+Serial.println();dumpstr(text,48);
         sdOpen("fdhisto.txt",&fhisto);
+memDump("input4");
         fhisto.seekEnd(0);
         int v=fhisto.write(text);int w=fhisto.write(val3);
         fhisto.sync();
@@ -107,10 +135,8 @@ t2=micros();Serial.print(" write=");Serial.print(t2-t1);
 
     fhsize=fhisto.size();
     fhisto.close();
-          
+memDump("output");          
 Serial.print(" close=");Serial.println(micros()-t2);
-/* void* stackPtr = alloca(4); // This returns a pointer to the current bottom of the stack
-  Serial.print("StackPtr ");Serial.println((unsigned long)stackPtr);delay(10);*/
 }
 
 void histoStore_textdh(char* val1,char* val2,char* val3)

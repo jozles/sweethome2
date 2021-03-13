@@ -82,6 +82,8 @@ char configRec[CONFIGRECLEN];
   byte* configBegOfRecord;
   byte* configEndOfRecord;
 
+  char* toto;
+
   bool    periPassOk=FAUX;  // contrôle du mot de passe des périphériques
   int     usernum=-1;       // numéro(0-n) de l'utilisateur connecté (valide durant commonserver)   
 
@@ -741,15 +743,17 @@ void periDetecUpdate()                          // update fichier périfs, remot
   
   for(uint8_t ds=0;ds<NBDSRV;ds++){                                                
     if((memDetServ&mDSmaskbit[ds]) != (bakDetServ&mDSmaskbit[ds])){   // si le détecteur ds a changé
-      Serial.print(memDetServ,HEX);Serial.print(" ");
+      
+      /*Serial.print(memDetServ,HEX);Serial.print(" ");
       Serial.print(bakDetServ,HEX);Serial.print(" ");
       Serial.println(mDSmaskbit[ds],HEX);
+      Serial.print(ds);Serial.print(" ");Serial.println(st);*/
+      
       st=0;of=3;if((memDetServ&mDSmaskbit[ds])!=0){of=0;st=1;}
-      Serial.print(ds);Serial.print(" ");Serial.println(st);
       poolperif(tablePerToSend,ds,&onoff[of]);                        // et si utilisé dans un périf, ajout du périf dans tablePerRoSend
       for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){                          // recherche dans remotes et maj
         if(remoteT[nbr].num!=0){
-          Serial.print("     ");Serial.print(nbr);Serial.print(" - ");Serial.print(remoteT[nbr].detec);Serial.print(";");Serial.println(remoteT[nbr].deten);
+          //Serial.print("     ");Serial.print(nbr);Serial.print(" - ");Serial.print(remoteT[nbr].detec);Serial.print(";");Serial.println(remoteT[nbr].deten);
           if(remoteT[nbr].detec == ds){remoteN[remoteT[nbr].num-1].onoff =st;rfound++;}   
           if(remoteT[nbr].deten == ds){                               // si .enable -> periSwVal update
             remoteN[remoteT[nbr].num-1].enable=st;rfound++;
@@ -1590,7 +1594,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 #ifdef SHDIAGS            
             Serial.print(" strHisto=");Serial.print(strHisto);
 #endif            
-            histoStore_textdh(&ab,"",strHisto);
+            char aabb[2]={ab,'\0'};
+            histoStore_textdh(aabb,"",strHisto);
             //Serial.print(" what=================");periPrint(periCur);            
           }                                           // 1 ligne par commande GET
 
