@@ -172,8 +172,10 @@
 
 #define CONFIGRECLEN 993                     // longueur record config 
 
-#define MAXCXWT 120000                 // time out delay if no TCP connection (à mettre dans la config)    
-#define MAXCXWU 900000                 // time out delay if no UDP connection (à mettre dans la config)    
+#define LBUF4000 4000                        // buf size html print 
+
+#define MAXCXWT 120000                       // time out delay if no TCP connection (à mettre dans la config)    
+#define MAXCXWU 900000                       // time out delay if no UDP connection (à mettre dans la config)    
 
 #define LDATEA 17                            // len date alpha
 #define LDATEB 33                            // len buffer date classe DS3231

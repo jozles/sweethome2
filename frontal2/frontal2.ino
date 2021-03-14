@@ -751,7 +751,7 @@ void periDetecUpdate()                          // update fichier périfs, remot
       
       st=0;of=3;if((memDetServ&mDSmaskbit[ds])!=0){of=0;st=1;}
       poolperif(tablePerToSend,ds,&onoff[of]);                        // et si utilisé dans un périf, ajout du périf dans tablePerRoSend
-      for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){                          // recherche dans remotes et maj
+      for(uint8_t nbr=0;nbr<MAXREMLI;nbr++){                          // recherche dans remotes et maj
         if(remoteT[nbr].num!=0){
           //Serial.print("     ");Serial.print(nbr);Serial.print(" - ");Serial.print(remoteT[nbr].detec);Serial.print(";");Serial.println(remoteT[nbr].deten);
           if(remoteT[nbr].detec == ds){remoteN[remoteT[nbr].num-1].onoff =st;rfound++;}   

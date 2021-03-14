@@ -15,14 +15,14 @@ void bouTableHtml(EthernetClient* cli,char* nomfonct,char* valfonct,char* lib,ui
 void lnkTableHtml(EthernetClient* cli,char* nomfonct,char* lib);
 void numTableHtml(EthernetClient* cli,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol);
 void radioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbval);
-void yradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td);
+//void yradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td);
 void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* title);
 void selectTableHtml(EthernetClient* cli,char* val,char* ft,int nbre,int len,int sel,uint8_t v0,uint8_t v1,uint8_t td);
 void subDSn(EthernetClient* cli,char* fnc,uint32_t val,uint8_t num,char* title);
 void boutonHtml(EthernetClient* cli,byte* valfonct,char* nomfonct,uint8_t sw,uint8_t td);
 void textTableHtml_(EthernetClient* cli,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td);
 void setColour(EthernetClient* cli,char* textColour);
-void sliderHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int nb,int sqr,uint8_t td);
+//void sliderHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int nb,int sqr,uint8_t td);
 void printPeriDate(EthernetClient* cli,char* periDate);
 char* cliPrintDateHeure(EthernetClient* cli,char* pkdate);
 void trailingSpaces(char* data,uint16_t len);
@@ -44,11 +44,15 @@ void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
 void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td);
 void alphaTableHtmlB(char* buf,char* valfonct,char* nomfonct,int len);
-void concatDate(char* buf,char* periDate);
 void setCol(char* buf,char* textColour);
 void boutRetourB(char* buf,char* lib,uint8_t td,uint8_t br);
 void boutF(char* buf,char* nomfonct,char* valfonct,char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter);
+void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval);
+void yradioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td);
+void setColourB(char* buf,char* textColour);
+void sliderBHtml(char* buf,uint8_t* val,char* nomfonct,int nb,int sqr,uint8_t td);
 void bufPrintDateHeure(char* buf,char* pkdate);
+void concatDate(char* buf,char* periDate);
 void htmlIntro0B(char* buf);
 void htmlIntroB(char* buf,char* titre,EthernetClient* cli);
 

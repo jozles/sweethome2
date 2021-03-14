@@ -395,7 +395,7 @@ void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfo
 
 void periLineHtml(EthernetClient* cli,int i)
 {
-  char buf[1000];buf[0]=0;
+  char buf[2000];buf[0]=0;
   int j;
 
   Serial.print("début periLineHtml -- periCur=");Serial.print(periCur);Serial.print("/");Serial.println(i);
@@ -430,70 +430,51 @@ void periLineHtml(EthernetClient* cli,int i)
                 if(*periSwNb>MAXSW){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
 
-                cli->println("<table><tr>");
-                cli->println("<th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>"); //<th>det<br>srv<br>en</th>"); //<th>time One<br>time Two</th><th>f<br>r</th><th>e.l _f_H.a<br>n.x _t_L.c</th><th>___det__srv._pul<br></th>");
-                cli->println("</tr>");
+                strcat(buf,"<table><tr>");
+                strcat(buf,"<th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>");
+                strcat(buf,"</tr>\n");
 
-                cli->println("<tr>");
+                strcat(buf,"<tr>\n");
+                      strcat(buf,"<td>");
+                      concatns(buf,periCur);
                       
-                      cli->print("<td>");
-                      cli->println(periCur);
-                      
-                      alphaTableHtmlB(buf,periNamer,"peri_nom__",PERINAMLEN-1);cli->print(buf);buf[0]='\0';
-                      textTableHtml_(cli,periLastVal_,periThmin_,periThmax_,1,1);
-                      cli->print(*periThmin_);cli->println("<br>");
-                      cli->print(*periThmax_);
-                      textTableHtml_(cli,periAlim_,periVmin_,periVmax_,1,1);
-                      numTableHtml(cli,'I',periVmin_,"peri_vmin_",5,0,0);cli->println("<br>");
-                      numTableHtml(cli,'I',periVmax_,"peri_vmax_",5,3,0);
-                      numTableHtml(cli,'d',(uint32_t*)periPerTemp,"peri_rtemp",5,2,0);cli->println("<br>");
-                      numTableHtml(cli,'r',periPitch_,"peri_pitch",5,0,0);cli->print("<br>");
-                      numTableHtml(cli,'r',periThOffset_,"peri_tofs_",5,3,0);
-                      numTableHtml(cli,'l',(uint32_t*)periPerRefr,"peri_refr_",5,2,0);cli->println("<br>");
-                      checkboxTableHtml(cli,(uint8_t*)periProg,"peri_prog_",-1,3,"");
-                      numTableHtml(cli,'b',periSwNb,"peri_intnb",1,2,0);cli->println("<br>");
-                      numTableHtml(cli,'b',periDetNb,"peri_detnb",1,3,0);
-                      cli->println("<td>");
-                      //xradioTableHtml(cli,*periSwVal,"peri_vsw_\0",*periSwNb,3);
+                      alphaTableHtmlB(buf,periNamer,"peri_nom__",PERINAMLEN-1);
+                      textTbl(buf,periLastVal_,periThmin_,periThmax_,1,1);
+                      concatns(buf,*periThmin_);strcat(buf,"<br>");
+                      concatns(buf,*periThmax_);
+                      textTbl(buf,periAlim_,periVmin_,periVmax_,1,1);
+                      numTf(buf,'I',periVmin_,"peri_vmin_",5,0,0);strcat(buf,"<br>\n");
+                      numTf(buf,'I',periVmax_,"peri_vmax_",5,3,0);
+                      numTf(buf,'d',(uint32_t*)periPerTemp,"peri_rtemp",5,2,0);strcat(buf,"<br>\n");
+                      numTf(buf,'r',periPitch_,"peri_pitch",5,0,0);strcat(buf,"<br>\N");
+                      numTf(buf,'r',periThOffset_,"peri_tofs_",5,3,0);
+                      numTf(buf,'l',(uint32_t*)periPerRefr,"peri_refr_",5,2,0);strcat(buf,"<br>\n");
+                      checkboxTableBHtml(buf,(uint8_t*)periProg,"peri_prog_",-1,3,"");
+                      numTf(buf,'b',periSwNb,"peri_intnb",1,2,0);strcat(buf,"<br>\n");
+                      numTf(buf,'b',periDetNb,"peri_detnb",1,3,0);
+                      strcat(buf,"<td>");
+
                       char fonc[]={"peri_vsw__\0"},oi[]={"OI"};
-                      for(int k=0;k<*periSwNb;k++){fonc[LENNOM-1]=PMFNCHAR+k;radioTableHtml(cli,periSwCde(k),fonc,2);cli->print(oi[periSwLev(k)]);if(k<*periSwNb-1){cli->print("<br>");}cli->println();}
-                      cli->print("</td>");
-                   
-/*                     cli->print("<td>");
-                      cli->print(*periAnal);cli->print("<br>");
-                      numTableHtml(cli,'I',periAnalLow,"peri_ana@_",5,0,0);cli->println("<br>");
-                      numTableHtml(cli,'I',periAnalHigh,"peri_anaA_",5,0,0);
-                      cli->print("</td><td>");
-                      numTableHtml(cli,'I',periAnalOffset1,"peri_anaB_",5,0,0);cli->println("<br>");
-                      numTableHtml(cli,'f',periAnalFactor,"peri_anaC_",5,0,0);cli->println("<br>");
-                      numTableHtml(cli,'f',periAnalOffset2,"peri_anaD_",5,0,0);
-                      cli->print("</td>");
+                      for(int k=0;k<*periSwNb;k++){fonc[LENNOM-1]=PMFNCHAR+k;radioTableBHtml(buf,periSwCde(k),fonc,2);concat1a(buf,oi[periSwLev(k)]);if(k<*periSwNb-1){strcat(buf,"<br>");}strcat(buf,"\n");}
+                      strcat(buf,"</td>");
+                            
+                      strcat(buf,"<td><input type=\"text\" name=\"peri_mac__\" value=\"");for(int k=0;k<6;k++){concat1a(buf,chexa[periMacr[k]/16]);concat1a(buf,chexa[periMacr[k]%16]);}
+                      strcat(buf,"\" size=\"11\" maxlength=\"12\" ><br>\n");
+                      if(*periProg!=0){strcat(buf,"port=");numTf(buf,'d',periPort,"peri_port_",4,0,0);}strcat(buf,"<br>\n");
+                      strcat(buf,"<font size=\"2\">");for(j=0;j<4;j++){concatns(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}}strcat(buf,"</font></td>\n");
+                      strcat(buf,"<td><font size=\"2\">");for(j=0;j<LENVERSION;j++){concat1a(buf,periVers[j]);}
+                      strcat(buf," \n");concat1a(buf,(char)*periProtocol);strcat(buf,"<br>\n");
                       
-                      cli->print("<td>");
-                      for(uint8_t k=0;k<*periDetNb;k++){char oi[2]={'O','I'};cli->print(oi[(*periDetVal>>(k*2))&DETBITLH_VB]);if(k<*periDetNb-1){cli->print("<br>");}}
-                      cli->println("</td>");
-*/                      
-                      cli->print("<td><input type=\"text\" name=\"peri_mac__\" value=\"");for(int k=0;k<6;k++){cli->print(chexa[periMacr[k]/16]);cli->print(chexa[periMacr[k]%16]);}
-                        cli->println("\" size=\"11\" maxlength=\"12\" ><br>");
-                      if(*periProg!=0){cli->print("port=");numTableHtml(cli,'d',periPort,"peri_port_",4,0,0);}cli->println("<br>");
-                      cli->print("<font size=\"2\">");for(j=0;j<4;j++){cli->print(periIpAddr[j]);if(j<3){cli->print(".");}}cli->println("</font></td>");
-                      cli->print("<td><font size=\"2\">");for(j=0;j<LENVERSION;j++){cli->print(periVers[j]);}
-                      cli->println(" ");cli->println((char)*periProtocol);cli->println("<br>");
-                      
-                      //char dateascii[12];
                       char colourbr[6];
-                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColour(cli,colourbr);
-                      //unpackDate(dateascii,periLastDateOut);for(j=0;j<12;j++){cli->print(dateascii[j]);if(j==5){cli->print(" ");}}cli->println("<br>");
-                      printPeriDate(cli,periLastDateOut);
-                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColour(cli,colourbr);
-                      //unpackDate(dateascii,periLastDateIn);for(j=0;j<12;j++){cli->print(dateascii[j]);if(j==5){cli->print(" ");}}cli->println("<br>");
-                      printPeriDate(cli,periLastDateIn);
-                      setColour(cli,"black");
-                      cli->println("</font></td>");
+                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,colourbr);                      
+                      concatDate(buf,periLastDateOut);
+                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,colourbr);                      
+                      concatDate(buf,periLastDateIn);
+                      setColourB(buf,"black");
+                      strcat(buf,"</font></td>\n");
                       
-                      //cli->println("<td><input type=\"submit\" value=\"   MàJ   \"><br>");
-
-                cli->println("</tr></table>");
+                strcat(buf,"</tr></table>\n");
+                cli->print(buf);buf[0]='\0';
 
 // table analogique
                 buf[0]='\0'; 

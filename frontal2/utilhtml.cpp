@@ -215,6 +215,13 @@ void concatDate(char* buf,char* periDate)
   unpackDate(dateascii,periDate);for(j=0;j<12;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}strcat(buf,"<br>");
 }
 
+void bufPrintDateHeure(char* buf,char* pkdate)
+{
+  char bufdate[LNOW];ds3231.alphaNow(bufdate);packDate(pkdate,bufdate+2); // skip siècle
+  for(int zz=0;zz<14;zz++){concat1a(buf,bufdate[zz]);if(zz==7){strcat(buf,"-");}}
+  strcat(buf," GMT ");
+}
+
 void setCol(char* buf,char* textColour)
 {
   strcat(buf,"<font color=\"");strcat(buf,textColour);strcat(buf,"\"> ");
@@ -252,11 +259,53 @@ void boutRetourB(char* buf,char* lib,uint8_t td,uint8_t br)
     strcat(buf,"\n");
 }
 
-void bufPrintDateHeure(char* buf,char* pkdate)
+void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval)        // nbval boutons radio
+{                                                                               // valeur = checked (0-n) 
+      concatns(buf,valeur);strcat(buf,"<br>");
+      for(uint8_t j=0;j<nbval;j++){
+          strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,nomfonct);
+          strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+j));strcat(buf,"\"");
+          if(j==valeur){strcat(buf," checked");}strcat(buf,"/>");
+      }
+}
+
+void yradioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td)                          // 1 line ; nb = page row
+{                                                                                                                                  // sqbr square button
+                                                                                                                                   // nbval à traiter
+  if(td==1 || td==2){strcat(buf,"<td>");}  
+    valeur&=0x01;                                                               
+  
+  
+  strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,nomfonct);concat1a(buf,(char)(nb+PMFNCHAR));
+  strcat(buf,"\" class=\"sqbr br_off\" id=\"sqbrb");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
+  strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+0));strcat(buf,"\"");
+  if(valeur==0){strcat(buf," checked");}strcat(buf,">");
+  strcat(buf,"<label for=\"sqbrb");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">OFF</label>");
+  
+  if(vert){strcat(buf,"<br><br>\n");}
+  
+  strcat(buf," <input type=\"radio\" name=\"");strcat(buf,nomfonct);concat1a(buf,(char)(nb+PMFNCHAR));
+  strcat(buf,"\" class=\"sqbr br_on\" id=\"sqbra");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
+  strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+1));strcat(buf,"\"");
+  if(valeur==1){strcat(buf," checked");}strcat(buf,">");
+  strcat(buf,"<label for=\"sqbra");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">ON</label>\n");
+
+  if(td==1 || td==3){strcat(buf,"</td>");}      
+  strcat(buf,"<br>\n");
+}
+
+void sliderBHtml(char* buf,uint8_t* val,char* nomfonct,int nb,int sqr,uint8_t td)
 {
-  char bufdate[LNOW];ds3231.alphaNow(bufdate);packDate(pkdate,bufdate+2); // skip siècle
-  for(int zz=0;zz<14;zz++){concat1a(buf,bufdate[zz]);if(zz==7){strcat(buf,"-");}}
-  strcat(buf," GMT ");
+  if(td==1 || td==2){strcat(buf,"<td>");}
+
+  char nf[LENNOM+1];nf[LENNOM]='\0';
+  memcpy(nf,nomfonct,LENNOM);if(nb>=0){nf[LENNOM-1]=(char)(nb+PMFNCHAR);}
+  strcat(buf,"<label class=\"switch\"><input type=\"checkbox\" style=\"color:Khaki;\" name=\"");strcat(buf,nf);strcat(buf,"\" value=\"1\"");
+  if((*val & 0x01)!=0){strcat(buf," checked");}
+  strcat(buf," ><span class=\"slider ");if(sqr==0){strcat(buf," round");}
+  strcat(buf,"\"></span></label>");
+  
+  if(td==1 || td==3){strcat(buf,"</td>\n");}
 }
 
 void htmlIntro0B(char* buf)    // suffisant pour commande péripheriques
@@ -394,6 +443,12 @@ void checkboxTableBHtml(char* buf,uint8_t* val,char* nomfonct,int etat,uint8_t t
   strcat(buf,"\n");
 }
 
+void setColourB(char* buf,char* textColour)
+{
+  memcpy(colour,textColour,LENCOLOUR);strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
+}
+
+
 void htmlIntro0(EthernetClient* cli)    // suffisant pour commande péripheriques
 {
   cli->println("HTTP/1.1 200 OK");
@@ -477,6 +532,15 @@ void cliPrintDateHeure(EthernetClient* cli,char* pkdate)
   for(int zz=0;zz<14;zz++){cli->print(bufdate[zz]);if(zz==7){cli->print("-");}}
   cli->print(" GMT ");
 }
+
+
+void printPeriDate(EthernetClient* cli,char* periDate)
+{
+  char dateascii[12];
+  int j;
+  unpackDate(dateascii,periDate);for(j=0;j<12;j++){cli->print(dateascii[j]);if(j==5){cli->print(" ");}}cli->println("<br>");
+}
+
 
 void boutonHtml(EthernetClient* cli,byte* valfonct,char* nomfonct,uint8_t sw,uint8_t td)      
 {
@@ -767,13 +831,6 @@ void sliderHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int nb,int sqr,u
   
   if(td==1 || td==3){cli->print("</td>");}
   cli->println();
-}
-
-void printPeriDate(EthernetClient* cli,char* periDate)
-{
-  char dateascii[12];
-  int j;
-  unpackDate(dateascii,periDate);for(j=0;j<12;j++){cli->print(dateascii[j]);if(j==5){cli->print(" ");}}cli->println("<br>");
 }
 
 void trailingSpaces(char* data,uint16_t len)

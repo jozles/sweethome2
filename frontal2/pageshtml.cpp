@@ -356,15 +356,16 @@ void cfgServerHtml(EthernetClient* cli)
             
             cli->println(" <input type=\"submit\" value=\"MàJ\"><br>");
             
-            cli->print(" password <input type=\"text\" name=\"pwdcfg____\" value=\"");cli->print(userpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");
+            /*cli->print(" password <input type=\"text\" name=\"pwdcfg____\" value=\"");cli->print(userpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");
             cli->print("  modpass <input type=\"text\" name=\"modpcfg___\" value=\"");cli->print(modpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");            
-            cli->print(" peripass <input type=\"text\" name=\"peripcfg__\" value=\"");cli->print(peripass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");            
-            cli->print(" to password");numTableHtml(cli,'d',toPassword,"to_passwd_",6,0,0);cli->println("<br>");
+            cli->print(" peripass <input type=\"text\" name=\"peripcfg__\" value=\"");cli->print(peripass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");*/
+
             cli->print(" serverMac <input type=\"text\" name=\"ethcfg___m\" value=\"");for(int k=0;k<6;k++){cli->print(chexa[mac[k]/16]);cli->print(chexa[mac[k]%16]);}cli->print("\" size=\"11\" maxlength=\"");cli->print(12);cli->println("\" >");                        
             cli->print(" localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");for(int k=0;k<4;k++){cli->print(localIp[k]);if(k!=3){cli->print(".");}}cli->print("\" size=\"11\" maxlength=\"");cli->print(15);cli->println("\" >");                        
             cli->print(" portserver ");numTableHtml(cli,'d',portserver,"ethcfg___p",4,0,0);cli->println("<br>");
 
             subcfgtable(cli,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
+            cli->print(" to password");numTableHtml(cli,'d',toPassword,"to_passwd_",6,0,0);cli->println("<br>");
             subcfgtable(cli,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
           
             //subcfgtable(cli,"THERMO",NBTHERMO,"thername_",thermonames,LENTHNAME,1,"therperi_",thermoperis,-1,"peri",2);
@@ -507,89 +508,44 @@ void cfgRemoteHtml(EthernetClient* cli)
 
 
 void remoteHtml(EthernetClient* cli)
-{  
+{              
             Serial.println("remote control");
             
-            char buf[4000];buf[0]=0x00;
+            char buf[LBUF4000];buf[0]=0x00;
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
+            strcat(buf,"<br>");
             cli->print(buf);buf[0]=0;
             
-            cli->println("<br>");
 
 /* table remotes */
 
-            cli->println("<table>");
-/*            
-            for(uint8_t nb=0;nb<NBREMOTE;nb++){
-              if(remoteT[nb].num!=0){
-                cli->println("<tr>");
-
-                cli->print("<td>");cli->print(nb+1);cli->println("</td>");  // numéro de ligne
-
-                // affichage état d'un éventuel switch
-                // boucle des détecteurs pour trouver un switch                
-                cli->print("<td>");
-                //for(uint8_t td=0;td<MAXREMLI;td++){
-                if(remoteT[nb].peri!=0){                                    // présence périphérique
-                    periCur=remoteT[nb].peri;periLoad(periCur);
-                    
-                    if(periSwLev(remoteT[nb].sw)==1){                       // switch ON
-                      cli->print(" ON <div id=\"rond_jaune\"></div>");
-                    }
-                    else {
-                      cli->print(" OFF ");}
-                  }
-                }
-                
-                cli->print("</td><td> <font size=\"7\">");cli->print(remoteN[remoteT[nb].num].nam);cli->println("</font></td>");      // nom remote
-                // slider on/off
-                // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
-                // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
-                // l'input remote_ctx renseigne le passage à "1" éventuel après l'effacement. La variable newonoff stocke le résultat
-                // et la comparaison avec onoff permet de connaitre la transition (ou non transition)
-                // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
-                // pour la maj via PerToSend des périphériques concernés
-                cli->print("<input type=\"hidden\" name=\"remote_cn");cli->print((char)(remoteT[nb].num+PMFNCHAR));cli->println("\">");
-                sliderHtml(cli,(uint8_t*)(&remoteN[remoteT[nb].num].onoff),"remote_ct",remoteT[nb].num,0,1);                              // slider
-
-                // slider enable idem slider on/off
-                //        cli->print("<input type=\"hidden\" name=\"remote_cm");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
-                //        sliderHtml(cli,(uint8_t*)(&remoteN[nb].enable),"remote_cs",nb,0,1);                                
-                cli->print("<td>- - - - -</td>");
-                bool vert=FAUX;
-                yradioTableHtml(cli,remoteN[remoteT[nb].num].enable,"remote_cs",2,vert,remoteT[nb].num,1);                                // disjoncteur
-              
-                cli->println("</tr>");
-              }
-*/            
-
+           
+            strcat(buf,"<table>");            
 
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               if(remoteN[nb].nam[0]!='\0'){
-                cli->println("<tr>");
-
-                cli->print("<td>");cli->print(nb+1);cli->println("</td>");  // numéro de ligne
+                strcat(buf,"<tr><td>");concatn(buf,nb+1);strcat(buf,"</td>\n");  // numéro de ligne
 
                 // affichage état d'un éventuel switch
-                // boucle des détecteurs pour trouver un switch                
-                cli->print("<td>");
+                // boucle des détecteurs pour trouver un switch (voir le commentaire des disjoncteurs, c'est idem)               
+                strcat(buf,"<td>");
                 for(uint8_t td=0;td<MAXREMLI;td++){
                   if(remoteT[td].num==nb+1 && remoteT[td].peri!=0){           // même remote et présence périphérique
                     periCur=remoteT[td].peri;periLoad(periCur);
                     
                     if(periSwLev(remoteT[td].sw)==1){                         // switch ON
-                      cli->print(" ON <div id=\"rond_jaune\"></div>");
+                      strcat(buf," ON <div id=\"rond_jaune\"></div>");
                     }
                     else {
-                      cli->print(" OFF ");}
+                      strcat(buf," OFF ");}
                   }
                 }
                 
-                cli->print("</td><td> <font size=\"7\">");cli->print(remoteN[nb].nam);cli->println("</font></td>");      // nom remote
+                strcat(buf,"</td><td> <font size=\"7\">");strcat(buf,remoteN[nb].nam);strcat(buf,"</font></td>");      // nom remote
                 // slider on/off
                 // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
                 // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
@@ -597,27 +553,27 @@ void remoteHtml(EthernetClient* cli)
                 // et la comparaison avec onoff permet de connaitre la transition (ou non transition)
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
-                cli->print("<input type=\"hidden\" name=\"remote_cn");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
-                sliderHtml(cli,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);                              // slider
+                strcat(buf,"<input type=\"hidden\" name=\"remote_cn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">");
+                sliderBHtml(buf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);                              // slider
 
-                // slider enable idem slider on/off
-                //        cli->print("<input type=\"hidden\" name=\"remote_cm");cli->print((char)(nb+PMFNCHAR));cli->println("\">");
-                //        sliderHtml(cli,(uint8_t*)(&remoteN[nb].enable),"remote_cs",nb,0,1);                                
-                cli->print("<td>- - - - -</td>");
-                bool vert=FAUX;
-                yradioTableHtml(cli,remoteN[nb].enable,"remote_cs",2,vert,nb,1);                                // disjoncteur
-              
-                cli->println("</tr>");
-              }
+                  strcat(buf,"<td>- - - - -</td>");                                                                // ne pas affichier le disjoncteur si
+                  bool vert=FAUX;                                                                                  // une ligne précédente l'a déjà affiché
+                  yradioTableBHtml(buf,remoteN[nb].enable,"remote_cs",2,vert,nb,1);                                // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
+
+                strcat(buf,"</tr>");
+                //if(strlen(buf)+1000>=LBUF4000){
+                cli->print(buf);buf[0]='\0';
+             } 
             }
-            cli->println("</table>");
+            strcat(buf,"</table>");
             
-            cli->println("<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>");
-            boutFonction(cli,"thermoshow","","températures",0,0,7,0);cli->print(" ");
-            boutFonction(cli,"remotehtml","","refresh",0,0,7,0);
-            cli->print("</p>");
+            strcat(buf,"<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>");
+            boutF(buf,"thermoshow","","températures",0,0,7,0);strcat(buf," ");
+            boutF(buf,"remotehtml","","refresh",0,0,7,0);
+            strcat(buf,"</p>");
             
-            cli->println("</form></body></html>");
+            strcat(buf,"</form></body></html>");
+            cli->print(buf);buf[0]='\0';
 }
 
 int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd derniers jours
