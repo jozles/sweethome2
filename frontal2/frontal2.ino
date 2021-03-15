@@ -416,12 +416,6 @@ void setup() {                              // =================================
 
   pilotserv.begin();Serial.println("pilotserv.begin ");  //  remote serveur
   
-/*
-  if(cliext.connect(esptv,1791)){Serial.print("esptv connected");}
-  cliext.stop();
-  if(cliext.connect(gggg,80)){Serial.print("gggg connected");}
-  cliext.stop();*/
-  
   delay(100);
 
 /* >>>>>> RTC ON, check date/heure et maj éventuelle par NTP  <<<<<< */
@@ -505,7 +499,7 @@ void wdReboot(char* msg,unsigned long maxCx)
     periTableSave();
     mail("reBOOT",msg);
     Serial.print("no cx for ");Serial.print(maxCx/1000);Serial.println("sec");
-    delay(30000);      // wait for hardware watchdog
+    forceWd();                             // wait for hardware watchdog
 }
 
 void scanTemp()

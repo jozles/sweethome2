@@ -55,12 +55,14 @@ extern EthernetClient cliext;
 void mail(char* a,char* mm)
 {
       #define LMSG 128
-      char ms[LMSG];
+      char ms[LMSG];ms[0]='\0';
     
       strcat(ms,a);strcat(ms,"==");
       strcat(ms,mailToAddr1);strcat(ms,"==");
-      if(strlen(mm)<=(LMSG-strlen(ms))){strcat(ms,mm);}
-      strcat(ms," ");strcat(ms,alphaDate());strcat(ms," ");
+      if(strlen(mm)+2<=(LMSG-strlen(ms))){
+        strcat(ms,mm);strcat(ms," ");}
+      if(LDATEB+3<=(LMSG-strlen(ms))){
+        strcat(ms,alphaDate());strcat(ms," ");}
 
       periReq(&cliext,*periMail1,"mail______",ms);  
 }
@@ -89,15 +91,16 @@ char* alphaDate()
 
 void histoStore_textdh0(char* val1,char* val2,char* val3)
 {
-  #define LT 32
+  #define LT 40
   char text[LT];
   int v,w;
   unsigned long t0=micros();
 
         sprintf(text,"%.8lu",amj);text[8]=' ';            // 9
-        sprintf(text+9,"%.6lu",hms);text[13]=' ';         // +7
+        sprintf(text+9,"%.6lu",hms);text[15]=' ';         // +7
+        text[16]='\0';                                    // +1
         if(strlen(val1)+strlen(text)+1<LT){strcat(text,val1);strcat(text," ");}
-        if(strlen(val2)+strlen(text)<LT){strcat(text,val2);}      
+        if(strlen(val2)+strlen(text)+1<LT){strcat(text,val2);}      
           
         //fhisto.open("fdhisto.txt", O_RDWR | O_CREAT);
         sdOpen("fdhisto.txt",&fhisto);
@@ -110,7 +113,7 @@ void histoStore_textdh0(char* val1,char* val2,char* val3)
 
 //Serial.print("histoStore=");Serial.println(micros()-t0);
 }
-
+/*
 void histoStore_textdhx(char* val1,char* val2,char* val3)
 {
   unsigned long t2,t1,t0=micros();
@@ -138,7 +141,7 @@ t2=micros();Serial.print(" write=");Serial.print(t2-t1);
 memDump("output");          
 Serial.print(" close=");Serial.println(micros()-t2);
 }
-
+*/
 void histoStore_textdh(char* val1,char* val2,char* val3)
 {
   ds3231.getDate(&hms,&amj,&js,strdate);

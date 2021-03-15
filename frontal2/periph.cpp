@@ -535,23 +535,17 @@ int periCacheSave(uint16_t num)
     int sta=SDOK;
     char periFile[7];periFname(num,periFile);
     long t4,t3,t2,t1,t0=micros();
-    t1=micros();
 
     if(periCacheStatus[num]!=CACHEISFILE){                          // si le fichier n'est pas à jour du cache -> sauvegarde
-      Serial.print("periCacheSave ");
       if(sdOpen(periFile,&fperi)==SDOK){
-t2=micros();Serial.print(" open=");Serial.print(t2-t1);
         periDetServUpdate();
         fperi.seek(0);
-t3=micros();Serial.print(" pDSU=");Serial.print(t3-t2);
         for(int i=0;i<PERIRECLEN;i++){fperi.write(periCache[(num-1)*PERIRECLEN+i]);}
-t4=micros();Serial.print(" write=");Serial.print(t4-t3);
         fperi.close();
         periCacheStatus[num]=CACHEISFILE;                           // le fichier est à l'image du cache
-Serial.print(" close=");Serial.print(micros()-t4);
         for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
       }
-      else{Serial.print(periFile);sta=SDKO;}
+      else{Serial.print(periFile);Serial.println(" ko");sta=SDKO;}
     }
     return sta;
 }
@@ -562,12 +556,13 @@ int periSave(uint16_t num,bool sd)
   int sta;
   
   for(i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=periRec[i];}    // copie dans cache
-  periCacheStatus[num]=CACHEISFILE;                                                   // cache ok
+  periCacheStatus[num]=CACHEISFILE;                                         // cache ok
 
   *periNum=num;
   sta=SDOK;
-  periCacheStatus[num]=!CACHEISFILE;                                 // le fichier n'est pas à l'image du cache
+  periCacheStatus[num]=!CACHEISFILE;                                // le fichier n'est pas à l'image du cache
   if(sd){
+    Serial.print("periCacheSave ");
     sta=periCacheSave(num);                                         // le fichier est à l'image du cache
   }
 #ifdef SHDIAGS    

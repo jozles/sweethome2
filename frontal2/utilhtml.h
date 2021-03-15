@@ -40,6 +40,8 @@ void concatn(char* buf,unsigned long val);
 void concatns(char* buf,long val);
 void concatnf(char* buf,float val);
 void concatnf(char* buf,float val,uint8_t dec);
+void concatDate(char* buf,char* periDate);
+void bufPrintDateHeure(char* buf,char* pkdate);
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol);
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
 void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td);
@@ -51,8 +53,6 @@ void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval);
 void yradioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td);
 void setColourB(char* buf,char* textColour);
 void sliderBHtml(char* buf,uint8_t* val,char* nomfonct,int nb,int sqr,uint8_t td);
-void bufPrintDateHeure(char* buf,char* pkdate);
-void concatDate(char* buf,char* periDate);
 void htmlIntro0B(char* buf);
 void htmlIntroB(char* buf,char* titre,EthernetClient* cli);
 
