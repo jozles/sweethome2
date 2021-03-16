@@ -58,7 +58,8 @@
  *     affichage des diags optionnels pour 'NO_MODE'
  *     dataSave après chaque réception via ordrext (cstRec.talkStep=6 et cstRec.serverTime=0 sinon blocage)
  * 1.r en mode NO_MODE pas de PERSERVKO pour ne pas risquer de déclencher le watchdog TCP/UDP du server     
- *     les fonctions de test sont opérationnelles ; incorporation des mails
+ *     les fonctions de test sont opérationnelles ; incorporation des mails ;
+ *     messages courts quand tous pulses à zero ; 
  * 
 Modifier : 
 
@@ -175,7 +176,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRDEV             // <------------- modèle carte
+#define CARTE VRR             // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation 
 //#define PININT_MODE             // <------------- avec/sans pin d'interruption
 
@@ -428,5 +429,6 @@ typedef struct {
  REASON_EXT_SYS_RST      = 6    // external system reset 
 };
 */
+
 
 #endif // CONST_H_INCLUDED

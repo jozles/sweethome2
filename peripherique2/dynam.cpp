@@ -347,7 +347,7 @@ void actions()          // pour chaque input, test enable,
       *(curinp+2) &= ~PERINPOLDLEV_VB;                                          // raz bit oldlev
       *(curinp+2) |= (detecState << PERINPOLDLEV_PB);                           // màj bit oldlev
 
-      }   // detecFound   
+      }   // detecFound    
     }     // enable
   }       // next input
 

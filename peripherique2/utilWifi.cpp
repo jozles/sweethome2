@@ -70,6 +70,7 @@ bool wifiConnexion(const char* ssid,const char* password)
     else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI);}}
     Serial.print(" cxtime(micros)=");Serial.println(micros()-beg);
     return cxstatus;
+Serial.println("**********************");
 }
 
 void modemsleep()

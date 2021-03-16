@@ -20,7 +20,7 @@ EMailSender::EMailMessage message;
 
 
 extern "C" {                  
-#include <user_interface.h>     // pour struct rst_info, system_deep_sleep_set_option(), rtc_mem
+#include <user_interface.h>                 // pour struct rst_info, system_deep_sleep_set_option(), rtc_mem
 }
 
 #if CONSTANT==EEPROMSAVED
@@ -32,7 +32,7 @@ Ds1820 ds1820;
 
   char model[LENMODEL];
 
-  unsigned long dateon=millis();           // awake start time
+  unsigned long dateon=millis();            // awake start time
   unsigned long boucleTime=millis();
 
   const char* ssid;
@@ -51,17 +51,17 @@ Ds1820 ds1820;
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif DEVOLO
 
-  const char* host = HOSTIPADDR2;   // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
+  const char* host = HOSTIPADDR2;         // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
   const int   port = PORTPERISERVER2; 
 
-WiFiClient cli;                 // client local du serveur externe (utilisé pour dataread/save)
+WiFiClient cli;                           // client local du serveur externe (utilisé pour dataread/save)
 
 #ifdef  _SERVER_MODE
-WiFiClient cliext;              // client externe du serveur local
-WiFiServer server(8888);
-  String headerHttp;
+WiFiClient cliext;                        // client externe du serveur local
+WiFiServer* server=nullptr;
+  
   #define LHTTPMESS 500
-  char   httpMess[LHTTPMESS];   // buffer d'entrée en mode serveur
+  char   httpMess[LHTTPMESS];             // buffer d'entrée en mode serveur
 #endif  _SERVER
 
   char* srvpswd=PERIPASS;
@@ -69,30 +69,30 @@ WiFiServer server(8888);
 
 // enregistrement pour serveur externe
 
-  char  bufServer[LBUFSERVER];      // buffer des envois/réceptions de messages
-  int   periMess;                   // diag de réception de message
+  char  bufServer[LBUFSERVER];            // buffer des envois/réceptions de messages
+  int   periMess;                         // diag de réception de message
 
   char* fonctions={"set_______ack_______etat______reset_____sleep_____sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______last_fonc_"};
   uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__,fmail______;
   int     nbfonct;
-  uint8_t fonction;                 // la dernière fonction reçue
+  uint8_t fonction;                       // la dernière fonction reçue
 
-  float temp;
-  unsigned long  tempTime=0;        // (millis) timer température pour mode loop
-  uint16_t tempPeriod=PERTEMP;      // (sec) période courante check température 
-  char  ageSeconds[8];              // secondes 9999999s=115 jours
-  bool  tempchg=FAUX;
+  float          temp;
+  unsigned long  tempTime=0;              // (millis) timer température pour mode loop
+  uint16_t       tempPeriod=PERTEMP;      // (sec) période courante check température 
+  char           ageSeconds[8];           // secondes 9999999s=115 jours
+  bool           tempchg=FAUX;
   unsigned long  timeservbegin;
 
-  unsigned long  clkTime=millis();  // timer automate rapide
-  uint8_t clkFastStep=0;            // stepper automate rapide
-  uint8_t clkSlowStep=0;            // stepper automate /10
+  unsigned long  clkTime=millis();        // timer automate rapide
+  uint8_t        clkFastStep=0;           // stepper automate rapide
+  uint8_t        clkSlowStep=0;           // stepper automate /10
   extern uint8_t nbreBlink;
   unsigned long  blkTime=millis();
-  int   blkPer=2000;
-  unsigned long  debTime=millis();   // pour mesurer la durée power on
-  unsigned long  debConv=millis();   // pour attendre la fin du délai de conversion
-  int   tconversion=0;
+  int            blkPer=2000;
+  unsigned long  debTime=millis();        // pour mesurer la durée power on
+  unsigned long  debConv=millis();        // pour attendre la fin du délai de conversion
+  int            tconversion=0;
   unsigned long  detTime[MAXDET]={millis(),millis(),millis(),millis()};    // temps pour debounce
 
 
@@ -539,6 +539,7 @@ if(diags){Serial.print(" dataTransfer()");}
 
             cstRec.portServer=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
             printConstant();
+            if(server==nullptr){server=new WiFiServer(cstRec.portServer);}
         }
         if(periMess!=MESSOK){
           memcpy(cstRec.numPeriph,"00",2);cstRec.IpLocal=IPAddress(0,0,0,0);
@@ -617,9 +618,11 @@ switch(cstRec.talkStep){
   case 9:
        cstRec.talkStep=0;
 #ifdef  _SERVER_MODE
+  if(server!=nullptr){
     timeservbegin=millis();
-    server.begin(cstRec.portServer);
+    server->begin(cstRec.portServer);
     Serial.print("server.begin(");Serial.print((int)cstRec.portServer);Serial.print(") durée=");Serial.println(millis()-timeservbegin);
+  }
 #endif  def_SERVER_MODE*/
        break;
 
@@ -646,39 +649,42 @@ switch(cstRec.talkStep){
 
 void ordreExt()
 {
-  uint16_t hm=0;
-  memset(httpMess,0x00,LHTTPMESS);
+  if(server!=nullptr){
+    uint16_t hm=0,nl=0;
+    memset(httpMess,0x00,LHTTPMESS);
   
-  cliext = server.available();
+    cliext = server->available();
 
-  if (cliext) {
-    //uint16_t ccur=0,trx0[500],trx1[500],trx2[500];memset(trx0,0x00,1000);
-    unsigned long trx=0,trxx=millis();
-    unsigned long tcx2,tcx1,tcx0=millis();
-    char c;
-    Serial.print("\nCliext ");
-    while (cliext.connected()) {
+    if (cliext) {
+      //uint16_t ccur=0,trx0[500],trx1[500],trx2[500];memset(trx0,0x00,1000);
+      unsigned long trx=0,trxx=millis();
+      unsigned long tcx2,tcx1,tcx0=millis();
+      char c;
+      Serial.print("\nCliext ");
+      while (cliext.connected()) {
 #define TO_ORDREXT 2
-      if(trx==0){trx=millis();}
-      if((millis()-(unsigned long)trx)>TO_ORDREXT){break;}
-      if (cliext.available()) {
-        c = cliext.read();
-        httpMess[hm]=c;
-        if (c == '\n') {                  
-          if(hm==0){break;}                      // sortie boucle while
-            else hm=0;
+        if(trx==0){trx=millis();}
+        if((millis()-(unsigned long)trx)>TO_ORDREXT){break;}
+        if (cliext.available()) {
+          c = cliext.read();
+          //Serial.print(c);
+          httpMess[hm]=c;
+          if (c == '\n') {
+            if(nl==0){break;}                      // 2 LF fin requete => sortie boucle while
+            else nl=0;
+          }
+          if(hm<LHTTPMESS){hm++;nl++;}
+          trx=0;
         }
-        if(hm<LHTTPMESS){hm++;}
-        trx=0;
       }
-    }
-    // format message "GET /FFFFFFFFFF=nnnn....CC" FFFFFFFFFF instruction (ETAT___, SET____ etc)
-    //                                             nnnn nombre de car décimal zéros à gauche 
-    //                                             .... éventuels arguments de la fonction
-    //                                             CC crc
-    tcx1=millis();
-    
-    if(diags){Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);}
+      // format message "GET /FFFFFFFFFF=nnnn....CC" FFFFFFFFFF instruction (ETAT___, SET____ etc)
+      //                                             nnnn nombre de car décimal zéros à gauche 
+      //                                             .... éventuels arguments de la fonction
+      //                                             CC crc
+      tcx1=millis();
+
+      //Serial.println();
+      if(diags){Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);}
 /*
     dumpstr(httpMess,500);
     Serial.print("ccur=");Serial.println(ccur);
@@ -687,53 +693,55 @@ void ordreExt()
       Serial.print(trx0[cc]);Serial.print("  ");Serial.print(trx1[cc]);Serial.print("  ");Serial.println(trx2[cc]);}
 */
 
-    //cliext.stop();
-    int v0=-1;
-    char* vx=strstr(httpMess,"GET /");
-    if(vx>=0){v0=vx-httpMess;}
-    if(v0>=0){                            // si commande GET trouvée contrôles et décodage nom fonction 
-      int jj=4,ii=convStrToNum(httpMess+v0+5+10+1,&jj);   // recup eventuelle longueur
-      httpMess[v0+5+10+1+ii+2]=0x00;      // place une fin ; si long invalide check sera invalide
+      //cliext.stop();
+      int v0=-1;
+      char* vx=strstr(httpMess,"GET /");
+      if(vx>=0){v0=vx-httpMess;}
+      if(v0>=0){                            // si commande GET trouvée contrôles et décodage nom fonction 
+        int jj=4,ii=convStrToNum(httpMess+v0+5+10+1,&jj);   // recup eventuelle longueur
+        httpMess[v0+5+10+1+ii+2]=0x00;      // place une fin ; si long invalide check sera invalide
 
-      tcx2=millis();
-      if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
-        Serial.print("reçu message fonction=");Serial.println(fonction);
-        switch(fonction){
-            case 0: dataTransfer(&httpMess[v0+5]);break;      // set
-            case 1: break;                                    // ack ne devrait pas se produire (page html seulement)
-            case 2: cstRec.talkStep=1;break;                  // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
-            case 3: break;                                    // sleep (future use)
-            case 4: break;                                    // reset (future use)
-            case 5: digitalWrite(pinSw[0],cloSw[0]);break;    // test on  A        http://192.168.0.6:80/sw0__ON___=0005_5A
-            case 6: digitalWrite(pinSw[0],openSw[0]);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
-            case 7: digitalWrite(pinSw[1],cloSw[1]);break;    // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
-            case 8: digitalWrite(pinSw[1],openSw[1]);break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
-            case 9: Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);
-                    v0+=21;
-                    {httpMess[strlen(httpMess)-2]='\0';             // erase CRC                   
-                    uint16_t v1=strstr(httpMess,"==")-httpMess;
-                    httpMess[v1]='\0';Serial.print("<<<<");Serial.println(httpMess+v0);
-                    uint16_t v2=strstr(httpMess+v1+1,"==")-httpMess;
-                    httpMess[v2]='\0';Serial.print("<<<<");Serial.println(httpMess+v1+2);
-                    char a[10];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
-                    strcat(a,"°C ");strcat(httpMess+v2+2,a);
-                    Serial.print("<<<<");Serial.println(httpMess+v2+2);                    
-                    mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
-                    }break;                 
+        tcx2=millis();
+        if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
+          Serial.print("reçu message fonction=");Serial.println(fonction);
+          switch(fonction){
+              case 0: dataTransfer(&httpMess[v0+5]);break;      // set
+              case 1: break;                                    // ack ne devrait pas se produire (page html seulement)
+              case 2: cstRec.talkStep=1;break;                  // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
+              case 3: break;                                    // sleep (future use)
+              case 4: break;                                    // reset (future use)
+              case 5: digitalWrite(pinSw[0],cloSw[0]);delay(1000);break;    // test on  A        http://192.168.0.6:80/sw0__ON___=0005_5A
+              case 6: digitalWrite(pinSw[0],openSw[0]);delay(1000);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
+              case 7: digitalWrite(pinSw[1],cloSw[1]);delay(1000);break;    // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
+              case 8: digitalWrite(pinSw[1],openSw[1]);delay(1000);break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
+              case 9: Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);
+                      v0+=21;
+                      {httpMess[strlen(httpMess)-2]='\0';             // erase CRC                   
+                      uint16_t v1=strstr(httpMess,"==")-httpMess;
+                      httpMess[v1]='\0';Serial.print("<<<<");Serial.println(httpMess+v0);
+                      uint16_t v2=strstr(httpMess+v1+1,"==")-httpMess;
+                      httpMess[v2]='\0';Serial.print("<<<<");Serial.println(httpMess+v1+2);
+                      char a[10];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
+                      strcat(a,"°C ");strcat(httpMess+v2+2,a);
+                      Serial.print("<<<<");Serial.println(httpMess+v2+2);                    
+                      mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
+                      }break;                 
                         
-            default:break;
+              default:break;
+          }
+          char etat[]="done______=0006AB8B\0";
+          talkClient(etat);
+          Serial.println();
+          cstRec.talkStep=6;      // après maj des sw et collecte des données -> dataSave       
+          cstRec.serverTime=0;
         }
-        char etat[]="done______=0006AB8B\0";
-        talkClient(etat);
-        Serial.println();
-        cstRec.talkStep=6;      // après maj des sw et collecte des données -> dataSave       
-        cstRec.serverTime=0;
-      }
-      cntreq++;
-    }                     // une éventuelle connexion a été traitée
+        if(strstr(httpMess,"favicon")>0){htmlImg(&cli,favicon,favLen);}
+        cntreq++;
+      }                     // une éventuelle connexion a été traitée
                           // si controles ko elle est ignorée
-    cliext.stop();
-    purgeServer(&cliext,diags);
+      cliext.stop();
+      purgeServer(&cliext,diags);
+    }
   }
 }
 
@@ -895,15 +903,20 @@ int buildReadSave(char* nomfonction,char* data)   //   assemble et envoie read/s
       strcpy(message+sb+LENMODEL,"_\0");                                                      //      - 7
       sb+=LENMODEL+1;
       uint32_t currt;
-
-      for(i=0;i<NBPULSE*2;i++){                                                                                           // loop compteurs (4*2)
-        currt=0;
-        byte* pcurr=(byte*)&currt;
-        if(cstRec.cntPulseOne[i]!=0){currt=(millis()-cstRec.cntPulseOne[i])/1000;}
-        //Serial.print(i);Serial.print(" écoulé=");Serial.print(currt);Serial.print(" ");dumpfield((char*)pcurr,16);Serial.println();     // temps écoulé
-        for(j=0;j<sizeof(uint32_t);j++){conv_htoa((char*)(message+sb+2*(i*sizeof(uint32_t)+j)),(byte*)(pcurr+j));}       // loop bytes (4/8)
+      bool noZero=false;
+      for(i=0;i<NBPULSE;i++){
+        //Serial.print("=======================staPulse[");Serial.print(i);Serial.print(")=");Serial.println(staPulse[i]);
+        if(staPulse[i]!=PM_DISABLE && staPulse[i]!=PM_IDLE){noZero=true;break;}
       }
-      sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
+      if(noZero){
+        for(i=0;i<NBPULSE*2;i++){                                                                                           // loop compteurs (4*2)
+          currt=0;
+          byte* pcurr=(byte*)&currt;
+          if(cstRec.cntPulseOne[i]!=0){currt=(millis()-cstRec.cntPulseOne[i])/1000;}
+          for(j=0;j<sizeof(uint32_t);j++){conv_htoa((char*)(message+sb+2*(i*sizeof(uint32_t)+j)),(byte*)(pcurr+j));}       // loop bytes (4/8)
+        }
+        sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
+      } 
       strcpy(message+sb-1,"_\0");
 
 if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
