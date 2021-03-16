@@ -1277,12 +1277,12 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 14: {byte a=*(libfonctions+2*i);byte b=*(libfonctions+2*i+1);                     // (ligne peritable) - tests de perif serveur
                         char fptst[LENNOM+1];                            
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
-                        uint8_t k=0;uint8_t zer[]={1,0};
+                        uint8_t k=0;uint8_t zer[]={2,0};
                         extern char mailToAddr[];
                         char msg[64]="TEST==";strcat(msg,mailToAddr1);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';strcat(msg,alphaDate());
                         periCur=b-PMFNCHAR;periLoad(periCur);
                         if(a=='m'){k=4;}
-                        else {k=zer[periSwCde(a-PMFNCVAL)]+(a-PMFNCVAL)*2;}
+                        else {k=zer[periSwCde(a-PMFNCVAL)];msg[0]='\0';}
                         memcpy(fptst,swcd+LENNOM*k,LENNOM);
                         periReq(&cli,periCur,fptst,msg);
                         Serial.print("=========== periCur=");Serial.print(periCur);Serial.print(" k=");Serial.print(k);Serial.print(" a=");Serial.print(a-PMFNCVAL);Serial.print(" ~swcd=");Serial.print(zer[periSwCde(a-PMFNCVAL)]);Serial.print(" peritst=");Serial.println(fptst);

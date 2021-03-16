@@ -416,12 +416,12 @@ void periLineHtml(EthernetClient* cli,int i)
     if(*periSwNb!=0){
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
       boutF(buf,swf,"","Switchs",3,0,0,0);};strcat(buf," ");
-    boutF(buf,"peri_raz___","","Raz",0,0,0,0);strcat(buf," ");
+    boutF(buf,"peri_raz___","","Raz",0,0,0,0);strcat(buf,"\n");
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
     line[LENNOM-2]='0';boutF(buf,line,"","tst__SW0",0,0,0,0);strcat(buf," ");
     line[LENNOM-2]='1';boutF(buf,line,"","tst__SW1",0,0,0,0);strcat(buf," ");
-    line[LENNOM-2]='m';boutF(buf,line,"","tst_mail",0,0,0,0);
+    line[LENNOM-2]='m';boutF(buf,line,"","tst_mail",0,0,0,0);strcat(buf,"\n");
     cli->print(buf);buf[0]='\0';
     
 /* ligne périphérique */                
