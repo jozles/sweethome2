@@ -70,7 +70,7 @@ bool wifiConnexion(const char* ssid,const char* password)
     else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI);}}
     Serial.print(" cxtime(micros)=");Serial.println(micros()-beg);
     return cxstatus;
-Serial.println("**********************");
+
 }
 
 void modemsleep()
@@ -80,6 +80,17 @@ void modemsleep()
   delay(100);
 }
 
+void htmlImg(WiFiClient* cli,char* data,int dataLen)
+{
+        cli->println("HTTP/1.1 200 OK");
+        cli->println("CONTENT-Type: image/jpg");
+        cli->println();
+        for(int i=0;i<dataLen;i++){cli->write(data[i]);}
+
+        Serial.println(" terminé");
+        cli->stop();
+        return;
+}
 
 
 /*uint8_t WiFiConnect(const char* ssid, const char* password)
