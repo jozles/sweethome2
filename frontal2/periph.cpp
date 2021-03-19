@@ -303,7 +303,10 @@ void configPrint()
   Serial.print("password=");Serial.print(userpass);Serial.print(" modpass=");Serial.print(modpass);Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.println("table ssid ");subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
   Serial.println("table user ");subcprint(usrnames,usrpass,NBUSR,LENUSRNAME,LENUSRPASS,usrtime);
-  Serial.print("maxCxWt ");Serial.print(*maxCxWt);Serial.print("maxCxWu ");Serial.println(*maxCxWu);
+  Serial.print("mailFrom=");Serial.print(mailFromAddr);Serial.print(" pass= ");Serial.println(mailPass);     
+  Serial.print("mailTo1=");Serial.print(mailToAddr1);Serial.print(" mailTo2=");Serial.println(mailToAddr2);  
+  Serial.print("peri1=");Serial.print(*periMail1);Serial.print(" peri2=");Serial.println(*periMail2);
+  Serial.print("maxCxWt ");Serial.print(*maxCxWt);Serial.print(" maxCxWu ");Serial.println(*maxCxWu);
 }
 
 int configLoad()
@@ -562,7 +565,7 @@ int periSave(uint16_t num,bool sd)
   sta=SDOK;
   periCacheStatus[num]=!CACHEISFILE;                                // le fichier n'est pas à l'image du cache
   if(sd){
-    Serial.print("periCacheSave ");
+    //Serial.print("periCacheSave ");
     sta=periCacheSave(num);                                         // le fichier est à l'image du cache
   }
 #ifdef SHDIAGS    

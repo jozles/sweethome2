@@ -4,7 +4,6 @@
 void dumpHisto(EthernetClient* cli);
 void dumpHisto0(EthernetClient* cli,long histoPos);
 void shDateHist(char* dhasc,long* pos);
-void intro(EthernetClient* cli);
 void cfgServerHtml(EthernetClient* cli);
 void cfgRemoteHtml(EthernetClient* cli);
 void cfgThermosHtml(EthernetClient* cli);

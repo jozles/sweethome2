@@ -41,6 +41,7 @@ void concatns(char* buf,long val);
 void concatnf(char* buf,float val);
 void concatnf(char* buf,float val,uint8_t dec);
 void concatDate(char* buf,char* periDate);
+void bufPrintPeriDate(char* buf,char* periDate);
 void bufPrintDateHeure(char* buf,char* pkdate);
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol);
 void numTf(char* buf,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);

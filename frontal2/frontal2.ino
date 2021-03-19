@@ -488,17 +488,17 @@ void stoprequest()
 
 void watchdog()
 {
-  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("TCP cx lost",*maxCxWt);}
-  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("UDP cx lost",*maxCxWu);}
+  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("TCP cx lost ",*maxCxWt);}
+  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("UDP cx lost ",*maxCxWu);}
 }
 
 void wdReboot(char* msg,unsigned long maxCx)
 {
     trigwd();
+    Serial.print(msg);Serial.print(maxCx/1000);Serial.println("sec");delay(4);
     histoStore_textdh(WDSD,msg,"<br>\n\0");
     periTableSave();
     mail("reBOOT",msg);
-    Serial.print("no cx for ");Serial.print(maxCx/1000);Serial.println("sec");
     forceWd();                             // wait for hardware watchdog
 }
 
@@ -1277,7 +1277,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 14: {byte a=*(libfonctions+2*i);byte b=*(libfonctions+2*i+1);                     // (ligne peritable) - tests de perif serveur
                         char fptst[LENNOM+1];                            
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
-                        uint8_t k=0;uint8_t zer[]={2,0};
+                        uint8_t k=0;uint8_t zer[]={0,2};
                         extern char mailToAddr[];
                         char msg[64]="TEST==";strcat(msg,mailToAddr1);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';strcat(msg,alphaDate());
                         periCur=b-PMFNCHAR;periLoad(periCur);
@@ -1391,12 +1391,13 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 46: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) usrpass[libf+1]
                        memset(usrpass+nb*(LENUSRPASS+1),0x00,LENUSRPASS+1);memcpy(usrpass+nb*(LENUSRPASS+1),valf,nvalf[i+1]-nvalf[i]);
                        }break;                       
-              case 47: cfgServerHtml(&cli);configPrint();break;                                         // bouton config
-              case 48: what=6;                                                                          // submit depuis cfgServervHtml 1ère fonction 
-                       memset(userpass,0x00,LPWD);memcpy(userpass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) pwdcfg____
+              case 47: cfgServerHtml(&cli);break;                                                       // bouton config
+/*
+              case 48: memset(userpass,0x00,LPWD);memcpy(userpass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) pwdcfg____ // submit depuis cfgServervHtml
               case 49: memset(modpass,0x00,LPWD);memcpy(modpass,valf,nvalf[i+1]-nvalf[i]);break;        // (config) modpcfg___
-              case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__                               
-              case 51: switch(*(libfonctions+2*i+1)){                                                   // (config) eth config
+              case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__ // submit depuis cfgServervHtml                              
+*/
+              case 51: what=6;switch(*(libfonctions+2*i+1)){                                            // (config) eth config
                           case 'i': break;memset(localIp,0x00,4);                                       // (config) localIp
 //                                    for(j=0;j<4;j++){conv_atob(valf,localIp+j);}break;   // **** à faire ****
                           case 'p': *portserver=0;conv_atob(valf,portserver);break;                     // (config) portserver
@@ -1614,7 +1615,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                   cli.stop();
                   cliext.stop();
                   periMess=periReq(&cliext,periCur,"set_______");break;
-          case 6: configSave();cfgServerHtml(&cli);break;               // config serveur
+          case 6: configPrint();configSave();cfgServerHtml(&cli);break; // config serveur
           case 7: timersSave();timersHtml(&cli);break;                  // timers
           case 8: remoteSave();cfgRemoteHtml(&cli);break;               // bouton remotecfg puis submit
           case 9: periRemoteUpdate();remoteHtml(&cli);                  // bouton remotehtml ou remote ctl puis submit 
@@ -1624,15 +1625,15 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                   cli.stop();
                   cliext.stop();
                   periMess=perToSend(tablePerToSend,remotetime);break; 
-          case 10:memDetSave();periDetecUpdate();periTableHtml(&cli);  // bouton submit détecteurs serveur
+          case 10:memDetSave();periDetecUpdate();periTableHtml(&cli);   // bouton submit détecteurs serveur
                   /* voir periRemoteUpdate() */
                   cli.stop();
                   cliext.stop();
                   periMess=perToSend(tablePerToSend,srvdettime);break;
-          case 11:memDetSave();cfgDetServHtml(&cli);break;                // bouton cfgdetserv puis submit         
-          case 12:thermosSave();thermoCfgHtml(&cli);break;                // thermos
+          case 11:memDetSave();cfgDetServHtml(&cli);break;              // bouton cfgdetserv puis submit         
+          case 12:thermosSave();thermoCfgHtml(&cli);break;              // thermos
           case 13:memosSave(-1);
-                  periSave(periCur,PERISAVESD);                          // bouton submit periLine (MàJ/analog/digital)                                             
+                  periSave(periCur,PERISAVESD);                         // bouton submit periLine (MàJ/analog/digital)                                             
                   periLineHtml(&cli,periCur);break;                                                                                                           
 
           default:accueilHtml(&cli);break;

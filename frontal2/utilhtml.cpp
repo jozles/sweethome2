@@ -541,6 +541,12 @@ void printPeriDate(EthernetClient* cli,char* periDate)
   unpackDate(dateascii,periDate);for(j=0;j<12;j++){cli->print(dateascii[j]);if(j==5){cli->print(" ");}}cli->println("<br>");
 }
 
+void bufPrintPeriDate(char* buf,char* periDate)
+{
+  char dateascii[12];
+  int j;
+  unpackDate(dateascii,periDate);for(j=0;j<12;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}strcat(buf,"<br>\n");
+}
 
 void boutonHtml(EthernetClient* cli,byte* valfonct,char* nomfonct,uint8_t sw,uint8_t td)      
 {

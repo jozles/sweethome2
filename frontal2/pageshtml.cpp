@@ -97,27 +97,26 @@ extern uint16_t  sourceDetServ[NBDSRV];
 
 
 
-int htmlImg(EthernetClient* cli,char* fimgname)    // suffisant pour commande péripheriques
+int htmlImg(EthernetClient* cli,char* fimgname)   
 {
         Serial.print(fimgname);
-        File32 fimg; // = SD.open(fimgname,FILE_READ);
+        File32 fimg;                              // = SD.open(fimgname,FILE_READ);
         if(sdOpen(fimgname,&fimg)==SDKO){return SDKO;}
         else {
   
           cli->println("HTTP/1.1 200 OK");
           cli->println("CONTENT-Type: image/jpg");
-          //cli->println("<link rel="icon" type="image/png" href="favicon.png\" sizes=\"64x64\">");
           cli->println();
 
           long fimgSiz=fimg.size();
           byte c;
           char icon[2048];memset(icon,0x00,2048);
           long ll=0;
-          Serial.print(" size=");Serial.print(fimgSiz);
+          Serial.print(" size=");Serial.println(fimgSiz);
           while (fimgSiz>0){c=fimg.read();cli->write(&c,1);fimgSiz--;icon[ll]=c;ll++;}
           fimg.close();
-          delay(1);
-          dumpstr(icon,512);
+          //delay(1);
+          //dumpstr(icon,512);
         }
         Serial.println(" terminé");
         cli->stop();
@@ -306,115 +305,110 @@ void sscfgtB(char* buf,char* nom,uint8_t nb,void* value,int len,uint8_t type)  /
   if(type==1){strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatn(buf,len);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");}
   if(type==3){concatn(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
 }
-
-void sscfgt(EthernetClient* cli,char* nom,uint8_t nb,void* value,int len,uint8_t type)  // type=0 value ok ; type =1 (char)value modulo len*nt ; type =2 (uint16_t)value modulo nb
+/*
+void sscfgt(char* buf,char* nom,uint8_t nb,void* value,int len,uint8_t type)  // type=0 value ok ; type =1 (char)value modulo len*nt ; type =2 (uint16_t)value modulo nb
 {
   int sizbx=len-3;if(sizbx<=0){sizbx=1;}
-  cli->print("<td><input type=\"text\" name=\"");cli->print(nom);cli->print((char)(nb+PMFNCHAR));cli->print("\" value=\"");
-  if(type==0){cli->print((char*)value);cli->print("\" size=\"");cli->print(sizbx);cli->print("\" maxlength=\"");cli->print(len);cli->println("\" ></td>");}
-  if(type==2){cli->print(*((int16_t*)value+nb));cli->println("\" size=\"1\" maxlength=\"2\" ></td>");}
-  if(type==1){cli->print((char*)(((char*)value+(nb*(len+1)))));cli->print("\" size=\"");cli->print(len);cli->print("\" maxlength=\"");cli->print(len);cli->println("\" ></td>");}
-  if(type==3){cli->print(*((int8_t*)value));cli->println("\" size=\"1\" maxlength=\"2\" ></td>");}
-}
+  strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nom);concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
+  if(type==0){strcat(buf,(char*)value);stract(buf,"\" size=\"");concatns(buf,sizbx);strcat(buf,"\" maxlength=\"");concatns(buf,len);strcat(buf,"\" ></td>\n");}
+  if(type==2){concatns(buf,*((int16_t*)value+nb));stract(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
+  if(type==1){strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatns(buf,len);strcat(buf,"\" maxlength=\"");concatns(buf,len);strcat(buf,"\" ></td>\n");}
+  if(type==3){concatns(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
+}*/
 
-void subcfgtable(EthernetClient* cli,char* titre,int nbl,char* nom1,char* value1,int len1,uint8_t type1,char* nom2,void* value2,int len2,char* titre2,uint8_t type2)
-{
-    cli->println("<table><col width=\"22\">");
-    cli->println("<tr>");
-    cli->print("<th></th><th>");cli->print(titre);cli->print("</th><th>");cli->print(titre2);cli->println("</th>");
-    cli->println("</tr>");
+void subcfgtable(char* buf,char* titre,int nbl,char* nom1,char* value1,int len1,uint8_t type1,char* nom2,void* value2,int len2,char* titre2,uint8_t type2)
+{   
+    strcat(buf,"<table><col width=\"22\"><tr><th></th><th>");strcat(buf,titre);strcat(buf,"</th><th>");strcat(buf,titre2);strcat(buf,"</th></tr>\n");
 
     for(int nb=0;nb<nbl;nb++){
-      cli->println("<tr>");
-      cli->print("<td>");cli->print(nb);cli->print("</td>");
+      strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td>");
 
-      sscfgt(cli,nom1,nb,value1,len1,type1);                      
-      sscfgt(cli,nom2,nb,value2,len2,type2);
+      sscfgtB(buf,nom1,nb,value1,len1,type1);                      
+      sscfgtB(buf,nom2,nb,value2,len2,type2);
 
       if(len2==-1){
         int16_t peri=*((int16_t*)value2+nb);
-        if(peri>0){Serial.print(peri);periLoad(peri);cli->println("<td>");cli->println(periNamer);cli->println("</td>");}
+        if(peri>0){Serial.print(peri);periLoad(peri);strcat(buf,"<td>");strcat(buf,periNamer);strcat(buf,"</td>");}
         if(nb==nbl-1){Serial.println();}
       }
-      cli->println("</tr>");
+      strcat(buf,"</tr>");
     }
-    cli->println("</table>");          
+    strcat(buf,"</table>");
 }
 
 void cfgServerHtml(EthernetClient* cli)
 {
             Serial.println(" config serveur");
-            
-            htmlIntro(nomserver,cli);
-            
-            cli->println("<body><form method=\"get\" >");
-            cli->println(VERSION);cli->println("<br>");
 
-            usrFormHtml(cli,1);
+            char buf[LBUF4000];buf[0]=0x00;
+ 
+            htmlIntroB(buf,nomserver,cli);
+            pageHeader(buf);
+            usrFormBHtml(buf,1);
+            boutRetourB(buf,"retour",0,0);
+            cli->print(buf);buf[0]=0;
             
-            boutRetour(cli,"retour",0,0);
-            
-            cli->println(" <input type=\"submit\" value=\"MàJ\"><br>");
+            strcat(buf," <input type=\"submit\" value=\" MàJ \"><br> \n");
             
             /*cli->print(" password <input type=\"text\" name=\"pwdcfg____\" value=\"");cli->print(userpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");
             cli->print("  modpass <input type=\"text\" name=\"modpcfg___\" value=\"");cli->print(modpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");            
             cli->print(" peripass <input type=\"text\" name=\"peripcfg__\" value=\"");cli->print(peripass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");*/
 
-            cli->print(" serverMac <input type=\"text\" name=\"ethcfg___m\" value=\"");for(int k=0;k<6;k++){cli->print(chexa[mac[k]/16]);cli->print(chexa[mac[k]%16]);}cli->print("\" size=\"11\" maxlength=\"");cli->print(12);cli->println("\" >");                        
-            cli->print(" localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");for(int k=0;k<4;k++){cli->print(localIp[k]);if(k!=3){cli->print(".");}}cli->print("\" size=\"11\" maxlength=\"");cli->print(15);cli->println("\" >");                        
-            cli->print(" portserver ");numTableHtml(cli,'d',portserver,"ethcfg___p",4,0,0);cli->println("<br>");
+            strcat(buf," serverMac <input type=\"text\" name=\"ethcfg___m\" value=\"");
+            for(int k=0;k<6;k++){concat1a(buf,chexa[mac[k]/16]);concat1a(buf,chexa[mac[k]%16]);}strcat(buf,"\" size=\"11\" maxlength=\"12\" >\n");                        
+            strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
+            for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
+            strcat(buf," portserver ");numTf(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
+            cli->print(buf);buf[0]=0;
+            subcfgtable(buf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
+            cli->print(buf);buf[0]=0;
+            strcat(buf," to password ");numTf(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
+            subcfgtable(buf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
+            cli->print(buf);buf[0]=0;
+            
+            strcat(buf," mail From <input type=\"text\" name=\"mailcfg__f\" value=\"");strcat(buf,mailFromAddr);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" >\n");
+            strcat(buf," password  <input type=\"text\" name=\"mailcfg__w\" value=\"");strcat(buf,mailPass);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" ><br>\n");
+            strcat(buf," mail To 1 <input type=\"text\" name=\"mailcfg__1\" value=\"");strcat(buf,mailToAddr1);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" >\n");
+            strcat(buf," mail To 2 <input type=\"text\" name=\"mailcfg__2\" value=\"");strcat(buf,mailToAddr2);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" ><br>\n");
+            
+            strcat(buf," perif 1 ");numTf(buf,'d',periMail1,"mailcfg__p",2,0,0);strcat(buf,"<br>\n");
+            strcat(buf," perif 2 ");numTf(buf,'d',periMail2,"mailcfg__q",2,0,0);strcat(buf,"<br>\n");
 
-            subcfgtable(cli,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
-            cli->print(" to password");numTableHtml(cli,'d',toPassword,"to_passwd_",6,0,0);cli->println("<br>");
-            subcfgtable(cli,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
-          
-            //subcfgtable(cli,"THERMO",NBTHERMO,"thername_",thermonames,LENTHNAME,1,"therperi_",thermoperis,-1,"peri",2);
-
-            cli->print(" mail From <input type=\"text\" name=\"mailcfg__f\" value=\"");cli->print(mailFromAddr);cli->print("\" size=\"16\" maxlength=\"");cli->print(LMAILPWD);cli->println("\" >");
-            cli->print(" password  <input type=\"text\" name=\"mailcfg__w\" value=\"");cli->print(mailPass);cli->print("\" size=\"16\" maxlength=\"");cli->print(LMAILPWD);cli->println("\" ><br>");            
-            cli->print(" mail To 1 <input type=\"text\" name=\"mailcfg__1\" value=\"");cli->print(mailToAddr1);cli->print("\" size=\"16\" maxlength=\"");cli->print(LMAILADD);cli->println("\" >");
-            cli->print(" perif 1 ");numTableHtml(cli,'d',periMail1,"mailcfg__p",2,0,0);cli->println("<br>");
-            cli->print(" mail To 2 <input type=\"text\" name=\"mailcfg__2\" value=\"");cli->print(mailToAddr2);cli->print("\" size=\"16\" maxlength=\"");cli->print(LMAILADD);cli->println("\" >");
-            cli->print(" perif 2 ");numTableHtml(cli,'d',periMail1,"mailcfg__q",2,0,0);cli->println("<br>");
-
-            cli->print("maxCxWt ");numTableHtml(cli,'l',maxCxWt,"ethcfg___q",8,0,0);
-            cli->print(" maxCxWu ");numTableHtml(cli,'l',maxCxWu,"ethcfg___r",8,0,0);cli->println("<br>");
-            cli->println("</form></body></html>");
+            strcat(buf,"maxCxWt ");numTf(buf,'l',maxCxWt,"ethcfg___q",8,0,0);
+            strcat(buf," maxCxWu ");numTf(buf,'l',maxCxWu,"ethcfg___r",8,0,0);strcat(buf,"<br>\n");
+            strcat(buf,"</form></body></html>\n");
+            
+            cli->print(buf);buf[0]=0;
 }
 
 void cfgDetServHtml(EthernetClient* cli)
 {
   
             Serial.println(" config detServ");
-            htmlIntro(nomserver,cli);
-            
-            cli->println("<body><form method=\"get\" >");
-            cli->println(VERSION);cli->println("<br>");
-            
-            usrFormHtml(cli,1);
-            boutRetour(cli,"retour",0,0);
 
-            cli->println(" <input type=\"submit\" value=\"MàJ\"><br>");
+            char buf[LBUF4000];buf[0]=0x00;
+ 
+            htmlIntroB(buf,nomserver,cli);
+            pageHeader(buf);
+            usrFormBHtml(buf,1);
+            boutRetourB(buf,"retour",0,0);
+            cli->print(buf);buf[0]=0;
+            
+            strcat(buf," <input type=\"submit\" value=\" MàJ \"><br>\n");
 
 /* table libellés */
 
-              cli->println("<table>");
-              cli->println("<tr>");
-              cli->println("<th>   </th><th>      Nom      </th>");
-              cli->println("</tr>");
+            strcat(buf,"<table><tr><th>   </th><th>      Nom      </th></tr>\n");
 
               for(int nb=0;nb<NBDSRV;nb++){
+                if((nb-(nb/10)*10)==0){cli->print(buf);buf[0]=0;}
                 uint8_t decal=0;if(nb>=16){decal=16;}
-                cli->println("<tr>");
-                
-                cli->print("<td>");cli->print(nb);cli->print("</td>");                       // n° detserv
-                cli->print("<td><input type=\"text\" name=\"libdsrv__");cli->print((char)(nb+decal+PMFNCHAR));cli->print("\" value=\"");
-                        cli->print((char*)&libDetServ[nb][0]);cli->print("\" size=\"12\" maxlength=\"");cli->print(LENLIBDETSERV-1);cli->println("\" ></td>");
-                   
-                cli->println("</tr>");
+                strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td><td><input type=\"text\" name=\"libdsrv__");concat1a(buf,(char)(nb+decal+PMFNCHAR));
+                strcat(buf,"\" value=\"");strcat(buf,(char*)&libDetServ[nb][0]);strcat(buf,"\" size=\"12\" maxlength=\"");concatns(buf,(LENLIBDETSERV-1));
+                strcat(buf,"\" ></td></tr>\n");
               }
-            cli->println("</table><br>");
-            cli->println("</form></body></html>");
+            strcat(buf,"</table><br></form></body></html>");
+            cli->print(buf);buf[0]=0;
 }
 
 
@@ -424,15 +418,16 @@ void cfgRemoteHtml(EthernetClient* cli)
   uint8_t val;
   
             Serial.println(" config remote");
-            htmlIntro(nomserver,cli);
             
-            cli->println("<body><form method=\"get\" >");
-            cli->println(VERSION);cli->println();
+            char buf[LBUF4000];buf[0]=0x00;
+ 
+            htmlIntroB(buf,nomserver,cli);
+            pageHeader(buf);
+            usrFormBHtml(buf,1);
+            boutRetourB(buf,"retour",0,0);
+            cli->print(buf);buf[0]=0;
             
-            usrFormHtml(cli,1);
-            boutRetour(cli,"retour",0,0);
-            cli->println(" <input type=\"submit\" value=\"MàJ\">");
-            char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
+            cli->println(" <input type=\"submit\" value=\"MàJ\"><br>");
 
 /* table remotes */
 
@@ -517,12 +512,9 @@ void remoteHtml(EthernetClient* cli)
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            strcat(buf,"<br>");
             cli->print(buf);buf[0]=0;
             
-
 /* table remotes */
-
            
             strcat(buf,"<table>");            
 
@@ -567,10 +559,10 @@ void remoteHtml(EthernetClient* cli)
             }
             strcat(buf,"</table>");
             
-            strcat(buf,"<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>");
-            boutF(buf,"thermoshow","","températures",0,0,7,0);strcat(buf," ");
+            strcat(buf,"<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
+            boutF(buf,"thermoshow","","températures",0,0,7,0);strcat(buf," \n");
             boutF(buf,"remotehtml","","refresh",0,0,7,0);
-            strcat(buf,"</p>");
+            strcat(buf,"</p>\n");
             
             strcat(buf,"</form></body></html>");
             cli->print(buf);buf[0]='\0';
@@ -580,6 +572,9 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
 {
   
 /* --- calcul date début --- */
+
+
+  unsigned long t0=millis();
   
   int   ldate=LDATEA;
 
@@ -603,7 +598,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   fhisto.seek(curpos);
   long pos=fhisto.position();  
   
-  Serial.print("--- start search date at ");Serial.print(curpos-searchStep);Serial.print(" histoSiz=");Serial.print(histoSiz);Serial.print(" pos=");Serial.print(pos);Serial.print(" (millis=");Serial.print(millis());Serial.println(")");
+  Serial.print("--- start search date at ");Serial.print(curpos-searchStep);Serial.print(" histoSiz=");Serial.print(histoSiz);Serial.print(" pos=");Serial.println(pos);
 
 /* --- recherche 1ère ligne --- */
 
@@ -630,11 +625,11 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
       }
     }
   }
-  Serial.print("--- fin recherche ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.print(millis());Serial.println("");
+  Serial.print("--- fin recherche ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
 
 /* --- balayage et màj --- */
 
-  unsigned long t0=millis();
+  unsigned long t1=millis();
   char strfds[3];memset(strfds,0x00,3);
   if(convIntToString(strfds,fdatasave)>2){
     Serial.print("fdatasave>99!! ");Serial.print("fdatasave=");Serial.print(fdatasave);Serial.print(" strfds=");Serial.println(strfds);ledblink(BCODESYSERR);
@@ -643,6 +638,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   int16_t th_;
   uint8_t np_;
   int lnp=0,nbli=0,nbth=0;
+  bool save=false;
 
   for(int pp=1;pp<=NBPERIF;pp++){periLoad(pp);*periThmin_=9900;*periThmax_=-9900;periSave(pp,PERISAVELOCAL);}
                                                                              
@@ -665,58 +661,44 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
       packMac(periMacBuf,pc+HISTOPOSMAC);                       
       if(compMac(periMacBuf,periMacr) && th_<9900 && th_>-9900){                                  // contrôle mac
 //        Serial.println(buf);Serial.print(" per=");Serial.print(np_);Serial.print(" th=");Serial.print(th_);Serial.print(" thmin=");Serial.print(*periThmin_);Serial.print(" thmax=");Serial.print(*periThmax_);Serial.print(" - ");
-        if(*periThmin_>th_){*periThmin_=(int16_t)th_;periSave(np_,PERISAVELOCAL);nbth++;Serial.print(" maj ");}
-        if(*periThmax_<th_){*periThmax_=(int16_t)th_;periSave(np_,PERISAVELOCAL);nbth++;Serial.print(" maj ");} 
+        save=false;
+        if(*periThmin_>th_){*periThmin_=(int16_t)th_;save=true;}
+        if(*periThmax_<th_){*periThmax_=(int16_t)th_;save=true;}
+        if(save){periSave(np_,PERISAVELOCAL);nbth++;}
 //        Serial.println();
       }
     }
   }
   
-  for(uint16_t pp=1;pp<=NBPERIF;pp++){periLoad(pp);if(periMacr[0]!=0x00){periSave(pp,PERISAVESD);}}   // écriture SD
+  periTableSave();
   
-  Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);Serial.print(" màj ; millis=");Serial.print(millis()-t0);Serial.println("");
- 
-  fhisto.seek(pos);
-  return sdOpen("fdhisto.txt",&fhisto);
-}
+  Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);
+  Serial.print(" màj ; millis=");Serial.print(millis()-t1);Serial.print(" total=");Serial.print(millis()-t0);
 
-void intro(EthernetClient* cli)
-{
-  htmlIntro0(cli);
-  cli->println("<head><title>sweet hdev</title>");
-  
-  cli->println("<style>");
-  cli->println("table {");
-  cli->println("font-family: Courier, sans-serif;");
-  cli->println("border-collapse: collapse;");
-  cli->println("overflow: auto;");
-  cli->println("white-space:nowrap;");
-  cli->println("}");
-  cli->println("td, th {");
-  cli->println("border: 1px solid #dddddd;");
-  cli->println("text-align: left;");
-  cli->println("}");
-  cli->println("</style>");
-  
-  cli->println("</head>");
+  Serial.println(" close");delay(2);
+  //fhisto.seek(end);
+  return 1;
+  //return sdOpen("fdhisto.txt",&fhisto);
 }
 
 void thermoShowHtml(EthernetClient* cli)
 {
-          
-            scalcTh(1);          // update periphériques
-            intro(cli);
+            Serial.println(" show thermos");
             
-            cli->print("<body>");cli->print(VERSION);cli->print(" ");
-            boutRetour(cli,"retour",0,0);cli->print(" ");
+            char buf[4000];buf[0]=0x00;
 
+            htmlIntroB(buf,nomserver,cli);
+            pageHeader(buf);
+            usrFormBHtml(buf,1);
+            boutRetourB(buf,"retour",0,0);
+            strcat(buf,"<br>");
+            cli->print(buf);buf[0]=0;
+ 
+            scalcTh(1);          // update periphériques
 
 /* peritable températures */
 
-         cli->println("<table>");
-              cli->println("<tr>");
-                cli->println("<th>peri</th><th></th><th>TH</th><th>min</th><th>max</th><th>last in</th>");
-              cli->println("</tr>");
+         strcat(buf,"<table><tr><th>peri</th><th></th><th>TH</th><th>min</th><th>max</th><th>last in</th></tr>\n");
 
               for(int nuth=0;nuth<NBTHERMOS;nuth++){
                 int16_t nuper=thermos[nuth].peri;
@@ -724,26 +706,27 @@ void thermoShowHtml(EthernetClient* cli)
                   periInitVar();periCur=nuper;periLoad(periCur);
 
                   if(periMacr[0]!=0x00){
-                    cli->println("<tr>");
-                      //cli->print("<td>");cli->print(nuth+1);cli->print("</td>");
-                      cli->print("<td>");cli->print(periCur);cli->println("</td>");
-                      cli->print("<td> <font size=\"7\">");cli->print(thermos[nuth].nom);cli->println("</font></td>");
-                      cli->print("<td> <font size=\"7\">");cli->print((float)(*periLastVal_+*periThOffset_)/100);cli->println("</font></td>");
-                      cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print((float)*periThmin_/100);cli->println("</div></td>");
-                      cli->print("<td> <div style='text-align:right; font-size:30px;'>");cli->print((float)*periThmax_/100);cli->println("</div></td>");
-                      cli->print("<td>");printPeriDate(cli,periLastDateIn);cli->println("</td>");                      
-                    cli->println("</tr>");
+                    strcat(buf,"<tr><td>");concatns(buf,periCur);strcat(buf,"</td>\n");
+                    strcat(buf,"<td> <font size=\"7\">");strcat(buf,thermos[nuth].nom);strcat(buf,"</font></td>\n");
+                    strcat(buf,"<td> <font size=\"7\">");concatnf(buf,(float)(*periLastVal_+*periThOffset_)/100,2);strcat(buf,"</font></td>\n");
+                    strcat(buf,"<td> <div style='text-align:right; font-size:30px;'>");concatnf(buf,(float)*periThmin_/100,2);strcat(buf,"</div></td>\n");
+                    strcat(buf,"<td> <div style='text-align:right; font-size:30px;'>");concatnf(buf,(float)*periThmax_/100,2);strcat(buf,"</div></td>\n");
+                    strcat(buf,"<td>");bufPrintPeriDate(buf,periLastDateIn);strcat(buf,"</td>\n");                      
+                    strcat(buf,"</tr>\n");
+                    if((nuth-(nuth/8)*8)==0){cli->print(buf);buf[0]='\0';}
                   }
                 }
               }
-          cli->println("</table>");
+          strcat(buf,"</table><br>\n");
 
-        cli->print("<p align=\"center\">");
-        boutFonction(cli,"remotehtml","","remote",0,0,7,0);cli->print(" ");                        
-        boutFonction(cli,"thermoshow","","refresh",0,0,7,0);
-        cli->print("</p>");
-        cli->print("<br><br><br>");for(int d=0;d<NBDSRV;d++){cli->print((char)(((memDetServ>>d)&0x01)+48));cli->print(" ");}
-        cli->println("/n</body></html>");
+        strcat(buf,"<p align=\"center\">");
+        boutF(buf,"remotehtml","","remote",0,0,7,0);                
+        boutF(buf,"thermoshow","","refresh",0,0,7,0);
+        
+        strcat(buf,"</p><br>");for(int d=0;d<NBDSRV;d++){concat1a(buf,(char)(((memDetServ>>d)&0x01)+48));strcat(buf," ");}
+        strcat(buf,"\n</body></html>\n");
+        
+        cli->print(buf);buf[0]='\0';
 }
 
 void subthd(EthernetClient* cli,char param,uint8_t nb,void* val,char type)
@@ -767,15 +750,16 @@ void thermoCfgHtml(EthernetClient* cli)
   uint8_t val;
   
             Serial.println(" config thermos");
-            htmlIntro(nomserver,cli);
-            
-            cli->println("<body>");
-            cli->println(VERSION);cli->println();
-            
-            boutRetour(cli,"retour",0,0);
+
+            char buf[LBUF4000];buf[0]=0x00;
+ 
+            htmlIntroB(buf,nomserver,cli);
+            pageHeader(buf);
+            usrFormBHtml(buf,1);
+            boutRetourB(buf,"retour",0,0);
+            cli->print(buf);buf[0]=0;
+
             boutFonction(cli,"thermoscfg","","refresh",0,0,1,0);cli->print(" ");
-            
-            char pkdate[7];cliPrintDateHeure(cli,pkdate);cli->println();
 
 /* table thermos */
 

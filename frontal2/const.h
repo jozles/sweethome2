@@ -84,7 +84,6 @@
 
    à faire :
    
-      ajouter sauvegarde horaire du cache des périphériques
       gérer le periLoad KO dans periTableLoad
       remplacer date14 par date unix sur 8 digits dans les messages ACK et SET
 
