@@ -49,8 +49,33 @@ extern uint16_t* periMail1;
 extern File32 fhisto;           // fichier histo sd card
 extern long   fhsize;           // remplissage fhisto
 
-
 extern EthernetClient cliext;
+
+int writeEth0(EthernetClient* cli,char* buf, uint16_t len)
+{
+  #define ETHTO 1000
+  unsigned long beg=millis();
+  bool sta=0;
+
+  while(millis()-beg < ETHTO){
+    if(cli->availableForWrite()){cli->write(buf,len);sta=1;break;}
+  }
+  return sta;
+}
+
+int writeEth(EthernetClient* cli,char* buf)
+{
+  long i=0,j=strlen(buf);
+  char a;
+  bool sta=1;
+
+  while (j>=2048){
+    sta=writeEth0(cli,buf+i,2048);
+    if(!sta){j=-1;break;}
+    j-=2048;i+=2048;}
+  if(j>0){sta=writeEth0(cli,buf+i,j);}
+  return sta;
+}
 
 void mail(char* a,char* mm)
 {

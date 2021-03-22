@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include "ds3231.h"
 #include "const.h"
-//#include <Wire.h>
 #include <shconst2.h>
 #include <shutil2.h>
 #include "utilether.h"
@@ -130,7 +129,7 @@ void htmlFavicon(EthernetClient* cli)
 
 void dumpHisto(EthernetClient* cli)
 { 
-  char buf[1000];buf[0]=0;
+  char buf[1000];buf[0]='\0';
   long pos=histoPos;
   char file[]={"fdhisto.txt"};
 
@@ -138,7 +137,7 @@ void dumpHisto(EthernetClient* cli)
   htmlIntroB(buf,nomserver,cli);
   pageHeader(buf);
   boutRetourB(buf,"retour",0,1);
-  cli->print(buf);buf[0]=0;
+  writeEth(cli,buf);buf[0]='\0';
 
   trigwd();
   cli->print("histoSD ");
@@ -153,7 +152,7 @@ void dumpHisto(EthernetClient* cli)
 
   boutRetourB(buf,"retour",0,1);
   strcat(buf,"</body></html>");
-  cli->print(buf);buf[0]=0;
+  writeEth(cli,buf);buf[0]='\0';
 }
 
 void shDateHist(char* dhasc,long* pos)
@@ -241,7 +240,7 @@ void shDicDateHist(char* dhasc,long* but)
 }
 
 void dumpHisto0(EthernetClient* cli,long histoPos)                 // liste le fichier histo depuis une adresse
-{  
+{
   long fhsiz=fhisto.size();
   cli->print(histoPos);cli->print("/");cli->print(fhsize);cli->println("<br>");
   
@@ -250,18 +249,18 @@ void dumpHisto0(EthernetClient* cli,long histoPos)                 // liste le f
   long ptr0=ptr;
   long ptra=ptr;
   
-#define LBUF 2000  
-  char buf[LBUF];buf[0]='\0';
+  const uint16_t lb0=LBUF4000;
+  char buf[lb0];buf[0]='\0';
 
   fhisto.seek(histoPos);
   
   while(ptr<fhsize){
     trigwd();
-    while((ptr-ptra)<(LBUF-2) && ptr<fhsize){           // -1 for end null char
+    while((ptr-ptra) < lb0 && ptr<fhsize){           // -1 for end null char
       buf[ptr-ptra]=fhisto.read();ptr++;
     }
     buf[ptr-ptra]='\0';
-    cli->print(buf);
+    writeEth(cli,buf);
     ptra=ptr;
     if((ptr-ptr0)>1000000){break;}
   }
@@ -340,13 +339,13 @@ void cfgServerHtml(EthernetClient* cli)
 {
             Serial.println(" config serveur");
 
-            char buf[LBUF4000];buf[0]=0x00;
+            char buf[LBUF4000];buf[0]='\0';
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
             
             strcat(buf," <input type=\"submit\" value=\" MàJ \"><br> \n");
             
@@ -359,12 +358,13 @@ void cfgServerHtml(EthernetClient* cli)
             strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
             for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
             strcat(buf," portserver ");numTf(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
             subcfgtable(buf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
             strcat(buf," to password ");numTf(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
             subcfgtable(buf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
-            cli->print(buf);buf[0]=0;
+            
+            writeEth(cli,buf);buf[0]='\0';
             
             strcat(buf," mail From <input type=\"text\" name=\"mailcfg__f\" value=\"");strcat(buf,mailFromAddr);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" >\n");
             strcat(buf," password  <input type=\"text\" name=\"mailcfg__w\" value=\"");strcat(buf,mailPass);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" ><br>\n");
@@ -378,7 +378,7 @@ void cfgServerHtml(EthernetClient* cli)
             strcat(buf," maxCxWu ");numTf(buf,'l',maxCxWu,"ethcfg___r",8,0,0);strcat(buf,"<br>\n");
             strcat(buf,"</form></body></html>\n");
             
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
 }
 
 void cfgDetServHtml(EthernetClient* cli)
@@ -386,13 +386,16 @@ void cfgDetServHtml(EthernetClient* cli)
   
             Serial.println(" config detServ");
 
-            char buf[LBUF4000];buf[0]=0x00;
+            uint16_t lb0=LBUF4000;
+            char buf[lb0];buf[0]='\0';
+            uint8_t ni=0;
+            uint16_t lb;
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
             
             strcat(buf," <input type=\"submit\" value=\" MàJ \"><br>\n");
 
@@ -401,14 +404,15 @@ void cfgDetServHtml(EthernetClient* cli)
             strcat(buf,"<table><tr><th>   </th><th>      Nom      </th></tr>\n");
 
               for(int nb=0;nb<NBDSRV;nb++){
-                if((nb-(nb/10)*10)==0){cli->print(buf);buf[0]=0;}
+                ni++;               
                 uint8_t decal=0;if(nb>=16){decal=16;}
                 strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td><td><input type=\"text\" name=\"libdsrv__");concat1a(buf,(char)(nb+decal+PMFNCHAR));
                 strcat(buf,"\" value=\"");strcat(buf,(char*)&libDetServ[nb][0]);strcat(buf,"\" size=\"12\" maxlength=\"");concatns(buf,(LENLIBDETSERV-1));
                 strcat(buf,"\" ></td></tr>\n");
+                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}
               }
             strcat(buf,"</table><br></form></body></html>");
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
 }
 
 
@@ -419,13 +423,13 @@ void cfgRemoteHtml(EthernetClient* cli)
   
             Serial.println(" config remote");
             
-            char buf[LBUF4000];buf[0]=0x00;
+            char buf[LBUF4000];buf[0]='\0';
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
             
             cli->println(" <input type=\"submit\" value=\"MàJ\"><br>");
 
@@ -505,20 +509,24 @@ void cfgRemoteHtml(EthernetClient* cli)
 void remoteHtml(EthernetClient* cli)
 {              
             Serial.println("remote control");
-            
-            char buf[LBUF4000];buf[0]=0x00;
+
+            uint16_t lb0=LBUF4000;
+            char buf[lb0];buf[0]='\0';
+            uint8_t ni=0;                                       // nbre lignes dans buffer
+            uint16_t lb;
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
             
 /* table remotes */
            
             strcat(buf,"<table>");            
 
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
+              ni++;
               if(remoteN[nb].nam[0]!='\0'){
                 strcat(buf,"<tr><td>");concatn(buf,nb+1);strcat(buf,"</td>\n");  // numéro de ligne
 
@@ -554,9 +562,10 @@ void remoteHtml(EthernetClient* cli)
 
                 strcat(buf,"</tr>");
                 //if(strlen(buf)+1000>=LBUF4000){
-                cli->print(buf);buf[0]='\0';
-             } 
+                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}               
+             }
             }
+            if(buf[0]!='\0'){writeEth(cli,buf);buf[0]='\0';}
             strcat(buf,"</table>");
             
             strcat(buf,"<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
@@ -565,7 +574,7 @@ void remoteHtml(EthernetClient* cli)
             strcat(buf,"</p>\n");
             
             strcat(buf,"</form></body></html>");
-            cli->print(buf);buf[0]='\0';
+            writeEth(cli,buf);buf[0]='\0';
 }
 
 int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd derniers jours
@@ -675,7 +684,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);
   Serial.print(" màj ; millis=");Serial.print(millis()-t1);Serial.print(" total=");Serial.print(millis()-t0);
 
-  Serial.println(" close");delay(2);
+  delay(1);
   //fhisto.seek(end);
   return 1;
   //return sdOpen("fdhisto.txt",&fhisto);
@@ -685,14 +694,17 @@ void thermoShowHtml(EthernetClient* cli)
 {
             Serial.println(" show thermos");
             
-            char buf[4000];buf[0]=0x00;
+            uint16_t lb0=LBUF4000;
+            char buf[lb0];buf[0]='\0';
+            uint8_t ni=0;
+            uint16_t lb;
 
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             strcat(buf,"<br>");
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
  
             scalcTh(1);          // update periphériques
 
@@ -706,6 +718,7 @@ void thermoShowHtml(EthernetClient* cli)
                   periInitVar();periCur=nuper;periLoad(periCur);
 
                   if(periMacr[0]!=0x00){
+                    ni++;
                     strcat(buf,"<tr><td>");concatns(buf,periCur);strcat(buf,"</td>\n");
                     strcat(buf,"<td> <font size=\"7\">");strcat(buf,thermos[nuth].nom);strcat(buf,"</font></td>\n");
                     strcat(buf,"<td> <font size=\"7\">");concatnf(buf,(float)(*periLastVal_+*periThOffset_)/100,2);strcat(buf,"</font></td>\n");
@@ -713,7 +726,7 @@ void thermoShowHtml(EthernetClient* cli)
                     strcat(buf,"<td> <div style='text-align:right; font-size:30px;'>");concatnf(buf,(float)*periThmax_/100,2);strcat(buf,"</div></td>\n");
                     strcat(buf,"<td>");bufPrintPeriDate(buf,periLastDateIn);strcat(buf,"</td>\n");                      
                     strcat(buf,"</tr>\n");
-                    if((nuth-(nuth/8)*8)==0){cli->print(buf);buf[0]='\0';}
+                    lb=strlen(buf);if(lb0-lb<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}
                   }
                 }
               }
@@ -726,7 +739,7 @@ void thermoShowHtml(EthernetClient* cli)
         strcat(buf,"</p><br>");for(int d=0;d<NBDSRV;d++){concat1a(buf,(char)(((memDetServ>>d)&0x01)+48));strcat(buf," ");}
         strcat(buf,"\n</body></html>\n");
         
-        cli->print(buf);buf[0]='\0';
+        writeEth(cli,buf);buf[0]='\0';
 }
 
 void subthd(EthernetClient* cli,char param,uint8_t nb,void* val,char type)
@@ -751,13 +764,13 @@ void thermoCfgHtml(EthernetClient* cli)
   
             Serial.println(" config thermos");
 
-            char buf[LBUF4000];buf[0]=0x00;
+            char buf[LBUF4000];buf[0]='\0';
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            cli->print(buf);buf[0]=0;
+            writeEth(cli,buf);buf[0]='\0';
 
             boutFonction(cli,"thermoscfg","","refresh",0,0,1,0);cli->print(" ");
 
@@ -804,7 +817,7 @@ void timersHtml(EthernetClient* cli)
   int nucb;           
   char a;
   char bufdate[LNOW];ds3231.alphaNow(bufdate);
-  char buf[1000];buf[0]=0;
+  char buf[1000];buf[0]='\0';
   
             Serial.println("saisie timers");
             htmlIntroB(buf,nomserver,cli);
@@ -815,7 +828,7 @@ void timersHtml(EthernetClient* cli)
             boutF(buf,"timershtml","","refresh",0,0,1,0);strcat(buf," ");
 
             char pkdate[7];bufPrintDateHeure(buf,pkdate);strcat(buf,"\n");
-            cli->print(buf);buf[0]=0; // detServ print son propre buf
+            writeEth(cli,buf);buf[0]='\0'; // detServ print son propre buf
             detServHtml(cli,&memDetServ,&libDetServ[0][0]);
 
             strcat(buf,"<table>");
@@ -844,7 +857,7 @@ void timersHtml(EthernetClient* cli)
                       nucb=0;sscb(buf,timersN[nt].enable,"tim_chkb__",nucb,-1,0,nt);
                       nucb++;sscb(buf,timersN[nt].perm,"tim_chkb__",nucb,-1,0,nt);
                       nucb++;sscb(buf,timersN[nt].cyclic,"tim_chkb__",nucb,-1,0,nt);   
-cli->print(buf);buf[0]=0;                     
+writeEth(cli,buf);buf[0]='\0';                     
                       strcat(buf,"</td><td>");
                       for(int nj=7;nj>=0;nj--){
                         bool vnj; 
@@ -862,22 +875,28 @@ cli->print(buf);buf[0]=0;
                     strcat(buf,"</form>");
                     strcat(buf,"</tr>\n");
 
-                    cli->print(buf);buf[0]='\0';
+                    writeEth(cli,buf);buf[0]='\0';
                   }
 
         strcat(buf,"</table>");
         strcat(buf,"</body></html>");
-        cli->print(buf);buf[0]='\0';
+        writeEth(cli,buf);buf[0]='\0';
 }
+
 
 void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
 {
-  char buf[1000];buf[0]='\0';
+  uint16_t lb0=LBUF1000;
+  char buf[LBUF1000];buf[0]='\0';
+  uint8_t ni=0;
+  uint16_t lb;
+  
           strcat(buf,"<form>");
           usrFormInitBHtml(buf,"dsrv_init_");
           strcat(buf,"<fieldset><legend>détecteurs serveur (n->0):</legend>\n");
-          cli->print(buf);buf[0]='\0';
+
           for(int k=NBDSRV-1;k>=0;k--){
+            ni++;
             char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
             if(libb[0]=='\0'){convIntToString(libb,k);}
             subDSnB(buf,"mem_dsrv__\0",*mds,k,libb);
@@ -885,16 +904,17 @@ void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
             if(sourceDetServ[k]/256!=0){concatn(buf,sourceDetServ[k]&0x00ff);}
             else{strcat(buf,"--");}
             strcat(buf,") </font>");
-            cli->print(buf);buf[0]='\0';}
+            lb=strlen(buf);if(lb0-lb<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}
+          }
           strcat(buf,"<input type=\"submit\" value=\"Per Update\"></fieldset></form>\n"); 
-  cli->print(buf);buf[0]='\0';        
+          
+          writeEth(cli,buf);buf[0]='\0';        
 }
 
 void testHtml(EthernetClient* cli)
 {
             Serial.println(" page d'essais");
- htmlImg(cli,"sweeth.jpg");
-            
+ htmlImg(cli,"sweeth.jpg");            
             
 /*            
             

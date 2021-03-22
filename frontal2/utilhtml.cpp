@@ -190,6 +190,7 @@ void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint
       if(a!=' '){concat1a(buf,a);}
     }
   }
+
   strcat(buf,"</SELECT>");
 
   if(td==1 || td==3){strcat(buf,"</td>");}
@@ -338,7 +339,7 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
               strcat(buf,"white-space:nowrap;"); 
             strcat(buf,"}\n");
 
- cli->print(buf);buf[0]='\0';
+ writeEth(cli,buf);buf[0]='\0';
 
             strcat(buf,"td, th {");
               strcat(buf,"font-family: Courier, sans-serif;\n");
@@ -355,7 +356,7 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,"text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}\n");
             strcat(buf,".button2 {background-color: #77878A;}\n");
 
-  cli->print(buf);buf[0]='\0';
+  writeEth(cli,buf);buf[0]='\0';
       
             /* big sliders */
             strcat(buf,".switch {position: relative;display: inline-block;width: 220px;height: 100px; margin: 16px;}\n");
@@ -372,7 +373,7 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,".slider.round {border-radius: 50px;}\n");
             strcat(buf,".slider.round:before {border-radius: 50%;}\n");
 
-  cli->print(buf);buf[0]='\0';            
+  writeEth(cli,buf);buf[0]='\0';            
   
             /* pour bouton radio carrés */     
             strcat(buf,"@import url(\"https://fonts.googleapis.com/css?family=Roboto:400,400i,700\");\n");
@@ -383,7 +384,7 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,"h1{font-weight: normal; color: var(--txt-color);}\n");
             strcat(buf,"h2 {font-size: 1.1rem;color: var(--txt-color);font-weight: normal;text-transform: uppercase;margin:0 0 2rem;border-bottom: 1px solid #ccc;}\n");
   
-  cli->print(buf);buf[0]='\0';            
+  writeEth(cli,buf);buf[0]='\0';            
             
             strcat(buf,"input[type=\"radio\"].sqbr {display: none;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr + label {padding: 0.5rem 1rem;font-size: 1.50rem;line-height: 1.5;border-radius: 0.3rem;color: #fff;background-color: #6c757d;border: 1px solid transparent;transition: all 0.15s ease-in-out;}\n");
@@ -392,14 +393,14 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,"input[type=\"radio\"].sqbr.br_on:hover + label { background-color: #c82333;border-color: #bd2130;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_on:checked + label { background-color: #dc3545;border-color: #dc3545;}\n");
 
-  cli->print(buf);buf[0]='\0';            
+  writeEth(cli,buf);buf[0]='\0';            
   
             /* rond jaune */
             strcat(buf,"#rond_jaune {width: 40px;height: 40px;border-radius: 20px;background: yellow;}");
 
           strcat(buf,"</style>\n");  
   strcat(buf,"</head>\n");
-  cli->print(buf);buf[0]='\0';
+  writeEth(cli,buf);buf[0]='\0';
 }
 
 void pageHeader(char* buf)
@@ -466,7 +467,7 @@ void htmlIntro(char* titre,EthernetClient* cli)
 
   cli->println("<head>");
   char buf[10]={0};
-  if(perrefr!=0){cli->print("<meta HTTP-EQUIV=\"Refresh\" content=\"");sprintf(buf,"%d",perrefr);cli->print(buf);cli->print("\">");}
+  if(perrefr!=0){cli->print("<meta HTTP-EQUIV=\"Refresh\" content=\"");sprintf(buf,"%d",perrefr);writeEth(cli,buf);cli->print("\">");}
   cli->print("\<title>");cli->print(titre);cli->println("</title>");
   
           cli->println("<style>");

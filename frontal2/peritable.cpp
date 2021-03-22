@@ -119,7 +119,7 @@ char protocStr[]=PROTOCSTR;
 
 char pkdate[7];
 
-void showLine(EthernetClient* cli,int i,char* pkdate);
+void showLine(char* buf,EthernetClient* cli,int i,char* pkdate);
 
 
 void perifHeader(char* buf)
@@ -131,19 +131,18 @@ void perifHeader(char* buf)
     strcat(buf,"<br>\n");
 }
 
-void subModePulseTime(EthernetClient* cli,uint8_t npu,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo)
+void subModePulseTime(char* buf,uint8_t npu,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo)
 {
 
   uint8_t pbit=PMTTE_PB;if(onetwo=='O'){pbit=PMTOE_PB;} pbit+=PCTLBIT*npu;
   uint8_t val=(((*(uint16_t*)periSwPulseCtl)>>pbit)&0x01)+PMFNCVAL;                                        
-  cli->print("<font size=\"2\">");
+  strcat(buf,"<font size=\"2\">");
   fonc1[LENNOM-1]=onetwo;
-  checkboxTableHtml(cli,&val,fonc1,-1,0,"");                       // bit enable pulse
+  checkboxTableBHtml(buf,&val,fonc1,-1,0,"");                       // bit enable pulse
   if(*(pulse+npu)<0){*(pulse+npu)=0;}  
-  numTableHtml(cli,'l',(pulse+npu),fonc2,8,0,2);                 // durée pulse   
+  numTf(buf,'l',(pulse+npu),fonc2,8,0,2);                 // durée pulse   
 //  char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
-  cli->print("<br>(");cli->print(*(dur+npu));cli->println(")</font>");
-
+  strcat(buf,"<br>(");concatn(buf,*(dur+npu));strcat(buf,")</font>");
 }
 
 void perinpBfnc(char* buf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
@@ -163,7 +162,8 @@ void perinpBfnc(char* buf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char
 
 void SwCtlTableHtml(EthernetClient* cli)
 {
-  char buf[2500];buf[0]='\0';
+  const uint16_t lb0=LBUF4000;
+  char buf[lb0];buf[0]='\0';
   
   Serial.print("début SwCtlTableHtml -- periCur=");Serial.print(periCur);Serial.print("  cxtime=");Serial.print(millis()-cxtime);
   Serial.print("  free=");Serial.println(freeMemory(), DEC);
@@ -184,49 +184,48 @@ void SwCtlTableHtml(EthernetClient* cli)
     char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
     boutF(buf,swf,"","refresh",0,0,1,0);strcat(buf," ");
     swf[LENNOM-2]='X';
-    boutF(buf,swf,""," erase ",0,0,1,0);strcat(buf," ");
+    boutF(buf,swf,""," erase ",0,0,1,0);strcat(buf," <br>\n");
 
-/* détecteurs */    
-    strcat(buf,"<br> détecteurs serveur ");
-    char hl[]={"LH"};
-    
-    for(int k=NBDSRV-1;k>=0;k--){concat1a(buf,hl[(memDetServ>>k)&0x01]);strcat(buf," ");}
-    strcat(buf,"<br>");
+    writeEth(cli,buf);buf[0]='\0';
 
 /* pulses */
     strcat(buf,"<table>Pulses");                  // pulses
-      strcat(buf,"<tr><th></th><th>time One<br>time Two</th><th>free<br>run</th>");
-
-    cli->print(buf);buf[0]='\0';
+    strcat(buf,"<tr><th></th><th>time One<br>time Two</th><th>free<br>run</th>");
 
       char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
       char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
       char rfonc[]="peri_otf__\0";            // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
 
-      cli->println("<tr>");
+      strcat(buf,"<tr>");
 
       for(int pu=0;pu<NBPULSE;pu++){          // boucle des pulses
 
-        cli->print("<td>");cli->print(pu);cli->print("</td>");
+        strcat(buf,"<td>");concatn(buf,pu);strcat(buf,"</td>");
         
         pfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         qfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         rfonc[LENNOM-2]=(char)(pu+PMFNCHAR);        
       
-        cli->print("<td>");
-        subModePulseTime(cli,pu,periSwPulseOne,periSwPulseCurrOne,rfonc,pfonc,'O');          // bit et valeur pulse one
-        cli->print("<br>");
-        subModePulseTime(cli,pu,periSwPulseTwo,periSwPulseCurrTwo,rfonc,qfonc,'T');          // bit et valeur pulse two
+        strcat(buf,"<td>");
+        subModePulseTime(buf,pu,periSwPulseOne,periSwPulseCurrOne,rfonc,pfonc,'O');          // bit et valeur time one
+        strcat(buf,"<br>");
+        subModePulseTime(buf,pu,periSwPulseTwo,periSwPulseCurrTwo,rfonc,qfonc,'T');          // bit et valeur time two
       
-        cli->print("</td><td> ");
+        strcat(buf,"</td><td> ");
         uint8_t val=(*(uint16_t*)periSwPulseCtl>>(PCTLBIT*pu+PMFRO_PB))&0x01;rfonc[LENNOM-1]='F';   // bit freerun
-        checkboxTableHtml(cli,&val,rfonc,-1,0,"");                  
-        cli->print("<br>");for(int tsp=0;tsp<LENTSP;tsp++){cli->print(psps[periSwPulseSta[pu]*LENTSP+tsp]);}cli->print("</td>");         // staPulse 
+        checkboxTableBHtml(buf,&val,rfonc,-1,0,"");                  
+        strcat(buf,"<br>");for(int tsp=0;tsp<LENTSP;tsp++){concat1a(buf,psps[periSwPulseSta[pu]*LENTSP+tsp]);}strcat(buf,"</td>\n");         // staPulse 
 
+        writeEth(cli,buf);buf[0]='\0';
       } // pulse suivant
+      
+      strcat(buf,"</tr></table></form>");
+      writeEth(cli,buf);buf[0]='\0';
+
+/* détecteurs */    
+    detServHtml(cli,&memDetServ,&libDetServ[0][0]);
   
 /* affichage/saisie règles */
-  strcat(buf,"</tr></table></form>");
   strcat(buf,"<table>Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-");
   strcat(buf,"<tr><th></th><th>e.r p.e<br>n.f.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
 
@@ -234,11 +233,15 @@ void SwCtlTableHtml(EthernetClient* cli)
       char xfonc2[]="p_inp2____\0";
 
       uint16_t offsetInp=0;
+      uint8_t ni=0;                 // nbre lignes ds buffer
+      uint16_t lb;
 
-      cli->print(buf);buf[0]='\0';
+      writeEth(cli,buf);buf[0]='\0';
+      
       for(int ninp=0;ninp<NBPERINPUT;ninp++){     // boucle des regles
 
-            strcat(buf,"<tr>\n<form method=\"get\" >");    
+            ni++;
+            strcat(buf,"\n<form method=\"get\" >");    
             uint8_t vv;
             byte binp[PERINPLEN];memcpy(binp,periInput+offsetInp,PERINPLEN);
             offsetInp+=PERINPLEN;
@@ -256,31 +259,36 @@ void SwCtlTableHtml(EthernetClient* cli)
 
             vv=(binp[0]>>PERINPNVLS_PB);perinpBfnc(buf,ninp,vv,'n',2,xfonc1,5);                          // num detec source
            strcat(buf,"</td>\n");            
-           
+
             vv=(binp[3]  & PERINPNT_MS);                                                                 // type detec dest
             selectTableBHtml(buf,inptypd,xfonc1,4,2,vv,6,ninp,2);
 
             vv=(binp[3]>>PERINPNVLS_PB);perinpBfnc(buf,ninp,vv,'n',2,xfonc1,7);                          // num detec  dest
            strcat(buf,"</td>\n");            
-           
+
             vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                   // action 
             selectTableBHtml(buf,inpact,xfonc1,NBACT,5,vv,8,ninp,2);
 
            strcat(buf,"</td>");
            strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
                                                                                   //strcat(buf, ajouter nom de la source si det
-           strcat(buf,"</form></tr>\n");
-           if(strlen(buf)>sizeof(buf)*0.4){cli->print(buf);buf[0]='\0';}
+           strcat(buf,"</form></tr>\n\n");
+
+           lb=strlen(buf);
+           Serial.print("lb/lb0/ni/lb0-lb/lb_ni+100 ");Serial.print(lb);Serial.print(" ");Serial.print(lb0);Serial.print(" ");Serial.print(ni);Serial.print(" ");Serial.print(lb0-lb);Serial.print(" ");Serial.println(lb/ni+100);
+           if((lb0-lb)<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}
+           
         } // input suivant
 
   strcat(buf,"</table></body></html>");
-  cli->print(buf);
+  writeEth(cli,buf);
   Serial.print("fin SwCtlTableHtml  cxtime=");Serial.println(millis()-cxtime);
 }
 
 void periTableHtml(EthernetClient* cli)
 {
-  char buf[1000];buf[0]=0;
+  const uint16_t lb0=LBUF4000;
+  char buf[lb0];buf[0]='\0';
   int i,j;
   int savePeriCur=periCur;   // save periCur et restore à la fin de periTable
 
@@ -291,50 +299,45 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           pageHeader(buf);
           usrFormBHtml(buf,1);
           boutRetourB(buf,"refresh",0,0);
-          cli->print(buf);buf[0]=0;
+          numTf(buf,'d',&perrefr,"per_refr__",4,0,0);
+          writeEth(cli,buf);buf[0]='\0';
           
-          numTableHtml(cli,'d',&perrefr,"per_refr__",4,0,0);
-
-          cli->print("(");cli->print(fhsize);cli->println(") ");
-          numTableHtml(cli,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0);
-          alphaTableHtmlB(buf,histoDh,"hist_sh_D_",LDATEA-2);cli->print(buf);buf[0]=0;
+          strcat(buf,"(");concatn(buf,fhsize);strcat(buf,") ");
+          numTf(buf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0);
+          alphaTableHtmlB(buf,histoDh,"hist_sh_D_",LDATEA-2);
           
-          cli->println("<input type=\"submit\" value=\"ok\"> ");
+          strcat(buf,"<input type=\"submit\" value=\"ok\"> ");
+          boutF(buf,"dump_his__","","histo",0,0,0,0);strcat(buf,"<br>\n");      
           
-          boutFonction(cli,"dump_his__","","histo",0,0,0,0);    
           cli->print("<br>");
-          boutFonction(cli,"deco______","","_  deco  _",0,0,0,0);
-          boutFonction(cli,"deco____B_","","_ reboot _",0,0,0,0);
-          boutFonction(cli,"cfgserv___","","_ config _",0,0,0,0);
-          boutFonction(cli,"remote____","","remote_cfg",0,0,0,0);
-          boutFonction(cli,"remotehtml","","remotehtml",0,0,0,0);
-          boutFonction(cli,"thermoscfg","","thermo_cfg",0,0,0,0);
-          boutFonction(cli,"thermoshow","","thermoshow",0,0,0,0);
-          boutFonction(cli,"timershtml","","timershtml",0,0,0,0);
-          boutFonction(cli,"dsrvhtml__","","detsrvhtml",0,0,0,0);                 
+          boutF(buf,"deco______","","_  deco  _",0,0,0,0);
+          boutF(buf,"cfgserv___","","_ config _",0,0,0,0);
+          boutF(buf,"remote____","","remote_cfg",0,0,0,0);
+          boutF(buf,"remotehtml","","remotehtml",0,0,0,0);
+          boutF(buf,"thermoscfg","","thermo_cfg",0,0,0,0);
+          boutF(buf,"thermoshow","","thermoshow",0,0,0,0);
+          boutF(buf,"timershtml","","timershtml",0,0,0,0);
+          boutF(buf,"dsrvhtml__","","detsrvhtml",0,0,0,0);                 
         
-          cli->println("</form>");      // le formulaire NE DOIT PAS intégrer detServHtml qui a son propre usrFormHtml pour gérer les mots de passe
+          strcat(buf,"</form>\n");      // le formulaire NE DOIT PAS intégrer detServHtml qui a son propre usrFormHtml pour gérer les mots de passe
                                         // sinon la fonction user_ref__ serait 2 fois dans la liste et la 2nde (fausse) enverrait à l'accueil        
-
+          writeEth(cli,buf);buf[0]='\0';
+          
           detServHtml(cli,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
-
-          cli->println("<table>");
-              cli->println("<tr>");              
-                cli->println("<th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th>"); 
-              cli->println("</tr>");
+          
+          strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
  
-              for(i=1;i<=NBPERIF;i++){
+          for(i=1;i<=NBPERIF;i++){
                 // !!!!!!!!!!!!!!!!!! pericur doit étre le premier de la liste !!!!!!!!!!!!!!!!!!!!!!!!!
                 // pour permettre periLoad préalablement aux mises à jour des données quand le navigateur 
                 // envoie une commande GET/POST 
                 // et pour assurer l'effacement des bits de checkbox : le navigateur ne renvoie que ceux "checkés"
-              showLine(cli,i,pkdate);
-              trigwd();
-              }
-          cli->println("</table>");
-        cli->println("</body></html>");
-periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
-Serial.print("fin péritable - cxtime=");Serial.println(millis()-cxtime); 
+          showLine(buf,cli,i,pkdate);
+          trigwd();
+          }
+          strcat(buf,"</table></body></html>");
+          periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
+          Serial.print("fin péritable - cxtime=");Serial.println(millis()-cxtime); 
 }
 
 void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfonc,uint8_t nbLi,char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)
@@ -383,19 +386,17 @@ void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfo
     alphaTableHtmlB(buf,mem,namfonct,LMEMO-1);
 
     strcat(buf,"</tr>\n");
-    cli->print(buf);buf[0]='\0';    // max len pour cli-print() 2048 ???
+    writeEth(cli,buf);buf[0]='\0';    // max len pour cli-print() 2048 ???
   }
-  strcat(buf,"</table><br>");
-  strcat(buf,"<input type=\"submit\" value=\"MàJ\">");
-  strcat(buf,"</fieldset></form>\n"); 
+  strcat(buf,"</table><br><input type=\"submit\" value=\"MàJ\"></fieldset></form>\n"); 
 
-  cli->print(buf);buf[0]='\0';
+  writeEth(cli,buf);buf[0]='\0';
 }
 
 
 void periLineHtml(EthernetClient* cli,int i)
 {
-  char buf[2000];buf[0]=0;
+  char buf[2000];buf[0]='\0';
   int j;
 
   Serial.print("début periLineHtml -- periCur=");Serial.print(periCur);Serial.print("/");Serial.println(i);
@@ -406,7 +407,7 @@ void periLineHtml(EthernetClient* cli,int i)
   perifHeader(buf);
 
   usrPeriCurB(buf,"peri_cur__",0,2,3);
-  cli->print(buf);buf[0]=0;
+  writeEth(cli,buf);buf[0]='\0';
 
 /* boutons */
     boutRetourB(buf,"retour",0,0);
@@ -422,7 +423,7 @@ void periLineHtml(EthernetClient* cli,int i)
     line[LENNOM-2]='0';boutF(buf,line,"","tst__SW0",0,0,0,0);strcat(buf," ");
     line[LENNOM-2]='1';boutF(buf,line,"","tst__SW1",0,0,0,0);strcat(buf," ");
     line[LENNOM-2]='m';boutF(buf,line,"","tst_mail",0,0,0,0);strcat(buf,"\n");
-    cli->print(buf);buf[0]='\0';
+    writeEth(cli,buf);buf[0]='\0';
     
 /* ligne périphérique */                
 
@@ -430,12 +431,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 if(*periSwNb>MAXSW){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
 
-                strcat(buf,"<table><tr>");
-                strcat(buf,"<th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>");
-                strcat(buf,"</tr>\n");
-
-                strcat(buf,"<tr>\n");
-                      strcat(buf,"<td>");
+                strcat(buf,"<table><tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr>\n<tr>\n<td>");
                       concatns(buf,periCur);
                       
                       alphaTableHtmlB(buf,periNamer,"peri_nom__",PERINAMLEN-1);
@@ -474,27 +470,21 @@ void periLineHtml(EthernetClient* cli,int i)
                       strcat(buf,"</font></td>\n");
                       
                 strcat(buf,"</tr></table>\n");
-                cli->print(buf);buf[0]='\0';
+                writeEth(cli,buf);buf[0]='\0';
 
 // table analogique
                 buf[0]='\0'; 
                 
-                strcat(buf,"Analog Input<br><table>");
-                strcat(buf,"<tr>");                
-                    strcat(buf,"<td>Val<br>Low<br>High</td>");
-                    strcat(buf,"<td>");
+                strcat(buf,"Analog Input<br><table><tr><td>Val<br>Low<br>High</td><td>");
                       concatn(buf,*periAnal);strcat(buf,"<br>");
                       numTf(buf,'I',periAnalLow,"peri_ana@_",5,0,0);strcat(buf,"<br>");
                       numTf(buf,'I',periAnalHigh,"peri_anaA_",5,0,0);
-                    strcat(buf,"</td>\n");
-                    strcat(buf,"<td>Off1<br>Fact<br>Off2</td>\n");
-                    strcat(buf,"<td>");
+                strcat(buf,"</td>\n<td>Off1<br>Fact<br>Off2</td>\n<td>");
                       numTf(buf,'I',periAnalOffset1,"peri_anaB_",5,0,0);strcat(buf,"<br>");                      
                       numTf(buf,'F',periAnalFactor,"peri_anaC_",7,0,0,4);strcat(buf,"<br>");
                       numTf(buf,'F',periAnalOffset2,"peri_anaD_",7,0,0,4);
-                    strcat(buf,"</td>");
-                strcat(buf,"</tr></table><br></form>\n");
-                cli->print(buf);buf[0]='\0';
+                strcat(buf,"</td></tr></table><br></form>\n");
+                writeEth(cli,buf);buf[0]='\0';
             
 #define ANASIZLIB   3
                 char aLibState[]={">H\0=H\0><\0=L\0-L\0"};
@@ -514,16 +504,15 @@ void periLineHtml(EthernetClient* cli,int i)
 }
 
 
-void showLine(EthernetClient* cli,int numline,char* pkdate)
+void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
 {
   unsigned long t0=micros();
   int j,s;
 #define LBSHOWLINE 1000
-  char buf[1000];buf[0]='\0';
 
-                periInitVar();periLoad(numline);periCur=numline;
-                if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}  
-                if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}
+      periInitVar();periLoad(numline);periCur=numline;
+      if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}  
+      if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}
 
           strcat(buf,"<tr>\n<form method=\"GET \"><td>");
           concatn(buf,periCur);
@@ -594,10 +583,5 @@ void showLine(EthernetClient* cli,int numline,char* pkdate)
           boutF(buf,swf,"","Switchs",0,0,0,0);}                                    
           strcat(buf,"</form></tr>");
 
-if(strlen(buf)>=LBSHOWLINE){Serial.print("trop grand **************************");ledblink(BCODESHOWLINE);}
-
-//Serial.print(" Strlen(showline)=");Serial.print(strlen(buf));Serial.print(" t=");Serial.print(micros()-t0);
-          cli->print(buf);
-//Serial.print(" tx=");Serial.println(micros()-t0);          
-
+          writeEth(cli,buf);buf[0]='\0';
 }

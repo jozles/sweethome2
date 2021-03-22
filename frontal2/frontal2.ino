@@ -1277,7 +1277,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 14: {byte a=*(libfonctions+2*i);byte b=*(libfonctions+2*i+1);                     // (ligne peritable) - tests de perif serveur
                         char fptst[LENNOM+1];                            
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
-                        uint8_t k=0;uint8_t zer[]={0,2};
+                        uint8_t k=0;uint8_t zer[]={2,0};
                         extern char mailToAddr[];
                         char msg[64]="TEST==";strcat(msg,mailToAddr1);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';strcat(msg,alphaDate());
                         periCur=b-PMFNCHAR;periLoad(periCur);
