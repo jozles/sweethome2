@@ -127,6 +127,35 @@ void htmlFavicon(EthernetClient* cli)
   htmlImg(cli,"sweeth.png");
 }
 
+void dumpHisto0(EthernetClient* cli,long histoPos)                 // liste le fichier histo depuis une adresse
+{
+  long fhsiz=fhisto.size();
+  cli->print(histoPos);cli->print("/");cli->print(fhsize);cli->println("<br>");
+  
+  char inch=0;
+  long ptr=histoPos;
+  long ptr0=ptr;
+  long ptra=ptr;
+  
+  const uint16_t lb0=LBUF4000;
+  char buf[lb0];buf[0]='\0';
+
+  fhisto.seek(histoPos);
+  
+  while(ptr<fhsize){
+    trigwd();
+    while((ptr-ptra) < lb0 && ptr<fhsize){           // -1 for end null char
+      buf[ptr-ptra]=fhisto.read();ptr++;
+    }
+    buf[ptr-ptra]='\0';
+    ethWrite(cli,buf);
+    ptra=ptr;
+    if((ptr-ptr0)>1000000){break;}
+  }
+  
+  fhisto.close();
+}
+
 void dumpHisto(EthernetClient* cli)
 { 
   char buf[1000];buf[0]='\0';
@@ -137,22 +166,23 @@ void dumpHisto(EthernetClient* cli)
   htmlIntroB(buf,nomserver,cli);
   pageHeader(buf);
   boutRetourB(buf,"retour",0,1);
-  writeEth(cli,buf);buf[0]='\0';
+  ethWrite(cli,buf);
 
   trigwd();
-  cli->print("histoSD ");
-  if(sdOpen(file,&fhisto)==SDKO){cli->println("KO");return;}
+  strcat(buf,"histoSD ");
+  if(sdOpen(file,&fhisto)==SDKO){strcat(buf,"KO");return;}
   fhsize=fhisto.size();
 
   if(histoDh[0]=='2'){
     shDateHist(histoDh,&pos);
-    cli->print(histoDh);cli->print(" - ");
+    strcat(buf,histoDh);strcat(buf," - ");
   }
+  ethWrite(cli,buf);
   dumpHisto0(cli,pos);
 
   boutRetourB(buf,"retour",0,1);
-  strcat(buf,"</body></html>");
-  writeEth(cli,buf);buf[0]='\0';
+  strcat(buf,"</body></html>\n");
+  ethWrite(cli,buf);
 }
 
 void shDateHist(char* dhasc,long* pos)
@@ -239,49 +269,24 @@ void shDicDateHist(char* dhasc,long* but)
   Serial.print("--- fin recherche ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
 }
 
-void dumpHisto0(EthernetClient* cli,long histoPos)                 // liste le fichier histo depuis une adresse
-{
-  long fhsiz=fhisto.size();
-  cli->print(histoPos);cli->print("/");cli->print(fhsize);cli->println("<br>");
-  
-  char inch=0;
-  long ptr=histoPos;
-  long ptr0=ptr;
-  long ptra=ptr;
-  
-  const uint16_t lb0=LBUF4000;
-  char buf[lb0];buf[0]='\0';
-
-  fhisto.seek(histoPos);
-  
-  while(ptr<fhsize){
-    trigwd();
-    while((ptr-ptra) < lb0 && ptr<fhsize){           // -1 for end null char
-      buf[ptr-ptra]=fhisto.read();ptr++;
-    }
-    buf[ptr-ptra]='\0';
-    writeEth(cli,buf);
-    ptra=ptr;
-    if((ptr-ptr0)>1000000){break;}
-  }
-  
-  fhisto.close();
-}
 
 void accueilHtml(EthernetClient* cli)
 {
+      const uint16_t lb0=LBUF4000;
+      char buf[lb0];buf[0]='\0';
+      
             Serial.println(" saisie pwd");
-            htmlIntro(nomserver,cli);
+            htmlIntroB(buf,nomserver,cli);
 
-            cli->println("<body><form method=\"get\" >");
-            cli->println("<h1 class=\"point\">");
-            cli->println(VERSION);cli->println("<br>");
+            strcat(buf,"<body><form method=\"get\" >");
+            strcat(buf,"<h1 class=\"point\">");
+            strcat(buf,VERSION);strcat(buf,"<br>\n");
 
-            cli->println("<p><input type=\"username\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Username\" name=\"username__\"  value=\"\" size=\"6\" maxlength=\"8\" ></p>");            
-            cli->println("<p><input type=\"password\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");
-                        cli->println(" <input type=\"submit\" text style=\"width:300px;height:60px;font-size:40px\" value=\"login\"><br>");
-            cli->println("</h1>");
-            cli->println("</form></body></html>");
+            strcat(buf,"<p><input type=\"username\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Username\" name=\"username__\"  value=\"\" size=\"6\" maxlength=\"8\" ></p>");            
+            strcat(buf,"<p><input type=\"password\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");
+                       strcat(buf," <input type=\"submit\" text style=\"width:300px;height:60px;font-size:40px\" value=\"login\"><br>");
+            strcat(buf,"</h1></form></body></html>");
+            ethWrite(cli,buf);
 }          
 
 void sscb(char* buf,bool val,char* nomfonct,int nuf,int etat,uint8_t td,uint8_t nb)
@@ -345,7 +350,7 @@ void cfgServerHtml(EthernetClient* cli)
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
             
             strcat(buf," <input type=\"submit\" value=\" MàJ \"><br> \n");
             
@@ -358,18 +363,18 @@ void cfgServerHtml(EthernetClient* cli)
             strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
             for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
             strcat(buf," portserver ");numTf(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
             subcfgtable(buf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
             strcat(buf," to password ");numTf(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
             subcfgtable(buf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
             
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
             
             strcat(buf," mail From <input type=\"text\" name=\"mailcfg__f\" value=\"");strcat(buf,mailFromAddr);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" >\n");
             strcat(buf," password  <input type=\"text\" name=\"mailcfg__w\" value=\"");strcat(buf,mailPass);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" ><br>\n");
-            strcat(buf," mail To 1 <input type=\"text\" name=\"mailcfg__1\" value=\"");strcat(buf,mailToAddr1);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" >\n");
-            strcat(buf," mail To 2 <input type=\"text\" name=\"mailcfg__2\" value=\"");strcat(buf,mailToAddr2);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" ><br>\n");
+            strcat(buf," mail To #1 <input type=\"text\" name=\"mailcfg__1\" value=\"");strcat(buf,mailToAddr1);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" >\n");
+            strcat(buf," mail To #2 <input type=\"text\" name=\"mailcfg__2\" value=\"");strcat(buf,mailToAddr2);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" ><br>\n");
             
             strcat(buf," perif 1 ");numTf(buf,'d',periMail1,"mailcfg__p",2,0,0);strcat(buf,"<br>\n");
             strcat(buf," perif 2 ");numTf(buf,'d',periMail2,"mailcfg__q",2,0,0);strcat(buf,"<br>\n");
@@ -378,7 +383,7 @@ void cfgServerHtml(EthernetClient* cli)
             strcat(buf," maxCxWu ");numTf(buf,'l',maxCxWu,"ethcfg___r",8,0,0);strcat(buf,"<br>\n");
             strcat(buf,"</form></body></html>\n");
             
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
 }
 
 void cfgDetServHtml(EthernetClient* cli)
@@ -395,7 +400,7 @@ void cfgDetServHtml(EthernetClient* cli)
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
             
             strcat(buf," <input type=\"submit\" value=\" MàJ \"><br>\n");
 
@@ -409,10 +414,10 @@ void cfgDetServHtml(EthernetClient* cli)
                 strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td><td><input type=\"text\" name=\"libdsrv__");concat1a(buf,(char)(nb+decal+PMFNCHAR));
                 strcat(buf,"\" value=\"");strcat(buf,(char*)&libDetServ[nb][0]);strcat(buf,"\" size=\"12\" maxlength=\"");concatns(buf,(LENLIBDETSERV-1));
                 strcat(buf,"\" ></td></tr>\n");
-                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}
+                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
               }
             strcat(buf,"</table><br></form></body></html>");
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
 }
 
 
@@ -420,89 +425,87 @@ void cfgRemoteHtml(EthernetClient* cli)
 {
   char nf[LENNOM+1];nf[LENNOM]='\0';
   uint8_t val;
+  const uint16_t lb0=LBUF4000;
+  char buf[lb0];buf[0]='\0';
+  uint16_t lb;
+  uint8_t ni=0;
   
             Serial.println(" config remote");
-            
-            char buf[LBUF4000];buf[0]='\0';
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
             
-            cli->println(" <input type=\"submit\" value=\"MàJ\"><br>");
+            strcat(buf," <input type=\"submit\" value=\"MàJ\"><br>");
 
 /* table remotes */
 
-              cli->println("<table>");
-              cli->println("<tr>");
-              cli->println("<th>   </th><th>      Nom      </th><th> on/off </th><th> en </th>");
-              cli->println("</tr>");
+              strcat(buf,"<table><tr>\n");
+              strcat(buf,"<th>   </th><th>      Nom      </th><th> on/off </th><th> en </th></tr>\n");
 
               for(int nb=0;nb<NBREMOTE;nb++){
-                cli->println("<tr>");
-                
-                cli->print("<td>");cli->print(nb+1);cli->print("</td>");                       // n° remote
-                cli->print("<td><input type=\"text\" name=\"remotecfn");cli->print((char)(nb+PMFNCHAR));cli->print("\" value=\"");
-                        cli->print(remoteN[nb].nam);cli->print("\" size=\"12\" maxlength=\"");cli->print(LENREMNAM-1);cli->println("\" ></td>");
+                strcat(buf,"<tr><td>");concatn(buf,nb+1);strcat(buf,"</td>");                       // n° remote
+                strcat(buf,"<td><input type=\"text\" name=\"remotecfn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
+                        strcat(buf,remoteN[nb].nam);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENREMNAM-1);strcat(buf,"\" ></td>");
 
                 memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // état on/off
                 val=(uint8_t)remoteN[nb].onoff;
-                checkboxTableHtml(cli,&val,nf,-1,1,"");         
+                checkboxTableBHtml(buf,&val,nf,-1,1,"");         
                 
                 memcpy(nf,"remotecfe_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
                 val=(uint8_t)remoteN[nb].enable;
-                checkboxTableHtml(cli,&val,nf,-1,1,"");         
+                checkboxTableBHtml(buf,&val,nf,-1,1,"");         
                    
-                cli->println("</tr>");
+                strcat(buf,"</tr>\n");
               }
-            cli->println("</table><br>");
+            strcat(buf,"</table><br>\n");
+            ethWrite(cli,buf);
 
 /* table détecteurs */
 
-            cli->println("<table>");
-              cli->println("<tr>");
-              cli->println("<th>  </th><th>remote </th><th>detec on/off</th><th>detec en</th><th>peri</th><th>switch</th>");
-              cli->println("</tr>");
+            strcat(buf,"<table><tr><th>  </th><th>remote </th><th>detec on/off</th><th>detec en</th><th>peri</th><th>switch</th></tr>\n");
               
               for(int nb=0;nb<MAXREMLI;nb++){
-                cli->println("<tr>");
-                cli->print("<td>");cli->print(nb+1);cli->print("</td>");                       // n° ligne de table
+                ni++;
+                strcat(buf,"<tr><td>");concatn(buf,nb+1);strcat(buf,"</td>");                  // n° ligne de table
                 
                 memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° remote
-                numTableHtml(cli,'b',&remoteT[nb].num,nf,1,2,0);
-                if(remoteT[nb].num!=0){cli->print(remoteN[remoteT[nb].num-1].nam);}cli->println(" </td>");
+                numTf(buf,'b',&remoteT[nb].num,nf,1,2,0);
+                if(remoteT[nb].num!=0){strcat(buf,remoteN[remoteT[nb].num-1].nam);}strcat(buf," </td>\n");
 
                 memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° detec on/off
-                numTableHtml(cli,'b',&remoteT[nb].detec,nf,2,2,0);
+                numTf(buf,'b',&remoteT[nb].detec,nf,2,2,0);
                 if(remoteT[nb].num!=0){
-                  cli->print((char*)(&libDetServ[remoteT[nb].detec][0]));cli->print(" ");
-                  cli->print((char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}
-                cli->println(" </td>");
+                  strcat(buf,(char*)(&libDetServ[remoteT[nb].detec][0]));strcat(buf," ");
+                  concat1a(buf,(char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}
+                strcat(buf," </td>\n");
 
                 memcpy(nf,"remotecfb_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° detec enable
-                numTableHtml(cli,'b',&remoteT[nb].deten,nf,2,2,0);
+                numTf(buf,'b',&remoteT[nb].deten,nf,2,2,0);
                 if(remoteT[nb].num!=0){
-                  cli->print((char*)(&libDetServ[remoteT[nb].deten][0]));cli->print(" ");
-                  cli->print((char)(((memDetServ>>remoteT[nb].deten)&0x01)+48));}
-                cli->println(" </td>");
+                  strcat(buf,(char*)(&libDetServ[remoteT[nb].deten][0]));strcat(buf," ");
+                  concat1a(buf,(char)(((memDetServ>>remoteT[nb].deten)&0x01)+48));}
+                strcat(buf," </td>\n");
                 
                 memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° périphérique
-                numTableHtml(cli,'b',&remoteT[nb].peri,nf,2,2,0);
+                numTf(buf,'b',&remoteT[nb].peri,nf,2,2,0);
                 uint8_t rp=remoteT[nb].peri;
-                if(rp!=0){periLoad(rp);periCur=rp;cli->print(periNamer);cli->print(" ");}
-                cli->println(" </td>");
+                if(rp!=0){periLoad(rp);periCur=rp;strcat(buf,periNamer);strcat(buf," ");}
+                strcat(buf," </td>\n");
 
                 memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° switch
-                numTableHtml(cli,'b',&remoteT[nb].sw,nf,2,2,0);
-                cli->println(" </td>");
+                numTf(buf,'b',&remoteT[nb].sw,nf,2,2,0);
+                strcat(buf," </td>\n");
                 
-                cli->println("</tr>");
+                strcat(buf,"</tr>\n");
+                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
               }
               
-            cli->println("</table>");            
-            cli->println("</form></body></html>");
+              
+            strcat(buf,"</table></form></body></html>\n");
+            ethWrite(cli,buf);
 }
 
 
@@ -519,7 +522,7 @@ void remoteHtml(EthernetClient* cli)
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
             
 /* table remotes */
            
@@ -561,11 +564,11 @@ void remoteHtml(EthernetClient* cli)
                   yradioTableBHtml(buf,remoteN[nb].enable,"remote_cs",2,vert,nb,1);                                // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
 
                 strcat(buf,"</tr>");
-                //if(strlen(buf)+1000>=LBUF4000){
-                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}               
+                
+                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
              }
             }
-            if(buf[0]!='\0'){writeEth(cli,buf);buf[0]='\0';}
+            if(buf[0]!='\0'){ethWrite(cli,buf);}
             strcat(buf,"</table>");
             
             strcat(buf,"<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
@@ -574,7 +577,7 @@ void remoteHtml(EthernetClient* cli)
             strcat(buf,"</p>\n");
             
             strcat(buf,"</form></body></html>");
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
 }
 
 int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd derniers jours
@@ -704,7 +707,7 @@ void thermoShowHtml(EthernetClient* cli)
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             strcat(buf,"<br>");
-            writeEth(cli,buf);buf[0]='\0';
+            ethWrite(cli,buf);
  
             scalcTh(1);          // update periphériques
 
@@ -726,7 +729,7 @@ void thermoShowHtml(EthernetClient* cli)
                     strcat(buf,"<td> <div style='text-align:right; font-size:30px;'>");concatnf(buf,(float)*periThmax_/100,2);strcat(buf,"</div></td>\n");
                     strcat(buf,"<td>");bufPrintPeriDate(buf,periLastDateIn);strcat(buf,"</td>\n");                      
                     strcat(buf,"</tr>\n");
-                    lb=strlen(buf);if(lb0-lb<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}
+                    lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
                   }
                 }
               }
@@ -739,10 +742,10 @@ void thermoShowHtml(EthernetClient* cli)
         strcat(buf,"</p><br>");for(int d=0;d<NBDSRV;d++){concat1a(buf,(char)(((memDetServ>>d)&0x01)+48));strcat(buf," ");}
         strcat(buf,"\n</body></html>\n");
         
-        writeEth(cli,buf);buf[0]='\0';
+        ethWrite(cli,buf);
 }
 
-void subthd(EthernetClient* cli,char param,uint8_t nb,void* val,char type)
+void subthd(char* buf,char param,uint8_t nb,void* val,char type)
 {
         uint8_t* vv;
         char nf[LENNOM+1];
@@ -751,9 +754,9 @@ void subthd(EthernetClient* cli,char param,uint8_t nb,void* val,char type)
         nf[LENNOM-1]=nb+PMFNCHAR;                              
         
         switch(type){
-          case 'd': numTableHtml(cli,'b',val,nf,2,1,0);break;                           // n° detec/peri              
-          case 'v': numTableHtml(cli,'I',val,nf,4,1,0);break;                           // value/offset
-          case 'e': checkboxTableHtml(cli,(uint8_t*)val,nf,-1,1,"");break;              // enable/state
+          case 'd': numTf(buf,'b',val,nf,2,1,0);break;                           // n° detec/peri              
+          case 'v': numTf(buf,'I',val,nf,4,1,0);break;                           // value/offset
+          case 'e': checkboxTableBHtml(buf,(uint8_t*)val,nf,-1,1,"");break;      // enable/state
           default:break;
         }
 }
@@ -764,51 +767,49 @@ void thermoCfgHtml(EthernetClient* cli)
   
             Serial.println(" config thermos");
 
-            char buf[LBUF4000];buf[0]='\0';
+            const uint16_t lb0=LBUF4000;
+            char buf[lb0];buf[0]='\0';
+            uint8_t ni=0;
+            uint16_t lb;
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
-            writeEth(cli,buf);buf[0]='\0';
-
-            boutFonction(cli,"thermoscfg","","refresh",0,0,1,0);cli->print(" ");
+            boutF(buf,"thermoscfg","","refresh",0,0,1,0);
+            ethWrite(cli,buf);          
 
 /* table thermos */
 
-            cli->println("<table>");
-              cli->println("<tr>");
-                cli->println("<th>   </th><th>      Nom      </th><th> peri </th><th>  </th><th> low<br> en</th><th> low<br> state</th><th> low<br> value</th><th> low<br> pitch</th><th> low<br> det</th><th> </th><th> high<br> en</th><th> high<br> state</th><th> high<br> value</th><th> high<br> offset</th><th> high<br> det</th>");
-              cli->println("</tr>");
+            strcat(buf,"<table><tr><th>   </th><th>      Nom      </th><th> peri </th><th>  </th><th> low<br> en</th><th> low<br> state</th><th> low<br> value</th><th> low<br> pitch</th><th> low<br> det</th><th> </th><th> high<br> en</th><th> high<br> state</th><th> high<br> value</th><th> high<br> offset</th><th> high<br> det</th></tr>\n");
 
               for(int nb=0;nb<NBTHERMOS;nb++){
-                cli->println("<tr>");
-                cli->println("<form method=\"get\" >");
-                usrFormHtml(cli,1);
+                ni++;
+                strcat(buf,"<tr><form method=\"get\" >");
+                usrFormBHtml(buf,1);
                 
-                cli->print("<td>");cli->print(nb+1);cli->print("</td>");                                      // n° thermo
+                strcat(buf,"<td>");concatn(buf,nb+1);strcat(buf,"</td>");                                       // n° thermo
                 
-                cli->print("<td><input type=\"text\" name=\"thparamsn");cli->print((char)(nb+PMFNCHAR));      // nom
-                  cli->print("\" value=\"");
-                  cli->print(thermos[nb].nom);cli->print("\" size=\"12\" maxlength=\"");cli->print(LENTHNAME-1);cli->println("\" ></td>");
+                strcat(buf,"<td><input type=\"text\" name=\"thparamsn");concat1a(buf,(char)(nb+PMFNCHAR));      // nom
+                  strcat(buf,"\" value=\"");
+                  strcat(buf,thermos[nb].nom);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENTHNAME-1);strcat(buf,"\" ></td>\n");
     
-                subthd(cli,'p',nb,&thermos[nb].peri,'d');                               // peri
-                 periInitVar();periCur=thermos[nb].peri;if(periCur!=0){periLoad(periCur);}cli->print("<td>");cli->print(periNamer);
-                 cli->println("|");cli->print((float)*periLastVal_/100);cli->println("</td>");
-                subthd(cli,'e',nb,&thermos[nb].lowenable,'e');                          // low enable
-                subthd(cli,'s',nb,&thermos[nb].lowstate,'e');                           // low state
-                subthd(cli,'v',nb,&thermos[nb].lowvalue,'v');                           // low value
-                subthd(cli,'o',nb,&thermos[nb].lowoffset,'v');                          // low offset
-                subthd(cli,'d',nb,&thermos[nb].lowdetec,'d');                           // low det
-                 uint8_t vv=(uint8_t)thermos[nb].lowdetec;cli->println(" <td>");if(vv!=0){cli->print((char*)(&libDetServ[vv][0]));cli->print(" ");cli->print((char)(((memDetServ>>vv)&0x01)+48));}cli->println(" </td>");
+                subthd(buf,'p',nb,&thermos[nb].peri,'d');                                                       // peri
+                  periInitVar();periCur=thermos[nb].peri;if(periCur!=0){periLoad(periCur);}strcat(buf,"<td>");strcat(buf,periNamer);
+                  strcat(buf,"|");concatnf(buf,(float)*periLastVal_/100);strcat(buf,"</td>\n");
+                subthd(buf,'e',nb,&thermos[nb].lowenable,'e');                                                  // low enable
+                subthd(buf,'s',nb,&thermos[nb].lowstate,'e');                                                   // low state
+                subthd(buf,'v',nb,&thermos[nb].lowvalue,'v');                                                   // low value
+                subthd(buf,'o',nb,&thermos[nb].lowoffset,'v');                                                  // low offset
+                subthd(buf,'d',nb,&thermos[nb].lowdetec,'d');                                                   // low det
+                  uint8_t vv=(uint8_t)thermos[nb].lowdetec;strcat(buf," <td>");if(vv!=0){strcat(buf,(char*)(&libDetServ[vv][0]));strcat(buf," ");concat1a(buf,(char)(((memDetServ>>vv)&0x01)+48));}strcat(buf," </td>\n");
                 
 
-                cli->print("<td>");cli->print(" <input type=\"submit\" value=\"MàJ\"><br>");cli->println("</td>");
-                cli->println("</form>");
-                cli->println("</tr>");
+                strcat(buf,"<td> <input type=\"submit\" value=\"MàJ\"><br></td>\n</form></tr>\n");
+                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
               }
-            cli->println("</table>");
-            cli->println("</body></html>");
+            strcat(buf,"</table></body></html>\n");
+            ethWrite(cli,buf);
 }
 
 
@@ -828,7 +829,7 @@ void timersHtml(EthernetClient* cli)
             boutF(buf,"timershtml","","refresh",0,0,1,0);strcat(buf," ");
 
             char pkdate[7];bufPrintDateHeure(buf,pkdate);strcat(buf,"\n");
-            writeEth(cli,buf);buf[0]='\0'; // detServ print son propre buf
+            ethWrite(cli,buf); // detServ print son propre buf
             detServHtml(cli,&memDetServ,&libDetServ[0][0]);
 
             strcat(buf,"<table>");
@@ -857,7 +858,7 @@ void timersHtml(EthernetClient* cli)
                       nucb=0;sscb(buf,timersN[nt].enable,"tim_chkb__",nucb,-1,0,nt);
                       nucb++;sscb(buf,timersN[nt].perm,"tim_chkb__",nucb,-1,0,nt);
                       nucb++;sscb(buf,timersN[nt].cyclic,"tim_chkb__",nucb,-1,0,nt);   
-writeEth(cli,buf);buf[0]='\0';                     
+ethWrite(cli,buf);                     
                       strcat(buf,"</td><td>");
                       for(int nj=7;nj>=0;nj--){
                         bool vnj; 
@@ -875,12 +876,12 @@ writeEth(cli,buf);buf[0]='\0';
                     strcat(buf,"</form>");
                     strcat(buf,"</tr>\n");
 
-                    writeEth(cli,buf);buf[0]='\0';
+                    ethWrite(cli,buf);
                   }
 
         strcat(buf,"</table>");
         strcat(buf,"</body></html>");
-        writeEth(cli,buf);buf[0]='\0';
+        ethWrite(cli,buf);
 }
 
 
@@ -904,11 +905,11 @@ void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
             if(sourceDetServ[k]/256!=0){concatn(buf,sourceDetServ[k]&0x00ff);}
             else{strcat(buf,"--");}
             strcat(buf,") </font>");
-            lb=strlen(buf);if(lb0-lb<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}
+            lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
           }
           strcat(buf,"<input type=\"submit\" value=\"Per Update\"></fieldset></form>\n"); 
           
-          writeEth(cli,buf);buf[0]='\0';        
+          ethWrite(cli,buf);        
 }
 
 void testHtml(EthernetClient* cli)

@@ -4,7 +4,7 @@
 #include <Ethernet.h>
 #include "SdFat.h"
 
-int  writeEth(EthernetClient* cli,char* buf);
+int  ethWrite(EthernetClient* cli,char* buf);
 void mail(char* a,char* mm);
 int  sdOpen(char* fname,File32* file32);
 void sdInit();

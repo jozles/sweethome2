@@ -186,7 +186,7 @@ void SwCtlTableHtml(EthernetClient* cli)
     swf[LENNOM-2]='X';
     boutF(buf,swf,""," erase ",0,0,1,0);strcat(buf," <br>\n");
 
-    writeEth(cli,buf);buf[0]='\0';
+    ethWrite(cli,buf);
 
 /* pulses */
     strcat(buf,"<table>Pulses");                  // pulses
@@ -216,11 +216,11 @@ void SwCtlTableHtml(EthernetClient* cli)
         checkboxTableBHtml(buf,&val,rfonc,-1,0,"");                  
         strcat(buf,"<br>");for(int tsp=0;tsp<LENTSP;tsp++){concat1a(buf,psps[periSwPulseSta[pu]*LENTSP+tsp]);}strcat(buf,"</td>\n");         // staPulse 
 
-        writeEth(cli,buf);buf[0]='\0';
+        ethWrite(cli,buf);
       } // pulse suivant
       
       strcat(buf,"</tr></table></form>");
-      writeEth(cli,buf);buf[0]='\0';
+      ethWrite(cli,buf);
 
 /* détecteurs */    
     detServHtml(cli,&memDetServ,&libDetServ[0][0]);
@@ -236,7 +236,7 @@ void SwCtlTableHtml(EthernetClient* cli)
       uint8_t ni=0;                 // nbre lignes ds buffer
       uint16_t lb;
 
-      writeEth(cli,buf);buf[0]='\0';
+      ethWrite(cli,buf);
       
       for(int ninp=0;ninp<NBPERINPUT;ninp++){     // boucle des regles
 
@@ -276,12 +276,12 @@ void SwCtlTableHtml(EthernetClient* cli)
 
            lb=strlen(buf);
            Serial.print("lb/lb0/ni/lb0-lb/lb_ni+100 ");Serial.print(lb);Serial.print(" ");Serial.print(lb0);Serial.print(" ");Serial.print(ni);Serial.print(" ");Serial.print(lb0-lb);Serial.print(" ");Serial.println(lb/ni+100);
-           if((lb0-lb)<(lb/ni+100)){writeEth(cli,buf);buf[0]='\0';ni=0;}
+           if((lb0-lb)<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
            
         } // input suivant
 
   strcat(buf,"</table></body></html>");
-  writeEth(cli,buf);
+  ethWrite(cli,buf);
   Serial.print("fin SwCtlTableHtml  cxtime=");Serial.println(millis()-cxtime);
 }
 
@@ -300,7 +300,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           usrFormBHtml(buf,1);
           boutRetourB(buf,"refresh",0,0);
           numTf(buf,'d',&perrefr,"per_refr__",4,0,0);
-          writeEth(cli,buf);buf[0]='\0';
+          ethWrite(cli,buf);
           
           strcat(buf,"(");concatn(buf,fhsize);strcat(buf,") ");
           numTf(buf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0);
@@ -321,7 +321,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
         
           strcat(buf,"</form>\n");      // le formulaire NE DOIT PAS intégrer detServHtml qui a son propre usrFormHtml pour gérer les mots de passe
                                         // sinon la fonction user_ref__ serait 2 fois dans la liste et la 2nde (fausse) enverrait à l'accueil        
-          writeEth(cli,buf);buf[0]='\0';
+          ethWrite(cli,buf);
           
           detServHtml(cli,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
           
@@ -386,11 +386,11 @@ void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfo
     alphaTableHtmlB(buf,mem,namfonct,LMEMO-1);
 
     strcat(buf,"</tr>\n");
-    writeEth(cli,buf);buf[0]='\0';    // max len pour cli-print() 2048 ???
+    ethWrite(cli,buf);    // max len pour cli-print() 2048 ???
   }
   strcat(buf,"</table><br><input type=\"submit\" value=\"MàJ\"></fieldset></form>\n"); 
 
-  writeEth(cli,buf);buf[0]='\0';
+  ethWrite(cli,buf);
 }
 
 
@@ -407,7 +407,7 @@ void periLineHtml(EthernetClient* cli,int i)
   perifHeader(buf);
 
   usrPeriCurB(buf,"peri_cur__",0,2,3);
-  writeEth(cli,buf);buf[0]='\0';
+  ethWrite(cli,buf);
 
 /* boutons */
     boutRetourB(buf,"retour",0,0);
@@ -423,7 +423,7 @@ void periLineHtml(EthernetClient* cli,int i)
     line[LENNOM-2]='0';boutF(buf,line,"","tst__SW0",0,0,0,0);strcat(buf," ");
     line[LENNOM-2]='1';boutF(buf,line,"","tst__SW1",0,0,0,0);strcat(buf," ");
     line[LENNOM-2]='m';boutF(buf,line,"","tst_mail",0,0,0,0);strcat(buf,"\n");
-    writeEth(cli,buf);buf[0]='\0';
+    ethWrite(cli,buf);
     
 /* ligne périphérique */                
 
@@ -470,7 +470,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       strcat(buf,"</font></td>\n");
                       
                 strcat(buf,"</tr></table>\n");
-                writeEth(cli,buf);buf[0]='\0';
+                ethWrite(cli,buf);
 
 // table analogique
                 buf[0]='\0'; 
@@ -484,7 +484,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       numTf(buf,'F',periAnalFactor,"peri_anaC_",7,0,0,4);strcat(buf,"<br>");
                       numTf(buf,'F',periAnalOffset2,"peri_anaD_",7,0,0,4);
                 strcat(buf,"</td></tr></table><br></form>\n");
-                writeEth(cli,buf);buf[0]='\0';
+                ethWrite(cli,buf);
             
 #define ANASIZLIB   3
                 char aLibState[]={">H\0=H\0><\0=L\0-L\0"};
@@ -583,5 +583,5 @@ void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
           boutF(buf,swf,"","Switchs",0,0,0,0);}                                    
           strcat(buf,"</form></tr>");
 
-          writeEth(cli,buf);buf[0]='\0';
+          ethWrite(cli,buf);
 }

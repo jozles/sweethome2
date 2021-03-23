@@ -63,7 +63,7 @@ int writeEth0(EthernetClient* cli,char* buf, uint16_t len)
   return sta;
 }
 
-int writeEth(EthernetClient* cli,char* buf)
+int ethWrite(EthernetClient* cli,char* buf)
 {
   long i=0,j=strlen(buf);
   char a;
@@ -74,6 +74,7 @@ int writeEth(EthernetClient* cli,char* buf)
     if(!sta){j=-1;break;}
     j-=2048;i+=2048;}
   if(j>0){sta=writeEth0(cli,buf+i,j);}
+  buf[0]='\0';
   return sta;
 }
 
