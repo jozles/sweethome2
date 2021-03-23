@@ -339,8 +339,8 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
               strcat(buf,"white-space:nowrap;"); 
             strcat(buf,"}\n");
 
- ethWrite(cli,buf);
-
+  ethWrite(cli,buf);
+  
             strcat(buf,"td, th {");
               strcat(buf,"font-family: Courier, sans-serif;\n");
               strcat(buf,"border: 1px solid #dddddd;\n");
@@ -357,7 +357,7 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,".button2 {background-color: #77878A;}\n");
 
   ethWrite(cli,buf);
-      
+  
             /* big sliders */
             strcat(buf,".switch {position: relative;display: inline-block;width: 220px;height: 100px; margin: 16px;}\n");
             strcat(buf,".switch input {opacity: 0;width: 0;hight: 0;}\n");
@@ -385,15 +385,13 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,"h2 {font-size: 1.1rem;color: var(--txt-color);font-weight: normal;text-transform: uppercase;margin:0 0 2rem;border-bottom: 1px solid #ccc;}\n");
   
   ethWrite(cli,buf);            
-            
+  
             strcat(buf,"input[type=\"radio\"].sqbr {display: none;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr + label {padding: 0.5rem 1rem;font-size: 1.50rem;line-height: 1.5;border-radius: 0.3rem;color: #fff;background-color: #6c757d;border: 1px solid transparent;transition: all 0.15s ease-in-out;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_off:hover + label { background-color: #218838;border-color: #1e7e34;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_off:checked + label { background-color: #28a745;border-color: #28a745;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_on:hover + label { background-color: #c82333;border-color: #bd2130;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_on:checked + label { background-color: #dc3545;border-color: #dc3545;}\n");
-
-  ethWrite(cli,buf);            
   
             /* rond jaune */
             strcat(buf,"#rond_jaune {width: 40px;height: 40px;border-radius: 20px;background: yellow;}");

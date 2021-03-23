@@ -1274,19 +1274,19 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        }break;                           
               case 12: if(periPassOk==VRAI){what=1;periDataRead(valf);periPassOk==FAUX;}break;       // data_save
               case 13: if(periPassOk==VRAI){what=3;periDataRead(valf);periPassOk==FAUX;}break;       // data_read
-              case 14: {byte a=*(libfonctions+2*i);byte b=*(libfonctions+2*i+1);                     // (ligne peritable) - tests de perif serveur
-                        char fptst[LENNOM+1];                            
+              case 14: {byte a=*(libfonctions+2*i);                                                  // (ligne peritable) - tests de perif serveur
+                        periCur=*(libfonctions+2*i+1)-PMFNCHAR;periLoad(periCur);                    //  a cde (N°sw/mail) ; k etat à sortir 
+                        char fptst[LENNOM+1];                                                        
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
-                        uint8_t k=0;uint8_t zer[]={2,0};
+                        uint8_t k=0;
                         extern char mailToAddr[];
-                        char msg[64]="TEST==";strcat(msg,mailToAddr1);strcat(msg,"==test peri ");msg[strlen(msg)]=b;msg[strlen(msg)]='\0';strcat(msg,alphaDate());
-                        periCur=b-PMFNCHAR;periLoad(periCur);
-                        if(a=='m'){k=4;}
-                        else {k=zer[periSwCde(a-PMFNCVAL)];msg[0]='\0';}
-                        memcpy(fptst,swcd+LENNOM*k,LENNOM);
-                        periReq(&cli,periCur,fptst,msg);
-                        Serial.print("=========== periCur=");Serial.print(periCur);Serial.print(" k=");Serial.print(k);Serial.print(" a=");Serial.print(a-PMFNCVAL);Serial.print(" ~swcd=");Serial.print(zer[periSwCde(a-PMFNCVAL)]);Serial.print(" peritst=");Serial.println(fptst);
-                        periLineHtml(&cli,periCur);
+                        char msg[64];msg[0]='\0';
+                        if(a=='m'){a=2;k=0;strcat(msg,"TEST==");strcat(msg,mailToAddr1);strcat(msg,"==test peri ");concatn(msg,periCur);strcat(msg,alphaDate());}
+                        else {a-=PMFNCVAL;k=periSwLev(a);}
+                        memcpy(fptst,swcd+LENNOM*(a*2+k),LENNOM);
+                        periReq(&cliext,periCur,fptst,msg);
+                        Serial.print("=========== periCur=");Serial.print(periCur);Serial.print(" k=");Serial.print(k);Serial.print(" a=");Serial.print(a);Serial.print(" swLev=");Serial.print(periSwLev(a));Serial.print(" peritst=");Serial.println(fptst);
+                        periLineHtml(&cli,periCur);                        
                        }break;                                                                       
               case 15: what=5;periCur=0;conv_atob(valf,&periCur);                                    // submit modifs dans ligne de peritable (peri cur)
                        if(periCur>NBPERIF){periCur=NBPERIF;}                                         // maj periCur et periLoad

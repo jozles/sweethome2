@@ -311,6 +311,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           
           cli->print("<br>");
           boutF(buf,"deco______","","_  deco  _",0,0,0,0);
+          boutF(buf,"deco_____B","","_ reboot _",0,0,0,0);          
           boutF(buf,"cfgserv___","","_ config _",0,0,0,0);
           boutF(buf,"remote____","","remote_cfg",0,0,0,0);
           boutF(buf,"remotehtml","","remotehtml",0,0,0,0);
@@ -405,26 +406,32 @@ void periLineHtml(EthernetClient* cli,int i)
   htmlIntroB(buf,nomserver,cli);
   pageHeader(buf);
   perifHeader(buf);
-
   usrPeriCurB(buf,"peri_cur__",0,2,3);
   ethWrite(cli,buf);
 
 /* boutons */
-    boutRetourB(buf,"retour",0,0);
-    strcat(buf," <input type=\"submit\" value=\" MàJ \"> ");
+
+    strcat(buf,"<table><tr><td>\n");
+
+    boutRetourB(buf,"retour",0,0);strcat(buf," ");
+    
+    strcat(buf,"</td><td> <input type=\"submit\" value=\" MàJ \"> ");
     char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    boutF(buf,line,"","refresh",0,0,1,0);strcat(buf," ");
+    boutF(buf,line,"","refresh",0,0,0,0);
     if(*periSwNb!=0){
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-      boutF(buf,swf,"","Switchs",3,0,0,0);};strcat(buf," ");
-    boutF(buf,"peri_raz___","","Raz",0,0,0,0);strcat(buf,"\n");
+      boutF(buf,swf,"","Switchs",0,0,0,0);};
+    boutF(buf,"peri_raz___","","Raz",0,0,0,0);strcat(buf,"<br> \n");
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    line[LENNOM-2]='0';boutF(buf,line,"","tst__SW0",0,0,0,0);strcat(buf," ");
+    line[LENNOM-2]='0';boutF(buf,line,"","tst__SW0",0,0,0,0);
     line[LENNOM-2]='1';boutF(buf,line,"","tst__SW1",0,0,0,0);strcat(buf," ");
     line[LENNOM-2]='m';boutF(buf,line,"","tst_mail",0,0,0,0);strcat(buf,"\n");
-    ethWrite(cli,buf);
+
+    strcat(buf,"</td></tr></table>\n");
     
+    ethWrite(cli,buf);
+
 /* ligne périphérique */                
 
                 periInitVar();periLoad(i);periCur=i;
@@ -442,7 +449,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       numTf(buf,'I',periVmin_,"peri_vmin_",5,0,0);strcat(buf,"<br>\n");
                       numTf(buf,'I',periVmax_,"peri_vmax_",5,3,0);
                       numTf(buf,'d',(uint32_t*)periPerTemp,"peri_rtemp",5,2,0);strcat(buf,"<br>\n");
-                      numTf(buf,'r',periPitch_,"peri_pitch",5,0,0);strcat(buf,"<br>\N");
+                      numTf(buf,'r',periPitch_,"peri_pitch",5,0,0);strcat(buf,"<br>\n");
                       numTf(buf,'r',periThOffset_,"peri_tofs_",5,3,0);
                       numTf(buf,'l',(uint32_t*)periPerRefr,"peri_refr_",5,2,0);strcat(buf,"<br>\n");
                       checkboxTableBHtml(buf,(uint8_t*)periProg,"peri_prog_",-1,3,"");
@@ -473,7 +480,6 @@ void periLineHtml(EthernetClient* cli,int i)
                 ethWrite(cli,buf);
 
 // table analogique
-                buf[0]='\0'; 
                 
                 strcat(buf,"Analog Input<br><table><tr><td>Val<br>Low<br>High</td><td>");
                       concatn(buf,*periAnal);strcat(buf,"<br>");
@@ -485,7 +491,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       numTf(buf,'F',periAnalOffset2,"peri_anaD_",7,0,0,4);
                 strcat(buf,"</td></tr></table><br></form>\n");
                 ethWrite(cli,buf);
-            
+  
 #define ANASIZLIB   3
                 char aLibState[]={">H\0=H\0><\0=L\0-L\0"};
                 subCbdet(buf,cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,NBRULOP,LENRULOP,rulop,periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo);
@@ -501,6 +507,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 if(*periDetNb>0){
                   subCbdet(buf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);
                 }
+                ethWrite(cli,buf);
 }
 
 
