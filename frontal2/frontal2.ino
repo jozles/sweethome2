@@ -1039,9 +1039,7 @@ void rulesfonc(uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)            /
   if(co==7){                                                      // memo
     char bm[LMEMO];memset(bm,0x00,LMEMO);
     uint8_t lm=nvalf[i+1]-nvalf[i];
-    if(lm>=LMEMO-1){lm=LMEMO-1;}
-    memcpy(bm,valf,lm);
-    trailingSpaces(bm,LMEMO-1);
+    alphaTfr(bm,LMEMO,valf,lm);
     if(bm[0]!=0 && lm!=0){memo[li]=memosFind();
       if(memo[li]>=0){
         memcpy(memosTable+memo[li]*LMEMO,bm,LMEMO-1);
@@ -1288,16 +1286,14 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                         Serial.print("=========== periCur=");Serial.print(periCur);Serial.print(" k=");Serial.print(k);Serial.print(" a=");Serial.print(a);Serial.print(" swLev=");Serial.print(periSwLev(a));Serial.print(" peritst=");Serial.println(fptst);
                         periLineHtml(&cli,periCur);                        
                        }break;                                                                       
-              case 15: what=5;periCur=0;conv_atob(valf,&periCur);                                    // submit modifs dans ligne de peritable (peri cur)
+              case 15: what=5;periCur=0;conv_atob(valf,&periCur);                                    // (ligne peritable) - peri_cur__
                        if(periCur>NBPERIF){periCur=NBPERIF;}                                         // maj periCur et periLoad
                        periInitVar();periLoad(periCur);
                        *periProg=0;
                        break;                                                                        
-              case 16: *periPerRefr=0;conv_atobl(valf,periPerRefr);break;                            // (ligne peritable) periode maxi accès serveur periph courant
-              case 17: memset(periNamer,0x00,PERINAMLEN-1);                                          // (ligne peritable) nom periph courant
-                       memcpy(periNamer,valf,nvalf[i+1]-nvalf[i]);
-                       trailingSpaces(periNamer,PERINAMLEN);
-                       break;                                                                              
+              case 16: *periPerRefr=0;conv_atobl(valf,periPerRefr);break;                            // (ligne peritable) - peri_refr_ periode maxi accès serveur
+              case 17: alphaTfr(periNamer,PERINAMLEN,valf,nvalf[i+1]-nvalf[i]);                      // (ligne peritable) - peri_nom__
+                       break;                                                 
               case 18: for(j=0;j<6;j++){conv_atoh(valf+j*2,(periMacr+j));}break;                     // (ligne peritable) Mac periph courant
               case 19: accueilHtml(&cli);break;                                                      // accueil
               case 20: periTableHtml(&cli);break;                                                    // peri table
@@ -1380,16 +1376,16 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        memDetServ |= mDSmaskbit[nb];
                        }break;
               case 43: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) ssid[libf+1]
-                       memset(ssid+nb*(LENSSID+1),0x00,LENSSID+1);memcpy(ssid+nb*(LENSSID+1),valf,nvalf[i+1]-nvalf[i]);
+                       alphaTfr(ssid+nb*(LENSSID+1),LENSSID,valf,nvalf[i+1]-nvalf[i]);
                        }break;
               case 44: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) passssid[libf+1]
-                       memset(passssid+nb*(LPWSSID+1),0x00,LENSSID+1);memcpy(passssid+nb*(LPWSSID+1),valf,nvalf[i+1]-nvalf[i]);
+                       alphaTfr(passssid+nb*(LPWSSID+1),LENSSID,valf,nvalf[i+1]-nvalf[i]);
                        }break;
               case 45: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) usrname[libf+1]
-                       memset(usrnames+nb*(LENUSRNAME+1),0x00,LENUSRNAME+1);memcpy(usrnames+nb*(LENUSRNAME+1),valf,nvalf[i+1]-nvalf[i]);
+                       alphaTfr(usrnames+nb*(LENUSRNAME+1),LENUSRNAME,valf,nvalf[i+1]-nvalf[i]);
                        }break;
               case 46: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) usrpass[libf+1]
-                       memset(usrpass+nb*(LENUSRPASS+1),0x00,LENUSRPASS+1);memcpy(usrpass+nb*(LENUSRPASS+1),valf,nvalf[i+1]-nvalf[i]);
+                       alphaTfr(usrpass+nb*(LENUSRPASS+1),LENUSRPASS,valf,nvalf[i+1]-nvalf[i]);
                        }break;                       
               case 47: cfgServerHtml(&cli);break;                                                       // bouton config
 /*
@@ -1411,8 +1407,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        {int nb=*(libfonctions+2*i+1)-PMFNCHAR;
                         uint16_t v1=0;
                         switch(*(libfonctions+2*i)){                                               
-                            case 'n': memset(remoteN[nb].nam,0x00,LENREMNAM);                           // (remotecf) no nom remote courante              
-                                      memcpy(remoteN[nb].nam,valf,nvalf[i+1]-nvalf[i]);
+                            case 'n': alphaTfr(remoteN[nb].nam,LENREMNAM,valf,nvalf[i+1]-nvalf[i]);     // (remotecf) nom remote courante              
                                       remoteN[nb].enable=0;remoteN[nb].onoff=0;break;                   // (remotecf) effacement cb 
                             case 'e': remoteN[nb].enable=*valf-PMFNCVAL;break;                          // (remotecf) en enable remote courante
                             case 'o': remoteN[nb].onoff=*valf-PMFNCVAL;break;                           // (remotecf) on on/off remote courante
@@ -1447,14 +1442,10 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 54: remoteHtml(&cli);break;                                                          // remotehtml
               case 55: what=5;periInitVar();periRaz(periCur);break;                                     // peri_raz__  
               case 56: {switch (*(libfonctions+2*i+1)){                                                 // mailcfg___
-                          case 'f':memset(mailFromAddr,0x00,LMAILADD+1);                                // (config) mailFrom
-                                   memcpy(mailFromAddr,valf,nvalf[i+1]-nvalf[i]);break;
-                          case 'w':memset(mailPass,0x00,LMAILPWD+1);                                    // (config) pwd mailFrom
-                                   memcpy(mailPass,valf,nvalf[i+1]-nvalf[i]);break;
-                          case '1':memset(mailToAddr1,0x00,LMAILADD+1);                                 // (config) mailTo1
-                                   memcpy(mailToAddr1,valf,nvalf[i+1]-nvalf[i]);break;
-                          case '2':memset(mailToAddr2,0x00,LMAILADD+1);                                 // (config) mailTo2
-                                   memcpy(mailToAddr2,valf,nvalf[i+1]-nvalf[i]);break;                          
+                          case 'f':alphaTfr(mailFromAddr,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;      // (config) mailFrom
+                          case 'w':alphaTfr(mailPass,LMAILPWD,valf,nvalf[i+1]-nvalf[i]);break;          // (config) pwd mailFrom
+                          case '1':alphaTfr(mailToAddr1,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;       // (config) mailTo1
+                          case '2':alphaTfr(mailToAddr2,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;       // (config) mailTo2              
                           case 'p':conv_atob(valf,periMail1);                                           // (config) peri1
                                    if(*periMail1>NBPERIF){*periMail1=NBPERIF;}     
                           case 'q':conv_atob(valf,periMail2);                                           // (config) peri2
@@ -1464,9 +1455,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                        }break;
               case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis thparams__ (thermosCfg())
                         switch (*(libfonctions+2*i)){
-                          case 'n':memset(&thermos[nb].nom,0x00,LENTHNAME+1);
-                                   memcpy(&thermos[nb].nom,valf,nvalf[i+1]-nvalf[i]);
-                                   trailingSpaces((char*)&thermos[nb].nom,LENTHNAME+1);
+                          case 'n':alphaTfr((char*)&thermos[nb].nom,LENTHNAME,valf,nvalf[i+1]-nvalf[i]);
                                    break;
                           case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToInt(valf,&j);
                                    if((thermos[nb].peri)>NBPERIF){(thermos[nb].peri)=NBPERIF;}
@@ -1538,9 +1527,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
               case 66: Serial.println("cfgDetServHtml()");cfgDetServHtml(&cli);break;                   // cfgdetservhtml              
               case 67: what=11;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // lib detserv
                        if(nb>=16){nb-=16;}
-                       memset(&libDetServ[nb][0],0x00,LENLIBDETSERV);                                   
-                       memcpy(&libDetServ[nb][0],valf,nvalf[i+1]-nvalf[i]);
-                       }break;
+                       alphaTfr(&libDetServ[nb][0],LENLIBDETSERV,valf,nvalf[i+1]-nvalf[i]);
+                       }break;                          
               case 68: periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                          // bouton periph periline__ (ligne peritable)
                        periLoad(periCur);                                                            
                        periLineHtml(&cli,periCur);

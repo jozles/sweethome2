@@ -475,7 +475,15 @@ void bufPrintPeriDate(char* buf,char* periDate)
 
 void trailingSpaces(char* data,uint16_t len)
 {
-  for(uint8_t i=len-1;i>=0;i--){if(data[i]==' '){data[i]='\0';}else break;} // erase trailing spaces
+  for(uint8_t i=len-1;i>=0;i--){if(data[i]==' ' || data[i]=='\0'){data[i]='\0';}else break;} // erase trailing spaces
+}
+
+void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet)
+{
+  memset(recep,0x00,lenRecep);
+  if(lenEmet>=lenRecep-1){lenEmet=lenRecep-1;}
+  memcpy(recep,emet,lenEmet);
+  trailingSpaces(recep,lenRecep);
 }
 
 /*

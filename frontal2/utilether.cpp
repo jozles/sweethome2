@@ -97,6 +97,7 @@ void mail(char* a,char* mm)
 int sdOpen(char* fname,File32* file32)
 {
   if (!file32->open(fname, O_RDWR | O_CREAT)) {
+    mail("SD OPEN FAIL",fname);
     Serial.print(fname);Serial.println(" inaccessible");return SDKO;
   }
   return SDOK;
@@ -136,43 +137,14 @@ void histoStore_textdh0(char* val1,char* val2,char* val3)
         fhisto.sync();
         fhsize=fhisto.size();
         fhisto.close();
-
-//Serial.print("histoStore=");Serial.println(micros()-t0);
 }
-/*
-void histoStore_textdhx(char* val1,char* val2,char* val3)
-{
-  unsigned long t2,t1,t0=micros();
-  #define LT 32
-  char text[LT]={'\0'};
 
-t1=micros();Serial.print(" SDst open=");Serial.print(t1-t0);  
-memDump("input1");
-        sprintf(text,"%.8lu",amj);strcat(text," ");       // 9
-        sprintf(text+9,"%.6lu",hms);strcat(text," ");     // +7
-Serial.println();dumpstr(text,48);
-        strcat(text,val1);strcat(text," ");               // +2
-        strcat(text,val2);strcat(text,'\0');              // +1
-Serial.println();dumpstr(text,48);
-        sdOpen("fdhisto.txt",&fhisto);
-memDump("input4");
-        fhisto.seekEnd(0);
-        int v=fhisto.write(text);int w=fhisto.write(val3);
-        fhisto.sync();
-        if(v==0 || w==0){ledblink(BCODEFHISTO);}
-t2=micros();Serial.print(" write=");Serial.print(t2-t1);
-
-    fhsize=fhisto.size();
-    fhisto.close();
-memDump("output");          
-Serial.print(" close=");Serial.println(micros()-t2);
-}
-*/
 void histoStore_textdh(char* val1,char* val2,char* val3)
 {
   ds3231.getDate(&hms,&amj,&js,strdate);
   histoStore_textdh0(val1,val2,val3);
 }
+
 
 void cidDmp() {
   cid_t cid;

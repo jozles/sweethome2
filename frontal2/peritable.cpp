@@ -292,7 +292,9 @@ void periTableHtml(EthernetClient* cli)
   int i,j;
   int savePeriCur=periCur;   // save periCur et restore à la fin de periTable
 
-Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.print(" cxtime=");Serial.println(millis()-cxtime); 
+  unsigned long begPT=millis();
+
+Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.println(); 
 
           htmlIntroB(buf,nomserver,cli);
 
@@ -338,7 +340,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           }
           strcat(buf,"</table></body></html>");
           periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
-          Serial.print("fin péritable - cxtime=");Serial.println(millis()-cxtime); 
+          Serial.print("fin péritable - cxtime=");Serial.println(millis()-begPT); 
 }
 
 void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfonc,uint8_t nbLi,char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)

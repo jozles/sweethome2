@@ -27,6 +27,7 @@
 void pageHeader(char* buf);
 void cliPrintMac(EthernetClient* cli, byte* mac);
 void trailingSpaces(char* data,uint16_t len);
+void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet);
 
 void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td);
 void usrPeriCurB(char* buf,char* fnct,uint8_t ninp,int len,uint8_t td);

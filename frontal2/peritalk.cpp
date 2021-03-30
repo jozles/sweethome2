@@ -219,12 +219,12 @@ int periReq0(EthernetClient* cli,char* nfonct,char* msg)                // fonct
   
   if(*periProtocol=='T'){                         // UDP à développer
           periMess=messToServer(cli,host,*periPort,bufServer);
-          Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(" periMess(messToServer)=");Serial.println(periMess);
+          Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(") periMess(messToServer)=");Serial.println(periMess);
           uint8_t fonct;
           if(periMess==MESSOK){
               trigwd();
               periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct);
-              Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(" periMess(gHttpR)=");Serial.println(periMess);
+              Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(") periMess(gHttpR)=");Serial.println(periMess);
               if(periMess==MESSOK && fonct!=fdone){periMess=MESSFON;}
               delay(1);                                 // (? pour Serial.print de la réponse ?)
               purgeServer(cli);
@@ -235,7 +235,7 @@ int periReq0(EthernetClient* cli,char* nfonct,char* msg)                // fonct
   cli->stop();
   int8_t zz=periSave(periCur,PERISAVELOCAL);          // modifs de periTable et date effacèe par prochain periLoad si pas save
   if(periMess==MESSOK){periMess=zz;}
-  Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(" periMess(periReq)=");Serial.println(periMess);
+  Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(") periMess(periReq)=");Serial.println(periMess);
   return periMess;
 }
 

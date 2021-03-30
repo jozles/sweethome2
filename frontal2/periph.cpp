@@ -563,11 +563,9 @@ int periSave(uint16_t num,bool sd)
 
   *periNum=num;
   sta=SDOK;
-  periCacheStatus[num]=!CACHEISFILE;                                // le fichier n'est pas à l'image du cache
-  if(sd){
-    //Serial.print("periCacheSave ");
-    sta=periCacheSave(num);                                         // le fichier est à l'image du cache
-  }
+  periCacheStatus[num]=!CACHEISFILE;                                        // le fichier n'est pas à l'image du cache
+  if(sd){sta=periCacheSave(num);}                                           // le fichier est à l'image du cache
+
 #ifdef SHDIAGS    
   Serial.print(" periSave(");periSub(num,sta,sd);
 #endif
@@ -608,11 +606,13 @@ int periRaz(uint16_t num)
 
   if (!fperi.open(periFile, O_RDWR | O_CREAT | O_TRUNC)) {
     Serial.print(periFile);Serial.println(" create failed");
+    mail("SD CREATE FAIL",periFile);
     return SDKO;
   }
 // contiguous clusters
   fperi.truncate(0);
   if (!fperi.preAllocate(PERIRECLEN+100)) {
+    mail("SD PREALLOC FAIL",periFile);
     Serial.print(periFile);Serial.println(" preallocation failed");
   } 
   fperi.close();
