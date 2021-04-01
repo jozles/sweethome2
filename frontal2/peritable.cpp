@@ -294,7 +294,7 @@ void periTableHtml(EthernetClient* cli)
 
   unsigned long begPT=millis();
 
-Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.println(); 
+Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
 
           htmlIntroB(buf,nomserver,cli);
 
@@ -340,7 +340,7 @@ Serial.print("début péritable ; remote_IP ");serialPrintIp(remote_IP_cur);Seri
           }
           strcat(buf,"</table></body></html>");
           periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
-          Serial.print("fin péritable - cxtime=");Serial.println(millis()-begPT); 
+          Serial.print(" dur=");Serial.println(millis()-begPT); 
 }
 
 void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,char* title,char* nfonc,uint8_t nbLi,char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)
@@ -401,9 +401,9 @@ void periLineHtml(EthernetClient* cli,int i)
 {
   char buf[2000];buf[0]='\0';
   int j;
+  unsigned long begPL=millis();
 
-  Serial.print("début periLineHtml -- periCur=");Serial.print(periCur);Serial.print("/");Serial.println(i);
-  // en principe periCur est à jour 
+  Serial.print("periLineHtml - periCur=");Serial.print(periCur);Serial.print("/");Serial.print(i);
 
   htmlIntroB(buf,nomserver,cli);
   pageHeader(buf);
@@ -510,6 +510,8 @@ void periLineHtml(EthernetClient* cli,int i)
                   subCbdet(buf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);
                 }
                 ethWrite(cli,buf);
+
+                Serial.print(" dur=");Serial.println(millis()-begPL);
 }
 
 

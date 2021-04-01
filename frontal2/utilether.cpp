@@ -13,6 +13,8 @@
 
 extern Ds3231 ds3231;
 
+extern bool mailEnable;
+
 const uint8_t SD_CS_PIN = 4;
 #define SPI_CLOCK SD_SCK_MHZ(8)
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
@@ -80,6 +82,9 @@ int ethWrite(EthernetClient* cli,char* buf)
 
 void mail(char* a,char* mm)
 {
+  
+  if(mailEnable){
+    
       #define LMSG 128
       char ms[LMSG];ms[0]='\0';
     
@@ -91,6 +96,7 @@ void mail(char* a,char* mm)
         strcat(ms,alphaDate());strcat(ms," ");}
 
       periReq(&cliext,*periMail1,"mail______",ms);  
+  }
 }
 
 

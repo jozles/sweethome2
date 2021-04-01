@@ -250,7 +250,7 @@ int periAns(EthernetClient* cli,char* nfonct)   // réponse à périphérique cl
   char message[LENMESS]={'\0'};
   char date14[LNOW];ds3231.alphaNow(date14);
 
-  Serial.print("\nperiAns(");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
+  Serial.print("periAns(");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
   Serial.print(" ");serialPrintIp(periIpAddr);Serial.print("/");Serial.print(*periPort);     
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
     assySet(message,periCur,periDiag(periMess),date14);

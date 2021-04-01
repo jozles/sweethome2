@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.51"
+#define VERSION "1.52"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
    1.1a ajout volts et version dans table
    1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -79,6 +79,8 @@
         timers et thermos utilisent periDetecUpdate lors de la mise à jour des memDet ;
         yield() redefini avec trigwd() inside ; integration params mail dans config ; correction sur messages mails ; correction sur record histo ;
         corrections sur users/pwd ; periline et d'autres bufferisés ; ajout forceWd pour mettre la led off et attendre le reset ;
+   1.52 alphaTfr() pour saisir les valeurs alpha sans risquer d'overflow ; mailEnable bloque les mails si la config et les péris ne sont pas chargés
+        correction de la ligne de reset dans l'histo ; accélération imgHtml() ; affichage durée plusieurs fonctions ;
 
    BUGS :
 

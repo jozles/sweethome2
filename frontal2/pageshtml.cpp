@@ -98,26 +98,30 @@ extern uint16_t  sourceDetServ[NBDSRV];
 
 int htmlImg(EthernetClient* cli,char* fimgname)   
 {
+        unsigned long begIC=millis();
         Serial.print(fimgname);
         File32 fimg;                              // = SD.open(fimgname,FILE_READ);
         if(sdOpen(fimgname,&fimg)==SDKO){return SDKO;}
         else {
-  
+          
           cli->println("HTTP/1.1 200 OK");
           cli->println("CONTENT-Type: image/jpg");
           cli->println();
 
           long fimgSiz=fimg.size();
-          byte c;
-          char icon[2048];memset(icon,0x00,2048);
-          long ll=0;
-          Serial.print(" size=");Serial.println(fimgSiz);
-          while (fimgSiz>0){c=fimg.read();cli->write(&c,1);fimgSiz--;icon[ll]=c;ll++;}
+          Serial.print(" size=");Serial.print(fimgSiz);
+          if(fimgSiz>LBUF4000){Serial.println(" fichier icon trop grand *********");}
+          else {
+            byte c;
+            char icon[LBUF4000];memset(icon,0x00,2048);
+            long ll=0;
+            //while (fimgSiz>0){c=fimg.read();cli->write(&c,1);fimgSiz--;icon[ll]=c;ll++;}
+            for(int i=0;i<fimgSiz;i++){icon[i]=fimg.read();}cli->write(icon,fimgSiz);
+          }
           fimg.close();
-          //delay(1);
           //dumpstr(icon,512);
         }
-        Serial.println(" terminé");
+        Serial.print(" dur=");Serial.println(millis()-begIC);
         cli->stop();
         return SDOK;
 }
@@ -274,19 +278,21 @@ void accueilHtml(EthernetClient* cli)
 {
       const uint16_t lb0=LBUF4000;
       char buf[lb0];buf[0]='\0';
+      unsigned long begAC=millis();
       
-            Serial.println(" saisie pwd");
+            Serial.print(begAC);Serial.print(" accueilHtml ");
             htmlIntroB(buf,nomserver,cli);
 
             strcat(buf,"<body><form method=\"get\" >");
             strcat(buf,"<h1 class=\"point\">");
             strcat(buf,VERSION);strcat(buf,"<br>\n");
 
-            strcat(buf,"<p><input type=\"username\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Username\" name=\"username__\"  value=\"\" size=\"6\" maxlength=\"8\" ></p>");            
-            strcat(buf,"<p><input type=\"password\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>");
-                       strcat(buf," <input type=\"submit\" text style=\"width:300px;height:60px;font-size:40px\" value=\"login\"><br>");
-            strcat(buf,"</h1></form></body></html>");
+            strcat(buf,"<p><input type=\"username\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Username\" name=\"username__\"  value=\"\" size=\"6\" maxlength=\"8\" ></p>\n");            
+            strcat(buf,"<p><input type=\"password\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>\n");
+                       strcat(buf," <input type=\"submit\" text style=\"width:300px;height:60px;font-size:40px\" value=\"login\"><br>\n");
+            strcat(buf,"</h1></form></body></html>\n");
             ethWrite(cli,buf);
+            Serial.print(" dur=");Serial.println(millis()-begAC);
 }          
 
 void sscb(char* buf,bool val,char* nomfonct,int nuf,int etat,uint8_t td,uint8_t nb)

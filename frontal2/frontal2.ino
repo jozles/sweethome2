@@ -52,7 +52,7 @@ char ab;
     
 /* >>>> config server <<<<<< */
 
-char configRec[CONFIGRECLEN];
+char configRec[CONFIGRECLEN];       // enregistrement de config  
 
   byte* mac;                  // adresse server
   byte* localIp;              // adresse server
@@ -82,7 +82,7 @@ char configRec[CONFIGRECLEN];
   byte* configBegOfRecord;
   byte* configEndOfRecord;
 
-  char* toto;
+  bool mailEnable=FAUX;     // interdit les mails si config n'est pas chargé et periCacheLoad n'est pas terminé 
 
   bool    periPassOk=FAUX;  // contrôle du mot de passe des périphériques
   int     usernum=-1;       // numéro(0-n) de l'utilisateur connecté (valide durant commonserver)   
@@ -366,7 +366,7 @@ void setup() {                              // =================================
   
   uint32_t        amj2,hms2;
   byte            js2;
-  ds3231.getDate(&hms2,&amj2,&js2,strdate);histoStore_textdh0("R0",""," ");
+  ds3231.getDate(&hms2,&amj2,&js2,strdate);
   Serial.print("DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
 
 //remInit();remoteSave();while(1){ledblink(0);delay(1000);};
@@ -384,8 +384,9 @@ void setup() {                              // =================================
     
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
-  memDetLoad();                     // le premier pour Sync 
-  periTableLoad();
+  periTableLoad();                  // le premier (après config) pour permettre les mails
+  mailEnable=VRAI;
+  memDetLoad();                     // le second pour Sync 
   remoteLoad();periSwSync();  
   timersLoad();  
   thermosLoad();
@@ -1069,12 +1070,11 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
       soit username__ et password__ en cas de login.
       soit usr_ref___ la référence fournie en première zone (hidden) de la page (num user en libfonction+2xi+1) et millis() comme valeur;
 */
-
-      Serial.print("\n *** serveur(");Serial.print((char)ab);Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
-      
       cxtime=millis();    // pour rémanence pwd
       
-      nbreparams=getnv(&cli,bufData,bufDataLen);Serial.print("\n---- nbreparams ");Serial.println(nbreparams);
+      Serial.println();Serial.print(cxtime);Serial.print(" *** serveur(");Serial.print((char)ab);Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
+      
+      nbreparams=getnv(&cli,bufData,bufDataLen);Serial.print("---- nbparams ");Serial.println(nbreparams);
         
 /*  getnv() décode la chaine GET ou POST ; le reste est ignoré
     forme ?nom1:valeur1&nom2:valeur2&... etc (NBVAL max)
@@ -1190,12 +1190,12 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
       if(numfonct[0]!=fperipass){                                                                   // si la première fonction n'est pas peri_pass_ (mot de passe des périfs)
         if((numfonct[0]!=fusername || numfonct[1]!=fpassword) && numfonct[0]!=fuserref){            //   si (la 1ère fonct n'est pas username__ ou la 2nde pas password__ ) et la 1ère pas user_ref__
                                                                                                     //   ... en résumé : ni un périf, ni une nlle cx utilisateur, ni une continuation d'utilisateur
-          what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;}    // -->> accueil en cas d'anomalie     //      --> accueil   (voir plus haut les explications)
-      }
+          what=-1;nbreparams=-1;}                                                                   //  what==-1 --> accueil   (voir plus haut les explications)
+      }                                                                                             //  nbreparams==-1   skip all
 /*
-    boucle des fonctions accumulées par getnv
+    boucle des fonctions accumulées par getnv 
+    (numfonct[0] == soit fperipass donc un peri, soit fusername ou fuserref+fpassword donc un utilisateur, soit faccueil) 
 */   
-//if(periCur==3){Serial.print(" intro serveur ================");periPrint(periCur);}
 
         uint16_t transferVal;         // pour passer "quelque chose" entre 2 fonctions 
         
@@ -1573,7 +1573,8 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
           }       // fin boucle nbre params
           
           if(nbreparams>=0){
-            Serial.print((unsigned long)millis());Serial.print(" what=");Serial.print(what);Serial.print(" periCur=");Serial.print(periCur);
+            Serial.print((unsigned long)millis());
+            Serial.print(" what=");Serial.print(what);Serial.print(" periCur=");Serial.print(periCur);Serial.println(" ");
 #ifdef SHDIAGS            
             Serial.print(" strHisto=");Serial.print(strHisto);
 #endif            
@@ -1598,7 +1599,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                   cliext.stop();
                   periMess=periReq(&cliext,periCur,"set_______");break;
           case 5: periMess=periSave(periCur,PERISAVESD);                // (periLine) modif ligne de peritable
-                  periPrint(periCur);
+                  //periPrint(periCur);
                   periTableHtml(&cli); 
                   cli.stop();
                   cliext.stop();
