@@ -724,11 +724,13 @@ void ordreExt()
                       char a[10];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
                       strcat(a,"°C ");strcat(httpMess+v2+2,a);
                       Serial.print("<<<<");Serial.println(httpMess+v2+2);                    
+// ************************************************************************************** mail() dure plusieurs secondes ; renvoyer done d'abord *************************************
                       mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
                       }break;                 
                         
               default:break;
           }
+// ************************************************************************************** ajouter "ce qui est done" dans le message *************************************
           char etat[]="done______=0006AB8B\0";
           talkClient(etat);
           Serial.println();
