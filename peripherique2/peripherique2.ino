@@ -150,7 +150,7 @@ void  readTemp();
 void  ordreExt();
 void  outputCtl();
 void mail(char* subj,char* dest,char* msg);
-
+void readAnalog();
 
 void tmarker()
 {
@@ -647,6 +647,15 @@ switch(cstRec.talkStep){
 
 // **************** mode serveur
 
+void answer(char* what)
+{
+  #define LETAT 30
+  char etat[LETAT];etat[0]='\0';
+  if(strlen(what)+21>=LETAT){strcat(etat,"*OVF*");}else {strcat(etat,what);}
+  strcat(etat,"_done______=0006AB8B");
+  talkClient(etat);
+}
+
 void ordreExt()
 {
   if(server!=nullptr){
@@ -705,15 +714,15 @@ void ordreExt()
         if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
           Serial.print("reçu message fonction=");Serial.println(fonction);
           switch(fonction){
-              case 0: dataTransfer(&httpMess[v0+5]);break;      // set
-              case 1: break;                                    // ack ne devrait pas se produire (page html seulement)
-              case 2: cstRec.talkStep=1;break;                  // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
+              case 0: dataTransfer(&httpMess[v0+5]);answer("set");break;        // set
+              case 1: answer("ack");break;                                      // ack ne devrait pas se produire (page html seulement)
+              case 2: answer("etat");cstRec.talkStep=1;break;                   // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
               case 3: break;                                    // sleep (future use)
               case 4: break;                                    // reset (future use)
-              case 5: digitalWrite(pinSw[0],cloSw[0]);delay(1000);break;    // test on  A        http://192.168.0.6:80/sw0__ON___=0005_5A
-              case 6: digitalWrite(pinSw[0],openSw[0]);delay(1000);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
-              case 7: digitalWrite(pinSw[1],cloSw[1]);delay(1000);break;    // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
-              case 8: digitalWrite(pinSw[1],openSw[1]);delay(1000);break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
+              case 5: digitalWrite(pinSw[0],cloSw[0]);delay(1000);answer("0_ON");break;     // test on  A        http://192.168.0.6:80/sw0__ON___=0005_5A
+              case 6: digitalWrite(pinSw[0],openSw[0]);delay(1000);answer("0_OFF");break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
+              case 7: digitalWrite(pinSw[1],cloSw[1]);delay(1000);answer("1_ON");break;     // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
+              case 8: digitalWrite(pinSw[1],openSw[1]);delay(1000);answer("1_OFF");break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
               case 9: Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);
                       v0+=21;
                       {httpMess[strlen(httpMess)-2]='\0';             // erase CRC                   
@@ -723,16 +732,12 @@ void ordreExt()
                       httpMess[v2]='\0';Serial.print("<<<<");Serial.println(httpMess+v1+2);
                       char a[10];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
                       strcat(a,"°C ");strcat(httpMess+v2+2,a);
-                      Serial.print("<<<<");Serial.println(httpMess+v2+2);                    
-// ************************************************************************************** mail() dure plusieurs secondes ; renvoyer done d'abord *************************************
+                      Serial.print("<<<<");Serial.println(httpMess+v2+2);
+                      answer("mail");                    
                       mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
                       }break;                 
-                        
               default:break;
-          }
-// ************************************************************************************** ajouter "ce qui est done" dans le message *************************************
-          char etat[]="done______=0006AB8B\0";
-          talkClient(etat);
+          }          
           Serial.println();
           cstRec.talkStep=6;      // après maj des sw et collecte des données -> dataSave       
           cstRec.serverTime=0;
