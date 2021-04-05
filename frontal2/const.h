@@ -81,6 +81,7 @@
         corrections sur users/pwd ; periline et d'autres bufferisés ; ajout forceWd pour mettre la led off et attendre le reset ;
    1.52 alphaTfr() pour saisir les valeurs alpha sans risquer d'overflow ; mailEnable bloque les mails si la config et les péris ne sont pas chargés
         correction de la ligne de reset dans l'histo ; accélération imgHtml() ; affichage durée plusieurs fonctions ;
+        favicon devient une fonction insérée dans numfonct par getnv() ; le cli.stop en fin de htmlImg est supprimé 
 
    BUGS :
 

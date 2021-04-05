@@ -168,7 +168,7 @@ extern char strdate[33];
 extern char temp[3],temp0[3],humid[3];
 
 extern  char* fonctions;
-extern  int   nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fperitst;
+extern  int   nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fperitst,ffavicon;
 
 /* >>>>>>>>> configuration <<<<<<<<<< */
 
@@ -271,6 +271,7 @@ byte* temp=(byte*)configRec;
   fusername=(strstr(fonctions,"username__")-fonctions)/LENNOM;
   fuserref=(strstr(fonctions,"user_ref__")-fonctions)/LENNOM;
   fperitst=(strstr(fonctions,"peri_tst__")-fonctions)/LENNOM;
+  ffavicon=(strstr(fonctions,"favicon___")-fonctions)/LENNOM;
   
   Serial.print("  nbfonct=");Serial.println(nbfonct);
   Serial.print("RECCHAR=");Serial.print(RECCHAR);Serial.print(" LBUFSERVER=");Serial.println(LBUFSERVER);

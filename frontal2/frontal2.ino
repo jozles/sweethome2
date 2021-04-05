@@ -101,10 +101,10 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___mailcfg___thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__last_fonc_";
+  char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___mailcfg___thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
-  int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0;
+  int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
   char    valeurs[LENVALEURS];         // les valeurs associées à chaque fonction trouvée
   uint16_t nvalf[NBVAL];               // offset dans valeurs[] des valeurs trouvées (séparées par '\0')
   char*   valf;                        // pointeur dans valeurs en cours de décodage
@@ -907,14 +907,15 @@ int getnv(EthernetClient* cli,char* data,uint16_t dataLen)        // décode com
       if(ncde==0){return -1;}  
       
       c=' ';
-      while (cliAv(cli,dataLen,&ptr) && c!='?' && c!='.'){      // attente '?' ou '.'
+      //while (cliAv(cli,dataLen,&ptr) && c!='?' && c!='.'){      // attente '?' ou '.'
+      while (cliAv(cli,dataLen,&ptr) && c!='?'){      // attente '?' ou '.'
         c=cliRead(cli,data,dataLen,&ptr);Serial.print(c);
         bufli[pbli]=c;if(pbli<LBUFLI-1){pbli++;bufli[pbli]='\0';}
       }Serial.println();          
 
         switch(ncde){
           case 1:           // GET
-            if(strstr(bufli,"favicon")>0){htmlFavicon(cli);}
+            if(strstr(bufli,"favicon")>0){numfonct[0]=ffavicon;nbreparams=0;} //htmlFavicon(cli);}
             if(bufli[0]=='?' || strstr(bufli,"page.html?")>0 || strstr(bufli,"cx?")>0){return analyse(cli,data,dataLen,&ptr);}
             break;
           case 2:           // POST
@@ -969,7 +970,7 @@ void testSwitch(char* command,char* perihost,int periport)
               Serial.println(periMess);
             }
             purgeServer(&cliext);
-            cliext.stop();
+            cliext.stop();        // en principe iniutile (purge fait stop)
             delay(1);
 }
 
@@ -1057,6 +1058,7 @@ void rulesfonc(uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)            /
 
 void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
 {
+      unsigned long cxDur=millis();
 /*
     Les messages peuvent provenir soit d'une connexion TCP soit UDP soit autre. 
         Si TCP (ab!='u') bufData et bufDataLen sont sans objet.
@@ -1187,7 +1189,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
     
 */     
 
-      if(numfonct[0]!=fperipass){                                                                   // si la première fonction n'est pas peri_pass_ (mot de passe des périfs)
+      if(numfonct[0]!=fperipass && numfonct[0]!=ffavicon){                                          // si la première fonction n'est pas peri_pass_ (mot de passe des périfs)
         if((numfonct[0]!=fusername || numfonct[1]!=fpassword) && numfonct[0]!=fuserref){            //   si (la 1ère fonct n'est pas username__ ou la 2nde pas password__ ) et la 1ère pas user_ref__
                                                                                                     //   ... en résumé : ni un périf, ni une nlle cx utilisateur, ni une continuation d'utilisateur
           what=-1;nbreparams=-1;}                                                                   //  what==-1 --> accueil   (voir plus haut les explications)
@@ -1564,6 +1566,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                           }
                        }
                        }break;                                                                                                        
+              case 74: htmlFavicon(&cli);break;
               
               /* fin des fonctions */
               default:break;
@@ -1628,10 +1631,10 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
           default:accueilHtml(&cli);break;
         }
         valeurs[0]='\0';
-        purgeServer(&cli);
-        cli.stop();
+        //purgeServer(&cli);
+        cli.stop();                           // en principe inutile (purge fait stop)
         cliext.stop();
-        Serial.print(" pM=");Serial.print(periDiag(periMess));Serial.print(" *** cli stopped - ");Serial.println(millis()-cxtime); 
+        Serial.print(" pM=");Serial.print(periDiag(periMess));Serial.print(" *** cli stopped - ");Serial.println(millis()-cxDur); 
 
     //} // cli.connected
 }

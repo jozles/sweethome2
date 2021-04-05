@@ -110,20 +110,22 @@ int htmlImg(EthernetClient* cli,char* fimgname)
 
           long fimgSiz=fimg.size();
           Serial.print(" size=");Serial.print(fimgSiz);
-          if(fimgSiz>LBUF4000){Serial.println(" fichier icon trop grand *********");}
+          #define ICONLENGTH 1000
+          if(fimgSiz>=ICONLENGTH){Serial.println(" fichier icon trop grand *********");}
           else {
+            char icon[ICONLENGTH];            
             byte c;
-            char icon[LBUF4000];memset(icon,0x00,2048);
             long ll=0;
-            //while (fimgSiz>0){c=fimg.read();cli->write(&c,1);fimgSiz--;icon[ll]=c;ll++;}
-            for(int i=0;i<fimgSiz;i++){icon[i]=fimg.read();}cli->write(icon,fimgSiz);
+            for(int i=0;i<fimgSiz;i++){icon[i]=fimg.read();}
+            icon[fimgSiz]='\0';
+            Serial.print(" dur_rd=");Serial.print(millis()-begIC);
+            ethWrite(cli,icon);
+            //dumpstr(icon,512);
           }
-          fimg.close();
-          //dumpstr(icon,512);
+          fimg.close();         
         }
         Serial.print(" dur=");Serial.println(millis()-begIC);
-        cli->stop();
-        return SDOK;
+        return SDOK;          // attention !!! pas de cli.stop sinon une suite éventuelle ne pourra pas partir (acceuilHtml par ex)
 }
 
 void htmlFavicon(EthernetClient* cli)
@@ -281,7 +283,7 @@ void accueilHtml(EthernetClient* cli)
       unsigned long begAC=millis();
       
             Serial.print(begAC);Serial.print(" accueilHtml ");
-            htmlIntroB(buf,nomserver,cli);
+            htmlIntro0B(buf);                                               // ,nomserver,cli);
 
             strcat(buf,"<body><form method=\"get\" >");
             strcat(buf,"<h1 class=\"point\">");
