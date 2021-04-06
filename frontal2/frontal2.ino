@@ -388,7 +388,8 @@ void setup() {                              // =================================
   mailEnable=VRAI;
   memDetLoad();                     // le second pour Sync 
   remoteLoad();periSwSync();  
-  timersLoad();  
+  timersLoad();
+  //thermosInit();thermosSave();     // si NBPERIF change
   thermosLoad();
   //memosInit();memosSave(-1);  
   memosLoad(-1);
@@ -1483,7 +1484,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                         } 
                        }break;
               case 58: thermoShowHtml(&cli);break;                                                      // thermoshow
-              case 59: thermoCfgHtml(&cli);thermosPrint();break;                                        // thermos___ (bouton thermo_cfg)
+              case 59: thermoCfgHtml(&cli);break;                                                       // thermos___ (bouton thermo_cfg)
               case 60: *periPort=0;conv_atob(valf,periPort);break;                                      // (ligne peritable) peri_port_
               case 61: what=7;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (timers) tim_name__
                        textfonc(timersN[nb].nom,LENTIMNAM);

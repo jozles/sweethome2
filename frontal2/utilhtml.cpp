@@ -8,6 +8,7 @@
 #include "periph.h"
 #include "utilether.h"
 #include "pageshtml.h"
+#include "utilhtml.h"
 
 extern Ds3231 ds3231;
 
@@ -220,7 +221,7 @@ void bufPrintDateHeure(char* buf,char* pkdate)
 {
   char bufdate[LNOW];ds3231.alphaNow(bufdate);packDate(pkdate,bufdate+2); // skip siècle
   for(int zz=0;zz<14;zz++){concat1a(buf,bufdate[zz]);if(zz==7){strcat(buf,"-");}}
-  strcat(buf," GMT ");
+  strcat(buf,"(");concatn(buf,bufdate[14]);strcat(buf,")");strcat(buf," GMT ");
 }
 
 void setCol(char* buf,char* textColour)
@@ -402,12 +403,17 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
 }
 
 void pageHeader(char* buf)
+{
+  pageHeader(buf,true);
+}
+
+void pageHeader(char* buf,bool form)
 { 
   float th;                                  // pour temp DS3231
   ds3231.readTemp(&th);
   
   strcat(buf,"<body>");            
-  strcat(buf,"<form method=\"get\" >");
+  if(form){strcat(buf,"<form method=\"get\" >");}
   strcat(buf,VERSION);strcat(buf," ");
 
   #ifdef _MODE_DEVT
@@ -475,7 +481,7 @@ void bufPrintPeriDate(char* buf,char* periDate)
 
 void trailingSpaces(char* data,uint16_t len)
 {
-  for(uint8_t i=len-1;i>=0;i--){if(data[i]==' ' || data[i]=='\0'){data[i]='\0';}else break;} // erase trailing spaces
+  for(int i=len-1;i>=0;i--){if(data[i]==' ' || data[i]=='\0'){data[i]='\0';}else break;} // erase trailing spaces
 }
 
 void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet)

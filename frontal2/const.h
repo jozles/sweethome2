@@ -169,7 +169,7 @@
 #define DS3231_I2C_ADDRESS 0x68               // adresse 3231 sur bus I2C
 
 
-#define NBPERIF 20
+#define NBPERIF 28
 #define PERINAMLEN 16+1                      // longueur nom perif
 #define PERIRECLEN 310 // V1.4k              // longueur record périph
 

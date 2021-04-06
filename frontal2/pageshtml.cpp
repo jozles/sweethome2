@@ -781,7 +781,7 @@ void thermoCfgHtml(EthernetClient* cli)
             uint16_t lb;
  
             htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf);
+            pageHeader(buf,NOFORM);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             boutF(buf,"thermoscfg","","refresh",0,0,1,0);
@@ -793,9 +793,9 @@ void thermoCfgHtml(EthernetClient* cli)
 
               for(int nb=0;nb<NBTHERMOS;nb++){
                 ni++;
+                
                 strcat(buf,"<tr><form method=\"get\" >");
                 usrFormBHtml(buf,1);
-                
                 strcat(buf,"<td>");concatn(buf,nb+1);strcat(buf,"</td>");                                       // n° thermo
                 
                 strcat(buf,"<td><input type=\"text\" name=\"thparamsn");concat1a(buf,(char)(nb+PMFNCHAR));      // nom
@@ -813,7 +813,7 @@ void thermoCfgHtml(EthernetClient* cli)
                   uint8_t vv=(uint8_t)thermos[nb].lowdetec;strcat(buf," <td>");if(vv!=0){strcat(buf,(char*)(&libDetServ[vv][0]));strcat(buf," ");concat1a(buf,(char)(((memDetServ>>vv)&0x01)+48));}strcat(buf," </td>\n");
                 
 
-                strcat(buf,"<td> <input type=\"submit\" value=\"MàJ\"><br></td>\n</form></tr>\n");
+                strcat(buf,"<td> <input type=\"submit\" value=\"MàJ\"><br></td></form></tr>\n");
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
               }
             strcat(buf,"</table></body></html>\n");
@@ -825,24 +825,27 @@ void timersHtml(EthernetClient* cli)
 {
   int nucb;           
   char a;
-  char bufdate[LNOW];ds3231.alphaNow(bufdate);
-  char buf[1000];buf[0]='\0';
+  //char bufdate[LNOW];ds3231.alphaNow(bufdate);
   
-            Serial.println("saisie timers");
-            htmlIntroB(buf,nomserver,cli);
-            
-            strcat(buf,"<body>");strcat(buf,VERSION);strcat(buf," ");
-            
-            boutRetourB(buf,"retour",0,0);strcat(buf," ");
-            boutF(buf,"timershtml","","refresh",0,0,1,0);strcat(buf," ");
+            Serial.println(" config timers");
 
-            char pkdate[7];bufPrintDateHeure(buf,pkdate);strcat(buf,"\n");
-            ethWrite(cli,buf); // detServ print son propre buf
+            const uint16_t lb0=LBUF4000;
+            char buf[lb0];buf[0]='\0';
+            uint8_t ni=0;
+            uint16_t lb;
+ 
+            htmlIntroB(buf,nomserver,cli);
+            pageHeader(buf,NOFORM);
+            usrFormBHtml(buf,1);
+            boutRetourB(buf,"retour",0,0);
+            boutF(buf,"timershtml","","refresh",0,0,1,0);
+            ethWrite(cli,buf);
+
             detServHtml(cli,&memDetServ,&libDetServ[0][0]);
 
             strcat(buf,"<table>");
               strcat(buf,"<tr>");
-                strcat(buf,"<th></th><th>nom</th><th>det</th><th>h_beg</th><th>h_end</th><th>OI det</th><th>e_p_c_</th><th>7_d_l_m_m_j_v_s</th><th>dh_beg_cycle</th><th>dh_end_cycle</th>");
+                strcat(buf,"<th></th><th>nom</th><th>det</th><th>h_beg</th><th>h_end</th><th>OI det</th><th>e_p_c_</th><th>7_d_ l_m_m_ j_v_s</th><th>dh_beg_cycle</th><th>dh_end_cycle</th>");
               strcat(buf,"</tr>");
 
               for(int nt=0;nt<NBTIMERS;nt++){
@@ -878,8 +881,8 @@ ethWrite(cli,buf);
                       sscfgtB(buf,"tim_hdf_b",nt,&timersN[nt].dhdebcycle,14,0);
                       sscfgtB(buf,"tim_hdf_e",nt,&timersN[nt].dhfincycle,14,0); 
                       strcat(buf,"<td> <input type=\"submit\" value=\"MàJ\"><br></td>");
-                    strcat(buf,"<td>");concat1aH(buf,timersN[nt].dw);strcat(buf," ");concat1aH(buf,maskbit[1+bufdate[14]*2]);                    
-                    strcat(buf,"</td>");
+                    //strcat(buf,"<td>");concat1aH(buf,timersN[nt].dw);strcat(buf," ");concat1aH(buf,maskbit[1+bufdate[14]*2]);                    
+                    //strcat(buf,"</td>");
  
                     strcat(buf,"</form>");
                     strcat(buf,"</tr>\n");

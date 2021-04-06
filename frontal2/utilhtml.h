@@ -24,7 +24,9 @@
 //void printPeriDate(EthernetClient* cli,char* periDate);
 //char* cliPrintDateHeure(EthernetClient* cli,char* pkdate);
 
+#define NOFORM false
 void pageHeader(char* buf);
+void pageHeader(char* buf,bool form);
 void cliPrintMac(EthernetClient* cli, byte* mac);
 void trailingSpaces(char* data,uint16_t len);
 void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet);
