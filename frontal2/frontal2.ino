@@ -387,7 +387,8 @@ void setup() {                              // =================================
   periTableLoad();                  // le premier (après config) pour permettre les mails
   mailEnable=VRAI;
   memDetLoad();                     // le second pour Sync 
-  remoteLoad();periSwSync();  
+  //remoteNPlus(8);while(1){};
+  remoteLoad();remotePrint();periSwSync();
   timersLoad();
   //thermosInit();thermosSave();     // si NBPERIF change
   thermosLoad();

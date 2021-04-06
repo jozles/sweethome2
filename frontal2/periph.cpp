@@ -1167,7 +1167,7 @@ void remotePrint()
   for(uint8_t num=0;num<NBREMOTE;num++){
     Serial.print(num+1);Serial.print(" ");Serial.print(remoteN[num].nam);for(int nr=LENREMNAM-strlen(remoteN[num].nam);nr>=0;nr--){Serial.print(" ");}
     for(uint8_t numd=0;numd<MAXREMLI;numd++){
-      if(remoteT[numd].num==num){
+      if(remoteT[numd].num==num+1){
         remPrint(numd);
       }
     }
@@ -1226,6 +1226,35 @@ void remoteSave()
   remSave(REMOTETFNAME,remoteTlen,remoteTA);
   remSave(REMOTENFNAME,remoteNlen,remoteNA);
   //remotePrint();
+}
+
+void remoteNPlus(int plus)
+{
+// ajoute "plus" entrées à remoteN 
+  
+struct Remote remoteNNew[NBREMOTE+plus];
+char*  remoteNANew=(char*)&remoteNNew;
+unsigned long   remoteNlenNew=(sizeof(Remote))*(NBREMOTE+plus);
+
+  remoteLoad();
+  
+  for(int nb=0;nb<NBREMOTE;nb++){
+      memcpy(remoteNNew[nb].nam,remoteN[nb].nam,LENNOM);
+      remoteNNew[nb].enable=remoteN[nb].enable;
+      remoteNNew[nb].newenable=remoteN[nb].newenable;
+      remoteNNew[nb].onoff=remoteN[nb].onoff;
+      remoteNNew[nb].newonoff=remoteN[nb].newonoff;
+  }
+  for(int nb=NBREMOTE;nb<NBREMOTE+plus;nb++){
+      memset(remoteNNew[nb].nam,'\0',LENNOM);
+      remoteNNew[nb].enable=0;
+      remoteNNew[nb].newenable=0;
+      remoteNNew[nb].onoff=0;
+      remoteNNew[nb].newonoff=0;
+  }
+  
+  sdRemove(REMOTENFNAME,&fremote);
+  remSave(REMOTENFNAME,remoteNlenNew,remoteNANew);
 }
 
 /*********** timers ************/

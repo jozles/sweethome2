@@ -7,6 +7,7 @@
 int  ethWrite(EthernetClient* cli,char* buf);
 void mail(char* a,char* mm);
 int  sdOpen(char* fname,File32* file32);
+void sdRemove(char* fname,File32* file32);
 void sdInit();
 
 void histoStore_textdh(char* val1,char* val2,char* val3);  // getdate()

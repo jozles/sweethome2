@@ -297,7 +297,6 @@ void periTableHtml(EthernetClient* cli)
 Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
 
           htmlIntroB(buf,nomserver,cli);
-
           pageHeader(buf);
           usrFormBHtml(buf,1);
           boutRetourB(buf,"refresh",0,0);

@@ -44,6 +44,7 @@ int   remSave(char* remF,uint16_t remL,char* remA);
 void  remoteLoad();
 void  remoteSave();
 void  remMemDetUpdate(uint8_t rem,uint8_t endet);
+void  remoteNPlus(int plus);
 
 void  timersPrint();
 void  timersInit();

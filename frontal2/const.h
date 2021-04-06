@@ -201,7 +201,7 @@
 //enum {FAUX,VRAI};
 
 #define LENREMNAM 16    // remote name length
-#define NBREMOTE 8      // remote entrys
+#define NBREMOTE 16     // remote entrys
 #define MAXREMLI 16     // sw items total
 #define REMOTENFNAME "noms_rem"
 #define REMOTETFNAME "tablerem"

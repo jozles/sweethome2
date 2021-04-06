@@ -467,8 +467,9 @@ void cfgRemoteHtml(EthernetClient* cli)
                 checkboxTableBHtml(buf,&val,nf,-1,1,"");         
                    
                 strcat(buf,"</tr>\n");
+                if(nb-nb/5*5==0){ethWrite(cli,buf);}
               }
-            strcat(buf,"</table><br>\n");
+            strcat(buf,"</table><br></form>\n");
             ethWrite(cli,buf);
 
 /* table détecteurs */
@@ -476,7 +477,9 @@ void cfgRemoteHtml(EthernetClient* cli)
             strcat(buf,"<table><tr><th>  </th><th>remote </th><th>detec on/off</th><th>detec en</th><th>peri</th><th>switch</th></tr>\n");
               
               for(int nb=0;nb<MAXREMLI;nb++){
-                ni++;
+                
+                strcat(buf,"<tr><form method=\"get\" >");
+                usrFormBHtml(buf,1);
                 strcat(buf,"<tr><td>");concatn(buf,nb+1);strcat(buf,"</td>");                  // n° ligne de table
                 
                 memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° remote
@@ -507,13 +510,16 @@ void cfgRemoteHtml(EthernetClient* cli)
                 numTf(buf,'b',&remoteT[nb].sw,nf,2,2,0);
                 strcat(buf," </td>\n");
                 
-                strcat(buf,"</tr>\n");
-                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
+                strcat(buf,"<td> <input type=\"submit\" value=\"MàJ\"><br></td>");
+                strcat(buf,"</form></tr>\n");
+                ethWrite(cli,buf);
+                ni=0;               
               }
               
               
-            strcat(buf,"</table></form></body></html>\n");
+            strcat(buf,"</table></body></html>\n");
             ethWrite(cli,buf);
+            Serial.println("fin cfgRemote");
 }
 
 

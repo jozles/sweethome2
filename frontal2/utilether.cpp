@@ -101,6 +101,11 @@ void mail(char* a,char* mm)
   }
 }
 
+void sdRemove(char* fname,File32* file32)
+{
+  file32->remove(fname);
+  mail("REMOVE ",fname);
+}
 
 int sdOpen(char* fname,File32* file32)
 {
