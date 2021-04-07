@@ -758,6 +758,8 @@ void mail(char* subj,char* dest,char* msg)
 
 unsigned long beg=millis();
 
+    Serial.println("---mail---");
+    
     wifiConnexion(ssid,password);
 
     char s[64]={"sh speaking "};strcat(s,subj);
@@ -891,7 +893,9 @@ int buildReadSave(char* nomfonction,char* data)   //   assemble et envoie read/s
       sb+=5+LENVERSION+1;
       message[sb]=(char)(NBSW+48);                                    // nombre switchs              - 1   
 //      for(i=(NBSW-1);i>=0;i--){message[sb+1+(NBSW-1)-i]=(char)(48+digitalRead(pinSw[i]));}   
-      for(i=0;i<NBSW;i++){message[sb+1+(MAXSW-1)-i]=(char)(48+digitalRead(pinSw[i]));}       // état - 5
+      for(i=0;i<NBSW;i++){
+        uint8_t ssw=0;if(digitalRead(pinSw[i])==cloSw[i]){ssw=1;}
+        message[sb+1+(MAXSW-1)-i]=(char)(48+ssw);}                    // état                        - 5
       if(NBSW<MAXSW){for(i=NBSW;i<MAXSW;i++){message[sb+1+(MAXSW-1)-i]='x';}}message[sb+5]='_';
 
       sb+=MAXSW+2;
