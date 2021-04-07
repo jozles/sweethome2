@@ -512,7 +512,7 @@ void cfgRemoteHtml(EthernetClient* cli)
                 
                 strcat(buf,"<td> <input type=\"submit\" value=\"MàJ\"><br></td>");
                 strcat(buf,"</form></tr>\n");
-                ethWrite(cli,buf);
+                if(nb-nb/5*5==0){ethWrite(cli,buf);}
                 ni=0;               
               }
               
@@ -571,11 +571,11 @@ void remoteHtml(EthernetClient* cli)
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
                 strcat(buf,"<input type=\"hidden\" name=\"remote_cn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">");
-                sliderBHtml(buf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);                              // slider
+                sliderBHtml(buf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);                                 // slider
 
-                  strcat(buf,"<td>- - - - -</td>");                                                                // ne pas affichier le disjoncteur si
-                  bool vert=FAUX;                                                                                  // une ligne précédente l'a déjà affiché
-                  yradioTableBHtml(buf,remoteN[nb].enable,"remote_cs",2,vert,nb,1);                                // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
+                  strcat(buf,"<td>- - - - -</td>\n");                                                               // ne pas affichier le disjoncteur si
+                  bool vert=FAUX;                                                                                   // une ligne précédente l'a déjà affiché
+                  yradioTableBHtml(buf,remoteN[nb].enable,"remote_cs",2,vert,nb,1);                                 // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
 
                 strcat(buf,"</tr>");
                 

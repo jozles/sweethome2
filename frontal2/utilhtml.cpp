@@ -275,14 +275,14 @@ void yradioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval,bool ve
 {                                                                                                                                  // sqbr square button
                                                                                                                                    // nbval à traiter
   if(td==1 || td==2){strcat(buf,"<td>");}  
-    valeur&=0x01;                                                               
+    valeur&=0x03;                                                               
   
   
   strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,nomfonct);concat1a(buf,(char)(nb+PMFNCHAR));
   strcat(buf,"\" class=\"sqbr br_off\" id=\"sqbrb");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
   strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+0));strcat(buf,"\"");
   if(valeur==0){strcat(buf," checked");}strcat(buf,">");
-  strcat(buf,"<label for=\"sqbrb");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">OFF</label>");
+  strcat(buf,"<label for=\"sqbrb");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">OFF</label>\n");
   
   if(vert){strcat(buf,"<br><br>\n");}
   
@@ -291,6 +291,13 @@ void yradioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval,bool ve
   strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+1));strcat(buf,"\"");
   if(valeur==1){strcat(buf," checked");}strcat(buf,">");
   strcat(buf,"<label for=\"sqbra");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">ON</label>\n");
+
+  strcat(buf," <input type=\"radio\" name=\"");strcat(buf,nomfonct);concat1a(buf,(char)(nb+PMFNCHAR));
+  strcat(buf,"\" class=\"sqbr br_for\" id=\"sqbrc");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
+  strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+2));strcat(buf,"\"");
+  if(valeur==2){strcat(buf," checked");}strcat(buf,">");
+  strcat(buf,"<label for=\"sqbrc");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">FOR</label>\n");
+
 
   if(td==1 || td==3){strcat(buf,"</td>");}      
   strcat(buf,"<br>\n");
@@ -392,7 +399,9 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,"input[type=\"radio\"].sqbr.br_off:hover + label { background-color: #218838;border-color: #1e7e34;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_off:checked + label { background-color: #28a745;border-color: #28a745;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_on:hover + label { background-color: #c82333;border-color: #bd2130;}\n");
-            strcat(buf,"input[type=\"radio\"].sqbr.br_on:checked + label { background-color: #dc3545;border-color: #dc3545;}\n");
+            strcat(buf,"input[type=\"radio\"].sqbr.br_on:checked + label { background-color: #338fff;border-color: #338fff;}\n");
+            strcat(buf,"input[type=\"radio\"].sqbr.br_for:hover + label { background-color: #c82333;border-color: #bd2130;}\n");
+            strcat(buf,"input[type=\"radio\"].sqbr.br_for:checked + label { background-color: #dc3545;border-color: #dc3545;}\n");
   
             /* rond jaune */
             strcat(buf,"#rond_jaune {width: 40px;height: 40px;border-radius: 20px;background: yellow;}");

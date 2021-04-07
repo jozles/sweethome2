@@ -851,7 +851,7 @@ void periSwCdUpdate(uint8_t sw,uint8_t stat)    // maj sw courant selon stat
 {
   byte msk=(byte)0x01<<(sw*2+1);                // 02 08 20 80 disjoncteurs
   *periSwVal &= ~msk;
-  if(stat==1){*periSwVal |= msk;}
+  if(stat!=0){*periSwVal |= msk;}
 }
 
 byte periSwCde(uint8_t sw)                      // etat sw courant
@@ -1159,18 +1159,21 @@ void remPrint(uint8_t num)
   Serial.print(remoteT[num].enable);Serial.print(" ");
   Serial.print(remoteT[num].peri);Serial.print(" ");
   Serial.print(remoteT[num].sw);Serial.print(" ");
-  Serial.println();
 }
 
 void remotePrint()
 {
   for(uint8_t num=0;num<NBREMOTE;num++){
-    Serial.print(num+1);Serial.print(" ");Serial.print(remoteN[num].nam);for(int nr=LENREMNAM-strlen(remoteN[num].nam);nr>=0;nr--){Serial.print(" ");}
+    Serial.print(num+1);Serial.print(" ");if(num<10){Serial.print(" ");}Serial.print(remoteN[num].nam);
+    for(int nr=LENREMNAM-strlen(remoteN[num].nam);nr>=0;nr--){Serial.print(" ");}
+    Serial.print(remoteN[num].onoff);Serial.print("/");Serial.print(remoteN[num].newonoff);Serial.print(" ");
+    Serial.print(remoteN[num].enable);Serial.print("/");Serial.print(remoteN[num].newenable);Serial.print(" ");
     for(uint8_t numd=0;numd<MAXREMLI;numd++){
       if(remoteT[numd].num==num+1){
         remPrint(numd);
       }
     }
+    Serial.println();
   }
   Serial.println();
 }

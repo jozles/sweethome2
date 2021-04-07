@@ -164,18 +164,16 @@ void SwCtlTableHtml(EthernetClient* cli)
 {
   const uint16_t lb0=LBUF4000;
   char buf[lb0];buf[0]='\0';
+  unsigned long begSwT=millis();
   
-  Serial.print("début SwCtlTableHtml -- periCur=");Serial.print(periCur);Serial.print("  cxtime=");Serial.print(millis()-cxtime);
+  Serial.print("début SwCtlTableHtml -- periCur=");Serial.print(periCur);
   Serial.print("  free=");Serial.println(freeMemory(), DEC);
 
   // periCur est transféré via les fonctions d'en-tête peri_inp__ et peri_t_sw
 
     htmlIntroB(buf,nomserver,cli);
-
-/* en-tête (vers-dh-IP serv-modele) */
     pageHeader(buf);
     perifHeader(buf);
-
     usrPeriCurB(buf,"peri_t_sw_",0,2,0);
 
 /* boutons */
@@ -275,14 +273,14 @@ void SwCtlTableHtml(EthernetClient* cli)
            strcat(buf,"</form></tr>\n\n");
 
            lb=strlen(buf);
-           Serial.print("lb/lb0/ni/lb0-lb/lb_ni+100 ");Serial.print(lb);Serial.print(" ");Serial.print(lb0);Serial.print(" ");Serial.print(ni);Serial.print(" ");Serial.print(lb0-lb);Serial.print(" ");Serial.println(lb/ni+100);
+           //Serial.print("lb/lb0/ni/lb0-lb/lb_ni+100 ");Serial.print(lb);Serial.print(" ");Serial.print(lb0);Serial.print(" ");Serial.print(ni);Serial.print(" ");Serial.print(lb0-lb);Serial.print(" ");Serial.println(lb/ni+100);
            if((lb0-lb)<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
            
         } // input suivant
 
   strcat(buf,"</table></body></html>");
   ethWrite(cli,buf);
-  Serial.print("fin SwCtlTableHtml  cxtime=");Serial.println(millis()-cxtime);
+  Serial.print("fin SwCtlTableHtml  dur=");Serial.println(millis()-begSwT);
 }
 
 void periTableHtml(EthernetClient* cli)

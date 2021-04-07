@@ -672,39 +672,60 @@ void scanTimers()                                             //   recherche tim
       perToSend(tablePerToSend,timerstime);     // mise à jour périphériques de tablePerToSend
     }
 }
+/*
+void disjonctUpdate(uint8_t val,uint16_t peri,uint8_t sw,uint8_t det)       // mise à jour des 3 clones de disjoncteur : le switch enable de la remote, le memDet attaché et le periSwval bit
+{                                                                           // val vaut 0 si disjoncté (forçage off), 1 si conjoncté selon règles, 2 si forcé on
+  
+  uint8_t valx=val;if(valx==2){valx=1;}                                     // valx pour periSwval et memDet
+  if(peri!=0 && peri<=NBPERIF){                                             //  si peri/sw ok 
+    
+    periLoad(peri);periSwCdUpdate(sw,valx);periSave(peri,PERISAVESD);       // maj periSwVal
+    periLoad(periCur);
+  
+    sser(det,valx);                                                         // maj memDet et positionnement tablePerToSend pour maj perif
+  
+    for(uint8_t nbr=0;nbr<MAXREMLI;nbr++){                                  // polling remotes
+      if(remoteT[nbr].deten==det && remoteT[nbr].num!=0){                   // si le détecteur est utilisé par une remote valide
+        remoteN[remoteT[nbr].num].enable=val;                               // maj switch remote
+      }
+    }
+  }
+}
+*/
 
-void sser(uint8_t det,uint8_t old)                                          // si un det a changé (!= old) -> inscription perif éventuel dans tablePerToSend
+void sser(uint8_t det,uint8_t val)                                          // si un det a changé (!= old) -> inscription perif éventuel dans tablePerToSend
 {
   uint32_t msk=mDSmaskbit[det];                                                                        
   uint32_t mem=memDetServ & msk;                                            // current detec value
-  if(old==1){memDetServ |= msk;}                                            // set bit (1)
+  if(val!=0){memDetServ |= msk;}                                            // set bit (1)
   else {memDetServ &= ~msk;}                                                // clr bit (0)
   if((memDetServ & msk) != mem){                                            // detec chge => poolperif
     poolperif(tablePerToSend,det," ");}                                     // si le détecteur est utilisé dans un périf, ajout du périf dans tablePerRoSend
 }
 
-void exploRemote(uint8_t nbr,char oe,uint8_t* old,uint8_t* nou)             // si une des commandes de la remote (on/off ou enable/disjoncteur)
-{                                                                           // a changé, vérification des détecteurs correspondant
-                                                                            // et communication aux périfs concernés via tablePerToSend 
-    
-  if(*old+*nou==1){                                                         // changement d'état de la remote ?            
-//    Serial.print("\n     chgt ");
-    *old=*nou;*nou=0;
+void exploRemote(uint8_t nbr,char oe,uint8_t* old,uint8_t* nou)             // si une des commandes de la remote on/off ou enable (forçage/disjoncteur)
+{                                                                           // a changé, update des détecteurs correspondants et periSw
+
+  if(*old!=*nou){                                                           // changement d'état de la remote ?            
     for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                                  // recherche des détecteurs utilisés dans la remote
       if(remoteT[nbd].num==nbr+1){                                          // détecteur concerné ? (utilisé pour la remote courante)
-        if(oe=='o'){sser(remoteT[nbd].detec,*old);}                         // vérif changement d'état du détecteur on/off pour maj memDet et com périf
+        if(oe=='o'){sser(remoteT[nbd].detec,*nou);}                         // vérif changement d'état du détecteur on/off pour maj memDet et com périf
         if(oe=='e'){
-          Serial.print(nbr);Serial.print("/");Serial.print(nbd);Serial.print(" == ");Serial.print(remoteT[nbd].peri);Serial.print("/");Serial.print(remoteT[nbd].sw);Serial.print("/");Serial.print(*old);
-          sser(remoteT[nbd].deten,*old);                                    // vérif changement d'état du détecteur enable pour maj memDet et com perif
-          if(remoteT[nbd].peri!=0 && remoteT[nbd].peri<=NBPERIF){           // maj periSwVal si peri/sw ok
-            periCur=remoteT[nbd].peri;periLoad(periCur);
-            periSwCdUpdate(remoteT[nbd].sw,*old);periSave(periCur,PERISAVESD);
-            Serial.print("=");Serial.print(*periSwVal,HEX);
+          Serial.print(nbr);Serial.print("/");Serial.print(nbd);Serial.print(" == ");Serial.print(remoteT[nbd].peri);Serial.print("/");Serial.print(remoteT[nbd].sw);Serial.print(" - ");
+          Serial.print(*old);Serial.print("/");Serial.print(*nou);
+          if(remoteT[nbd].peri!=0 && remoteT[nbd].peri<=NBPERIF){           // si peri/sw ok 
+            sser(remoteT[nbd].deten,*nou);                                  // vérif changement d'état du détecteur enable pour maj memDet et com perif
+            sser(remoteT[nbd].deten+1,(*nou)>>1);                           // update détect forçage  0 -> 0 ; 1 -> 0 ; 2 -> 1
+            periCur=remoteT[nbd].peri;periLoad(periCur);                    // maj periSwVal ; la com perif sera déclenchée par perToSend positionné par sser
+            periSwCdUpdate(remoteT[nbd].sw,*nou);
+            periSave(periCur,PERISAVESD);                                   
+            Serial.print("=");Serial.print(remoteN[nbr].enable);Serial.print(" ");Serial.print(*periSwVal,HEX);
           }
           Serial.println();
         }
       }
     }
+  *old=*nou;
   }  
 }
 
@@ -714,16 +735,11 @@ void periRemoteUpdate()                        //   recherche remote ayant chang
 {  
   remotetime=millis();
   memset(tablePerToSend,0x00,NBPERIF);         // périphériques !=0 si (periSend) periReq à faire via pertoSend())
-  Serial.println("periRecRemoteUpdate() ");
+  Serial.println("periRemoteUpdate() ");
 
   for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){                                            // boucle des remotes
-/*    Serial.print("nbr=");Serial.print(nbr);
-    Serial.print("  on/off=");Serial.print(remoteN[nbr].onoff);Serial.print(" new on/off=");Serial.print(remoteN[nbr].newonoff);
-    Serial.print("  enable=");Serial.print(remoteN[nbr].enable);Serial.print(" new enable=");Serial.print(remoteN[nbr].newenable);
-*/
-    exploRemote(nbr,'o',&remoteN[nbr].onoff,&remoteN[nbr].newonoff);         // le on/off de la remote a-til changé et les détecteurs associés aussi ?
-    exploRemote(nbr,'e',&remoteN[nbr].enable,&remoteN[nbr].newenable);       // le enable de la remote a-til changé et les détecteurs associés aussi ?    
-//  Serial.println();
+    exploRemote(nbr,'o',&remoteN[nbr].onoff,&remoteN[nbr].newonoff);         // si on/off de la remote a changé --> maj détecteurs, periSw, com perif
+    exploRemote(nbr,'e',&remoteN[nbr].enable,&remoteN[nbr].newenable);       // le enable de la remote a changé --> maj détecteurs, periSw, com perif
   }
   remoteSave();
 }
@@ -740,11 +756,6 @@ void periDetecUpdate()                          // update fichier périfs, remot
   
   for(uint8_t ds=0;ds<NBDSRV;ds++){                                                
     if((memDetServ&mDSmaskbit[ds]) != (bakDetServ&mDSmaskbit[ds])){   // si le détecteur ds a changé
-      
-      /*Serial.print(memDetServ,HEX);Serial.print(" ");
-      Serial.print(bakDetServ,HEX);Serial.print(" ");
-      Serial.println(mDSmaskbit[ds],HEX);
-      Serial.print(ds);Serial.print(" ");Serial.println(st);*/
       
       st=0;of=3;if((memDetServ&mDSmaskbit[ds])!=0){of=0;st=1;}
       poolperif(tablePerToSend,ds,&onoff[of]);                        // et si utilisé dans un périf, ajout du périf dans tablePerRoSend
