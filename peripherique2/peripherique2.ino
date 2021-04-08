@@ -240,6 +240,14 @@ delay(1);
 
   Serial.print(VERSION);Serial.print(" power_mode=");Serial.print(POWER_MODE);
   Serial.print(" carte=");Serial.print(CARTE);
+
+  if(diags){
+    Serial.println();
+    Serial.print("    ");for(int sw=0;sw<MAXSW;sw++){Serial.print(" ");Serial.print(sw);}Serial.println();
+    Serial.print("pin ");for(int sw=0;sw<MAXSW;sw++){Serial.print(" ");Serial.print(pinSw[sw]);}Serial.println();
+    Serial.print("clo ");for(int sw=0;sw<MAXSW;sw++){Serial.print(" ");Serial.print(cloSw[sw]);}Serial.println();
+    Serial.print("ope ");for(int sw=0;sw<MAXSW;sw++){Serial.print(" ");Serial.print(openSw[sw]);}Serial.println();
+  }
   
 
 
@@ -301,6 +309,7 @@ delay(20);
   forceTrigTemp();    // force connexion server 
 
   memdetinit();pulsesinit();
+  Serial.print(" ssid=");Serial.print(ssid1);Serial.print(" - ");Serial.println(ssid2);
   yield();
   Serial.println(">>>> fin setup\n");
   
@@ -965,15 +974,17 @@ void readAnalog()
 
 /* Output control -------------------- */
 
-void outputCtl()
+void outputCtl()            // cstRec.swCde contient 4 paires de bits (gauche disjoncteur 1=ON, droite résultat règles encodé selon la carte openSW/cloSw)
 {
+  if(diags){Serial.print("cstRec.swCde = ");if(cstRec.swCde<16){Serial.print("0");}Serial.print(cstRec.swCde,HEX);Serial.print(" ");}
   for(uint8_t sw=0;sw<NBSW;sw++){
-    if(((cstRec.swCde>>(sw*2+1))&0x01)!=0){                                 // disjoncteur ON
-      digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                  // open/close value
-    }
-    else {digitalWrite(pinSw[sw],openSw[sw]);                               // open value
-    }
+    if(((cstRec.swCde>>(sw*2+1))&0x01)==0x01){                                              // disjoncteur ON
+        digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                              // value (encodé dans le traitement des regles)
+        if(diags){Serial.print((cstRec.swCde>>(sw*2))&0x01,HEX);Serial.print("x ");}}
+    else {digitalWrite(pinSw[sw],openSw[sw]);                                             // disjoncté donc open value
+        if(diags){Serial.print(openSw[sw],HEX);Serial.print("o ");}}
   }
+  if(diags){Serial.println();}
 }
 
 /* Read temp ------------------------- */

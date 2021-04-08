@@ -14,9 +14,3 @@ bool chkTrigTemp();
 void forceTrigTemp();
 
 #endif // UTIL_H_INCLUDED
-
-
-
-
-
-

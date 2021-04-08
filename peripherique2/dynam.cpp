@@ -146,7 +146,7 @@ void actions()          // pour chaque input, test enable,
       
       nsrce=(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);              // numéro source
       ndest=(((*(curinp+3))&PERINPV_MS)>>PERINPNVLS_PB);          // numéro destination
-      tdest=(byte)((*(curinp+3))&PERINPNT_MS);                    // type destoination
+      tdest=(byte)((*(curinp+3))&PERINPNT_MS);                    // type destination
     
       /* évaluation source -> detecState (detecFound==1 if detecstate valid */
       switch((*curinp)&PERINPNT_MS){                              // type source
@@ -353,7 +353,7 @@ void actions()          // pour chaque input, test enable,
 
   /* SW update */
   uint8_t mskSw[] = {0xfe,0xfb,0xef,0xbf};                           
-  for(uint8_t i=0;i<NBSW;i++){                                   // 1 byte 4sw + 4disjoncteurs (voir const.h du frontal)
+  for(uint8_t i=0;i<NBSW;i++){                                    // 1 byte 4sw + 4disjoncteurs (voir const.h du frontal)
     if(usdSw[i]==1){
       cstRec.swCde &= mskSw[i];                                   // clear switch bit
       cstRec.swCde |= curSw[i]<<(2*i);                            // bit switchs (bits 7,5,3,1 pour switchs 3,2,1,0)  
