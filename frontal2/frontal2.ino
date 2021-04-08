@@ -3,7 +3,7 @@
 #include <Ethernet.h> //bibliothèque W5x00 Ethernet
 #include <EthernetUdp.h>
 #include <Wire.h>     //biblio I2C pour RTC 3231
-#include "SdFat.h"
+#include <SdFat.h>
 #include "ds3231.h"
 #include <shconst2.h>
 #include <shmess2.h>
@@ -773,13 +773,20 @@ void periDetecUpdate()                          // update fichier périfs, remot
   }
   if(rfound!=0){remoteSave();}
 }
-
+/* Il reste une imprécision avec remoteUpdate : l'objectif est la mise à jour de la remote et periSw si c'est un memDet qui est modifié,
+ *  ou la mise à jour de la remote et memDet si c'est periSw qui est modifié.
+ *  cas 1 la modif provient de memDet : le memDet de forçage n'est pas traité donc l'utilisateur qui "tape" directement dans un memDet de forçage
+ *  doit faire ce qu'il faut pour mettre la remote et periSw synchro
+ * 
+ * dans exploRemote le memDet n° remoteT[].deten+1 est corrigé systématiquement donc pareil dans remMemDetUpdate
+ * 
+ */
 void remoteUpdate(uint8_t perif,uint8_t sw,uint8_t cd,uint8_t src)    // modif de remoteN.enable et (periSwVal ou memDet) selon la provenance ;                                                                       
 {                                                                     // periLoad effectué !
   for(uint8_t k=0;k<MAXREMLI;k++){
     if(remoteT[k].peri==perif && remoteT[k].sw==sw)                   // recherche remote concernée
       remoteN[remoteT[k].num-1].enable=cd;                            // update disjoncteur remote
-      if(src==PERILINE){remMemDetUpdate(k,REM_ENABLE);}               // update memDetServ si periline ( memDetServ(remoteT[k].enable) )      
+      if(src==PERILINE){remMemDetUpdate(k,REM_ENABLE);}               // update memDetServ si periline ( memDetServ(remoteT[k].deten) )      
       if(src==MEMDET){periSwCdUpdate(sw,cd);}                         // update perif si memDet 
   }
   Serial.println();
@@ -1294,7 +1301,7 @@ void commonserver(EthernetClient cli,char* bufData,uint16_t bufDataLen)
                         uint8_t k=0;
                         extern char mailToAddr[];
                         char msg[64];msg[0]='\0';
-                        if(a=='m'){a=2;k=0;strcat(msg,"TEST==");strcat(msg,mailToAddr1);strcat(msg,"==test peri ");concatn(msg,periCur);strcat(msg,alphaDate());}
+                        if(a=='m'){a=2;k=0;strcat(msg,"TEST==");strcat(msg,mailToAddr1);strcat(msg,"==test peri ");concatn(msg,periCur);strcat(msg," ");strcat(msg,alphaDate());}
                         else {a-=PMFNCVAL;k=periSwLev(a);}
                         memcpy(fptst,swcd+LENNOM*(a*2+k),LENNOM);
                         periReq(&cliext,periCur,fptst,msg);

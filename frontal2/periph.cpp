@@ -851,7 +851,7 @@ void periSwCdUpdate(uint8_t sw,uint8_t stat)    // maj sw courant selon stat
 {
   byte msk=(byte)0x01<<(sw*2+1);                // 02 08 20 80 disjoncteurs
   *periSwVal &= ~msk;
-  if(stat!=0){*periSwVal |= msk;}
+  if(stat!=0){*periSwVal |= msk;}               // stat peut être 0,1,2,3 !! (remoteN[].enable)
 }
 
 byte periSwCde(uint8_t sw)                      // etat sw courant
@@ -874,8 +874,10 @@ byte periSwLev(uint8_t sw)                      // lev de sw courant
 void remMemDetUpdate(uint8_t rem,uint8_t endet)               // maj memDetServ suite à chgt état remote
 {
   if(endet==REM_ENABLE){
-    memDetServ&=~mDSmaskbit[remoteT[rem].deten];              // update memDetServ disj
-    if(remoteN[remoteT[rem].num-1].enable!=0){memDetServ|=mDSmaskbit[remoteT[rem].deten];}
+    memDetServ&=~mDSmaskbit[remoteT[rem].deten];                                              // raz memDetServ disj
+    memDetServ&=~mDSmaskbit[remoteT[rem].deten+1];                                            // raz memDetServ forcage
+    if(remoteN[remoteT[rem].num-1].enable!=0){memDetServ|=mDSmaskbit[remoteT[rem].deten];}    // set memDetServ disj
+    if(remoteN[remoteT[rem].num-1].enable>1){memDetServ|=mDSmaskbit[remoteT[rem].deten+1];}   // set memDetServ forçage
   }
   if(endet==REM_DETEC){
     memDetServ&=~mDSmaskbit[remoteT[rem].detec];              // update memDetServ on/off
@@ -893,7 +895,7 @@ void periSwSync()                               // sychronisation periSwVal et m
     if(remoteT[k].peri!=0 && remoteT[k].peri<=NBPERIF && remoteT[k].sw<MAXSW){
       periCur=remoteT[k].peri;periLoad(periCur);
       periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);             // update disjoncteur perif
-      remMemDetUpdate(k,REM_ENABLE);                                              // update memDetServ disj
+      remMemDetUpdate(k,REM_ENABLE);                                              // update memDetServ disj et forçage
       remMemDetUpdate(k,REM_DETEC);                                               // update memDetServ on/off
       
       periSave(periCur,PERISAVELOCAL);

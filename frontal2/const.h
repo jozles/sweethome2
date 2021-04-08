@@ -82,10 +82,14 @@
    1.52 alphaTfr() pour saisir les valeurs alpha sans risquer d'overflow ; mailEnable bloque les mails si la config et les péris ne sont pas chargés
         correction de la ligne de reset dans l'histo ; accélération imgHtml() ; affichage durée plusieurs fonctions ;
         favicon devient une fonction insérée dans numfonct par getnv() ; le cli.stop en fin de htmlImg est supprimé 
+        remoteN[].enable peut prendre 3(4?) valeurs 0 OFF, 1 conjoncté, 2-3 forcé ON : le memDet qui suit remoteT[].deten est traité comme image du forçage
+        màj de toute la chaine de synchro entre memDet,remote et periSw ; ajout d'un 3eme bouton radio dans remoteHtml() ; nombre périfs augmenté à 28 ;
 
    BUGS :
 
    à faire :
+
+      passer à 32 (64?) périfs et 64 (128?) memDet
    
       gérer le periLoad KO dans periTableLoad
       remplacer date14 par date unix sur 8 digits dans les messages ACK et SET
