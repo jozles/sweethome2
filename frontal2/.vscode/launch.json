@@ -1,0 +1,36 @@
+// AUTOMATICALLY GENERATED FILE. PLEASE DO NOT MODIFY IT MANUALLY
+//
+// PIO Unified Debugger
+//
+// Documentation: https://docs.platformio.org/page/plus/debugging.html
+// Configuration: https://docs.platformio.org/page/projectconf/section_env_debug.html
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug",
+            "executable": "D:/data/Arduino/sketchs/sweet_home/frontal2/.pio/build/due/firmware.elf",
+            "projectEnvName": "due",
+            "toolchainBinDir": "C:/Users/al/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "C:/Users/al/.platformio/platforms/atmelsam/misc/svd/ATSAM3X8E.svd",
+            "preLaunchTask": {
+                "type": "PlatformIO",
+                "task": "Pre-Debug"
+            }
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (skip Pre-Debug)",
+            "executable": "D:/data/Arduino/sketchs/sweet_home/frontal2/.pio/build/due/firmware.elf",
+            "projectEnvName": "due",
+            "toolchainBinDir": "C:/Users/al/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "C:/Users/al/.platformio/platforms/atmelsam/misc/svd/ATSAM3X8E.svd"
+        }
+    ]
+}
