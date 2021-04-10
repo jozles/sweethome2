@@ -522,4 +522,4 @@ void initPolPin(uint8_t det)         // setup détecteur det selon pulseCtl en f
 }
 */
 
-#endif NO_MODE
+#endif //NO_MODE

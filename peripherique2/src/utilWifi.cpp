@@ -21,7 +21,7 @@ void wifiStatusValues()
 
 int printWifiStatus()
 {
-  char* wifiSta="WL_IDLE_STATUS   \0WL_NO_SSID_AVAIL \0WL_UKN           \0WL_CONNECTED     \0WL_CONNECT_FAILED\0WL_UKN           \0WL_DISCONNECTED  \0";
+  const char* wifiSta="WL_IDLE_STATUS   \0WL_NO_SSID_AVAIL \0WL_UKN           \0WL_CONNECTED     \0WL_CONNECT_FAILED\0WL_UKN           \0WL_DISCONNECTED  \0";
   int ws=WiFi.status();
   Serial.println();Serial.print(ws);Serial.print(" WiFiStatus=");Serial.print((char*)(wifiSta+18*ws));
   return ws;
@@ -29,8 +29,6 @@ int printWifiStatus()
 
 bool wifiConnexion(const char* ssid,const char* password)
 {
-
-  int i=0;
   unsigned long beg=micros();
   bool cxstatus=VRAI;
 
@@ -47,8 +45,7 @@ bool wifiConnexion(const char* ssid,const char* password)
       WL_CONNECT_FAILED if password is incorrect
       WL_IDLE_STATUS when Wi-Fi is in process of changing between statuses
       WL_DISCONNECTED if module is not configured in station mode
-*/
-      unsigned long startcx=millis();  
+*/  
       Serial.print(" WIFI connecting to ");Serial.print(ssid);
       WiFi.begin(ssid,password);
       

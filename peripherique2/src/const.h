@@ -89,7 +89,7 @@ Modifier :
 #include <ESP8266WiFi.h>
 #include <shconst2.h>
 
-#define PERIF       // pour compatibilité avec shconst etc
+//#define PERIF       // pour compatibilité avec shconst etc
 
 /* Modes de fonctionnement  */
 /*
@@ -202,19 +202,19 @@ Modifier :
   #define TBITS T12BITS       // résolution DSX20
   #define CONSTANT RTCSAVED
   #define CONSTANTADDR 64     // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
-#endif PM==NO_MODE
+#endif // PM==NO_MODE
 
 #if POWER_MODE==PO_MODE
   #define TBITS T10BITS       // résolution DSX20
   #define CONSTANT EEPROMSAVED
   #define CONSTANTADDR 0      // adresse des constantes dans l'EEPROM
-#endif PM==PO_MODE
+#endif // PM==PO_MODE
 
 #if POWER_MODE==DS_MODE
   #define TBITS T10BITS       // résolution DSX20
   #define CONSTANT RTCSAVED
   #define CONSTANTADDR 64     // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
-#endif PM==DS_MODE
+#endif // PM==DS_MODE
 
 // matériel
 
@@ -223,12 +223,12 @@ Modifier :
 #ifndef RELAY
 #define PINXB 5
 #define PINXDT 13
-#endif ndef RELAY
+#endif // ndef RELAY
 
 #ifdef  RELAY
 #define PINXB 13
 #define PINXDT 5
-#endif  def RELAY
+#endif //  def RELAY
 
 #define WPIN   4        // 1 wire ds1820
 #define NBSW   2        // nbre switchs
@@ -255,7 +255,7 @@ Modifier :
 #define MEMDINIT 0x1111 // bits enable
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
-#endif CARTE==VR
+#endif // CARTE==VR
 
 #if CARTE==VRR
 
@@ -285,7 +285,7 @@ Modifier :
 #define MEMDINIT 0x1111 // bits enable
 //#define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
-#endif CARTE==VRR
+#endif // CARTE==VRR
 
 
 #if CARTE==THESP01
@@ -313,7 +313,7 @@ Modifier :
 #define MEMDINIT 0x0000 // bits enable memDetec
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 165     // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
-#endif CARTE==THESP01
+#endif // CARTE==THESP01
 
 #if CARTE==THESP12
 #define WPIN   4        // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
@@ -339,7 +339,7 @@ Modifier :
 #define PININTB 14      // in interupt
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
-#endif CARTE==THESP12
+#endif // CARTE==THESP12
 
 #if CARTE==VRDEV
 #define MAIL_SENDER
@@ -366,7 +366,7 @@ Modifier :
 #define PININTB 14      // in interupt
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
-#endif CARTE==VRDEV
+#endif // CARTE==VRDEV
 
 
 // timings
@@ -374,7 +374,7 @@ Modifier :
 #define PERSERVKO 7200/PERTEMP    // secondes période par défaut accès serveur si connexion server ko
 #define PERSERV   120/PERTEMP     // secondes période max entre 2 accès server (modifié par le serveur dès la prmeière connexion)g
 
-#define TOINCHCLI         4000    // msec max attente car server
+//#define TOINCHCLI         4000    // msec max attente car server
 #define WIFI_TO_CONNEXION 8000    // msec
 #define WIFINBRETRY          2    // wifiConnexion
 #define TSERIALBEGIN       100
@@ -396,8 +396,14 @@ typedef struct {
   uint8_t   talkStep;             //  1   pointeur pour l'automate talkServer()
   uint32_t  durPulseOne[NBPULSE]; // 16   durée pulse 1
   uint32_t  durPulseTwo[NBPULSE]; // 16   durée pulse 2
-  uint32_t  cntPulseOne[NBPULSE]; // 16   temps debut pulse 1
-  uint32_t  cntPulseTwo[NBPULSE]; // 16   temps debut pulse 2
+  union {
+    struct
+    {
+      uint32_t  cntPulseOne[NBPULSE]; // 16   temps debut pulse 1
+      uint32_t  cntPulseTwo[NBPULSE]; // 16   temps debut pulse 2
+    };
+    uint32_t  cntPulse[NBPULSE*2]; // 32   temps debut pulse 2
+  };
   byte      pulseMode[PCTLLEN];   //  2   ctle pulse   
   byte      perInput[NBPERINPUT*PERINPLEN]; // 96  configuration (24*4)
   byte      memDetec[MAXDET];     //  4   image mem des détecteurs physiques (1 byte par détecteur)   

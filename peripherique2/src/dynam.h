@@ -41,7 +41,7 @@ void memdetinit();
 void pulsesinit();
 void actions();
 
-#endif NO_MODE
+#endif // NO_MODE
 
 
 

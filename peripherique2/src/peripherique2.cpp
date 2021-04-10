@@ -2,11 +2,12 @@
 #define _MODE_DEVT    
 /* Mode développement */
 
+#include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <shconst2.h>
-#include <shutil2.h>
-#include <shmess2.h>
-#include <ds18x20.h>
+#include "shutil2.h"
+#include "shmess2.h"
+#include "ds18x20.h"
 #include "const.h"
 #include "utilWifi.h"
 #include "util.h"
@@ -16,7 +17,7 @@
 #include <EMailSender.h>
 EMailSender emailSend("lucieliu66", "eicul666");
 EMailSender::EMailMessage message;
-#endif MAIL_SENDER
+#endif // MAIL_SENDER
 
 
 extern "C" {                  
@@ -25,7 +26,7 @@ extern "C" {
 
 #if CONSTANT==EEPROMSAVED
 #include <EEPROM.h>
-#endif
+#endif //
 
 Ds1820 ds1820;
 //extern byte dsmodel;
@@ -43,13 +44,13 @@ Ds1820 ds1820;
   const char* password2 = "cain ne dormant pas songeait au pied des monts";
   const char* ssid1= "devolo-5d3";
   const char* password1= "JNCJTRONJMGZEEQL";
-#endif DEVOLO
+#endif // DEVOLO
 #ifndef DEVOLO
   const char* ssid1= "pinks";
   const char* password1 = "cain ne dormant pas songeait au pied des monts";
   const char* ssid2= "devolo-5d3";
   const char* password2= "JNCJTRONJMGZEEQL";
-#endif DEVOLO
+#endif  // DEVOLO
 
   const char* host = HOSTIPADDR2;         // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
   const int   port = PORTPERISERVER2; 
@@ -62,9 +63,9 @@ WiFiServer* server=nullptr;
   
   #define LHTTPMESS 500
   char   httpMess[LHTTPMESS];             // buffer d'entrée en mode serveur
-#endif  _SERVER
+#endif //  _SERVER
 
-  char* srvpswd=PERIPASS;
+  const char* srvpswd=PERIPASS;
   byte  lsrvpswd=LPWD;
 
 // enregistrement pour serveur externe
@@ -72,7 +73,7 @@ WiFiServer* server=nullptr;
   char  bufServer[LBUFSERVER];            // buffer des envois/réceptions de messages
   int   periMess;                         // diag de réception de message
 
-  char* fonctions={"set_______ack_______etat______reset_____sleep_____sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______last_fonc_"};
+  const char* fonctions={"set_______ack_______etat______reset_____sleep_____sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______last_fonc_"};
   uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__,fmail______;
   int     nbfonct;
   uint8_t fonction;                       // la dernière fonction reçue
@@ -121,9 +122,9 @@ char* cstRecA=(char*)&cstRec.cstlen;
 
 #if POWER_MODE != NO_MODE
   ADC_MODE(ADC_VCC);
-#endif
+#endif //
 
-  char*     chexa="0123456789ABCDEFabcdef\0";
+  const char*     chexa="0123456789ABCDEFabcdef\0";
   byte      mask[]={0x00,0x01,0x03,0x07,0x0F};
   uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
   uint32_t  mDSmaskbit[]={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
@@ -137,7 +138,7 @@ char* cstRecA=(char*)&cstRec.cstlen;
 
    /* prototypes */
 
-int  talkServer();
+void talkServer();
 void talkClient(char* etat);
 
 int act2sw(int sw1,int sw2);
@@ -149,8 +150,9 @@ void  dataTransfer(char* data);
 void  readTemp();
 void  ordreExt();
 void  outputCtl();
-void mail(char* subj,char* dest,char* msg);
-void readAnalog();
+void  mail(char* subj,char* dest,char* msg);
+void  readAnalog();
+void  getTemp();
 
 void tmarker()
 {
@@ -165,7 +167,7 @@ void setup()
 WiFi.disconnect();
 WiFi.forceSleepBegin();
 delay(1);
-#endif PM!=NO_MODE
+#endif // PM!=NO_MODE
 */
 /* >>>>>> pins Init <<<<<< */
 
@@ -173,7 +175,7 @@ delay(1);
   wifi_set_sleep_type(LIGHT_SLEEP_T);
   digitalWrite(PINPOFF,LOW);
   pinMode(PINPOFF,OUTPUT);
-#endif PM==PO_MODE
+#endif // PM==PO_MODE
 
   Serial.begin(115200);
 
@@ -184,7 +186,7 @@ delay(1);
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" ; une touche pour diags ");
   while((millis()-t_on)<4000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
   Serial.println();
-#endif PM==NO_MODE  
+#endif // PM==NO_MODE  
 
   pinMode(PINLED,OUTPUT);
 
@@ -196,7 +198,7 @@ delay(1);
   pinMode(PINDTA,INPUT_PULLUP);
   pinMode(PINDTB,INPUT_PULLUP);  
   pinMode(PINDTC,INPUT_PULLUP);  
-#endif VR||VRR
+#endif // VR||VRR
 
 #ifdef PININT_MODE 
   pinMode(PININTA,INPUT_PULLUP);
@@ -208,7 +210,7 @@ delay(1);
 // isrD[1]=isrD1;
 // isrD[2]=isrD2;
 // isrD[3]=isrD3;
-#endif PININT_MODE
+#endif // PININT_MODE
 
 /* >>>>>> inits variables <<<<<< */
 
@@ -236,7 +238,7 @@ delay(1);
   Serial.print(" Slave 8266 ");
 #ifdef _MODE_DEVT
   Serial.print("MODE_DEVT ");
-#endif _MODE_DEVT
+#endif // _MODE_DEVT
 
   Serial.print(VERSION);Serial.print(" power_mode=");Serial.print(POWER_MODE);
   Serial.print(" carte=");Serial.print(CARTE);
@@ -263,12 +265,12 @@ delay(1);
   debConv=millis();
   ds1820.convertDs(WPIN); // readTemp ignoré jusqu'à fin de la conversion
   //delay(tconversion);
-#endif PM==NO_MODE
+#endif // PM==NO_MODE
 #if POWER_MODE==PO_MODE
   //ds1820.convertDs(WPIN);delay(250);
   debConv=millis();
   ds1820.convertDs(WPIN); // readTemp() attend la fin de la conversion
-#endif PM==PO_MODE
+#endif // PM==PO_MODE
 
 #if POWER_MODE==DS_MODE
 /* si pas sortie de deep sleep faire une conversion 
@@ -281,13 +283,13 @@ delay(1);
     delay(tconversion);
     initConstant();
     }
-#endif PM==DS_MODE
+#endif // PM==DS_MODE
 
 /* >>>>>> gestion variables permanentes <<<<<< */
 
 #if CONSTANT==EEPROMSAVED
   EEPROM.begin(512);
-#endif
+#endif //
 
 #if POWER_MODE!=DS_MODE
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et lancer une conversion */
@@ -296,7 +298,7 @@ delay(1);
     initConstant();
     if(cstRec.cstlen!=LENRTC){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){};} // blocage param faux, le programme a changé
     }
-#endif PM!=DS_MODE
+#endif // PM!=DS_MODE
 
   Serial.print("CONSTANT=");Serial.print(CONSTANT);Serial.print(" time=");Serial.print(millis()-debTime);Serial.println(" ready !");
   yield();
@@ -315,7 +317,7 @@ delay(20);
   
 #ifdef  _SERVER_MODE
   clkFastStep=1;cstRec.talkStep=1 ; // forçage com pour acquisition port perif server
-#endif  def_SERVER_MODE
+#endif //  def_SERVER_MODE
 
   }    // fin setup NO_MODE
   void loop(){  //=== NO_MODE =================================      
@@ -390,9 +392,9 @@ delay(20);
         }
         clkTime=millis();
       }
-  #endif def_SERVER_MODE  
+  #endif // def_SERVER_MODE  
 
-#endif PM==NO_MODE
+#endif // PM==NO_MODE
 
 
 #if POWER_MODE!=NO_MODE
@@ -423,7 +425,7 @@ delay(20);
     ESP.deepSleep(cstRec.tempPer*1e6, WAKE_RF_DEFAULT);    // microseconds
     //ESP.deepSleep(cstRec.tempPer*1e6, WAKE_RF_DISABLED);   // ne fonctionne pas ... on ne peut pas redémarrer le modem sans redémarrer le 8266
     while(1){delay(1000);};                  
-  #endif PM==DS_MODE
+  #endif // PM==DS_MODE
   #if POWER_MODE==PO_MODE
   /* power off */
     Serial.println(" power down");
@@ -431,7 +433,7 @@ delay(20);
     digitalWrite(PINPOFF,HIGH);        // power down
     pinMode(PINPOFF,OUTPUT);
     while(1){delay(1000);};
-  #endif PM==PO_MODE
+  #endif // PM==PO_MODE
 
   yield();
   delay(2000);                           // si l'alim reste allumée
@@ -441,7 +443,7 @@ delay(20);
 
   } //  fin setup si != NO_MODE
 void loop() {
-#endif PM!=NO_MODE
+#endif // PM!=NO_MODE
 }  // fin loop pour toutes les options
 
 /* =================== communications ========================
@@ -470,7 +472,7 @@ readTemp() gestion communications cycliques (déclenche talkServer)
 
 */
 
-void infos(char* mess,char* data,uint8_t val)           // Serial.print de fonctionnement du périphérique
+void infos(const char* mess,const char* data,uint16_t val)           // Serial.print de fonctionnement du périphérique
 {
 /*        
         char ff[LENNOM+1];memcpy(ff,data,LENNOM);ff[LENNOM]='\0';
@@ -504,7 +506,6 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
 {
   int  ddata=16;                        // position du numéro de périphérique  
   byte fromServerMac[6];
-  byte hh,ll;
   
         periMess=MESSOK;
         packMac(fromServerMac,(char*)(data+ddata+3));
@@ -556,14 +557,13 @@ if(diags){Serial.print(" dataTransfer()");}
         infos("dataTransfer",data,0);
 }
 
-int talkServer()    // si numPeriph est à 0, dataRead pour se faire reconnaitre ; 
+void talkServer()   // si numPeriph est à 0, dataRead pour se faire reconnaitre ; 
                     // si ça fonctionne réponse numPeriph!=0 ; dataSave 
-                    // renvoie 0 et periMess valorisé si la com ne s'est pas bien passée.
 {
 
 #ifdef  _SERVER_MODE
   dateon=millis();
-#endif  def_SERVER_MODE
+#endif //  def_SERVER_MODE
 
 int v=0;
 
@@ -632,14 +632,14 @@ switch(cstRec.talkStep){
     server->begin(cstRec.portServer);
     Serial.print("server.begin(");Serial.print((int)cstRec.portServer);Serial.print(") durée=");Serial.println(millis()-timeservbegin);
   }
-#endif  def_SERVER_MODE*/
+#endif //  def_SERVER_MODE*/
        break;
 
 
   case 98:      // pas réussi à connecter au WiFi ; tempo longue
 #if POWER_MODE!=NO_MODE
         cstRec.serverPer=PERSERVKO;     // pas de modif en NO_MODE pour ne pas risquer le déclenchement du WD
-#endif
+#endif //
         
         cstRec.serverTime=0;
 
@@ -656,7 +656,7 @@ switch(cstRec.talkStep){
 
 // **************** mode serveur
 
-void answer(char* what)
+void answer(const char* what)
 {
   #define LETAT 30
   char etat[LETAT];etat[0]='\0';
@@ -675,8 +675,7 @@ void ordreExt()
 
     if (cliext) {
       //uint16_t ccur=0,trx0[500],trx1[500],trx2[500];memset(trx0,0x00,1000);
-      unsigned long trx=0,trxx=millis();
-      unsigned long tcx2,tcx1,tcx0=millis();
+      unsigned long trx=0;
       char c;
       Serial.print("\nCliext ");
       while (cliext.connected()) {
@@ -699,7 +698,6 @@ void ordreExt()
       //                                             nnnn nombre de car décimal zéros à gauche 
       //                                             .... éventuels arguments de la fonction
       //                                             CC crc
-      tcx1=millis();
 
       //Serial.println();
       if(diags){Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);}
@@ -719,7 +717,6 @@ void ordreExt()
         int jj=4,ii=convStrToNum(httpMess+v0+5+10+1,&jj);   // recup eventuelle longueur
         httpMess[v0+5+10+1+ii+2]=0x00;      // place une fin ; si long invalide check sera invalide
 
-        tcx2=millis();
         if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
           Serial.print("reçu message fonction=");Serial.println(fonction);
           switch(fonction){
@@ -778,7 +775,7 @@ unsigned long beg=millis();
     EMailSender::Response resp = emailSend.send(dest, message);
 
 Serial.print(">>> email millis()=");Serial.println(millis()-beg);
-#endif MAIL_SENDER
+#endif // MAIL_SENDER
 }
 
 /*
@@ -864,11 +861,11 @@ void talkClient(char* etat) // réponse à une requête
 }
 
 
-#endif def_SERVER_MODE
+#endif // def_SERVER_MODE
 
 //***************** dataRead/dataSave
 
-int buildReadSave(char* nomfonction,char* data)   //   assemble et envoie read/save (sortie MESSCX connexion échouée)
+int buildReadSave(const char* nomfonction,const char* data)   //   assemble et envoie read/save (sortie MESSCX connexion échouée)
                                                   //   password__=nnnnpppppp..cc?
                                                   //   data_rs.._=nnnnppmm.mm.mm.mm.mm.mm_[-xx.xx_aaaaaaa_v.vv]_r.r_siiii_diiii_ffff_cc
 {
@@ -877,27 +874,22 @@ int buildReadSave(char* nomfonction,char* data)   //   assemble et envoie read/s
     if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};}
 
   char message[LENVAL];
-  int sb=0,i=0,k;
-  char x[2]={'\0','\0'};
+  int sb=0,i=0;
   
-      strcpy(message,cstRec.numPeriph);                               // N° périf                    - 3
+      memcpy(message,cstRec.numPeriph,2);                               // N° périf                    - 3
       memcpy(message+2,"_\0",2);
       sb=3;
       unpackMac((char*)(message+sb),mac);                             // macaddr                    - 18
-#define PNP 3+17   // sb+17
-      strncpy(message+PNP,"_\0",2);
-#if PNP != SDPOSTEMP-SDPOSNUMPER-1
-  sb/=0;
-#endif       
+      sb+=17;
+      memcpy(message+sb,"_\0",2);
       strcat(message,data);strcat(message,"_");                       // temp, analog (dans data_save seul) - 15
-
       sb=strlen(message);
       sprintf(message+sb,"%1.2f",voltage);                            // alim                        - 5
-      strncpy(message+sb+4,"_\0",2);
-      strncpy(message+sb+5,VERSION,LENVERSION);                       // VERSION contient le "_"     - 3
+      memcpy(message+sb+4,"_\0",2);
+      memcpy(message+sb+5,VERSION,LENVERSION);                       // VERSION contient le "_"     - 3
       char ds='B';if(ds1820.dsmodel==MODEL_S){ds='S';}
-      strncpy(message+sb+5+LENVERSION-1,&ds,1);                       // modele DS18x20              - 2
-      strncpy(message+sb+5+LENVERSION,"_\0",2);
+      memcpy(message+sb+5+LENVERSION-1,&ds,1);                       // modele DS18x20              - 2
+      memcpy(message+sb+5+LENVERSION,"_\0",2);
       
       sb+=5+LENVERSION+1;
       message[sb]=(char)(NBSW+48);                                    // nombre switchs              - 1   
@@ -922,18 +914,23 @@ int buildReadSave(char* nomfonction,char* data)   //   assemble et envoie read/s
 
       strcpy(message+sb+LENMODEL,"_\0");                                                      //      - 7
       sb+=LENMODEL+1;
-      uint32_t currt;
       bool noZero=false;
       for(i=0;i<NBPULSE;i++){
         //Serial.print("=======================staPulse[");Serial.print(i);Serial.print(")=");Serial.println(staPulse[i]);
         if(staPulse[i]!=PM_DISABLE && staPulse[i]!=PM_IDLE){noZero=true;break;}
       }
       if(noZero){
-        for(i=0;i<NBPULSE*2;i++){                                                                                           // loop compteurs (4*2)
-          currt=0;
+        for(int i=0;i<NBPULSE*2;i++){                                                                                           // loop compteurs (4*2)
+          uint32_t currt=0;
           byte* pcurr=(byte*)&currt;
-          if(cstRec.cntPulseOne[i]!=0){currt=(millis()-cstRec.cntPulseOne[i])/1000;}
-          for(j=0;j<sizeof(uint32_t);j++){conv_htoa((char*)(message+sb+2*(i*sizeof(uint32_t)+j)),(byte*)(pcurr+j));}       // loop bytes (4/8)
+          if(cstRec.cntPulse[i]!=0)
+          {
+            currt=(millis()-cstRec.cntPulseOne[i])/1000;
+          }
+          for(uint8_t j=0;j<sizeof(uint32_t);j++)
+          {
+            conv_htoa((char*)(message+sb+2*(i*sizeof(uint32_t)+j)),(byte*)(pcurr+j));
+          }       // loop bytes (4/8)
         }
         sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
       } 
@@ -996,15 +993,15 @@ void readTemp()
 
 #if POWER_MODE==DS_MODE
 uint16_t tempPeriod0=cstRec.tempPer;  // (sec) durée depuis dernier check température
-#endif PM==DS_MODE
+#endif // PM==DS_MODE
 #if POWER_MODE==PO_MODE
 uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température (fixe : resistance 5111)
-#endif PM==PO_MODE
+#endif // PM==PO_MODE
 #if POWER_MODE==NO_MODE
     if(chkTrigTemp()){
       uint16_t tempPeriod0=(millis()-tempTime)/1000;   // (sec) durée depuis dernier check température
       trigTemp();
-#endif PM==NO_MODE
+#endif // PM==NO_MODE
 
 /* avance timer server ------------------- */
       cstRec.serverTime+=tempPeriod0;
@@ -1025,7 +1022,7 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
 
 #if POWER_MODE==NO_MODE
     }   // chkTigTemp
-#endif PM==NO_MODE
+#endif // PM==NO_MODE
   }     // talkStep = 0
 }
 
@@ -1035,17 +1032,17 @@ void getTemp()
       unsigned long ms=millis();           // attente éventuelle de la fin de la conversion initiée à l'allumage
       if(diags){
         Serial.print(" Tconv=");Serial.print(tconversion);Serial.print(" delay=");Serial.println((long)ms-(long)debConv);}
-#endif PM!=DS_MODE
+#endif // PM!=DS_MODE
 #if POWER_MODE==PO_MODE
       if(((long)ms-(long)debConv)<tconversion){
         delay((long)tconversion-(ms-debConv));
       }
-#endif PM==PO_MODE
+#endif // PM==PO_MODE
 #if POWER_MODE!=NO_MODE
       temp=ds1820.readDs(WPIN);
       temp*=100;                    // tempPitch 100x
       Serial.print(" temp ");Serial.print(temp/100);
-#endif PM!=NO_MODE
+#endif // PM!=NO_MODE
 #if POWER_MODE==NO_MODE
       if(((long)ms-(long)debConv)>tconversion){
         temp=ds1820.readDs(WPIN);
@@ -1054,10 +1051,10 @@ void getTemp()
         ds1820.convertDs(WPIN);     // conversion pendant attente prochain accès
         debConv=millis();          
       }
-#endif PM==NO_MODE
+#endif // PM==NO_MODE
 #if POWER_MODE==DS_MODE
       ds1820.convertDs(WPIN);     // conversion pendant deep/sleep ou pendant attente prochain accès
-#endif PM!=DS_MODE
+#endif // PM!=DS_MODE
 
       checkVoltage();
 }

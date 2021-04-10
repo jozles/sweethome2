@@ -54,12 +54,12 @@ void checkVoltage()
 #if POWER_MODE == PO_MODE
         digitalWrite(PINPOFF,HIGH);        // power down
         pinMode(PINPOFF,OUTPUT);
-#endif PO_MODE
+#endif //PO_MODE
 #if POWER_MODE == DS_MODE
         deepsleep(0);
-#endif DS_MODE
+#endif //DS_MODE
       }        
-#endif NO_MODE
+#endif //NO_MODE
       Serial.print(" ");Serial.print(voltage);Serial.println("V ");
 }
 
@@ -74,7 +74,6 @@ bool readConstant()
 
 #if CONSTANT==RTCSAVED
   int temp=CONSTANTADDR;
-  byte buf[4];
   system_rtc_mem_read(temp,&cstRec.cstlen,1);         // charge cstlen
   system_rtc_mem_read(temp,cstRecA,cstRec.cstlen);    // charge la totalité
 #endif
@@ -166,7 +165,6 @@ void periInputPrint(byte* input)
   Serial.print("inputs ");
 #define LBINP 29
   char binput[LBINP];
-  byte inp[3];
   byte a;
   char ed[]="de",es[]="es";  
   
@@ -224,8 +222,7 @@ void periDetServPrint(uint32_t* detserv)
 void printConstant()
 {
 if(diags){  
-  uint64_t swctl=0; 
-  char buf[3],buff[32];memcpy(buf,cstRec.numPeriph,2);buf[2]='\0';
+  char buf[3];memcpy(buf,cstRec.numPeriph,2);buf[2]='\0';
   Serial.print("numPeriph=");Serial.print(buf);Serial.print(" IpLocal=");Serial.print(IPAddress(cstRec.IpLocal));
   Serial.print("  port=");Serial.print(cstRec.portServer);Serial.print("  sw=");Serial.print(NBSW);Serial.print("  det=");Serial.print(NBDET);
   Serial.print("  ");Serial.println(VERSION);
@@ -250,6 +247,6 @@ if(diags){
   periDetServPrint(&cstRec.extDetec);  
   periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo,(uint32_t*)&cstRec.cntPulseOne,(uint32_t*)&cstRec.cntPulseTwo);
   periInputPrint((byte*)&cstRec.perInput);
-#endif NO_MODE  
+#endif //NO_MODE  
 } // diags
 }
