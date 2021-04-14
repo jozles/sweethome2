@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.52"
+#define VERSION "1.53"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
    1.1a ajout volts et version dans table
    1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -84,6 +84,8 @@
         favicon devient une fonction insérée dans numfonct par getnv() ; le cli.stop en fin de htmlImg est supprimé 
         remoteN[].enable peut prendre 3(4?) valeurs 0 OFF, 1 conjoncté, 2-3 forcé ON : le memDet qui suit remoteT[].deten est traité comme image du forçage
         màj de toute la chaine de synchro entre memDet,remote et periSw ; ajout d'un 3eme bouton radio dans remoteHtml() ; nombre périfs augmenté à 28 ;
+   1.53 après tfr vscpio ; installation buffer json dans peritable.cpp
+
 
    BUGS :
 
@@ -186,7 +188,6 @@
 #define MAXCXWU 900000                       // time out delay if no UDP connection (à mettre dans la config)    
 
 #define LDATEA 17                            // len date alpha
-#define LDATEB 33                            // len buffer date classe DS3231
 
 #define TO_PASSWORD 600                      // sec (pour initialiser toPassword à la mise sous tension
 
@@ -201,6 +202,27 @@
 #define SDKO 0
 
 #define CACHEISFILE 1
+
+#define JSB strcat(jsbuf,
+#define JSE );
+#define JSHIDB "~h"
+#define JSHIDE "~H;"
+#define JSBRB  "~r"      // bouton retour beg
+#define JSBRE  "~R\n"    // bouton retour end
+#define JSBFB  "~b"      // bouton fonct beg
+#define JSBFE  "~B\n"    // bouton fonct end
+#define JSNTB  "~n"      // saisie numtf beg
+#define JSNTE  "~N\n"    // saisie numtf end
+#define JSFUB  "^u"      // usrPeriCurB beg
+#define JSFUE  "^U\n"    // usrPeriCurB end
+#define JSTB   "~t"      // debut table
+#define JSTE   "~T\n"    // fin table
+#define JSPB   "~p"      // font size beg
+#define JSPE   "~P"      // font size end
+#define JSBR   "~n\n"    // <br>
+#define JSAC   "~a"      // align center
+
+
 
 //enum {FAUX,VRAI};
 

@@ -333,6 +333,11 @@ void scanTemp();
 void scanThermos();
 void testUdp();
 void cidDmp();
+void watchdog();
+void stoprequest();
+void wdReboot(const char* msg,unsigned long maxCx);
+void periDetecUpdate();
+void testSwitch(const char* command,char* perihost,int periport);
 
 void yield()
 {
@@ -362,9 +367,12 @@ void setup() {                              // =================================
   digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT); 
   ds3231.i2cAddr=DS3231_I2C_ADDRESS; // doit être avant getDate
   Wire.begin();
-  
+
+Serial.println("before sdinit");  
   sdInit();
   
+Serial.println("after sdinit");
+
   uint32_t        amj2,hms2;
   byte            js2;
   ds3231.getDate(&hms2,&amj2,&js2,strdate);
@@ -785,10 +793,11 @@ void periDetecUpdate()                          // update fichier périfs, remot
 void remoteUpdate(uint8_t perif,uint8_t sw,uint8_t cd,uint8_t src)    // modif de remoteN.enable et (periSwVal ou memDet) selon la provenance ;                                                                       
 {                                                                     // periLoad effectué !
   for(uint8_t k=0;k<MAXREMLI;k++){
-    if(remoteT[k].peri==perif && remoteT[k].sw==sw)                   // recherche remote concernée
+    if(remoteT[k].peri==perif && remoteT[k].sw==sw){                   // recherche remote concernée
       remoteN[remoteT[k].num-1].enable=cd;                            // update disjoncteur remote
       if(src==PERILINE){remMemDetUpdate(k,REM_ENABLE);}               // update memDetServ si periline ( memDetServ(remoteT[k].deten) )      
       if(src==MEMDET){periSwCdUpdate(sw,cd);}                         // update perif si memDet 
+    }
   }
   Serial.println();
 }
@@ -801,7 +810,7 @@ void checkdate(uint8_t num)                                           // détect
     unpackDate(dateascii,periLastDateIn);for(j=0;j<12;j++){Serial.print(dateascii[j]);if(j==5){Serial.print(" ");}}Serial.println();
   }
 }
-
+*/
 /* ================================ decodage ligne GET/POST ================================ */
 
 void cliWrite(EthernetClient* cli,const char* data)

@@ -108,7 +108,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14)
             //Serial.println(date14);
             strcat(message,"_");
 
-            uint v1,v2=0;
+            unsigned int v1,v2=0;
             if(periCur>0){                                          // periCur>0 tfr params
                 v2=*periPerRefr;
                 sprintf((message+strlen(message)),"%05d",v2);       // periPerRefr
@@ -179,13 +179,13 @@ if(*periProg!=0){
 int  periReq(EthernetClient* cli,uint16_t np,const char* nfonct)
 {
     periCur=np;periLoad(periCur);
-    periReq0(cli,nfonct,"");
+    return periReq0(cli,nfonct,"");
 }
 
 int periReq(EthernetClient* cli,uint16_t np,const char* nfonct,const char* msg)     // fonction set ou ack vers périphérique
 {
     periCur=np;periLoad(periCur);
-    periReq0(cli,nfonct,msg);
+    return periReq0(cli,nfonct,msg);
 }
 
 int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)                // fonction set ou ack vers périphérique ; periCur/periload() ok
@@ -332,12 +332,13 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   }
 
 #define PNP 2+1+17+1                                                // (4 length +1) + 2 N° peri +1 + 17 Mac +1 message court de présence
+  k=valf+PNP;
   if(periCur!=0){                                                   // si ni trouvé, ni place libre, periCur=0 
     memcpy(periMacr,periMacBuf,6);
     char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);            // maj dates
 
     messLen-=(PNP+5);if(messLen>0){                                 // PNP + (4 length +1) longueur hors CRC si message terminé
-      k=valf+PNP;*periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
+    *periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
 //Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);      
 #if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
       cancelCompil();

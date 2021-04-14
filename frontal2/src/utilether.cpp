@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
-#include "SdFat.h"
+#include <SdFat.h>
 #include "ds3231.h"
 #include "const.h"
 #include <shconst2.h>
@@ -175,6 +175,7 @@ void sdInit()
 {
   if (!sd32.begin(SD_CONFIG)) {
     mail("SD_INIT_ERROR_HALT","");
+    Serial.println("SD_INIT_ERROR_HALT");
     while(1){trigwd();delay(1000);}
     sd32.initErrorHalt(&Serial);
   }

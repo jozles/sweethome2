@@ -121,14 +121,26 @@ char pkdate[7];
 
 void showLine(char* buf,EthernetClient* cli,int i,char* pkdate);
 
+void perifHeader(char* buf,char* jsbuf)
+{
+  char* dm=buf+strlen(buf);
+
+    concatn(buf,nullptr,periCur);strcat(buf,"-");
+    strcat(buf,periNamer);strcat(buf," ");
+    jscat(jsbuf,dm);
+    strcat(buf,"<font size=\"2\">");
+    dm=buf+strlen(buf);
+    for(int j=0;j<4;j++){concatn(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}};
+    if(*periProg!=0){strcat(buf," / port=");concatn(buf,*periPort);strcat(buf,"  v");}
+    char* db=buf+strlen(buf);
+    memcpy(db,periVers,LENVERSION);db[LENVERSION]='\0';
+    jscat(jsbuf,dm,CRLF);
+    strcat(buf,"<br>\n");
+}
 
 void perifHeader(char* buf)
 {
-    concatn(buf,periCur);strcat(buf,"-");strcat(buf,periNamer);strcat(buf," ");
-    strcat(buf,"<font size=\"2\">");for(int j=0;j<4;j++){concatn(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}}
-    if(*periProg!=0){strcat(buf," / port=");concatn(buf,*periPort);strcat(buf,"  v");}
-    for(int j=0;j<LENVERSION;j++){concat1a(buf,periVers[j]);}
-    strcat(buf,"<br>\n");
+  perifHeader(buf,nullptr);
 }
 
 void subModePulseTime(char* buf,uint8_t npu,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo)
@@ -295,9 +307,13 @@ Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
 
           htmlIntroB(buf,nomserver,cli);
           pageHeader(buf);
-          usrFormBHtml(buf,1);
+          Serial.println("1");
+          usrFormBHtml(buf,HID);
+          Serial.println("2");
           boutRetourB(buf,"refresh",0,0);
+          Serial.println("3");
           numTf(buf,'d',&perrefr,"per_refr__",4,0,0);
+          Serial.println("4");
           ethWrite(cli,buf);
           
           strcat(buf,"(");concatn(buf,fhsize);strcat(buf,") ");
@@ -306,7 +322,8 @@ Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
           
           strcat(buf,"<input type=\"submit\" value=\"ok\"> ");
           boutF(buf,"dump_his__","","histo",0,0,0,0);strcat(buf,"<br>\n");      
-          
+          Serial.println("5");
+
           cli->print("<br>");
           boutF(buf,"deco______","","_  deco  _",0,0,0,0);
           boutF(buf,"deco_____B","","_ reboot _",0,0,0,0);          
@@ -362,7 +379,7 @@ void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,const char* title,con
     strcat(buf,"<td>\n");
     colnb=PMFNCHAR;
     for(uint8_t j=0;j<4;j++){
-      k=(*(cb+i)>>3-j)&0x01;
+      k=((*(cb+i)>>3)-j)&0x01;
       namfonct[LENNOM-2]=(char)(colnb);checkboxTableBHtml(buf,&k,namfonct,-1,0,"");       // n° de colonne
       colnb++;}      
     strcat(buf,"</td><td>");
@@ -395,6 +412,7 @@ void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,const char* title,con
 
 void periLineHtml(EthernetClient* cli,int i)
 {
+  char jsbuf[2000];jsbuf[0]='\0';
   char buf[2000];buf[0]='\0';
   int j;
   unsigned long begPL=millis();
@@ -402,33 +420,38 @@ void periLineHtml(EthernetClient* cli,int i)
   Serial.print("periLineHtml - periCur=");Serial.print(periCur);Serial.print("/");Serial.print(i);
 
   htmlIntroB(buf,nomserver,cli);
-  pageHeader(buf);
-  perifHeader(buf);
-  usrPeriCurB(buf,"peri_cur__",0,2,3);
+  pageHeader(buf,jsbuf);
+  perifHeader(buf,jsbuf);
+  usrPeriCurB(buf,jsbuf,"peri_cur__",0,2,3);
   ethWrite(cli,buf);
+
+Serial.print(" ");Serial.print(jsbuf);jsbuf[0]='\0';dumpstr(jsbuf,200);
 
 /* boutons */
 
     strcat(buf,"<table><tr><td>\n");
 
-    boutRetourB(buf,"retour",0,0);strcat(buf," ");
+    boutRetourB(buf,jsbuf,"retour",0,0);strcat(buf," ");
     
     strcat(buf,"</td><td> <input type=\"submit\" value=\" MàJ \"> ");
     char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    boutF(buf,line,"","refresh",0,0,0,0);
+    boutF(buf,jsbuf,line,"","refresh",0,0,0,0);
     if(*periSwNb!=0){
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-      boutF(buf,swf,"","Switchs",0,0,0,0);};
-    boutF(buf,"peri_raz___","","Raz",0,0,0,0);strcat(buf,"<br> \n");
+      boutF(buf,jsbuf,swf,"","Switchs",0,0,0,0);
+    }
+    boutF(buf,jsbuf,"peri_raz___","","Raz",0,0,0,0);strcat(buf,"<br> \n");
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    line[LENNOM-2]='0';boutF(buf,line,"","tst__SW0",0,0,0,0);
-    line[LENNOM-2]='1';boutF(buf,line,"","tst__SW1",0,0,0,0);strcat(buf," ");
-    line[LENNOM-2]='m';boutF(buf,line,"","tst_mail",0,0,0,0);strcat(buf,"\n");
+    line[LENNOM-2]='0';boutF(buf,jsbuf,line,"","tst__SW0",0,0,0,0);
+    line[LENNOM-2]='1';boutF(buf,jsbuf,line,"","tst__SW1",0,0,0,0);strcat(buf," ");
+    line[LENNOM-2]='m';boutF(buf,jsbuf,line,"","tst_mail",0,0,0,0);strcat(buf,"\n");
 
     strcat(buf,"</td></tr></table>\n");
     
     ethWrite(cli,buf);
+
+Serial.print(" ");Serial.print(jsbuf);jsbuf[0]='\0';    
 
 /* ligne périphérique */                
 
