@@ -88,7 +88,7 @@ void concatns(char* buf,char* jsbuf,long val)
 
 void concatnf(char* buf,float val)
 {
-  concatnf(buf,nullptr,val,0);
+  concatnf(buf,nullptr,val,2);
 }
 
 void concatnf(char* buf,float val,uint8_t dec)
@@ -98,7 +98,7 @@ void concatnf(char* buf,float val,uint8_t dec)
 
 void concatnf(char* buf,char* jsbuf,float val)
 {
-  concatnf(buf,jsbuf,val,0);
+  concatnf(buf,jsbuf,val,2);
 }
 
 void concatnf(char* buf,char* jsbuf,float val,uint8_t dec)
@@ -130,7 +130,7 @@ void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,i
 
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
 {
-  numTf(buf,nullptr,type,valfonct,nomfonct,len,td,pol,0);
+  numTf(buf,nullptr,type,valfonct,nomfonct,len,td,pol,dec);
 }
 
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
@@ -196,9 +196,12 @@ void usrFormBHtml(char* buf,char* jsbuf,bool hid)                     // pour me
 {
   jscat(jsbuf,JSFUB);
   if(hid){strcat(buf,"<p hidden>");jscat(jsbuf,JSHIDB);}
-  strcat(buf,"<input type=\"text\" name=\"user_ref_");concat1a(buf,jsbuf,(char)(usernum+PMFNCHAR));
+  strcat(buf,"<input type=\"text\" name=\"");
+  char* dm=buf+strlen(buf);
+  strcat(buf,"user_ref_");concat1a(buf,nullptr,(char)(usernum+PMFNCHAR));
+  jscat(jsbuf,dm);
   strcat(buf,"\" value=\"");concatn(buf,jsbuf,usrtime[usernum]);strcat(buf,"\">");  
-  if(hid){strcat(buf,"</p>");jscat(jsbuf-1,JSHIDE);}
+  if(hid){strcat(buf,"</p>");jscat(jsbuf,JSHIDE);}
   jscat(jsbuf,JSFUE);
 }
 
@@ -303,12 +306,13 @@ void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const
 {
     jscat(jsbuf,JSBFB);
     if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSTB);}
-
+    
+    char b[]={(char)(usernum+PMFNCHAR),'\0'};
     strcat(buf,"<a href=\"?user_ref_");
-    char b[2];b[1]='\0';
+    strcat(buf,b);strcat(buf,"=");concatn(buf,usrtime[usernum]);
+    strcat(buf,"?");
     char* dm=buf+strlen(buf);
-    b[0]=(char)(usernum+PMFNCHAR);strcat(buf,b);strcat(buf,"=");concatn(buf,usrtime[usernum]);
-    strcat(buf,"?");strcat(buf,nomfonct);strcat(buf,"=");strcat(buf,valfonct);jscat(jsbuf,dm);
+    strcat(buf,nomfonct);strcat(buf,"=");strcat(buf,valfonct);jscat(jsbuf,dm);
     strcat(buf,"\">");
     if(aligncenter){strcat(buf,"<p align=\"center\">");jscat(jsbuf,JSAC);}
     strcat(buf,"<input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"");jscat(jsbuf,lib);
@@ -331,14 +335,14 @@ void boutRetourB(char* buf,char* jsbuf,const char* lib,uint8_t td,uint8_t br)
     jscat(jsbuf,JSBRB);
     if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSTB);}
     strcat(buf,"<a href=\"?user_ref_");
-    char* dm=buf+strlen(buf);
-    concat1a(buf,(char)(usernum+PMFNCHAR));strcat(buf,"=");concatn(buf,usrtime[usernum]);jscat(jsbuf,dm);
+    concat1a(buf,(char)(usernum+PMFNCHAR));strcat(buf,"=");concatn(buf,usrtime[usernum]);
     strcat(buf,"\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");
     strcat(buf,lib);jscat(jsbuf,lib);
     strcat(buf,"\"></a>");
     if(br!=0){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
     if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSTE);}
     strcat(buf,"\n");
+    jscat(jsbuf,JSBRE);
 }
 
 void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval)        // nbval boutons radio
@@ -495,7 +499,12 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
 }
 
 void bufcat(char* buf,char* jsbuf,const char* s){strcat(buf,s);if(jsbuf!=nullptr){strcat(jsbuf,s);strcat(jsbuf,";");}}
-void jscat(char* jsbuf,const char* s,bool crlf){}//if(jsbuf!=nullptr){strcat(jsbuf,s);strcat(jsbuf,";");if(crlf){strcat(jsbuf,"\n\r");}}}
+
+void jscat(char* jsbuf,const char* s,bool crlf)
+{
+  if(jsbuf!=nullptr){strcat(jsbuf,s);if(s[0]!='~'){strcat(jsbuf,";");}if(crlf){strcat(jsbuf,"\n\r");}}
+}
+
 void jscat(char* jsbuf,const char* s){jscat(jsbuf,s,false);}
 
 void pageHeader(char* buf)

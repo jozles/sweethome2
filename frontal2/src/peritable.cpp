@@ -422,10 +422,10 @@ void periLineHtml(EthernetClient* cli,int i)
   htmlIntroB(buf,nomserver,cli);
   pageHeader(buf,jsbuf);
   perifHeader(buf,jsbuf);
-  usrPeriCurB(buf,jsbuf,"peri_cur__",0,2,3);
+  usrPeriCurB(buf,jsbuf,"peri_cur__",0,2,0);
   ethWrite(cli,buf);
 
-Serial.print(" ");Serial.print(jsbuf);jsbuf[0]='\0';dumpstr(jsbuf,200);
+Serial.print("\n");Serial.print(jsbuf);jsbuf[0]='\0';dumpstr(jsbuf,200);
 
 /* boutons */
 

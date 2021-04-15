@@ -1294,7 +1294,7 @@ void commonserver(EthernetClient cli,const char* bufData,uint16_t bufDataLen)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                 // + bouton erase    (switchs)
                        else{periReq(&cliext,periCur,"etat______");}                                  // si pas erase demande d'état
                        SwCtlTableHtml(&cli);break;                                                                               
-              case 9:  {byte a=*(libfonctions+2*i);
+              case 9:  {byte a=*(libfonctions+2*i+1);
                         if(a=='B'){wdReboot(BOOT,millis());}
                        }break;                                                                       // si pas 'R' déco donc -> accueil                                             
               case 10: dumpHisto(&cli);break;                                                        // bouton dump_histo

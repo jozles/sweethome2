@@ -205,22 +205,22 @@
 
 #define JSB strcat(jsbuf,
 #define JSE );
-#define JSHIDB "~h"
-#define JSHIDE "~H;"
-#define JSBRB  "~r"      // bouton retour beg
-#define JSBRE  "~R\n"    // bouton retour end
-#define JSBFB  "~b"      // bouton fonct beg
-#define JSBFE  "~B\n"    // bouton fonct end
-#define JSNTB  "~n"      // saisie numtf beg
-#define JSNTE  "~N\n"    // saisie numtf end
-#define JSFUB  "^u"      // usrPeriCurB beg
-#define JSFUE  "^U\n"    // usrPeriCurB end
-#define JSTB   "~t"      // debut table
-#define JSTE   "~T\n"    // fin table
-#define JSPB   "~p"      // font size beg
-#define JSPE   "~P"      // font size end
-#define JSBR   "~n\n"    // <br>
-#define JSAC   "~a"      // align center
+#define JSHIDB "~h;\n"      // hide beg
+#define JSHIDE "~H;\n"      // hide end
+#define JSBRB  "~r;"      // bouton retour beg
+#define JSBRE  "~R;\n"    // bouton retour end
+#define JSBFB  "~b;"      // bouton fonct beg
+#define JSBFE  "~B;\n"    // bouton fonct end
+#define JSNTB  "~n;"      // saisie numtf beg
+#define JSNTE  "~N;\n"    // saisie numtf end
+#define JSFUB  "~u;"      // usrPeriCurB beg
+#define JSFUE  "~U;\n"    // usrPeriCurB end
+#define JSTB   "~t;"      // debut table
+#define JSTE   "~T;"      // fin table (crlf manuel dans jscat)
+#define JSPB   "~p;"      // font size beg
+#define JSPE   "~P;"      // font size end
+#define JSBR   "~n;\n"    // <br>
+#define JSAC   "~a;"      // align center
 
 
 
