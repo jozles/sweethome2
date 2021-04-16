@@ -397,7 +397,7 @@ Serial.println("after sdinit");
   mailEnable=VRAI;
   memDetLoad();                     // le second pour Sync 
   //remoteNPlus(8);while(1){};
-  remoteLoad();remotePrint();periSwSync();
+  remoteLoad();periSwSync();
   timersLoad();
   //thermosInit();thermosSave();     // si NBPERIF change
   thermosLoad();

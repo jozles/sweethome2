@@ -112,10 +112,19 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec)
   jscat(jsbuf,dm);
 }
 
+void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len)
+{
+  strcat(buf,"<td><input type=\"text\" name=\"");jscat(jsbuf,JSCB);
+  strcat(buf,nomfonct);jscat(jsbuf,nomfonct);
+  strcat(buf,"\" value=\"");
+  strcat(buf,valfonct);jscat(jsbuf,valfonct);
+  strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,jsbuf,len);
+  strcat(buf,"\" ></td>\n");jscat(jsbuf,JSCE);
+}
+
 void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len)
 {
-  strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nomfonct);strcat(buf,"\" value=\"");
-  strcat(buf,valfonct);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");
+  alphaTableHtmlB(buf,nullptr,valfonct,nomfonct,len);
 }
 
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol)
@@ -134,9 +143,9 @@ void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8
 }
 
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
-{
-  jscat(jsbuf,JSNTB);                          
-  if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSTB);}
+{                          
+  if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+  jscat(jsbuf,JSNTB);
   if(pol!=0){strcat(buf,"<font size=\"");jscat(jsbuf,JSPB);concatn(buf,jsbuf,pol);strcat(buf,"\">");jscat(jsbuf,JSPE);}
   strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);jscat(jsbuf,nomfonct);
   if(len<=2){strcat(buf,"\" id=\"nt");concatn(buf,jsbuf,len);}
@@ -157,8 +166,8 @@ void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,i
   int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
   strcat(buf,"\" size=\"");concatn(buf,jsbuf,sizeHtml);strcat(buf,"\" maxlength=\"");concatn(buf,jsbuf,len);strcat(buf,"\" >");
   if(pol!=0){strcat(buf,"</font>");}
-  if(td==1 || td==3){strcat(buf,"</td>\n");jscat(jsbuf,JSTE);}
   jscat(jsbuf,JSNTE);
+  if(td==1 || td==3){strcat(buf,"</td>\n");jscat(jsbuf,JSCE);}
 }
 /*
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
@@ -258,14 +267,19 @@ void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint
 
 void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)
 {
+  textTbl(buf,nullptr,valfonct,valmin,valmax,br,td);
+}
+
+void textTbl(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)
+{
   char colour[6+1];
   memcpy(colour,"black\0",6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,"red\0",4);}
-  if(td==1 || td==2){strcat(buf,"<td>");}
+  if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
   strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
-  concatnf(buf,((float)*valfonct)/100);  
+  concatnf(buf,jsbuf,((float)*valfonct)/100);  
   strcat(buf,"</font>");
-  if(br==1){strcat(buf,"<br>");}
-  if(td==2 || td==3){strcat(buf,"</td>");}
+  if(br==1){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
+  if(td==2 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
 }
 
 void concatDate(char* buf,char* periDate)
@@ -320,9 +334,9 @@ void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const
     if(aligncenter){strcat(buf,"></p></a>");jscat(jsbuf,JSAC);}
     else{strcat(buf,"></a>");}
 
-    if(br!=0){strcat(buf,"<br>");}
-    if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSTE);}
-    jscat(jsbuf,JSBFE);   
+    jscat(jsbuf,JSBFE);
+    if(br!=0){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
+    if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
 }
 
 void boutRetourB(char* buf,const char* lib,uint8_t td,uint8_t br)
@@ -332,17 +346,29 @@ void boutRetourB(char* buf,const char* lib,uint8_t td,uint8_t br)
 
 void boutRetourB(char* buf,char* jsbuf,const char* lib,uint8_t td,uint8_t br)
 {
+    if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
     jscat(jsbuf,JSBRB);
-    if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSTB);}
     strcat(buf,"<a href=\"?user_ref_");
     concat1a(buf,(char)(usernum+PMFNCHAR));strcat(buf,"=");concatn(buf,usrtime[usernum]);
     strcat(buf,"\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");
     strcat(buf,lib);jscat(jsbuf,lib);
     strcat(buf,"\"></a>");
-    if(br!=0){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
-    if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSTE);}
-    strcat(buf,"\n");
     jscat(jsbuf,JSBRE);
+    if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
+    if(br!=0){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
+    strcat(buf,"\n");
+}
+
+void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t td)
+{
+  if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+  jscat(jsbuf,JSBMB);
+  strcat(buf,"<input type=\"submit\" value=\"");
+  bufcat(buf,jsbuf,lib);
+  strcat(buf," \">");
+  jscat(jsbuf,JSBME);
+  if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
+  strcat(buf,"\n");
 }
 
 void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval)        // nbval boutons radio
@@ -555,20 +581,26 @@ void pageHeader(char* buf,char* jsbuf,bool form)
 
 void checkboxTableBHtml(char* buf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib)
 {
-  if(td==1 || td==2){strcat(buf,"<td>");}
+  checkboxTableBHtml(buf,nullptr,val,nomfonct,etat,td,lib);
+}
 
-    strcat(buf,"<input type=\"checkbox\" name=\"");strcat(buf,nomfonct);strcat(buf,"\" id=\"cb1\" value=\"1\"");
-    if((*val & 0x01)!=0){strcat(buf," checked");}
-    strcat(buf,">");strcat(buf,lib);
+void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib)
+{
+  if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+    jscat(jsbuf,JSDB);
+    strcat(buf,"<input type=\"checkbox\" name=\"");bufcat(buf,jsbuf,nomfonct);strcat(buf,"\" id=\"cb1\" value=\"1\"");
+    if((*val & 0x01)!=0){bufcat(buf,jsbuf," checked");}
+    strcat(buf,">");bufcat(buf,jsbuf,lib);
   if(etat>0 && !(*val & 0x01)){etat=2;}
       switch(etat){
-        case 2 :strcat(buf,"___");break;
-        case 1 :strcat(buf,"_ON");break;
-        case 0 :strcat(buf,"OFF");break;
+        case 2 :bufcat(buf,jsbuf,"___");break;
+        case 1 :bufcat(buf,jsbuf,"_ON");break;
+        case 0 :bufcat(buf,jsbuf,"OFF");break;
         default:break;
       }
-  if(td==1 || td==3){strcat(buf,"</td>");}
-  strcat(buf,"\n");
+  jscat(jsbuf,JSDE);    
+  if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
+  strcat(buf,"\n");jscat(jsbuf,"",CRLF);
 }
 
 void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib) // checkbox transportant 1 bit 
@@ -614,368 +646,3 @@ void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet)
   memcpy(recep,emet,lenEmet);
   trailingSpaces(recep,lenRecep);
 }
-
-/*
-void htmlIntro0(EthernetClient* cli)    // suffisant pour commande péripheriques
-{
-  cli->println("HTTP/1.1 200 OK");
-  //cli->println("Location: http://82.64.32.56:1789/");
-  //cli->println("Cache-Control: private");
-  cli->println("CONTENT-Type: text/html; charset=UTF-8");
-  cli->println("Connection: close\n");
-  cli->println("<!DOCTYPE HTML ><html>");
-}
-
-
-void htmlIntro(char* titre,EthernetClient* cli)
-{
-  htmlIntro0(cli);
-
-  cli->println("<head>");
-  char buf[10]={0};
-  if(perrefr!=0){cli->print("<meta HTTP-EQUIV=\"Refresh\" content=\"");sprintf(buf,"%d",perrefr);cli->print(buf);cli->print("\">");}
-  cli->print("\<title>");cli->print(titre);cli->println("</title>");
-  
-          cli->println("<style>");
-
-            cli->println("table {");
-              cli->println("font-family: Courier, sans-serif;");
-              cli->println("border-collapse: collapse;");
-              //cli->println("width: 100%;");
-              cli->println("overflow: auto;");
-              cli->println("white-space:nowrap;"); 
-            cli->println("}");
-
-            cli->println("td, th {");
-              cli->println("font-family: Courier, sans-serif;");
-              cli->println("border: 1px solid #dddddd;");
-              cli->println("text-align: left;"); 
-            cli->println("}");
-
-            cli->println("#nt1{width:10px;}");
-            cli->println("#nt2{width:18px;}");
-            cli->println("#cb1{width:10px; padding:0px; margin:0px; text-align: center};");
-            cli->println("#cb2{width:20px; text-align: center};");
-
-            cli->print(".button {background-color: #195B6A; border: none; color: white; padding: 16px 40px;");
-            cli->println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-            cli->println(".button2 {background-color: #77878A;}");
-
-            // big sliders 
-            cli->println(".switch {position: relative;display: inline-block;width: 220px;height: 100px; margin: 16px;}");
-            cli->println(".switch input {opacity: 0;width: 0;hight: 0;}");
-            cli->print(".slider {position: absolute;cursor: pointer;");
-            cli->println("  top: 0;left: 0;right: 0;bottom: 0;background-color: #ccc;-webkit-transition: .4s;transition: .4s;}");
-            cli->print(".slider:before {position: absolute;content: \"\";");
-            cli->println("  height: 84px;width: 84px;left: 8px;bottom: 8px;background-color: white;-webkit-transition: .4s;transition: .4s;}");
-            cli->println("input:checked + .slider {background-color: #2196F3;}");
-            cli->println("input:focus + .slider {box-shadow: 0 0 1px #2196F3;}");
-            cli->println("input:checked + .slider:before {-webkit-transform: translateX(110px);-ms-transform: translateX(55px);transform: translateX(110px);}");
-            
-            //Rounded sliders 
-            cli->println(".slider.round {border-radius: 50px;}");
-            cli->println(".slider.round:before {border-radius: 50%;}");
-
-          cli->println("</style>");
-  
-  cli->println("</head>");
-}
-
-
-void setColour(EthernetClient* cli,char* textColour)
-{
-  memcpy(colour,textColour,LENCOLOUR);cli->print("<font color=\"");cli->print(colour);cli->print("\"> ");
-}
-
-void cliPrintDateHeure(EthernetClient* cli,char* pkdate)
-{
-  char bufdate[LNOW];ds3231.alphaNow(bufdate);packDate(pkdate,bufdate+2); // skip siècle
-  for(int zz=0;zz<14;zz++){cli->print(bufdate[zz]);if(zz==7){cli->print("-");}}
-  cli->print(" GMT ");
-}
-
-void printPeriDate(EthernetClient* cli,char* periDate)
-{
-  char dateascii[12];
-  int j;
-  unpackDate(dateascii,periDate);for(j=0;j<12;j++){cli->print(dateascii[j]);if(j==5){cli->print(" ");}}cli->println("<br>");
-}
-
-void boutonHtml(EthernetClient* cli,byte* valfonct,char* nomfonct,uint8_t sw,uint8_t td)      
-{
-  char tonoff[]={'O','F','F','\0'};
-
-  nomfonct[LENNOM-2]=(char)(PMFNCHAR+sw);
-  nomfonct[LENNOM-1]='1';
-
-  if(td==1 || td==2){cli->print("<td>");}
-  if ((*valfonct>>(sw*2))&0x01==0) {nomfonct[LENNOM-1]='0';memcpy(tonoff,"ON \0",4);}
-  cli->print("<a href=\"");cli->print(nomfonct);cli->print("\"><button class=\"button\">");cli->print(tonoff);cli->println("</button></a>");
-//  cli->print("<input type=\"button\" name=\"");cli->print(nomfonct);cli->print("\" <button class=\"button\">");cli->print(tonoff);cli->println("</button></a>");
-  if(td==2 || td==3){cli->println("</td>");}
-//              cli->println("<p><a href=\"/B/off\"><button class=\"button button2\">OFF</button></a></p>");
-
-}
-
-void numTableHtml(EthernetClient* cli,char type,void* valfonct,char* nomfonct,int len,uint8_t td,int pol)
-{                          
-  if(td==1 || td==2){cli->print("<td>");}
-  if(pol!=0){cli->print("<font size=\"");cli->print(pol);cli->println("\">");}
-  cli->print("<input type=\"text\" name=\"");cli->print(nomfonct);
-  if(len<=2){cli->print("\" id=\"nt");cli->print(len);}
-  cli->print("\" value=\"");
-  switch (type){
-    case 'b':cli->print(*(byte*)valfonct);break;
-    case 'd':cli->print(*(uint16_t*)valfonct);break;
-    case 'i':cli->print(*(int*)valfonct);break;
-    case 'I':cli->print(*(int16_t*)valfonct);break;
-    case 'r':cli->print((float)(*(int16_t*)valfonct)/100);break;
-    case 'l':cli->print(*(long*)valfonct);break;
-    case 'f':cli->print(*(float*)valfonct);break;
-    case 'g':cli->print(*(uint32_t*)valfonct);break;    
-    default:break;
-  }
-  int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
-  cli->print("\" size=\"");cli->print(sizeHtml);cli->print("\" maxlength=\"");cli->print(len);cli->print("\" >");
-  if(pol!=0){cli->print("</font>");}
-  if(td==1 || td==3){cli->println("</td>\n");}
-}
-
-void textTableHtml_(EthernetClient* cli,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)
-{
-  memcpy(colour,"black\0",6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,"red\0",4);}
-  if(td==1 || td==2){cli->print("<td>");}
-    cli->print("<font color=\"");cli->print(colour);cli->print("\"> ");
-//    switch (type){
-//    case 'b':cli->print(*(byte*)valfonct);break;
-//    case 'd':cli->print(*(uint16_t*)valfonct);break;
-//    case 'i':cli->print(*(int*)valfonct);break;
-//    case 'l':cli->print(*(long*)valfonct);break;
-//    case 'f':cli->print(*(float*)valfonct);break;
-//    case 'g':cli->print(*(uint32_t*)valfonct);break;    
-//    default:break;}
-
-  cli->print(((float)*valfonct)/100);  
-  cli->print("</font>");
-  if(br==1){cli->print("<br>");}
-  if(td==2 || td==3){cli->println("</td>");}
-}
-
-void usrFormHtml(EthernetClient* cli,bool hid)                     // pour mettre en tête des formulaires ("<p hidden> .... </p>")
-{
-  if(hid){cli->print("<p hidden>");}
-  cli->print("<input type=\"text\" name=\"user_ref_");cli->print((char)(usernum+PMFNCHAR));
-  cli->print("\" value=\"");cli->print(usrtime[usernum]);cli->print("\">");  
-  if(hid){cli->println("</p>");}
-}
-
-void usrFormInitHtml(EthernetClient* cli,char* nomfonct,bool hid)  // pour mettre en tête des formulaires ("<p hidden> .... </p>")
-{
-    cli->print("<p hidden>");
-      usrFormHtml(cli,0);
-      cli->print("<input type=\"text\" name=\"");cli->print(nomfonct);cli->print("\">");
-    cli->println("</p>");
-}
-
-void usrPeriCur(EthernetClient* cli,char* fnct,uint8_t ninp,int len,uint8_t td)
-{                                                                  // pour mettre en tête des formulaires ("<p hidden> .... </p>")
-    cli->print("<p hidden>");
-      usrFormHtml(cli,0);
-      char fonc[LENNOM+1];memcpy(fonc,fnct,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
-      numTableHtml(cli,'i',&periCur,fonc,len,td,0); // pericur n'est pas modifiable (fixation pericur, periload, cberase)
-    cli->println("</p>");
-}
-
-
-void boutRetour(EthernetClient* cli,char* lib,uint8_t td,uint8_t br)
-{
-    if(td==1 || td==2){cli->print("<td>");}
-    cli->print("<a href=\"?user_ref_");cli->print((char)(usernum+PMFNCHAR));cli->print("=");cli->print(usrtime[usernum]);
-    cli->print("\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");cli->print(lib);cli->print("\"></a>");
-    if(br!=0){cli->print("<br>");}
-    if(td==1 || td==3){cli->print("</td>");}
-    cli->println();
-}
-
-void boutFonction(EthernetClient* cli,char* nomfonct,char* valfonct,char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter)
-// génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... 
-{
-    if(td==1 || td==2){cli->print("<td>");}
-
-    cli->print("<a href=\"?user_ref_");cli->print((char)(usernum+PMFNCHAR));cli->print("=");cli->print(usrtime[usernum]);
-    cli->print("?");cli->print(nomfonct);cli->print("=");cli->print(valfonct);
-    cli->print("\">");
-    if(aligncenter){cli->print("<p align=\"center\">");}
-    cli->print("<input type=\"button\" value=\"");cli->print(lib);cli->print("\"");
-    if(sizfnt==2){cli->print(" style=\"width:100px;height:20px;font-size:14px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
-    if(sizfnt==3){cli->print(" style=\"width:150px;height:33px;font-size:22px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
-    if(sizfnt==4){cli->print(" style=\"width:200px;height:45px;font-size:30px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
-    if(sizfnt==5){cli->print(" style=\"width:300px;height:60px;font-size:40px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
-    if(sizfnt==7){cli->print(" style=\"width:400px;height:120px;font-size:50px;background-color:LightYellow;font-family:Courier,sans-serif;\"");}
-    if(aligncenter){cli->println("></p></a>");}
-    else{cli->print("></a>");}
-
-    if(br!=0){cli->print("<br>");}
-    if(td==1 || td==3){cli->print("</td>");}
-    cli->println();
-}
-
-void bouTableHtml(EthernetClient* cli,char* nomfonct,char* valfonct,char* lib,uint8_t td,uint8_t br)
-{
-    if(td==1 || td==2){cli->print("<td>");}
-
-    cli->print("<a href=\"?");
-    cli->print(nomfonct);cli->print("=");cli->print(valfonct);
-    cli->print("\"><input type=\"button\" value=\"");
-    cli->print(lib);
-    cli->print("\"></a>");
-    
-//  cli->print("<form><p hidden><input type=\"text\" name=\"");
-//  cli->print(nomfonct);
-//  cli->print("\" value=\"");
-//  cli->print(valfonct);
-//  cli->print("\" ></p><input type=\"submit\" value=\"");
-//  cli->print(lib);
-//  cli->print("\">");
-//  if(br!=0){cli->print("<br>");}
-//  cli->print("</form>");
-
-    if(br!=0){cli->print("<br>");}
-    if(td==1 || td==3){cli->print("</td>");}
-    cli->println();
-}
-
-void lnkTableHtml(EthernetClient* cli,char* nomfonct,char* lib)
-{
-  cli->print("<a href=?");cli->print(nomfonct);cli->print(": target=_self>");
-  cli->print(lib);cli->println("</a>");
-}
-
-void xradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,int nbli)             // saisie peri Sw Cde bits et affiche peri Sw Lev bits
-{                                                                                         // valeur = periSwVal ; nbLi = nbSw
-    for(int i=0;i<nbli;i++){
-      char oi[]="OI";
-      byte b,a=valeur; a=a >> i*2 ;b=a&0x01;a&=0x02;a=a>>1;          // mode periSwVal    a bit poids fort commande ; b bit poids faible état
-      
-      for(int j=0;j<2;j++){
-          cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(i+PMFNCHAR));
-          cli->print("\" value=\"");cli->print((char)(PMFNCVAL+j));cli->print("\"");
-          if(a==j){cli->print(" checked");}cli->print("/>");
-      }
-      if(type&0x01!=0){cli->print(" ");cli->print(oi[b]);}
-      cli->println("<br>");
-    }
-}
-
-void radioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbval)        // nbval boutons radio
-{                                                                                        // valeur = checked (0-n) 
-      cli->print(valeur);cli->print("<br>");
-      for(uint8_t j=0;j<nbval;j++){
-          cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);
-          cli->print("\" value=\"");cli->print((char)(PMFNCVAL+j));cli->print("\"");
-          if(j==valeur){cli->print(" checked");}cli->print("/>");
-      }
-}
-
-void yradioTableHtml(EthernetClient* cli,byte valeur,char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td)                 // 1 line ; nb = page row
-{                                                                                                                                  // sqbr square button
-                                                                                                                                   // nbval à traiter
-  if(td==1 || td==2){cli->print("<td>");}  
-    valeur&=0x01;                                                               
-  
-  
-  cli->print("<input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(nb+PMFNCHAR));
-  cli->print("\" class=\"sqbr br_off\" id=\"sqbrb");cli->print((char)(nb+PMFNCHAR));cli->print("\"");
-  cli->print("\" value=\"");cli->print((char)(PMFNCVAL+0));cli->print("\"");
-  if(valeur==0){cli->print(" checked");}cli->print(">");
-  cli->print("<label for=\"sqbrb");cli->print((char)(nb+PMFNCHAR));cli->print("\">OFF</label>");
-  
-  if(vert){cli->print("<br><br>\n");}
-  
-  cli->print(" <input type=\"radio\" name=\"");cli->print(nomfonct);cli->print((char)(nb+PMFNCHAR));
-  cli->print("\" class=\"sqbr br_on\" id=\"sqbra");cli->print((char)(nb+PMFNCHAR));cli->print("\"");
-  cli->print("\" value=\"");cli->print((char)(PMFNCVAL+1));cli->print("\"");
-  if(valeur==1){cli->print(" checked");}cli->print(">");
-  cli->print("<label for=\"sqbra");cli->print((char)(nb+PMFNCHAR));cli->print("\">ON</label>\n");
-
-  if(td==1 || td==3){cli->print("</td>");}      
-  cli->println("<br>");
-}
-
-void selectTableHtml(EthernetClient* cli,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td)
-{            // val=table des libellés ; ft=fonction ; nbre ds table ; len step table ; sel=n°actuel ; nuv=n°param ; n°inp
-  char a;
-  int i,j;
-
-  ft[LENNOM-2]=(char)(nuv+PMFNCHAR);   
-  ft[LENNOM-1]=(char)(ninp+PMFNCHAR);   
-  
-  if(td==1 || td==2){cli->print("<td>");}
-
-  cli->print("<SELECT name=\"");cli->print(ft);cli->print("\">");
-  for(i=0;i<nbre;i++){
-    cli->print("<OPTION");if(i==sel){cli->print(" selected");};cli->print(">");
-    for(j=0;j<len;j++){
-      a=(char)val[i*len+j];
-      if(a!=' '){cli->print(a);}
-    }
-  }
-  cli->print("</SELECT>");
-
-  if(td==1 || td==3){cli->print("</td>");}
-  cli->println();
-}
-
-void checkboxTableHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int etat,uint8_t td,char* lib)
-{
-  if(td==1 || td==2){cli->print("<td>");}
-//  if(etat!=0){
-    cli->print("<input type=\"checkbox\" name=\"");cli->print(nomfonct);cli->print("\" id=\"cb1\" value=\"1\"");
-    if((*val & 0x01)!=0){cli->print(" checked");}
-    cli->print(">");cli->print(lib);
-  //cli->print("<label for=\"cb1\">");cli->print(lib);cli->print("</label>");
-  //}
-  //if(etat==0){
-  //  if (*val==0) {
-  //    cli->println("<p><a href=\"/B/on\"><button class=\"button\">ON</button></a></p>");} 
-  //  else {
-  //    cli->println("<p><a href=\"/B/off\"><button class=\"button button2\">OFF</button></a></p>");} 
-  //}
-  if(etat>0 && !(*val & 0x01)){etat=2;}
-      switch(etat){
-        case 2 :cli->print("___");break;
-        case 1 :cli->print("_ON");break;
-        case 0 :cli->print("OFF");break;
-        default:break;
-      }
-  if(td==1 || td==3){cli->print("</td>");}
-  cli->println();
-}
-
-void subDSn(EthernetClient* cli,char* fnc,uint32_t val,uint8_t num,char* lib) // checkbox transportant 1 bit 
-                                                                    // num le numéro du bit dans le mot
-                                                                    // le caractère LENNOM-1 est le numéro du bit(+PMFNCHAR) dans periDetServ 
-{                                                                   // le numéro est codé 0 à 15 + 0x40 et 16->n + 0x50 !!!! (évite les car [\]^ )
-  char fonc[LENNOM+1];
-  memcpy(fonc,fnc,LENNOM+1);
-  uint8_t val0=(val>>num)&0x01;
-  if(num>=16){num+=16;}
-  fonc[LENNOM-1]=(char)(PMFNCHAR+num);
-  checkboxTableHtml(cli,&val0,fonc,-1,0,lib);
-}
-
-void sliderHtml(EthernetClient* cli,uint8_t* val,char* nomfonct,int nb,int sqr,uint8_t td)
-{
-  if(td==1 || td==2){cli->print("<td>");}
-
-  char nf[LENNOM+1];nf[LENNOM]='\0';
-  memcpy(nf,nomfonct,LENNOM);if(nb>=0){nf[LENNOM-1]=(char)(nb+PMFNCHAR);}
-  cli->print("<label class=\"switch\"><input type=\"checkbox\" style=\"color:Khaki;\" name=\"");cli->print(nf);cli->print("\" value=\"1\"");
-  if((*val & 0x01)!=0){cli->print(" checked");}
-  cli->print(" ><span class=\"slider ");if(sqr==0){cli->print(" round");}
-  cli->println("\"></span></label>");
-  
-  if(td==1 || td==3){cli->print("</td>");}
-  cli->println();
-}
-*/
