@@ -7,7 +7,7 @@
 #include "shutil2.h"
 #if CONSTANT==EEPROMSAVED
 #include <EEPROM.h>
-#endif
+#endif //
 
 extern "C" {                  
 #include <user_interface.h>     // pour struct rst_info, system_deep_sleep_set_option(), rtc_mem
@@ -76,14 +76,14 @@ bool readConstant()
   int temp=CONSTANTADDR;
   system_rtc_mem_read(temp,&cstRec.cstlen,1);         // charge cstlen
   system_rtc_mem_read(temp,cstRecA,cstRec.cstlen);    // charge la totalité
-#endif
+#endif //
 
 #if CONSTANT==EEPROMSAVED
   cstRec.cstlen=EEPROM.read((int)(CONSTANTADDR));     // charge la longueur telle qu'enregistrée
   for(int temp=0;temp<cstRec.cstlen;temp++){        
     *(cstRecA+temp)=EEPROM.read((int)(temp+CONSTANTADDR));
   }
-#endif
+#endif //
 
 Serial.print("readConstant ");Serial.print((long)cstRecA,HEX);Serial.print(" len=");Serial.print(cstRec.cstlen);
 Serial.print("/");Serial.print((uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1);
@@ -103,7 +103,7 @@ cstRec.cstcrc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1);
 #if CONSTANT==RTCSAVED
   int temp=CONSTANTADDR;
   system_rtc_mem_write(temp,cstRecA,256);
-#endif
+#endif //
 
 #if CONSTANT==EEPROMSAVED
   for(int temp=0;temp<cstRec.cstlen;temp++){
@@ -112,7 +112,7 @@ cstRec.cstcrc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1);
     }    
   }
   EEPROM.commit();
-#endif
+#endif //
 Serial.print("writeConstant ");for(int h=0;h<4;h++){Serial.print(cstRec.cstVers[h]);};Serial.print(" ");
 Serial.print((long)cstRecA,HEX);
 Serial.print(" len=");Serial.print((char*)&cstRec.cstcrc-cstRecA+1);
@@ -121,7 +121,7 @@ Serial.print(" crc=");Serial.print(cstRec.cstcrc,HEX);Serial.print(" ");Serial.p
 Serial.print(" numperiph=");Serial.print((char)cstRec.numPeriph[0]);Serial.print((char)cstRec.numPeriph[1]);
 #ifdef _SERVER_MODE
 Serial.print(" portServer=");Serial.println(cstRec.portServer);
-#endif
+#endif //
 Serial.println();
 
 }

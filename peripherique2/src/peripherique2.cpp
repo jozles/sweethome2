@@ -50,7 +50,7 @@ Ds1820 ds1820;
   const char* password1 = "cain ne dormant pas songeait au pied des monts";
   const char* ssid2= "devolo-5d3";
   const char* password2= "JNCJTRONJMGZEEQL";
-#endif  // DEVOLO
+#endif // DEVOLO
 
   const char* host = HOSTIPADDR2;         // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
   const int   port = PORTPERISERVER2; 
@@ -658,11 +658,11 @@ switch(cstRec.talkStep){
 
 void answer(const char* what)
 {
-  #define LETAT 30
-  char etat[LETAT];etat[0]='\0';
-  if(strlen(what)+21>=LETAT){strcat(etat,"*OVF*");}else {strcat(etat,what);}
-  strcat(etat,"_done______=0006AB8B");
-  talkClient(etat);
+  bufServer[0]='\0';
+  #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
+  if(strlen(what)>=LBUFSERVER-LENNOM-FILL){buildMess("done______","***OVF***","\0");}
+  else {buildMess("done______",what,"\0",diags);}
+  talkClient(bufServer);
 }
 
 void ordreExt()
@@ -720,26 +720,26 @@ void ordreExt()
         if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
           Serial.print("reçu message fonction=");Serial.println(fonction);
           switch(fonction){
-              case 0: dataTransfer(&httpMess[v0+5]);answer("set");break;        // set
-              case 1: answer("ack");break;                                      // ack ne devrait pas se produire (page html seulement)
-              case 2: answer("etat");cstRec.talkStep=1;break;                   // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
+              case 0: dataTransfer(&httpMess[v0+5]);answer("set_______");break;     // set
+              case 1: answer("ack_______");break;                                   // ack ne devrait pas se produire (page html seulement)
+              case 2: answer("etat______");cstRec.talkStep=1;break;                 // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
               case 3: break;                                    // sleep (future use)
               case 4: break;                                    // reset (future use)
-              case 5: digitalWrite(pinSw[0],cloSw[0]);delay(1000);answer("0_ON");break;     // test on  A        http://192.168.0.6:80/sw0__ON___=0005_5A
-              case 6: digitalWrite(pinSw[0],openSw[0]);delay(1000);answer("0_OFF");break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
-              case 7: digitalWrite(pinSw[1],cloSw[1]);delay(1000);answer("1_ON");break;     // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
-              case 8: digitalWrite(pinSw[1],openSw[1]);delay(1000);answer("1_OFF");break;   // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
-              case 9: Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);
+              case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);break;     // test on  A        http://192.168.0.6:80/sw0__ON___=0005_5A
+              case 6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);break;    // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
+              case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);break;     // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
+              case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);break;    // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
+              case 9: if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
                       v0+=21;
                       {httpMess[strlen(httpMess)-2]='\0';             // erase CRC                   
                       uint16_t v1=strstr(httpMess,"==")-httpMess;
-                      httpMess[v1]='\0';Serial.print("<<<<");Serial.println(httpMess+v0);
+                      httpMess[v1]='\0';//Serial.print("<<<<");Serial.println(httpMess+v0);
                       uint16_t v2=strstr(httpMess+v1+1,"==")-httpMess;
-                      httpMess[v2]='\0';Serial.print("<<<<");Serial.println(httpMess+v1+2);
+                      httpMess[v2]='\0';//Serial.print("<<<<");Serial.println(httpMess+v1+2);
                       char a[10];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
                       strcat(a,"°C ");strcat(httpMess+v2+2,a);
-                      Serial.print("<<<<");Serial.println(httpMess+v2+2);
-                      answer("mail");                    
+                      //Serial.print("<<<<");Serial.println(httpMess+v2+2);
+                      answer("mail______");                    
                       mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
                       }break;                 
               default:break;
@@ -844,7 +844,7 @@ void ordreExt0()          // version avec string
   }
 }
 */
-void talkClient(char* etat) // réponse à une requête
+void talkClient(char* data) // réponse à une requête
 {
   
             // en-tête réponse HTTP 
@@ -856,7 +856,7 @@ void talkClient(char* etat) // réponse à une requête
             //cliext.println("<head></head>");
             
             cliext.print("<body>");
-            cliext.print(etat);//Serial.print(etat);
+            cliext.print(data);
             cliext.println("</body></html>");
 }
 
@@ -973,15 +973,17 @@ void readAnalog()
 
 void outputCtl()            // cstRec.swCde contient 4 paires de bits (gauche disjoncteur 1=ON, droite résultat règles encodé selon la carte openSW/cloSw)
 {
-  if(diags){Serial.print("cstRec.swCde = ");if(cstRec.swCde<16){Serial.print("0");}Serial.print(cstRec.swCde,HEX);Serial.print(" ");}
+  //if(diags){Serial.print("cstRec.swCde = ");if(cstRec.swCde<16){Serial.print("0");}Serial.print(cstRec.swCde,HEX);Serial.print(" ");}
   for(uint8_t sw=0;sw<NBSW;sw++){
     if(((cstRec.swCde>>(sw*2+1))&0x01)==0x01){                                              // disjoncteur ON
         digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                              // value (encodé dans le traitement des regles)
-        if(diags){Serial.print((cstRec.swCde>>(sw*2))&0x01,HEX);Serial.print("x ");}}
+        //if(diags){Serial.print((cstRec.swCde>>(sw*2))&0x01,HEX);Serial.print("x ");}
+    }
     else {digitalWrite(pinSw[sw],openSw[sw]);                                             // disjoncté donc open value
-        if(diags){Serial.print(openSw[sw],HEX);Serial.print("o ");}}
+        //if(diags){Serial.print(openSw[sw],HEX);Serial.print("o ");}
+    }
   }
-  if(diags){Serial.println();}
+  //if(diags){Serial.println();}
 }
 
 /* Read temp ------------------------- */

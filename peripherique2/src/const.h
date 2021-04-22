@@ -60,8 +60,11 @@
  * 1.r en mode NO_MODE pas de PERSERVKO pour ne pas risquer de déclencher le watchdog TCP/UDP du server     
  *     les fonctions de test sont opérationnelles ; incorporation des mails ;
  *     messages courts quand tous pulses à zero ; instance server initialisée à réception du n° de port
- * 1.s message "done" avant mail avec libellé ;
- * 
+ * 1.s message "done" avant mail avec libellé ; 
+ * 1.t révision structure des réponses à un ordreExt ; la version ancienne ne fournit pas un format compatible avec checkHttpData et checkData ; 
+ *     nouveau format fonction[LENNOM caractères]=LLLLtexteCRC la fonction est unique "done______", la longueur 0004
+ *     le texte est actuellement libre
+ *     
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
