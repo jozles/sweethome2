@@ -197,7 +197,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                     // si set ou ack :
                     //    format datas     NN_mm.mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._   NN numpériph ; mm.mm... mac
 {                   // sinon chaine libre issue de msg
-
+  unsigned long dur=millis();
   char message[LENMESS]={'\0'};
   char date14[LNOW];ds3231.alphaNow(date14);
   char host[16];memset(host,'\0',16);
@@ -215,19 +215,19 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
 
   *bufServer='\0';
   memcpy(bufServer,"GET /\0",6);                  // commande directe de périphérique en mode serveur
-  buildMess(nfonct,message,"");                   // bufServer complété   
+  buildMess(nfonct,message,"",NODIAGS);                   // bufServer complété   
   
   if(*periProtocol=='T'){                         // UDP à développer
           periMess=messToServer(cli,host,*periPort,bufServer);
-          Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(") periMess(messToServer)=");Serial.println(periMess);
+          //Serial.print("(MESSOK==");Serial.print(MESSOK);Serial.print(") periMess(messToServer)=");Serial.println(periMess);
           uint8_t fonct;
           if(periMess==MESSOK){
               trigwd();
-              periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct);
-              Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(") periMess(gHttpR)=");Serial.println(periMess);
+              periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct,NODIAGS);
+              //Serial.print("(MESSOK==");Serial.print(MESSOK);Serial.print(") periMess(gHttpR)=");Serial.println(periMess);
               if(periMess==MESSOK && fonct!=fdone){periMess=MESSFON;}
               delay(1);                                 // (? pour Serial.print de la réponse ?)
-              purgeServer(cli);
+              purgeServer(cli,NODIAGS);
               }
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=periMess;
@@ -235,7 +235,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
   cli->stop();
   int8_t zz=periSave(periCur,PERISAVELOCAL);          // modifs de periTable et date effacèe par prochain periLoad si pas save
   if(periMess==MESSOK){periMess=zz;}
-  Serial.print("(MESSOK=");Serial.print(MESSOK);Serial.print(") periMess(periReq)=");Serial.println(periMess);
+  Serial.print("(MESSOK==");Serial.print(MESSOK);Serial.print(") periMess(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
   return periMess;
 }
 

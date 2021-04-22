@@ -7,6 +7,7 @@
 int  ethWrite(EthernetClient* cli,char* buf);
 void mail(const char* a, const char* mm);
 int  sdOpen(const char* fname,File32* file32);
+int  sdOpen(const char* fname,File32* file32,const char* txt);
 void sdRemove(const char* fname,File32* file32);
 void sdInit();
 

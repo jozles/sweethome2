@@ -86,16 +86,14 @@ void mail(const char* a, const char* mm)
   
   if(mailEnable){
     
-      #define LMSG 128
-      char ms[LMSG];ms[0]='\0';
+      char ms[LMAILMESS];ms[0]='\0';
     
       strcat(ms,a);strcat(ms,"==");
       strcat(ms,mailToAddr1);strcat(ms,"==");
-      if(strlen(mm)+2<=(LMSG-strlen(ms))){
+      if(strlen(mm)+2<=(LMAILMESS-strlen(ms))){
         strcat(ms,mm);strcat(ms," ");}
-      if(LDATEB+3<=(LMSG-strlen(ms))){
+      if(LDATEB+3<=(LMAILMESS-strlen(ms))){
         strcat(ms,alphaDate());strcat(ms," ");}
-
       periReq(&cliext,*periMail1,"mail______",ms);  
   }
 }
@@ -108,8 +106,21 @@ void sdRemove(const char* fname,File32* file32)
 
 int sdOpen(const char* fname,File32* file32)
 {
+  return sdOpen(fname,file32," ");
+}
+
+int sdOpen(const char* fname,File32* file32,const char* txt)
+{
   if (!file32->open(fname, O_RDWR | O_CREAT)) {
-    mail("SD OPEN FAIL",fname);
+    char mess[LMAILMESS/2];mess[0]='\0';
+    strcat(mess,fname);
+    if(strlen(txt)>=LMAILMESS/2-strlen(mess)){
+      int ll=strlen(mess);
+      memcpy(mess,txt,LMAILMESS/2-ll-1);
+      mess[LMAILMESS/2-ll-1]='\0';
+    }
+    else {strcat(mess,txt);}
+    mail("SD OPEN FAIL",mess);
     Serial.print(fname);Serial.println(" inaccessible");return SDKO;
   }
   return SDOK;
@@ -141,7 +152,9 @@ void histoStore_textdh0(const char* val1,const char* val2,const char* val3)
         if(strlen(val2)+strlen(text)+1<LT){strcat(text,val2);}      
           
         //fhisto.open("fdhisto.txt", O_RDWR | O_CREAT);
-        sdOpen("fdhisto.txt",&fhisto);
+        if(sdOpen("fdhisto.txt",&fhisto)==SDKO){
+          mail("HISTO STORE FAIL",text);
+        }
         fhisto.seekEnd(0);
         v=fhisto.write(text);w=fhisto.write(val3);
         if(v==0 || w==0){ledblink(BCODEFHISTO);}
