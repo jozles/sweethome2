@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.s_"
+#define VERSION "1.t_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -90,7 +90,7 @@ Modifier :
 
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
-#include <shconst2.h>
+#include "shconst2.h"
 
 //#define PERIF       // pour compatibilité avec shconst etc
 
@@ -180,7 +180,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VR             // <------------- modèle carte
+#define CARTE VRDEV             // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation 
 //#define PININT_MODE             // <------------- avec/sans pin d'interruption
 

@@ -4,7 +4,7 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <shconst2.h>
+#include "shconst2.h"
 #include "shutil2.h"
 #include "shmess2.h"
 #include "ds18x20.h"
@@ -14,7 +14,7 @@
 #include "dynam.h"
 
 #ifdef MAIL_SENDER
-#include <EMailSender.h>
+#include "EMailSender.h"
 EMailSender emailSend("lucieliu66", "eicul666");
 EMailSender::EMailMessage message;
 #endif // MAIL_SENDER
@@ -55,12 +55,15 @@ Ds1820 ds1820;
   const char* host = HOSTIPADDR2;         // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
   const int   port = PORTPERISERVER2; 
 
-WiFiClient cli;                           // client local du serveur externe (utilisé pour dataread/save)
+WiFiClient cli;                           // instance pour serveur externe (utilisé pour dataread/save)
 
 #ifdef  _SERVER_MODE
-WiFiClient cliext;                        // client externe du serveur local
+WiFiClient cliext;                        // instance pour serveur local
 WiFiServer* server=nullptr;
-  
+
+  #define RAFSRVTMP 300000                // période réactivation server
+  unsigned long  timeservbegin=0;
+
   #define LHTTPMESS 500
   char   httpMess[LHTTPMESS];             // buffer d'entrée en mode serveur
 #endif //  _SERVER
@@ -78,12 +81,13 @@ WiFiServer* server=nullptr;
   int     nbfonct;
   uint8_t fonction;                       // la dernière fonction reçue
 
+  #define LTEMPSTR 16                     // chaine temp+analog value pour les transferts
+  char           tempstr[LTEMPSTR];       // buffer temp+analog value
   float          temp;
   unsigned long  tempTime=0;              // (millis) timer température pour mode loop
   uint16_t       tempPeriod=PERTEMP;      // (sec) période courante check température 
   char           ageSeconds[8];           // secondes 9999999s=115 jours
   bool           tempchg=FAUX;
-  unsigned long  timeservbegin;
 
   unsigned long  clkTime=millis();        // timer automate rapide
   uint8_t        clkFastStep=0;           // stepper automate rapide
@@ -144,6 +148,8 @@ void talkClient(char* etat);
 int act2sw(int sw1,int sw2);
 uint8_t runPulse(uint8_t sw);
 
+char* tempStr();
+int   buildData(const char* nomfonction,const char* data);
 int   dataSave();
 int   dataRead();
 void  dataTransfer(char* data);  
@@ -369,7 +375,7 @@ delay(20);
           case 7:   break;
           case 8:   swDebounce();break;                                 // doit être avant polDx
           case 9:   timeOvfSet(9);polAllDet();timeOvfCtl(9);break;      // polDx doit être après swDebounce                            
-          case 10:  ledblink(0);
+          case 10:  ledblink(-1);                                       // 1 flash
                     timeOvfSet(10);
                     clkFastStep=0;              // période 50mS/step
                     switch(clkSlowStep++){
@@ -626,13 +632,15 @@ switch(cstRec.talkStep){
 
   case 9:
        cstRec.talkStep=0;
+/*
 #ifdef  _SERVER_MODE
   if(server!=nullptr){
-    timeservbegin=millis();
-    server->begin(cstRec.portServer);
+    server->begin(cstRec.portServer);       // une seule fois après acquisition ans/set 
     Serial.print("server.begin(");Serial.print((int)cstRec.portServer);Serial.print(") durée=");Serial.println(millis()-timeservbegin);
+    timeservbegin=millis();
   }
-#endif //  def_SERVER_MODE*/
+#endif //  def_SERVER_MODE
+*/
        break;
 
 
@@ -660,9 +668,13 @@ void answer(const char* what)
 {
   bufServer[0]='\0';
   #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
-  if(strlen(what)>=LBUFSERVER-LENNOM-FILL){buildMess("done______","***OVF***","\0");}
-  else {buildMess("done______",what,"\0",diags);}
+  if(memcmp(what,"data_save_",LENNOM)==0){buildData("data_save_",tempStr());}
+  else {
+    if(strlen(what)>=LBUFSERVER-LENNOM-FILL){buildMess("done______","***OVF***","\0");}
+    else {buildMess("done______",what,"\0",diags);}
+  }
   talkClient(bufServer);
+  ledblink(4);                        // connexion réussie 
 }
 
 void ordreExt()
@@ -720,11 +732,12 @@ void ordreExt()
         if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
           Serial.print("reçu message fonction=");Serial.println(fonction);
           switch(fonction){
-              case 0: dataTransfer(&httpMess[v0+5]);answer("set_______");break;     // set
-              case 1: answer("ack_______");break;                                   // ack ne devrait pas se produire (page html seulement)
-              case 2: answer("etat______");cstRec.talkStep=1;break;                 // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
-              case 3: break;                                    // sleep (future use)
-              case 4: break;                                    // reset (future use)
+              case 0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat 
+                      answer("data_save_");break;                       // set ---> réponse message data_save_ complet
+              case 1: answer("ack_______");break;                       // ack ne devrait pas se produire (page html seulement)
+              case 2: answer("etat______");cstRec.talkStep=1;break;     // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
+              case 3: break;                                            // sleep (future use)
+              case 4: break;                                            // reset (future use)
               case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);break;     // test on  A        http://192.168.0.6:80/sw0__ON___=0005_5A
               case 6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);break;    // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
               case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);break;     // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
@@ -746,7 +759,7 @@ void ordreExt()
           }          
           Serial.println();
           cstRec.talkStep=6;      // après maj des sw et collecte des données -> dataSave       
-          cstRec.serverTime=0;
+          //cstRec.serverTime=0;    // force connexion 
         }
         if(strstr(httpMess,"favicon")>0){htmlImg(&cli,favicon,favLen);}
         cntreq++;
@@ -754,9 +767,15 @@ void ordreExt()
                           // si controles ko elle est ignorée
       cliext.stop();
       purgeServer(&cliext,diags);
-    }
-  }
-}
+    }   // if(client){
+    else {
+      if(((millis()-timeservbegin)>RAFSRVTMP )|| timeservbegin==0 ){
+        server->begin(cstRec.portServer);timeservbegin=millis();                    // réactivation périodique
+        Serial.print(millis());Serial.print(" ");Serial.println("server.begin");
+      }       
+    }   // !client
+  }     // if(server!=nullptr){
+}       // ordreExt()
 
 void mail(char* subj,char* dest,char* msg)
 {
@@ -865,18 +884,12 @@ void talkClient(char* data) // réponse à une requête
 
 //***************** dataRead/dataSave
 
-int buildReadSave(const char* nomfonction,const char* data)   //   assemble et envoie read/save (sortie MESSCX connexion échouée)
-                                                  //   password__=nnnnpppppp..cc?
-                                                  //   data_rs.._=nnnnppmm.mm.mm.mm.mm.mm_[-xx.xx_aaaaaaa_v.vv]_r.r_siiii_diiii_ffff_cc
-{
-  strcpy(bufServer,"GET /cx?\0");
-  if(!buildMess("peri_pass_",srvpswd,"?",diags)==MESSOK){
-    if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};}
-
+int buildData(const char* nomfonction,const char* data)             // assemble une fonction data_read_ ou data_save_
+{                                                   // et concatène dans bufServer - retour longueur totale
   char message[LENVAL];
   int sb=0,i=0;
   
-      memcpy(message,cstRec.numPeriph,2);                               // N° périf                    - 3
+      memcpy(message,cstRec.numPeriph,2);                             // N° périf                    - 3
       memcpy(message+2,"_\0",2);
       sb=3;
       unpackMac((char*)(message+sb),mac);                             // macaddr                    - 18
@@ -936,23 +949,42 @@ int buildReadSave(const char* nomfonction,const char* data)   //   assemble et e
       } 
       strcpy(message+sb-1,"_\0");
 
-if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
+  if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
   
-  buildMess(nomfonction,message,"",diags);
+  return buildMess(nomfonction,message,"",diags);        // concatène et complète dans bufserver
+}
+
+int buildReadSave(const char* nomfonction,const char* data)   // construit et envoie une commande GET complète
+                                                  //   avec fonction peri_pass_ + dataRead ou dataSave
+                                                  //   peri_pass_=nnnnpppppp..cc?
+                                                  //   data_rs.._=nnnnppmm.mm.mm.mm.mm.mm_[-xx.xx_aaaaaaa_v.vv]_r.r_siiii_diiii_ffff_cc
+                                                  //   (sortie MESSCX connexion échouée)                                                  
+{
+  strcpy(bufServer,"GET /cx?\0");
+  if(!buildMess("peri_pass_",srvpswd,"?",diags)==MESSOK){
+    if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};}
+
+  buildData(nomfonction,data);
+
   infos("buildReadSave",bufServer,port);
   return messToServer(&cli,host,port,bufServer); 
 }
 
-int dataSave()
+char* tempStr()
 {
-  char tempstr[16];
+      memset(tempstr,0x00,LTEMPSTR);
       sprintf(tempstr,"%+02.2f",temp/100);                                // 6 car
+      //Serial.print(temp);Serial.print(" ");Serial.println(tempstr);
       if(strstr(tempstr,"nan")!=0){strcpy(tempstr,"+00.00\0");}
       strcat(tempstr,"_");                                                // 1 car
       sprintf((char*)(tempstr+strlen(tempstr)),"%06d",cstRec.analVal);    // 6 car
       strcat(tempstr,"\0");                                               // 1 car
-      
-      return buildReadSave("data_save_",tempstr);
+  return tempstr;
+}
+
+int dataSave()
+{    
+      return buildReadSave("data_save_",tempStr());
 }
 
 int dataRead()
