@@ -307,13 +307,9 @@ Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
 
           htmlIntroB(buf,nomserver,cli);
           pageHeader(buf);
-          Serial.println("1");
           usrFormBHtml(buf,HID);
-          Serial.println("2");
           boutRetourB(buf,"refresh",0,0);
-          Serial.println("3");
           numTf(buf,'d',&perrefr,"per_refr__",4,0,0);
-          Serial.println("4");
           ethWrite(cli,buf);
           
           strcat(buf,"(");concatn(buf,fhsize);strcat(buf,") ");
@@ -322,7 +318,6 @@ Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
           
           strcat(buf,"<input type=\"submit\" value=\"ok\"> ");
           boutF(buf,"dump_his__","","histo",0,0,0,0);strcat(buf,"<br>\n");      
-          Serial.println("5");
 
           cli->print("<br>");
           boutF(buf,"deco______","","_  deco  _",0,0,0,0);
@@ -501,7 +496,7 @@ Serial.print(" ");Serial.print(jsbuf);jsbuf[0]='\0';
                       dm=buf+strlen(buf);
                       for(j=0;j<LENVERSION;j++){concat1a(buf,periVers[j]);}
                       jscat(jsbuf,dm);
-                      concat1a(buf,jsbuf,(char)*periProtocol);strcat(buf,"<br>\n");jscat(buf,JSBR,CRLF);strcat(buf," \n");
+                      concat1a(buf,jsbuf,(char)*periProtocol);strcat(buf,"<br>\n");jscat(jsbuf,JSBR);strcat(buf," \n");
                       
                       char colourbr[6];
                       memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,colourbr);                      

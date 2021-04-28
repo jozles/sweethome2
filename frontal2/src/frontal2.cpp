@@ -164,6 +164,10 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
                        0x00000100,0x00000200,0x00000400,0x00000800,0x00001000,0x00002000,0x00004000,0x00008000,
                        0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
                        0x01000000,0x02000000,0x04000000,0x08000000,0x10000000,0x20000000,0x40000000,0x80000000};
+  uint32_t  mDSmaskneg[]={0xfffffffe,0xfffffffd,0xfffffffb,0xfffffff7,0xffffffef,0xffffffdf,0xffffffbf,0xffffff7f,
+                       0xfffffeff,0xfffffdff,0xfffffbff,0xfffff7ff,0xffffefff,0xffffdfff,0xffffbfff,0xffff7fff,
+                       0xfffeffff,0xfffdffff,0xfffbffff,0xfff7ffff,0xffefffff,0xffdfffff,0xffbfffff,0xff7fffff,
+                       0xfeffffff,0xfdffffff,0xfbffffff,0xf7ffffff,0xefffffff,0xdfffffff,0xbfffffff,0x7fffffff};
   uint32_t  bakDetServ;
 /*  enregistrement de table des périphériques ; un fichier par entrée
     (voir periInit() pour l'ordre physique des champs + periSave et periLoad=
@@ -601,7 +605,7 @@ void scanThermos()                                                        // pos
   }
 }
 
-void poolperif(uint8_t* tablePerToSend,uint8_t detec,const char* nf)        // recherche des périphériques ayant une input sur le détecteur externe 'detec'
+void poolperif(uint8_t* tablePerToSend,uint8_t detec,const char* nf)  // recherche des périphériques ayant une regle sur le détecteur externe 'detec'
 {                                                                     // et màj de tablePerToSend
   uint16_t offs;
   uint8_t eni,ninp;
@@ -612,12 +616,12 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,const char* nf)        // r
     periLoad(np);
     if(*periSwNb!=0){                                                 // peripherique avec switchs ?
             
-      for(ninp=0;ninp<NBPERINPUT;ninp++){                           // boucle inputs          
+      for(ninp=0;ninp<NBPERINPUT;ninp++){                             // boucle regles          
         offs=ninp*PERINPLEN;
-        eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);    // enable          
-        if(eni!=0 && model==*(byte*)(periInput+offs)){              // trouvé usage du détecteur dans periInput 
+        eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);      // enable          
+        if(eni!=0 && model==*(byte*)(periInput+offs)){                // trouvé usage du détecteur dans periInput 
 
-          tablePerToSend[np-1]++;                                   // (periSend) periReq à faire sur ce périf            
+          tablePerToSend[np-1]++;                                     // (periSend) periReq à faire sur ce périf            
         } // enable et model ok
       }   // input suivant
     }     // periswNb !=0
@@ -630,6 +634,7 @@ int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)       // maj des
       
       for(uint16_t np=1;np<=NBPERIF;np++){
         if(tablePerToSend[np-1]!=0){
+          cliext.stop();
           periMess=periReq(&cliext,np,"set_______");} 
       }
       memset(tablePerToSend,0x00,NBPERIF);
@@ -679,76 +684,62 @@ void scanTimers()                                             //   recherche tim
       perToSend(tablePerToSend,timerstime);     // mise à jour périphériques de tablePerToSend
     }
 }
-/*
-void disjonctUpdate(uint8_t val,uint16_t peri,uint8_t sw,uint8_t det)       // mise à jour des 3 clones de disjoncteur : le switch enable de la remote, le memDet attaché et le periSwval bit
-{                                                                           // val vaut 0 si disjoncté (forçage off), 1 si conjoncté selon règles, 2 si forcé on
-  
-  uint8_t valx=val;if(valx==2){valx=1;}                                     // valx pour periSwval et memDet
-  if(peri!=0 && peri<=NBPERIF){                                             //  si peri/sw ok 
-    
-    periLoad(peri);periSwCdUpdate(sw,valx);periSave(peri,PERISAVESD);       // maj periSwVal
-    periLoad(periCur);
-  
-    sser(det,valx);                                                         // maj memDet et positionnement tablePerToSend pour maj perif
-  
-    for(uint8_t nbr=0;nbr<MAXREMLI;nbr++){                                  // polling remotes
-      if(remoteT[nbr].deten==det && remoteT[nbr].num!=0){                   // si le détecteur est utilisé par une remote valide
-        remoteN[remoteT[nbr].num].enable=val;                               // maj switch remote
-      }
-    }
-  }
-}
-*/
 
-void sser(uint8_t det,uint8_t val)                                          // si un det a changé (!= old) -> inscription perif éventuel dans tablePerToSend
+void sser(uint8_t det,uint8_t valnou)                                       // si un det a changé (!= old) -> inscription perif éventuel dans tablePerToSend
 {
+  char newval[]={'0','\0'};
   uint32_t msk=mDSmaskbit[det];                                                                        
   uint32_t mem=memDetServ & msk;                                            // current detec value
-  if(val!=0){memDetServ |= msk;}                                            // set bit (1)
-  else {memDetServ &= ~msk;}                                                // clr bit (0)
-  if((memDetServ & msk) != mem){                                            // detec chge => poolperif
-    poolperif(tablePerToSend,det," ");}                                     // si le détecteur est utilisé dans un périf, ajout du périf dans tablePerRoSend
+  if(valnou!=0){memDetServ |= msk;newval[0]='1';}                                         // set bit (1)
+  else {memDetServ &= mDSmaskneg[det];}                                     // clr bit (0)
+  if((memDetServ & msk) != mem){                                            // memDet chge => poolperif
+    poolperif(tablePerToSend,det,newval);}                                  // si le memDet est utilisé dans un périf, ajout du périf dans tablePerRoSend
 }
 
-void exploRemote(uint8_t nbr,char oe,uint8_t* old,uint8_t* nou)             // si une des commandes de la remote on/off ou enable (forçage/disjoncteur)
-{                                                                           // a changé, update des détecteurs correspondants et periSw
-
-  if(*old!=*nou){                                                           // changement d'état de la remote ?            
-    for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                                  // recherche des détecteurs utilisés dans la remote
-      if(remoteT[nbd].num==nbr+1){                                          // détecteur concerné ? (utilisé pour la remote courante)
-        if(oe=='o'){sser(remoteT[nbd].detec,*nou);}                         // vérif changement d'état du détecteur on/off pour maj memDet et com périf
-        if(oe=='e'){
-          Serial.print(nbr);Serial.print("/");Serial.print(nbd);Serial.print(" == ");Serial.print(remoteT[nbd].peri);Serial.print("/");Serial.print(remoteT[nbd].sw);Serial.print(" - ");
-          Serial.print(*old);Serial.print("/");Serial.print(*nou);
-          if(remoteT[nbd].peri!=0 && remoteT[nbd].peri<=NBPERIF){           // si peri/sw ok 
-            sser(remoteT[nbd].deten,*nou);                                  // vérif changement d'état du détecteur enable pour maj memDet et com perif
-            sser(remoteT[nbd].deten+1,(*nou)>>1);                           // update détect forçage  0 -> 0 ; 1 -> 0 ; 2 -> 1
-            periCur=remoteT[nbd].peri;periLoad(periCur);                    // maj periSwVal ; la com perif sera déclenchée par perToSend positionné par sser
-            periSwCdUpdate(remoteT[nbd].sw,*nou);
-            periSave(periCur,PERISAVESD);                                   
-            Serial.print("=");Serial.print(remoteN[nbr].enable);Serial.print(" ");Serial.print(*periSwVal,HEX);
-          }
-          Serial.println();
-        }
-      }
-    }
-  *old=*nou;
-  }  
-}
-
-void periRemoteUpdate()                        //   recherche remote ayant changé d'état (onoff!=newonoff ou enable!=newenable)
-                                               //     polling table des détecteurs pour trouver les détecteurs concernés
-                                               //     màj de memDetServ et poolperif() pour trouver les périf concernés et charger tablePerToSend
+void periRemoteUpdate()                        // recherche remote ayant changé d'état (onoff!=newonoff ou enable!=newenable)
+                                               // polling table des détecteurs pour trouver les détecteurs concernés
+                                               // màj de memDetServ et poolperif() pour trouver les périf concernés et charger tablePerToSend
 {  
   remotetime=millis();
   memset(tablePerToSend,0x00,NBPERIF);         // périphériques !=0 si (periSend) periReq à faire via pertoSend())
   Serial.println("periRemoteUpdate() ");
-
-  for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){                                            // boucle des remotes
-    exploRemote(nbr,'o',&remoteN[nbr].onoff,&remoteN[nbr].newonoff);         // si on/off de la remote a changé --> maj détecteurs, periSw, com perif
-    exploRemote(nbr,'e',&remoteN[nbr].enable,&remoteN[nbr].newenable);       // le enable de la remote a changé --> maj détecteurs, periSw, com perif
+dumpfield((char*)tablePerToSend,NBPERIF);Serial.println();
+  
+  for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){                          // boucle des remotes
+  
+    uint8_t nou=remoteN[nbr].newonoff;
+    if(remoteN[nbr].onoff!=nou){                                  // si on/off de la remote a changé --> maj détecteurs, periSw, com perif
+      for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                      // recherche des détecteurs utilisés dans la remote
+        if(remoteT[nbd].num==nbr+1){                              // détecteur concerné ? (utilisé pour la remote courante)
+          sser(remoteT[nbd].detec,nou);}                          // vérif changement d'état du détecteur on/off pour maj memDet et com périf
+      }
+      remoteN[nbr].onoff=nou;
+    }
+    //exploRemote(nbr,'o',&remoteN[nbr].onoff,&remoteN[nbr].newonoff);         
+  
+    nou=remoteN[nbr].newenable;
+    if(remoteN[nbr].enable!=nou){                                 // si le enable de la remote a changé --> maj détecteurs, periSw, com perif
+      for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                      // recherche des memDet utilisant la remote
+        if(remoteT[nbd].num==nbr+1){                              // remote courante ?
+          // Serial.print(nbr);Serial.print("/");Serial.print(nbd);Serial.print(" == ");Serial.print(remoteT[nbd].peri);Serial.print("/");Serial.print(remoteT[nbd].sw);Serial.print(" - ");Serial.print(*old);Serial.print("/");Serial.print(*nou);
+          if(remoteT[nbd].peri!=0 && remoteT[nbd].peri<=NBPERIF){ // si peri/sw ok 
+            sser(remoteT[nbd].deten,nou);                         // vérif changement d'état du memDet_enable pour maj memDet et com perif
+            sser((remoteT[nbd].deten)+1,(nou)>>1);                // update memDet_forçage  0 -> 0 ; 1 -> 0 ; 2 -> 1
+            tablePerToSend[(remoteT[nbd].peri)-1]++;              // remoteN[nbr].enable change donc le perif doit être updaté
+            periCur=remoteT[nbd].peri;periLoad(periCur);          // maj periSwVal ; la com perif sera déclenchée par perToSend positionné par sser
+            periSwCdUpdate(remoteT[nbd].sw,nou);
+            periSave(periCur,PERISAVESD);                                   
+            //Serial.print("=");Serial.print(remoteN[nbr].enable);Serial.print(" ");Serial.print(*periSwVal,HEX);
+          }
+          //Serial.println();
+        }
+      }
+      remoteN[nbr].enable=nou;
+    }
+    //exploRemote(nbr,'e',&remoteN[nbr].enable,&remoteN[nbr].newenable);       
   }
   remoteSave();
+dumpfield((char*)tablePerToSend,NBPERIF);Serial.println();
 }
 
 void periDetecUpdate()                          // update fichier périfs, remotes et tablePerToSend depuis détecteurs serveur
@@ -1464,11 +1455,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 'n': remoteN[nb].newonoff=0;break;                                     // (remote_cn) effacement cb on/off
                             case 't': remoteN[nb].newonoff=1;break;                                     // (remote_ct) check cb on/off
                             case 'm': remoteN[nb].newenable=0;break;                                    // (remote_cm) effacement cb enable
-                            case 's': remoteN[nb].newenable=*valf-48;break;                             // (remote_cs) check cb enable
+                            case 's': remoteN[nb].newenable=*valf-48;break;                             // (remote_cs) check cb enable (0,1,2 OFF/ON/FOR)
                             default:break;
                           }
                        }break;                                                                       
-              case 54: remoteHtml(cli);break;                                                          // remotehtml
+              case 54: remoteHtml(cli);break;                                                           // remotehtml
               case 55: what=5;periInitVar();periRaz(periCur);break;                                     // peri_raz__  
               case 56: {switch (*(libfonctions+2*i+1)){                                                 // mailcfg___
                           case 'f':alphaTfr(mailFromAddr,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;      // (config) mailFrom
@@ -1578,8 +1569,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        periCur=0;conv_atob(valf,&periCur);                                              // (0-n, 0=analog input rules ; 1=digital)                                                                                                
                        if(periCur>NBPERIF){periCur=NBPERIF;}periInitVar();periLoad(periCur); 
                        //Serial.print(" fonct 73======");periPrint(periCur);
-                       uint8_t* cb;
-                       int8_t* memo;                                                                    // effacement check box et memos précédents
+                       uint8_t* cb=periAnalCb;
+                       int8_t* memo=periAnalMemo;                                                                    // effacement check box et memos précédents
                        uint8_t ncb=0;
                        switch(nf){
                          case 0: cb=periAnalCb;ncb=5;memo=periAnalMemo;break;
@@ -1623,12 +1614,12 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           case 2: if(ab=='a'){periTableHtml(cli);}                     // peritable ou remote suite à login
                   if(ab=='b'){remoteHtml(cli);} break;     
           case 3: periMess=periAns(cli,"set_______");break;            // data_read //periParamsHtml(cli," ",0,"set_______");break; // data_read 
-          case 4: periMess=periSave(periCur,PERISAVESD);                // switchs
+          case 4: periMess=periSave(periCur,PERISAVESD);               // switchs
                   SwCtlTableHtml(cli);
                   cli->stop();
                   cliext.stop();
                   periMess=periReq(&cliext,periCur,"set_______");break;
-          case 5: periMess=periSave(periCur,PERISAVESD);                // (periLine) modif ligne de peritable
+          case 5: periMess=periSave(periCur,PERISAVESD);               // (periLine) modif ligne de peritable
                   //periPrint(periCur);
                   periTableHtml(cli); 
                   cli->stop();
@@ -1637,18 +1628,14 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           case 6: configPrint();configSave();cfgServerHtml(cli);break; // config serveur
           case 7: timersSave();timersHtml(cli);break;                  // timers
           case 8: remoteSave();cfgRemoteHtml(cli);break;               // bouton remotecfg puis submit
-          case 9: periRemoteUpdate();remoteHtml(cli);                  // bouton remotehtml ou remote ctl puis submit 
-                  /* la mise à jour des périphériques (perToSend) ne peut pas être faite par periRemoteUpdate 
-                   car il n'y a plus de socket dispo pour créer la connexion vers les périphériques (periserver/commonserver/cli_a/cliext)
-                   donc remoteHtml d'abord puis perToSend */
-                  cli->stop();
-                  cliext.stop();
-                  periMess=perToSend(tablePerToSend,remotetime);break; 
-          case 10:memDetSave();periDetecUpdate();periTableHtml(cli);   // bouton submit détecteurs serveur
-                  /* voir periRemoteUpdate() */
-                  cli->stop();
-                  cliext.stop();
-                  periMess=perToSend(tablePerToSend,srvdettime);break;
+          case 9: periRemoteUpdate();                                  // bouton remotehtml ou remote ctl puis submit 
+                  //remoteHtml(cli);cli->stop();                  
+                  periMess=perToSend(tablePerToSend,remotetime);
+                  remoteHtml(cli);break; 
+          case 10:memDetSave();periDetecUpdate();                      // bouton submit détecteurs serveur
+                  //periTableHtml(cli);cli->stop();
+                  periMess=perToSend(tablePerToSend,srvdettime);
+                  periTableHtml(cli);break;
           case 11:memDetSave();cfgDetServHtml(cli);break;              // bouton cfgdetserv puis submit         
           case 12:thermosSave();thermoCfgHtml(cli);break;              // thermos
           case 13:memosSave(-1);

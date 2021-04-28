@@ -373,7 +373,7 @@ void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t td)
 
 void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval)        // nbval boutons radio
 {                                                                               // valeur = checked (0-n) 
-      concatns(buf,valeur);strcat(buf,"<br>");
+      concatns(buf,valeur);//strcat(buf,"<br>");
       for(uint8_t j=0;j<nbval;j++){
           strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,nomfonct);
           strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+j));strcat(buf,"\"");
@@ -381,7 +381,7 @@ void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval)        
       }
 }
 
-void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td)                          // 1 line ; nb = page row
+void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td)                    // 1 line ; nb = page row
 {                                                                                                                                  // sqbr square button
                                                                                                                                    // nbval à traiter
   if(td==1 || td==2){strcat(buf,"<td>");}  
@@ -557,7 +557,7 @@ void pageHeader(char* buf,char* jsbuf,bool form)
   strcat(buf,"<body>");            
   if(form){strcat(buf,"<form method=\"get\" >");}
   dm=buf+strlen(buf);
-  Serial.println("---- beg record");
+  //Serial.println("---- beg record");
   strcat(buf,VERSION);strcat(buf," ");
   #ifdef _MODE_DEVT
   bufcat(buf,jsbuf,"MODE_DEVT ");
@@ -575,7 +575,6 @@ void pageHeader(char* buf,char* jsbuf,bool form)
   concatnf(buf,nullptr,th);strcat(buf,"°C");
   jscat(jsbuf,dm,CRLF);
   strcat(buf,"<br>\n");
-  Serial.println("0");
 }
 
 

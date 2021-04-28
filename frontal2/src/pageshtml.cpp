@@ -454,13 +454,15 @@ void cfgRemoteHtml(EthernetClient* cli)
 
                 memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // état on/off
                 val=(uint8_t)remoteN[nb].onoff;
-                checkboxTableBHtml(buf,&val,nf,-1,1,"");         
+                checkboxTableBHtml(buf,&val,nf,-1,1,"");
                 
                 memcpy(nf,"remotecfe_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
                 val=(uint8_t)remoteN[nb].enable;
-                checkboxTableBHtml(buf,&val,nf,-1,1,"");         
+                //checkboxTableBHtml(buf,&val,nf,-1,1,"");
+                strcat(buf,"<td>");
+                radioTableBHtml(buf,val,nf,3);
                    
-                strcat(buf,"</tr>\n");
+                strcat(buf,"</td></tr>\n");
                 if(nb-nb/5*5==0){ethWrite(cli,buf);}
               }
             strcat(buf,"</table><br></form>\n");
@@ -519,7 +521,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
 void remoteHtml(EthernetClient* cli)
 {              
-            Serial.println("remote control");
+            Serial.println("remoteHtml()");
 
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
@@ -565,11 +567,11 @@ void remoteHtml(EthernetClient* cli)
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
                 strcat(buf,"<input type=\"hidden\" name=\"remote_cn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">");
-                sliderBHtml(buf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);                                 // slider
+                sliderBHtml(buf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);             // slider
 
-                  strcat(buf,"<td>- - - - -</td>\n");                                                               // ne pas affichier le disjoncteur si
-                  bool vert=FAUX;                                                                                   // une ligne précédente l'a déjà affiché
-                  yradioTableBHtml(buf,remoteN[nb].enable,"remote_cs",2,vert,nb,1);                                 // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
+                  strcat(buf,"<td>- - - - -</td>\n");                                           // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
+                  bool vert=FAUX;                                                               // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
+                  yradioTableBHtml(buf,remoteN[nb].enable,"remote_cs",2,vert,nb,1);             // renvoie 0,1,2 selon OFF,ON,FOR
 
                 strcat(buf,"</tr>");
                 

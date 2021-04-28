@@ -86,6 +86,7 @@ extern char      bufServer[LBUFSERVER];
 
 extern char*     chexa;
 
+extern  char*    fonctions;
 extern int       nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
 
 
@@ -219,23 +220,32 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
   
   if(*periProtocol=='T'){                         // UDP à développer
           periMess=messToServer(cli,host,*periPort,bufServer);
-          //Serial.print("(MESSOK==");Serial.print(MESSOK);Serial.print(") periMess(messToServer)=");Serial.println(periMess);
+          //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(messToServer)=");Serial.println(periMess);
+          Serial.print(" dur=");Serial.println(millis()-dur);
           uint8_t fonct;
           if(periMess==MESSOK){
               trigwd();
               periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct,NODIAGS);
-              //Serial.print("(MESSOK==");Serial.print(MESSOK);Serial.print(") periMess(gHttpR)=");Serial.println(periMess);
-              if(periMess==MESSOK && fonct!=fdone){periMess=MESSFON;}
-              delay(1);                                 // (? pour Serial.print de la réponse ?)
-              purgeServer(cli,NODIAGS);
+              //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(gHttpR)=");Serial.println(periMess);
+              if(periMess==MESSOK){
+                if(fonct>=nbfonct){fonct=nbfonct;periMess=MESSFON;}
+                else {
+                  Serial.println(bufServer);
+                  Serial.print(" dur=");Serial.println(millis()-dur);
+                  if(fonct==fdatasave){periDataRead(bufServer+LENNOM+1);}
+                }
+                char ff[LENNOM+1];ff[LENNOM]='\0';memcpy(ff,bufServer,LENNOM);Serial.print(ff);
               }
+              purgeServer(cli,NODIAGS);
+          }
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=periMess;
   }
+  Serial.print(" dur=");Serial.print(millis()-dur);
   cli->stop();
   int8_t zz=periSave(periCur,PERISAVELOCAL);          // modifs de periTable et date effacèe par prochain periLoad si pas save
   if(periMess==MESSOK){periMess=zz;}
-  Serial.print("(MESSOK==");Serial.print(MESSOK);Serial.print(") periMess(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
+  Serial.print(" (");Serial.print(MESSOK);Serial.print(" si ok) periMess(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
   return periMess;
 }
 
