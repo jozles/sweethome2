@@ -199,7 +199,8 @@ delay(1);
 #if CARTE==VR || CARTE==VRR || CARTE==VRDEV
   for(uint8_t sw=0;sw<MAXSW;sw++){
     digitalWrite(pinSw[sw],openSw[sw]);
-    pinMode(pinSw[sw],OUTPUT);}
+    pinMode(pinSw[sw],OUTPUT);
+  }
 
   pinMode(PINDTA,INPUT_PULLUP);
   pinMode(PINDTB,INPUT_PULLUP);  
@@ -357,7 +358,7 @@ delay(20);
 
   #ifdef  _SERVER_MODE
   
-      if(millis()>(clkTime+PERFASTCLK)){        // période 5mS/step
+      if(millis()>(clkTime+PERFASTCLK)){        // période mini 5mS/step
         switch(clkFastStep++){
 
 /* En 1 toujours talkstep pour le forçage de communication d'acquisition du port au reset 
@@ -365,22 +366,30 @@ delay(20);
  * (ordreExt() positionne cstRec.talkStep!=0)
  * clkFastStep et cstRec.talkStep == 1 
 */
-          case 1:   timeOvfSet(1);if(cstRec.talkStep!=0){talkServer();}timeOvfCtl(1);
+          case 1:   //timeOvfSet(1);
+                    if(cstRec.talkStep!=0){talkServer();}//timeOvfCtl(1);   // période talkStep mini 50mS
                     break;
-          case 2:   break;
-          case 3:   timeOvfSet(3);ordreExt();timeOvfCtl(3);break;
-          case 4:   break;
-          case 5:   timeOvfSet(5);actions();timeOvfCtl(5);break;
-          case 6:   outputCtl();break;
-          case 7:   break;
+          case 2:   //ledblink(-1);break;                                 // période ledBlink mini env 10mS
+          case 3:   //timeOvfSet(3);
+                    ordreExt();//timeOvfCtl(3);                         // période ordreExt mini 50mS
+                    break;
+          case 4:   //ledblink(-1);break;
+          case 5:   //timeOvfSet(5);
+                    actions();//timeOvfCtl(5);                          // période actions mini 50mS
+                    break;
+          case 6:   outputCtl();break;                                  // période outputCtl mini 50mS
+          case 7:   //ledblink(-1);
+                    break;
           case 8:   swDebounce();break;                                 // doit être avant polDx
-          case 9:   timeOvfSet(9);polAllDet();timeOvfCtl(9);break;      // polDx doit être après swDebounce                            
+          case 9:   //timeOvfSet(9);
+                    polAllDet();//timeOvfCtl(9);
+                    break;      // polDx doit être après swDebounce                            
           case 10:  ledblink(-1);                                       // 1 flash
-                    timeOvfSet(10);
-                    clkFastStep=0;              // période 50mS/step
+                    //timeOvfSet(10);
+                    clkFastStep=0;              // période mini env 50mS/step 
                     switch(clkSlowStep++){
                       case 1:   break;
-                      case 2:   pulseClkisr();break;
+                      case 2:   pulseClkisr();break;                    // période pulseClkisr mini env 100mS
                       case 3:   break;
                       case 4:   pulseClkisr();break;
                       case 5:   break;
@@ -392,7 +401,7 @@ delay(20);
                                 clkSlowStep=0;
                                 break;
                     }
-                    timeOvfCtl(10);
+                    //timeOvfCtl(10);
                     break;
           default:  break;
         }
@@ -458,9 +467,11 @@ fServer() réception et chargement de la réponse à dataRead/Save
 
 dataTransfer() contrôle et chargement de set/ack
 
-talkServer() automate de fragmentation temporelle d'envoi de dataRead/Save et gestion réponses
+talkServer() automate de fragmentation temporelle d'envoi de dataRead/Save et gestion réponses (step env 50mS mini)
 
 buildReadSave() construction et envoi message read/save
+
+buildData()     construction message fonction dataRead ou dataSave
 
 dataRead()
 
@@ -563,6 +574,24 @@ if(diags){Serial.print(" dataTransfer()");}
         infos("dataTransfer",data,0);
 }
 
+void ssTS()                   // connecté au wifi
+{                             // si le numéro de périphérique est 00 ---> récup (data_read), ctle réponse et maj params
+                              // sortie 5  data_read ok
+                              // sortie 7  data_save ok
+                              // sortie 9  data_read ko
+                              // sortie 99 data_save ko
+    int v=0;
+    if(memcmp(cstRec.numPeriph,"00",2)==0){         // numPeriph ==0 -> data_read
+      v=dataRead();infos("  dataRead","",v);
+      if(v==MESSOK){cstRec.talkStep=5;}
+      else {cstRec.talkStep=9;}                     // pb com -> recommencer au prochain timing
+    }
+    else {v=dataSave();infos("  dataSave","",v);    // numPeriph !=0 -> data_save
+      if(v==MESSOK){cstRec.talkStep=7;}
+      else {cstRec.talkStep=99;}
+    }               
+}
+
 void talkServer()   // si numPeriph est à 0, dataRead pour se faire reconnaitre ; 
                     // si ça fonctionne réponse numPeriph!=0 ; dataSave 
 {
@@ -571,51 +600,38 @@ void talkServer()   // si numPeriph est à 0, dataRead pour se faire reconnaitre
   dateon=millis();
 #endif //  def_SERVER_MODE
 
-int v=0;
-
 switch(cstRec.talkStep){
   case 1:
       ssid=ssid1;password=password1;
-      if(wifiConnexion(ssid,password)){cstRec.talkStep=4;}
+      if(wifiConnexion(ssid,password)){ssTS();}
       else {cstRec.talkStep=2;}
       break;
       
   case 2:
       ssid=ssid2;password=password2; // tentative sur ssid bis
-      if(wifiConnexion(ssid,password)){cstRec.talkStep=4;}
+      if(wifiConnexion(ssid,password)){ssTS();} 
       else {cstRec.talkStep=98;}
       break;
 
   case 3:    
       break;
       
-  case 4:         // connecté au wifi
-                  // si le numéro de périphérique est 00 ---> récup (dataread), ctle réponse et maj params
-      if(memcmp(cstRec.numPeriph,"00",2)==0){
-        v=dataRead();infos("  dataRead","",v);
-        if(v==MESSOK){cstRec.talkStep=5;}
-        else {cstRec.talkStep=9;}            // pb com -> recommencer au prochain timing
-      }  
-      else {cstRec.talkStep=6;}              // numPeriph !=0 -> data_save
+  case 4:         
       break;
         
   case 5:          // gestion réponse au dataRead
 
-      fServer(fset_______);   // récupération adr mac, numPériph, tempPer et tempPitch dans bufServer (ctle CRC & adr mac)
-                              // le num de périph est mis à 0 si la com ne s'est pas bien passée
-     cstRec.talkStep=6;       // si le numéro de périphérique n'est pas 00 ---> ok (datasave), ctle réponse et maj params
-     writeConstant();
-     break;
+    fServer(fset_______);           // récupération adr mac, numPériph, tempPer et tempPitch dans bufServer (ctle CRC & adr mac)
+                                    // le num de périph est mis à 0 si la com ne s'est pas bien passée
+    cstRec.talkStep=STEPDATASAVE;   // si le numéro de périphérique n'est pas 00 ---> ok (datasave), ctle réponse et maj params
+    writeConstant();
+    break;
       
-  case STEPDATASAVE:          // (6) si numPeriph !=0 ou réponse au dataread ok -> datasave
+  case STEPDATASAVE:          // (6) si réponse au dataread ok -> datasave
                               // sinon recommencer au prochain timing
                               
-      if(memcmp(cstRec.numPeriph,"00",2)==0){cstRec.talkStep=9;}
-      else {  
-        v=dataSave();infos("  dataSave","",v);
-        if(v==MESSOK){cstRec.talkStep=7;}
-        else {cstRec.talkStep=99;}
-      }
+      if(memcmp(cstRec.numPeriph,"00",2)==0){cstRec.talkStep=9;} 
+      else {ssTS();}          // numPeriph !=0 donc data_save sortie 7 ok ou 99 ko 
       break;
 
   case 7:         // gestion réponse au dataSave
@@ -626,21 +642,20 @@ switch(cstRec.talkStep){
        
        // le num de périph a été mis à 0 si la com ne s'est pas bien passée
        cstRec.talkStep=9;
-       break;  
-                   // terminé ; si tout s'est bien passé les 2 côtés sont à jour 
-                   // sinon numpériph est à 00 et l'adresse IP aussi
-
-  case 9:
-       cstRec.talkStep=0;
-/*
-#ifdef  _SERVER_MODE
+#ifdef  _SERVER_MODE    // activation server après chaque fin d'échange data_save / ack
   if(server!=nullptr){
     server->begin(cstRec.portServer);       // une seule fois après acquisition ans/set 
     Serial.print("server.begin(");Serial.print((int)cstRec.portServer);Serial.print(") durée=");Serial.println(millis()-timeservbegin);
     timeservbegin=millis();
   }
 #endif //  def_SERVER_MODE
-*/
+
+       break; 
+                   // terminé ; si tout s'est bien passé les 2 côtés sont à jour 
+                   // sinon numpériph est à 00 et l'adresse IP aussi
+
+  case 9:
+       cstRec.talkStep=0;
        break;
 
 
@@ -686,7 +701,7 @@ void ordreExt()
     cliext = server->available();
 
     if (cliext) {
-      //uint16_t ccur=0,trx0[500],trx1[500],trx2[500];memset(trx0,0x00,1000);
+
       unsigned long trx=0;
       char c;
       Serial.print("\nCliext ");
@@ -713,15 +728,7 @@ void ordreExt()
 
       //Serial.println();
       if(diags){Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);}
-/*
-    dumpstr(httpMess,500);
-    Serial.print("ccur=");Serial.println(ccur);
-    for(uint16_t cc=0;cc<=ccur+1;cc++){
-      Serial.print(cc);Serial.print("  ");if(cc<100){Serial.print(" ");}if(cc<10){Serial.print(" ");}
-      Serial.print(trx0[cc]);Serial.print("  ");Serial.print(trx1[cc]);Serial.print("  ");Serial.println(trx2[cc]);}
-*/
-
-      //cliext.stop();
+     
       int v0=-1;
       char* vx=strstr(httpMess,"GET /");
       if(vx>=0){v0=vx-httpMess;}
@@ -765,15 +772,16 @@ void ordreExt()
         cntreq++;
       }                     // une éventuelle connexion a été traitée
                           // si controles ko elle est ignorée
-      cliext.stop();
       purgeServer(&cliext,diags);
-    }   // if(client){
+      cliext.stop();
+    }   // if(cliext){
+    /*    réactivation server à chaque test sans connexion... semble ne plus recevoir les connexions après un certain nombre (?) 
     else {
       if(((millis()-timeservbegin)>RAFSRVTMP )|| timeservbegin==0 ){
         server->begin(cstRec.portServer);timeservbegin=millis();                    // réactivation périodique
         Serial.print(millis());Serial.print(" ");Serial.println("server.begin");
       }       
-    }   // !client
+    }*/   // !client
   }     // if(server!=nullptr){
 }       // ordreExt()
 
