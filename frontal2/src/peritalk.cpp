@@ -270,7 +270,7 @@ int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphéri
   buildMess(nfonct,message,"\0");                           // bufServer complété 
   strcat(bufServer,"</body>");
           if(*periProtocol=='T'){
-            cli->print(bufServer);
+            cli->write(bufServer);
             cli->stop();
           }
           if(*periProtocol=='U'){
@@ -283,8 +283,8 @@ int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphéri
             Udp.endPacket();
           }
           packDate(periLastDateOut,date14+2);
-          *periErr=MESSOK;                                // assySet, buildMess, envoi ne génèrent pas d'erreur
-          return periSave(periCur,PERISAVELOCAL);            // modifs de periTable et date effacèe par prochain periLoad si pas save
+          *periErr=MESSOK;                                  // assySet, buildMess, envoi ne génèrent pas d'erreur
+          return periSave(periCur,PERISAVELOCAL);           // modifs de periTable et date effacèe par prochain periLoad si pas save
 }
 
 

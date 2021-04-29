@@ -1093,9 +1093,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 */
       cxtime=millis();    // pour rémanence pwd
       
-      Serial.println();Serial.print(cxtime);Serial.print(" *** serveur(");Serial.print((char)ab);Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
+      Serial.println();Serial.print((long)cxtime);Serial.print(" *** serveur(");Serial.print((char)ab);Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
       
-      nbreparams=getnv(cli,bufData,bufDataLen);Serial.print("---- nbparams ");Serial.println(nbreparams);
+      nbreparams=getnv(cli,bufData,bufDataLen);     //Serial.print("---- nbparams ");Serial.println(nbreparams);
         
 /*  getnv() décode la chaine GET ou POST ; le reste est ignoré
     forme ?nom1:valeur1&nom2:valeur2&... etc (NBVAL max)
@@ -1254,24 +1254,27 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;}
                        Serial.print("username:");Serial.print(valf);Serial.print(" usernum=");
                        Serial.print(usernum);Serial.print("/");Serial.print(usrnames+usernum*LENUSRNAME);
-                       Serial.print(" usrtime=");Serial.println(usrtime[usernum]);
+                       Serial.print(" usrtime=");Serial.print(usrtime[usernum]);
                        break;
               case 3:  if(!ctlpass(valf,usrpass+usernum*LENUSRPASS)){                                // password__
                          what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;usrtime[usernum]=0;          // si faux accueil (what=-1)
                          histoStore_textdh("pw","ko",strHisto);}                                   
-                       else {Serial.println("password ok");usrtime[usernum]=millis();if(nbreparams==1){what=2;}}
+                       else {Serial.print(" password ok");usrtime[usernum]=millis();if(nbreparams==1){what=2;}}
+                       Serial.println();
                        break;                                                                        
               case 4:  {usernum=*(libfonctions+2*i+1)-PMFNCHAR;                                      // user_ref__ (argument : millis() envoyées avec la fonction au chargement de la page)
                         unsigned long cxtime=0;conv_atobl(valf,(uint32_t*)&cxtime);
                         Serial.print("usr_ref__ : usrnum=");Serial.print(usernum);Serial.print(" millis()/1000=");Serial.print(millis()/1000);Serial.print(" cxtime=");Serial.print(cxtime);
-                        Serial.print(" usrtime[nb]=");Serial.print(usrtime[usernum]);Serial.print(" usrpretime[nb]=");Serial.println(usrpretime[usernum]);
+                        Serial.print(" usrtime[nb]=");Serial.print(usrtime[usernum]);Serial.print(" usrpretime[nb]=");Serial.print(usrpretime[usernum]);
                         // !( usrtime ok || (html && usrpretime ok) ) || time out  => accueil 
                         if(!(usrtime[usernum]==cxtime || (usrpretime[usernum]==cxtime && memcmp(&fonctions[numfonct[i+1]*LENNOM]+(LENNOM-3),"html",4)==0)) || (millis()-usrtime[usernum])>(*toPassword*1000)){
                           what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;usrtime[usernum]=0;}
-                        else {Serial.print("user ");Serial.print(usrnames+usernum*LENUSRNAME);Serial.println(" ok");
+                        else {Serial.print(" user ");Serial.print(usrnames+usernum*LENUSRNAME);Serial.print(" ok");
                           usrtime[usernum]=millis();
                           usrpretime[usernum]=cxtime;
-                          if(nbreparams==0){what=2;}}
+                          if(nbreparams==0){what=2;}
+                        }
+                        Serial.println();
                         }//if(periCur==3){Serial.println("user_ref_ =================");periPrint(periCur);}
                         break;  
               case 5:  *toPassword=TO_PASSWORD;conv_atob(valf,toPassword);Serial.print(" topass=");Serial.println(valf);break;                     // to_passwd_
@@ -1679,7 +1682,7 @@ void udpPeriServer()
       lastcxu=millis();     // trig watchdog
       commonserver(&cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
       
-      Serial.println(" *** end udp");
+      Serial.print((long)millis());Serial.println(" *** end udp");
     }
     //else{Udp.flush();Serial.print("Udp overflow=");Serial.print(udpPacketLen);Serial.print(" from ");Serial.println(rip);}
 }
@@ -1696,7 +1699,7 @@ void tcpPeriServer()
         if (cli_a.connected()){         
           lastcxt=millis();             // trig watchdog
           commonserver(&cli_a," ",1);}
-      Serial.println(" *** end tcp");
+        Serial.print((long)millis());Serial.println(" *** end tcp");
       }
 }
 
@@ -1710,6 +1713,7 @@ void pilotServer()
         if (cli_b.connected()){
           lastcxt=millis();             // trig watchdog
           commonserver(&cli_b," ",1);}
+        Serial.print((long)millis());Serial.println(" *** end tcp");
      }     
 }
 
