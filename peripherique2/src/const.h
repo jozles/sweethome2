@@ -33,7 +33,7 @@
  * 1.f forçage communication au démarrage suivant si alim bloquée allumée (ne fonctionne que pour PO_MODE) ; 
  *     gestion tconversion selon modèle DS18X ; 
  *     révision connexion wifi : talkServerWifiConnect() et wifiConnexion
- *     révision timings : ajout tempTime, cstRec.tempPer, fonctions trigtemp(startTo), chkTrigtemp(ctlTo), forceTrigTemp
+ *     révision timings : ajout tempTime, cstRec.tempPer, fonctions trigtemp(startTo), chkTrigtemp(ctlTo)
  *     ajout utilisation params descde et actcde : onCde devient onCdeO (Off prioritaire) et offCde offCdeO, 
  *                                                 actCde onCdeI (On prioritaire) et desCde offCdeI
  *                                                 swAction corrigé
@@ -64,6 +64,7 @@
  *     nouveau format fonction[LENNOM caractères]=LLLLtexteCRC la fonction est unique "done______", la longueur 0004
  *     le texte est actuellement libre
  * 1.S création buildData() pour isoler la construction du message de dataRead/Save et permettre la réponse à set dans ordreExt()
+ * 1.u ordreExt rebranché ledblink corrigé ; talkServer revu ;
  * 
 Modifier : 
 
@@ -96,7 +97,7 @@ Modifier :
 
 /* Modes de fonctionnement  */
 /*
-   2 cycles emboités :
+   2 cycles emboités + 1 asynchrone :
    
       1) timing de base = période de lecture de la sonde thermomètre ; 
             si DS_MODE ou PO_MODE c'est la période d'allumage ,
@@ -110,12 +111,13 @@ Modifier :
             comptage du timing de base selon le mode d'alimentation lors du check température
             PERSERV est la période par défaut en secondes
             cstRec.serverPer la période courante en secondes, chargée depuis le serveur (set/ack) 
-              prend la valeur PERSERVKO lorsqu'il n'y a pas de connexion WIFI afin de limiter les tentatives de cx pour économiser les batteries
+              prend la valeur PERSERVKO lorsque la connexion WIFI a échoué afin de limiter les tentatives de cx pour économiser les batteries
               prend la valeur PERSERV si la connexion au wifi fonctionne (sera rechargée par le serveur lors de l'accès suivant)
             et cstREc.serverTime le compteur de "timing de base" (remis à 0 à chaque déclenchement)
             Donc, si serverTime>serverPer accès server (talkServer)
-            
             Gestion totale dans readTemp().
+      3) version NO_MODE - le mode serveur est pollé en continu quand il n'y a pas d'accés au serveur SH
+            
 
     Stockage des constantes :
 
@@ -149,13 +151,33 @@ Modifier :
                                                                   à la mise sous tension mode DIS
 
 
-      Détecteurs logiques : tableau 
+      Description organique :
+
+      (Version NO_MODE)
+
+      Le mode serveur est activé par la réception d'un numéro de port, l'instance cliext est alors créée
+      La loop est un automate pour minimiser le temps entre chaque test de réception en mode serveur ;
+      A chaque loop test de réception. Le traitement des commandes reçue est interne à ordreExt() qui fait le polling.
+
+      Les connexions au serveur SH sont entièrement gérées par talkServer
+      La connexion au wifi est effectuée/testée dans ordreExt et dans talkServer
+
+      L'objectif est de minimiser le temps de traitement d'un échange pour le serveur SH
+      Coté péripharique, l'objectif est d'assurer une relative stabilité de l'horloge des pulses à la seconde
+
+      3 groupes de fonctions :
+
+      talkServer pour gérer les coms péri->serveur
+          talkServer est piloté par talkStep qui stocke l'étape et l'état (géré par les fonctions talk...)
+          talkReq() déclenche talkServer à la prochaine loop  - set TALKREQBIT 
+          talkGrt() quand talkServer est déclenché            - clr TALKREQBIT set TALKGRTBIT (usage interne à talkServer)
+          talkClr() quand talkServer a fonctionné             - efface TALKGRTBIT (usage interne à talkServer)
+          talkSta() renvoie l'état de talkServer (0 inactif)
+      ordreExt                       serveur->péri
+      gestion des données (dataRead/Save/Build/dataTransfer)
 
 
-      Actions :
 
-            2 actions possibles sur les switchs : ON/OFF 
-            chaque action peut être déclenchées par 3 sources : un des détecteurs du tableau 
 
 
 */
@@ -180,7 +202,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRDEV             // <------------- modèle carte
+#define CARTE VRR             // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation 
 //#define PININT_MODE             // <------------- avec/sans pin d'interruption
 
@@ -262,6 +284,7 @@ Modifier :
 
 #if CARTE==VRR
 
+#define MAIL_SENDER
 #define PINXDT 13
 #define WPIN   2        // 1 wire ds1820
 #define NBSW   2        // nbre switchs

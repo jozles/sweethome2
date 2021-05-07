@@ -5,6 +5,7 @@
 #include "shutil2.h"
 #include "dynam.h"
 #include "util.h"
+#include "peripherique2.h"
 
 #if POWER_MODE==NO_MODE
 
@@ -425,7 +426,7 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
       cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
       cstRec.memDetec[det] |= lev<<DETBITLH_PB;                       // set bit LH 
       detTime[det]=millis();                                          // arme debounce
-      cstRec.talkStep=1;                                              // talkServer
+      talkReq();                                                      // talkServer
       cstRec.serverTime=0;
       Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.println(lev);//Serial.print(" - ");
   }

@@ -74,7 +74,7 @@ bool wifiConnexion(const char* ssid,const char* password)
       cstRec.serverPer=PERSERV;
       }
     else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI);}}
-    Serial.print(" cxstatus=");Serial.print(cxstatus);Serial.print(" cxtime(micros)=");Serial.println(micros()-beg);
+    Serial.print(" cxstatus=");Serial.print(cxstatus);Serial.print(" uS=");Serial.println(micros()-beg);
     return cxstatus;
 
 }
