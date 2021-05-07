@@ -1,8 +1,8 @@
 
 #include "const.h"
 #include <ESP8266WiFi.h>
-#include "shconst2.h"
-#include "shutil2.h"
+#include <shconst2.h>
+#include <shutil2.h>
 
 extern constantValues cstRec;
 
@@ -19,25 +19,34 @@ void wifiStatusValues()
   Serial.print(WL_NO_SSID_AVAIL);Serial.println(" WL_NO_SSID_AVAIL ");
 }
 
-int printWifiStatus()
+int printWifiStatus(const char* ssid)
 {
   const char* wifiSta="WL_IDLE_STATUS   \0WL_NO_SSID_AVAIL \0WL_UKN           \0WL_CONNECTED     \0WL_CONNECT_FAILED\0WL_UKN           \0WL_DISCONNECTED  \0";
   int ws=WiFi.status();
-  Serial.println();Serial.print(ws);Serial.print(" WiFiStatus=");Serial.print((char*)(wifiSta+18*ws));
+  Serial.println();Serial.print(millis()/1000);Serial.print(" WiFiStatus=");Serial.print(ws);Serial.print(" ");Serial.print((char*)(wifiSta+18*ws));
+  Serial.print(" to ");Serial.print(ssid);
   return ws;
+}
+
+int printWifiStatus()
+{
+  return printWifiStatus("");
 }
 
 bool wifiConnexion(const char* ssid,const char* password)
 {
+
   unsigned long beg=micros();
   bool cxstatus=VRAI;
 
+    Serial.print("#");
     ledblink(BCODEONBLINK);
+    Serial.print("$");
 
     //WiFi.forceSleepWake();delay(1);
     //WiFi.forceSleepEnd();       // réveil modem
     
-    int wifistatus=printWifiStatus();
+    int wifistatus=printWifiStatus(ssid);
     if(wifistatus!=WL_CONNECTED){    
 /*
       WL_CONNECTED after successful connection is established
@@ -45,8 +54,8 @@ bool wifiConnexion(const char* ssid,const char* password)
       WL_CONNECT_FAILED if password is incorrect
       WL_IDLE_STATUS when Wi-Fi is in process of changing between statuses
       WL_DISCONNECTED if module is not configured in station mode
-*/  
-      Serial.print(" WIFI connecting to ");Serial.print(ssid);
+*/
+      Serial.print("\n WIFI connecting to ");Serial.print(ssid);
       WiFi.begin(ssid,password);
       
       //wifistatus=printWifiStatus();
@@ -65,7 +74,7 @@ bool wifiConnexion(const char* ssid,const char* password)
       cstRec.serverPer=PERSERV;
       }
     else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI);}}
-    Serial.print(" cxtime(micros)=");Serial.println(micros()-beg);
+    Serial.print(" cxstatus=");Serial.print(cxstatus);Serial.print(" cxtime(micros)=");Serial.println(micros()-beg);
     return cxstatus;
 
 }
@@ -79,10 +88,11 @@ void modemsleep()
 
 void htmlImg(WiFiClient* cli,char* data,int dataLen)
 {
-        cli->println("HTTP/1.1 200 OK");
-        cli->println("CONTENT-Type: image/jpg");
-        cli->println();
-        for(int i=0;i<dataLen;i++){cli->write(data[i]);}
+        cli->write("HTTP/1.1 200 OK\n");
+        cli->write("CONTENT-Type: image/jpg\n\n");
+        
+        //for(int i=0;i<dataLen;i++){cli->write(data[i]);}
+        data[dataLen]='\0';cli->write(data);
 
         Serial.println(" terminé");
         cli->stop();

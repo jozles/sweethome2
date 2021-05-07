@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.t_"
+#define VERSION "1.u_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -60,11 +60,11 @@
  * 1.r en mode NO_MODE pas de PERSERVKO pour ne pas risquer de déclencher le watchdog TCP/UDP du server     
  *     les fonctions de test sont opérationnelles ; incorporation des mails ;
  *     messages courts quand tous pulses à zero ; instance server initialisée à réception du n° de port
- * 1.s message "done" avant mail avec libellé ; 
- * 1.t révision structure des réponses à un ordreExt ; la version ancienne ne fournit pas un format compatible avec checkHttpData et checkData ; 
+ * 1.s message "done" avant mail avec libellé ;
  *     nouveau format fonction[LENNOM caractères]=LLLLtexteCRC la fonction est unique "done______", la longueur 0004
  *     le texte est actuellement libre
- *     
+ * 1.S création buildData() pour isoler la construction du message de dataRead/Save et permettre la réponse à set dans ordreExt()
+ * 
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
@@ -90,7 +90,7 @@ Modifier :
 
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
-#include "shconst2.h"
+#include <shconst2.h>
 
 //#define PERIF       // pour compatibilité avec shconst etc
 
@@ -231,7 +231,7 @@ Modifier :
 #ifdef  RELAY
 #define PINXB 13
 #define PINXDT 5
-#endif //  def RELAY
+#endif // def RELAY
 
 #define WPIN   4        // 1 wire ds1820
 #define NBSW   2        // nbre switchs
@@ -399,7 +399,7 @@ typedef struct {
   uint8_t   talkStep;             //  1   pointeur pour l'automate talkServer()
   uint32_t  durPulseOne[NBPULSE]; // 16   durée pulse 1
   uint32_t  durPulseTwo[NBPULSE]; // 16   durée pulse 2
-  union {
+union {
     struct
     {
       uint32_t  cntPulseOne[NBPULSE]; // 16   temps debut pulse 1
