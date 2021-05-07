@@ -405,7 +405,7 @@ void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,b
   strcat(buf," <input type=\"radio\" name=\"");strcat(buf,nomfonct);concat1a(buf,(char)(nb+PMFNCHAR));
   strcat(buf,"\" class=\"sqbr br_for\" id=\"sqbrc");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
   strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+2));strcat(buf,"\"");
-  if(valeur==2){strcat(buf," checked");}strcat(buf,">");
+  if(valeur==2 || valeur==3){strcat(buf," checked");}strcat(buf,">");
   strcat(buf,"<label for=\"sqbrc");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">FOR</label>\n");
 
 

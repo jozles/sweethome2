@@ -717,7 +717,7 @@ dumpfield((char*)tablePerToSend,NBPERIF);Serial.println();
     }
     //exploRemote(nbr,'o',&remoteN[nbr].onoff,&remoteN[nbr].newonoff);         
   
-    nou=remoteN[nbr].newenable;
+    nou=remoteN[nbr].newenable;if(nou==2){nou=3;}                 // si forçage, le bit enable est ON
     if(remoteN[nbr].enable!=nou){                                 // si le enable de la remote a changé --> maj détecteurs, periSw, com perif
       for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                      // recherche des memDet utilisant la remote
         if(remoteT[nbd].num==nbr+1){                              // remote courante ?
@@ -1434,7 +1434,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       remoteN[nb].enable=0;remoteN[nb].onoff=0;break;                   // (remotecf) effacement cb 
                             case 'e': remoteN[nb].enable=*valf-PMFNCVAL;break;                          // (remotecf) en enable remote courante
                             case 'o': remoteN[nb].onoff=*valf-PMFNCVAL;break;                           // (remotecf) on on/off remote courante
-                            case 'u': remoteT[nb].num=*valf-PMFNCVAL;                                   // (remotecf) un N° remote table sw
+                            case 'u': remoteT[nb].num=convStrToInt(valf,&j);                            // (remotecf) un N° remote table sw
                                       remoteT[nb].enable=0;break;                                       // (remotecf) effacement cb
                             case 'd': sourceDetServ[remoteT[nb].detec]=0;                 
                                       remoteT[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off
@@ -1597,8 +1597,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           }       // fin boucle nbre params
           
           if(nbreparams>=0){
-            Serial.print((unsigned long)millis());
-            Serial.print(" what=");Serial.print(what);Serial.print(" periCur=");Serial.print(periCur);Serial.println(" ");
+            Serial.print(" wh=");Serial.print((unsigned long)millis());
+            Serial.print(" what=");Serial.print(what);Serial.print(" periCur=");Serial.println(periCur);
 #ifdef SHDIAGS            
             Serial.print(" strHisto=");Serial.print(strHisto);
 #endif //            
@@ -1650,6 +1650,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         valeurs[0]='\0';
         //purgeServer(cli);
         cli->stop();                           // en principe inutile (purge fait stop)
+        Serial.print(" st=");Serial.println(millis());
         cliext.stop();
         Serial.print(" pM=");Serial.print(periDiag(periMess));Serial.print(" *** cli stopped - ");Serial.println(millis()-cxDur); 
 

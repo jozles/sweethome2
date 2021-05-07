@@ -267,11 +267,14 @@ int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphéri
     }  // assemblage datas 
 
   memcpy(bufServer,"<body>\0",7);
+  Serial.print("\n a0=");Serial.println(millis());
   buildMess(nfonct,message,"\0");                           // bufServer complété 
   strcat(bufServer,"</body>");
           if(*periProtocol=='T'){
             cli->write(bufServer);
+            Serial.print(" a1=");Serial.println(millis());
             cli->stop();
+            Serial.print(" a2=");Serial.println(millis());
           }
           if(*periProtocol=='U'){
             IPAddress udpAddress;

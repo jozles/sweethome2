@@ -479,7 +479,7 @@ void cfgRemoteHtml(EthernetClient* cli)
                 strcat(buf,"<tr><td>");concatn(buf,nb+1);strcat(buf,"</td>");                  // n° ligne de table
                 
                 memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° remote
-                numTf(buf,'b',&remoteT[nb].num,nf,1,2,0);
+                numTf(buf,'b',&remoteT[nb].num,nf,2,2,0);
                 if(remoteT[nb].num!=0){strcat(buf,remoteN[remoteT[nb].num-1].nam);}strcat(buf," </td>\n");
 
                 memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° detec on/off
