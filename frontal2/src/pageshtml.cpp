@@ -521,7 +521,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
 void remoteHtml(EthernetClient* cli)
 {              
-            Serial.println("remoteHtml()");
+            Serial.print(millis());Serial.println(" remoteHtml()");
 
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';

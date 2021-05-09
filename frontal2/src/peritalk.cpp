@@ -198,16 +198,14 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                     // si set ou ack :
                     //    format datas     NN_mm.mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._   NN numpériph ; mm.mm... mac
 {                   // sinon chaine libre issue de msg
+  Serial.print(millis());Serial.print(" periReq(");Serial.print((char)*periProtocol);Serial.print(" peri=");Serial.print(periCur);
+  Serial.print(" port=");Serial.print(*periPort);Serial.println(")");
+
   unsigned long dur=millis();
   char message[LENMESS]={'\0'};
   char date14[LNOW];ds3231.alphaNow(date14);
   char host[16];memset(host,'\0',16);
 
-
-  
-  Serial.print("\nperiReq(");Serial.print((char)*periProtocol);Serial.print(" peri=");Serial.print(periCur);
-  Serial.print(" port=");Serial.print(*periPort);Serial.println(")");
-  
   if(*periProg!=0 && *periPort!=0){charIp(periIpAddr,host);}
   
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
@@ -221,7 +219,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
   if(*periProtocol=='T'){                         // UDP à développer
           periMess=messToServer(cli,host,*periPort,bufServer);
           //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(messToServer)=");Serial.println(periMess);
-          Serial.print(" dur=");Serial.println(millis()-dur);
+          Serial.print(millis());Serial.print(" ");
           uint8_t fonct;
           if(periMess==MESSOK){
               trigwd();
@@ -231,7 +229,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                 if(fonct>=nbfonct){fonct=nbfonct;periMess=MESSFON;}
                 else {
                   Serial.println(bufServer);
-                  Serial.print(" dur=");Serial.println(millis()-dur);
+                  Serial.print(millis());Serial.print(" ");
                   if(fonct==fdatasave){periDataRead(bufServer+LENNOM+1);}
                 }
                 char ff[LENNOM+1];ff[LENNOM]='\0';memcpy(ff,bufServer,LENNOM);Serial.print(ff);
@@ -241,7 +239,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=periMess;
   }
-  Serial.print(" dur=");Serial.print(millis()-dur);
+  Serial.print(millis());
   cli->stop();
   int8_t zz=periSave(periCur,PERISAVELOCAL);          // modifs de periTable et date effacèe par prochain periLoad si pas save
   if(periMess==MESSOK){periMess=zz;}
@@ -374,6 +372,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
       k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
     }
+    /* les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être mis à 0 */
     messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){
       k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
     }

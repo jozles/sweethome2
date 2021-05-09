@@ -1607,16 +1607,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
             //Serial.print(" what=================");periPrint(periCur);            
           }                                           // 1 ligne par commande GET
 
-/*
-   periAns ou periReq ... periParamsHtml (fait perisave) effectue une réponse ack ou set ou envoie une commande get /set si appellé par perisend
-*/                          
         periMess=MESSOK;
         switch(what){                                           
           case 0: break;                                                
-          case 1: periMess=periAns(cli,"ack_______");break;            // periParamsHtml(cli," ",0,"ack_______");break; // data_save
+          case 1: periMess=periAns(cli,"ack_______");break;            // data_save
           case 2: if(ab=='a'){periTableHtml(cli);}                     // peritable ou remote suite à login
                   if(ab=='b'){remoteHtml(cli);} break;     
-          case 3: periMess=periAns(cli,"set_______");break;            // data_read //periParamsHtml(cli," ",0,"set_______");break; // data_read 
+          case 3: periMess=periAns(cli,"set_______");break;            // data_read
           case 4: periMess=periSave(periCur,PERISAVESD);               // switchs
                   SwCtlTableHtml(cli);
                   cli->stop();
@@ -1632,11 +1629,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           case 7: timersSave();timersHtml(cli);break;                  // timers
           case 8: remoteSave();cfgRemoteHtml(cli);break;               // bouton remotecfg puis submit
           case 9: periRemoteUpdate();                                  // bouton remotehtml ou remote ctl puis submit 
-                  //remoteHtml(cli);cli->stop();                  
                   periMess=perToSend(tablePerToSend,remotetime);
                   remoteHtml(cli);break; 
           case 10:memDetSave();periDetecUpdate();                      // bouton submit détecteurs serveur
-                  //periTableHtml(cli);cli->stop();
                   periMess=perToSend(tablePerToSend,srvdettime);
                   periTableHtml(cli);break;
           case 11:memDetSave();cfgDetServHtml(cli);break;              // bouton cfgdetserv puis submit         
@@ -1658,7 +1653,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 }
 
 
-/* ***************** serveurs ************************/
+/* ***************** serveurs *********************** */
 
 void udpPeriServer()
 {
@@ -1688,7 +1683,16 @@ void udpPeriServer()
     //else{Udp.flush();Serial.print("Udp overflow=");Serial.print(udpPacketLen);Serial.print(" from ");Serial.println(rip);}
 }
 
-
+/* En TCP
+*  A la fin de dataRead/dataSave, periAns envoie un message set ou ack ;
+*  A la fin des fonctions html, un raffraichissement de page est envoyé ;
+*  Le .stop() dure plusieurs centaines de mS ou secondes (protocole http) ;
+*  utiliser plusieurs instances alternativement (3 ?)
+*  pour tcpPeriServer (et pilotServer?) permet de n'effectuer le .stop()
+*  qu'au moment d'utiliser l'instance (.available()),
+*  donc, la plupart du temps sans perte de disponibilité du processeur.
+*  Faire un check : tous les .stop() (TCP?) devraient disparaitre !
+*/
 
 void tcpPeriServer()
 {
