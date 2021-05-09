@@ -19,34 +19,40 @@ void wifiStatusValues()
   Serial.print(WL_NO_SSID_AVAIL);Serial.println(" WL_NO_SSID_AVAIL ");
 }
 
+int printWifiStatus(const char* ssid,bool print)
+{
+  const char* wifiSta="WL_IDLE_STATUS\0  \0WL_NO_SSID_AVAIL \0WL_UKN\0          \0WL_CONNECTED\0    \0WL_CONNECT_FAILED\0WL_UKN\0          \0WL_DISCONNECTED  \0";
+  int ws=WiFi.status();
+  if(print){
+    Serial.println();Serial.print(millis()/1000);
+    //Serial.print(" WiFiStatus=");
+    Serial.print(" ");
+    Serial.print(ws);Serial.print(" ");Serial.print((char*)(wifiSta+18*ws));
+    Serial.print(" to ");Serial.print(ssid);
+  }
+  return ws;
+}
+
 int printWifiStatus(const char* ssid)
 {
-  const char* wifiSta="WL_IDLE_STATUS   \0WL_NO_SSID_AVAIL \0WL_UKN           \0WL_CONNECTED     \0WL_CONNECT_FAILED\0WL_UKN           \0WL_DISCONNECTED  \0";
-  int ws=WiFi.status();
-  Serial.println();Serial.print(millis()/1000);Serial.print(" WiFiStatus=");Serial.print(ws);Serial.print(" ");Serial.print((char*)(wifiSta+18*ws));
-  Serial.print(" to ");Serial.print(ssid);
-  return ws;
+  return printWifiStatus(ssid,PRINT);
 }
 
 int printWifiStatus()
 {
-  return printWifiStatus("");
+  return printWifiStatus("",PRINT);
 }
 
-bool wifiConnexion(const char* ssid,const char* password)
+bool wifiConnexion(const char* ssid,const char* password,bool print)
 {
 
   unsigned long beg=micros();
   bool cxstatus=VRAI;
 
-    Serial.print("#");
-    ledblink(BCODEONBLINK);
-    Serial.print("$");
-
     //WiFi.forceSleepWake();delay(1);
     //WiFi.forceSleepEnd();       // réveil modem
     
-    int wifistatus=printWifiStatus(ssid);
+    int wifistatus=printWifiStatus(ssid,print);
     if(wifistatus!=WL_CONNECTED){    
 /*
       WL_CONNECTED after successful connection is established
@@ -55,29 +61,34 @@ bool wifiConnexion(const char* ssid,const char* password)
       WL_IDLE_STATUS when Wi-Fi is in process of changing between statuses
       WL_DISCONNECTED if module is not configured in station mode
 */
+      ledblink(BCODEONBLINK);
       Serial.print("\n WIFI connecting to ");Serial.print(ssid);
       WiFi.begin(ssid,password);
       
-      //wifistatus=printWifiStatus();
-      //while(wifistatus!=WL_CONNECTED){
-      while(WiFi.status() != WL_CONNECTED){
+      while(WiFi.status() != WL_CONNECTED){     // try to connect
         if((millis()-beg/1000)>WIFI_TO_CONNEXION){cxstatus=FAUX;break;}
         delay(500);wifistatus=printWifiStatus();
-      }
+      }                                         // cxstatus ok or ko
     }
-    if(cxstatus){
-      if(nbreBlink==BCODEWAITWIFI){ledblink(BCODEWAITWIFI+100);}
-      Serial.print(" local IP : ");Serial.print(WiFi.localIP());
+    if(cxstatus){                               // ok
+      ledblink(-1);
+      if(print){Serial.print(" local IP : ");Serial.print(WiFi.localIP());}
       cstRec.IpLocal=WiFi.localIP();        
       WiFi.macAddress(mac);
-      Serial.print(" ");serialPrintMac(mac,1);
+      if(print){Serial.print(" ");serialPrintMac(mac,0);}
       cstRec.serverPer=PERSERV;
       }
     else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI);}}
-    Serial.print(" cxstatus=");Serial.print(cxstatus);Serial.print(" uS=");Serial.println(micros()-beg);
+    if(print){Serial.print(" cxst=");Serial.print(cxstatus);Serial.print(" uS=");Serial.println(micros()-beg);}
+  
     return cxstatus;
-
 }
+
+bool wifiConnexion(const char* ssid,const char* password)
+{
+  return wifiConnexion(ssid,password,PRINT);
+}
+
 
 void modemsleep()
 {

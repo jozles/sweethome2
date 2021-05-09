@@ -1,8 +1,10 @@
 #ifndef UTIL_WIFI_H_INCLUDED
 #define UTIL_WIFI_H_INCLUDED
 
-
+bool  wifiConnexion(const char* ssid,const char* password,bool print);
 bool  wifiConnexion(const char* ssid,const char* password);
+int   printWifiStatus(const char* ssid,bool print);
+int   printWifiStatus(const char* ssid);
 int   printWifiStatus();
 void  wifiStatusValues();
 void  modemsleep();
