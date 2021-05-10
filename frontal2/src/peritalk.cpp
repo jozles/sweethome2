@@ -240,7 +240,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
           *periErr=periMess;
   }
   Serial.print(millis());
-  cli->stop();
+  cli->stop();               // cliext
   int8_t zz=periSave(periCur,PERISAVELOCAL);          // modifs de periTable et date effacèe par prochain periLoad si pas save
   if(periMess==MESSOK){periMess=zz;}
   Serial.print(" (");Serial.print(MESSOK);Serial.print(" si ok) periMess(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
@@ -265,14 +265,14 @@ int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphéri
     }  // assemblage datas 
 
   memcpy(bufServer,"<body>\0",7);
-  Serial.print("\n a0=");Serial.println(millis());
+  //Serial.print("\n a0=");Serial.println(millis());
   buildMess(nfonct,message,"\0");                           // bufServer complété 
   strcat(bufServer,"</body>");
           if(*periProtocol=='T'){
             cli->write(bufServer);
-            Serial.print(" a1=");Serial.println(millis());
-            cli->stop();
-            Serial.print(" a2=");Serial.println(millis());
+            //Serial.print(" a1=");Serial.println(millis());
+            //cli->stop();
+            //Serial.print(" a2=");Serial.println(millis());
           }
           if(*periProtocol=='U'){
             IPAddress udpAddress;
@@ -327,11 +327,11 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       periLoad(i);
       if(compMac(periMacBuf,periMacr)){
         periCur=i;i=NBPERIF+1;
-        Serial.println(" DataRead/Save Mac connu");
+        //Serial.println(" DataRead/Save Mac connu");
       }                                                                         // mac trouvé
       if((memcmp("\0\0\0\0\0\0",periMacr,6)==0 || memcmp("      ",periMacr,6)==0) && perizer==0){
         perizer=i;
-        Serial.println(" DataRead/Save place libre");
+        //Serial.println(" DataRead/Save place libre");
       }        // place libre trouvée
     }
   }

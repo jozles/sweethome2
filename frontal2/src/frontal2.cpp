@@ -1,5 +1,4 @@
 #include <Arduino.h>
-
 #include <SPI.h>      //bibliothèqe SPI pour W5100
 #include <Ethernet.h> //bibliothèque W5x00 Ethernet
 #include <EthernetUdp.h>
@@ -37,16 +36,20 @@ uint8_t chaine[16+1]={0}; // chaine à encrypter/décrypter ---> void xcrypt()
 extern "C" {
  #include "utility/w5100.h"
 }
+#define MAXTPS 3                    // nbre instances pour TCP
 
-  EthernetClient cli_a;             // client du serveur periphériques et browser configuration
-  EthernetClient cli_b;             // client du serveur pilotage
-  EthernetClient cliext;            // client de serveur externe  
-  EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
+  EthernetClient cli_a[MAXTPS];     // instances serveur de periphériques et browser configuration
+//  EthernetClient cli_a;             // instance serveur de periphériques et browser configuration
+  EthernetClient cli_b;             // instance du serveur pilotage
+  EthernetClient cliext;            // instance client serveur externe  
+//  EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
 
-char ab;
+uint8_t tPS=0;                      // pointeur prochaine instance cli_a à utiliser
+char ab;                            // protocole et type de la connexion en cours
+                                    // 'a' TCP periTable 'b' TCP remote 'u' UDP
 
-  char udpData[UDPBUFLEN];         // buffer paquets UDP
-  uint16_t udpDataLen;             // taille paquet contenu
+  char udpData[UDPBUFLEN];          // buffer paquets UDP
+  uint16_t udpDataLen;              // taille paquet contenu
     
   extern EthernetUDP Udp;
     
@@ -1296,8 +1299,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        }break;                           
               case 12: if(periPassOk==VRAI){what=1;periDataRead(valf);periPassOk=FAUX;}break;       // data_save
               case 13: if(periPassOk==VRAI){what=3;periDataRead(valf);periPassOk=FAUX;}break;       // data_read
-              case 14: {byte a=*(libfonctions+2*i);                                                  // (ligne peritable) - tests de perif serveur
-                        periCur=*(libfonctions+2*i+1)-PMFNCHAR;periLoad(periCur);                    //  a cde (N°sw/mail) ; k etat à sortir 
+              case 14: {byte a=*(libfonctions+2*i);                                                 // (periLine) - tests de perif serveur
+                        periCur=*(libfonctions+2*i+1)-PMFNCHAR;periLoad(periCur);                   // a cde (N°sw/mail) ; k etat à sortir 
                         char fptst[LENNOM+1];                                                        
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
                         uint8_t k=0;
@@ -1597,8 +1600,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           }       // fin boucle nbre params
           
           if(nbreparams>=0){
-            Serial.print(" wh=");Serial.print((unsigned long)millis());
-            Serial.print(" what=");Serial.print(what);Serial.print(" periCur=");Serial.println(periCur);
+            Serial.print((unsigned long)millis());
+            Serial.print(" what=");Serial.print(what);
+            Serial.print(" periCur=");Serial.println(periCur);
 #ifdef SHDIAGS            
             Serial.print(" strHisto=");Serial.print(strHisto);
 #endif //            
@@ -1616,13 +1620,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           case 3: periMess=periAns(cli,"set_______");break;            // data_read
           case 4: periMess=periSave(periCur,PERISAVESD);               // switchs
                   SwCtlTableHtml(cli);
-                  cli->stop();
                   cliext.stop();
                   periMess=periReq(&cliext,periCur,"set_______");break;
           case 5: periMess=periSave(periCur,PERISAVESD);               // (periLine) modif ligne de peritable
                   //periPrint(periCur);
                   periTableHtml(cli); 
-                  cli->stop();
                   cliext.stop();
                   periMess=periReq(&cliext,periCur,"set_______");break;
           case 6: configPrint();configSave();cfgServerHtml(cli);break; // config serveur
@@ -1644,12 +1646,15 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         }
         valeurs[0]='\0';
         //purgeServer(cli);
-        cli->stop();                           // en principe inutile (purge fait stop)
-        Serial.print(" st=");Serial.println(millis());
-        cliext.stop();
-        Serial.print(" pM=");Serial.print(periDiag(periMess));Serial.print(" *** cli stopped - ");Serial.println(millis()-cxDur); 
-
-    //} // cli.connected
+        //cli->stop();                           // en principe inutile (purge fait stop)
+        //Serial.print(" st=");Serial.println(millis());
+        cliext.stop();                           // en principe rapide : la dernière action est une entrée
+        
+        Serial.print((long)millis());
+        Serial.print(" pM=");Serial.print(periDiag(periMess));
+        if(ab=='u'){Serial.print(" *** end udp - ");}
+        else {Serial.print(" *** end tcp - ");}
+        Serial.println(millis()-cxDur);
 }
 
 
@@ -1676,9 +1681,7 @@ void udpPeriServer()
       packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
       
       lastcxu=millis();     // trig watchdog
-      commonserver(&cli_udp,udpData,udpDataLen);                 // cli bid pour compatibilité d'arguments avec les fonction tcp
-      
-      Serial.print((long)millis());Serial.println(" *** end udp");
+      commonserver(nullptr,udpData,udpDataLen);              
     }
     //else{Udp.flush();Serial.print("Udp overflow=");Serial.print(udpPacketLen);Serial.print(" from ");Serial.println(rip);}
 }
@@ -1694,6 +1697,7 @@ void udpPeriServer()
 *  Faire un check : tous les .stop() (TCP?) devraient disparaitre !
 */
 
+/*
 void tcpPeriServer()
 {
   ab='a';
@@ -1707,19 +1711,46 @@ void tcpPeriServer()
         Serial.print((long)millis());Serial.println(" *** end tcp");
       }
 }
+*/
+
+void tcpPeriServer()
+{
+  ab='a';
+  
+  uint8_t preTPS=tPS+1;    
+  if(preTPS>=MAXTPS){preTPS=0;}
+
+  unsigned long ts0=millis();  
+  cli_a[preTPS].stop();
+  unsigned long ts1=millis();
+  
+  if(cli_a[preTPS] = periserv.available())      // attente d'un client
+  {
+    getremote_IP(&cli_a[preTPS],remote_IP,remote_MAC);      
+    //serialPrintIp(remote_IP);Serial.println(" connecté");
+    if (cli_a[preTPS].connected()){         
+      if((ts1-ts0)>1){Serial.print(ts0);Serial.print(" s>=");Serial.print(ts1);}
+      lastcxt=millis();                 // trig watchdog
+      tPS=preTPS;                       
+      commonserver(&cli_a[tPS]," ",1);
+    }
+  }
+}
 
 void pilotServer()
 {
   ab='b';
-     if(cli_b = pilotserv.available())      // attente d'un client
-     {
-        getremote_IP(&cli_b,remote_IP,remote_MAC);      
-        //serialPrintIp(remote_IP);Serial.println(" connecté");
-        if (cli_b.connected()){
-          lastcxt=millis();             // trig watchdog
-          commonserver(&cli_b," ",1);}
-        Serial.print((long)millis());Serial.println(" *** end tcp");
-     }     
+
+  cli_b.stop();
+  if(cli_b = pilotserv.available())      // attente d'un client
+  {
+    getremote_IP(&cli_b,remote_IP,remote_MAC);      
+    //serialPrintIp(remote_IP);Serial.println(" connecté");
+    if (cli_b.connected()){
+      lastcxt=millis();             // trig watchdog
+      commonserver(&cli_b," ",1);
+    }
+  }     
 }
 
 
