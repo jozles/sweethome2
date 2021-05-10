@@ -731,9 +731,8 @@ void talkWifiKo()
 #define TALKWIFI1    1  // tentative connexion wifi 1
 #define TALKWIFI2    2  // tentative connexion wifi 1
 #define TALKDATA     4  // dataRead/Save
-#define TALKDRIN     5  // gestion réception dataRead
 #define TALKDATASAVE 6  // dataSave
-#define TALKDSIN     7  // gestion réception dataSave
+
 
 void talkServer()   // si numPeriph est à 0, dataRead pour se faire reconnaitre ; 
                     // si ça fonctionne réponse numPeriph!=0 ; dataSave 
@@ -757,17 +756,6 @@ switch(cstRec.talkStep&=TALKCNTBIT){
       else {talkWifiKo();}
       break;
   
-  case TALKDRIN:                     // gestion réponse au dataRead
-
-      if(memcmp(cstRec.numPeriph,"00",2)!=0 
-        && fServer(fset_______)==MESSOK){ // récupération adr mac, numPériph, tempPer et tempPitch dans bufServer (ctle CRC & adr mac)
-                                          // le num de périph est mis à 0 si la com ne s'est pas bien passée
-        talkSet(TALKDATASAVE);                       // si le numéro de périphérique n'est pas 00 ---> ok (datasave), ctle réponse et maj params
-        writeConstant();
-      }
-      else {talkKo();}
-      break;
-
   case TALKWIFI1:
       ssid=ssid1;password=password1;
       //Serial.print("+");
@@ -778,7 +766,8 @@ switch(cstRec.talkStep&=TALKCNTBIT){
                         // si le numéro de périphérique est 00 ---> récup (dataread), ctle réponse et maj params
       talkGrt();
       if(memcmp(cstRec.numPeriph,"00",2)==0){
-        if(dataRead()==MESSOK){talkSet(TALKDRIN);}
+        if(dataRead()==MESSOK && fServer(fset_______)==MESSOK){
+          talkSet(TALKDATASAVE);}
         else {talkKo();}    // pb com -> recommencer au prochain timing
         break;
       }
@@ -925,20 +914,16 @@ void ordreExt()
               case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);break;    // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
               case 9: if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
                       v0+=21;
-                      Serial.println("-0-");
                       {httpMess[strlen(httpMess)-2]='\0';             // erase CRC                   
                       uint16_t v1=strstr(httpMess,"==")-httpMess;
                       httpMess[v1]='\0';
                       uint16_t v2=strstr(httpMess+v1+1,"==")-httpMess;
                       httpMess[v2]='\0';
-                      Serial.println("-1-");
                       #define LMLOC 16
                       char a[LMLOC];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
                       strcat(a,"°C ");strcat(a,VERSION);
-                      Serial.println("-2-");
                       if(strlen(a)>=LMLOC){ledblink(BCODESHOWLINE);}
                       a[LMLOC-1]='\0';strcat(httpMess+v2+2,a);
-                      Serial.println("-3-");
                       answer("mail______");                   
                       mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
                       }break;                 
