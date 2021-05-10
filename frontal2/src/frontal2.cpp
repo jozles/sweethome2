@@ -45,6 +45,7 @@ extern "C" {
 //  EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
 
 uint8_t tPS=0;                      // pointeur prochaine instance cli_a à utiliser
+unsigned long tPSStop[MAXTPS];      // heure fin d'usage des instances pour faire .stop()
 char ab;                            // protocole et type de la connexion en cours
                                     // 'a' TCP periTable 'b' TCP remote 'u' UDP
 
@@ -52,8 +53,7 @@ char ab;                            // protocole et type de la connexion en cour
   uint16_t udpDataLen;              // taille paquet contenu
     
   extern EthernetUDP Udp;
-    
-    
+
 /* >>>> config server <<<<<< */
 
 char configRec[CONFIGRECLEN];       // enregistrement de config  
@@ -352,18 +352,18 @@ void yield()
 }
 
 
-void setup() {                              // ====================================
+void setup() {                          // ====================================
 
-  Serial.begin (115200);delay(1000);
+  initLed(PINLED);
+  digitalWrite(PINLED,HIGH);delay(10);digitalWrite(PINLED,LOW);
+
+  Serial.begin (115200);delay(2000);    // eponge le délai entre la fin de l'upload et le reset du Jlink
   Serial.print("+");delay(100);
 
   /* void* stackPtr = alloca(4); // This returns a pointer to the current bottom of the stack
   printf("StackPtr %d\n", stackPtr); */
 
-  initLed(PINLED);
-  digitalWrite(PINLED,HIGH);delay(10);digitalWrite(PINLED,LOW);
-
-  pinMode(STOPREQ,INPUT_PULLUP);
+  pinMode(STOPREQ,INPUT_PULLUP);      // push button "HALT REQ"
 
 /* >>>>>>     config     <<<<<< */  
   
@@ -374,6 +374,8 @@ void setup() {                              // =================================
   digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT); 
   ds3231.i2cAddr=DS3231_I2C_ADDRESS; // doit être avant getDate
   Wire.begin();
+
+  trigwd();
 
   sdInit();
 
@@ -412,7 +414,8 @@ void setup() {                              // =================================
   
 /* >>>>>> ethernet start <<<<<< */
 
-  Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
+  Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);
+  Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
   
   if(Ethernet.begin(mac) == 0)
     {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
@@ -819,18 +822,19 @@ int cliAv(EthernetClient* cli,uint16_t len,uint16_t* pt)
 
 char cliRead(EthernetClient* cli,const char* data,uint16_t len,uint16_t* pt)
 {
-  if(ab=='u'){if(*pt<len){*pt=(*pt)+1;return data[(*pt)-1];}else return data[len-1];}
+  if(ab=='u'){if(*pt<len){*pt+=1;return data[*pt-1];}else return data[len-1];}
   return cli->read();
 }
 
 int getcde(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr) // décodage commande reçue selon tables 'cdes' longueur maxi LENCDEHTTP
 {
-  char c='\0',cde[LENCDEHTTP];
-  int ncde=0,ko=0,ptc=0;
-  while (cliAv(cli,LENCDEHTTP,ptr) && c!='/' && *ptr<LENCDEHTTP) {
-      c=cliRead(cli,data,LENCDEHTTP,ptr);Serial.print(c);                  // décode la commande 
+  char c='\0',cde[LENCDEHTTP+50];
+  int ncde=0,ko=0;
+  uint16_t ptc=0;
+  while (cliAv(cli,LENCDEHTTP,ptr) && c!='/' && ptc<LENCDEHTTP) {
+      c=cliRead(cli,data,LENCDEHTTP,ptr);Serial.print(c);                  // extrait la commande 
       if(c!='/'){cde[ptc]=c;ptc++;}
-      else {cde[ptc]=0;break;}
+      else {cde[ptc]='\0';break;}
   }
 
   if (c!='/'){ko=1;}                                                                                // pas de commande, message 400 Bad Request
@@ -854,7 +858,6 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr)
 {                                             // prochain car = premier du premier nom
                                               // les caractères de ctle du flux sont encodés %HH par le navigateur
                                               // '%' encodé '%25' ; '@' '%40' etc... 
-
   boolean nom=VRAI,val=FAUX,termine=FAUX;
   int i=0,j=0;
   char c,cpc='\0';                            // cpc pour convertir les séquences %hh 
@@ -876,7 +879,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr)
           else {
         
             if(cpc!='\0'){c=cpc|(c&0x0f);cpc='\0';}     // traitement second                 
-            Serial.print(c);
+            Serial.print(c);trigwd();
             if (!termine){
           
               if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,' ',LENNOM);if(i<NBVAL){i++;};Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
@@ -923,14 +926,13 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
   char bufli[LBUFLI];
   
   Serial.println("--- getnv");
-  
   int ncde=getcde(cli,data,dataLen,&ptr); 
-      Serial.print("ncde=");Serial.print(ncde);Serial.println(" ");
-      if(ncde==0){return -1;}  
+
+  Serial.print("ncde=");Serial.print(ncde);Serial.println(" ");
+  if(ncde==0){return -1;}  
       
       c=' ';
-      //while (cliAv(cli,dataLen,&ptr) && c!='?' && c!='.'){      // attente '?' ou '.'
-      while (cliAv(cli,dataLen,&ptr) && c!='?'){      // attente '?' ou '.'
+      while (cliAv(cli,dataLen,&ptr) && c!='?'){      // attente '?' 
         c=cliRead(cli,data,dataLen,&ptr);Serial.print(c);
         bufli[pbli]=c;if(pbli<LBUFLI-1){pbli++;bufli[pbli]='\0';}
       }Serial.println();          
@@ -1097,7 +1099,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
       cxtime=millis();    // pour rémanence pwd
       
       Serial.println();Serial.print((long)cxtime);Serial.print(" *** serveur(");Serial.print((char)ab);Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
-      
+
       nbreparams=getnv(cli,bufData,bufDataLen);     //Serial.print("---- nbparams ");Serial.println(nbreparams);
         
 /*  getnv() décode la chaine GET ou POST ; le reste est ignoré
@@ -1588,7 +1590,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           for(uint8_t nm=0;nm<ncb;nm++){                                                // memos
                             if(memo[nm]<NBMEMOS && memo[nm]>=0){memset(memosTable+memo[nm]*LMEMO,0x00,LMEMO);memo[nm]=-1;}
                           }
-                       }
+                        }
                        }break;                                                                                                        
               case 74: htmlFavicon(cli);break;
               
@@ -1650,6 +1652,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         //Serial.print(" st=");Serial.println(millis());
         cliext.stop();                           // en principe rapide : la dernière action est une entrée
         
+        if(ab=='a'){
+          tPSStop[tPS]=millis();if(tPSStop[tPS]==0){tPSStop[tPS]=1;} //heure du stop TCP
+        }
+
         Serial.print((long)millis());
         Serial.print(" pM=");Serial.print(periDiag(periMess));
         if(ab=='u'){Serial.print(" *** end udp - ");}
@@ -1690,49 +1696,36 @@ void udpPeriServer()
 *  A la fin de dataRead/dataSave, periAns envoie un message set ou ack ;
 *  A la fin des fonctions html, un raffraichissement de page est envoyé ;
 *  Le .stop() dure plusieurs centaines de mS ou secondes (protocole http) ;
-*  utiliser plusieurs instances alternativement (3 ?)
-*  pour tcpPeriServer (et pilotServer?) permet de n'effectuer le .stop()
-*  qu'au moment d'utiliser l'instance (.available()),
-*  donc, la plupart du temps sans perte de disponibilité du processeur.
-*  Faire un check : tous les .stop() (TCP?) devraient disparaitre !
-*/
-
-/*
-void tcpPeriServer()
-{
-  ab='a';
-      if(cli_a = periserv.available())      // attente d'un client
-      {
-        getremote_IP(&cli_a,remote_IP,remote_MAC);      
-        //serialPrintIp(remote_IP);Serial.println(" connecté");
-        if (cli_a.connected()){         
-          lastcxt=millis();             // trig watchdog
-          commonserver(&cli_a," ",1);}
-        Serial.print((long)millis());Serial.println(" *** end tcp");
-      }
-}
+*  plusieurs instances sont utilisées alternativement pour TcpPeriServer()
+*  ce qui permet d'effectuer le .stop() lorsque l'envoi est complété
+*  ou au moment d'utiliser l'instance (.available()).
+*  La plupart du temps sans perte de disponibilité du processeur.
 */
 
 void tcpPeriServer()
 {
   ab='a';
   
-  uint8_t preTPS=tPS+1;    
+  for(int t=0;t<MAXTPS;t++){                    // effectue les .stop() pour libérer les clients
+    if(tPSStop[t]!=0 && (millis()-tPSStop[t])>1200){
+      tPSStop[t]=0;
+      cli_a[t].stop();
+     }
+  }
+
+  uint8_t preTPS=tPS+1;                         // attribue l'instance suivante
   if(preTPS>=MAXTPS){preTPS=0;}
 
-  unsigned long ts0=millis();  
-  cli_a[preTPS].stop();
-  unsigned long ts1=millis();
-  
+  cli_a[preTPS].stop();                         // confirme la libération de l'instance
+
   if(cli_a[preTPS] = periserv.available())      // attente d'un client
   {
     getremote_IP(&cli_a[preTPS],remote_IP,remote_MAC);      
     //serialPrintIp(remote_IP);Serial.println(" connecté");
-    if (cli_a[preTPS].connected()){         
-      if((ts1-ts0)>1){Serial.print(ts0);Serial.print(" s>=");Serial.print(ts1);}
-      lastcxt=millis();                 // trig watchdog
-      tPS=preTPS;                       
-      commonserver(&cli_a[tPS]," ",1);
+    if (cli_a[preTPS].connected()){
+      lastcxt=millis();                         // trig soft watchdog
+      tPS=preTPS;                               // valide l'instance
+      commonserver(&cli_a[tPS],nullptr,0);
     }
   }
 }
@@ -1748,7 +1741,7 @@ void pilotServer()
     //serialPrintIp(remote_IP);Serial.println(" connecté");
     if (cli_b.connected()){
       lastcxt=millis();             // trig watchdog
-      commonserver(&cli_b," ",1);
+      commonserver(&cli_b,nullptr,0);
     }
   }     
 }

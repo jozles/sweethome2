@@ -71,13 +71,14 @@ int ethWrite(EthernetClient* cli,char* buf)
   long i=0,j=strlen(buf);
   bool sta=1;
 
+  trigwd();
   while (j>=2048){
     sta=writeEth0(cli,buf+i,2048);
     if(!sta){j=-1;break;}
     j-=2048;i+=2048;}
   if(j>0){sta=writeEth0(cli,buf+i,j);}
   buf[0]='\0';
-  if(millis()-ethbeg>300){Serial.print(" eth dur=");Serial.print(millis()-ethbeg);Serial.print(" eth sta(ok=1)=");Serial.print(sta);}
+  if(millis()-ethbeg>100){Serial.print(" ethw dur=");Serial.print(millis()-ethbeg);if(sta==1){Serial.print(" ok ");}else{Serial.print(" ko ");}}
   return sta;
 }
 

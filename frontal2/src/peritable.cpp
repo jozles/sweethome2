@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <SPI.h>      //bibliothéqe SPI pour W5100
 #include <Ethernet.h>
-//#include <SD.h>
+
 #include "ds3231.h"
 #include <shconst2.h>
 #include <shutil2.h>
@@ -319,7 +319,7 @@ Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
           strcat(buf,"<input type=\"submit\" value=\"ok\"> ");
           boutF(buf,"dump_his__","","histo",0,0,0,0);strcat(buf,"<br>\n");      
 
-          cli->print("<br>");
+          //cli->print("<br>");
           boutF(buf,"deco______","","_  deco  _",0,0,0,0);
           boutF(buf,"deco_____B","","_ reboot _",0,0,0,0);          
           boutF(buf,"cfgserv___","","_ config _",0,0,0,0);
@@ -348,7 +348,7 @@ Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
           }
           strcat(buf,"</table></body></html>");
           periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
-          Serial.print(" dur=");Serial.println(millis()-begPT); 
+          Serial.print(" PT dur=");Serial.println(millis()-begPT); 
 }
 
 void subCbdet(char* buf,EthernetClient* cli,uint8_t nbfonc,const char* title,const char* nfonc,uint8_t nbLi,const char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)

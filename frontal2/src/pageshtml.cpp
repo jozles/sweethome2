@@ -120,7 +120,7 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
             ethWrite(cli,icon);
             //dumpstr(icon,512);
           }
-          fimg.close();         
+          fimg.close();        
         }
         Serial.print(" dur=");Serial.println(millis()-begIC);
         return SDOK;          // attention !!! pas de cli.stop sinon une suite éventuelle ne pourra pas partir (acceuilHtml par ex)
@@ -346,7 +346,7 @@ void subcfgtable(char* buf,const char* titre,int nbl,const char* nom1,const char
 
 void cfgServerHtml(EthernetClient* cli)
 {
-            Serial.println(" config serveur");
+            Serial.print(" config serveur ");
 
             char buf[LBUF4000];buf[0]='\0';
  
@@ -393,7 +393,7 @@ void cfgServerHtml(EthernetClient* cli)
 void cfgDetServHtml(EthernetClient* cli)
 {
   
-            Serial.println(" config detServ");
+            Serial.print(" config detServ ");
 
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
@@ -432,7 +432,7 @@ void cfgRemoteHtml(EthernetClient* cli)
   const uint16_t lb0=LBUF4000;
   char buf[lb0];buf[0]='\0';
   
-            Serial.println(" config remote");
+            Serial.print(" config remote ");
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf);
@@ -521,7 +521,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
 void remoteHtml(EthernetClient* cli)
 {              
-            Serial.print(millis());Serial.println(" remoteHtml()");
+            Serial.print(millis());Serial.print(" remoteHtml() ");
 
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
@@ -705,7 +705,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
 
 void thermoShowHtml(EthernetClient* cli)
 {
-            Serial.println(" show thermos");
+            Serial.print(" show thermos ");
             
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
@@ -772,7 +772,7 @@ void subthd(char* buf,char param,uint8_t nb,void* val,char type)
 
 void thermoCfgHtml(EthernetClient* cli)
 { 
-            Serial.println(" config thermos");
+            Serial.print(" config thermos ");
 
             const uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
@@ -825,7 +825,7 @@ void timersHtml(EthernetClient* cli)
   int nucb;           
   //char bufdate[LNOW];ds3231.alphaNow(bufdate);
   
-            Serial.println(" config timers");
+            Serial.print(" config timers ");
 
             const uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
