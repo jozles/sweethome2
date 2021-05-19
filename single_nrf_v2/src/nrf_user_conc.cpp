@@ -8,7 +8,7 @@
 
 #if NRF_MODE == 'C'
 
-extern struct NrfConTable tableC[NBPERIF];
+extern struct NrfConTable tableC[NBPERIF+1];
 extern Nrfp radio;
 
 /* user includes */
@@ -37,20 +37,34 @@ extern bool diags;
 //#define CLIST cli.readBytesUntil('\0',data+k2,k1);data[k1+k2]='\0'
 #define CLIZER etatImport=0
 
-#endif // TXRX_MODE == 'T'
+#endif //  TXRX_MODE == 'T'
 
 #if TXRX_MODE == 'U'
 
 #include <EthernetUdp.h>
 
+#define INTERIEUR       // concentrateur intérieur
+//#define EXTERIEUR       // concentrateur extérieur
+
+#ifdef INTERIEUR
+  #define CONCNRFIPADDR CONCNRFIPADDR1
+  #define PORTUDPCONC   PORTUDPCONC1
+  #define MACADDRUDP    MACADDRUDP1
+#endif //  INTERIEUR  
+#ifdef EXTERIEUR
+  #define CONCNRFIPADDR CONCNRFIPADDR2
+  #define PORTUDPCONC   PORTUDPCONC2
+  #define MACADDRUDP    MACADDRUDP2
+#endif //  EXTERIEUR  
+
   EthernetUDP Udp;
 
-  byte          localIp[] = CONCNRFIPADDR;        // IP fixe pour carte W5x00   (192.168.0.31)
-  unsigned int  port     = PORTUDPCONC;           // (8887)
-  IPAddress     host(192, 168, 0, 36);            // ip server sh devt2
-  //byte        host[]   = {82,64,32,56};
-  //byte        host[]   = {192,168,0,36};
-  unsigned int  hport    = 8886;                  // port server sh devt2
+uint16_t      port     = PORTUDPCONC;         // (8887 intérieur ; 8888 ext)
+byte          mac[]    = MACADDRUDP;          //{0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
+uint16_t      hport    = PORTUDPSERVER2;      // port server sh devt2
+
+IPAddress localIp(CONCNRFIPADDR);
+IPAddress host(SHIPADDR);
 
 IPAddress     rxIpAddr;   // IPAddress from received message
 unsigned int  rxPort;     // port      from received message
@@ -64,13 +78,11 @@ char  udpData[LBUFSERVER+1];
 #define CLIST memcpy(data+k2,udpData+clipt,k1-k2);clipt+=(k1-k2);data[k1]='\0'
 #define CLIZER etatImport=0;cliav=0
 
-#endif // TXRX_MODE == 'U' 
+#endif //  TXRX_MODE == 'U' 
 
 int k,k1,k2;    // pour macros TCP/UDP
 char c;         // pour macros TCP/UDP
 extern uint8_t numConc;
-
-  byte        mac[]     = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
 
   EthernetClient cli;   
 
@@ -81,14 +93,14 @@ extern uint8_t numConc;
 #define LBODY 6 // "<body>"
   extern char bufServer[BUF_SERVER_LENGTH];
 
-  char* srvpswd=PERIPASS;
+  const char* srvpswd=PERIPASS;
   byte  lsrvpswd=LPWD;
 
-  char* fonctions={"set_______ack_______etat______reset_____sleep_____testaoff__testa_on__testboff__testb_on__last_fonc_"};
+  const char* fonctions={"set_______ack_______etat______reset_____sleep_____testaoff__testa_on__testboff__testb_on__last_fonc_"};
   uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__;;
   int     nbfonct;
 
-  char* chexa="0123456789ABCDEFabcdef\0";
+  const char* chexa="0123456789ABCDEFabcdef\0";
 
   char getHDmess[1000];
 
@@ -117,10 +129,10 @@ extern uint8_t numConc;
 /* réception/decodage messages serveur */
 
   uint8_t   etatImport=0;
-  char*     intro="<body>";
+  const char*     intro="<body>";
   uint8_t   introLength1=6;
   uint8_t   introLength2=15;
-  char*     suffix="</body>";
+  const char*     suffix="</body>";
   uint8_t   suffixLength=7;
   uint16_t  messLength=0;
   uint16_t  l;
@@ -131,6 +143,8 @@ extern uint8_t numConc;
   uint8_t   lastEtatImport;
 
 /* cycle functions */
+
+int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hport,char* data);    // connecte au serveur et transfère la data
 
 void userResetSetup()
 {
@@ -155,19 +169,24 @@ void userResetSetup()
 
 IPAddress slaveIp(192, 168, 0, 31);
 #define IP slaveIp
-#define PORT 8887
+#define PORT PORTUDPCONC // 8887
   if(diags){
   Serial.println();
   for(int i=0;i<6;i++){Serial.print(mac[i],HEX);if(i!=5){Serial.print(":");}}
   Serial.print(" ready on ");
   for(int i=0;i<4;i++){Serial.print(IP[i]);if(i!=3){Serial.print(".");}}
   }
-// start ethernet,udp  
-  Ethernet.begin(mac, IP);
-  if(diags){Serial.print(" Udp.begin ");Serial.print(PORT);}
-  if(!Udp.begin(PORT)){Serial.println(" ko");while(1){};}
-  if(diags){Serial.println(" ok");}
-/*  Serial.print("\nEthernet mac=");serialPrintMac(mac,0);
+  Serial.print(":");Serial.print(PORT);
+// start ethernet,udp    
+  Ethernet.begin(mac, localIp);
+  Serial.print(" Udp.begin ");
+  if(!Udp.begin(port)){Serial.println(" ko");while(1){};}
+  Serial.print(" ready on ");Serial.print(Ethernet.localIP());
+  Serial.print(":");Serial.print(port);
+  Serial.print(" ");Serial.print(millis()-t_beg);Serial.println("mS");
+
+/*if(diags){Serial.println(" ok");}
+  Serial.print("\nEthernet mac=");serialPrintMac(mac,0);
   if(Ethernet.begin((uint8_t*)mac) == 0){
     Serial.print(" failed with DHCP... forcing Ip ");serialPrintIp(localIp);delay(10);
     Ethernet.begin ((uint8_t*)mac, localIp);
@@ -177,13 +196,13 @@ IPAddress slaveIp(192, 168, 0, 31);
   Serial.print(" UDPport=");Serial.print(port);
   if(!Udp.begin(port)){Serial.print(" begin ko ");while(1){};}
   else{Serial.print(" begin ok");}
-#endif // TXRX_UDP  
-*/  
-  if(diags){Serial.print(" local IP=");Serial.print(Ethernet.localIP());Serial.print(" ");Serial.println(millis()-t_beg);}
+#endif //  TXRX_UDP  
+  
+if(diags){Serial.print(" local IP=");Serial.print(Ethernet.localIP());Serial.print(" ");Serial.println(millis()-t_beg);}
+*/
 }
 
-//int mess2Server(EthernetClient* cli,byte* host,int hport,char* data)    // connecte au serveur et transfère la data
-int mess2Server(EthernetClient* cli,IPAddress host,unsigned int hport,char* data)    // connecte au serveur et transfère la data
+int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hport,char* data)    // connecte au serveur et transfère la data{
 {
 #ifdef DIAG
 /*  
@@ -191,7 +210,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,unsigned int hport,char* data
   for(int i=0;i<4;i++){Serial.print((uint8_t)host[i]);Serial.print(" ");}
   Serial.print(":");Serial.print(hport);Serial.print("...");
 */
-#endif // DIAG
+#endif //  DIAG
 
 #if TXRX_MODE == 'U'
   Udp.beginPacket(host,hport);
@@ -199,7 +218,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,unsigned int hport,char* data
   Udp.write(data,strlen(data));
   Udp.endPacket();
   return 1;
-#endif // TXRX_MODE == 'U'
+#endif //  TXRX_MODE == 'U'
 
 #if TXRX_MODE == 'T'  
   int     cxStatus=0;
@@ -233,7 +252,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,unsigned int hport,char* data
   }
   return 0;
  
-#endif // TXRX_MODE == 'T'
+#endif //  TXRX_MODE == 'T'
 }       // messToServer
 
 #if TXRX_MODE == 'U'
@@ -249,7 +268,7 @@ int intro_Udp()
   }
   return cliav;
 }
-#endif // TXRX_MODE == 'U'
+#endif //  TXRX_MODE == 'U'
 
 int getHData(char* data,uint16_t* len)
 {
@@ -271,7 +290,7 @@ int getHData(char* data,uint16_t* len)
 
 #if TXRX_MODE == 'U'
   if(clipt>=cliav){intro_Udp();}     // intro_Udp() charge un éventuel packet 
-#endif //
+#endif // 
   
   if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected (does not happen in Udp mode)
   
@@ -307,7 +326,7 @@ int getHData(char* data,uint16_t* len)
             if(calcCrc((char*)(data+introLength2-4),messLength-suffixLength)==crcAsc){
               t1_4=micros()-t1;
               return MESSOK;}
-            else messLength=0;data[0]='\0';CLIZER;
+            else {messLength=0;data[0]='\0';CLIZER;}
             break;            
     default:CLIZER;break;
   }
@@ -322,12 +341,19 @@ int exportData(uint8_t numT)                            // formatting periBuf da
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
   strcpy(bufServer,"GET /cx?\0");
-  if(!buildMess("peri_pass_",srvpswd,"?")==MESSOK){
+  if(buildMess("peri_pass_",srvpswd,"?")<=0){
     Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};
 
   char message[LENVAL];
   int sb=0,i=0;
-  char x[2]={'\0','\0'};
+  char* perVersAd=tableC[numT].periBuf+6;
+  char* perVoltsAd=tableC[numT].periBuf+6+LENVERSION+1+8;
+  char* perTempAd=tableC[numT].periBuf+6+LENVERSION+1+8+4;
+  char* perThModAd=tableC[numT].periBuf+6+LENVERSION;
+  if(memcmp(perVersAd,"1.7",3)>0){
+    perVoltsAd=tableC[numT].periBuf+6+LENVERSION+1;
+    perTempAd=tableC[numT].periBuf+6+LENVERSION+1+4;
+  }
   
       sprintf(message,"%02d",tableC[numT].numPeri);                 // N° périf dans table serveur                    
       memcpy(message+2,"_\0",2);                     
@@ -337,28 +363,26 @@ int exportData(uint8_t numT)                            // formatting periBuf da
       sb+=17;
       memcpy(message+sb,"_\0",2);
       sb+=1;
-      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+1+8+4,6); // temp                              
+      memcpy(message+sb,perTempAd,6);                               // temp                              
       sb+=6;
       memcpy(message+sb,"_\0",2);
       sb+=1;
-      memcpy(message+sb,"9999",4);                                 // analog value (4 decimal digits maxi) 
+      memcpy(message+sb,"9999",4);                                  // analog value (4 decimal digits maxi) 
       sb+=4;                                                       
       memcpy(message+sb,"_\0",2);                                    
       sb+=1;
-      memcpy(message+sb,tableC[numT].periBuf+6+LENVERSION+1+8,4);   // volts                              
+      memcpy(message+sb,perVoltsAd,4);                               // volts                              
       sb+=4;
       memcpy(message+sb,"_\0",2);                             
       sb+=1;
-      memcpy(message+sb,tableC[numT].periBuf+6,LENVERSION);         // VERSION
+      memcpy(message+sb,perVersAd,LENVERSION);                      // VERSION
       sb+=LENVERSION;
-      memcpy(message+sb-1,tableC[numT].periBuf+6+LENVERSION,1);     // thermo model take place of 4th version char
-      //sb+=1;
+      memcpy(message+sb-1,perThModAd,1);                            // thermo model take place of 4th version char
       memcpy(message+sb,"_\0",2);                             
       sb+=1;      
       
 #define NBSW 0
       message[sb]=(char)(NBSW+48);                                  // nombre switchs              - 1   
-      //for(i=0;i<NBSW;i++){message[sb+1+(MAXSW-1)-i]=(char)(48+digitalRead(pinSw[i]));}     
       if(NBSW<MAXSW){for(i=NBSW;i<MAXSW;i++){message[sb+1+(MAXSW-1)-i]='x';}}
       memcpy(message+sb+MAXSW+1,"_\0",2);                           // message[sb+MAXSW+1]='_';
       sb+=MAXSW+2;
@@ -389,12 +413,11 @@ char model[LENMODEL];
 
 if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}
 
-    uint8_t fonction=0;                                                                       // data_read_ -> set
     char fonctName[]={"data_read_"};
-    if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);fonction=1;}            // data_save_ -> ack
-    buildMess(fonctName,message,"");                                                          // buld message for server
+    if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);} // data_save_ -> ack
+    buildMess(fonctName,message,"");                                    // buld message for server
 
-    t3_0=micros();                        // fin buildMess
+    t3_0=micros();                                                      // fin buildMess
 
 /* send to server */
     
@@ -433,7 +456,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
                                         //    si ok -> tfr params
                                         // retour periMess
 {
-  int  numT=-99,nP,len,numPeri;
+  int  numT=-99,nP,numPeri;
   char fromServerMac[6];
   int  periMess;
 
@@ -471,4 +494,4 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   return periMess;
 }
 
-#endif // NRF_MODE == 'C'
+#endif //  NRF_MODE == 'C'

@@ -1,4 +1,4 @@
-#include <Arduino.h>
+
 #include "nrf24l01s_const.h"
 #include "nRF24L01.h"
 #include "nrf24l01s.h"
@@ -18,8 +18,8 @@ Eepr eeprom;
  */
  
 #ifdef DUE
-#include <MemoryFree.h>;
-#endif //
+#include <MemoryFree.h>
+#endif // def DUE 
 
 #ifdef DS18X20
 #include <ds18x20.h>
@@ -30,20 +30,20 @@ byte     setds[]={0,0x7f,0x80,0x3f},readds[8];   // 1f=93mS 9 bits accu 0,5° ; 
 #endif // DS18X20 
 
 #if NRF_MODE == 'C'
-extern struct NrfConTable tableC[NBPERIF];
+extern struct NrfConTable tableC[NBPERIF+1];
 bool menu=true;
 #endif // NRF_MODE == 'C'
 
-#define CONFIGLEN 37                      // paramètres de config en Eepron
+#define CONFIGLEN 40                      // len maxi paramètres de config en Eeprom (37 v01 ; 38 v02)
 byte    configData[CONFIGLEN];
 
-byte*  configVers;
-float* thFactor;
-float* thOffset;
-float* vFactor;
-float* vOffset;
-byte*  macAddr;
-byte*  concAddr;
+byte*     configVers;
+float*    thFactor;
+float*    thOffset;
+float*    vFactor;
+float*    vOffset;
+byte*     macAddr;
+uint8_t*  numC;
 
 Nrfp radio;
 
@@ -113,9 +113,18 @@ unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buff
 unsigned long tLast=0;             // date unix dernier message reçu 
 #define PERIMPORT 100
 
-uint8_t numConc=0;
-
 #endif // NRF_MODE == 'C'
+
+
+#define DEFCONC 1
+
+uint8_t numConc;
+
+uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal bvs N° conc 
+uint8_t channel=channelTable[DEFCONC];                          // valeur pour 'P' qui n'a pas de numConc
+
+byte*   concAddrTable[NBCONC] = {CC_ADDR0,CC_ADDR1,CC_ADDR2,CC_ADDR3};
+byte*   concAddr=concAddrTable[DEFCONC];
 
 #if NRF_MODE == 'P'
 
@@ -146,10 +155,10 @@ float     period;
 #define TCCR1B_PRESCALER_MASK 0xF8    // prescaler bit mask in TCCR1B
 #if PRESCALER_RATIO==1024
   #define TCCR1B_PRESCALER_BITS 0x05  // prescaler bit value for ratio 1024 in TCCR1B
-#endif //  
+#endif 
 #if PRESCALER_RATIO==256
   #define TCCR1B_PRESCALER_BITS 0x04  // prescaler bit value for ratio 256 in TCCR1B
-#endif //  
+#endif
 #define CPU_FREQUENCY 8000000
 
 float temp;
@@ -162,7 +171,7 @@ char  thN;                            // thermo code for version
 void sleepNoPwr(uint8_t durat);
 void initConf();
 void configPrint();
-void getConcMac();
+void getConcParams();
 int  beginP();
 void echo();
 void hardwarePwrUp();
@@ -183,8 +192,8 @@ void iniTemp();
 void readTemp();
 void showErr(bool crlf);
 void showRx(bool crlf);
-void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb);
-void delayBlk(uint16_t dur,uint16_t bdelay,uint16_t bint,uint8_t bnb,uint16_t dly);
+void ledblk(int dur,int bdelay,int bint,uint8_t bnb);
+void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
 int  rxMessage(unsigned long to);
 void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
@@ -192,6 +201,7 @@ void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
 char getch();
 void echo();
 void broadcast(char a);
+void getEchoNum();
 #endif // NRF_MODE == 'C'
 
 
@@ -206,10 +216,10 @@ void setup() {
   initConf();
   if(!eeprom.load(configData,CONFIGLEN)){Serial.println("***EEPROM KO***");delayBlk(1,0,250,3,10000);lethalSleep();}
   Serial.println("eeprom ok");
+  getConcParams();
   radio.locAddr=macAddr;
-  if(memcmp(concAddr,CB_ADDR,ADDR_LENGTH)==0){getConcMac();Serial.println("getconcMac");}    // si pas d'adresse individuelle de concentateur -> get it 
-  configPrint();
   radio.ccAddr=concAddr;
+  configPrint();
 
   /* external timer calibration sequence */
   t_on=millis();
@@ -273,17 +283,19 @@ void setup() {
 
   pinMode(NUMC_BIT0,INPUT_PULLUP);
   pinMode(NUMC_BIT1,INPUT_PULLUP);
-  numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
+  //numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
+  numConc=1;
+  channel=channelTable[numConc];
   Serial.print(" numConc=");Serial.println(numConc);
 
   pinMode(LED,OUTPUT);
   
   userResetSetup();
 
-  radio.locAddr=CC_ADDR;                              // première init à faire !!
+  radio.locAddr=concAddrTable[numConc];      // première init à faire !!
   radio.tableCInit();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
-  radio.powerOn();
+  radio.powerOn(channel);
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);                // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
   
 #ifdef DUE
@@ -359,25 +371,30 @@ void loop() {
       tdiag+=(micros()-localTdiag);}
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
-    uint8_t outLength=ADDR_LENGTH+1;
-    memcpy(message+outLength,VERSION,LENVERSION);                     // version
+    uint8_t outLength=ADDR_LENGTH+1;                                  // perifx     - 6
+    memcpy(message+outLength,VERSION,LENVERSION);                     // version    - 4
     outLength+=LENVERSION;
     memcpy(message+outLength,&thN,1);                                 // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
-    sprintf((char*)(message+outLength+1),"%08lu",(uint32_t)tBeg);      // first connection unix time
-    outLength+=9;
+    outLength++;
+                                                                      //            - 1
+    //sprintf((char*)(message+outLength+1),"%08lu",(uint32_t)tBeg);     // first connection unix time
+    //outLength+=9;                                                     //            - 9
  
-    messageBuild((char*)message,&outLength);                          // add user data
+    messageBuild((char*)message,&outLength);                          // add user data 
     memcpy(message,macAddr,ADDR_LENGTH);                              // macAddr
     message[ADDR_LENGTH]=numT+48;                                     // numéro du périphérique
     message[outLength]='\0';
-
-    /* One transaction is tx+rx ; if both ok reset counters else retry management*/  
     
+    if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR);}
+    if(diags){Serial.print(" (");Serial.print(outLength);Serial.print(") >>> ");Serial.println((char*)message);}
+    
+    /* One transaction is tx+rx ; if both ok reset counters else retry management*/  
+
     rdSta=-1;
     nbS++;
 
     t_on2=micros();                   // message build ... send
-    radio.powerOn();
+    radio.powerOn(channel);
     trSta=0;
     rdSta=txRxMessage();
     t_on21=micros();
@@ -604,7 +621,6 @@ void echo()
 
 void echo0(bool ack,uint8_t len,uint8_t numP)
 {                       // txMessage + read réponse (1er perif de la table)
-  int trSta=-1;
   
   bool waitEcho=true;
   while(waitEcho){
@@ -667,10 +683,14 @@ char getch()
 
 #if NRF_MODE == 'P'
 
-void getConcMac()
+void getConcParams()
 {
-  memcpy(concAddr,CC_ADDR,ADDR_LENGTH);
+  numConc=*numC;
+  if(memcmp(configVers,"01",2)==0){numConc=1;}
+  concAddr=concAddrTable[numConc];
+  channel=channelTable[numConc];
 }
+
 
 int beginP()                        // manage registration ; output value >0 is numT else error with radio.powerOff()
 {
@@ -691,7 +711,7 @@ int beginP()                        // manage registration ; output value >0 is 
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
       delayBlk(32,0,125,4,1);           // 4 blinks
-      radio.powerOn();                  // txRx or other running
+      radio.powerOn(channel);                  // txRx or other running
       break;                            // ok -> out of while(beginP_retryCnt>0)
     }
 
@@ -711,7 +731,7 @@ int beginP()                        // manage registration ; output value >0 is 
     if(beginP_retryCnt>0){
       sleepNoPwr(0);                    
       delayBlk(1,0,125,2,1);          // 2 blinks
-      radio.powerOn();}   
+      radio.powerOn(channel);}   
   }                                   // next attempt
 
   if(diags){
@@ -811,7 +831,7 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2
   time_end=micros();
 
   if(diags){
-#if NRF_MODE=='C'
+  #if NRF_MODE=='C'
     memset(bufCv,0x00,LBUFCV);
     memcpy(diagMessT,message,len);
     diagMessT[len]='\0';
@@ -822,10 +842,10 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2
     sprintf(bufCv,"%-1d",trSta);
     strcat(diagMessT,bufCv);
     strcat(diagMessT," in ");
-    sprintf(bufCv,"%d",(time_end - time_beg));
+    sprintf(bufCv,"%ld",(time_end - time_beg));
     strcat(diagMessT,bufCv);
     strcat(diagMessT,"uS");
-#endif // NRF_MODE=='C'
+  #endif // NRF_MODE=='C'
   }
   return trSta;
 }
@@ -847,7 +867,7 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
   time_end=micros();
 
   if(diags){
-#if NRF_MODE=='C'
+  #if NRF_MODE=='C'
     memset(bufCv,0x00,LBUFCV);
     memcpy(diagMessR,message,pldLength);
     diagMessR[pldLength]='\0';
@@ -855,23 +875,23 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
     sprintf(bufCv,"%-1d",rdSta);
     strcat(diagMessR,bufCv);
     strcat(diagMessR," in ");
-    sprintf(bufCv,"%d",(time_end - time_beg));
+    sprintf(bufCv,"%ld",(time_end - time_beg));
     strcat(diagMessR,bufCv);
     strcat(diagMessR,"uS");
-#endif // NRF_MODE=='C'
+  #endif // NRF_MODE=='C'
   }
   return rdSta;
 }
 
 void showRx(bool crlf)
 { 
-if(diags){
-  Serial.print(" reçu l=");Serial.print(pldLength);
-  Serial.print(" p=");Serial.print(pipe);
-  Serial.print(" ");
-  if(crlf){Serial.println();}
-  delay(2);
-}
+  if(diags){
+    Serial.print(" reçu l=");Serial.print(pldLength);
+    Serial.print(" p=");Serial.print(pipe);
+    Serial.print(" ");
+    if(crlf){Serial.println();}
+    delay(2);
+  }
 }
 
 void showErr(bool crlf)
@@ -965,18 +985,18 @@ void hardwarePwrUp()
   pinMode(REED,INPUT_PULLUP);
 }
 
-void sleepDly(int dly)                                                       // should be (nx125)
+#define DLYSTP (int)32
+void sleepDly(int dly)                    // should be (nx32)
 {
   if(diags){delay(1);}                    // serial
-  int sdly=32;
-  dly=(dly/sdly)*sdly;
-  while(dly>=sdly){
-    //delay(32);
+
+  dly=dly/DLYSTP*DLYSTP;
+  while(dly>=0){
     sleepNoPwr(T32);
-    dly-=sdly;}
+    dly-=DLYSTP;}
 }
 
-void delayBlk(uint16_t dur,uint16_t bdelay,uint16_t bint,uint8_t bnb,uint16_t dly)
+void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
 /*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 
     bnb=(on+off) nb in one sequence ; dly=total delay time   
     
@@ -1001,7 +1021,7 @@ void delayBlk(uint16_t dur,uint16_t bdelay,uint16_t bint,uint8_t bnb,uint16_t dl
     for(int i=0;i<bnb;i++){
       digitalWrite(LED,HIGH);
       pinMode(LED,OUTPUT);
-      if(dur<32){delay(dur);}         // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
+      if(dur<DLYSTP){delay(dur);}         // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
                                       // for 32mS sleep, power saving is greater than 90%
       else {sleepDly(dur);}
       digitalWrite(LED,LOW);
@@ -1020,6 +1040,7 @@ void configPrint()
     Serial.print("crc     ");dumpfield((char*)configData,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
     char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
     Serial.print("MAC  ");dumpstr((char*)macAddr,6);Serial.print("CONC ");dumpstr((char*)concAddr,6);
+    if(memcmp(configVers,"01",2)!=0){Serial.print("numconc ");dumpstr((char*)&numConc,1);}
 
     Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
     Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
@@ -1045,12 +1066,14 @@ void initConf()
   temp +=6;
   concAddr=(byte*)temp;
   temp +=6;
+  numC=(uint8_t*)temp;
+  temp +=sizeof(uint8_t);
 
   byte* configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
 
   long configLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
   Serial.print("CONFIGLEN=");Serial.print(CONFIGLEN);Serial.print("/");Serial.println(configLength);
-  delay(10);if(configLength!=CONFIGLEN) {ledblink(BCODECONFIGRECLEN);}
+  delay(10);if(configLength>CONFIGLEN) {initLed(LED);ledblink(BCODECONFIGRECLEN);}
 /*
   memcpy(configVers,VERSION,2);
   memcpy(macAddr,DEF_ADDR,6);
@@ -1067,7 +1090,7 @@ void initConf()
 
 #if NRF_MODE == 'C'
 
-void delayBlk(uint16_t dur,uint16_t bdelay,uint16_t bint,uint8_t bnb,uint16_t dly)
+void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
 /*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 
     bnb=(on+off) nb in one sequence ; dly=total delay time   */
 {  
@@ -1077,7 +1100,7 @@ void delayBlk(uint16_t dur,uint16_t bdelay,uint16_t bint,uint8_t bnb,uint16_t dl
 }
 #endif // NRF_MODE == 'C'
 
-void ledblk(uint8_t dur,uint16_t bdelay,uint8_t bint,uint8_t bnb)
+void ledblk(int dur,int bdelay,int bint,uint8_t bnb)
 {   // dur = durée on ; bdelay = delay entre séquences ; bint = intervalle entre blinks ; bnb = nbre blinks
   if((millis()-blktime)>blkdelay){
     if(digitalRead(LED)==LOW){

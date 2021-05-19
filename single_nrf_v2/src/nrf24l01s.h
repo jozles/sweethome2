@@ -144,7 +144,7 @@ class Nrfp
   public:
     Nrfp();
 
-    void setup();
+    void setup(uint8_t channel);
 
     int  available(uint8_t* pipe,uint8_t* length);
     int  read(byte* data,uint8_t* pipe,uint8_t* length,int numP);
@@ -152,7 +152,7 @@ class Nrfp
     void write(byte* data,bool ack,uint8_t len,uint8_t numP);
     int  transmitting(bool ack);
 
-    void powerOn();
+    void powerOn(uint8_t channel);
     void powerOff();
     void powerUp();
     void powerDown();
@@ -161,7 +161,7 @@ class Nrfp
 
     void printAddr(char* addr,char n);
 
-    bool powerD=true;         // etat power (true=down)
+    bool    powerD=true;      // etat power (true=down)
     uint8_t lastSta=0;
     byte*   locAddr;          // local Addr        
 

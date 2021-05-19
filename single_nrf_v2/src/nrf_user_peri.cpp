@@ -46,16 +46,30 @@ void messageBuild(char* message,uint8_t* messageLength)
 {
   /* Here add user data >>> be carefull to not override 32 bytes <<< */
   
-    dtostrf(volts,4,2,(char*)(message+*messageLength));                      
+    Serial.print(" volts ");Serial.print(volts);
+    dtostrf(volts,4,2,(char*)(message+*messageLength));             //          - 4                    
     (*messageLength)+=4;                                            // power voltage
-          
+
+    Serial.print(" temp ");Serial.print(temp);      
     char s='+';if(temp<0){s='-';}
     message[*messageLength]=s;
-    dtostrf(temp,5,2,message+*messageLength+1);                     // temp
+    dtostrf(temp,5,2,message+*messageLength+1);                     // temp     - 6
     if(temp<10){message[(*messageLength)+1]='0';}
     if((strstr(message,"nan")!=0) || !thSta){memcpy((message+*messageLength),"+00.00",6);}
     (*messageLength)+=6; 
-    message[*messageLength]='\0';
+    
+    message[*messageLength]='0'+bitRead(PORT_DIG1,BIT_DIG1)+bitRead(PORT_DIG2,BIT_DIG2)*2+bitRead(PORT_REED,BIT_REED)*4;
+    (*messageLength)++;                                             // digits   - 1
+
+    uint16_t adcVal=0;
+    #define LENUINT16_T 2
+    adcVal=adcRead0(A1ADMUXVAL,0);conv_htoa((char*)(message+*messageLength),(byte*)&adcVal,LENUINT16_T);
+    (*messageLength)+=4;                                            // anal1    - 4
+    Serial.print(" adc1 ");Serial.print(adcVal,HEX);                                            
+    adcVal=adcRead0(A2ADMUXVAL,0);conv_htoa((char*)(message+*messageLength),(byte*)&adcVal,LENUINT16_T);
+    (*messageLength)+=4;                                            // anal2    - 4
+    Serial.print(" adc2 ");Serial.println(adcVal,HEX);
+    message[*messageLength]='\0';                                   //          - 1
 }
 
 void importData(byte* data,uint8_t dataLength)

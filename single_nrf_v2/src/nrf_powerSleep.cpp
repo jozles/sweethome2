@@ -191,7 +191,7 @@ void wd()
   checkOff();                       // reset strobe off
 }
 
-float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_t dly)      // dly=1 if ADC halted
+uint16_t adcRead0(uint8_t admuxval,uint8_t dly)      // dly=1 if ADC halted
 {
     uint16_t a=0;
     
@@ -204,7 +204,12 @@ float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_
     a=ADCL;
     a+=ADCH*256;
 //  Serial.println();Serial.print(" a=");Serial.print(a);Serial.print("  factor=");Serial.println(factor*100);
-    return (float)(a*factor-(offset))+ref;
+    return a;
+}
+
+float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_t dly)      // dly=1 if ADC halted
+{
+  return (float)((adcRead0(admuxval,dly)*factor-(offset))+ref);
 }
 
 void getVolts()                     // get unregulated voltage and reset watchdog for external timer period 

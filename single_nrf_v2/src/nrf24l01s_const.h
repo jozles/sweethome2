@@ -5,7 +5,7 @@
 #include "shconst2.h"
 #include "shutil2.h"
 
-#define VERSION "1.6 "
+#define VERSION "1.8 "
 #define LENVERSION 4
 
 /*
@@ -22,8 +22,9 @@ Le concentrateur et le périphérique utilisent le 6ème byte dans les messages 
 
 L'adresse RX0 n'est utilisée que par les périphériques pour recevoir les messages de broadcast (à traiter)
 
-L'adresse RX2 est utilisée par les concentrateurs avec une adresse générique. Ca permet l'appariemment périphérique/concentrateur.
-Les demandes d'adresse de concentrateur sont faites en faible puissance par le périphérique au contact du concentrateur auquel le connecter.
+>> à développer
+>> L'adresse RX2 est utilisée par les concentrateurs avec une adresse générique. Ca permet l'appariemment périphérique/concentrateur.
+>> Les demandes d'adresse de concentrateur sont faites en faible puissance par le périphérique au contact du concentrateur auquel le connecter.
 
 Sur les périphériques l'adresse TX est fixe sur la macAddr du concentrateur
 
@@ -50,37 +51,44 @@ Ajout param PER_PO pour mode 'P' : 'P' if power Off/On radio ; 'N' if radio ever
 v1.4  EEprom stocke la config : macAddr peri, macAddr conc ; factor volts et thermo calibrés avec pgme de test ;
 v1.5  transfert valeur entrée analogique + seuils (user_conc exportData()) le stockage des seuils est à faire dans importData() ; la lecture de l'entrée analogique aussi ;
 v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résistance 11.2K ; ajout calcul/affichage du temps de diag
+v1.7  définition du numConc dans la config et paramétrage du canal et du nom de concentrateur selon numConc
+v1.8  passage PC0(ADC0) PC6(ADC6) PD3(INT1-Rreed) PD5 PD6 au concentrateur
 */
 
-#define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
+//#define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
 
 /************* config ****************/
   
-  #define NRF_MODE 'P'            //  C concentrateur ; P périphérique
-  
-  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-//  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
-//  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define NRF_MODE 'C'            //  C concentrateur ; P périphérique
 
-#if NRF_MODE == 'P'
-    #define DETS                  // carte DETS (sinon UNO etc)
-#endif // NRF_MODE == 'C'    
+/* !!! changer de platformio.ini selon le NRF_MODE ('C'=due ; 'P' =328 !!! */
+
+//  #define UNO                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+  #define DUE                     //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
+//  #define MEGA                    //  UNO ou MEGA ou DUE  (PRO MINI id UNO) pour accélération CE/CSN / taille table etc
 
   #define TXRX_MODE 'U'           // TCP / UDP
 
   #define MCP9700                 //#define TMP36 //#define LM335 //#define DS18X20 // modèle thermomètre
 
-/**************************************/
-
 #if NRF_MODE == 'P'
+  #define DETS                    // carte DETS (sinon UNO etc)
   #define PER_PO    'P'           // 'N' no powoff 'P' powoff
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define DEF_ADDR  "peri_"
 #endif //
 
-  #define CC_ADDR   (byte*)"ctest"      //"toto_"   //      // MAC_ADDR concentrateur ; provient de l'EEPROM sur perif
-  #define CB_ADDR   (byte*)"shcc0"      // adresse fixe de broadcast concentrateurs (recup MAC_ADDR concentrateurs) 0 nécessaire pour read()
-  #define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
+/* MACADDR concentrateur provient de l'EEPROM sur perif (chargé lors du test du périf - à développer le mode chuchotement)
+*  et du numConc (dip sw) sur concentrateur */
+#define NBCONC 4
+
+#define CC_ADDR0   (byte*)"dtest"
+#define CC_ADDR1   (byte*)"ctest"
+#define CC_ADDR2   (byte*)"btest"
+#define CC_ADDR3   (byte*)"atest"
+
+#define CB_ADDR   (byte*)"shcc0"      // adresse fixe de broadcast concentrateurs (recup MAC_ADDR concentrateurs) 0 nécessaire pour read()
+#define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
 
 #define CLK_PIN    13
 #define MISO_PIN   12
@@ -100,10 +108,20 @@ v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résis
   #define DDR_CE      DDRB
   #define BIT_CE      1
   #define CE_PIN      9
+
   #define PORT_REED   PORTD
   #define DDR_REED    DDRD
   #define BIT_REED    3
   #define REED        3
+  #define PORT_DIG1   PORTD
+  #define DDR_DIG1    DDRD
+  #define BIT_DIG1    5
+  #define DIG1        5
+  #define PORT_DIG2   PORTD
+  #define DDR_DIG2    DDRD
+  #define BIT_DIG2    6
+  #define DIG2        6
+
   #define PORT_DONE   PORTB
   #define DDR_DONE    DDRB
   #define BIT_DONE    0
@@ -138,12 +156,18 @@ v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résis
   #define LED        2          // 3 sur proto          
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
-  #define PP         7
-  #define NUMC_BIT0 14          // numConc low bit
-  #define NUMC_BIT1 15          // numConc high bit
+  #define PP         7          // pin pour pulse de debug analyseur logique (macro PP4)
+  // numéro de concentrateur (positionner les jumpers sur la carte) fournit le 6ème car de l'adresse mac des périfs
+  #define NUMC_BIT0 14          // numConc low bit     numéro concentrateur low bit        1 sur concentrateur intérieur ; 1 ext
+  #define NUMC_BIT1 15          // numConc high bit    numéro concentrateur high bit       0 sur concentrateur intérieur ; 1 ext
 #endif //
 
-  #define CHANNEL    110        // numéro canal radio
+/* un canal par n° de concentrateur */
+  #define CHANNEL0    120        // numéro canal radio
+  #define CHANNEL1    110        // numéro canal radio
+  #define CHANNEL2    100        // numéro canal radio
+  #define CHANNEL3    90         // numéro canal radio
+  
   #define RF_SPEED   RF_SPD_1MB // vitesse radio  RF_SPD_2MB // RF_SPD_1MB // RF_SPD_250K
   #define ARD_VALUE  0          // ((0-15)+1) x 250uS delay before repeat
   #define ARC_VALUE  4          // (0-15) repetitions
@@ -177,7 +201,10 @@ v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résis
                                 // with
                                 // TFACTOR=1.1/10.24 or VCC/10.24 or AREF/10.24
                                 // TOFFSET voltage(mV)/10 @ TREF @ 10mV/°C
-
+#define A1CHECKADC 0            // user ADC1 
+#define A1ADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | A1CHECKADC     // internal 1,1V ref + ADC input for volts
+#define A2CHECKADC 6            // user ADC2
+#define A2ADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | A2CHECKADC     // internal 1,1V ref + ADC input for volts
 
 #ifdef LM335
 #define TADMUXVAL  0 | (0<<REFS1) | (1<<REFS0) | TCHECKADC     // ADVCC ref + ADC input for temp

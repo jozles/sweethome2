@@ -1,3 +1,4 @@
+
 #include "nrf_user_conc.h"
 #include <SPI.h>
 #include "nrf24l01s.h"
@@ -81,7 +82,7 @@ Nrfp::Nrfp()    // constructeur
 {
 }
 
-void Nrfp::setup()
+void Nrfp::setup(uint8_t channel)
 { 
     /* registers */
 
@@ -106,7 +107,7 @@ void Nrfp::setup()
 
     addrWrite(RX_ADDR_P1,locAddr);  // RXP1 = macAddr du circuit pour réception messages dans pipe 1
 
-    regw=CHANNEL;
+    regw=channel;
     regWrite(RF_CH,&regw);
 
     regw=RFREG | RF_SPEED;
@@ -175,7 +176,7 @@ void Nrfp::allPinsLow()                     /* all radio/SPI pins low */
 }
 #endif // NRF_MODE='P'  
 
-void Nrfp::powerOn()
+void Nrfp::powerOn(uint8_t channel)
 {
 #if NRF_MODE == 'P'
 #if PER_PO == 'P'
@@ -210,7 +211,7 @@ void Nrfp::powerOn()
 #endif // NRF_MODE == 'C'
 
   powerUp();
-  setup();                        // registry inits 
+  setup(channel);                        // registry inits 
 }
 
 
@@ -609,10 +610,12 @@ void Nrfp::tableCInit()
 
 int Nrfp::tableCLoad()
 {
+  return 1;
 }
 
 int Nrfp::tableCSave()
 {
+  return 1;
 }
 #endif // NRF_MODE=='C'
 
