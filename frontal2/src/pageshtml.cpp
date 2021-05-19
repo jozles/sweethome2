@@ -45,7 +45,7 @@ extern char*      periModel;                    // ptr ds buffer : model du pér
 extern byte*      periSwVal;                    // ptr ds buffer peri : état/cde des inter 
 extern char*      periNamer;                    // ptr ds buffer : description périphérique
 
-extern byte       periMacBuf[6]; 
+extern byte       periMacBuf[MACADDRLENGTH]; 
 
 extern uint16_t   perrefr;
 extern File32     fhisto;           // fichier histo sd card
@@ -363,7 +363,7 @@ void cfgServerHtml(EthernetClient* cli)
             cli->print(" peripass <input type=\"text\" name=\"peripcfg__\" value=\"");cli->print(peripass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");*/
 
             strcat(buf," serverMac <input type=\"text\" name=\"ethcfg___m\" value=\"");
-            for(int k=0;k<6;k++){concat1a(buf,chexa[mac[k]/16]);concat1a(buf,chexa[mac[k]%16]);}strcat(buf,"\" size=\"11\" maxlength=\"12\" >\n");                        
+            for(int k=0;k<MACADDRLENGTH;k++){concat1a(buf,chexa[mac[k]/16]);concat1a(buf,chexa[mac[k]%16]);}strcat(buf,"\" size=\"11\" maxlength=\"12\" >\n");                        
             strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
             for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
             strcat(buf," portserver ");numTf(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");

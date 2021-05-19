@@ -133,6 +133,7 @@ void perifHeader(char* buf,char* jsbuf)
     for(int j=0;j<4;j++){concatn(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}};
     if(*periProg!=0){strcat(buf," / port=");concatn(buf,*periPort);strcat(buf,"  v");}
     char* db=buf+strlen(buf);
+    db[0]=' ';db++;
     memcpy(db,periVers,LENVERSION);db[LENVERSION]='\0';
     jscat(jsbuf,dm,CRLF);
     strcat(buf,"<br>\n");
@@ -436,7 +437,8 @@ Serial.print("\n");Serial.print(jsbuf);jsbuf[0]='\0';dumpstr(jsbuf,200);
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
       boutF(buf,jsbuf,swf,"","Switchs",0,0,0,0);
     }
-    boutF(buf,jsbuf,"peri_raz___","","Raz",0,1,0,0);
+    char raz[]="peri_raz___";raz[LENNOM-1]=periCur+PMFNCHAR;
+    boutF(buf,jsbuf,raz,"","Raz",0,1,0,0);
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
     line[LENNOM-2]='0';boutF(buf,jsbuf,line,"","tst__SW0",0,0,0,0);
