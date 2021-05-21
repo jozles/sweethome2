@@ -154,8 +154,11 @@ void  dataTransfer(char* data);
 void  readTemp();
 void  ordreExt();
 void  outputCtl();
-void mail(char* subj,char* dest,char* msg);
 void readAnalog();
+
+#ifdef MAIL_SENDER
+void mail(char* subj,char* dest,char* msg);
+#endif // MAILSENDER
 
 void tmarker()
 {
@@ -782,7 +785,7 @@ switch(cstRec.talkStep&=TALKCNTBIT){
         talkClr();  // terminé ; tout s'est bien passé les 2 côtés sont à jour 
 
 #ifdef  _SERVER_MODE
-        if(server!=nullptr && !serverStarted){
+        if(server!=nullptr){      //} && !serverStarted){
           server->begin(cstRec.portServer);
           serverStarted=true;
           Serial.print(" server.begin:");Serial.println((int)cstRec.portServer);
@@ -912,7 +915,9 @@ void ordreExt()
               case 6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);break;    // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
               case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);break;     // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
               case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);break;    // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
-              case 9: if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
+              case 9: 
+              #ifdef MAIL_SENDER                      
+                      if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
                       v0+=21;
                       {httpMess[strlen(httpMess)-2]='\0';             // erase CRC                   
                       uint16_t v1=strstr(httpMess,"==")-httpMess;
@@ -926,7 +931,12 @@ void ordreExt()
                       a[LMLOC-1]='\0';strcat(httpMess+v2+2,a);
                       answer("mail______");                   
                       mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
-                      }break;                 
+                      }
+              #endif // MAIL_SENDER
+              #ifndef MAIL_SENDER
+                      if(diags){Serial.println("no mail on this board");}
+              #endif // MAIL_SENDER
+                      break;                 
               default:break;
           }          
           Serial.println();
