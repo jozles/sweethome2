@@ -39,15 +39,16 @@ extern "C" {
 #define MAXTPS 3                    // nbre instances pour TCP
 
   EthernetClient cli_a[MAXTPS];     // instances serveur de periphériques et browser configuration
-//  EthernetClient cli_a;             // instance serveur de periphériques et browser configuration
-  EthernetClient cli_b;             // instance du serveur pilotage
-  EthernetClient cliext;            // instance client serveur externe  
-//  EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
 
 uint8_t tPS=0;                      // pointeur prochaine instance cli_a à utiliser
 unsigned long tPSStop[MAXTPS];      // heure fin d'usage des instances pour faire .stop()
 char ab;                            // protocole et type de la connexion en cours
                                     // 'a' TCP periTable 'b' TCP remote 'u' UDP
+
+//  EthernetClient cli_a;             // instance serveur de periphériques et browser configuration
+  EthernetClient cli_b;             // instance du serveur pilotage
+  EthernetClient cliext;            // instance client serveur externe  
+//  EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
 
   char udpData[UDPBUFLEN];          // buffer paquets UDP
   uint16_t udpDataLen;              // taille paquet contenu
@@ -141,6 +142,7 @@ EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 #define TEMP    "T"                    // Temp record
 #define RESET   "R"                    // Reset record
 #define BOOT    "B"                    // Boot record
+#define UBOOT   "u"                    // User Request Boot record
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long srvdettime=0;          // mesure scans détecteurs
@@ -343,6 +345,7 @@ void cidDmp();
 void watchdog();
 void stoprequest();
 void wdReboot(const char* msg,unsigned long maxCx);
+void usrReboot();
 void periDetecUpdate();
 void testSwitch(const char* command,char* perihost,int periport);
 
@@ -499,6 +502,7 @@ void stoprequest()
     histoStore_textdh(HALTREQ,"","<br>\n\0");
     periTableSave();
     Serial.println("Halt request =====");
+    mail("HALTed",(char*)(usrnames+usernum*LENUSRNAME));
 
     while(1){
       digitalWrite(PINLED,HIGH);delay(300);digitalWrite(PINLED,LOW);delay(300);
@@ -510,6 +514,16 @@ void watchdog()
 {
   if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("TCP cx lost ",*maxCxWt);}
   if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("UDP cx lost ",*maxCxWu);}
+}
+
+void usrReboot()
+{
+    trigwd();
+    Serial.println("user reBoot");delay(2);
+    histoStore_textdh(UBOOT,(char*)(usrnames+usernum*LENUSRNAME),"<br>\n\0");
+    periTableSave();
+    mail("UsrBOOT",(char*)(usrnames+usernum*LENUSRNAME));
+    forceWd();                             // wait for hardware watchdog
 }
 
 void wdReboot(const char* msg,unsigned long maxCx)
@@ -1292,7 +1306,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        else{periReq(&cliext,periCur,"etat______");}                                 // si pas erase demande d'état
                        SwCtlTableHtml(cli);break;                                                                               
               case 9:  {byte a=*(libfonctions+2*i+1);
-                        if(a=='B'){wdReboot(BOOT,millis());}
+                        if(a=='B'){usrReboot();}
                        }break;                                                                      // si pas 'R' déco donc -> accueil                                             
               case 10: dumpHisto(cli);break;                                                        // bouton dump_histo
               case 11: {what=2;byte a=*(libfonctions+2*i);                                          // (en-tete peritable) saisie histo pos/histo dh pour dump
@@ -1580,7 +1594,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        if(periCur>NBPERIF){periCur=NBPERIF;}periInitVar();periLoad(periCur); 
                        //Serial.print(" fonct 73======");periPrint(periCur);
                        uint8_t* cb=periAnalCb;
-                       int8_t* memo=periAnalMemo;                                                                    // effacement check box et memos précédents
+                       int8_t* memo=periAnalMemo;                                                       // effacement check box et memos précédents
                        uint8_t ncb=0;
                        switch(nf){
                          case 0: cb=periAnalCb;ncb=5;memo=periAnalMemo;break;

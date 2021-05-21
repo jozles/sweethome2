@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.53"
+#define VERSION "1.54"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
    1.1a ajout volts et version dans table
    1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -84,10 +84,15 @@
         favicon devient une fonction insérée dans numfonct par getnv() ; le cli.stop en fin de htmlImg est supprimé 
         remoteN[].enable peut prendre 3(4?) valeurs 0 OFF, 1 conjoncté, 2-3 forcé ON : le memDet qui suit remoteT[].deten est traité comme image du forçage
         màj de toute la chaine de synchro entre memDet,remote et periSw ; ajout d'un 3eme bouton radio dans remoteHtml() ; nombre périfs augmenté à 28 ;
-   1.53 après tfr vscpio ; installation buffer json dans peritable.cpp
+   1.53 après tfr vscpio ; installation buffer json dans peritable.cpp : jsbuf ; traitement periline.
+   1.54 instances multiples datées pour TCP avec stop reporté. getCde révisé/corrigé. 
+        réponse datasave à set______ -> réaffichages (remote/preitable etc) reportés après periReq. corrections periRemoteUpdate.
 
 
    BUGS :
+
+        periReq : cx qui rate ou périf qui ne reçoit rien comme si cli.write() n'envoyait pas ou que le contenu se perd. 
+        Essai de long TO infructueux... le taux de ratage semble augmenter quand il y a plusieurs periReq dans la meme minute ;
 
    à faire :
 
