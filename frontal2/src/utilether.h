@@ -5,6 +5,7 @@
 #include "SdFat.h"
 
 int  ethWrite(EthernetClient* cli,char* buf);
+int  ethWrite(EthernetClient* cli,char* buf,uint16_t* lb);
 void mail(const char* a, const char* mm);
 int  sdOpen(const char* fname,File32* file32);
 int  sdOpen(const char* fname,File32* file32,const char* txt);

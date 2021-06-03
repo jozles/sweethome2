@@ -229,11 +229,11 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
               if(periMess==MESSOK){
                 if(fonct>=nbfonct){fonct=nbfonct;periMess=MESSFON;}
                 else {
-                  Serial.println(bufServer);
+                  //Serial.println(bufServer);
                   Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
                   if(fonct==fdatasave){periDataRead(bufServer+LENNOM+1);}
                 }
-                char ff[LENNOM+1];ff[LENNOM]='\0';memcpy(ff,bufServer,LENNOM);Serial.print(ff);
+                char ff[LENNOM+1];ff[LENNOM]='\0';memcpy(ff,bufServer,LENNOM);//Serial.print(ff);
               }
               purgeServer(cli,NODIAGS);
           }
@@ -241,10 +241,9 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
           *periErr=periMess;
   }
   Serial.print(millis());
-  cli->stop();               // cliext
-  int8_t zz=periSave(periCur,PERISAVELOCAL);          // modifs de periTable et date effacèe par prochain periLoad si pas save
-  if(periMess==MESSOK){periMess=zz;if(zz!=MESSOK){Serial.print(" periSave ko");}}
-  Serial.print(" (");Serial.print(MESSOK);Serial.print(" si ok) periMess(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
+  cli->stop();                              // cliext
+  periSave(periCur,PERISAVELOCAL);          // màj cache ... toujours OK
+  Serial.print(" pM(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
   return periMess;
 }
 

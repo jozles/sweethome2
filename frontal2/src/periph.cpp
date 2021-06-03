@@ -552,18 +552,19 @@ int periCacheSave(uint16_t num)
     return sta;
 }
 
-int periSave(uint16_t num,bool sd)
+int periSave(uint16_t num,bool sd)            // si sd==PERISAVELOCAL copie periRec dans cache seul
+                                              // sinon                     copie sur SD aussi
 {
-  int i=0;
-  int sta;
+  int sta=SDOK;
   
-  for(i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=periRec[i];}    // copie dans cache
+  for(int i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=periRec[i];}    // copie dans cache
   periCacheStatus[num]=CACHEISFILE;                                         // cache ok
 
   *periNum=num;
-  sta=SDOK;
-  periCacheStatus[num]=!CACHEISFILE;                                        // le fichier n'est pas à l'image du cache
-  if(sd){sta=periCacheSave(num);}                                           // le fichier est à l'image du cache
+  
+  if(sd!=PERISAVELOCAL){
+    periCacheStatus[num]=!CACHEISFILE;                                 // le fichier n'est pas à l'image du cache
+    sta=periCacheSave(num);}                                           // le fichier est à l'image du cache
 
 #ifdef SHDIAGS    
   Serial.print(" periSave(");periSub(num,sta,sd);

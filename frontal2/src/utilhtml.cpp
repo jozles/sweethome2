@@ -38,6 +38,20 @@ extern char pkdate[7];
 #define LENCOLOUR 8
   char colour[LENCOLOUR+1];
 
+void fontBeg(char* buf,char* jsbuf,uint8_t fntSiz,uint8_t td)
+{
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+  strcat(buf,"<font size=\"");concatn(buf,fntSiz);strcat(buf,"\">");
+  strcat(jsbuf,JSFSB);concatn(nullptr,jsbuf,fntSiz);
+}
+
+void fontEnd(char* buf,char* jsbuf,uint8_t td)
+{
+  strcat(buf,"</font>");
+  strcat(jsbuf,JSFSE);
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>\n");jscat(jsbuf,JSCE,CRLF);}
+}
+
 void concat1a(char* buf,char a)
 {
   concat1a(buf,nullptr,a);
@@ -59,18 +73,30 @@ void concat1aH(char* buf,char a)
   strcat(buf,b);
 }
 
-void concatn(char* buf,unsigned long val)
+void concatn(char* buf,char* jsbuf,unsigned long val)           // concatene un entier dans buf (et termine avex 0x00)
+                                                                // si jsbuf valide, jsbuf recoit la même chaine avec ";\0" à la fin                                                                
+{
+  uint16_t s;
+  char* dm;
+  if(buf!=nullptr){dm=buf+strlen(buf);}
+  else {dm=jsbuf+strlen(jsbuf);}
+  s=sprintf(dm,"%lu",val);dm[s]='\0';
+  if(buf==nullptr){strcat(dm,";");}
+  else if(jsbuf!=nullptr){jscat(jsbuf,dm);} 
+}
+
+void concatn(char* buf,unsigned long val)           // !!!!!!!!!!!!! ne fonctionne pas pour jsbuf utiliser la version surchargée !!!!!!!!!!!!!!
 {
   concatn(buf,nullptr,val);
 }
 
-void concatn(char* buf,char* jsbuf,unsigned long val)
+void concatns(char* buf,char* jsbuf,long val,bool br)
 {
-  uint16_t b,s;
-  char* a;
-  char* dm=buf+strlen(buf);
-  b=strlen(buf);a=buf+b;s=sprintf(a,"%lu",val);buf[b+s]='\0';
+  uint16_t s;
+  char *dm=buf+strlen(buf);
+  s=sprintf(dm,"%lu",val);dm[s]='\0';
   jscat(jsbuf,dm);
+  if(br){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
 }
 
 void concatns(char* buf,long val)
@@ -80,28 +106,30 @@ void concatns(char* buf,long val)
 
 void concatns(char* buf,char* jsbuf,long val)
 {
-  uint16_t b,s;
-  char *dm=buf+strlen(buf);
-  b=strlen(buf);s=sprintf(buf+b,"%lu",val);buf[b+s]='\0';
-  jscat(jsbuf,dm);
+  concatns(buf,jsbuf,val,NOBR);
 }
 
 void concatnf(char* buf,float val)
 {
-  concatnf(buf,nullptr,val,2);
+  concatnf(buf,nullptr,val,2,NOBR);
 }
 
 void concatnf(char* buf,float val,uint8_t dec)
 {
-  concatnf(buf,nullptr,val,dec);
+  concatnf(buf,nullptr,val,dec,NOBR);
 }
 
 void concatnf(char* buf,char* jsbuf,float val)
 {
-  concatnf(buf,jsbuf,val,2);
+  concatnf(buf,jsbuf,val,2,NOBR);
 }
 
 void concatnf(char* buf,char* jsbuf,float val,uint8_t dec)
+{
+  concatnf(buf,jsbuf,val,dec,NOBR);
+}
+
+void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br)
 {
   uint16_t b,s;
   char* dm=buf+strlen(buf);
@@ -110,21 +138,32 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec)
   b=strlen(buf);
   s=sprintf(buf+b,d,val);buf[b+s]='\0';
   jscat(jsbuf,dm);
+  if(br){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
 }
 
-void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len)
+void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t td,bool br)
 {
-  strcat(buf,"<td><input type=\"text\" name=\"");jscat(jsbuf,JSCB);
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+  jscat(jsbuf,JSATB);
+  strcat(buf,"<input type=\"text\" name=\"");
   strcat(buf,nomfonct);jscat(jsbuf,nomfonct);
   strcat(buf,"\" value=\"");
   strcat(buf,valfonct);jscat(jsbuf,valfonct);
   strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,jsbuf,len);
-  strcat(buf,"\" ></td>\n");jscat(jsbuf,JSCE);
+  strcat(buf,"\" >");
+  jscat(jsbuf,JSATE);
+  if(br){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>\n");jscat(jsbuf,JSCE);}
 }
 
 void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len)
 {
-  alphaTableHtmlB(buf,nullptr,valfonct,nomfonct,len);
+  alphaTableHtmlB(buf,nullptr,valfonct,nomfonct,len,TDBE,NOBR);
+}
+
+void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len)
+{
+  alphaTableHtmlB(buf,jsbuf,valfonct,nomfonct,len,TDBE,NOBR);
 }
 
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol)
@@ -143,12 +182,24 @@ void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8
 }
 
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
+{
+  numTf(buf,nullptr,type,valfonct,nomfonct,len,td,pol,dec,NOBR);
+}
+
+void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br)
 {                          
-  if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
   jscat(jsbuf,JSNTB);
-  if(pol!=0){strcat(buf,"<font size=\"");jscat(jsbuf,JSPB);concatn(buf,jsbuf,pol);strcat(buf,"\">");jscat(jsbuf,JSPE);}
+  if(pol!=0){
+    fontBeg(buf,jsbuf,pol,TDNO);
+    //jscat(jsbuf,JSFSB);
+    //strcat(buf,"<font size=\"");concatn(buf,jsbuf,pol);strcat(buf,"\">");
+  }
   strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);jscat(jsbuf,nomfonct);
-  if(len<=2){strcat(buf,"\" id=\"nt");concatn(buf,jsbuf,len);}
+  if(len<=2){strcat(buf,"\" id=\"nt");}
+  concatn(buf,jsbuf,len);
+  concatn(buf,jsbuf,dec);
+  if(jsbuf!=nullptr){char tt[2];tt[0]=type;tt[1]='\0';strcat(jsbuf,tt);}
   strcat(buf,"\" value=\"");
   switch (type){
     case 'b':concatn(buf,jsbuf,*(byte*)valfonct);break; //strcat(buf,(char*)valfonct);break;
@@ -165,14 +216,15 @@ void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,i
   }
   int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
   strcat(buf,"\" size=\"");concatn(buf,jsbuf,sizeHtml);strcat(buf,"\" maxlength=\"");concatn(buf,jsbuf,len);strcat(buf,"\" >");
-  if(pol!=0){strcat(buf,"</font>");}
+  if(pol!=0){fontEnd(buf,jsbuf,TDNO);}   //strcat(buf,"</font>");}
   jscat(jsbuf,JSNTE);
-  if(td==1 || td==3){strcat(buf,"</td>\n");jscat(jsbuf,JSCE);}
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>\n");jscat(jsbuf,JSCE);}
+  if(br){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
 }
 /*
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
 {                          
-  if(td==1 || td==2){strcat(buf,"<td>");}
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");}
   if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
   strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);
   if(len<=2){strcat(buf,"\" id=\"nt");concatn(buf,len);}
@@ -193,7 +245,7 @@ void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8
   int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
   strcat(buf,"\" size=\"");concatn(buf,sizeHtml);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" >");
   if(pol!=0){strcat(buf,"</font>");}
-  if(td==1 || td==3){strcat(buf,"</td>\n");}
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>\n");}
 }
 */
 void usrFormBHtml(char* buf,bool hid)
@@ -248,7 +300,7 @@ void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint
   ft[LENNOM-2]=(char)(nuv+PMFNCHAR);   
   ft[LENNOM-1]=(char)(ninp+PMFNCHAR);   
   
-  if(td==1 || td==2){strcat(buf,"<td>");}
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");}
 
   strcat(buf,"<SELECT name=\"");strcat(buf,ft);strcat(buf,"\">");
   for(i=0;i<nbre;i++){
@@ -261,32 +313,42 @@ void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint
 
   strcat(buf,"</SELECT>");
 
-  if(td==1 || td==3){strcat(buf,"</td>");}
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>");}
   strcat(buf,"\n");
 }
 
-void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)
+void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,bool br,uint8_t td)
 {
   textTbl(buf,nullptr,valfonct,valmin,valmax,br,td);
 }
 
-void textTbl(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td)
+void textTbl(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,bool br,uint8_t td)
 {
   char colour[6+1];
   memcpy(colour,"black\0",6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,"red\0",4);}
-  if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
-  strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+  setColourB(buf,jsbuf,colour);
+  //strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
   concatnf(buf,jsbuf,((float)*valfonct)/100);  
-  strcat(buf,"</font>");
-  if(br==1){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
-  if(td==2 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
+  setColourE(buf,jsbuf);
+  //strcat(buf,"</font>");
+  if(br){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
+}
+
+void concatDate(char* buf,char* jsbuf,char* periDate)
+{
+  char dateascii[12];
+  int j;
+  char* dm=buf+strlen(buf);
+  unpackDate(dateascii,periDate);for(j=0;j<12;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}
+  jscat(jsbuf,dm);jscat(jsbuf,JSBR);
+  strcat(buf,"<br>");
 }
 
 void concatDate(char* buf,char* periDate)
 {
-  char dateascii[12];
-  int j;
-  unpackDate(dateascii,periDate);for(j=0;j<12;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}strcat(buf,"<br>");
+  concatDate(buf,nullptr,periDate);
 }
 
 void bufPrintDateHeure(char* buf,char* pkdate)
@@ -305,10 +367,10 @@ void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate)
   jscat(jsbuf,dm);
 }
 
-void setCol(char* buf,const char* textColour)
+/*void setCol (char* buf,const char* textColour)
 {
   strcat(buf,"<font color=\"");strcat(buf,textColour);strcat(buf,"\"> ");
-}
+}*/
 
 void boutF(char* buf,const char* nomfonct,const char* valfonct,const char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter)
 {
@@ -319,14 +381,15 @@ void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const
 /* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
 {
     jscat(jsbuf,JSBFB);
-    if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSTB);}
+    if(td==TDBEG || td==TDBE){strcat(buf,"<td>");jscat(jsbuf,JSTB);}
     
     char b[]={(char)(usernum+PMFNCHAR),'\0'};
     strcat(buf,"<a href=\"?user_ref_");
     strcat(buf,b);strcat(buf,"=");concatn(buf,usrtime[usernum]);
     strcat(buf,"?");
     char* dm=buf+strlen(buf);
-    strcat(buf,nomfonct);strcat(buf,"=");strcat(buf,valfonct);jscat(jsbuf,dm);
+    strcat(buf,nomfonct);strcat(buf,"=");strcat(buf,valfonct);
+    jscat(jsbuf,dm);concatn(nullptr,jsbuf,sizfnt);
     strcat(buf,"\">");
     if(aligncenter){strcat(buf,"<p align=\"center\">");jscat(jsbuf,JSAC);}
     strcat(buf,"<input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"");jscat(jsbuf,lib);
@@ -336,7 +399,7 @@ void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const
 
     jscat(jsbuf,JSBFE);
     if(br!=0){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
-    if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
+    if(td==TDEND || td==TDBE){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
 }
 
 void boutRetourB(char* buf,const char* lib,uint8_t td,uint8_t br)
@@ -346,7 +409,7 @@ void boutRetourB(char* buf,const char* lib,uint8_t td,uint8_t br)
 
 void boutRetourB(char* buf,char* jsbuf,const char* lib,uint8_t td,uint8_t br)
 {
-    if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+    if(td==TDBEG || td==TDBE){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
     jscat(jsbuf,JSBRB);
     strcat(buf,"<a href=\"?user_ref_");
     concat1a(buf,(char)(usernum+PMFNCHAR));strcat(buf,"=");concatn(buf,usrtime[usernum]);
@@ -354,20 +417,20 @@ void boutRetourB(char* buf,char* jsbuf,const char* lib,uint8_t td,uint8_t br)
     strcat(buf,lib);jscat(jsbuf,lib);
     strcat(buf,"\"></a>");
     jscat(jsbuf,JSBRE);
-    if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
+    if(td==TDEND || td==TDBE){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
     if(br!=0){strcat(buf,"<br>");jscat(jsbuf,JSBR);}
     strcat(buf,"\n");
 }
 
 void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t td)
 {
-  if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
   jscat(jsbuf,JSBMB);
   strcat(buf,"<input type=\"submit\" value=\"");
   bufcat(buf,jsbuf,lib);
   strcat(buf," \">");
   jscat(jsbuf,JSBME);
-  if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
   strcat(buf,"\n");
 }
 
@@ -384,7 +447,7 @@ void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval)        
 void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td)                    // 1 line ; nb = page row
 {                                                                                                                                  // sqbr square button
                                                                                                                                    // nbval à traiter
-  if(td==1 || td==2){strcat(buf,"<td>");}  
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");}  
     valeur&=0x03;                                                               
   
   
@@ -409,13 +472,13 @@ void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,b
   strcat(buf,"<label for=\"sqbrc");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">FOR</label>\n");
 
 
-  if(td==1 || td==3){strcat(buf,"</td>");}      
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>");}      
   strcat(buf,"<br>\n");
 }
 
 void sliderBHtml(char* buf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint8_t td)
 {
-  if(td==1 || td==2){strcat(buf,"<td>");}
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");}
 
   char nf[LENNOM+1];nf[LENNOM]='\0';
   memcpy(nf,nomfonct,LENNOM);if(nb>=0){nf[LENNOM-1]=(char)(nb+PMFNCHAR);}
@@ -424,7 +487,7 @@ void sliderBHtml(char* buf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint
   strcat(buf," ><span class=\"slider ");if(sqr==0){strcat(buf," round");}
   strcat(buf,"\"></span></label>");
   
-  if(td==1 || td==3){strcat(buf,"</td>\n");}
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>\n");}
 }
 
 void htmlIntro0B(char* buf)    // suffisant pour commande péripheriques
@@ -585,20 +648,21 @@ void checkboxTableBHtml(char* buf,uint8_t* val,const char* nomfonct,int etat,uin
 
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib)
 {
-  if(td==1 || td==2){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
+  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");jscat(jsbuf,JSCB);}
     jscat(jsbuf,JSDB);
     strcat(buf,"<input type=\"checkbox\" name=\"");bufcat(buf,jsbuf,nomfonct);strcat(buf,"\" id=\"cb1\" value=\"1\"");
-    if((*val & 0x01)!=0){bufcat(buf,jsbuf," checked");}
+    if((*val & 0x01)!=0){strcat(buf," checked");jscat(jsbuf,JSCHK);}
     strcat(buf,">");bufcat(buf,jsbuf,lib);
   if(etat>0 && !(*val & 0x01)){etat=2;}
+  concatn(nullptr,jsbuf,etat);
       switch(etat){
-        case 2 :bufcat(buf,jsbuf,"___");break;
-        case 1 :bufcat(buf,jsbuf,"_ON");break;
-        case 0 :bufcat(buf,jsbuf,"OFF");break;
+        case 2 :strcat(buf,"___");break;
+        case 1 :strcat(buf,"_ON");break;
+        case 0 :strcat(buf,"OFF");break;
         default:break;
       }
-  jscat(jsbuf,JSDE);    
-  if(td==1 || td==3){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
+  jscat(jsbuf,JSDE);  
+  if(td==TDEND || td==TDBE){strcat(buf,"</td>");jscat(jsbuf,JSCE);}
   strcat(buf,"\n");jscat(jsbuf,"",CRLF);
 }
 
@@ -614,9 +678,25 @@ void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib) // ch
   checkboxTableBHtml(buf,&val0,fonc,-1,0,lib);
 }
 
-void setColourB(char* buf,const char* textColour)
+void setColourE(char* buf,char* jsbuf)
+{
+  strcat(buf,"</font>");jscat(jsbuf,JSCOE);
+}
+
+void setColourE(char* buf)
+{
+  setColourE(buf,nullptr);
+}
+
+void setColourB(char* buf,char* jsbuf,const char* textColour)
 {
   memcpy(colour,textColour,LENCOLOUR);strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
+  jscat(jsbuf,JSCOB);jscat(jsbuf,textColour);
+}
+
+void setColourB(char* buf,const char* textColour)
+{
+  setColourB(buf,nullptr,textColour);
 }
 
 void cliPrintMac(EthernetClient* cli, byte* mac)

@@ -65,11 +65,13 @@ int writeEth0(EthernetClient* cli,char* buf, uint16_t len)
   return sta;
 }
 
-int ethWrite(EthernetClient* cli,char* buf)
+int ethWrite(EthernetClient* cli,char* buf,uint16_t* lb)
 {
   unsigned long ethbeg=millis();
   long i=0,j=strlen(buf);
   bool sta=1;
+
+  if(lb!=nullptr){*lb+=strlen(buf);}
 
   trigwd();
   while (j>=2048){
@@ -80,6 +82,11 @@ int ethWrite(EthernetClient* cli,char* buf)
   buf[0]='\0';
   if(millis()-ethbeg>100){Serial.print(" ethw dur=");Serial.print(millis()-ethbeg);if(sta==1){Serial.print(" ok ");}else{Serial.print(" ko ");}}
   return sta;
+}
+
+int ethWrite(EthernetClient* cli,char* buf)
+{
+  return ethWrite(cli,buf,nullptr);
 }
 
 void mail(const char* a, const char* mm)

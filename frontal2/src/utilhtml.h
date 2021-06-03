@@ -24,9 +24,62 @@
 //void printPeriDate(EthernetClient* cli,char* periDate);
 //char* cliPrintDateHeure(EthernetClient* cli,char* pkdate);
 
+#define NOBR   FAUX
+#define BR     VRAI
 #define NOFORM (bool)false
 #define HID  (bool)true
 #define CRLF (bool)true
+#define TDBEG 2
+#define TDEND 3
+#define TDBE  1
+#define TDNO  0
+#define PV    VRAI
+#define NOPV  FAUX
+
+#define JSB strcat(jsbuf,
+#define JSE );
+
+/* commandes interprétées par javascript pour produire du html 
+   de la forme ~JSAAAA; tilde + 3 à 6 caractères et ";"
+   0 à n arguments (éventuellement optionnels) suivent séparés par ";"
+*/
+#define JSCHK  "~!;"          // checked pour boutons radio
+#define JSHIDB "~h;\n"        // hide beg
+#define JSHIDE "~H;\n"        // hide end
+#define JSBRB  "~r;"          // bouton retour beg
+#define JSBRE  "~R;\n"        // bouton retour end
+#define JSBMB  "~m;"          // bouton Maj beg
+#define JSBME  "~M;\n"        // bouton Maj end
+#define JSBFB  "~b;"          // bouton fonct beg  JSBFBnomfonct=valfonct;size;[JSAC]lib;[JSAC]
+#define JSBFE  "~B;\n"        // bouton fonct end
+#define JSNTB  "~n;"          // saisie numtf beg  JSNTB[JSFSBpolice;]nom fonction;len;dec;typevaleur;[JSFSE]JSNTE[JSCE]
+#define JSNTE  "~N;\n"        // saisie numtf end
+#define JSDB   "~d;"          // saisie cb beg     JSDBnomfonct;[JSCHK]lib;etat;JSDE
+#define JSDE   "~D;\n"        // saisie cb end
+#define JSATB  "~a;"          // saisie texte beg  JSATBnomfonct;valfonct;len;JSATE
+#define JSATE  "~A;"          // saisie texte end
+#define JSFUB  "~u;"          // usrPeriCurB beg
+#define JSFUE  "~U;\n"        // usrPeriCurB end
+#define JSTB   "~t;"          // debut table
+#define JSTE   "~T;"          // fin table (crlf manuel dans jscat)
+#define JSTBL  "~q;"          // début table + début ligne
+#define JSLB   "~l;"          // début ligne + debut colonne
+#define JSLE   "~L;"          // fin ligne
+#define JSCB   "~c;"          // début colonne
+#define JSCE   "~C;"          // fin colonne
+#define JSCEB  "~K;"          // fin colonne + début colonne
+#define JSCEL  "~k;"          // fin colonne + fin ligne
+#define JSCELT "~Q;"          // fin colonne + fin ligne + fin table + <br>
+#define JSFB   "~f;"          // début formulaire [titre si encadrement]
+#define JSFF   "~F;\n"        // fin formulaire
+#define JSBR   "~p;\n"        // <br>
+#define JS2BR  "~o;\n"        // <br><br>
+#define JSAC   "~V;"          // align center
+#define JSCOB  "~w;"          // couleur beg        JSCOBtexte;
+#define JSCOE  "~W;"          // couleur end
+#define JSFSB  "~X;"          // font size beg      JSFSBtaille;
+#define JSFSE  "~x;"          // font size end
+
 void bufcat(char* buf,char* jsbuf,const char* s);
 void jscat(char* jsbuf,const char* s,bool crlf);
 void jscat(char* jsbuf,const char* s);
@@ -48,6 +101,9 @@ void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,
 void usrFormBHtml(char* buf,bool hid);
 void usrFormBHtml(char* buf,char* jsbuf,bool hid);
 void usrFormInitBHtml(char* buf,const char* nomfonct);
+
+void fontBeg(char* buf,char* jsbuf,uint8_t fntSiz,uint8_t td);
+void fontEnd(char* buf,char* jsbuf,uint8_t td);
 void concatIp(char* buf,byte* ip);
 void concat1a(char* buf,char a);
 void concat1a(char* buf,char* jsbuf,char a);
@@ -56,11 +112,14 @@ void concatn(char* buf,unsigned long val);
 void concatn(char* buf,char* jsbuf,unsigned long val);
 void concatns(char* buf,long val);
 void concatns(char* buf,char* jsbuf,long val);
-void concatnf(char* buf,float val);
+void concatns(char* buf,char* jsbuf,long val,bool br);
 void concatnf(char* buf,char* jsbuf,float val);
-void concatnf(char* buf,float val,uint8_t dec);
 void concatnf(char* buf,char* jsbuf,float val,uint8_t dec);
+void concatnf(char* buf,float val);
+void concatnf(char* buf,float val,uint8_t dec);
+void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br);
 void concatDate(char* buf,char* periDate);
+void concatDate(char* buf,char* jsbuf,char* periDate);
 void bufPrintPeriDate(char* buf,char* periDate);
 void bufPrintDateHeure(char* buf,char* pkdate);
 void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate);
@@ -68,11 +127,13 @@ void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
-void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td);
-void textTbl(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t br,uint8_t td);
+void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br);
+void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,bool br,uint8_t td);
+void textTbl(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,bool br,uint8_t td);
 void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len);
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len);
-void setCol(char* buf,const char* textColour);
+void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t td,bool br);
+//void setCol (char* buf,const char* textColour);
 void boutRetourB(char* buf,const char* lib,uint8_t td,uint8_t br);
 void boutRetourB(char* buf,char* jsbuf,const char* lib,uint8_t td,uint8_t br);
 void boutF(char* buf,const char* nomfonct,const char* valfonct,const char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter);
@@ -81,6 +142,9 @@ void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t td);
 void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval);
 void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td);
 void setColourB(char* buf,const char* textColour);
+void setColourB(char* buf,char* jsbuf,const char* textColour);
+void setColourE(char* buf);
+void setColourE(char* buf,char* jsbuf);
 void sliderBHtml(char* buf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint8_t td);
 void htmlIntro0B(char* buf);
 void htmlIntroB(char* buf,char* titre,EthernetClient* cli);

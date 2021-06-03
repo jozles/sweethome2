@@ -116,13 +116,13 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
             char icon[ICONLENGTH];            
             for(int i=0;i<fimgSiz;i++){icon[i]=fimg.read();}
             icon[fimgSiz]='\0';
-            Serial.print(" dur_rd=");Serial.print(millis()-begIC);
+            Serial.print(" ms_rd=");Serial.print(millis()-begIC);
             ethWrite(cli,icon);
             //dumpstr(icon,512);
           }
           fimg.close();        
         }
-        Serial.print(" dur=");Serial.println(millis()-begIC);
+        Serial.print(" ms=");Serial.println(millis()-begIC);
         return SDOK;          // attention !!! pas de cli.stop sinon une suite éventuelle ne pourra pas partir (acceuilHtml par ex)
 }
 
@@ -290,7 +290,7 @@ void accueilHtml(EthernetClient* cli)
                        strcat(buf," <input type=\"submit\" text style=\"width:300px;height:60px;font-size:40px\" value=\"login\"><br>\n");
             strcat(buf,"</h1></form></body></html>\n");
             ethWrite(cli,buf);
-            Serial.print(" dur=");Serial.println(millis()-begAC);
+            Serial.print(" ms=");Serial.println(millis()-begAC);
 }          
 
 void sscb(char* buf,bool val,const char* nomfonct,int nuf,int etat,uint8_t td,uint8_t nb)

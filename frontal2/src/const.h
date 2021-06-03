@@ -91,8 +91,12 @@
 
    BUGS :
 
-        periReq : cx qui rate ou périf qui ne reçoit rien comme si cli.write() n'envoyait pas ou que le contenu se perd. 
+        periReq : cx qui rate ou périf qui ne reçoit rien comme si cli.write() n'envoyait pas ou que le contenu se perd.
+        La connexion ratée sort avec le socket stat "CLOSED" ce qui indique que la tentative du W5500 a échoué ;
+        Lorsque le périf est en attente de réponse à un dataRead ou dataSave, il n'écoute pas jusqu'au TO (TOFINCHCLI dans waitRefCli)
+        C'est un cas de non-réponse "normal" ; soit attendre soit recommencer plus tard.
         Essai de long TO infructueux... le taux de ratage semble augmenter quand il y a plusieurs periReq dans la meme minute ;
+     
 
    à faire :
 
@@ -207,33 +211,6 @@
 #define SDKO 0
 
 #define CACHEISFILE 1
-
-#define JSB strcat(jsbuf,
-#define JSE );
-#define JSHIDB "~h;\n"        // hide beg
-#define JSHIDE "~H;\n"        // hide end
-#define JSBRB  "~r;"          // bouton retour beg
-#define JSBRE  "~R;\n"        // bouton retour end
-#define JSBMB  "~m;"          // bouton Maj beg
-#define JSBME  "~M;\n"        // bouton Maj end
-#define JSBFB  "~b;"          // bouton fonct beg
-#define JSBFE  "~B;\n"        // bouton fonct end
-#define JSNTB  "~n;"          // saisie numtf beg
-#define JSNTE  "~N;\n"        // saisie numtf end
-#define JSDB   "~d;"          // saisie cb beg
-#define JSDE   "~D;\n"        // saisie cb end
-#define JSFUB  "~u;"          // usrPeriCurB beg
-#define JSFUE  "~U;\n"        // usrPeriCurB end
-#define JSTB   "~t;"          // debut table
-#define JSTE   "~T;"          // fin table (crlf manuel dans jscat)
-#define JSLB   "~l;"          // début ligne
-#define JSLE   "~L;"          // fin ligne
-#define JSCB   "~c;"          // début colonne
-#define JSCE   "~C;"          // fin colonne
-#define JSPB   "~p;"          // font size beg
-#define JSPE   "~P;"          // font size end
-#define JSBR   "~n;\n"        // <br>
-#define JSAC   "~a;"          // align center
 
 
 
