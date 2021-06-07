@@ -430,22 +430,22 @@ Serial.print("\n");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
     strcat(buf,"<table><tr>\n");
     jscat(jsbuf,JSTBL);
 
-    boutRetourB(buf,jsbuf,"retour",1,0);strcat(buf," ");
+    boutRetourB(buf,jsbuf,"retour",TDBEG);strcat(buf," ");
     
     boutMaj(buf,jsbuf,"MàJ",2);
     char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    boutF(buf,jsbuf,line,"","refresh",0,0,0,0);
+    boutF(buf,jsbuf,line,"","refresh",ALICNO,0,0);
     if(*periSwNb!=0){
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-      boutF(buf,jsbuf,swf,"","Switchs",0,0,0,0);
+      boutF(buf,jsbuf,swf,"","Switchs",ALICNO,0,0);
     }
     char raz[]="peri_raz___";raz[LENNOM-1]=periCur+PMFNCHAR;
-    boutF(buf,jsbuf,raz,"","Raz",0,1,0,0);
+    boutF(buf,jsbuf,raz,"","Raz",ALIC,0,0);
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    line[LENNOM-2]='0';boutF(buf,jsbuf,line,"","tst__SW0",0,0,0,0);
-    line[LENNOM-2]='1';boutF(buf,jsbuf,line,"","tst__SW1",0,0,0,0);strcat(buf," ");
-    line[LENNOM-2]='m';boutF(buf,jsbuf,line,"","tst_mail",3,0,0,0);strcat(buf,"\n");
+    line[LENNOM-2]='0';boutF(buf,jsbuf,line,"","tst__SW0",ALICNO,0,0);
+    line[LENNOM-2]='1';boutF(buf,jsbuf,line,"","tst__SW1",ALICNO,0,0);strcat(buf," ");
+    line[LENNOM-2]='m';boutF(buf,jsbuf,line,"","tst_mail",ALICNO,0,0);strcat(buf,"\n");
 
     strcat(buf,"</tr></table>\n");
     jscat(jsbuf,JSLE);jscat(jsbuf,JSTE);
@@ -463,11 +463,11 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
                 strcat(buf,"<table><tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr>\n<tr>\n<td>");
                 jscat(jsbuf,JSTB);jscat(jsbuf,JSLB,CRLF);    
                       concatns(buf,jsbuf,periCur);               
-                      alphaTableHtmlB(buf,jsbuf,periNamer,"peri_nom__",PERINAMLEN-1,TDEND,NOBR);                    
-                      textTbl(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BR,TDBEG);            
+                      alphaTableHtmlB(buf,jsbuf,periNamer,"peri_nom__",PERINAMLEN-1,0,TRNO|TDEND|BRNO);                    
+                      affNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);            
                       concatnf(buf,jsbuf,*periThmin_/100,2,BR);     
                       concatnf(buf,jsbuf,*periThmax_/100,2,NOBR);strcat(buf,"</td>");jscat(jsbuf,JSCE,CRLF);                                                                                     
-                      textTbl(buf,jsbuf,periAlim_,periVmin_,periVmax_,BR,TDBEG);                                          
+                      affNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,BRYES|TDBEG);                                          
                       numTf(buf,jsbuf,'I',periVmin_,"peri_vmin_",5,0,0,0,BR);
                       numTf(buf,jsbuf,'I',periVmax_,"peri_vmax_",5,3,0);
                       numTf(buf,jsbuf,'d',(uint32_t*)periPerTemp,"peri_rtemp",5,2,0,0,BR);
@@ -493,17 +493,19 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
 
                       char* dm=buf+strlen(buf);
                       if(*periProg!=0){strcat(buf,"port=");jscat(jsbuf,dm);
-                      numTf(buf,jsbuf,'d',periPort,"peri_port_",4,0,0,0,BR);}
-                      fontBeg(buf,jsbuf,2,TDNO);
+                      numTf(buf,jsbuf,'d',periPort,"peri_port_",4,0,0,0,BRYES);}
+                      //fontBeg(buf,jsbuf,2,TDNO);
                       //strcat(buf,"<font size=\"2\">");
+                      affText(buf,jsbuf,(char*)"",2,0);   // set police 2
                       dm=buf+strlen(buf);
                       for(j=0;j<4;j++){concatns(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}}
                       jscat(jsbuf,dm);
-                      fontEnd(buf,jsbuf,TDEND);
-                      //strcat(buf,"</font></td>\n");jscat(jsbuf,JSCE,CRLF);
-                      fontBeg(buf,jsbuf,2,TDBEG);
+                      //fontEnd(buf,jsbuf,TDEND);
+                      //strcat(buf,"</font></td>\n");
+                      //fontBeg(buf,jsbuf,2,TDBEG);
                       //strcat(buf,"<td><font size=\"2\">");
-                      //jscat(jsbuf,JSTB);
+                      fontEnd(buf,jsbuf,TDEND);
+                      affText(buf,jsbuf,(char*)"",2,TDBEG);   // set police 2
                       dm=buf+strlen(buf);
                       for(j=0;j<LENVERSION;j++){concat1a(buf,periVers[j]);}
                       jscat(jsbuf,dm);
@@ -515,6 +517,7 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
                       memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                      
                       concatDate(buf,jsbuf,periLastDateIn);
                       setColourB(buf,jsbuf,"black");
+                      
                       fontEnd(buf,jsbuf,TDEND);
                       //strcat(buf,"</font></td>\n");
                       
@@ -531,7 +534,7 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
                 jscat(jsbuf,JS2BR);jscat(jsbuf,JSCEB);
                 strcat(buf,"<br><table><tr><td>Val<br>Low<br>High</td><td>");
                       //concatn(buf,*periAnal);
-                      concatns(buf,jsbuf,*periAnal,BR);
+                      concatns(buf,jsbuf,*periAnal);
                       //numTf(buf,'I',periAnalLow,"peri_ana@_",5,0,0);
                       numTf(buf,jsbuf,'I',periAnalLow,"peri_ana@",5,0,0,0,BR);
                       //numTf(buf,'I',periAnalHigh,"peri_anaA_",5,0,0);
@@ -594,10 +597,10 @@ void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
           strcat(buf,"</p>\n");
 /* th */          
           strcat(buf,"<td>");strcat(buf,periNamer);strcat(buf,"</td>");
-          textTbl(buf,periLastVal_,periThmin_,periThmax_,BR,TDBEG);
+          affNum(buf,nullptr,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);
           concatnf(buf,(float)*periThmin_/100);strcat(buf,"<br>");
           concatnf(buf,(float)*periThmax_/100);strcat(buf,"</td>\n");                                
-          textTbl(buf,periAlim_,periVmin_,periVmax_,BR,TDBEG);          
+          affNum(buf,nullptr,periAlim_,periVmin_,periVmax_,BRYES|TDBEG);          
           concatnf(buf,(float)*periVmin_/100);strcat(buf,"<br>\n");
           concatnf(buf,(float)*periVmax_/100);strcat(buf,"</td>");
 /* pertemp/pitch/offset */         
