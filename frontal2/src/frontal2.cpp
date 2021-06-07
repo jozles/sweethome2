@@ -357,7 +357,9 @@ void yield()
 
 void setup() {                          // ====================================
 
-  initLed(PINLED);
+  initLed((uint8_t) PINLED);
+
+  pinMode(PINLED,OUTPUT);
   digitalWrite(PINLED,HIGH);delay(10);digitalWrite(PINLED,LOW);
 
   Serial.begin (115200);delay(2000);    // eponge le délai entre la fin de l'upload et le reset du Jlink
@@ -380,8 +382,6 @@ void setup() {                          // ====================================
 
   trigwd();
 
-  sdInit();
-
   uint32_t        amj2,hms2;
   byte            js2;
   ds3231.getDate(&hms2,&amj2,&js2,strdate);
@@ -393,6 +393,7 @@ void setup() {                          // ====================================
 
   trigwd();
   
+  sdInit();
   configInit();configLoad();
   *toPassword=TO_PASSWORD;if(*maxCxWt==0 || *maxCxWu==0){*maxCxWt=MAXCXWT;*maxCxWu=MAXCXWU;configSave();}
   memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
@@ -414,7 +415,7 @@ void setup() {                          // ====================================
   memosLoad(-1);
 
   trigwd();
-  
+
 /* >>>>>> ethernet start <<<<<< */
 
   Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);
@@ -422,7 +423,7 @@ void setup() {                          // ====================================
   
   if(Ethernet.begin(mac) == 0)
     {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
-    Ethernet.begin (mac, localIp); //initialisation de la communication Ethernet
+    Ethernet.begin (mac, localIp); 
     }
   Serial.print("localIP=");Serial.println(Ethernet.localIP());
 

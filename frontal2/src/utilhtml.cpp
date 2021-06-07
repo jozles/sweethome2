@@ -48,7 +48,7 @@ void jscatch(char* jsbuf,const char s){if(jsbuf!=nullptr){*jsbuf=s;*(jsbuf+1)=0x
 
 void jscatch(char* jsbuf,const char s,bool sep){jscatch(jsbuf,s);if(sep){strcat(jsbuf,JSSEP);}}
 
-void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl)     // construit les 4 (ou 5) premiers caractères d'une fonction
+void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl,char* colour)     // construit les 4 (ou 5) premiers caractères d'une fonction
 {
   if(jsbuf!=nullptr){
     if(*(jsbuf-1)!=CRLF){*jsbuf=LF;*(jsbuf+1)=0x00;}
@@ -58,10 +58,23 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl)     /
   }
 }
 
-void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl)
+void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl)
+{
+  char nocol='\0';
+  fnJsIntro(jsbuf,fonc,pol,ctl,&nocol);
+}
+
+void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour)
 {
   if((ctl&TDMASK)==TDBEG || (ctl&TDMASK)==TDBE){strcat(buf,"<td>");}
+  if(*colour!=0x00){strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");}
   if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
+}
+
+void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl)
+{
+  char nocol='\0';
+  fnHtmlIntro(buf,pol,ctl,&nocol);
 }
 
 void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl)
@@ -213,15 +226,12 @@ void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* val
   char colour1[]={"black"};
   char colour2[]={"red"};
   memcpy(colour,colour1,6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,colour2,4);}
-  setColourB(buf,jsbuf,colour);
-  fnHtmlIntro(buf,0,ctl);
-  fnJsIntro(jsbuf,JSNTX,0,ctl);
-  //strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
+  //setColourB(buf,jsbuf,colour);
+  fnHtmlIntro(buf,0,ctl,colour);
+  fnJsIntro(jsbuf,JSNTX,0,ctl,colour);
   concatnf(buf,jsbuf,((float)*valfonct)/100);  
-  setColourE(buf,nullptr);
-  //strcat(buf,"</font>");
   fnHtmlEnd(buf,0,ctl);
-  setColourE(buf);
+  setColourE(buf,nullptr);
 }
 
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl)
@@ -234,7 +244,7 @@ void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomf
   strcat(buf,valfonct);jscat(jsbuf,valfonct,SEP);
   strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,jsbuf,len);
   strcat(buf,"\" >");
-  fnHtmlIntro(buf,pol,ctl);
+  fnHtmlEnd(buf,pol,ctl);
 }
 
 void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len)
@@ -257,10 +267,10 @@ void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8
   numTf(buf,nullptr,type,valfonct,nomfonct,len,dec,pol,BRNO|td|TRNO);
 }
 
-void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
+/*void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
 {
   numTf(buf,jsbuf,type,valfonct,nomfonct,len,dec,pol,BRNO|td|TRNO);
-}
+}*/
 
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br)
 {
@@ -426,6 +436,7 @@ void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate)
 void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 /* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
 {
+  Serial.print(" ");Serial.println(lib);
     fnJsIntro(jsbuf,JSAC,0,0);
     fnJsIntro(jsbuf,JSBFB,sizfnt,ctl);
     fnHtmlIntro(buf,sizfnt,ctl);
@@ -440,6 +451,7 @@ void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const
     strcat(buf,"\">");
     if(aligncenter){strcat(buf,"<p align=\"center\">");}
     strcat(buf,"<input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"");jscat(jsbuf,lib);
+    
     if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"");}
     if(aligncenter){strcat(buf,"></p></a>");}
     else{strcat(buf,"></a>");}
@@ -449,6 +461,7 @@ void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const
 
 void boutF(char* buf,const char* nomfonct,const char* valfonct,const char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter)
 {
+  Serial.print("lib=");Serial.print(lib);
   uint8_t ctl=td;if(br!=0){td|=BRYES;}
   boutF(buf,nullptr,nomfonct,valfonct,lib,aligncenter,sizfnt,ctl);
 }

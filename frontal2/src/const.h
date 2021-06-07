@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.54"
+#define VERSION "1.55"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
    1.1a ajout volts et version dans table
    1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -87,7 +87,7 @@
    1.53 après tfr vscpio ; installation buffer json dans peritable.cpp : jsbuf ; traitement periline.
    1.54 instances multiples datées pour TCP avec stop reporté. getCde révisé/corrigé. 
         réponse datasave à set______ -> réaffichages (remote/preitable etc) reportés après periReq. corrections periRemoteUpdate.
-
+   1.55 incorpore metaJS pour periline
 
    BUGS :
 
@@ -146,8 +146,8 @@
 */
 
 
-#define _MODE_DEVT2    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
-
+#define _MODE_DEVT    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
+/*
 #ifdef _MODE_DEVT2
 #define MODE_EXEC "DEVT2"
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAE"
@@ -158,13 +158,14 @@
 #define NOMSERV "sweet dev2\0"
 #define LNSERV  17
 #endif // _MODE_DEVT2
-
+*/
 #ifdef _MODE_DEVT
 #define MODE_EXEC "DEVT"
 #define MACADDR "\x90\xA2\xDA\x0F\xDF\xAC"    //adresse mac carte ethernet AB service ; AC devt
 #define LOCALSERVERIP {192,168,0,35}                   //adresse IP    ---- 34 service, 35 devt
 #define PORTSERVER PORTPERISERVER                      // 1790
 #define PORTPILOT  PORTPILOTSERVER                     // 1792
+#define PORTUDP    PORTUDPSERVER                       // 8885
 #define NOMSERV "sweet hdev\0"
 #define LNSERV  17
 #endif // _MODE_DEVT

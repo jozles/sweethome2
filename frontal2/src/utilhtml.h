@@ -129,7 +129,7 @@ void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate);
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
-void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
+//void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
 //void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl);

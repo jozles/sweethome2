@@ -440,7 +440,7 @@ Serial.print("\n");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
       boutF(buf,jsbuf,swf,"","Switchs",ALICNO,0,0);
     }
     char raz[]="peri_raz___";raz[LENNOM-1]=periCur+PMFNCHAR;
-    boutF(buf,jsbuf,raz,"","Raz",ALIC,0,0);
+    boutF(buf,jsbuf,raz,"","Raz",ALICNO,0,0);
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
     line[LENNOM-2]='0';boutF(buf,jsbuf,line,"","tst__SW0",ALICNO,0,0);
@@ -462,29 +462,29 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
 
                 strcat(buf,"<table><tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr>\n<tr>\n<td>");
                 jscat(jsbuf,JSTB);jscat(jsbuf,JSLB,CRLF);    
-                      concatns(buf,jsbuf,periCur);               
-                      alphaTableHtmlB(buf,jsbuf,periNamer,"peri_nom__",PERINAMLEN-1,0,TRNO|TDEND|BRNO);                    
+                      concatns(buf,jsbuf,periCur);strcat(buf,"</td>");              
+                      alphaTableHtmlB(buf,jsbuf,periNamer,"peri_nom__",PERINAMLEN-1,0,TRNO|TDBE|BRNO);                    
                       affNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);            
                       concatnf(buf,jsbuf,*periThmin_/100,2,BR);     
-                      concatnf(buf,jsbuf,*periThmax_/100,2,NOBR);strcat(buf,"</td>");jscat(jsbuf,JSCE,CRLF);                                                                                     
+                      concatnf(buf,jsbuf,*periThmax_/100,2,NOBR);strcat(buf,"</td>");
                       affNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,BRYES|TDBEG);                                          
-                      numTf(buf,jsbuf,'I',periVmin_,"peri_vmin_",5,0,0,0,BR);
-                      numTf(buf,jsbuf,'I',periVmax_,"peri_vmax_",5,3,0);
-                      numTf(buf,jsbuf,'d',(uint32_t*)periPerTemp,"peri_rtemp",5,2,0,0,BR);
-                      numTf(buf,jsbuf,'r',periPitch_,"peri_pitch",5,0,0,2,BR);
-                      numTf(buf,jsbuf,'r',periThOffset_,"peri_tofs_",5,3,0);
-                      numTf(buf,jsbuf,'l',(uint32_t*)periPerRefr,"peri_refr_",5,2,0,0,BR);
-                      checkboxTableBHtml(buf,jsbuf,(uint8_t*)periProg,"peri_prog_",-1,3,"");
-                      numTf(buf,jsbuf,'b',periSwNb,"peri_intnb",1,2,0,0,BR);
-                      numTf(buf,jsbuf,'b',periDetNb,"peri_detnb",1,3,0);
-                      strcat(buf,"<td>");jscat(jsbuf,JSCB);
+                      numTf(buf,jsbuf,'I',periVmin_,"peri_vmin_",5,0,0,BRYES);
+                      numTf(buf,jsbuf,'I',periVmax_,"peri_vmax_",5,0,0,TDEND);
+                      numTf(buf,jsbuf,'d',(uint32_t*)periPerTemp,"peri_rtemp",5,2,0,BRYES|TDBEG);
+                      numTf(buf,jsbuf,'r',periPitch_,"peri_pitch",5,2,0,BRYES);
+                      numTf(buf,jsbuf,'r',periThOffset_,"peri_tofs_",5,3,0,TDEND);
+                      numTf(buf,jsbuf,'l',(uint32_t*)periPerRefr,"peri_refr_",5,2,0,TDBEG|BRYES);
+                      checkboxTableBHtml(buf,jsbuf,(uint8_t*)periProg,"peri_prog_",-1,TDEND,"");
+                      numTf(buf,jsbuf,'b',periSwNb,"peri_intnb",1,2,0,TDBEG|BRYES);
+                      numTf(buf,jsbuf,'b',periDetNb,"peri_detnb",1,3,0,TDEND);
                       char fonc[]={"peri_vsw__\0"},oi[]={"OI"};
+                      strcat(buf,"<td>");
                       for(int k=0;k<*periSwNb;k++){fonc[LENNOM-1]=PMFNCHAR+k;radioTableBHtml(buf,periSwCde(k),fonc,2);concat1a(buf,oi[periSwLev(k)]);if(k<*periSwNb-1){strcat(buf,"<br>");}strcat(buf,"\n");}
-                      strcat(buf,"</td><td>");jscat(jsbuf,JSCEB);
+                      strcat(buf,"</td><td>");
 
                       char bb[LENNOM];bb[0]='\0';
                       for(int k=0;k<6;k++){concat1a(bb,chexa[periMacr[k]/16]);concat1a(bb,chexa[periMacr[k]%16]);}
-                      alphaTableHtmlB(buf,jsbuf,bb,"peri_mac__",12,TDNO,BR);      
+                      alphaTableHtmlB(buf,jsbuf,bb,"peri_mac__",12,0,TDNO|BRYES);      
                       //strcat(buf,"<td><input type=\"text\" name=\"peri_mac__\" value=\"");
                       //char* dm=buf+strlen(buf);
                       //for(int k=0;k<6;k++){concat1a(buf,chexa[periMacr[k]/16]);concat1a(buf,chexa[periMacr[k]%16]);}
@@ -585,24 +585,25 @@ void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
       if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}  
       if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}
 
+/* line form header */
           strcat(buf,"<tr>\n<form method=\"GET \"><td>");
           concatn(buf,periCur);
-          strcat(buf,"\n<p hidden><input type=\"text\" name=\"user_ref_");
+          strcat(buf,"<p hidden><input type=\"text\" name=\"user_ref_");
           concat1a(buf,(char)(usernum+PMFNCHAR));
           strcat(buf,"\" value=\"");
           concatn(buf,usrtime[usernum]);
           strcat(buf,"\">");
           char fonc[]="peri_cur__\0\0";concat1a(fonc,(char)(PMFNCHAR));
-          numTf(buf,'i',&periCur,fonc,2,3,0);
+          numTf(buf,'i',&periCur,fonc,2,0,0);
           strcat(buf,"</p>\n");
-/* th */          
+/* pericur - nom - th - volts */
           strcat(buf,"<td>");strcat(buf,periNamer);strcat(buf,"</td>");
           affNum(buf,nullptr,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);
           concatnf(buf,(float)*periThmin_/100);strcat(buf,"<br>");
           concatnf(buf,(float)*periThmax_/100);strcat(buf,"</td>\n");                                
           affNum(buf,nullptr,periAlim_,periVmin_,periVmax_,BRYES|TDBEG);          
-          concatnf(buf,(float)*periVmin_/100);strcat(buf,"<br>\n");
-          concatnf(buf,(float)*periVmax_/100);strcat(buf,"</td>");
+          concatnf(buf,(float)*periVmin_/100);strcat(buf,"<br>");
+          concatnf(buf,(float)*periVmax_/100);strcat(buf,"</td>\n");
 /* pertemp/pitch/offset */         
           strcat(buf,"<td>");concatn(buf,*periPerTemp);strcat(buf,"<br>");
           concatnf(buf,(float)*periPitch_/100);strcat(buf,"<br>");
@@ -646,13 +647,12 @@ void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
           concatDate(buf,periLastDateIn);
                       setColourB(buf,"black");                      
                       setColourE(buf);
-          strcat(buf,"</td><td>");                       
+          strcat(buf,"</td>\n<td>");                       
                       char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';                      
-          boutF(buf,line,"","Periph",0,1,0,0);
-                      
-                      if(*periSwNb!=0){
-                        char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-          boutF(buf,swf,"","Switchs",0,0,0,0);}                                    
+          boutF(buf,nullptr,line,"","Periph",ALICNO,0,BRYES);    
+                      if(*periSwNb!=0){char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
+                        boutF(buf,nullptr,swf,"","Switchs",ALICNO,0,TDEND);
+                      }                                    
           strcat(buf,"</form></tr>");
 
           ethWrite(cli,buf);
