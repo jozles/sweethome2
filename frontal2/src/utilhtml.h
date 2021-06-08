@@ -13,15 +13,15 @@
 #define BRMASK 0x10
 #define BRYES  0x10
 #define BRNO   0
-#define TRMASK 0x0c
-#define TRBEG 0x04
-#define TREND 0x08
-#define TRBE  0x0C
+#define TRMASK 0x0c     
+#define TRBEG 0x04      // délicat à modifier (voir les ~TRBEG)   
+#define TREND 0x08      // délicat à modifier (voir les ~)   
+#define TRBE  0x0C      // délicat à modifier (voir les ~)
 #define TRNO  0
 #define TDMASK 0x03
-#define TDEND 0x02
-#define TDBE  0x03
-#define TDBEG 0x01
+#define TDEND 0x02      // délicat à modifier (voir les ~)
+#define TDBE  0x03      // délicat à modifier (voir les ~)
+#define TDBEG 0x01      // délicat à modifier (voir les ~)
 #define TDNO  0
 #define SEP   VRAI
 #define SEPNO FAUX
@@ -63,8 +63,8 @@
 
 #define JSFUB  "~u;"          // usrPeriCurB beg
 #define JSFUE  "~U;\n"        // usrPeriCurB end
-#define JSTB   "~t;"          // debut table
-#define JSTE   "~T;"          // fin table (crlf manuel dans jscat)
+#define JSTB   "~t"           // debut table
+#define JSTE   "~T"           // fin table (crlf manuel dans jscat)
 #define JSTBL  "~q"    
 #define JSLB   "~l"       
 #define JSLE   "~L"
@@ -73,8 +73,8 @@
 #define JSCEB  "~K"
 #define JSCEL  "~k"
 #define JSCELT "~Q"
-#define JSFB   "~f;"          // début formulaire [titre si encadrement]
-#define JSFF   "~F;\n"        // fin formulaire
+#define JSFB   "~f"           // début formulaire [titre si encadrement]
+#define JSFE   "~F"           // fin formulaire
 #define JSBR   "~p;\n"        // <br>
 #define JS2BR  "~o;\n"        // <br><br>
 
@@ -90,6 +90,8 @@ void pageHeader(char* buf);
 void pageHeader(char* buf,char* jsbuf);
 void pageHeader(char* buf,bool form);
 void pageHeader(char* buf,char* jsbuf,bool form);
+void formHeader(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
+void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void cliPrintMac(EthernetClient* cli, byte* mac);
 void trailingSpaces(char* data,uint16_t len);
 void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet);
@@ -104,8 +106,10 @@ void usrFormBHtml(char* buf,bool hid);
 void usrFormBHtml(char* buf,char* jsbuf,bool hid);
 void usrFormInitBHtml(char* buf,const char* nomfonct);
 
-void fontBeg(char* buf,char* jsbuf,uint8_t fntSiz,uint8_t td);
-void fontEnd(char* buf,char* jsbuf,uint8_t td);
+//void fontBeg(char* buf,char* jsbuf,uint8_t fntSiz,uint8_t td);
+void fontEnd(char* buf,char* jsbuf,uint8_t ctl);
+void tableBeg(char* buf,char* jsbuf,uint8_t ctl);
+void tableEnd(char* buf,char* jsbuf,uint8_t ctl);
 void concatIp(char* buf,byte* ip);
 void concat1a(char* buf,char a);
 void concat1a(char* buf,char* jsbuf,char a);

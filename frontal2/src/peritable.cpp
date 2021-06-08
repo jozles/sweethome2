@@ -460,8 +460,9 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
                 if(*periSwNb>MAXSW){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
 
-                strcat(buf,"<table><tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr>\n<tr>\n<td>");
-                jscat(jsbuf,JSTB);jscat(jsbuf,JSLB,CRLF);    
+                tableBeg(buf,jsbuf,0);
+                      strcat(buf,"<th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th>");   
+                      strcat(buf,"<td>");
                       concatns(buf,jsbuf,periCur);strcat(buf,"</td>");              
                       alphaTableHtmlB(buf,jsbuf,periNamer,"peri_nom__",PERINAMLEN-1,0,TRNO|TDBE|BRNO);                    
                       affNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);            
@@ -521,8 +522,7 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
                       fontEnd(buf,jsbuf,TDEND);
                       //strcat(buf,"</font></td>\n");
                       
-                strcat(buf,"</tr></table>\n");
-                jscat(jsbuf,JSCELT);
+                tableEnd(buf,jsbuf,TREND);
                 ethWrite(cli,buf);
                 Serial.print(" ");Serial.print(jsbuf);jsbuf[0]='\0';    
 
@@ -548,8 +548,10 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
                       //numTf(buf,'F',periAnalFactor,"peri_anaC_",7,0,0,4);                        
                       numTf(buf,jsbuf,'F',periAnalOffset2,"peri_anaD_",7,0,0,4,NOBR);
                       //numTf(buf,'F',periAnalOffset2,"peri_anaD_",7,0,0,4);                      
-                strcat(buf,"</td></tr></table><br></form>\n");
-                jscat(jsbuf,JSCELT);jscat(jsbuf,JSFF);
+                strcat(buf,"</td></tr>");
+                tableEnd(buf,jsbuf,BRYES);
+                formEnd(buf,jsbuf,0,0);
+                
                 ethWrite(cli,buf,&lb);
                 Serial.print(" ");Serial.println(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
                 Serial.print("len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.println(ljs);
@@ -579,6 +581,7 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
 void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
 {
   int j;
+  char jsbuf[2000];
 #define LBSHOWLINE 1000
 
       periInitVar();periLoad(numline);periCur=numline;
@@ -586,6 +589,8 @@ void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
       if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}
 
 /* line form header */
+          formHeader(buf,jsbuf,0,TRBEG);
+          /*
           strcat(buf,"<tr>\n<form method=\"GET \"><td>");
           concatn(buf,periCur);
           strcat(buf,"<p hidden><input type=\"text\" name=\"user_ref_");
@@ -596,7 +601,9 @@ void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
           char fonc[]="peri_cur__\0\0";concat1a(fonc,(char)(PMFNCHAR));
           numTf(buf,'i',&periCur,fonc,2,0,0);
           strcat(buf,"</p>\n");
+          */
 /* pericur - nom - th - volts */
+          strcat(buf,"<td>");concatn(buf,periCur);strcat(buf,"</td>");
           strcat(buf,"<td>");strcat(buf,periNamer);strcat(buf,"</td>");
           affNum(buf,nullptr,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);
           concatnf(buf,(float)*periThmin_/100);strcat(buf,"<br>");

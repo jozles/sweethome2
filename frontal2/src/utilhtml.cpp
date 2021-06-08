@@ -65,10 +65,12 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl)
 }
 
 void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour)
-{
-  if((ctl&TDMASK)==TDBEG || (ctl&TDMASK)==TDBE){strcat(buf,"<td>");}
-  if(*colour!=0x00){strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");}
-  if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
+{ 
+  if(buf!=nullptr){
+    if((ctl&TDMASK)==TDBEG || (ctl&TDMASK)==TDBE){strcat(buf,"<td>");}
+    if(*colour!=0x00){strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");}
+    if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
+  }
 }
 
 void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl)
@@ -79,9 +81,11 @@ void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl)
 
 void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl)
 {
-  if(pol){strcat(buf,"</font>");}
-  if(ctl&BRMASK){strcat(buf,"<br>");}
-  if((ctl&TDMASK)==TDEND || (ctl&TDMASK)==TDBE){strcat(buf,"</td>\n");}
+  if(buf!=nullptr){
+    if(pol){strcat(buf,"</font>");}
+    if(ctl&BRMASK){strcat(buf,"<br>");}
+    if((ctl&TDMASK)==TDEND || (ctl&TDMASK)==TDBE){strcat(buf,"</td>\n");}
+  }
 }
 
 void concat1a(char* buf,char a)
@@ -208,8 +212,22 @@ void setColourB(char* buf,const char* textColour)
 
 void fontEnd(char* buf,char* jsbuf,uint8_t ctl)
 {
-  fnJsIntro(jsbuf,JSFNE,0,ctl);
+  fnJsIntro(jsbuf,JSFNE,0,ctl&(~TRBEG)&(~TDBEG));
   strcat(buf,"</font>");
+  fnHtmlEnd(buf,0,ctl);
+}
+
+void tableBeg(char* buf,char* jsbuf,uint8_t ctl)
+{
+  fnJsIntro(jsbuf,JSTB,0,ctl);
+  strcat(buf,"<table>");
+  fnHtmlEnd(buf,0,ctl);
+}
+
+void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
+{
+  fnJsIntro(jsbuf,JSTE,0,ctl&(~TRBEG)&(~TDBEG));
+  strcat(buf,"</table>");
   fnHtmlEnd(buf,0,ctl);
 }
 
@@ -358,7 +376,6 @@ void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint
   ft[LENNOM-1]=(char)(ninp+PMFNCHAR);   
   
   fnHtmlIntro(buf,0,td);
-  //fnJsIntro(jsbuf,JSNTB,0,0);
 
   strcat(buf,"<SELECT name=\"");strcat(buf,ft);strcat(buf,"\">");
   for(i=0;i<nbre;i++){
@@ -436,7 +453,6 @@ void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate)
 void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 /* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
 {
-  Serial.print(" ");Serial.println(lib);
     fnJsIntro(jsbuf,JSAC,0,0);
     fnJsIntro(jsbuf,JSBFB,sizfnt,ctl);
     fnHtmlIntro(buf,sizfnt,ctl);
@@ -693,6 +709,36 @@ void pageHeader(char* buf,char* jsbuf,bool form)
   strcat(buf,"<br>\n");
 }
 
+void formHeader(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+{
+    if(buf!=nullptr){
+          fnHtmlIntro(buf,pol,ctl);
+          strcat(buf,"<form method=\"GET \">");
+          strcat(buf,"<p hidden><input type=\"text\" name=\"user_ref_");
+          concat1a(buf,(char)(usernum+PMFNCHAR));
+          strcat(buf,"\" value=\"");
+          concatn(buf,usrtime[usernum]);
+          strcat(buf,"\">");
+          char fonc[]="peri_cur__\0\0";concat1a(fonc,(char)(PMFNCHAR));
+          numTf(buf,'i',&periCur,fonc,2,0,0);
+          strcat(buf,"</p>\n");
+    }
+    if(jsbuf!=nullptr){
+          fnJsIntro(jsbuf,JSFB,pol,ctl);
+    }
+}
+
+void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+{
+    if(buf!=nullptr){
+          strcat(buf,"</form>\n");
+          fnHtmlEnd(buf,pol,ctl);
+    }
+    if(jsbuf!=nullptr){
+          fnJsIntro(jsbuf,JSFE,pol,ctl&(~TDBEG)&(~TRBEG));
+    }
+
+}
 
 void checkboxTableBHtml(char* buf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib)
 {
