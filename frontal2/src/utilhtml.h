@@ -54,12 +54,14 @@
 #define JSBFB  "~bxp"         // bouton fonct            JSBFBnomfonct|valfonct|size|lib
 #define JSBFE  "~B"
 #define JSNTB  "~nxp"         // saisie numtf            JSNTBnomfonct|len|dec|typevaleur
-#define JSNTX  "~Nxp"         // affichage num (min/max) JSNTXvalfonct/100
+
 #define JSDB   "~dxp"         // saisie cb               JSDBnomfonct|lib|etat
 #define JSDE   "~D;"  
 #define JSATB  "~axp"         // saisie alphaTableHtmlB  JSATBnomfonct|valfonct|len
 #define JSATE  "~A"         
 #define JSST   "~sxp"         // affichage texte         JSSTtexte
+#define JSNT   "~Uxp"
+#define JSNTI  "~uxp"         // affichage num (min/max) JSNTXvalfonct/100
 
 #define JSFUB  "~u;"          // usrPeriCurB beg
 #define JSFUE  "~U;\n"        // usrPeriCurB end
@@ -70,11 +72,12 @@
 #define JSLE   "~L"
 #define JSCB   "~c"
 #define JSCE   "~C"  
-#define JSCEB  "~K"
-#define JSCEL  "~k"
+#define JSSTB  "~kxp"         // selectTable         
+#define JSCEL  "~Kxp"
 #define JSCELT "~Q"
-#define JSFB   "~f"           // début formulaire [titre si encadrement]
-#define JSFE   "~F"           // fin formulaire
+#define JSFBH  "~gxp"         // header formulaire
+#define JSFB   "~fxp"         // début formulaire [titre si encadrement]
+#define JSFE   "~Fxp"         // fin formulaire
 #define JSBR   "~p;\n"        // <br>
 #define JS2BR  "~o;\n"        // <br><br>
 
@@ -90,6 +93,8 @@ void pageHeader(char* buf);
 void pageHeader(char* buf,char* jsbuf);
 void pageHeader(char* buf,bool form);
 void pageHeader(char* buf,char* jsbuf,bool form);
+void formBeg(char* buf,char*jsbuf,const char* title);
+void formBeg(char* buf,char*jsbuf);
 void formHeader(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void cliPrintMac(EthernetClient* cli, byte* mac);
@@ -97,16 +102,17 @@ void trailingSpaces(char* data,uint16_t len);
 void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet);
 
 void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td);
+void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t td);
 void usrPeriCurB(char* buf,const char* fnct,uint8_t ninp,int len,uint8_t td);
 void usrPeriCurB(char* buf,char* jsbuf,const char* fnct,uint8_t ninp,int len,uint8_t td);
 void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib);
 void checkboxTableBHtml(char* buf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
+void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl);
 void usrFormBHtml(char* buf,bool hid);
 void usrFormBHtml(char* buf,char* jsbuf,bool hid);
 void usrFormInitBHtml(char* buf,const char* nomfonct);
 
-//void fontBeg(char* buf,char* jsbuf,uint8_t fntSiz,uint8_t td);
 void fontEnd(char* buf,char* jsbuf,uint8_t ctl);
 void tableBeg(char* buf,char* jsbuf,uint8_t ctl);
 void tableEnd(char* buf,char* jsbuf,uint8_t ctl);
@@ -133,17 +139,13 @@ void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate);
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
-//void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
-//void textTbl(char* buf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl);
-//void textTbl(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl);
-void affText(char* buf,char* jsbuf,char* txt,uint8_t pol,uint8_t ctl);
+void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl);
 void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl);
+void affNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl);
 void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len);
-//void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len);
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl);
-//void setCol (char* buf,const char* textColour);
 void boutRetourB(char* buf,const char* lib,uint8_t td,uint8_t br);
 void boutRetourB(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void boutF(char* buf,const char* nomfonct,const char* valfonct,const char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter);
