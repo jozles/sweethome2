@@ -9,7 +9,8 @@
 #define HID  (bool)true
 #define CRLF (bool)true
 #define LF     0x0A
-#define CTLCH  0x20
+#define CTLCH  0x40     
+#define CTLPO  0x20     // byte police present
 #define BRMASK 0x10
 #define BRYES  0x10
 #define BRNO   0
@@ -38,33 +39,33 @@
 #define JSSEP  "|"            // séparateur interne aux fonction
 #define JSCHK  "^"            // checked
 
-#define JSCOB  "~wxp"         // couleur                 JSCOBcouleur;
+#define JSCOB  "~wx"         // couleur                 JSCOBcouleur;
 #define JSCOE  "~W"
 
 #define JSFNE  "~X"           // police fin
 
-#define JSHIDB "~hxp"         // hide 
+#define JSHIDB "~hx"         // hide 
 #define JSHIDE "~H"   
 #define JSAC   "~V"           // align center
 
-#define JSBRB  "~rxp"         // bouton retour 
+#define JSBRB  "~rx"         // bouton retour 
 #define JSBRE  "~R"
-#define JSBMB  "~mxp"         // bouton Maj 
+#define JSBMB  "~mx"         // bouton Maj 
 #define JSBME  "~M"
-#define JSBFB  "~bxp"         // bouton fonct            JSBFBnomfonct|valfonct|size|lib
+#define JSBFB  "~bx"         // bouton fonct            JSBFBnomfonct|valfonct|size|lib
 #define JSBFE  "~B"
-#define JSNTB  "~nxp"         // saisie numtf            JSNTBnomfonct|len|dec|typevaleur
+#define JSNTB  "~nx"         // saisie numtf            JSNTBnomfonct|len|dec|typevaleur
 
-#define JSDB   "~dxp"         // saisie cb               JSDBnomfonct|lib|etat
+#define JSDB   "~dx"         // saisie cb               JSDBnomfonct|lib|etat
 #define JSDE   "~D;"  
-#define JSATB  "~axp"         // saisie alphaTableHtmlB  JSATBnomfonct|valfonct|len
+#define JSATB  "~ax"         // saisie alphaTableHtmlB  JSATBnomfonct|valfonct|len
 #define JSATE  "~A"         
-#define JSST   "~sxp"         // affichage texte         JSSTtexte
-#define JSNT   "~Uxp"
-#define JSNTI  "~uxp"         // affichage num (min/max) JSNTXvalfonct/100
+#define JSST   "~sx"         // affichage texte         JSSTtexte
+#define JSNT   "~Ux"
+#define JSNTI  "~ux"         // affichage num (min/max) JSNTXvalfonct/100
 
-#define JSFUB  "~u;"          // usrPeriCurB beg
-#define JSFUE  "~U;\n"        // usrPeriCurB end
+#define JSUSR  "~r"           // usrPeriCurB
+#define JSFUE  "~U;\n"      
 #define JSTB   "~t"           // debut table
 #define JSTE   "~T"           // fin table (crlf manuel dans jscat)
 #define JSTBL  "~q"    
@@ -72,12 +73,12 @@
 #define JSLE   "~L"
 #define JSCB   "~c"
 #define JSCE   "~C"  
-#define JSSTB  "~kxp"         // selectTable         
-#define JSCEL  "~Kxp"
+#define JSSTB  "~kx"         // selectTable         
+#define JSCEL  "~Kx"
 #define JSCELT "~Q"
-#define JSFBH  "~gxp"         // header formulaire
-#define JSFB   "~fxp"         // début formulaire [titre si encadrement]
-#define JSFE   "~Fxp"         // fin formulaire
+#define JSFBH  "~gx"         // header formulaire
+#define JSFB   "~fx"         // début formulaire [titre si encadrement]
+#define JSFE   "~Fx"         // fin formulaire
 #define JSBR   "~p;\n"        // <br>
 #define JS2BR  "~o;\n"        // <br><br>
 

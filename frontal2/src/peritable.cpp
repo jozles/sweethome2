@@ -420,7 +420,7 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
 
 void periLineHtml(EthernetClient* cli,int i)
 {
-  char jsbuf[2000];*jsbuf=' ';*(jsbuf+1)=0x00;
+  char jsbuf[2000];*jsbuf=LF;*(jsbuf+1)=0x00;
   char buf[2000];buf[0]='\0';
   uint16_t lb=0;
   ljs=0;
@@ -432,17 +432,13 @@ void periLineHtml(EthernetClient* cli,int i)
   htmlIntroB(buf,nomserver,cli);
   pageHeader(buf,jsbuf);
   perifHeader(buf,jsbuf);
-Serial.print("\n-3 ");Serial.print(jsbuf);ljs+=strlen(jsbuf);
   usrPeriCurB(buf,jsbuf,"peri_cur__",0,2,0);
-Serial.print("\n-4 ");Serial.print(jsbuf);ljs+=strlen(jsbuf);
   ethWrite(cli,buf,&lb);
-
-Serial.print("\n");Serial.print(jsbuf);ljs+=strlen(jsbuf);
 
 /* boutons */
 
-    strcat(buf,"<table><tr>\n");
-    jscat(jsbuf,JSTBL);
+    //strcat(buf,"<table><tr>\n");
+    tableBeg(buf,jsbuf,0);
 
     boutRetourB(buf,jsbuf,"retour",TDBE);strcat(buf," ");
     
@@ -467,7 +463,7 @@ Serial.print("\n");Serial.print(jsbuf);ljs+=strlen(jsbuf);
     
     ethWrite(cli,buf,&lb);
 
-Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';    
+Serial.print(" ");Serial.print(jsbuf);
 
 /* ligne périphérique */                
 
@@ -527,7 +523,6 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
                       
                 tableEnd(buf,jsbuf,TREND|BRYES);
                 ethWrite(cli,buf);
-                Serial.print(" ");Serial.print(jsbuf);jsbuf[0]='\0';    
 
 // table analogique
                 
@@ -551,7 +546,7 @@ Serial.print(" ");Serial.print(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
                 formEnd(buf,jsbuf,0,0);
                 
                 ethWrite(cli,buf,&lb);
-                Serial.print(" ");Serial.println(jsbuf);ljs+=strlen(jsbuf);jsbuf[0]='\0';
+                Serial.print(" ");Serial.println(jsbuf);ljs+=strlen(jsbuf);
                 Serial.print("len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.println(ljs);
   
 #define ANASIZLIB   3

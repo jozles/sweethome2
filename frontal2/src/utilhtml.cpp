@@ -48,7 +48,7 @@ void jscat(char* jsbuf,const char* s){if(jsbuf!=nullptr){strcat(jsbuf,s);}}
 
 void jscat(char* jsbuf,const char* s,bool sep){jscat(jsbuf,s);if(sep){strcat(jsbuf,JSSEP);}}
 
-void jscatch(char* jsbuf,const char s){if(jsbuf!=nullptr){*jsbuf=s;*(jsbuf+1)=0x00;}}
+void jscatch(char* jsbuf,const char s){if(jsbuf!=nullptr){char* jspt=jsbuf+strlen(jsbuf);*jspt=s;*(jspt+1)=0x00;}}
 
 void jscatch(char* jsbuf,const char s,bool sep){jscatch(jsbuf,s);if(sep){strcat(jsbuf,JSSEP);}}
 
@@ -56,13 +56,14 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl,char* 
 {
   if(jsbuf!=nullptr){
     char* jspt=jsbuf+strlen(jsbuf);
-    if(*(jspt-1)!=CRLF){*jspt=LF;*(jspt+1)=0x00;}
+    if(*(jspt-1)!=LF){*jspt=LF;*(jspt+1)=0x00;}
     strcat(jsbuf,fonc);
-    
     jspt=jsbuf+strlen(jsbuf);
-    *(jspt-1)=ctl|CTLCH;
-    *jspt=(pol&0x7F)|0x40;
-    *(jspt+1)=0x00;
+    
+    if(*(jspt-1)=='x'){
+      *(jspt-1)=ctl|CTLCH;
+      if(pol!=0){*(jspt-1)|=CTLPO;*jspt=(pol&0x7F)|0x40;*(jspt+1)=0x00;}
+    }
   }
 }
 
@@ -123,12 +124,10 @@ void concatn(char* buf,char* jsbuf,unsigned long val)               // concatene
                                                                     // si jsbuf valide, jsbuf recoit la même chaine avec ";\0" à la fin                                                                
 {
   uint16_t s;
-  char* dm;
-  if(buf!=nullptr){dm=buf+strlen(buf);}
-  else {dm=jsbuf+strlen(jsbuf);}
+  char dm[10];
   s=sprintf(dm,"%lu",val);dm[s]='\0';
-  if(buf==nullptr){strcat(dm,";");}
-  else if(jsbuf!=nullptr){jscat(jsbuf,dm);} 
+  jscat(jsbuf,dm);
+  if(buf!=nullptr){strcat(buf,dm);} 
 }
 
 void concatn(char* buf,char* jsbuf,unsigned long val,bool sep)
@@ -371,7 +370,7 @@ void usrFormBHtml(char* buf,bool hid)
 void usrFormBHtml(char* buf,char* jsbuf,bool hid)                     // pour mettre en tête des formulaires ("<p hidden> .... </p>")
 {
   if(hid){strcat(buf,"<p hidden>");fnJsIntro(jsbuf,JSHIDB,0,0);}
-  fnJsIntro(jsbuf,JSNTB,0,0);
+  fnJsIntro(jsbuf,JSUSR,0,0);
   strcat(buf,"<input type=\"text\" name=\"");
   char* dm=buf+strlen(buf);
   strcat(buf,"user_ref_");concat1a(buf,nullptr,(char)(usernum+PMFNCHAR));
@@ -404,7 +403,7 @@ void usrPeriCurB(char* buf,char* jsbuf,const char* fnct,uint8_t ninp,int len,uin
     usrFormBHtml(buf,jsbuf,0);
 
     char fonc[LENNOM+1];memcpy(fonc,fnct,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
-    numTf(buf,jsbuf,'i',&periCur,fonc,len,0,ctl); // pericur n'est pas modifiable (fixation pericur, periload, cberase)
+    numTf(buf,jsbuf,'d',&periCur,fonc,len,0,ctl); // pericur n'est pas modifiable (fixation pericur, periload, cberase)
 
     strcat(buf,"</p>");fnJsIntro(jsbuf,JSHIDE,0,0);
 }
