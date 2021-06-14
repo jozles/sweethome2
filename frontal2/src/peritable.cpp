@@ -157,7 +157,7 @@ void subModePulseTime(char* buf,uint8_t npu,uint32_t* pulse,uint32_t* dur,char* 
   uint8_t val=(((*(uint16_t*)periSwPulseCtl)>>pbit)&0x01)+PMFNCVAL;                                        
   strcat(buf,"<font size=\"2\">");
   fonc1[LENNOM-1]=onetwo;
-  checkboxTableBHtml(buf,&val,fonc1,-1,0,"");                       // bit enable pulse
+  checkboxTableBHtml(buf,&val,fonc1,NO_STATE,0,"");                       // bit enable pulse
   if(*(pulse+npu)<0){*(pulse+npu)=0;}  
   numTf(buf,'l',(pulse+npu),fonc2,8,0,2);                 // durée pulse   
 //  char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
@@ -172,7 +172,7 @@ void perinpBfnc(char* buf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char
   ft[LENNOM-1]=(char)(nuinp+PMFNCHAR);
   
   switch (type){
-    case 'c':if(val!=0){vv=1;};checkboxTableBHtml(buf,&vv,ft,-1,0,"");break;
+    case 'c':if(val!=0){vv=1;};checkboxTableBHtml(buf,&vv,ft,NO_STATE,0,"");break;
     case 'n':numTf(buf,'d',&val,ft,lmax,0,2);break;
     default: break;
   }
@@ -230,7 +230,7 @@ void SwCtlTableHtml(EthernetClient* cli)
       
         strcat(buf,"</td><td> ");
         uint8_t val=(*(uint16_t*)periSwPulseCtl>>(PCTLBIT*pu+PMFRO_PB))&0x01;rfonc[LENNOM-1]='F';   // bit freerun
-        checkboxTableBHtml(buf,&val,rfonc,-1,0,"");                  
+        checkboxTableBHtml(buf,&val,rfonc,NO_STATE,0,"");                  
         strcat(buf,"<br>");for(int tsp=0;tsp<LENTSP;tsp++){concat1a(buf,psps[periSwPulseSta[pu]*LENTSP+tsp]);}strcat(buf,"</td>\n");         // staPulse 
 
         ethWrite(cli,buf);
@@ -358,7 +358,7 @@ Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
           Serial.print(" PT ms=");Serial.println(millis()-begPT); 
 }
 
-void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const char* title,const char* nfonc,uint8_t nbLi,const char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)
+void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const char* title,const char* nfonc,uint8_t nbLi,const char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo,uint16_t* lb)
 {                                 // le n° de fonction permet une seule fonction d'init pour plusieurs formulaires de même structure
   
   uint8_t k,op;
@@ -371,7 +371,9 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
   char inifonc[LENNOM];memcpy(inifonc,nfonc,4);memcpy(inifonc+4,"init__",LENNOM-4);
   usrPeriCurB(buf,inifonc,nbfonc,2,0);
   
-  strcat(buf,"<table><tr><th></th><th>e.l. p.e<br>n.v. r.s</th><th> op </th><th>rdet</th><th>det</th></tr>\n");
+  tableBeg(buf,jsbuf,0);
+  //strcat(buf,"<th></th><th>e.l. p.e<br>n.v. r.s</th><th> op </th><th>rdet</th><th>det</th></tr>\n");
+  affText(buf,jsbuf,"|e.l. p.e~n.v. r.s| op |rdet|det",0,TRBE|TDBE);
   
   char bb[libsize+1];
   for(int i=0;i<nbLi;i++){    
@@ -380,7 +382,8 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
     *bb='\0';concatn(bb,i+1);strcat(bb," ");strcat(bb,(char*)(lib+i*libsize));
     affText(buf,jsbuf,bb,0,TRBEG|TDBE);
 
-/* checkbox */
+// checkbox 
+
     colnb=PMFNCHAR;
     #define CBNB 4
     for(uint8_t j=0;j<CBNB;j++){
@@ -391,36 +394,40 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
         case CBNB-1:cbtd=TDEND;break;
         default: break;
       }
-      namfonct[LENNOM-2]=(char)(colnb);checkboxTableBHtml(buf,jsbuf,&k,namfonct,-1,"",0,cbtd);       // n° de colonne
-      if(j<(CBNB-1)){affText(buf,jsbuf," ",0,0);}
+      namfonct[LENNOM-2]=(char)(colnb);checkboxTableBHtml(buf,jsbuf,&k,namfonct,NO_STATE,"",0,cbtd);
+      if(j<(CBNB-1)){affSpace(buf,jsbuf);}
       colnb++;
     }      
-/* opé logique */
+    
+// opé logique 
     op=(*(cb+i))>>4;
     selectTableBHtml(buf,jsbuf,rulOp,namfonct,nbOp,lenOp,op,colnb-PMFNCHAR,i,0,TDBE);
     colnb++;
-/* det ref */
+// det ref 
     namfonct[LENNOM-2]=colnb;colnb++;numTf(buf,jsbuf,'s',&rdet[i],namfonct,2,0,0,TDBE);
     namfonct[LENNOM-2]=colnb;   
-/* det dest */    
+    
+// det dest 
     namfonct[LENNOM-2]=colnb;colnb++;numTf(buf,jsbuf,'s',&det[i],namfonct,2,0,0,TDBE);
     namfonct[LENNOM-2]=colnb;
-/* mémo */
+// mémo 
     const char* mem="\0";
     if(memo[i]>=0 && memo[i]<NBMEMOS){mem=&memosTable[memo[i]*LMEMO];}
     alphaTableHtmlB(buf,jsbuf,mem,namfonct,LMEMO-1,0,TDBE|TREND);
 
-    ethWrite(cli,buf);    // max len pour cli-print() 2048 ???
+    ethWrite(cli,buf,lb);
   }
-  strcat(buf,"</table><br><input type=\"submit\" value=\"MàJ\"></fieldset></form>\n"); 
 
-  ethWrite(cli,buf);
+  tableEnd(buf,jsbuf,BRYES);
+  strcat(buf,"<input type=\"submit\" value=\"MàJ\"></fieldset></form>\n"); 
+
+  ethWrite(cli,buf,lb);
 }
 
 
 void periLineHtml(EthernetClient* cli,int i)
 {
-  char jsbuf[2000];*jsbuf=LF;*(jsbuf+1)=0x00;
+  char jsbuf[4000];*jsbuf=LF;*(jsbuf+1)=0x00;
   char buf[2000];buf[0]='\0';
   uint16_t lb=0;
   ljs=0;
@@ -449,21 +456,19 @@ void periLineHtml(EthernetClient* cli,int i)
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
       boutF(buf,jsbuf,swf,"","Switchs",ALICNO,0,0);
     }
-    affText(buf,jsbuf," ",0,0);
+    affSpace(buf,jsbuf);
     char raz[]="peri_raz___";raz[LENNOM-1]=periCur+PMFNCHAR;
     boutF(buf,jsbuf,raz,"","Raz",ALICNO,0,BRYES);
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
     line[LENNOM-2]='0';boutF(buf,jsbuf,line,"","tst__SW0",ALICNO,0,0);
     line[LENNOM-2]='1';boutF(buf,jsbuf,line,"","tst__SW1",ALICNO,0,0);
-    affText(buf,jsbuf," ",0,0);
-    line[LENNOM-2]='m';boutF(buf,jsbuf,line,"","tst_mail",ALICNO,0,TDEND);
+    affSpace(buf,jsbuf);
+    line[LENNOM-2]='m';boutF(buf,jsbuf,line,"","tst_mail",ALICNO,0,TREND|TDEND);
     tableEnd(buf,jsbuf,0);
     //strcat(buf,"</tr></table>\n");
     
     ethWrite(cli,buf,&lb);
-
-Serial.print(" ");Serial.print(jsbuf);
 
 /* ligne périphérique */                
 
@@ -472,8 +477,8 @@ Serial.print(" ");Serial.print(jsbuf);
                 if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
 
                 tableBeg(buf,jsbuf,0);
-                      strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   
-          
+                      //strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   
+                      affText(buf,jsbuf,"||~periph_name|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|._D_ _l~._i_ _e~._s_ _v|mac_addr~ip_addr|version Th~last out~last in",0,TRBE);
                       affNum(buf,jsbuf,'d',&periCur,0,0,TDBE);
                       alphaTableHtmlB(buf,jsbuf,periNamer,"peri_nom__",PERINAMLEN-1,0,TRNO|TDBE|BRNO);                    
                       affNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);            
@@ -488,7 +493,7 @@ Serial.print(" ");Serial.print(jsbuf);
                       numTf(buf,jsbuf,'r',periPitch_,"peri_pitch",5,2,0,BRYES);
                       numTf(buf,jsbuf,'r',periThOffset_,"peri_tofs_",5,3,0,TDEND);
                       numTf(buf,jsbuf,'l',(uint32_t*)periPerRefr,"peri_refr_",5,2,0,TDBEG|BRYES);
-                      checkboxTableBHtml(buf,jsbuf,(uint8_t*)periProg,"peri_prog_",-1,TDEND,"");
+                      checkboxTableBHtml(buf,jsbuf,(uint8_t*)periProg,"peri_prog_",NO_STATE,TDEND,"");
                       numTf(buf,jsbuf,'b',periSwNb,"peri_intnb",1,2,0,TDBEG|BRYES);
                       numTf(buf,jsbuf,'b',periDetNb,"peri_detnb",1,3,0,TDEND);
                       char fonc[]={"peri_vsw__\0"},oi[]={"OI"};
@@ -527,14 +532,13 @@ Serial.print(" ");Serial.print(jsbuf);
 // table analogique
                 
                 affText(buf,jsbuf,"Analog Input",0,BRYES);
-                  //strcat(buf,"<table><tr><td>Val<br>Low<br>High</td>");
                 tableBeg(buf,jsbuf,TRBEG);
-                affText(buf,jsbuf,"val",0,TDBEG|BRYES);affText(buf,jsbuf,"Low",0,BRYES);affText(buf,jsbuf,"High",0,TDEND);
+                affText(buf,jsbuf,"val~Low~High",0,TDBE);
                 affNum(buf,jsbuf,(int16_t*)periAnal,&valMin,&valMax,BRYES|TDBEG);
                 numTf(buf,jsbuf,'I',periAnalLow,"peri_ana@",5,0,0,BRYES);
                 numTf(buf,jsbuf,'I',periAnalHigh,"peri_anaA",5,0,0,NOBR|TDEND);
                   //strcat(buf,"\n<td>Off1<br>Fact<br>Off2</td>\n<td>");
-                affText(buf,jsbuf,"Off1",0,TDBEG|BRYES);affText(buf,jsbuf,"Fact",0,BRYES);affText(buf,jsbuf,"Off2",0,TDEND);
+                affText(buf,jsbuf,"Off1~Fact~Off2",0,TDBE);
                 numTf(buf,jsbuf,'I',periAnalOffset1,"peri_anaB_",5,0,0,TDBEG|BRYES);
                       //numTf(buf,'I',periAnalOffset1,"peri_anaB_",5,0,0);strcat(buf,"<br>");
                       //strcat(buf,"<br>");jscat(jsbuf,JSBR);                    
@@ -546,12 +550,10 @@ Serial.print(" ");Serial.print(jsbuf);
                 formEnd(buf,jsbuf,0,0);
                 
                 ethWrite(cli,buf,&lb);
-                Serial.print(" ");Serial.println(jsbuf);ljs+=strlen(jsbuf);
-                Serial.print("len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.println(ljs);
   
 #define ANASIZLIB   3
                 char aLibState[]={">H\0=H\0><\0=L\0-L\0"};
-                subCbdet(buf,jsbuf,cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,NBRULOP,LENRULOP,rulop,periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo);
+                subCbdet(buf,jsbuf,cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,NBRULOP,LENRULOP,rulop,periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo,&lb);
 
 // table digitale
 
@@ -563,9 +565,14 @@ Serial.print(" ");Serial.print(jsbuf);
                   dLibState[k*DIGITSIZLIB]=oi[(*periDetVal>>(k*2))&DETBITLH_VB];
                   dLibState[i*DIGITSIZLIB+1]='_';}
                 if(*periDetNb>0){
-                  subCbdet(buf,jsbuf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);
+                  subCbdet(buf,jsbuf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo,&lb);
                 }
+                
+                strcat(buf,"</body></html>");
                 ethWrite(cli,buf);
+
+                Serial.print(" ");Serial.println(jsbuf);ljs=strlen(jsbuf);
+                Serial.print("len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.println(ljs);
 
                 Serial.print(" ms=");Serial.println(millis()-begPL);
 }

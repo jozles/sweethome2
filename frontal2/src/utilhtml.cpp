@@ -56,14 +56,19 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl,char* 
 {
   if(jsbuf!=nullptr){
     char* jspt=jsbuf+strlen(jsbuf);
-    if(*(jspt-1)!=LF){*jspt=LF;*(jspt+1)=0x00;}
-    strcat(jsbuf,fonc);
-    jspt=jsbuf+strlen(jsbuf);
+    if(*(jspt-1)!=LF){*jspt=LF;jspt++;}
+    *jspt=*JSFON;jspt++;
+    *jspt=*fonc;jspt++;
     
-    if(*(jspt-1)=='x'){
-      *(jspt-1)=ctl|CTLCH;
-      if(pol!=0){*(jspt-1)|=CTLPO;*jspt=(pol&0x7F)|0x40;*(jspt+1)=0x00;}
+    if(*(fonc+1)==*JSCTL){
+      *jspt=ctl|CTLCH;
+      jspt++;
+      if(pol!=0){
+        *jspt|=CTLPO;jspt++;
+        *jspt=(pol&0x7F)|0x40;jspt++;
+      }
     }
+    *(jspt)=0x00;
   }
 }
 
@@ -91,10 +96,11 @@ void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl)
 void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl)
 {
   if(buf!=nullptr){
-    if(pol){strcat(buf,"</font>");}
-    if(ctl&BRMASK){strcat(buf,"<br>");}
-    if((ctl&TDMASK)==TDEND || (ctl&TDMASK)==TDBE){strcat(buf,"</td>\n");}
-    if((ctl&TRMASK)==TREND || (ctl&TRMASK)==TRBE){strcat(buf,"</tr>\n");}
+    if(pol!=0){strcat(buf,"</font>");}
+    if((ctl&BRMASK)!=0){strcat(buf,"<br>");}
+    if((ctl&TDMASK)==TDEND || (ctl&TDMASK)==TDBE){strcat(buf,"</td>");}
+    if((ctl&TRMASK)==TREND || (ctl&TRMASK)==TRBE){strcat(buf,"</tr>");}
+    strcat(buf,"\n");
   }
 }
 
@@ -246,12 +252,32 @@ void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
   fnHtmlEnd(buf,0,ctl);
 }
 
+void buftxcat(char* buf,char* txt)
+{
+  char c[2]={*txt,'\0'};
+  while (*c!=0x00){
+    switch (*c){
+      case *JSSBR:strcat(buf,"</td><td>");break;
+      case *JSLF:strcat(buf,"<br>");break;
+      default: strcat(buf,c);
+    }
+    txt++;*c=*txt;
+  }
+}
+
 void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
 {
   fnJsIntro(jsbuf,JSST,pol,ctl);
   fnHtmlIntro(buf,pol,ctl);
-  strcat(buf,txt);jscat(jsbuf,txt);
+  char* dm=jsbuf+strlen(jsbuf);
+  jscat(jsbuf,txt);buftxcat(buf,dm);
   fnHtmlEnd(buf,pol,ctl);
+}
+
+void affSpace(char* buf,char* jsbuf)
+{
+  strcat(buf," ");
+  fnJsIntro(jsbuf,JSSP,0,0);
 }
 
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl)
@@ -688,7 +714,7 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
   ethWrite(cli,buf);
 }
 
-void bufcat(char* buf,char* jsbuf,const char* s){strcat(buf,s);if(jsbuf!=nullptr){strcat(jsbuf,s);strcat(jsbuf,";");}}
+void bufcat(char* buf,char* jsbuf,const char* s){strcat(buf,s);jscat(jsbuf,s);}
 
 void pageHeader(char* buf)
 {
@@ -785,24 +811,24 @@ void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl)
 {
   fnJsIntro(jsbuf,JSDB,pol,ctl);
-  jscat(jsbuf,nomfonct);jscat(jsbuf,JSSEP);
+  //jscat(jsbuf,nomfonct);jscat(jsbuf,JSSEP);
 
   fnHtmlIntro(buf,pol,ctl);
-  strcat(buf,"<input type=\"checkbox\" name=\"");bufcat(buf,jsbuf,nomfonct);strcat(buf,"\" id=\"cb1\" value=\"1\"");
-  if((*val & 0x01)!=0){strcat(buf," checked");jscat(jsbuf,JSCHK);jscat(jsbuf,JSSEP);}
+  
+  strcat(buf,"<input type=\"checkbox\" name=\"");bufcat(buf,jsbuf,nomfonct);jscat(jsbuf,JSSEP);
+  strcat(buf,"\" id=\"cb1\" value=\"1\"");
+  if((*val & 0x01)!=0){strcat(buf," checked");jscat(jsbuf,JSCHK);}
   strcat(buf,">");
-  bufcat(buf,jsbuf,lib);jscat(jsbuf,JSSEP);
-  if(etat>0 && !(*val & 0x01)){etat=2;}
-  concatn(nullptr,jsbuf,etat);
+  strcat(buf,lib);jscat(jsbuf,lib);
+  if(etat!=NO_STATE && !(*val & 0x01)){etat=2;}
+  if(etat!=NO_STATE){concatn(nullptr,jsbuf,(unsigned long)etat);}
   switch(etat){
     case 2 :strcat(buf,"___");break;
     case 1 :strcat(buf,"_ON");break;
     case 0 :strcat(buf,"OFF");break;
     default:break;
   }
-
   fnHtmlEnd(buf,pol,ctl);
-  fnJsIntro(jsbuf,JSDE,pol,ctl&(~TDBEG)&(~TRBEG));
 }
 
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib)
@@ -825,7 +851,7 @@ void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib) // ch
   uint8_t val0=(val>>num)&0x01;
   if(num>=16){num+=16;}
   fonc[LENNOM-1]=(char)(PMFNCHAR+num);
-  checkboxTableBHtml(buf,&val0,fonc,-1,0,lib);
+  checkboxTableBHtml(buf,&val0,fonc,NO_STATE,0,lib);
 }
 
 void cliPrintMac(EthernetClient* cli, byte* mac)

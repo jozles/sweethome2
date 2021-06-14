@@ -36,51 +36,53 @@
    de la forme ~JSAAAA; tilde + 3 à 6 caractères et ";"
    0 à n arguments (éventuellement optionnels) suivent séparés par ";"
 */
-#define JSSEP  "|"            // séparateur interne aux fonction
-#define JSCHK  "^"            // checked
+#define JSFON  "{"        // séparateur début fonction  
+#define JSSEP  "}"        // séparateur interne aux fonction
+#define JSSBR  "|"        // séparateur colonne dans les chaines texte
+#define JSLF   "~"        // séparateur <br> dans les chaines texte 
+#define JSCHK  "^"        // checked 
+#define JSCTL  "x"        // troisieme car optionnel de fonction (reçoit ctl) 
 
-#define JSCOB  "~wx"         // couleur                 JSCOBcouleur;
-#define JSCOE  "~W"
+#define JSCOB  "wx"       // couleur                 JSCOBcouleur;
+#define JSCOE  "W "
 
-#define JSFNE  "~X"           // police fin
+#define JSFNE  "X "       // police fin
 
-#define JSHIDB "~hx"         // hide 
-#define JSHIDE "~H"   
-#define JSAC   "~V"           // align center
+#define JSHIDB "hx"       // hide 
+#define JSHIDE "H "   
+#define JSAC   "V "       // align center
 
-#define JSBRB  "~rx"         // bouton retour 
-#define JSBRE  "~R"
-#define JSBMB  "~mx"         // bouton Maj 
-#define JSBME  "~M"
-#define JSBFB  "~bx"         // bouton fonct            JSBFBnomfonct|valfonct|size|lib
-#define JSBFE  "~B"
-#define JSNTB  "~nx"         // saisie numtf            JSNTBnomfonct|len|dec|typevaleur
+#define JSBRB  "rx"       // bouton retour 
+#define JSBRE  "R "
+#define JSBMB  "mx"       // bouton Maj 
+#define JSBME  "M "
+#define JSBFB  "bx"       // bouton fonct            JSBFBnomfonct|valfonct|size|lib
+#define JSBFE  "B "
+#define JSNTB  "nx"       // saisie numtf            JSNTBnomfonct|len|dec|typevaleur
 
-#define JSDB   "~dx"         // saisie cb               JSDBnomfonct|lib|etat
-#define JSDE   "~D;"  
-#define JSATB  "~ax"         // saisie alphaTableHtmlB  JSATBnomfonct|valfonct|len
-#define JSATE  "~A"         
-#define JSST   "~sx"         // affichage texte         JSSTtexte
-#define JSNT   "~Ux"
-#define JSNTI  "~ux"         // affichage num (min/max) JSNTXvalfonct/100
+#define JSDB   "dx"       // saisie cb               JSDBnomfonct}lib}[JSCHK][etat]
+#define JSDE   "D "       // saisie cb fin  
+#define JSATB  "ax"       // saisie alphaTableHtmlB  JSATBnomfonct|valfonct|len
+#define JSSP   "S "       // affichage space  
+#define JSST   "sx"       // affichage texte         JSSTtexte
+#define JSNT   "Ux"
+#define JSNTI  "ux"       // affichage num (min/max) JSNTXvalfonct/100
 
-#define JSUSR  "~r"           // usrPeriCurB
-#define JSFUE  "~U;\n"      
-#define JSTB   "~t"           // debut table
-#define JSTE   "~T"           // fin table (crlf manuel dans jscat)
-#define JSTBL  "~q"    
-#define JSLB   "~l"       
-#define JSLE   "~L"
-#define JSCB   "~c"
-#define JSCE   "~C"  
-#define JSSTB  "~kx"         // selectTable         
-#define JSCEL  "~Kx"
-#define JSCELT "~Q"
-#define JSFBH  "~gx"         // header formulaire
-#define JSFB   "~fx"         // début formulaire [titre si encadrement]
-#define JSFE   "~Fx"         // fin formulaire
-#define JSBR   "~p;\n"        // <br>
-#define JS2BR  "~o;\n"        // <br><br>
+#define JSUSR  "r "       // usrPeriCurB
+#define JSFUE  "U "      
+#define JSTB   "t "       // debut table
+#define JSTE   "T "       // fin table (crlf manuel dans jscat)
+#define JSTBL  "q "    
+#define JSLB   "l "       
+#define JSLE   "L "
+#define JSCB   "c "
+#define JSCE   "C "  
+#define JSSTB  "kx"       // selectTable         
+#define JSCEL  "Kx"
+#define JSCELT "Q "
+#define JSFBH  "gx"       // header formulaire
+#define JSFB   "fx"       // début formulaire [titre si encadrement]
+#define JSFE   "Fx"       // fin formulaire
 
 
 void bufcat(char* buf,char* jsbuf,const char* s);
@@ -107,6 +109,7 @@ void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,
 void usrPeriCurB(char* buf,const char* fnct,uint8_t ninp,int len,uint8_t td);
 void usrPeriCurB(char* buf,char* jsbuf,const char* fnct,uint8_t ninp,int len,uint8_t td);
 void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib);
+#define NO_STATE 9         // etat
 void checkboxTableBHtml(char* buf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl);
@@ -142,6 +145,7 @@ void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
+void affSpace(char* buf,char* jsbuf);
 void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl);
 void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl);
 void affNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl);

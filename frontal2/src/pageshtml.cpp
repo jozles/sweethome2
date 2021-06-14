@@ -454,11 +454,11 @@ void cfgRemoteHtml(EthernetClient* cli)
 
                 memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // état on/off
                 val=(uint8_t)remoteN[nb].onoff;
-                checkboxTableBHtml(buf,&val,nf,-1,1,"");
+                checkboxTableBHtml(buf,&val,nf,NO_STATE,1,"");
                 
                 memcpy(nf,"remotecfe_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // enable (inutilisé ?)
                 val=(uint8_t)remoteN[nb].enable;
-                //checkboxTableBHtml(buf,&val,nf,-1,1,"");
+                //checkboxTableBHtml(buf,&val,nf,NO_STATE,1,"");
                 strcat(buf,"<td>");
                 radioTableBHtml(buf,val,nf,3);
                    
@@ -765,7 +765,7 @@ void subthd(char* buf,char param,uint8_t nb,void* val,char type)
         switch(type){
           case 'd': numTf(buf,'b',val,nf,2,1,0);break;                           // n° detec/peri              
           case 'v': numTf(buf,'I',val,nf,4,1,0);break;                           // value/offset
-          case 'e': checkboxTableBHtml(buf,(uint8_t*)val,nf,-1,1,"");break;      // enable/state
+          case 'e': checkboxTableBHtml(buf,(uint8_t*)val,nf,NO_STATE,1,"");break;      // enable/state
           default:break;
         }
 }
@@ -862,15 +862,15 @@ void timersHtml(EthernetClient* cli)
                       concatn(buf,(memDetServ>>timersN[nt].detec)&0x01);                      
                       strcat(buf,"</td><td>");
                       
-                      nucb=0;sscb(buf,timersN[nt].enable,"tim_chkb__",nucb,-1,0,nt);
-                      nucb++;sscb(buf,timersN[nt].perm,"tim_chkb__",nucb,-1,0,nt);
-                      nucb++;sscb(buf,timersN[nt].cyclic,"tim_chkb__",nucb,-1,0,nt);   
+                      nucb=0;sscb(buf,timersN[nt].enable,"tim_chkb__",nucb,NO_STATE,0,nt);
+                      nucb++;sscb(buf,timersN[nt].perm,"tim_chkb__",nucb,NO_STATE,0,nt);
+                      nucb++;sscb(buf,timersN[nt].cyclic,"tim_chkb__",nucb,NO_STATE,0,nt);   
 ethWrite(cli,buf);                     
                       strcat(buf,"</td><td>");
                       for(int nj=7;nj>=0;nj--){
                         bool vnj; 
                         vnj=(timersN[nt].dw>>nj)&0x01;
-                        nucb++;sscb(buf,vnj,"tim_chkb__",nucb,-1,0,nt);
+                        nucb++;sscb(buf,vnj,"tim_chkb__",nucb,NO_STATE,0,nt);
                       }
                       strcat(buf,"</td>");
                     
