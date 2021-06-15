@@ -434,7 +434,7 @@ void usrPeriCurB(char* buf,char* jsbuf,const char* fnct,uint8_t ninp,int len,uin
     strcat(buf,"</p>");fnJsIntro(jsbuf,JSHIDE,0,0);
 }
 
-void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl)
+void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl)
 {            // val=table des libellés ; ft=fonction ; nbre ds table ; len step table ; sel=n°actuel ; nuv=n°param ; n°inp
   char a;
   int i,j;
@@ -444,6 +444,10 @@ void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,
   
   fnHtmlIntro(buf,0,ctl);
   fnJsIntro(jsbuf,JSSTB,0,ctl);
+  sel+=PMFNCVAL;
+  char s[]={sel,0x00};
+  jscat(jsbuf,s);
+  jscat(jsbuf,ft);jscat(jsbuf,JSSEP);
 
   strcat(buf,"<SELECT name=\"");strcat(buf,ft);strcat(buf,"\">");
   for(i=0;i<nbre;i++){
@@ -453,14 +457,27 @@ void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,
       if(a!=' '){concat1a(buf,a);}
     }
   }
-
   strcat(buf,"</SELECT>");
 
   fnHtmlEnd(buf,0,ctl);
   strcat(buf,"\n");
 }
 
-void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td)
+void optSelHtml(char* jsbuf,char* val,char* name)
+{
+  fnJsIntro(jsbuf,JSSOP,0,0);
+  jscat(jsbuf,name);
+  jscat(jsbuf,val);
+}
+
+void selectTableBHtml(char* buf,char* jsbuf,char* val,char* name,char* ft,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl)
+{
+  int nbre=*val-PMFNCVAL,len=*(val+1)-PMFNCVAL;
+  selectTableBHtml(buf,jsbuf,val+2,ft,nbre,len,sel,nuv,ninp,pol,ctl);
+  jscat(jsbuf,name);
+}
+
+void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t td)
 {
   selectTableBHtml(buf,nullptr,val,ft,nbre,len,sel,nuv,ninp,0,td);
 }

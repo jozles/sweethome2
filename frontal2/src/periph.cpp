@@ -112,8 +112,6 @@ extern byte      periMacBuf[6];
 
 extern byte      lastIpAddr[4];
 
-char rulop[]={"     0    1    OR   AND  XOR  TO   "};      // libellés opérations regles analog & digital inputs péri
-
 char inptyps[]="meexphpu??";                  // libellés types sources regles switchs
 char inptypd[]="meexswpu??";                  // libellés types destinations regles switchs
 char inpact[]={"     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-       "};      // libellés actions

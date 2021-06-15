@@ -48,62 +48,60 @@ extern char      periRec[PERIRECLEN];        // 1er buffer de l'enregistrement d
   
 extern uint16_t  periCur;                    // Numéro du périphérique courant
 
-extern uint16_t* periNum;                      // ptr ds buffer : Numéro du périphérique courant
-extern long*     periPerRefr;                  // ptr ds buffer : période maximale accés au serveur
-extern uint16_t* periPerTemp;                  // ptr ds buffer : période de lecture tempèrature
+extern uint16_t* periNum;                       // ptr ds buffer : Numéro du périphérique courant
+extern long*     periPerRefr;                   // ptr ds buffer : période maximale accés au serveur
+extern uint16_t* periPerTemp;                   // ptr ds buffer : période de lecture tempèrature
 extern int16_t*  periPitch_;                    // ptr ds buffer : variation minimale de température pour datasave
 extern int16_t*  periLastVal_;                  // ptr ds buffer : dernière valeur de température  
 extern int16_t*  periAlim_;                     // ptr ds buffer : dernière tension d'alimentation
-extern char*     periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
-extern char*     periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
-extern char*     periLastDateErr;              // ptr ds buffer : date/heure de derniere anomalie com
-extern int8_t*   periErr;                      // ptr ds buffer : code diag anomalie com (voir MESSxxx shconst.h)
-extern char*     periNamer;                    // ptr ds buffer : description périphérique
-extern char*     periVers;                     // ptr ds buffer : version logiciel du périphérique
-extern char*     periModel;                    // ptr ds buffer : model du périphérique
-extern byte*     periMacr;                     // ptr ds buffer : mac address 
-extern byte*     periIpAddr;                   // ptr ds buffer : Ip address
-extern uint16_t* periPort;                     // ptr ds buffer : port periph server
-extern byte*     periSwNb;                     // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
-extern byte*     periSwVal;                    // ptr ds buffer : état/cde des inter  
-extern byte*     periInput;                    // ptr ds buffer : Mode fonctionnement inters (4 bytes par switch)           
-extern uint32_t* periSwPulseOne;               // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
-extern uint32_t* periSwPulseTwo;               // ptr ds buffer : durée pulses sec OFF(mode astable)
-extern uint32_t* periSwPulseCurrOne;           // ptr ds buffer : temps courant pulses ON
-extern uint32_t* periSwPulseCurrTwo;           // ptr ds buffer : temps courant pulses OFF
-extern byte*     periSwPulseCtl;               // ptr ds buffer : mode pulses 
-extern byte*     periSwPulseSta;               // ptr ds buffer : état clock pulses
-extern uint8_t*  periSondeNb;                  // ptr ds buffer : nbre sonde
-extern boolean*  periProg;                     // ptr ds buffer : flag "programmable" 
-extern byte*     periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
-extern byte*     periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
-extern int16_t*  periThOffset_;                // ptr ds buffer : offset correctif sur mesure température
-extern int16_t*  periThmin_;                   // ptr ds buffer : alarme mini th
-extern int16_t*  periThmax_;                   // ptr ds buffer : alarme maxi th
-extern int16_t*  periVmin_;                    // ptr ds buffer : alarme mini volts
-extern int16_t*  periVmax_;                    // ptr ds buffer : alarme maxi volts
-extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
-extern byte*     periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
-extern uint16_t* periAnal;                     // ptr ds buffer : analog value
-extern uint16_t* periAnalLow;                  // ptr ds buffer : low analog value 
-extern uint16_t* periAnalHigh;                 // ptr ds buffer : high analog value 
-extern uint16_t* periAnalOffset1;              // ptr ds buffer : offset on adc value
-extern float*    periAnalFactor;               // ptr ds buffer : factor to float for analog value
-extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
-extern uint8_t*  periAnalCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
-extern uint8_t*  periAnalDestDet;              // ptr ds buffer : 5 x n° détect serveur
-extern uint8_t*  periAnalRefDet;               // ptr ds buffer : 5 x n° détect serveur pour op logique (0xff si rien)
-extern int8_t*   periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
-extern uint8_t*  periDigitCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
-extern uint8_t*  periDigitDestDet;             // ptr ds buffer : 5 x n° détect serveur
-extern uint8_t*  periDigitRefDet;              // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
-extern int8_t*   periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
+extern char*     periLastDateIn;                // ptr ds buffer : date/heure de dernière réception
+extern char*     periLastDateOut;               // ptr ds buffer : date/heure de dernier envoi  
+extern char*     periLastDateErr;               // ptr ds buffer : date/heure de derniere anomalie com
+extern int8_t*   periErr;                       // ptr ds buffer : code diag anomalie com (voir MESSxxx shconst.h)
+extern char*     periNamer;                     // ptr ds buffer : description périphérique
+extern char*     periVers;                      // ptr ds buffer : version logiciel du périphérique
+extern char*     periModel;                     // ptr ds buffer : model du périphérique
+extern byte*     periMacr;                      // ptr ds buffer : mac address 
+extern byte*     periIpAddr;                    // ptr ds buffer : Ip address
+extern uint16_t* periPort;                      // ptr ds buffer : port periph server
+extern byte*     periSwNb;                      // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
+extern byte*     periSwVal;                     // ptr ds buffer : état/cde des inter  
+extern byte*     periInput;                     // ptr ds buffer : Mode fonctionnement inters (4 bytes par switch)           
+extern uint32_t* periSwPulseOne;                // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
+extern uint32_t* periSwPulseTwo;                // ptr ds buffer : durée pulses sec OFF(mode astable)
+extern uint32_t* periSwPulseCurrOne;            // ptr ds buffer : temps courant pulses ON
+extern uint32_t* periSwPulseCurrTwo;            // ptr ds buffer : temps courant pulses OFF
+extern byte*     periSwPulseCtl;                // ptr ds buffer : mode pulses 
+extern byte*     periSwPulseSta;                // ptr ds buffer : état clock pulses
+extern uint8_t*  periSondeNb;                   // ptr ds buffer : nbre sonde
+extern boolean*  periProg;                      // ptr ds buffer : flag "programmable" 
+extern byte*     periDetNb;                     // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
+extern byte*     periDetVal;                    // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
+extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
+extern int16_t*  periThmin_;                    // ptr ds buffer : alarme mini th
+extern int16_t*  periThmax_;                    // ptr ds buffer : alarme maxi th
+extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini volts
+extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
+extern byte*     periDetServEn;                 // ptr ds buffer : 1 byte 8*enable detecteurs serveur
+extern byte*     periProtocol;                  // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern uint16_t* periAnal;                      // ptr ds buffer : analog value
+extern uint16_t* periAnalLow;                   // ptr ds buffer : low analog value 
+extern uint16_t* periAnalHigh;                  // ptr ds buffer : high analog value 
+extern uint16_t* periAnalOffset1;               // ptr ds buffer : offset on adc value
+extern float*    periAnalFactor;                // ptr ds buffer : factor to float for analog value
+extern float*    periAnalOffset2;               // ptr ds buffer : offset on float value
+extern uint8_t*  periAnalCb;                    // ptr ds buffer : 5 x 4 bits pour checkbox
+extern uint8_t*  periAnalDestDet;               // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periAnalRefDet;                // ptr ds buffer : 5 x n° détect serveur pour op logique (0xff si rien)
+extern int8_t*   periAnalMemo;                  // ptr ds buffer : 5 x n° mémo dans table mémos
+extern uint8_t*  periDigitCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
+extern uint8_t*  periDigitDestDet;              // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*  periDigitRefDet;               // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
+extern int8_t*   periDigitMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
 
 
-extern int8_t    periMess;                     // code diag réception message (voir MESSxxx shconst.h)
+extern int8_t    periMess;                      // code diag réception message (voir MESSxxx shconst.h)
 extern byte      periMacBuf[6]; 
-
-extern char      rulop[];                       // libellés opérations logiques regles analog/digital inputs
 
 extern char      inptyps[];                     // libellés types sources regles switchs
 extern char      inptypd[];                     // libellés types destinations regles switchs
@@ -118,6 +116,9 @@ extern int16_t valMax;
 extern byte mask[];
 
 uint16_t ljs=0;
+
+char rulop[]={"75     0    1    OR   AND  XOR  TO   "};  // options select ; libellés regles analog & digital 
+char optNam0[]={'R','\0'};
 
 char protoChar[]=PROTOCHAR;
 char protocStr[]=PROTOCSTR;
@@ -358,7 +359,7 @@ Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
           Serial.print(" PT ms=");Serial.println(millis()-begPT); 
 }
 
-void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const char* title,const char* nfonc,uint8_t nbLi,const char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo,uint16_t* lb)
+void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const char* title,const char* nfonc,uint8_t nbLi,const char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,char* rulOptNam,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo,uint16_t* lb)
 {                                 // le n° de fonction permet une seule fonction d'init pour plusieurs formulaires de même structure
   
   uint8_t k,op;
@@ -401,7 +402,7 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
     
 // opé logique 
     op=(*(cb+i))>>4;
-    selectTableBHtml(buf,jsbuf,rulOp,namfonct,nbOp,lenOp,op,colnb-PMFNCHAR,i,0,TDBE);
+    selectTableBHtml(buf,jsbuf,rulOp,rulOptNam,namfonct,op,colnb-PMFNCHAR,i,0,TDBE);
     colnb++;
 // det ref 
     namfonct[LENNOM-2]=colnb;colnb++;numTf(buf,jsbuf,'s',&rdet[i],namfonct,2,0,0,TDBE);
@@ -440,6 +441,7 @@ void periLineHtml(EthernetClient* cli,int i)
   pageHeader(buf,jsbuf);
   perifHeader(buf,jsbuf);
   usrPeriCurB(buf,jsbuf,"peri_cur__",0,2,0);
+  optSelHtml(jsbuf,rulop,optNam0);
   ethWrite(cli,buf,&lb);
 
 /* boutons */
@@ -553,7 +555,7 @@ void periLineHtml(EthernetClient* cli,int i)
   
 #define ANASIZLIB   3
                 char aLibState[]={">H\0=H\0><\0=L\0-L\0"};
-                subCbdet(buf,jsbuf,cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,NBRULOP,LENRULOP,rulop,periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo,&lb);
+                subCbdet(buf,jsbuf,cli,0,"Analog Input Rules","rul_ana___",NBANST,aLibState,ANASIZLIB,NBRULOP,LENRULOP,rulop,optNam0,periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo,&lb);
 
 // table digitale
 
@@ -565,7 +567,7 @@ void periLineHtml(EthernetClient* cli,int i)
                   dLibState[k*DIGITSIZLIB]=oi[(*periDetVal>>(k*2))&DETBITLH_VB];
                   dLibState[i*DIGITSIZLIB+1]='_';}
                 if(*periDetNb>0){
-                  subCbdet(buf,jsbuf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo,&lb);
+                  subCbdet(buf,jsbuf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,optNam0,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo,&lb);
                 }
                 
                 strcat(buf,"</body></html>");

@@ -77,13 +77,12 @@
 #define JSLE   "L "
 #define JSCB   "c "
 #define JSCE   "C "  
-#define JSSTB  "kx"       // selectTable         
-#define JSCEL  "Kx"
+#define JSSTB  "kx"       // selectTable                JSSTBnfonc}nom_options n=n°sel+PMFNCVAL
+#define JSSOP  "K "       // selectTable options table  JSCELvnloptions v=nom n=nbre+PMFNCVAL l=len+PMFNCVAL
 #define JSCELT "Q "
 #define JSFBH  "gx"       // header formulaire
 #define JSFB   "fx"       // début formulaire [titre si encadrement]
 #define JSFE   "Fx"       // fin formulaire
-
 
 void bufcat(char* buf,char* jsbuf,const char* s);
 void jscat(char* jsbuf,const char* s,bool sep);
@@ -104,8 +103,10 @@ void cliPrintMac(EthernetClient* cli, byte* mac);
 void trailingSpaces(char* data,uint16_t len);
 void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet);
 
-void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t td);
-void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,int sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t td);
+void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t td);
+void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl);
+void selectTableBHtml(char* buf,char* jsbuf,char* val,char* name,char* ft,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl);
+void optSelHtml(char* jsbuf,char* val,char* name);
 void usrPeriCurB(char* buf,const char* fnct,uint8_t ninp,int len,uint8_t td);
 void usrPeriCurB(char* buf,char* jsbuf,const char* fnct,uint8_t ninp,int len,uint8_t td);
 void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib);

@@ -10,6 +10,7 @@
 #include "periph.h"
 #include "peritalk.h"
 #include "utilether.h"
+#include "utilhtml.h"
 
 extern Ds3231 ds3231;
 
@@ -94,8 +95,13 @@ void mail(const char* a, const char* mm)
   
   if(mailEnable){
     
-      char ms[LMAILMESS];ms[0]='\0';
-    
+      char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
+
+      uint32_t bufIp=Ethernet.localIP();
+      charIp((byte*)&bufIp,ms,nullptr);
+      strcat(ms,"/");
+      concatn(ms,PORTSERVER);
+      strcat(ms," ");
       strcat(ms,a);strcat(ms,"==");
       strcat(ms,mailToAddr1);strcat(ms,"==");
       if(strlen(mm)+2<=(LMAILMESS-strlen(ms))){
