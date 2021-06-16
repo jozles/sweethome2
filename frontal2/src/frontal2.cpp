@@ -1381,7 +1381,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           case 1:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPEN_VB;break;               // enable
                           case 2:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPOLDLEV_VB;break;           // prev level
                           case 3:*(uint8_t*)(periInput+2+offs)|=(uint8_t)PERINPDETES_VB;break;            // edge/static
-                          case 4:inpsub((periInput+offs),PERINPNT_MS,PERINPNTLS_PB,inptyps,2);break;      // type src
+                          case 4:inpsub((periInput+offs),PERINPNT_MS,PERINPNTLS_PB,inptyps+2,2);break;    // type src
                           case 5:conv_atob(valf,&vl);if(vl>NBDSRV){vl=NBDSRV;}
                                  *(periInput+offs)&=~PERINPV_MS;
                                  *(periInput+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);break;                   // num detec src
@@ -1393,7 +1393,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                  *(periInput+3+offs)|=(uint8_t)(vl<<PERINPNVLS_PB);
                                  if(transferVal==DETYEXT){setSourceDet(vl,MDSPER,periCur);}  // si la dest est un detServ màj sourceDetServ (periCur from peri_inp_)
                                  break;                                                                           // num detec dest                                 
-                          case 8:inpsub((periInput+2+offs),PERINPACT_MS,PERINPACTLS_PB,inpact,LENTACT);break;     // action
+                          case 8:inpsub((periInput+2+offs),PERINPACT_MS,PERINPACTLS_PB,inpact+2,LENTACT);break;   // action
                           case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;                    // active level
                           default:break;
                         }

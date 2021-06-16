@@ -192,7 +192,8 @@
 #define CONFIGRECLEN 993                     // longueur record config 
 
 #define LBUF1000 1000
-#define LBUF4000 4097                        // buf size html print 
+#define LBUF2000 2048
+#define LBUF4000 4096                        // buf size html print 
 
 #define MAXCXWT 120000                       // time out delay if no TCP connection (à mettre dans la config)    
 #define MAXCXWU 900000                       // time out delay if no UDP connection (à mettre dans la config)    

@@ -9,6 +9,7 @@
 #include "utilether.h"
 #include "pageshtml.h"
 #include "utilhtml.h"
+#include "utiljs.h"
 
 extern Ds3231 ds3231;
 
@@ -231,6 +232,12 @@ void setColourB(char* buf,const char* textColour)
   setColourB(buf,nullptr,textColour);
 }
 
+void fontBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+{
+  fnJsIntro(jsbuf,JSFNB,pol,ctl);
+  fnHtmlIntro(buf,pol,ctl);
+}
+
 void fontEnd(char* buf,char* jsbuf,uint8_t ctl)
 {
   fnJsIntro(jsbuf,JSFNE,0,ctl&(~TRBEG)&(~TDBEG));
@@ -242,6 +249,7 @@ void tableBeg(char* buf,char* jsbuf,uint8_t ctl)
 {
   fnJsIntro(jsbuf,JSTB,0,ctl);
   strcat(buf,"<table>");
+  fnHtmlIntro(buf,0,ctl);
   fnHtmlEnd(buf,0,ctl);
 }
 
@@ -250,19 +258,6 @@ void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
   fnJsIntro(jsbuf,JSTE,0,ctl&(~TRBEG)&(~TDBEG));
   strcat(buf,"</table>\n");
   fnHtmlEnd(buf,0,ctl);
-}
-
-void buftxcat(char* buf,char* txt)
-{
-  char c[2]={*txt,'\0'};
-  while (*c!=0x00){
-    switch (*c){
-      case *JSSBR:strcat(buf,"</td><td>");break;
-      case *JSLF:strcat(buf,"<br>");break;
-      default: strcat(buf,c);
-    }
-    txt++;*c=*txt;
-  }
 }
 
 void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
@@ -751,31 +746,34 @@ void pageHeader(char* buf,bool form)
 void pageHeader(char* buf,char* jsbuf,bool form)
 { 
   float th;                                  // pour temp DS3231
-  char* dm;
+  char dm0[100];*dm0=0x00;
+  
   ds3231.readTemp(&th);
   
   strcat(buf,"<body>");            
   if(form){strcat(buf,"<form method=\"get\" >");}
-  dm=buf+strlen(buf);
-  //Serial.println("---- beg record");
-  strcat(buf,VERSION);strcat(buf," ");
+  
+  strcat(dm0,VERSION);strcat(dm0," ");
   #ifdef _MODE_DEVT
-  bufcat(buf,jsbuf,"MODE_DEVT ");
+  strcat(dm0,"MODE_DEVT ");
   #endif // _MODE_DEVT
   #ifdef _MODE_DEVT2
-  strcat(buf,"MODE_DEVT2 ");
+  strcat(dm0,"MODE_DEVT2 ");
   #endif // _MODE_DEVT2
 
-  bufPrintDateHeure(buf,nullptr,pkdate);
+  bufPrintDateHeure(dm0,nullptr,pkdate);
+  affText(buf,jsbuf,dm0,0,0);
+  //strcat(buf,"<font size=\"2\">;");
+  
+  *dm0=0x00;
   uint32_t bufIp=Ethernet.localIP();
-  jscat(jsbuf,dm);
-  strcat(buf,"<font size=\"");bufcat(buf,jsbuf,"2");strcat(buf,"\">; local IP ");
-  dm=buf+strlen(buf);
-  charIp((byte*)&bufIp,buf,nullptr);strcat(buf," ");
-  concatnf(buf,nullptr,th);strcat(buf,"°C");
-  jscat(jsbuf,dm);
-  jscat(jsbuf,"\n");
-  strcat(buf,"<br>\n");
+  strcat(dm0," ; local IP ");
+  charIp((byte*)&bufIp,dm0,nullptr);strcat(dm0," ");
+  concatnf(dm0,nullptr,th);strcat(dm0,"°C ");
+  affText(buf,jsbuf,dm0,2,BRYES);
+  //jscat(jsbuf,dm);
+  //jscat(jsbuf,"\n");
+  //strcat(buf,"<br>\n");
 }
 
 void formHeader(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)

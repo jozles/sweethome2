@@ -9,6 +9,7 @@
 #include "periph.h"
 #include "utilether.h"
 #include "utilhtml.h"
+#include "utiljs.h"
 #include "pageshtml.h"
 
 #include <MemoryFree.h>
@@ -103,10 +104,13 @@ extern int8_t*   periDigitMemo;                 // ptr ds buffer : 5 x n° mémo
 extern int8_t    periMess;                      // code diag réception message (voir MESSxxx shconst.h)
 extern byte      periMacBuf[6]; 
 
-extern char      inptyps[];                     // libellés types sources regles switchs
-extern char      inptypd[];                     // libellés types destinations regles switchs
-extern char      inpact[];                      // libellés actions
-extern char      psps[];                        // libellés staPulse
+char inptyps[]="52meexphpu??";                  // libellés options types sources regles switchs
+char optNam1[]={'S','\0'};
+char inptypd[]="52meexswpu??";                  // libellés options types destinations regles switchs
+char optNam2[]={'T','\0'};
+char inpact[]={"@5     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-       "};    // libellés options actions
+char optNam3[]={'U','\0'};
+char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                                          // libellés staPulse
 
 extern int  chge_pwd; //=FAUX;
 
@@ -151,21 +155,22 @@ void perifHeader(char* buf)
   perifHeader(buf,nullptr);
 }
 
-void subModePulseTime(char* buf,uint8_t npu,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo)
+void subModePulseTime(char* buf,char* jsbuf,uint8_t npu,uint32_t* pulse,uint32_t* dur,char* fonc1,char* fonc2,char onetwo,uint8_t ctl)
 {
-
   uint8_t pbit=PMTTE_PB;if(onetwo=='O'){pbit=PMTOE_PB;} pbit+=PCTLBIT*npu;
   uint8_t val=(((*(uint16_t*)periSwPulseCtl)>>pbit)&0x01)+PMFNCVAL;                                        
-  strcat(buf,"<font size=\"2\">");
+  //strcat(buf,"<font size=\"2\">");
   fonc1[LENNOM-1]=onetwo;
-  checkboxTableBHtml(buf,&val,fonc1,NO_STATE,0,"");                       // bit enable pulse
+  checkboxTableBHtml(buf,jsbuf,&val,fonc1,NO_STATE,"",2,ctl&TDBEG);               // bit enable pulse
   if(*(pulse+npu)<0){*(pulse+npu)=0;}  
-  numTf(buf,'l',(pulse+npu),fonc2,8,0,2);                 // durée pulse   
+  numTf(buf,jsbuf,'l',(pulse+npu),fonc2,8,0,0,BRYES);                 // durée pulse   
 //  char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
-  strcat(buf,"<br>(");concatn(buf,*(dur+npu));strcat(buf,")</font>");
+  //strcat(buf,"<br>(");concatn(buf,*(dur+npu));strcat(buf,")</font>");
+  uint32_t v=*(dur+npu);
+  affNum(buf,jsbuf,'l',&v,0,2,(ctl&TDEND)|(ctl&BRYES));
 }
 
-void perinpBfnc(char* buf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
+void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv,uint8_t ctl)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
 {      // type input src, num det src,type input dest, num det dest, valeur, enable, action, 4*2 modes => 2 fonctions de transport avec 5 bits n°input (libf-2) et n°de paramètre (libf-1)                                                                          
   uint8_t vv=0;
 
@@ -173,8 +178,8 @@ void perinpBfnc(char* buf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char
   ft[LENNOM-1]=(char)(nuinp+PMFNCHAR);
   
   switch (type){
-    case 'c':if(val!=0){vv=1;};checkboxTableBHtml(buf,&vv,ft,NO_STATE,0,"");break;
-    case 'n':numTf(buf,'d',&val,ft,lmax,0,2);break;
+    case 'c':if(val!=0){vv=1;};checkboxTableBHtml(buf,jsbuf,&vv,ft,NO_STATE,"",0,ctl);break;
+    case 'n':numTf(buf,jsbuf,'d',&val,ft,lmax,0,0,ctl);break;
     default: break;
   }
 }
@@ -182,8 +187,12 @@ void perinpBfnc(char* buf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char
 
 void SwCtlTableHtml(EthernetClient* cli)
 {
+  
+  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;
   const uint16_t lb0=LBUF4000;
+  uint16_t lb=0,lb1=0;
   char buf[lb0];buf[0]='\0';
+
   unsigned long begSwT=millis();
   
   Serial.print("début SwCtlTableHtml -- periCur=");Serial.print(periCur);
@@ -191,121 +200,146 @@ void SwCtlTableHtml(EthernetClient* cli)
 
   // periCur est transféré via les fonctions d'en-tête peri_inp__ et peri_t_sw
 
-    htmlIntroB(buf,nomserver,cli);
-    pageHeader(buf);
-    perifHeader(buf);
-    usrPeriCurB(buf,"peri_t_sw_",0,2,0);
+  htmlIntroB(buf,nomserver,cli);
+  pageHeader(buf,jsbuf);
+  perifHeader(buf,jsbuf);
+  usrPeriCurB(buf,jsbuf,"peri_t_sw_",0,2,0);
+  optSelHtml(jsbuf,inptyps,optNam1);
+  optSelHtml(jsbuf,inptypd,optNam2);
+  optSelHtml(jsbuf,inpact,optNam3);
+
+  ethWrite(cli,buf,&lb);
 
 /* boutons */
-    boutRetourB(buf,"retour",0,0);
-    strcat(buf," <input type=\"submit\" value=\" MàJ \"> ");
+    boutRetourB(buf,jsbuf,"retour",TDBE);strcat(buf," ");
+    formBeg(buf,jsbuf);
+    boutMaj(buf,jsbuf," MàJ ",0);
+    //strcat(buf," <input type=\"submit\" value=\" MàJ \"> ");
     char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-    boutF(buf,swf,"","refresh",0,0,1,0);strcat(buf," ");
+    boutF(buf,jsbuf,swf,"","refresh",ALICNO,0,0);
+    affSpace(buf,jsbuf);
     swf[LENNOM-2]='X';
-    boutF(buf,swf,""," erase ",0,0,1,0);strcat(buf," <br>\n");
+    boutF(buf,jsbuf,swf,""," erase ",ALICNO,0,BRYES);
 
-    ethWrite(cli,buf);
+    ethWrite(cli,buf,&lb);
 
 /* pulses */
-    strcat(buf,"<table>Pulses");                  // pulses
-    strcat(buf,"<tr><th></th><th>time One<br>time Two</th><th>free<br>run</th>");
+    affText(buf,jsbuf,"Pulses",0,BRYES); 
+    tableBeg(buf,jsbuf,TRBEG|TDBEG);
+    //strcat(buf,"<tr><th></th><th>time One<br>time Two</th><th>free<br>run</th>");
+    affText(buf,jsbuf," |time One~time Two|free~run",0,TDEND|TREND);
 
       char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
       char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
       char rfonc[]="peri_otf__\0";            // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
 
-      strcat(buf,"<tr>");
+      //strcat(buf,"<tr>");
+      affText(buf,jsbuf,"",0,TRBEG);
 
       for(int pu=0;pu<NBPULSE;pu++){          // boucle des pulses
 
-        strcat(buf,"<td>");concatn(buf,pu);strcat(buf,"</td>");
-        
+        //strcat(buf,"<td>");concatn(buf,pu);strcat(buf,"</td>");
+        affNum(buf,jsbuf,'d',&pu,0,0,TDBE);
+
         pfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         qfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         rfonc[LENNOM-2]=(char)(pu+PMFNCHAR);        
       
-        strcat(buf,"<td>");
-        subModePulseTime(buf,pu,periSwPulseOne,periSwPulseCurrOne,rfonc,pfonc,'O');          // bit et valeur time one
-        strcat(buf,"<br>");
-        subModePulseTime(buf,pu,periSwPulseTwo,periSwPulseCurrTwo,rfonc,qfonc,'T');          // bit et valeur time two
+        //strcat(buf,"<td>");
+        subModePulseTime(buf,jsbuf,pu,periSwPulseOne,periSwPulseCurrOne,rfonc,pfonc,'O',TDBEG|BRYES);    // bit et valeur time one
+        //strcat(buf,"<br>");
+        subModePulseTime(buf,jsbuf,pu,periSwPulseTwo,periSwPulseCurrTwo,rfonc,qfonc,'T',TDEND);          // bit et valeur time two
       
-        strcat(buf,"</td><td> ");
+        //strcat(buf,"</td><td> ");
         uint8_t val=(*(uint16_t*)periSwPulseCtl>>(PCTLBIT*pu+PMFRO_PB))&0x01;rfonc[LENNOM-1]='F';   // bit freerun
-        checkboxTableBHtml(buf,&val,rfonc,NO_STATE,0,"");                  
-        strcat(buf,"<br>");for(int tsp=0;tsp<LENTSP;tsp++){concat1a(buf,psps[periSwPulseSta[pu]*LENTSP+tsp]);}strcat(buf,"</td>\n");         // staPulse 
+        checkboxTableBHtml(buf,jsbuf,&val,rfonc,NO_STATE,"",0,TDBEG|BRYES);                  
+        //strcat(buf,"<br>");
+        for(int tsp=0;tsp<LENTSP;tsp++){concat1a(buf,psps[periSwPulseSta[pu]*LENTSP+tsp]);}strcat(buf,"</td>\n");         // staPulse 
 
-        ethWrite(cli,buf);
+        ethWrite(cli,buf,&lb);
       } // pulse suivant
       
-      strcat(buf,"</tr></table></form>");
-      ethWrite(cli,buf);
+      tableEnd(buf,jsbuf,TREND);
+      formEnd(buf,jsbuf,0,0);
+      ethWrite(cli,buf,&lb);
 
 /* détecteurs */    
     detServHtml(cli,&memDetServ,&libDetServ[0][0]);
   
 /* affichage/saisie règles */
-  strcat(buf,"<table>Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-");
-  strcat(buf,"<tr><th></th><th>e.r p.e<br>n.f.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
+  //strcat(buf,"<table>Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-");
+  affText(buf,jsbuf,"Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
+  //strcat(buf,"<tr><th></th><th>e.r p.e<br>n.f.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
+  tableBeg(buf,jsbuf,0);
+  affText(buf,jsbuf,"|e.r p.e~n.f.r.s| source | destin.| action",0,TDBE|TRBE);
 
       char xfonc1[]="p_inp1____\0";
 
       uint16_t offsetInp=0;
       uint8_t ni=0;                 // nbre lignes ds buffer
-      uint16_t lb;
 
-      ethWrite(cli,buf);
+      ethWrite(cli,buf,&lb);
       
       for(int ninp=0;ninp<NBPERINPUT;ninp++){     // boucle des regles
 
             ni++;
-            strcat(buf,"\n<form method=\"get\" >");    
+            
+            usrPeriCurB(buf,"peri_inp__",ninp,2,TRBEG);
+            formBeg(buf,jsbuf);
+
+            //strcat(buf,"\n<form method=\"get\" >");    
             uint8_t vv;
             byte binp[PERINPLEN];memcpy(binp,periInput+offsetInp,PERINPLEN);
             offsetInp+=PERINPLEN;
 
-           usrPeriCurB(buf,"peri_inp__",ninp,2,0);
-
-           strcat(buf,"\n<td>");concatn(buf,ninp);strcat(buf,"</td><td>");
-            vv=(binp[2]  & PERINPEN_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,1);                          // bit enable
-            vv=(binp[2]  & PERINPVALID_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,9);                       // bit active level
-            vv=(binp[2]  & PERINPOLDLEV_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,2);                      // bit prev lev
-            vv=(binp[2]  & PERINPDETES_VB);perinpBfnc(buf,ninp,vv,'c',1,xfonc1,3);                       // bit edge/static            
+            strcat(buf,"\n<td>");concatn(buf,ninp);strcat(buf,"</td>");
+            vv=(binp[2]  & PERINPEN_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,1,TDBEG);             // bit enable
+            vv=(binp[2]  & PERINPVALID_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,9,0);              // bit active level
+            vv=(binp[2]  & PERINPOLDLEV_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,2,0);             // bit prev lev
+            vv=(binp[2]  & PERINPDETES_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,3,TDEND);          // bit edge/static            
            
-            vv=(binp[0]  & PERINPNT_MS);                                                                 // type detec source
-            selectTableBHtml(buf,inptyps,xfonc1,4,2,vv,4,ninp,2);
+            vv=(binp[0]  & PERINPNT_MS);                                                                // type detec source
+            selectTableBHtml(buf,jsbuf,inptyps,optNam1,xfonc1,vv,4,ninp,0,TDBEG);
 
-            vv=(binp[0]>>PERINPNVLS_PB);perinpBfnc(buf,ninp,vv,'n',2,xfonc1,5);                          // num detec source
-           strcat(buf,"</td>\n");            
+            vv=(binp[0]>>PERINPNVLS_PB);perinpBfnc(buf,jsbuf,ninp,vv,'n',2,xfonc1,5,TDEND);              // num detec source
+            strcat(buf,"\n");            
 
-            vv=(binp[3]  & PERINPNT_MS);                                                                 // type detec dest
-            selectTableBHtml(buf,inptypd,xfonc1,4,2,vv,6,ninp,2);
+            vv=(binp[3]  & PERINPNT_MS);                                                                // type detec dest
+            selectTableBHtml(buf,jsbuf,inptypd,optNam2,xfonc1,vv,6,ninp,0,TDBEG);
 
-            vv=(binp[3]>>PERINPNVLS_PB);perinpBfnc(buf,ninp,vv,'n',2,xfonc1,7);                          // num detec  dest
-           strcat(buf,"</td>\n");            
+            vv=(binp[3]>>PERINPNVLS_PB);perinpBfnc(buf,jsbuf,ninp,vv,'n',2,xfonc1,7,TDEND);              // num detec  dest
+            strcat(buf,"\n");            
 
-            vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                   // action 
-            selectTableBHtml(buf,inpact,xfonc1,NBACT,5,vv,8,ninp,2);
+            vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                  // action 
+            selectTableBHtml(buf,jsbuf,inpact,optNam3,xfonc1,vv,8,ninp,0,TDBE);
 
-           strcat(buf,"</td>");
-           strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
-                                                                                  //strcat(buf, ajouter nom de la source si det
-           strcat(buf,"</form></tr>\n\n");
+            //strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
+            boutMaj(buf,jsbuf,"Màj",TDBE);
+                                                                                                        //strcat(buf, ajouter nom de la source si det
+            //strcat(buf,"</form></tr>\n\n");
+            formEnd(buf,jsbuf,0,TREND);
 
-           lb=strlen(buf);
-           //Serial.print("lb/lb0/ni/lb0-lb/lb_ni+100 ");Serial.print(lb);Serial.print(" ");Serial.print(lb0);Serial.print(" ");Serial.print(ni);Serial.print(" ");Serial.print(lb0-lb);Serial.print(" ");Serial.println(lb/ni+100);
-           if((lb0-lb)<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
+            lb1=strlen(buf);
+            //Serial.print("lb/lb0/ni/lb0-lb/lb_ni+100 ");Serial.print(lb);Serial.print(" ");Serial.print(lb0);Serial.print(" ");Serial.print(ni);Serial.print(" ");Serial.print(lb0-lb);Serial.print(" ");Serial.println(lb/ni+100);
+            if((lb0-lb1)<(lb1/ni+100)){ethWrite(cli,buf,&lb);ni=0;}
            
-        } // input suivant
+      }     // règle suivante
 
-  strcat(buf,"</table></body></html>");
-  ethWrite(cli,buf);
-  Serial.print("fin SwCtlTableHtml  ms=");Serial.println(millis()-begSwT);
+  tableEnd(buf,jsbuf,0);
+  strcat(buf,"</body></html>");
+  ethWrite(cli,buf,&lb);
+
+  Serial.print(" ");Serial.println(jsbuf);
+  Serial.print("SwCtlTableHtml len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.print(strlen(jsbuf));
+  Serial.print(" ms=");Serial.println(millis()-begSwT);
 }
 
 void periTableHtml(EthernetClient* cli)
 {
   const uint16_t lb0=LBUF4000;
   char buf[lb0];buf[0]='\0';
+  char jsbuf[LBUF4000];
+
   int i;
   int savePeriCur=periCur;   // save periCur et restore à la fin de periTable
 
@@ -314,9 +348,10 @@ void periTableHtml(EthernetClient* cli)
 Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);
 
           htmlIntroB(buf,nomserver,cli);
-          pageHeader(buf);
+          pageHeader(buf,jsbuf,NOFORM);
           usrFormBHtml(buf,HID);
           boutRetourB(buf,"refresh",0,0);
+          fontBeg(buf,jsbuf,2,0);
           numTf(buf,'d',&perrefr,"per_refr__",4,0,0);
           ethWrite(cli,buf);
           
@@ -428,10 +463,10 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
 
 void periLineHtml(EthernetClient* cli,int i)
 {
-  char jsbuf[4000];*jsbuf=LF;*(jsbuf+1)=0x00;
-  char buf[2000];buf[0]='\0';
-  uint16_t lb=0;
-  ljs=0;
+  char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;
+  uint16_t lb=0,lb0=LBUF2000;
+  char buf[lb0];buf[0]='\0';
+
   int j;
   unsigned long begPL=millis();
 
@@ -529,7 +564,7 @@ void periLineHtml(EthernetClient* cli,int i)
                       fontEnd(buf,jsbuf,TDEND);
                       
                 tableEnd(buf,jsbuf,TREND|BRYES);
-                ethWrite(cli,buf);
+                ethWrite(cli,buf,&lb);
 
 // table analogique
                 
@@ -571,7 +606,7 @@ void periLineHtml(EthernetClient* cli,int i)
                 }
                 
                 strcat(buf,"</body></html>");
-                ethWrite(cli,buf);
+                ethWrite(cli,buf,&lb);
 
                 Serial.print(" ");Serial.println(jsbuf);ljs=strlen(jsbuf);
                 Serial.print("len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.println(ljs);

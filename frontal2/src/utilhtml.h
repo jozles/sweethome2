@@ -1,88 +1,7 @@
 #ifndef _UTILHTML_H_
 #define _UTILHTML_H_
 
-#define ALIC   VRAI
-#define ALICNO FAUX
-#define NOBR   FAUX
-#define BR     VRAI
 #define NOFORM (bool)false
-#define HID  (bool)true
-#define CRLF (bool)true
-#define LF     0x0A
-#define CTLCH  0x40     
-#define CTLPO  0x20     // byte police present
-#define BRMASK 0x10
-#define BRYES  0x10
-#define BRNO   0
-#define TRMASK 0x0c     
-#define TRBEG 0x04      // délicat à modifier (voir les ~TRBEG)   
-#define TREND 0x08      // délicat à modifier (voir les ~)   
-#define TRBE  0x0C      // délicat à modifier (voir les ~)
-#define TRNO  0
-#define TDMASK 0x03
-#define TDEND 0x02      // délicat à modifier (voir les ~)
-#define TDBE  0x03      // délicat à modifier (voir les ~)
-#define TDBEG 0x01      // délicat à modifier (voir les ~)
-#define TDNO  0
-#define SEP   VRAI
-#define SEPNO FAUX
-#define PV    VRAI
-#define NOPV  FAUX
-
-#define JSB strcat(jsbuf,
-#define JSE );
-
-/* commandes interprétées par javascript pour produire du html 
-   de la forme ~JSAAAA; tilde + 3 à 6 caractères et ";"
-   0 à n arguments (éventuellement optionnels) suivent séparés par ";"
-*/
-#define JSFON  "{"        // séparateur début fonction  
-#define JSSEP  "}"        // séparateur interne aux fonction
-#define JSSBR  "|"        // séparateur colonne dans les chaines texte
-#define JSLF   "~"        // séparateur <br> dans les chaines texte 
-#define JSCHK  "^"        // checked 
-#define JSCTL  "x"        // troisieme car optionnel de fonction (reçoit ctl) 
-
-#define JSCOB  "wx"       // couleur                 JSCOBcouleur;
-#define JSCOE  "W "
-
-#define JSFNE  "X "       // police fin
-
-#define JSHIDB "hx"       // hide 
-#define JSHIDE "H "   
-#define JSAC   "V "       // align center
-
-#define JSBRB  "rx"       // bouton retour 
-#define JSBRE  "R "
-#define JSBMB  "mx"       // bouton Maj 
-#define JSBME  "M "
-#define JSBFB  "bx"       // bouton fonct            JSBFBnomfonct|valfonct|size|lib
-#define JSBFE  "B "
-#define JSNTB  "nx"       // saisie numtf            JSNTBnomfonct|len|dec|typevaleur
-
-#define JSDB   "dx"       // saisie cb               JSDBnomfonct}lib}[JSCHK][etat]
-#define JSDE   "D "       // saisie cb fin  
-#define JSATB  "ax"       // saisie alphaTableHtmlB  JSATBnomfonct|valfonct|len
-#define JSSP   "S "       // affichage space  
-#define JSST   "sx"       // affichage texte         JSSTtexte
-#define JSNT   "Ux"
-#define JSNTI  "ux"       // affichage num (min/max) JSNTXvalfonct/100
-
-#define JSUSR  "r "       // usrPeriCurB
-#define JSFUE  "U "      
-#define JSTB   "t "       // debut table
-#define JSTE   "T "       // fin table (crlf manuel dans jscat)
-#define JSTBL  "q "    
-#define JSLB   "l "       
-#define JSLE   "L "
-#define JSCB   "c "
-#define JSCE   "C "  
-#define JSSTB  "kx"       // selectTable                JSSTBnfonc}nom_options n=n°sel+PMFNCVAL
-#define JSSOP  "K "       // selectTable options table  JSCELvnloptions v=nom n=nbre+PMFNCVAL l=len+PMFNCVAL
-#define JSCELT "Q "
-#define JSFBH  "gx"       // header formulaire
-#define JSFB   "fx"       // début formulaire [titre si encadrement]
-#define JSFE   "Fx"       // fin formulaire
 
 void bufcat(char* buf,char* jsbuf,const char* s);
 void jscat(char* jsbuf,const char* s,bool sep);
@@ -118,6 +37,7 @@ void usrFormBHtml(char* buf,bool hid);
 void usrFormBHtml(char* buf,char* jsbuf,bool hid);
 void usrFormInitBHtml(char* buf,const char* nomfonct);
 
+void fontBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void fontEnd(char* buf,char* jsbuf,uint8_t ctl);
 void tableBeg(char* buf,char* jsbuf,uint8_t ctl);
 void tableEnd(char* buf,char* jsbuf,uint8_t ctl);
