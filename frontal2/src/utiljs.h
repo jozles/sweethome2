@@ -51,12 +51,13 @@
 #define JSFNB  "xx"       // police beg 
 #define JSFNE  "X "       // police fin
 
-#define JSHIDB "hx"       // hide 
-#define JSHIDE "H "   
-#define JSAC   "V "       // align center
+#define JSHIDB "hx"       // hide beg
+#define JSHIDE "H "       // hide end
+#define JSAC   "v "       // align center beg
+#define JSACE  "V "       // align center end
 
-#define JSBRB  "rx"       // bouton retour 
-#define JSBRE  "R "
+#define JSBRB  "rx"       // bouton retour
+
 #define JSBMB  "mx"       // bouton Maj 
 #define JSBME  "M "
 #define JSBFB  "bx"       // bouton fonct            *JSBFBnomfonct}valfonct}size}lib

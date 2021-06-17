@@ -1,6 +1,8 @@
 #ifndef _UTILHTML_H_
 #define _UTILHTML_H_
 
+#include <Ethernet.h>
+
 #define NOFORM (bool)false
 
 void bufcat(char* buf,char* jsbuf,const char* s);
