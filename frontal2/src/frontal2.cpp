@@ -513,8 +513,8 @@ void stoprequest()
 
 void watchdog()
 {
-  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("TCP cx lost ",*maxCxWt);}
-  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("UDP cx lost ",*maxCxWu);}
+  //if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("TCP cx lost ",*maxCxWt);}
+  //if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("UDP cx lost ",*maxCxWu);}
 }
 
 void usrReboot()
@@ -1241,9 +1241,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         uint16_t transferVal=0;         // pour passer "quelque chose" entre 2 fonctions 
         
         for (i=0;i<=nbreparams;i++){
-
+          
           if(i<NBVAL && i>=0){
-
+          
             trigwd();
           
             valf=valeurs+nvalf[i];    // valf pointe la ième chaine à traiter dans valeurs[] (terminée par '\0')
@@ -1261,7 +1261,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 
 //Serial.print(i);Serial.print(" numfonct[i]=");Serial.print(numfonct[i]);Serial.print(" valf=");Serial.println((char*)valf);
 //Serial.print("strHisto=");Serial.println(strHisto);
-
+          
             switch (numfonct[i])
               {
               case 0:  pertemp=0;conv_atobl(valf,&pertemp);break;                                           // pertemp serveur
@@ -1284,7 +1284,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        break;                                                                        
               case 4:  {usernum=*(libfonctions+2*i+1)-PMFNCHAR;                                      // user_ref__ (argument : millis() envoyées avec la fonction au chargement de la page)
                         unsigned long cxtime=0;conv_atobl(valf,(uint32_t*)&cxtime);
-                        Serial.print("usr_ref__ : usrnum=");Serial.print(usernum);Serial.print(" millis()/1000=");Serial.print(millis()/1000);Serial.print(" cxtime=");Serial.print(cxtime);
+                        Serial.print("user_ref__ : usrnum=");Serial.print(usernum);Serial.print(" millis()/1000=");Serial.print(millis()/1000);Serial.print(" cxtime=");Serial.print(cxtime);
                         Serial.print(" usrtime[nb]=");Serial.print(usrtime[usernum]);Serial.print(" usrpretime[nb]=");Serial.print(usrpretime[usernum]);
                         // !( usrtime ok || (html && usrpretime ok) ) || time out  => accueil 
                         if(!(usrtime[usernum]==cxtime || (usrpretime[usernum]==cxtime && memcmp(&fonctions[numfonct[i+1]*LENNOM]+(LENNOM-3),"html",4)==0)) || (millis()-usrtime[usernum])>(*toPassword*1000)){
@@ -1343,8 +1343,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 21: *periProg=*valf-48;break;                                                    // (periLine) peri prog
               case 22: *periSondeNb=*valf-48;if(*periSondeNb>MAXSDE){*periSondeNb=MAXSDE;}break;    // (periLine) peri sonde
               case 23: *periPitch_=0;*periPitch_=(int16_t)(convStrToNum(valf,&j)*100);break;        // (periLine) peri pitch
-              case 24: what=4;periCur=0;conv_atob(valf,&periCur);                                   // (lignes-regles) submit peri_inp__ set periCur raz cb
-                       if(periCur>NBPERIF){periCur=NBPERIF;}periInitVar();periLoad(periCur);
+              case 24: what=4;                                                                      // (lignes-regles) submit peri_inp__ set periCur raz cb
+                       //periCur=0;conv_atob(valf,&periCur);                                        // periCur à jour via formIntro/peri_cur__
+                       //if(periCur>NBPERIF){periCur=NBPERIF;}periInitVar();periLoad(periCur);
                        *(byte*)(periInput+((uint8_t)(*(libfonctions+2*i+1))-PMFNCHAR)*PERINPLEN+2)&=PERINPACT_MS;  // effacement cb (oldlev/active/edge/en)
                        break;                                                                      
               case 25: *periDetNb=*valf-48;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;          // (periLine) peri det Nb  
@@ -1615,8 +1616,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               /* fin des fonctions */
               default:break;
               }
-              
-            }     // i<NBVAL 
+          
+            }     // i<NBVAL
+          
           }       // fin boucle nbre params
           
           if(nbreparams>=0){

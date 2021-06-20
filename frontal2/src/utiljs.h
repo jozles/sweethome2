@@ -60,7 +60,7 @@
 #define JSBMB  "mx"       // bouton Maj 
 #define JSBFB  "bx"       // bouton fonct            *JSBFBnomfonct}valfonct}size}lib
 /* saisies */
-#define JSNTB  "nx"       // saisie numtf            *JSNTBnomfonct}len}dec}typevaleur
+#define JSNTB  "nx"       // saisie numtf            *JSNTBnomfonct}dec}typevaleur}size}maxlen
 #define JSDB   "dx"       // saisie cb               JSDBnomfonct}lib}[JSCHK][etat]     
 #define JSATB  "ax"       // saisie alphaTableHtmlB  *JSATBnomfonct}valfonct}len
 #define JSSTB  "kx"       // saisie selectbox        JSSTBnnomfonc}nom_options n=n°sel+PMFNCVAL

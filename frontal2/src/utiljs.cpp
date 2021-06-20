@@ -149,10 +149,11 @@ void cvJs2Html(char* jsbuf,char* buf)
             case *JSNTB :ctlJs=ctlJsB(buf,jsbuf,JSNTB);                         // saisie numérique
                         strcat(buf,"<input type=\"text\" name=\"");
                         strcat(buf,jsGetArg(jsbuf));    // nomfonct
-                        strcat(buf,"\" id=\"nt");
-                        strcat(buf,jsGetArg(jsbuf));    // len
+                        //strcat(buf,"\" id=\"nt");
+                        
                         strcat(buf,jsGetArg(jsbuf));    // dec
                         strcat(buf,"\" value=\"");
+                        jsbuf++;                        // skip type
                         strcat(buf,jsGetArg(jsbuf));   
                         strcat(buf,"\" size=\"");strcat(buf,jsGetArg(jsbuf));      
                         strcat(buf,"\" maxlength=\"");strcat(buf,jsGetArg(jsbuf)); 

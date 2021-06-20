@@ -361,9 +361,13 @@ void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,i
   fnJsIntro(jsbuf,JSNTB,pol,ctl);
   fnHtmlIntro(buf,pol,ctl);
   strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);jscat(jsbuf,nomfonct,SEP);
-  if(len<=2){strcat(buf,"\" id=\"nt");}
-  concatn(buf,jsbuf,len,SEP);
-  concatn(buf,jsbuf,dec,SEP);
+  if(len<=2){
+    strcat(buf,"\" id=\"nt");
+    concatn(buf,len);
+    concatn(buf,dec);
+  }
+  else{strcat(buf,"\" ");}
+  concatn(nullptr,jsbuf,dec,SEP);
   jscatch(jsbuf,type,SEP);
   strcat(buf,"\" value=\"");
   concNum(buf,jsbuf,type,dec,valfonct);
@@ -441,11 +445,7 @@ void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,
   
   fnHtmlIntro(buf,0,ctl);
   fnJsIntro(jsbuf,JSSTB,0,ctl);
-  sel+=PMFNCVAL;
-  char s[]={sel,0x00};
-  jscat(jsbuf,s);
-  jscat(jsbuf,ft);jscat(jsbuf,JSSEP);
-
+  
   strcat(buf,"<SELECT name=\"");strcat(buf,ft);strcat(buf,"\">");
   for(i=0;i<nbre;i++){
     strcat(buf,"<OPTION");if(i==sel){strcat(buf," selected");};strcat(buf,">");
@@ -458,6 +458,11 @@ void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,
 
   fnHtmlEnd(buf,0,ctl);
   strcat(buf,"\n");
+  
+  sel+=PMFNCVAL;
+  char s[]={sel,0x00};
+  jscat(jsbuf,s);
+  jscat(jsbuf,ft);jscat(jsbuf,JSSEP);
 }
 
 void optSelHtml(char* jsbuf,char* val,char* name)
@@ -544,7 +549,7 @@ void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const
 
 void boutF(char* buf,const char* nomfonct,const char* valfonct,const char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter)
 {
-  Serial.print("lib=");Serial.print(lib);
+  //Serial.print("lib=");Serial.print(lib);
   uint8_t ctl=td;if(br!=0){td|=BRYES;}
   boutF(buf,nullptr,nomfonct,valfonct,lib,aligncenter,sizfnt,ctl);
 }
@@ -790,7 +795,7 @@ void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t pol,uint8_t ctl
           strcat(buf,"\" value=\"");
           concatn(buf,usrtime[usernum]);
           strcat(buf,"\">");
-          strcat(buf,"<input type=\"text\" name=\"peri_cur__@\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
+          strcat(buf,"<input type=\"text\" name=\"peri_cur___\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
           //char fonc[]="peri_cur__\0\0";concat1a(fonc,(char)(PMFNCHAR));
           //numTf(buf,'i',&periCur,fonc,2,0,0);
           if(locfonc!=nullptr){

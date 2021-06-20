@@ -105,11 +105,11 @@ extern int8_t    periMess;                      // code diag réception message 
 extern byte      periMacBuf[6]; 
 
 char inptyps[]="52meexphpu??";                  // libellés options types sources regles switchs
-char optNam1[]={'S','\0'};
+char optNam1[]={'S','\0'};                      // nom de la liste d'options
 char inptypd[]="52meexswpu??";                  // libellés options types destinations regles switchs
-char optNam2[]={'T','\0'};
+char optNam2[]={'T','\0'};                      // nom de la liste d'options
 char inpact[]={"@5     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-       "};    // libellés options actions
-char optNam3[]={'U','\0'};
+char optNam3[]={'U','\0'};                      // nom de la liste d'options
 char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                                          // libellés staPulse
 
 extern int  chge_pwd; //=FAUX;
@@ -163,9 +163,9 @@ void subModePulseTime(char* buf,char* jsbuf,uint8_t npu,uint32_t* pulse,uint32_t
   fonc1[LENNOM-1]=onetwo;
   checkboxTableBHtml(buf,jsbuf,&val,fonc1,NO_STATE,"",2,ctl&TDBEG);               // bit enable pulse
   if(*(pulse+npu)<0){*(pulse+npu)=0;}  
-  numTf(buf,jsbuf,'l',(pulse+npu),fonc2,8,0,0,BRYES);                 // durée pulse   
-//  char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
-  //strcat(buf,"<br>(");concatn(buf,*(dur+npu));strcat(buf,")</font>");
+  numTf(buf,jsbuf,'l',(pulse+npu),fonc2,8,0,0,BRYES);                             // durée pulse   
+//char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
+//strcat(buf,"<br>(");concatn(buf,*(dur+npu));strcat(buf,")</font>");
   uint32_t v=*(dur+npu);
   affNum(buf,jsbuf,'l',&v,0,2,(ctl&TDEND)|(ctl&BRYES));
 }
@@ -204,7 +204,7 @@ void SwCtlTableHtml(EthernetClient* cli)
   optSelHtml(jsbuf,inpact,optNam3);
 
   //usrPeriCurB(buf,jsbuf,"peri_t_sw_",0,2,0);
-  formIntro(buf,jsbuf,"peri_t_sw_",0,0);         // params pour retours navigateur (n° usr + time usr + pericur + inits)
+  formIntro(buf,jsbuf,"peri_t_sw_",0,0);         // params pour retours navigateur (n° usr + time usr + pericur + locfonc pour inits)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
 
@@ -234,7 +234,7 @@ void SwCtlTableHtml(EthernetClient* cli)
 
       char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
       char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
-      char rfonc[]="peri_otfbv__\0";            // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
+      char rfonc[]="peri_otfbv__\0";          // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
 
       //strcat(buf,"<tr>");
       affText(buf,jsbuf,"",0,TRBEG);
@@ -268,27 +268,27 @@ void SwCtlTableHtml(EthernetClient* cli)
 
 /* détecteurs */    
     detServHtml(cli,&memDetServ,&libDetServ[0][0]);
-  
+    ethWrite(cli,buf,&lb);
 /* affichage/saisie règles */
   //strcat(buf,"<table>Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-");
   affText(buf,jsbuf,"Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
   //strcat(buf,"<tr><th></th><th>e.r p.e<br>n.f.r.s</th><th> source </th><th> destin.</th><th> action</th></tr>");
   tableBeg(buf,jsbuf,0);
   affText(buf,jsbuf,"|e.r p.e~n.f.r.s| source | destin.| action",0,TDBE|TRBE);
+  ethWrite(cli,buf,&lb);
 
       char xfonc1[]="p_inp1____\0";
 
       uint16_t offsetInp=0;
       uint8_t ni=0;                 // nbre lignes ds buffer
-
-      ethWrite(cli,buf,&lb);
       
       for(int ninp=0;ninp<NBPERINPUT;ninp++){     // boucle des regles
 
             ni++;
             
             //usrPeriCurB(buf,"peri_inp__",ninp,2,TRBEG);
-            formBeg(buf,jsbuf);
+            char fnc[LENNOM+1];memcpy(fnc,"peri_inp__",LENNOM);fnc[LENNOM-1]=(char)(ninp+PMFNCHAR);fnc[LENNOM]='\0';
+            formIntro(buf,jsbuf,fnc,0,0);
 
             //strcat(buf,"\n<form method=\"get\" >");    
             uint8_t vv;
@@ -332,7 +332,7 @@ void SwCtlTableHtml(EthernetClient* cli)
   strcat(buf,"</body></html>");
   ethWrite(cli,buf,&lb);
 
-  Serial.print(" ");Serial.println(jsbuf);
+  //Serial.print(" ");Serial.println(jsbuf);
   Serial.print("SwCtlTableHtml len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.print(strlen(jsbuf));
   Serial.print(" ms=");Serial.println(millis()-begSwT);
 }
@@ -638,18 +638,6 @@ void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
 
 /* line form header */
           formIntro(buf,jsbuf,0,TRBEG);
-          /*
-          strcat(buf,"<tr>\n<form method=\"GET \"><td>");
-          concatn(buf,periCur);
-          strcat(buf,"<p hidden><input type=\"text\" name=\"user_ref_");
-          concat1a(buf,(char)(usernum+PMFNCHAR));
-          strcat(buf,"\" value=\"");
-          concatn(buf,usrtime[usernum]);
-          strcat(buf,"\">");
-          char fonc[]="peri_cur__\0\0";concat1a(fonc,(char)(PMFNCHAR));
-          numTf(buf,'i',&periCur,fonc,2,0,0);
-          strcat(buf,"</p>\n");
-          */
 /* pericur - nom - th - volts */
           strcat(buf,"<td>");concatn(buf,periCur);strcat(buf,"</td>");
           strcat(buf,"<td>");strcat(buf,periNamer);strcat(buf,"</td>");
