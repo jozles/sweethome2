@@ -187,28 +187,31 @@ void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8
 
 void SwCtlTableHtml(EthernetClient* cli)
 {
-  
-  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;
-  const uint16_t lb0=LBUF4000;
-  uint16_t lb=0,lb1=0;
+/* >>>>>>>>>>>>>>>>>>>>>>> modèle de page <<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+
+  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  uint16_t lb=0,lb0=LBUF4000,lb1=0;
   char buf[lb0];buf[0]='\0';
 
-  unsigned long begSwT=millis();
-  
-  Serial.print("début SwCtlTableHtml -- periCur=");Serial.print(periCur);
+  unsigned long begSwT=millis();     // calcul durée envoi page
+
+  Serial.print("swCtlTableHtml - periCur=");Serial.print(periCur);
   Serial.print("  free=");Serial.println(freeMemory(), DEC);
 
-  // periCur est transféré via les fonctions d'en-tête peri_inp__ et peri_t_sw
-
-  htmlIntroB(buf,nomserver,cli);
-  pageHeader(buf,jsbuf);
-  perifHeader(buf,jsbuf);
-  usrPeriCurB(buf,jsbuf,"peri_t_sw_",0,2,0);
+  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
   optSelHtml(jsbuf,inptyps,optNam1);
   optSelHtml(jsbuf,inptypd,optNam2);
   optSelHtml(jsbuf,inpact,optNam3);
 
-  ethWrite(cli,buf,&lb);
+  //usrPeriCurB(buf,jsbuf,"peri_t_sw_",0,2,0);
+  formIntro(buf,jsbuf,"peri_t_sw_",0,0);         // params pour retours navigateur (n° usr + time usr + pericur + inits)
+                                    // à charger au moins une fois par page ; pour les autres formulaires 
+                                    // de la page formBeg() suffit
+
+  pageHeader(buf,jsbuf);            // 1ère ligne page
+  perifHeader(buf,jsbuf);           // 2nde ligne page
+  
+  ethWrite(cli,buf,&lb);            // tfr -> navigateur
 
 /* boutons */
     boutRetourB(buf,jsbuf,"retour",TDBE);strcat(buf," ");
@@ -231,7 +234,7 @@ void SwCtlTableHtml(EthernetClient* cli)
 
       char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
       char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
-      char rfonc[]="peri_otf__\0";            // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
+      char rfonc[]="peri_otfbv__\0";            // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
 
       //strcat(buf,"<tr>");
       affText(buf,jsbuf,"",0,TRBEG);
@@ -284,7 +287,7 @@ void SwCtlTableHtml(EthernetClient* cli)
 
             ni++;
             
-            usrPeriCurB(buf,"peri_inp__",ninp,2,TRBEG);
+            //usrPeriCurB(buf,"peri_inp__",ninp,2,TRBEG);
             formBeg(buf,jsbuf);
 
             //strcat(buf,"\n<form method=\"get\" >");    
@@ -292,7 +295,7 @@ void SwCtlTableHtml(EthernetClient* cli)
             byte binp[PERINPLEN];memcpy(binp,periInput+offsetInp,PERINPLEN);
             offsetInp+=PERINPLEN;
 
-            strcat(buf,"\n<td>");concatn(buf,ninp);strcat(buf,"</td>");
+            strcat(buf,"\n<tr><td>");concatn(buf,ninp);strcat(buf,"</td>");
             vv=(binp[2]  & PERINPEN_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,1,TDBEG);             // bit enable
             vv=(binp[2]  & PERINPVALID_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,9,0);              // bit active level
             vv=(binp[2]  & PERINPOLDLEV_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,2,0);             // bit prev lev
@@ -463,21 +466,29 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
 
 void periLineHtml(EthernetClient* cli,int i)
 {
-  char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;
+/* >>>>>>>>>>>>>>>>>>>>>>> modèle de page <<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+
+  char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF2000;
   char buf[lb0];buf[0]='\0';
 
   int j;
-  unsigned long begPL=millis();
+  unsigned long begPL=millis();     // calcul durée envoi page
 
   Serial.print("periLineHtml - periCur=");Serial.print(periCur);Serial.print("/");Serial.print(i);
 
-  htmlIntroB(buf,nomserver,cli);
-  pageHeader(buf,jsbuf);
-  perifHeader(buf,jsbuf);
-  usrPeriCurB(buf,jsbuf,"peri_cur__",0,2,0);
-  optSelHtml(jsbuf,rulop,optNam0);
-  ethWrite(cli,buf,&lb);
+  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+  optSelHtml(jsbuf,rulop,optNam0);  // chargement tables params
+
+  //usrPeriCurB(buf,jsbuf,"peri_cur__",0,2,0);
+  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
+                                    // à charger au moins une fois par page ; pour les autres formulaires 
+                                    // de la page formBeg() suffit
+
+  pageHeader(buf,jsbuf);            // 1ère ligne page
+  perifHeader(buf,jsbuf);           // 2nde ligne page
+  
+  ethWrite(cli,buf,&lb);            // tfr -> navigateur
 
 /* boutons */
 
@@ -626,7 +637,7 @@ void showLine(char* buf,EthernetClient* cli,int numline,char* pkdate)
       if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}
 
 /* line form header */
-          formHeader(buf,jsbuf,0,TRBEG);
+          formIntro(buf,jsbuf,0,TRBEG);
           /*
           strcat(buf,"<tr>\n<form method=\"GET \"><td>");
           concatn(buf,periCur);

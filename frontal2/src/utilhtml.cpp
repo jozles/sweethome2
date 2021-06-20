@@ -53,7 +53,7 @@ void jscatch(char* jsbuf,const char s){if(jsbuf!=nullptr){char* jspt=jsbuf+strle
 
 void jscatch(char* jsbuf,const char s,bool sep){jscatch(jsbuf,s);if(sep){strcat(jsbuf,JSSEP);}}
 
-void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl,char* colour)     // construit les 4 (ou 5) premiers caractères d'une fonction
+void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl) //,char* colour)     // construit les 2,3 ou 4 premiers caractères d'une fonction
 {
   if(jsbuf!=nullptr){
     char* jspt=jsbuf+strlen(jsbuf);
@@ -72,16 +72,17 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl,char* 
     *(jspt)=0x00;
   }
 }
-
+/*
 void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl)
 {
   char nocol='\0';
   fnJsIntro(jsbuf,fonc,pol,ctl,&nocol);
 }
-
+*/
 void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour)
 { 
   if(buf!=nullptr){
+    if((ctl&TRMASK)==TRBEG || (ctl&TDMASK)==TRBE){strcat(buf,"<tr>");}
     if((ctl&TDMASK)==TDBEG || (ctl&TDMASK)==TDBE){strcat(buf,"<td>");}
     if(*colour!=0x00){strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");}
     if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
@@ -247,17 +248,17 @@ void fontEnd(char* buf,char* jsbuf,uint8_t ctl)
 
 void tableBeg(char* buf,char* jsbuf,uint8_t ctl)
 {
-  fnJsIntro(jsbuf,JSTB,0,ctl);
   strcat(buf,"<table>");
+  fnJsIntro(jsbuf,JSTB,0,ctl);
   fnHtmlIntro(buf,0,ctl);
-  fnHtmlEnd(buf,0,ctl);
+  //fnHtmlEnd(buf,0,ctl);
 }
 
 void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
 {
   fnJsIntro(jsbuf,JSTE,0,ctl&(~TRBEG)&(~TDBEG));
-  strcat(buf,"</table>\n");
   fnHtmlEnd(buf,0,ctl);
+  strcat(buf,"</table>\n");
 }
 
 void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
@@ -325,12 +326,13 @@ void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* val
   char colour1[]={"black"};
   char colour2[]={"red"};
   memcpy(colour,colour1,6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,colour2,4);}
-  //setColourB(buf,jsbuf,colour);
+  
   fnHtmlIntro(buf,0,ctl,colour);
-  fnJsIntro(jsbuf,JSNTI,0,ctl,colour);
+  fnJsIntro(jsbuf,JSNTI,0,ctl);
+  setColourB(buf,jsbuf,colour);jscat(jsbuf,JSSEP);
   concatnf(buf,jsbuf,((float)*valfonct)/100);  
-  fnHtmlEnd(buf,0,ctl);
   setColourE(buf,nullptr);
+  fnHtmlEnd(buf,0,ctl);
 }
 
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol)
@@ -520,16 +522,18 @@ void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const
     fnJsIntro(jsbuf,JSBFB,sizfnt,ctl);
     fnHtmlIntro(buf,sizfnt,ctl);
     
+    jscat(jsbuf,nomfonct,SEP);jscat(jsbuf,valfonct,SEP);jscat(jsbuf,lib,SEP);concatn(nullptr,jsbuf,sizfnt);
+
     char b[]={(char)(usernum+PMFNCHAR),'\0'};
     strcat(buf,"<a href=\"?user_ref_");
     strcat(buf,b);strcat(buf,"=");concatn(buf,usrtime[usernum]);
     strcat(buf,"?");
     //char* dm=buf+strlen(buf);
     strcat(buf,nomfonct);strcat(buf,"=");strcat(buf,valfonct);
-    jscat(jsbuf,nomfonct,SEP);jscat(jsbuf,valfonct,SEP);concatn(nullptr,jsbuf,sizfnt,SEP);
+    
     strcat(buf,"\">");
     if(aligncenter){strcat(buf,"<p align=\"center\">");}
-    strcat(buf,"<input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"");jscat(jsbuf,lib);
+    strcat(buf,"<input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"");
     
     if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"");}
     if(aligncenter){strcat(buf,"></p></a>");}
@@ -776,7 +780,7 @@ void pageHeader(char* buf,char* jsbuf,bool form)
   //strcat(buf,"<br>\n");
 }
 
-void formHeader(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t pol,uint8_t ctl)       // les valeurs à recevoir systématiquement du navigateur
 {
     if(buf!=nullptr){
           fnHtmlIntro(buf,pol,ctl);
@@ -786,13 +790,24 @@ void formHeader(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
           strcat(buf,"\" value=\"");
           concatn(buf,usrtime[usernum]);
           strcat(buf,"\">");
-          char fonc[]="peri_cur__\0\0";concat1a(fonc,(char)(PMFNCHAR));
-          numTf(buf,'i',&periCur,fonc,2,0,0);
+          strcat(buf,"<input type=\"text\" name=\"peri_cur__@\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
+          //char fonc[]="peri_cur__\0\0";concat1a(fonc,(char)(PMFNCHAR));
+          //numTf(buf,'i',&periCur,fonc,2,0,0);
+          if(locfonc!=nullptr){
+            strcat(buf,"<input type=\"text\" name=\"");strcat(buf,locfonc);strcat(buf,"\" value=\".\">");     // fonction pour initialiser les retours de la page (effacement cb par ex)
+          }
           strcat(buf,"</p>\n");
     }
     if(jsbuf!=nullptr){
           fnJsIntro(jsbuf,JSFBH,pol,ctl);
+          concat1a(jsbuf,(char)(periCur+PMFNCVAL));
+          //concat1a(jsbuf,'\n');
     }
+}
+
+void formIntro(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+{
+  formIntro(buf,jsbuf,nullptr,pol,ctl);
 }
 
 void formBeg(char* buf,char*jsbuf,const char* title)
@@ -814,8 +829,8 @@ void formBeg(char* buf,char*jsbuf)
 void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
 {
     if(buf!=nullptr){
-          strcat(buf,"</form>\n");
           fnHtmlEnd(buf,pol,ctl);
+          strcat(buf,"</form>\n");
     }
     if(jsbuf!=nullptr){
           fnJsIntro(jsbuf,JSFE,pol,ctl&(~TDBEG)&(~TRBEG));
