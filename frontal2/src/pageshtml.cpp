@@ -7,6 +7,7 @@
 #include "utilhtml.h"
 #include "periph.h"
 #include "pageshtml.h"
+#include "utiljs.h"
 
 extern Ds3231 ds3231;
 
@@ -827,6 +828,7 @@ void timersHtml(EthernetClient* cli)
   
             Serial.print(" config timers ");
 
+            uint16_t lb=0;
             const uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
  
@@ -835,9 +837,9 @@ void timersHtml(EthernetClient* cli)
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             boutF(buf,"timershtml","","refresh",0,0,1,0);
-            ethWrite(cli,buf);
+            ethWrite(cli,buf,&lb);
 
-            detServHtml(cli,&memDetServ,&libDetServ[0][0]);
+            detServHtml(cli,buf,nullptr,&lb,lb0,&memDetServ,&libDetServ[0][0]);
 
             strcat(buf,"<table>");
               strcat(buf,"<tr>");
@@ -865,7 +867,7 @@ void timersHtml(EthernetClient* cli)
                       nucb=0;sscb(buf,timersN[nt].enable,"tim_chkb__",nucb,NO_STATE,0,nt);
                       nucb++;sscb(buf,timersN[nt].perm,"tim_chkb__",nucb,NO_STATE,0,nt);
                       nucb++;sscb(buf,timersN[nt].cyclic,"tim_chkb__",nucb,NO_STATE,0,nt);   
-ethWrite(cli,buf);                     
+ethWrite(cli,buf,&lb);                     
                       strcat(buf,"</td><td>");
                       for(int nj=7;nj>=0;nj--){
                         bool vnj; 
@@ -883,79 +885,62 @@ ethWrite(cli,buf);
                     strcat(buf,"</form>");
                     strcat(buf,"</tr>\n");
 
-                    ethWrite(cli,buf);
+                    ethWrite(cli,buf,&lb);
                   }
 
         strcat(buf,"</table>");
         strcat(buf,"</body></html>");
-        ethWrite(cli,buf);
+        ethWrite(cli,buf,&lb);
 }
 
 
-void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
+void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0,uint32_t* mds,char* lib)
 {
-  uint16_t lb0=LBUF1000;
-  char buf[LBUF1000];buf[0]='\0';
-  uint8_t ni=0;
-  uint16_t lb;
+  if(buf!=nullptr && lb0!=0){
+
+    Serial.println("detServHtml ");
+
+    formIntro(buf,jsbuf,"dsrv_init_",0,0);         // params pour retours navigateur (n° usr + time usr + pericur + locfonc pour inits)
+                                    // à charger au moins une fois par page ; pour les autres formulaires 
+                                    // de la page formBeg() suffit
   
-          strcat(buf,"<form>");
-          usrFormInitBHtml(buf,"dsrv_init_");
-          strcat(buf,"<fieldset><legend>détecteurs serveur (n->0):</legend>\n");
+          affText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>",0,0);
+
+          uint8_t ni=0;
+          uint16_t lb1=0;
 
           for(int k=NBDSRV-1;k>=0;k--){
             ni++;
             char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
             if(libb[0]=='\0'){convIntToString(libb,k);}
-            subDSnB(buf,"mem_dsrv__\0",*mds,k,libb);
-            strcat(buf,"<font size=\"1\"> (");concat1a(buf,mdsSrc[sourceDetServ[k]/256]);
-            if(sourceDetServ[k]/256!=0){concatn(buf,sourceDetServ[k]&0x00ff);}
-            else{strcat(buf,"--");}
-            strcat(buf,") </font>");
-            lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
+            subDSnB(buf,jsbuf,"mem_dsrv__\0",*mds,k,libb);
+
+            fontBeg(buf,jsbuf,1,0);
+            affColonBeg(buf,jsbuf);
+            affText(buf,jsbuf,&(mdsSrc[sourceDetServ[k]/256]),1,0,0);
+            if(sourceDetServ[k]/256!=0){
+              concatn(buf,jsbuf,sourceDetServ[k]&0x00ff);
+              affText(buf,jsbuf,") ",0,0);}
+            else{affText(buf,jsbuf,"--) ",0,0);}
+            fontEnd(buf,jsbuf,0);
+            lb1=strlen(buf);if(lb0-lb1<(lb1/ni+100)){ethWrite(cli,buf);ni=0;}
           }
-          strcat(buf,"<input type=\"submit\" value=\"Per Update\"></fieldset></form>\n"); 
+          boutMaj(buf,jsbuf,"Per Update",0);
+          affText(buf,jsbuf,"</fieldset>",0,0);
+          formEnd(buf,jsbuf,0,0);
+          //strcat(buf,"<input type=\"submit\" value=\"Per Update\"></fieldset></form>\n"); 
           
-          ethWrite(cli,buf);        
+          ethWrite(cli,buf,lb);        
+  }
+}
+
+void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
+{
+  detServHtml(cli,nullptr,nullptr,0,0,mds,lib);
 }
 
 void testHtml(EthernetClient* cli)
 {
             Serial.println(" page d'essais");
  htmlImg(cli,"sweeth.jpg");            
-            
-/*            
-            
-            htmlIntro(nomserver,cli);
-
-            char pwd[32]="password__=\0";strcat(pwd,userpass);
-            
-            cli->println("<body><form method=\"get\" action=\"page.html\" >");
-
-            cli->println("<a href=page.html?");cli->print(pwd);cli->print(":>retourner</a><br>");
-            cli->println("<a href=page.html?password__=17515A:>retourner</a><br>");
-
-            //cli->print(" <p hidden> ce que je ne veux plus voir <input type=\"text\" name=\"ma_fonct_1\" value=\"\"><br><p>");
-            //cli->println(" ce que je veux toujour voir <input type=\"text\" name=\"ma_fonct_2\" value=\"\"><br>");
-
-            //cli->print("<img id=\"img1\" alt=\"BOUTON\" fp-style=\"fp-btn: Border Left 1\" fp-title=\"BOUTON\" height=\"20\"  style=\"border: 0\" width=\"100\"> <br>");
-
-            //cli->println(" <input type=\"submit\" value=\"MàJ\"><br>");
-
-            cli->println("<a href=\"page.html?password__=17515A:\"><input type=\"button\" value=\"href+input button\"></a><br>"); 
-            
-            cli->println("<a href=page.html?");cli->print(pwd);cli->print(":><input type=\"submit\" value=\"retour\"></a><br>");
-            cli->println("<a><input type=\"submit\" formaction=\"page.html?password__=17515A:\" value=\"formaction\"></a><br>");
-
-            bouTableHtml(cli,"password__",userpass,"boutable",2,1);
-            
-            cli->print("<form><p hidden><input type=\"text\" name=\"password__\" value=\"");
-            cli->print(userpass);
-            cli->print("\" ><p><input type=\"submit\" value=\"submit\"><br></form>");
-            
-            
-            cli->print("<a href=page.html?password__=17515A:><input type=\"submit\" value=\"retour\"></a><br>");
-
-            cli->println("</form></body></html>");            
-*/
 }           

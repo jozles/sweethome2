@@ -32,6 +32,7 @@ void optSelHtml(char* jsbuf,char* val,char* name);
 void usrPeriCurB(char* buf,const char* fnct,uint8_t ninp,int len,uint8_t td);
 void usrPeriCurB(char* buf,char* jsbuf,const char* fnct,uint8_t ninp,int len,uint8_t td);
 void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib);
+void subDSnB(char* buf,char* jsbuf,const char* fnc,uint32_t val,uint8_t num,char* lib);
 #define NO_STATE 9         // etat
 void checkboxTableBHtml(char* buf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
@@ -70,7 +71,10 @@ void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,i
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
 void affSpace(char* buf,char* jsbuf);
+void affColonBeg(char* buf,char* jsbuf);
+void affColonEnd(char* buf,char* jsbuf);
 void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl);
+void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t ctl);
 void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl);
 void affNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl);
 void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len);

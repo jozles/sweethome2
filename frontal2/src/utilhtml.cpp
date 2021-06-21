@@ -102,7 +102,7 @@ void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl)
     if((ctl&BRMASK)!=0){strcat(buf,"<br>");}
     if((ctl&TDMASK)==TDEND || (ctl&TDMASK)==TDBE){strcat(buf,"</td>");}
     if((ctl&TRMASK)==TREND || (ctl&TRMASK)==TRBE){strcat(buf,"</tr>");}
-    strcat(buf,"\n");
+    //strcat(buf,"\n");
   }
 }
 
@@ -261,19 +261,40 @@ void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
   strcat(buf,"</table>\n");
 }
 
-void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
+void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t ctl)
 {
   fnJsIntro(jsbuf,JSST,pol,ctl);
   fnHtmlIntro(buf,pol,ctl);
   char* dm=jsbuf+strlen(jsbuf);
-  jscat(jsbuf,txt);buftxcat(buf,dm);
+  char* dm0=dm;
+  if(len==-1){jscat(jsbuf,txt);}
+  else {while(len>0){*dm++=*txt++;len--;*dm='\0';}}
+
+  buftxcat(buf,dm0);
   fnHtmlEnd(buf,pol,ctl);
+}
+
+void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
+{
+  affText(buf,jsbuf,txt,-1,pol,ctl);
 }
 
 void affSpace(char* buf,char* jsbuf)
 {
   strcat(buf," ");
   fnJsIntro(jsbuf,JSSP,0,0);
+}
+
+void affColonBeg(char* buf,char* jsbuf)
+{
+  strcat(buf,"(");
+  fnJsIntro(jsbuf,JSCLB,0,0);
+}
+
+void affColonEnd(char* buf,char* jsbuf)
+{
+  strcat(buf,")");
+  fnJsIntro(jsbuf,JSCLE,0,0);
 }
 
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl)
@@ -327,11 +348,11 @@ void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* val
   char colour2[]={"red"};
   memcpy(colour,colour1,6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,colour2,4);}
   
-  fnHtmlIntro(buf,0,ctl,colour);
+  fnHtmlIntro(buf,0,ctl,nullptr);
   fnJsIntro(jsbuf,JSNTI,0,ctl);
   setColourB(buf,jsbuf,colour);jscat(jsbuf,JSSEP);
   concatnf(buf,jsbuf,((float)*valfonct)/100);  
-  setColourE(buf,nullptr);
+  setColourE(buf,jsbuf);
   fnHtmlEnd(buf,0,ctl);
 }
 
@@ -491,7 +512,7 @@ void concatDate(char* buf,char* jsbuf,char* periDate)
   char* dm=buf+strlen(buf);
   unpackDate(dateascii,periDate);for(j=0;j<12;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}
   jscat(jsbuf,dm);
-  strcat(buf,"<br>");
+  //strcat(buf,"<br>");
 }
 
 void concatDate(char* buf,char* periDate)
@@ -877,7 +898,7 @@ void checkboxTableBHtml(char* buf,uint8_t* val,const char* nomfonct,int etat,uin
 }
 
 
-void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib) // checkbox transportant 1 bit 
+void subDSnB(char* buf,char* jsbuf,const char* fnc,uint32_t val,uint8_t num,char* lib) // checkbox transportant 1 bit 
                                                                     // num le numéro du bit dans le mot
                                                                     // le caractère LENNOM-1 est le numéro du bit(+PMFNCHAR) dans periDetServ 
 {                                                                   // le numéro est codé 0 à 15 + 0x40 et 16->n + 0x50 !!!! (évite les car [\]^ )
@@ -886,7 +907,12 @@ void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib) // ch
   uint8_t val0=(val>>num)&0x01;
   if(num>=16){num+=16;}
   fonc[LENNOM-1]=(char)(PMFNCHAR+num);
-  checkboxTableBHtml(buf,&val0,fonc,NO_STATE,0,lib);
+  checkboxTableBHtml(buf,jsbuf,&val0,fonc,NO_STATE,lib,0,0);
+}
+
+void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib)
+{
+  subDSnB(buf,nullptr,fnc,val,num,lib);
 }
 
 void cliPrintMac(EthernetClient* cli, byte* mac)

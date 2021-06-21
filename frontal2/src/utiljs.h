@@ -40,8 +40,8 @@
 */
 #define JSFON  "{"        // séparateur début fonction  
 #define JSSEP  "}"        // séparateur interne aux fonction
-#define JSSBR  "|"        // séparateur colonne dans les chaines texte
-#define JSLF   "~"        // séparateur <br> dans les chaines texte 
+#define JSSCO  "|"        // séparateur colonne dans les chaines texte  
+#define JSSBR  "~"        // séparateur <br> dans les chaines texte     
 #define JSCHK  "^"        // checked 
 #define JSCTL  "x"        // troisieme car optionnel de fonction (reçoit ctl) 
 
@@ -66,7 +66,9 @@
 #define JSSTB  "kx"       // saisie selectbox        JSSTBnnomfonc}nom_options n=n°sel+PMFNCVAL
 #define JSSOP  "K "       // selectbox options table JSCELvnloptions v=nom n=nbre+PMFNCVAL l=len+PMFNCVAL
 /* affichages */
-#define JSSP   "S "       // affichage space  
+#define JSSP   "S "       // affichage space
+#define JSCLB  "( "       // parenthese ouverte
+#define JSCLE  ") "       // parenthese fermée 
 #define JSST   "sx"       // affichage texte         JSSTtexte
 #define JSNT   "Ux"       // affichage num           JSNTtexte
 #define JSNTI  "ux"       // affichage num (min/max) JSNTcouleur}valfonct/100 
