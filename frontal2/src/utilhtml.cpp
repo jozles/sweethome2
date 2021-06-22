@@ -214,7 +214,8 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br,bool sep)
 
 void setColourE(char* buf,char* jsbuf)
 {
-  strcat(buf,"</font>");jscat(jsbuf,JSCOE);
+  strcat(buf,"</font>");
+  fnJsIntro(jsbuf,JSCOE,0,0);
 }
 
 void setColourE(char* buf)
@@ -224,8 +225,13 @@ void setColourE(char* buf)
 
 void setColourB(char* buf,char* jsbuf,const char* textColour)
 {
-  memcpy(colour,textColour,LENCOLOUR);strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
-  jscat(jsbuf,JSCOB);jscat(jsbuf,textColour);
+  if(buf!=nullptr){
+    memcpy(colour,textColour,LENCOLOUR);strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
+  }
+  if(jsbuf!=nullptr){
+    fnJsIntro(jsbuf,JSCOB,0,0);  
+    jscat(jsbuf,textColour);
+  }
 }
 
 void setColourB(char* buf,const char* textColour)
@@ -262,15 +268,30 @@ void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
 }
 
 void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t ctl)
+// mode STRING :  ne fonctionne que dans une ligne de table
+//                le premier appel comporte TDBEG pour forcer le nom de la commande et BRYES (ignoré dans ctl) ou TDEND 
+//                TDEND est forcé dans le ctl la commande
+//                les suivants BRYES ou TDEND
+//                le dernier rien : TDEND est déjà dans le ctl de la commande (pour le format html ctl==STRING indique </td> à la fin)
 {
-  fnJsIntro(jsbuf,JSST,pol,ctl);
+  uint8_t ctlb=ctl&~STRING;if((ctl&STRING)!=0){ctlb&=~BRYES;if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
+  if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0))){fnJsIntro(jsbuf,JSST,pol,ctlb);} 
+  
   fnHtmlIntro(buf,pol,ctl);
   char* dm=jsbuf+strlen(jsbuf);
   char* dm0=dm;
   if(len==-1){jscat(jsbuf,txt);}
   else {while(len>0){*dm++=*txt++;len--;*dm='\0';}}
 
+  if(((ctl&STRING)!=0)&&((ctl&BRYES)!=0)){jscat(jsbuf,JSSBR);}
+  if(((ctl&STRING)!=0)&&((ctl&TDEND)!=0)){jscat(jsbuf,JSSCO);}
+  
   buftxcat(buf,dm0);
+  
+  if(ctl==STRING){ctl|=TDEND;}   // pas de JSSCO en fin de dm0 possible dans ce cas
+  char a[]={JSSCO};
+  if(*(dm0+strlen(dm0)-1)==*a){ctl&=~TDEND;}
+  if((ctl&STRING)!=0){ctl&=~BRYES;}   // évite doublon avec JSSBR de dm0 
   fnHtmlEnd(buf,pol,ctl);
 }
 
@@ -315,31 +336,50 @@ void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len
   alphaTableHtmlB(buf,nullptr,valfonct,nomfonct,len,0,TDBE|NOBR);
 }
 
-void concNum(char* buf,char* jsbuf,char type,uint8_t dec,void* value)
+void concNum(char* buf,char* jsbuf,char type,uint8_t dec,void* value,bool sep)
 {
   switch (type){
-    case 'b':concatn(buf,jsbuf,*(byte*)value,SEP);break; //strcat(buf,(char*)valfonct);break;
-    case 'd':concatn(buf,jsbuf,*(uint16_t*)value,SEP);break;
-    case 's':if(*(uint8_t*)value==0xff){break;}concatn(buf,jsbuf,*(uint8_t*)value,SEP);break;
-    case 'i':concatns(buf,jsbuf,*(int*)value,SEP);break;
-    case 'I':concatns(buf,jsbuf,*(int16_t*)value,SEP);break;
-    case 'r':concatnf(buf,jsbuf,(float)(*(int16_t*)value)/100,2,BRNO,SEP);break;
-    case 'l':concatns(buf,jsbuf,*(long*)value,SEP);break;
-    case 'f':concatnf(buf,jsbuf,*(float*)value,2,BRNO,SEP);break;
-    case 'F':concatnf(buf,jsbuf,*(float*)value,dec,BRNO,SEP);break;
-    case 'g':concatn(buf,jsbuf,*(uint32_t*)value,SEP);break;    
+    case 'b':concatn(buf,jsbuf,*(byte*)value,sep);break; //strcat(buf,(char*)valfonct);break;
+    case 'd':concatn(buf,jsbuf,*(uint16_t*)value,sep);break;
+    case 's':if(*(uint8_t*)value==0xff){break;}concatn(buf,jsbuf,*(uint8_t*)value,sep);break;
+    case 'i':concatns(buf,jsbuf,*(int*)value,sep);break;
+    case 'I':concatns(buf,jsbuf,*(int16_t*)value,sep);break;
+    case 'r':concatnf(buf,jsbuf,(float)(*(int16_t*)value)/100,2,BRNO,sep);break;
+    case 'l':concatns(buf,jsbuf,*(long*)value,sep);break;
+    case 'f':concatnf(buf,jsbuf,*(float*)value,2,BRNO,sep);break;
+    case 'F':concatnf(buf,jsbuf,*(float*)value,dec,BRNO,sep);break;
+    case 'g':concatn(buf,jsbuf,*(uint32_t*)value,sep);break;    
     default:break;
   }
 }
 
 void affNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl)
+// mode STRING :  ne fonctionne que dans une ligne de table
+//                le premier appel comporte TDBEG pour forcer le nom de la commande et BRYES (ignoré dans ctl) ou TDEND 
+//                TDEND est forcé dans le ctl la commande
+//                les suivants BRYES ou TDEND
+//                le dernier rien : TDEND est déjà dans le ctl de la commande
 {
+  uint8_t ctlb=ctl&~STRING;
+  if((ctl&STRING)!=0){ctlb&=~BRYES;
+  if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
+  if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0))){fnJsIntro(jsbuf,JSNT,pol,ctlb);} 
+  
+  //fnJsIntro(jsbuf,JSNT,pol,ctl);
   fnHtmlIntro(buf,pol,ctl);
-  fnJsIntro(jsbuf,JSNT,pol,ctl);
-  concat1a(nullptr,jsbuf,type);
-  concNum(buf,jsbuf,type,dec,value);
+  //concat1a(nullptr,jsbuf,type);
+  char* dm;dm=jsbuf+strlen(jsbuf);
+  
+  concNum(nullptr,jsbuf,type,dec,value,0);
+  
+  if(((ctl&STRING)!=0) && ((ctl&BRYES)!=0)){jscat(jsbuf,JSSBR);}
+  if(((ctl&STRING)!=0) && ((ctl&TDEND)!=0)){jscat(jsbuf,JSSCO);}
+  
+  buftxcat(buf,dm);
+  if((ctl&STRING)!=0){ctl&=~TDEND;}   // évite le double emploi avec JSSCO déjà dans dm
+  if((ctl&STRING)!=0){ctl&=~BRYES;}   // évite le double emploi avec JSSBR déjà dans dm
   fnHtmlEnd(buf,pol,ctl);
-  }
+}
 
 void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl)
 {
@@ -347,13 +387,26 @@ void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* val
   char colour1[]={"black"};
   char colour2[]={"red"};
   memcpy(colour,colour1,6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,colour2,4);}
+  setColourB(buf,jsbuf,colour);
   
-  fnHtmlIntro(buf,0,ctl,nullptr);
+/*  uint8_t ctlb=ctl&~STRING;
+  if((ctl&STRING)!=0){ctlb&=~BRYES;
+  if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
+  if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0))){fnJsIntro(jsbuf,JSNT,0,ctlb);} 
+*/
   fnJsIntro(jsbuf,JSNTI,0,ctl);
-  setColourB(buf,jsbuf,colour);jscat(jsbuf,JSSEP);
+
+  fnHtmlIntro(buf,0,ctl,nullptr);
+
+ // char* dm;dm=jsbuf+strlen(jsbuf);
   concatnf(buf,jsbuf,((float)*valfonct)/100);  
-  setColourE(buf,jsbuf);
+  
+/*  if(((ctl&STRING)!=0) && ((ctl&BRYES)!=0)){jscat(jsbuf,JSSBR);}
+  if(((ctl&STRING)!=0) && ((ctl&TDEND)!=0)){jscat(jsbuf,JSSCO);}
+  buftxcat(buf,dm);
+*/  
   fnHtmlEnd(buf,0,ctl);
+  setColourE(buf,jsbuf);
 }
 
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol)
@@ -391,7 +444,7 @@ void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,i
   concatn(nullptr,jsbuf,dec,SEP);
   jscatch(jsbuf,type,SEP);
   strcat(buf,"\" value=\"");
-  concNum(buf,jsbuf,type,dec,valfonct);
+  concNum(buf,jsbuf,type,dec,valfonct,SEP);
   /*switch (type){
     case 'b':concatn(buf,jsbuf,*(byte*)valfonct,SEP);break; //strcat(buf,(char*)valfonct);break;
     case 'd':concatn(buf,jsbuf,*(uint16_t*)valfonct,SEP);break;

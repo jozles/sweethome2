@@ -637,7 +637,6 @@ void periLineHtml(EthernetClient* cli,int i)
 
 void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate,uint16_t* lb)
 {
-  int j;
   float vv=0;
 
 //#define LBSHOWLINE 1000
@@ -648,73 +647,88 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
 
 /* line form header */
           formIntro(buf,jsbuf,0,TRBEG);
-          fontBeg(buf,jsbuf,2,0);
+          //fontBeg(buf,jsbuf,2,0);
 /* pericur - nom - th - volts */
-          affNum(buf,jsbuf,'d',&periCur,0,0,TDBE);
-          affText(buf,jsbuf,periNamer,0,TDBE);
-          affNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);
+          char* dm;dm=jsbuf+strlen(jsbuf);
+          uint8_t lctl=STRING|TRBEG|TDBE;
+
+          affNum(buf,jsbuf,'d',&periCur,0,0,lctl);
+          affText(buf,jsbuf,periNamer,0,STRING);
+          affNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
           vv=*periThmin_/100;affNum(buf,jsbuf,'f',&vv,2,0,BRYES);
           vv=*periThmax_/100;affNum(buf,jsbuf,'f',&vv,2,0,TDEND);
-          affNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,BRYES|TDBEG);          
+          affNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);          
           vv=*periVmin_/100;affNum(buf,jsbuf,'f',&vv,2,0,BRYES);
           vv=*periVmax_/100;affNum(buf,jsbuf,'f',&vv,2,0,TDEND);               
 // pertemp/pitch/offset 
-          affNum(buf,jsbuf,'d',periPerTemp,0,0,TDBEG|BRYES);
-          vv=*periPitch_/100;affNum(buf,jsbuf,'f',&vv,2,0,BRYES);
-          vv=*periThOffset_/100;affNum(buf,jsbuf,'f',&vv,2,0,TDEND);
+          affNum(buf,jsbuf,'d',periPerTemp,0,0,STRING|TDBEG|BRYES);
+          vv=*periPitch_/100;affNum(buf,jsbuf,'f',&vv,2,0,STRING|BRYES);
+          vv=*periThOffset_/100;affNum(buf,jsbuf,'f',&vv,2,0,STRING|TDEND);
       
-          uint8_t lctl;
           char oi[2]={'O','I'};
-          if(*periProg==0){lctl=TDEND;}
-          else {lctl=BRYES;}
-          affNum(buf,jsbuf,'d',(uint16_t*)periPerRefr,0,0,lctl|TDBEG);
-          if(*periProg!=0){affText(buf,jsbuf,"serv",0,TDEND);}
-          strcat(buf,"\n");  
-          affNum(buf,jsbuf,'s',(uint8_t*)periSwNb,0,0,TDBEG|BRYES);
-          affNum(buf,jsbuf,'s',(uint8_t*)periDetNb,0,0,TDEND);                                                 
+          if(*periProg==0){lctl=STRING|TDEND;}
+          else {lctl=STRING|BRYES;}
+          affNum(buf,jsbuf,'d',(uint16_t*)periPerRefr,0,0,lctl);
+          if(*periProg!=0){affText(buf,jsbuf,"serv",0,STRING|TDEND);}
+            
+          affNum(buf,jsbuf,'s',(uint8_t*)periSwNb,0,0,STRING|BRYES);
+          affNum(buf,jsbuf,'s',(uint8_t*)periDetNb,0,0,STRING|TDEND);                                                 
           //concat1aH(buf,(char)(*periSwVal));strcat(buf,"<br>");
-          lctl=TDBEG;
-
+          
+          char tt[3];
           for(uint8_t k=0;k<*periSwNb;k++){
-                      affText(buf,jsbuf,&oi[periSwCde(k)],1,0,lctl);affText(buf,jsbuf,"_",1,0,0);
-                      lctl=0;
-                      if(k<*periSwNb-1){lctl=BRYES;}
-                      else {lctl=TDEND;}
-                      affText(buf,jsbuf,&oi[periSwLev(k)],1,0,lctl);lctl=0;
+                      tt[0]=oi[periSwCde(k)];tt[1]='_';tt[2]=oi[periSwLev(k)];
+                      //affText(buf,jsbuf,&oi[periSwCde(k)],1,0,lctl);affText(buf,jsbuf,"_",1,0,0);
+                      //lctl=0;
+                      if(k<*periSwNb-1){lctl=STRING|BRYES;}
+                      else {lctl=STRING|TDEND;}
+                      //affText(buf,jsbuf,&oi[periSwLev(k)],1,0,lctl);
+                      affText(buf,jsbuf,tt,3,0,lctl);
           }
-          if(*periSwNb==0){affText(buf,jsbuf," ",0,TDBE);}          
+          if(*periSwNb==0){affText(buf,jsbuf," ",0,STRING|TDEND);}          
           //fontBeg(buf,jsbuf,2,0);
-          lctl=TDBEG;
+          //lctl=TDBEG|STRING;
           for(uint8_t k=0;k<*periDetNb;k++){
-            if(k<*periDetNb-1){lctl|=BRYES;}
-            else lctl=TDEND;
+            if(k<*periDetNb-1){lctl=STRING|BRYES;}
+            else lctl=STRING|TDEND;
             affText(buf,jsbuf,&oi[(*periDetVal>>(k*2))&DETBITLH_VB],1,0,lctl);
-            lctl=0;
           }
-          if(*periDetNb==0){affText(buf,jsbuf," ",0,TDBE);}
+          if(*periDetNb==0){affText(buf,jsbuf," ",0,STRING|TDEND);}
           //fontEnd(buf,jsbuf,TDEND);
 // analog 
-          vv=(*periAnal+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,TDBEG|BRYES);
-          vv=(*periAnalLow+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,BRYES);
-          vv=(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,TDEND);
+          vv=(*periAnal+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
+          vv=(*periAnalLow+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
+          vv=(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING);
           strcat(buf,"\n");
 // mac                    
           lctl=TDBEG;
+          char m[18];m[17]=0x00;
           for(int k=0;k<6;k++){
-            affText(buf,jsbuf,&chexa[periMacr[k]/16],1,0,lctl);
-            if(k>=6-1){lctl=BRYES;}else lctl=0;
-            affText(buf,jsbuf,&chexa[periMacr[k]%16],1,0,lctl);}
+            m[k*3]=chexa[periMacr[k]/16];
+            m[k*3+1]=chexa[periMacr[k]%16];
+            if(k<5){m[k*3+2]='.';}
+          }
+          affText(buf,jsbuf,m,0,TDBEG|BRYES);
+
           if(*periProg!=0 || *periProtocol=='U'){
             affText(buf,jsbuf,"port=",0,0);affNum(buf,jsbuf,'d',periPort,0,0,BRYES);}
           else{affText(buf,jsbuf,"",0,BRYES);}
-          fontBeg(buf,jsbuf,2,0);for(j=0;j<4;j++){
-            char k=periIpAddr[j];affNum(buf,jsbuf,'s',&k,0,0,0);
-            if(j<3){affText(buf,jsbuf,".",1,0,0);}}
+          fontBeg(buf,jsbuf,2,0);
+          char w[16];memset(w,0x00,16);
+          uint8_t s=0;
+          for(uint8_t j=0;j<4;j++){
+            s+=sprintf(w+s,"%hu",(uint8_t)periIpAddr[j]);
+            if(j<3){w[s]='.';s++;}
+          }
+          affText(buf,jsbuf,w,0,0);
+            //char k=periIpAddr[j];affNum(buf,jsbuf,'s',&k,0,0,0);
+            //if(j<3){affText(buf,jsbuf,".",1,0,0);}}
           fontEnd(buf,jsbuf,TDEND);
           char vers[LENVERSION+1];memcpy(vers,periVers,LENVERSION);vers[LENVERSION]='\0';
           affText(buf,jsbuf,vers,0,TDBEG);affSpace(buf,jsbuf);
           long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}
           char* a=protocStr+LENPROSTR*p;affText(buf,jsbuf,a,0,BRYES);                
+if(*periDetNb!=0){Serial.print("\n====================");Serial.print(dm);}
 // date_heures
           char colourbr[6];
           long late;

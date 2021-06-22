@@ -13,7 +13,8 @@
 #define LF     0x0A
 
 /* bits de ctl */
-#define CTLCH  0x40     
+#define CTLCH  0x40     // PMFNCHAR et mode string
+#define STRING 0x40     // PMFNCHAR et mode string
 #define CTLPO  0x20     // byte police present
 #define BRMASK 0x10
 #define BRYES  0x10
@@ -47,7 +48,7 @@
 
 /* commande Js (les commandes non commentées sont inutilisées) */
 /* attributs */
-#define JSCOB  "wx"       // couleur Beg             JSCOBcouleur;
+#define JSCOB  "w "       // couleur Beg             JSCOBcouleur;
 #define JSCOE  "W "       // couleur End
 #define JSFNB  "xx"       // police beg 
 #define JSFNE  "X "       // police fin
