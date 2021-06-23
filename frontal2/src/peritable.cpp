@@ -339,16 +339,16 @@ void SwCtlTableHtml(EthernetClient* cli)
 
 void periTableHtml(EthernetClient* cli)
 {
+  Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.println();
+
   char jsbuf[12000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
-  uint16_t lb=0,lb0=LBUF2000;
+  uint16_t lb=0,lb0=LBUF4000;
   char buf[lb0];*buf=0x00;
 
   int i;
-  unsigned long begTPage=millis();     // calcul durée envoi page
+  unsigned long begTPage=millis();  // calcul durée envoi page
 
-  int savePeriCur=periCur;
-
-  Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.println();
+  int savePeriCur=periCur;          // restoré à la fin
 
   htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
 
@@ -486,6 +486,30 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
   ethWrite(cli,buf,lb);
 }
 
+void showDates(char* buf,char* jsbuf)
+{
+          Serial.println("sd1");
+          char colourbr[6];
+          #define LSTRD 14
+          char strDate[LSTRD];
+          long late;
+          late=*periPerRefr+*periPerRefr/10;
+          memcpy(colourbr,"black\0",6);
+          if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
+          if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                      
+          memset(strDate,0x00,LSTRD);
+          concatDate(strDate,nullptr,periLastDateOut);
+          affText(buf,jsbuf,strDate,0,BRYES);
+          memcpy(colourbr,"black\0",6);
+          if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
+          if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                 
+          memset(strDate,0x00,LSTRD);
+          concatDate(strDate,nullptr,periLastDateIn);
+          affText(buf,jsbuf,strDate,0,TDEND);
+          setColourB(buf,jsbuf,"black");                      
+          setColourE(buf,jsbuf);
+          Serial.println("sd2");delay(1);
+}
 
 void periLineHtml(EthernetClient* cli,int i)
 {
@@ -588,17 +612,20 @@ void periLineHtml(EthernetClient* cli,int i)
                       affText(buf,jsbuf,bd,0,0);
                       *bd=*periProtocol;*(bd+1)='\0';
                       affText(buf,jsbuf,bd,0,BRYES);
-                      char colourbr[6];
-                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                      
+                      showDates(buf,jsbuf);
+/*                    char colourbr[6];
+                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}
+                      setColourB(buf,jsbuf,colourbr);                      
                       concatDate(buf,jsbuf,periLastDateOut);
                       affText(buf,jsbuf," ",0,BRYES);
-                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                      
+                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}
+                      setColourB(buf,jsbuf,colourbr);                      
                       concatDate(buf,jsbuf,periLastDateIn);
-                      setColourB(buf,jsbuf,"black");
-                      
+ */                     
                       fontEnd(buf,jsbuf,TDEND);
                       
                 tableEnd(buf,jsbuf,TREND|BRYES);
+                //setColourB(buf,jsbuf,"black");
                 ethWrite(cli,buf,&lb);
 
 // table analogique
@@ -643,19 +670,16 @@ void periLineHtml(EthernetClient* cli,int i)
                 htmlEnd(buf,jsbuf);
                 ethWrite(cli,buf,&lb);
 
-                Serial.print(" ");Serial.println(jsbuf);ljs=strlen(jsbuf);
-                Serial.print("len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.println(ljs);
-
-                Serial.print(" ms=");Serial.println(millis()-begTPage);
+                Serial.println();Serial.println(jsbuf);
+                Serial.print("len buf=");Serial.print(lb);Serial.print("  len jsbuf=");Serial.println(strlen(jsbuf));
+                Serial.print("  ms=");Serial.println(millis()-begTPage);
 }
-
 
 void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate,uint16_t* lb)
 {
+  Serial.print("showLine ");Serial.println(numline);
   float vv=0;
-
 //#define LBSHOWLINE 1000
-
       periInitVar();periLoad(numline);periCur=numline;
       if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}  
       if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}
@@ -663,7 +687,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
 /* line form header */
           formIntro(buf,jsbuf,0,TRBEG);
 /* pericur - nom - th - volts */
-          char* dm;dm=jsbuf+strlen(jsbuf);
+          //char* dm;dm=jsbuf+strlen(jsbuf);
           uint8_t lctl=STRING|TRBEG|TDBE;
 
           affNum(buf,jsbuf,'d',&periCur,0,0,lctl);
@@ -738,27 +762,33 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}
           char* a=protocStr+LENPROSTR*p;affText(buf,jsbuf,a,0,STRING|CONCAT|BRYES);                
 // date_heures
-          char colourbr[6];
+          showDates(buf,jsbuf);
+/*          char colourbr[6];
+          #define LSTRD 14
+          char strDate[LSTRD];
           long late;
           late=*periPerRefr+*periPerRefr/10;
           memcpy(colourbr,"black\0",6);
           if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
           if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                      
-          concatDate(buf,jsbuf,periLastDateOut);
+          memset(strDate,0x00,LSTRD);
+          concatDate(strDate,nullptr,periLastDateOut);
+          affText(buf,jsbuf,strDate,0,BRYES);
           memcpy(colourbr,"black\0",6);
           if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
-          if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);
-          affText(buf,jsbuf,"",0,BRYES);                      
-          concatDate(buf,jsbuf,periLastDateIn);
+          if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                 
+          memset(strDate,0x00,LSTRD);
+          concatDate(strDate,nullptr,periLastDateIn);
+          affText(buf,jsbuf,strDate,0,TDEND);
           setColourB(buf,jsbuf,"black");                      
           setColourE(buf,jsbuf);
-          affText(buf,jsbuf,"",0,TDEND);         
+*/              
           strcat(buf,"\n");
 // boutons
           char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';                      
-          boutF(buf,jsbuf,line,"","Periph",ALICNO,0,TDBEG|BRYES);    
+          boutF(buf,jsbuf,line,"","Periph",ALICNO,0,TDBEG|BRYES);                         // bouton periph
           if(*periSwNb!=0){char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-            boutF(buf,jsbuf,swf,"","Switchs",ALICNO,0,TDEND);}
+            boutF(buf,jsbuf,swf,"","Switchs",ALICNO,0,TDEND);}                            // bouton switchs
           strcat(buf,"\n");                                    
 // fin
           formEnd(buf,jsbuf,0,TREND);

@@ -306,7 +306,7 @@ void accueilHtml(EthernetClient* cli)
             Serial.print(" ms=");Serial.println(millis()-begAC);
 }          
 
-void sscb(char* buf,bool val,const char* nomfonct,int nuf,int etat,uint8_t td,uint8_t nb)
+void sscb(char* buf,char* jsbuf,bool val,const char* nomfonct,int nuf,int etat,uint8_t ctl,uint8_t nb)
 {                                                                               // saisie checkbox ; 
                                                                                 // le nom de fonction reçoit 2 caractères
   char nf[LENNOM+1];
@@ -314,38 +314,36 @@ void sscb(char* buf,bool val,const char* nomfonct,int nuf,int etat,uint8_t td,ui
   nf[LENNOM]='\0';
   nf[LENNOM-1]=(char)(nb+PMFNCHAR);
   nf[LENNOM-2]=(char)(nuf+PMFNCHAR);
-  checkboxTableBHtml(buf,(uint8_t*)&val,nf,etat,td,"");
+  checkboxTableBHtml(buf,jsbuf,(uint8_t*)&val,nf,etat,"",0,ctl);
 }
 
-void sscfgtB(char* buf,const char* nom,uint8_t nb,const void* value,int len,uint8_t type)  // type=0 value ok ; type =1 (char)value modulo len*nt ; type =2 (uint16_t)value modulo nb
+void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,const void* value,int len,uint8_t type,uint8_t ctl)   
+                                                                    // nature valeur à saisir / nature de 'value'
+                                                                    // type =0 char*   /    value=char*
+                                                                    // type =1 char*   /    ((char*)value+nb*(len+1))=char*
+                                                                    // type =2 int16_t /    (int16t*)value+nb
+                                                                    // type =3 int8_t  /    value=int8_t*
 {
   int sizbx=len-3;if(sizbx<=0){sizbx=1;}
-  strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nom);concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
-  if(type==0){strcat(buf,(char*)value);strcat(buf,"\" size=\"");concatn(buf,sizbx);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>");}
-  if(type==2){concatn(buf,*((int16_t*)value+nb));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>");}
-  if(type==1){strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatn(buf,len);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");}
-  if(type==3){concatn(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
-}
-/*
-void sscfgt(char* buf,char* nom,uint8_t nb,void* value,int len,uint8_t type)  // type=0 value ok ; type =1 (char)value modulo len*nt ; type =2 (uint16_t)value modulo nb
-{
-  int sizbx=len-3;if(sizbx<=0){sizbx=1;}
-  strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nom);concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
-  if(type==0){strcat(buf,(char*)value);stract(buf,"\" size=\"");concatns(buf,sizbx);strcat(buf,"\" maxlength=\"");concatns(buf,len);strcat(buf,"\" ></td>\n");}
-  if(type==2){concatns(buf,*((int16_t*)value+nb));stract(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
-  if(type==1){strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatns(buf,len);strcat(buf,"\" maxlength=\"");concatns(buf,len);strcat(buf,"\" ></td>\n");}
-  if(type==3){concatns(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
-}*/
+  char nf[LENNOM+2];memcpy(nf,nom,LENNOM);nf[LENNOM]=(char)(nb+PMFNCHAR);nf[LENNOM+1]=0x00;
 
-void subcfgtable(char* buf,const char* titre,int nbl,const char* nom1,const char* value1,int len1,uint8_t type1,const char* nom2,void* value2,int len2,const char* titre2,uint8_t type2)
+  
+  //strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nom);concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
+  if(type==0){alphaTableHtmlB(buf,jsbuf,(char*)value,nf,len,0,ctl);} //strcat(buf,(char*)value);strcat(buf,"\" size=\"");concatn(buf,sizbx);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>");}
+  if(type==1){alphaTableHtmlB(buf,jsbuf,(char*)((char*)value+(nb*(len+1))),nf,len,0,ctl);} //strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatn(buf,len);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");}  
+  if(type==2){numTf(buf,jsbuf,'I',((int16_t*)value+nb),nf,2,1,0,ctl);} //concatn(buf,*((int16_t*)value+nb));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>");}
+  if(type==3){numTf(buf,jsbuf,'s',(int8_t*)value,nf,2,1,0,ctl);} //concatn(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
+}
+
+void subcfgtable(char* buf,char* jsbuf,const char* titre,int nbl,const char* nom1,const char* value1,int len1,uint8_t type1,const char* nom2,void* value2,int len2,const char* titre2,uint8_t type2)
 {   
     strcat(buf,"<table><col width=\"22\"><tr><th></th><th>");strcat(buf,titre);strcat(buf,"</th><th>");strcat(buf,titre2);strcat(buf,"</th></tr>\n");
 
     for(int nb=0;nb<nbl;nb++){
       strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td>");
 
-      sscfgtB(buf,nom1,nb,value1,len1,type1);                      
-      sscfgtB(buf,nom2,nb,value2,len2,type2);
+      sscfgtB(buf,jsbuf,nom1,nb,value1,len1,type1,0);                      
+      sscfgtB(buf,jsbuf,nom2,nb,value2,len2,type2,0);
 
       if(len2==-1){
         int16_t peri=*((int16_t*)value2+nb);
@@ -382,10 +380,10 @@ void cfgServerHtml(EthernetClient* cli)
             for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
             strcat(buf," portserver ");numTf(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
             ethWrite(cli,buf);
-            subcfgtable(buf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
+            subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
             ethWrite(cli,buf);
             strcat(buf," to password ");numTf(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
-            subcfgtable(buf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
+            subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
             
             ethWrite(cli,buf);
             
@@ -866,75 +864,84 @@ void thermoCfgHtml(EthernetClient* cli)
 
 void timersHtml(EthernetClient* cli)
 {
-  int nucb;           
-  //char bufdate[LNOW];ds3231.alphaNow(bufdate);
-  
-            Serial.print(" config timers ");
+    
+Serial.print(" config timers ");delay(100);
 
-            uint16_t lb=0;
-            const uint16_t lb0=LBUF4000;
-            char buf[lb0];buf[0]='\0';
-            char jsbuf[LBUF4000];*jsbuf=0x00;
+  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  uint16_t lb=0,lb0=8000;
+  char buf[lb0];*buf=0x00;
 
-            htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf,jsbuf,NOFORM);
-            usrFormBHtml(buf,1);
-            boutRetourB(buf,"retour",0,0);
-            boutF(buf,"timershtml","","refresh",0,0,1,0);
-            ethWrite(cli,buf,&lb);
+  unsigned long begTPage=millis();     // calcul durée envoi page
+  int nucb;
 
-            detServHtml(cli,buf,nullptr,&lb,lb0,&memDetServ,&libDetServ[0][0]);
+  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
+                                    // à charger au moins une fois par page ; pour les autres formulaires 
+                                    // de la page formBeg() suffit
 
-            strcat(buf,"<table>");
-              strcat(buf,"<tr>");
-                strcat(buf,"<th></th><th>nom</th><th>det</th><th>h_beg</th><th>h_end</th><th>OI det</th><th>e_p_c_</th><th>7_d_ l_m_m_ j_v_s</th><th>dh_beg_cycle</th><th>dh_end_cycle</th>");
-              strcat(buf,"</tr>");
+  pageHeader(buf,jsbuf);            // 1ère ligne page
+  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
+  boutF(buf,jsbuf,"timershtml","","refresh",ALICNO,2,0);
 
-              for(int nt=0;nt<NBTIMERS;nt++){
+  ethWrite(cli,buf,&lb);            // tfr -> navigateur
 
-                    strcat(buf,"<tr>");
-                    strcat(buf,"<form method=\"GET \">");
+  detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);
+
+  tableBeg(buf,jsbuf,0);
+  affText(buf,jsbuf,"|nom|det|h_beg|h_end|OI det|e_p_c_|7_d_ l_m_m_ j_v_s|dh_beg_cycle|dh_end_cycle",0,TRBE|TDBE);
+delay(10);Serial.println(jsbuf);delay(100);
+
+  for(uint8_t nt=0;nt<NBTIMERS;nt++){
+    formIntro(buf,jsbuf,0,TRBEG|TDBEG);
+                      /*strcat(buf,"<form method=\"GET \">");
                       usrFormBHtml(buf,1);
-                      strcat(buf,"<td>");concatn(buf,nt+1);strcat(buf,"</td>");
+                      strcat(buf,"<td>");*/
+    affNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
                      
-                      sscfgtB(buf,"tim_name_",nt,timersN[nt].nom,LENTIMNAM,0);
-                      sscfgtB(buf,"tim_det__",nt,&timersN[nt].detec,2,3);                                            
-                      sscfgtB(buf,"tim_hdf_d",nt,timersN[nt].hdeb,6,0);                                            
-                      sscfgtB(buf,"tim_hdf_f",nt,timersN[nt].hfin,6,0);                   
+    sscfgtB(buf,jsbuf,"tim_name_",nt,timersN[nt].nom,LENTIMNAM,0,TDBE);
+    sscfgtB(buf,jsbuf,"tim_det__",nt,&timersN[nt].detec,2,3,TDBE);                                            
+    sscfgtB(buf,jsbuf,"tim_hdf_d",nt,timersN[nt].hdeb,6,0,TDBE);                                            
+    sscfgtB(buf,jsbuf,"tim_hdf_f",nt,timersN[nt].hfin,6,0,TDBE);                   
                     
-                      char oi[]="OI";   //,md=memDetServ>>timersN[nt].detec;
-                      strcat(buf,"<td>_");
-                      concat1a(buf,oi[timersN[nt].curstate]);strcat(buf,"__");
-                      concatn(buf,(memDetServ>>timersN[nt].detec)&0x01);                      
-                      strcat(buf,"</td><td>");
-                      
-                      nucb=0;sscb(buf,timersN[nt].enable,"tim_chkb__",nucb,NO_STATE,0,nt);
-                      nucb++;sscb(buf,timersN[nt].perm,"tim_chkb__",nucb,NO_STATE,0,nt);
-                      nucb++;sscb(buf,timersN[nt].cyclic,"tim_chkb__",nucb,NO_STATE,0,nt);   
-ethWrite(cli,buf,&lb);                     
-                      strcat(buf,"</td><td>");
-                      for(int nj=7;nj>=0;nj--){
-                        bool vnj; 
-                        vnj=(timersN[nt].dw>>nj)&0x01;
-                        nucb++;sscb(buf,vnj,"tim_chkb__",nucb,NO_STATE,0,nt);
-                      }
-                      strcat(buf,"</td>");
+    char oo[7];memset(oo,'_',6);oo[6]=0x00;
+    char oi[]="OI";  
+    
+    oo[1]=oi[timersN[nt].curstate];
+    oo[4]=(PMFNCVAL)+((memDetServ>>timersN[nt].detec)&0x01);                     
+    affText(buf,jsbuf,oo,0,TDBE);
+    nucb=0;sscb(buf,jsbuf,timersN[nt].enable,"tim_chkb__",nucb,NO_STATE,TDBEG,nt);affSpace(buf,jsbuf);
+    nucb++;sscb(buf,jsbuf,timersN[nt].perm,"tim_chkb__",nucb,NO_STATE,0,nt);affSpace(buf,jsbuf);
+    nucb++;sscb(buf,jsbuf,timersN[nt].cyclic,"tim_chkb__",nucb,NO_STATE,TDEND,nt);   
+
+    ethWrite(cli,buf,&lb);
+
+    uint8_t lctl=TDBEG;
+    for(int nj=7;nj>=0;nj--){
+      bool vnj; 
+      vnj=(timersN[nt].dw>>nj)&0x01;
+      nucb++;sscb(buf,jsbuf,vnj,"tim_chkb__",nucb,NO_STATE,lctl,nt);
+      lctl=0;if(nj==1){lctl=TDEND;}
+      if(nj>=1){affSpace(buf,jsbuf);}
+    }
                     
-                      sscfgtB(buf,"tim_hdf_b",nt,&timersN[nt].dhdebcycle,14,0);
-                      sscfgtB(buf,"tim_hdf_e",nt,&timersN[nt].dhfincycle,14,0); 
-                      strcat(buf,"<td> <input type=\"submit\" value=\"MàJ\"><br></td>");
-                    //strcat(buf,"<td>");concat1aH(buf,timersN[nt].dw);strcat(buf," ");concat1aH(buf,maskbit[1+bufdate[14]*2]);                    
-                    //strcat(buf,"</td>");
- 
-                    strcat(buf,"</form>");
-                    strcat(buf,"</tr>\n");
+    sscfgtB(buf,jsbuf,"tim_hdf_b",nt,&timersN[nt].dhdebcycle,14,0,TDBE);
+    sscfgtB(buf,jsbuf,"tim_hdf_e",nt,&timersN[nt].dhfincycle,14,0,TDBE); 
+    boutMaj(buf,jsbuf,"MàJ",TDBE);
 
-                    ethWrite(cli,buf,&lb);
-                  }
+    formEnd(buf,jsbuf,0,TDEND|TREND);
+    strcat(buf,"\n");
 
-        strcat(buf,"</table>");
-        strcat(buf,"</body></html>");
-        ethWrite(cli,buf,&lb);
+    ethWrite(cli,buf,&lb);
+  }
+
+  tableEnd(buf,jsbuf,0);
+  htmlEnd(buf,jsbuf);
+  
+  ethWrite(cli,buf,&lb);
+
+  Serial.println();Serial.println(jsbuf);
+  Serial.print("len buf=");Serial.print(lb);Serial.print("  len jsbuf=");Serial.println(strlen(jsbuf));
+  Serial.print("  ms=");Serial.println(millis()-begTPage);
 }
 
 
