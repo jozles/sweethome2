@@ -17,10 +17,15 @@ void htmlEnd(char* buf,char* jsbuf);
 void pageHeader(char* buf,char* jsbuf);
 void pageHeader(char* buf,bool form);
 void pageHeader(char* buf,char* jsbuf,bool form);
-void formBeg(char* buf,char*jsbuf,const char* title);
-void formBeg(char* buf,char*jsbuf);
+/*void formBeg(char* buf,char*jsbuf,const char* title);
+void formBeg(char* buf,char*jsbuf);*/
 void formIntro(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t pol,uint8_t ctl);
+void formIntro(char* buf,char* jsbuf,const char* locfonc,const char* title,uint8_t pol,uint8_t ctl);
+void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,uint8_t pol,uint8_t ctl);
+void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char* title,uint8_t pol,uint8_t ctl);
+/*void usrFormBHtml(char* buf,bool hid);
+void usrFormBHtml(char* buf,char* jsbuf,bool hid);*/
 void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void formEnd(char* buf,char* jsbuf,bool title,uint8_t pol,uint8_t ctl);
 void cliPrintMac(EthernetClient* cli, byte* mac);
@@ -31,17 +36,14 @@ void selectTableBHtml(char* buf,char* val,char* ft,int nbre,int len,uint8_t sel,
 void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl);
 void selectTableBHtml(char* buf,char* jsbuf,char* val,char* name,char* ft,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl);
 void optSelHtml(char* jsbuf,char* val,char* name);
-void usrPeriCurB(char* buf,const char* fnct,uint8_t ninp,int len,uint8_t td);
-void usrPeriCurB(char* buf,char* jsbuf,const char* fnct,uint8_t ninp,int len,uint8_t td);
+/*void usrPeriCurB(char* buf,const char* fnct,uint8_t ninp,int len,uint8_t td);
+void usrPeriCurB(char* buf,char* jsbuf,const char* fnct,uint8_t ninp,int len,uint8_t td);*/
 void subDSnB(char* buf,const char* fnc,uint32_t val,uint8_t num,char* lib);
 void subDSnB(char* buf,char* jsbuf,const char* fnc,uint32_t val,uint8_t num,char* lib);
 #define NO_STATE 9         // etat
 void checkboxTableBHtml(char* buf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl);
-void usrFormBHtml(char* buf,bool hid);
-void usrFormBHtml(char* buf,char* jsbuf,bool hid);
-void usrFormInitBHtml(char* buf,const char* nomfonct);
 
 void fontBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void fontEnd(char* buf,char* jsbuf,uint8_t ctl);

@@ -325,7 +325,7 @@ void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,const void* value,
                                                                     // type =3 int8_t  /    value=int8_t*
 {
   int sizbx=len-3;if(sizbx<=0){sizbx=1;}
-  char nf[LENNOM+2];memcpy(nf,nom,LENNOM);nf[LENNOM]=(char)(nb+PMFNCHAR);nf[LENNOM+1]=0x00;
+  char nf[LENNOM+1];memcpy(nf,nom,LENNOM-1);nf[LENNOM-1]=(char)(nb+PMFNCHAR);nf[LENNOM]=0x00;
 
   
   //strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nom);concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
@@ -364,7 +364,8 @@ void cfgServerHtml(EthernetClient* cli)
 
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf,jsbuf);
-            usrFormBHtml(buf,1);
+            formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+            //usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             ethWrite(cli,buf);
             
@@ -475,7 +476,8 @@ void cfgRemoteHtml(EthernetClient* cli)
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf,jsbuf);
-            usrFormBHtml(buf,1);
+            formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+            //usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             ethWrite(cli,buf);
             
@@ -514,7 +516,8 @@ void cfgRemoteHtml(EthernetClient* cli)
               for(int nb=0;nb<MAXREMLI;nb++){
                 
                 strcat(buf,"<tr><form method=\"get\" >");
-                usrFormBHtml(buf,1);
+                formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+                //usrFormBHtml(buf,1);
                 strcat(buf,"<tr><td>");concatn(buf,nb+1);strcat(buf,"</td>");                  // n° ligne de table
                 
                 memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);               // n° remote
@@ -570,7 +573,8 @@ void remoteHtml(EthernetClient* cli)
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf,jsbuf);
-            usrFormBHtml(buf,1);
+            formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+            //usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             ethWrite(cli,buf);
             
@@ -755,8 +759,9 @@ void thermoShowHtml(EthernetClient* cli)
 
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf,jsbuf);
-            usrFormBHtml(buf,1);
-            boutRetourB(buf,"retour",0,0);
+            formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+            //usrFormBHtml(buf,1);
+            boutRetourB(buf,jsbuf,"retour",0);
             strcat(buf,"<br>");
             ethWrite(cli,buf);
  
@@ -823,7 +828,8 @@ void thermoCfgHtml(EthernetClient* cli)
  
             htmlIntroB(buf,nomserver,cli);
             pageHeader(buf,jsbuf,NOFORM);
-            usrFormBHtml(buf,1);
+            formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+            //usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             boutF(buf,"thermoscfg","","refresh",0,0,1,0);
             ethWrite(cli,buf);          
@@ -836,7 +842,8 @@ void thermoCfgHtml(EthernetClient* cli)
                 ni++;
                 
                 strcat(buf,"<tr><form method=\"get\" >");
-                usrFormBHtml(buf,1);
+                formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+                //usrFormBHtml(buf,1);
                 strcat(buf,"<td>");concatn(buf,nb+1);strcat(buf,"</td>");                                       // n° thermo
                 
                 strcat(buf,"<td><input type=\"text\" name=\"thparamsn");concat1a(buf,(char)(nb+PMFNCHAR));      // nom
@@ -889,7 +896,6 @@ Serial.print(" config timers ");delay(100);
 
   tableBeg(buf,jsbuf,0);
   affText(buf,jsbuf,"|nom|det|h_beg|h_end|OI det|e_p_c_|7_d_ l_m_m_ j_v_s|dh_beg_cycle|dh_end_cycle",0,TRBE|TDBE);
-delay(10);Serial.println(jsbuf);delay(100);
 
   for(uint8_t nt=0;nt<NBTIMERS;nt++){
     formIntro(buf,jsbuf,0,TRBEG|TDBEG);
@@ -939,8 +945,8 @@ delay(10);Serial.println(jsbuf);delay(100);
   
   ethWrite(cli,buf,&lb);
 
-  Serial.println();Serial.println(jsbuf);
-  Serial.print("len buf=");Serial.print(lb);Serial.print("  len jsbuf=");Serial.println(strlen(jsbuf));
+  Serial.print("len buf=");Serial.print(lb);
+  Serial.print("  len jsbuf=");Serial.print(strlen(jsbuf));
   Serial.print("  ms=");Serial.println(millis()-begTPage);
 }
 

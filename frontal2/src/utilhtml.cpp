@@ -62,7 +62,7 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl) //,ch
     *jspt=*fonc;jspt++;
     
     if(*(fonc+1)==*JSCTL){
-      *jspt=ctl|CTLCH;
+      *jspt=(ctl&~CONCAT)|CTLCH;
       jspt++;
       if(pol!=0){
         *jspt|=CTLPO;jspt++;
@@ -463,6 +463,115 @@ void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,i
   fnHtmlEnd(buf,pol,ctl);
 }
 
+/* 
+
+Les formulaires nécessitent :
+
+1) une fonction de début : formIntro(buf,jsbuf,fonction,pol,ctl) à placer avant toute saisie et avant le bouton submit (boutMaj())
+    
+    génère 2 arguments lors du submit : 
+
+    user_ref_n=ttttt...         identifie l'utilisateur 'n' et donne la milli de la génération de la page 'tttt...' 
+    xxxxxxxx_x=A                fonction d'init spécifique au formulaire ("constructeur") ; A = PMFNCHAR+periCur
+                                si aucune fonction d'init n'est nécessaire, peri_cur__ est utilisée par défaut
+
+2) une fonction de fin pour délimiter le formulaire : formEnd()
+
+3) un submit : boutMaj()
+
+Pour changer de page : 
+
+    une fonction qui génère 2 arguments (par exemple boutF(), boutRetour())
+
+    user_ref_n=ttttt...         id. ci-dessus 
+    xxxxxxxx__=[yyyyy...]       xxx...xx__ la fonction qui envoie la page demandée ; yyy... un paramètre éventuel
+
+*/
+
+void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char* title,uint8_t pol,uint8_t ctl)       // les valeurs à recevoir systématiquement du navigateur
+{
+    if(buf!=nullptr){
+          fnHtmlIntro(buf,pol,ctl);
+          strcat(buf,"<form method=\"GET \">");
+          if(title!=nullptr){
+            strcat(buf,"<fieldset><legend>");strcat(buf,title);strcat(buf," :</legend>\n");
+          }
+          strcat(buf,"<p hidden><input type=\"text\" name=\"user_ref_");
+          concat1a(buf,(char)(usernum+PMFNCHAR));
+          strcat(buf,"\" value=\"");
+          concatn(buf,usrtime[usernum]);
+          strcat(buf,"\">");
+          if(locfonc==nullptr){
+            strcat(buf,"<input type=\"text\" name=\"peri_cur__\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
+          }
+          if(locfonc!=nullptr){
+            char fonc[LENNOM+1];memcpy(fonc,locfonc,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
+            strcat(buf,"<input type=\"text\" name=\"");strcat(buf,fonc);strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
+          }
+          strcat(buf,"</p>\n");
+    }
+    if(jsbuf!=nullptr){
+          fnJsIntro(jsbuf,JSFBH,pol,ctl);
+          char p=periCur+PMFNCVAL;
+          jscat(jsbuf,&p);
+    }
+}
+
+void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,uint8_t pol,uint8_t ctl)
+{
+  formIntro(buf,jsbuf,locfonc,ninp,nullptr,pol,ctl);
+}
+
+void formIntro(char* buf,char* jsbuf,const char* locfonc,const char* title,uint8_t pol,uint8_t ctl)
+{
+  formIntro(buf,jsbuf,locfonc,0,title,pol,ctl);
+}
+
+void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t pol,uint8_t ctl)
+{
+  formIntro(buf,jsbuf,locfonc,0,nullptr,pol,ctl);
+}
+
+void formIntro(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+{
+  formIntro(buf,jsbuf,nullptr,0,nullptr,pol,ctl);
+}
+/*
+void formBeg(char* buf,char*jsbuf,const char* title)
+{
+  if(buf!=nullptr){
+    fnHtmlIntro(buf,0,0);
+    strcat(buf,"<form>\n");
+    if(title!=nullptr){strcat(buf,"<fieldset><legend>");strcat(buf,title);strcat(buf," :</legend>\n");}
+  }
+  fnJsIntro(jsbuf,JSFB,0,0);
+  if(title!=nullptr){jscat(jsbuf,title);}
+}
+
+void formBeg(char* buf,char*jsbuf)
+{
+  formBeg(buf,jsbuf,nullptr);
+}
+*/
+void formEnd(char* buf,char* jsbuf,bool title,uint8_t pol,uint8_t ctl)
+{
+    if(buf!=nullptr){
+          fnHtmlEnd(buf,pol,ctl);
+          if(title){strcat(buf,"</fieldset>");}
+          strcat(buf,"</form>\n");
+    }
+    if(jsbuf!=nullptr){
+          if(title){fnJsIntro(jsbuf,JSFFS,pol,ctl&(~TDBEG)&(~TRBEG));}
+          fnJsIntro(jsbuf,JSFE,pol,ctl&(~TDBEG)&(~TRBEG));
+    }
+
+}
+
+void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+{
+  formEnd(buf,jsbuf,0,pol,ctl);
+}
+/*
 void usrFormBHtml(char* buf,bool hid)
 {
   usrFormBHtml(buf,nullptr,hid);
@@ -479,16 +588,8 @@ void usrFormBHtml(char* buf,char* jsbuf,bool hid)                     // pour me
   strcat(buf,"\" value=\"");concatn(buf,jsbuf,usrtime[usernum]);strcat(buf,"\">");  
   if(hid){strcat(buf,"</p>");}
 }
-
-void usrFormInitBHtml(char* buf,const char* nomfonct)            // pour mettre en tête des formulaires ("<p hidden> .... </p>")
-{                                                          // ajoute une fonction invisible sans valeur associée pour faire des opérations préalables quand le bouton submit
-                                                           // est appuyé (genre effacement de cb) 
-    strcat(buf,"<p hidden>");
-    usrFormBHtml(buf,0);
-    strcat(buf,"<input type=\"text\" name=\"");strcat(buf,nomfonct);strcat(buf,"\">");
-    strcat(buf,"</p>");
-}
-
+*/
+/*
 void usrPeriCurB(char* buf,const char* fnct,uint8_t ninp,int len,uint8_t td)
 {
   usrPeriCurB(buf,nullptr,fnct,ninp,len,td);
@@ -507,7 +608,7 @@ void usrPeriCurB(char* buf,char* jsbuf,const char* fnct,uint8_t ninp,int len,uin
     numTf(buf,jsbuf,'d',&periCur,fonc,len,0,ctl); // pericur n'est pas modifiable (fixation pericur, periload, cberase)
 
     strcat(buf,"</p>");fnJsIntro(jsbuf,JSHIDE,0,0);
-}
+}*/
 
 void selectTableBHtml(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl)
 {            // val=table des libellés ; ft=fonction ; nbre ds table ; len step table ; sel=n°actuel ; nuv=n°param ; n°inp
@@ -863,71 +964,6 @@ void pageHeader(char* buf,char* jsbuf,bool form)
   //jscat(jsbuf,dm);
   //jscat(jsbuf,"\n");
   //strcat(buf,"<br>\n");
-}
-
-void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t pol,uint8_t ctl)       // les valeurs à recevoir systématiquement du navigateur
-{
-    if(buf!=nullptr){
-          fnHtmlIntro(buf,pol,ctl);
-          strcat(buf,"<form method=\"GET \">");
-          strcat(buf,"<p hidden><input type=\"text\" name=\"user_ref_");
-          concat1a(buf,(char)(usernum+PMFNCHAR));
-          strcat(buf,"\" value=\"");
-          concatn(buf,usrtime[usernum]);
-          strcat(buf,"\">");
-          strcat(buf,"<input type=\"text\" name=\"peri_cur___\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
-          //char fonc[]="peri_cur__\0\0";concat1a(fonc,(char)(PMFNCHAR));
-          //numTf(buf,'i',&periCur,fonc,2,0,0);
-          if(locfonc!=nullptr){
-            strcat(buf,"<input type=\"text\" name=\"");strcat(buf,locfonc);strcat(buf,"\" value=\".\">");     // fonction pour initialiser les retours de la page (effacement cb par ex)
-          }
-          strcat(buf,"</p>\n");
-    }
-    if(jsbuf!=nullptr){
-          fnJsIntro(jsbuf,JSFBH,pol,ctl);
-          char p=periCur+PMFNCVAL;
-          jscat(jsbuf,&p);
-    }
-}
-
-void formIntro(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
-{
-  formIntro(buf,jsbuf,nullptr,pol,ctl);
-}
-
-void formBeg(char* buf,char*jsbuf,const char* title)
-{
-  if(buf!=nullptr){
-    fnHtmlIntro(buf,0,0);
-    strcat(buf,"<form>\n");
-    if(title!=nullptr){strcat(buf,"<fieldset><legend>");strcat(buf,title);strcat(buf," :</legend>\n");}
-  }
-  fnJsIntro(jsbuf,JSFB,0,0);
-  if(title!=nullptr){jscat(jsbuf,title);}
-}
-
-void formBeg(char* buf,char*jsbuf)
-{
-  formBeg(buf,jsbuf,nullptr);
-}
-
-void formEnd(char* buf,char* jsbuf,bool title,uint8_t pol,uint8_t ctl)
-{
-    if(buf!=nullptr){
-          fnHtmlEnd(buf,pol,ctl);
-          if(title){strcat(buf,"</fieldset>");}
-          strcat(buf,"</form>\n");
-    }
-    if(jsbuf!=nullptr){
-          if(title){fnJsIntro(jsbuf,JSFFS,pol,ctl&(~TDBEG)&(~TRBEG));}
-          fnJsIntro(jsbuf,JSFE,pol,ctl&(~TDBEG)&(~TRBEG));
-    }
-
-}
-
-void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
-{
-  formEnd(buf,jsbuf,0,pol,ctl);
 }
 
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl)

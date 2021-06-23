@@ -1576,7 +1576,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        if(nb>=16){nb-=16;}
                        alphaTfr(&libDetServ[nb][0],LENLIBDETSERV,valf,nvalf[i+1]-nvalf[i]);
                        }break;                          
-              case 68: periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                          // bouton periph periline__ (periLine)
+              case 68: periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                          // bouton periph periline__ 
                        periLoad(periCur);                                                            
                        periLineHtml(cli,periCur);
                        break;                                                                                                    

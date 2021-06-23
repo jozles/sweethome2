@@ -215,7 +215,8 @@ void SwCtlTableHtml(EthernetClient* cli)
 
 /* boutons */
     boutRetourB(buf,jsbuf,"retour",TDBE);strcat(buf," ");
-    formBeg(buf,jsbuf);
+    formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+    //formBeg(buf,jsbuf);
     boutMaj(buf,jsbuf," MàJ ",0);
     //strcat(buf," <input type=\"submit\" value=\" MàJ \"> ");
     char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
@@ -424,11 +425,12 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
   char namfonct[LENNOM+1];memcpy(namfonct,nfonc,LENNOM);namfonct[LENNOM]='\0';
   char colnb=PMFNCHAR;
 
-  formBeg(buf,jsbuf,title);
+  //formBeg(buf,jsbuf,title);
   //strcat(buf,"<form><fieldset><legend>");strcat(buf,title);strcat(buf," :</legend>\n");
   //jscat(jsbuf,JSFB);strcat(jsbuf,title);strcat(jsbuf,";");
   char inifonc[LENNOM];memcpy(inifonc,nfonc,4);memcpy(inifonc+4,"init__",LENNOM-4);
-  usrPeriCurB(buf,inifonc,nbfonc,2,0);
+  //usrPeriCurB(buf,inifonc,nbfonc,2,0);
+  formIntro(buf,jsbuf,inifonc,0,title,2,0);
   
   tableBeg(buf,jsbuf,0);
   //strcat(buf,"<th></th><th>e.l. p.e<br>n.v. r.s</th><th> op </th><th>rdet</th><th>det</th></tr>\n");
@@ -488,7 +490,6 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
 
 void showDates(char* buf,char* jsbuf)
 {
-          Serial.println("sd1");
           char colourbr[6];
           #define LSTRD 14
           char strDate[LSTRD];
@@ -508,7 +509,6 @@ void showDates(char* buf,char* jsbuf)
           affText(buf,jsbuf,strDate,0,TDEND);
           setColourB(buf,jsbuf,"black");                      
           setColourE(buf,jsbuf);
-          Serial.println("sd2");delay(1);
 }
 
 void periLineHtml(EthernetClient* cli,int i)
@@ -670,14 +670,14 @@ void periLineHtml(EthernetClient* cli,int i)
                 htmlEnd(buf,jsbuf);
                 ethWrite(cli,buf,&lb);
 
-                Serial.println();Serial.println(jsbuf);
-                Serial.print("len buf=");Serial.print(lb);Serial.print("  len jsbuf=");Serial.println(strlen(jsbuf));
+                Serial.print("  len buf=");Serial.print(lb);
+                Serial.print("  len jsbuf=");Serial.print(strlen(jsbuf));
                 Serial.print("  ms=");Serial.println(millis()-begTPage);
 }
 
 void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate,uint16_t* lb)
 {
-  Serial.print("showLine ");Serial.println(numline);
+  //Serial.print("showLine ");Serial.println(numline);
   float vv=0;
 //#define LBSHOWLINE 1000
       periInitVar();periLoad(numline);periCur=numline;
