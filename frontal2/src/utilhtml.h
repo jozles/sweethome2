@@ -12,7 +12,8 @@ void fnHtmlIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl);
 void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl);
 void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl);
 
-void pageHeader(char* buf);
+//void pageHeader(char* buf);
+void htmlEnd(char* buf,char* jsbuf);
 void pageHeader(char* buf,char* jsbuf);
 void pageHeader(char* buf,bool form);
 void pageHeader(char* buf,char* jsbuf,bool form);
@@ -21,6 +22,7 @@ void formBeg(char* buf,char*jsbuf);
 void formIntro(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t pol,uint8_t ctl);
 void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
+void formEnd(char* buf,char* jsbuf,bool title,uint8_t pol,uint8_t ctl);
 void cliPrintMac(EthernetClient* cli, byte* mac);
 void trailingSpaces(char* data,uint16_t len);
 void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet);

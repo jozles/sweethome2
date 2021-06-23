@@ -339,47 +339,56 @@ void SwCtlTableHtml(EthernetClient* cli)
 
 void periTableHtml(EthernetClient* cli)
 {
+  char jsbuf[12000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF2000;
-  char buf[lb0];*buf='\0';
-  char jsbuf[16000];*jsbuf='\0';
+  char buf[lb0];*buf=0x00;
 
   int i;
-  int savePeriCur=periCur;   // save periCur et restore à la fin de periTable
+  unsigned long begTPage=millis();     // calcul durée envoi page
 
-  unsigned long begPT=millis();
+  int savePeriCur=periCur;
 
-Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.println();
+  Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.println();
 
-          htmlIntroB(buf,nomserver,cli);
-          pageHeader(buf,jsbuf,NOFORM);
-          usrFormBHtml(buf,HID);
-          boutRetourB(buf,"refresh",0,0);
+  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+
+  //usrFormBHtml(buf,HID);
+  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
+                                    // à charger au moins une fois par page ; pour les autres formulaires 
+                                    // de la page formBeg() suffit
+
+  pageHeader(buf,jsbuf);            // 1ère ligne page
+  boutRetourB(buf,jsbuf,"refresh",0);  
+  
+  ethWrite(cli,buf,&lb);            // tfr -> navigateur
+
+
           fontBeg(buf,jsbuf,2,0);
-          numTf(buf,'d',&perrefr,"per_refr__",4,0,0);
-
-          ethWrite(cli,buf,&lb);
+          numTf(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0);
           
-          strcat(buf,"(");concatn(buf,fhsize);strcat(buf,") ");
-          numTf(buf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0);
-          alphaTableHtmlB(buf,histoDh,"hist_sh_D_",LDATEA-2);
+          affText(buf,jsbuf,"(",0,0);affNum(buf,jsbuf,'l',&fhsize,0,0,0);affText(buf,jsbuf,")",0,0);
+          //strcat(buf,"(");concatn(buf,fhsize);strcat(buf,") ");
           
-          strcat(buf,"<input type=\"submit\" value=\"ok\"> ");
-          boutF(buf,"dump_his__","","histo",0,0,0,0);strcat(buf,"<br>\n");      
+          numTf(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0);
+          alphaTableHtmlB(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);    
+          boutMaj(buf,jsbuf,"ok",0);
+      
+          boutF(buf,jsbuf,"dump_his__","","histo",ALICNO,0,BRYES);
 
           //cli->print("<br>");
-          boutF(buf,"deco______","","_  deco  _",0,0,0,0);
-          boutF(buf,"deco_____B","","_ reboot _",0,0,0,0);          
-          boutF(buf,"cfgserv___","","_ config _",0,0,0,0);
-          boutF(buf,"remote____","","remote_cfg",0,0,0,0);
-          boutF(buf,"remotehtml","","remotehtml",0,0,0,0);
-          boutF(buf,"thermoscfg","","thermo_cfg",0,0,0,0);
-          boutF(buf,"thermoshow","","thermoshow",0,0,0,0);
-          boutF(buf,"timershtml","","timershtml",0,0,0,0);
+          boutF(buf,jsbuf,"deco______","","_  deco  _",ALICNO,0,0);
+          boutF(buf,jsbuf,"deco_____B","","_ reboot _",ALICNO,0,0);          
+          boutF(buf,jsbuf,"cfgserv___","","_ config _",ALICNO,0,0);
+          boutF(buf,jsbuf,"remote____","","remote_cfg",ALICNO,0,0);
+          boutF(buf,jsbuf,"remotehtml","","remotehtml",ALICNO,0,0);
+          boutF(buf,jsbuf,"thermoscfg","","thermo_cfg",ALICNO,0,0);
+          boutF(buf,jsbuf,"thermoshow","","thermoshow",ALICNO,0,0);
+          boutF(buf,jsbuf,"timershtml","","timershtml",ALICNO,0,0);
           boutF(buf,"dsrvhtml__","","detsrvhtml",0,0,0,0);                 
         
-          strcat(buf,"</form>\n");      // le formulaire NE DOIT PAS intégrer detServHtml qui a son propre usrFormHtml pour gérer les mots de passe
-                                        // sinon la fonction user_ref__ serait 2 fois dans la liste et la 2nde (fausse) enverrait à l'accueil        
-          
+          formEnd(buf,jsbuf,0,0);
+          strcat(buf,"\n");
+
           detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
           
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
@@ -397,12 +406,15 @@ Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.print
             showLine(buf,jsbuf,cli,i,pkdate,&lb);
             trigwd();
           }
-          strcat(buf,"</table></body></html>");
+          tableEnd(buf,jsbuf,0);
+          htmlEnd(buf,jsbuf);
           ethWrite(cli,buf,&lb);
-          periCur=savePeriCur;if(periCur!=0){periLoad(periCur);}
           
+          periCur=savePeriCur;if(periCur>0){periLoad(periCur);}
+
           Serial.print("len buf=");Serial.print(lb);Serial.print("  len jsbuf=");Serial.print(strlen(jsbuf));
-          Serial.print("  PT ms=");Serial.println(millis()-begPT); 
+          Serial.print("  ms=");Serial.println(millis()-begTPage); 
+          delay(20);
 }
 
 void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const char* title,const char* nfonc,uint8_t nbLi,const char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,char* rulOptNam,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo,uint16_t* lb)
@@ -466,7 +478,10 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
   }
 
   tableEnd(buf,jsbuf,BRYES);
-  strcat(buf,"<input type=\"submit\" value=\"MàJ\"></fieldset></form>\n"); 
+  boutMaj(buf,jsbuf,"MàJ",0);
+  formEnd(buf,jsbuf,TITLE,0,0);
+  strcat(buf,"\n");
+  //strcat(buf,"<input type=\"submit\" value=\"MàJ\"></fieldset></form>\n"); 
 
   ethWrite(cli,buf,lb);
 }
@@ -478,10 +493,10 @@ void periLineHtml(EthernetClient* cli,int i)
 
   char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF2000;
-  char buf[lb0];buf[0]='\0';
+  char buf[lb0];*buf=0x00;
 
   int j;
-  unsigned long begPL=millis();     // calcul durée envoi page
+  unsigned long begTPage=millis();     // calcul durée envoi page
 
   Serial.print("periLineHtml - periCur=");Serial.print(periCur);Serial.print("/");Serial.print(i);
 
@@ -625,13 +640,13 @@ void periLineHtml(EthernetClient* cli,int i)
                   subCbdet(buf,jsbuf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,optNam0,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo,&lb);
                 }
                 
-                strcat(buf,"</body></html>");
+                htmlEnd(buf,jsbuf);
                 ethWrite(cli,buf,&lb);
 
                 Serial.print(" ");Serial.println(jsbuf);ljs=strlen(jsbuf);
                 Serial.print("len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.println(ljs);
 
-                Serial.print(" ms=");Serial.println(millis()-begPL);
+                Serial.print(" ms=");Serial.println(millis()-begTPage);
 }
 
 
@@ -647,7 +662,6 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
 
 /* line form header */
           formIntro(buf,jsbuf,0,TRBEG);
-          //fontBeg(buf,jsbuf,2,0);
 /* pericur - nom - th - volts */
           char* dm;dm=jsbuf+strlen(jsbuf);
           uint8_t lctl=STRING|TRBEG|TDBE;
@@ -686,19 +700,16 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
                       affText(buf,jsbuf,tt,3,0,lctl);
           }
           if(*periSwNb==0){affText(buf,jsbuf," ",0,STRING|TDEND);}          
-          //fontBeg(buf,jsbuf,2,0);
-          //lctl=TDBEG|STRING;
           for(uint8_t k=0;k<*periDetNb;k++){
             if(k<*periDetNb-1){lctl=STRING|BRYES;}
             else lctl=STRING|TDEND;
             affText(buf,jsbuf,&oi[(*periDetVal>>(k*2))&DETBITLH_VB],1,0,lctl);
           }
           if(*periDetNb==0){affText(buf,jsbuf," ",0,STRING|TDEND);}
-          //fontEnd(buf,jsbuf,TDEND);
 // analog 
           vv=(*periAnal+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
           vv=(*periAnalLow+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
-          vv=(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING);
+          vv=(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING|TDEND);
           strcat(buf,"\n");
 // mac                    
           lctl=TDBEG;
@@ -708,27 +719,24 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             m[k*3+1]=chexa[periMacr[k]%16];
             if(k<5){m[k*3+2]='.';}
           }
-          affText(buf,jsbuf,m,0,TDBEG|BRYES);
+          affText(buf,jsbuf,m,0,STRING|BRYES);
 
           if(*periProg!=0 || *periProtocol=='U'){
-            affText(buf,jsbuf,"port=",0,0);affNum(buf,jsbuf,'d',periPort,0,0,BRYES);}
-          else{affText(buf,jsbuf,"",0,BRYES);}
-          fontBeg(buf,jsbuf,2,0);
+            affText(buf,jsbuf,"port=",0,STRING|CONCAT);affNum(buf,jsbuf,'d',periPort,0,0,STRING|BRYES);}
+          else{affText(buf,jsbuf,"",0,STRING|BRYES);}
+// IP addr
           char w[16];memset(w,0x00,16);
           uint8_t s=0;
           for(uint8_t j=0;j<4;j++){
             s+=sprintf(w+s,"%hu",(uint8_t)periIpAddr[j]);
             if(j<3){w[s]='.';s++;}
           }
-          affText(buf,jsbuf,w,0,0);
-            //char k=periIpAddr[j];affNum(buf,jsbuf,'s',&k,0,0,0);
-            //if(j<3){affText(buf,jsbuf,".",1,0,0);}}
-          fontEnd(buf,jsbuf,TDEND);
+          affText(buf,jsbuf,w,0,STRING|TDEND);
+// version protocol
           char vers[LENVERSION+1];memcpy(vers,periVers,LENVERSION);vers[LENVERSION]='\0';
-          affText(buf,jsbuf,vers,0,TDBEG);affSpace(buf,jsbuf);
+          affText(buf,jsbuf,vers,0,STRING|CONCAT);affText(buf,jsbuf," ",0,STRING|CONCAT);
           long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}
-          char* a=protocStr+LENPROSTR*p;affText(buf,jsbuf,a,0,BRYES);                
-if(*periDetNb!=0){Serial.print("\n====================");Serial.print(dm);}
+          char* a=protocStr+LENPROSTR*p;affText(buf,jsbuf,a,0,STRING|CONCAT|BRYES);                
 // date_heures
           char colourbr[6];
           long late;
@@ -750,10 +758,12 @@ if(*periDetNb!=0){Serial.print("\n====================");Serial.print(dm);}
           char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';                      
           boutF(buf,jsbuf,line,"","Periph",ALICNO,0,TDBEG|BRYES);    
           if(*periSwNb!=0){char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-            boutF(buf,jsbuf,swf,"","Switchs",ALICNO,0,TDEND);}                                    
+            boutF(buf,jsbuf,swf,"","Switchs",ALICNO,0,TDEND);}
+          strcat(buf,"\n");                                    
 // fin
           formEnd(buf,jsbuf,0,TREND);
           strcat(buf,"\n");
 
           ethWrite(cli,buf,lb);         //Serial.print("lb=");Serial.println(*lb);
+//if(*periDetNb!=0){Serial.print("\n====================");Serial.println(dm);}          
 }

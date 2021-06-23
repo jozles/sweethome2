@@ -275,7 +275,7 @@ void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t c
 //                le dernier rien : TDEND est déjà dans le ctl de la commande (pour le format html ctl==STRING indique </td> à la fin)
 {
   uint8_t ctlb=ctl&~STRING;if((ctl&STRING)!=0){ctlb&=~BRYES;if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
-  if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0))){fnJsIntro(jsbuf,JSST,pol,ctlb);} 
+  if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0)&&((ctl&CONCAT)==0))){fnJsIntro(jsbuf,JSST,pol,ctlb);} 
   
   fnHtmlIntro(buf,pol,ctl);
   char* dm=jsbuf+strlen(jsbuf);
@@ -712,6 +712,12 @@ void sliderBHtml(char* buf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint
   if(td==TDEND || td==TDBE){strcat(buf,"</td>\n");}
 }
 
+void htmlEnd(char* buf,char* jsbuf)
+{
+  if(buf!=nullptr){strcat(buf,"</body></html>\n");}
+  fnJsIntro(jsbuf,JSHE,0,0);
+}
+
 void htmlIntro0B(char* buf)    // suffisant pour commande péripheriques
 {
   strcat(buf,"HTTP/1.1 200 OK\n");
@@ -811,10 +817,10 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
 
 void bufcat(char* buf,char* jsbuf,const char* s){strcat(buf,s);jscat(jsbuf,s);}
 
-void pageHeader(char* buf)
+/*void pageHeader(char* buf)
 {
   pageHeader(buf,nullptr,true);
-}
+}*/
 
 void pageHeader(char* buf,char* jsbuf)
 {
@@ -879,8 +885,8 @@ void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t pol,uint8_t ctl
     }
     if(jsbuf!=nullptr){
           fnJsIntro(jsbuf,JSFBH,pol,ctl);
-          concat1a(jsbuf,(char)(periCur+PMFNCVAL));
-          //concat1a(jsbuf,'\n');
+          char p=periCur+PMFNCVAL;
+          jscat(jsbuf,&p);
     }
 }
 
@@ -905,16 +911,23 @@ void formBeg(char* buf,char*jsbuf)
   formBeg(buf,jsbuf,nullptr);
 }
 
-void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+void formEnd(char* buf,char* jsbuf,bool title,uint8_t pol,uint8_t ctl)
 {
     if(buf!=nullptr){
           fnHtmlEnd(buf,pol,ctl);
+          if(title){strcat(buf,"</fieldset>");}
           strcat(buf,"</form>\n");
     }
     if(jsbuf!=nullptr){
+          if(title){fnJsIntro(jsbuf,JSFFS,pol,ctl&(~TDBEG)&(~TRBEG));}
           fnJsIntro(jsbuf,JSFE,pol,ctl&(~TDBEG)&(~TRBEG));
     }
 
+}
+
+void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+{
+  formEnd(buf,jsbuf,0,pol,ctl);
 }
 
 void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl)

@@ -160,18 +160,29 @@ void dumpHisto0(EthernetClient* cli,long histoPos)                 // liste le f
 }
 
 void dumpHisto(EthernetClient* cli)
-{ 
-  char buf[1000];buf[0]='\0';
+{
+  Serial.print(" dump histo ");delay(100);
+
+  char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  uint16_t lb=0,lb0=LBUF4000;
+  char buf[lb0];*buf=0x00;
+
+  //unsigned long begTPage=millis();     // calcul durée envoi page
   long pos=histoPos;
   char file[]={"fdhisto.txt"};
 
-  trigwd();
-  htmlIntroB(buf,nomserver,cli);
-  pageHeader(buf);
-  boutRetourB(buf,"retour",0,1);
-  ethWrite(cli,buf);
+  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
+                                    // à charger au moins une fois par page ; pour les autres formulaires 
+                                    // de la page formBeg() suffit
+
+  pageHeader(buf,jsbuf);            // 1ère ligne page
+  boutRetourB(buf,jsbuf,"retour",0);
+
+  ethWrite(cli,buf,&lb);
 
   trigwd();
+
   strcat(buf,"histoSD ");
   if(sdOpen(file,&fhisto)==SDKO){strcat(buf,"KO");return;}
   fhsize=fhisto.size();
@@ -181,6 +192,7 @@ void dumpHisto(EthernetClient* cli)
     strcat(buf,histoDh);strcat(buf," - ");
   }
   ethWrite(cli,buf);
+
   dumpHisto0(cli,pos);
 
   boutRetourB(buf,"retour",0,1);
@@ -350,9 +362,10 @@ void cfgServerHtml(EthernetClient* cli)
             Serial.print(" config serveur ");
 
             char buf[LBUF4000];buf[0]='\0';
- 
+            char jsbuf[LBUF4000];*jsbuf=0x00;
+
             htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf);
+            pageHeader(buf,jsbuf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             ethWrite(cli,buf);
@@ -394,35 +407,61 @@ void cfgServerHtml(EthernetClient* cli)
 void cfgDetServHtml(EthernetClient* cli)
 {
   
-            Serial.print(" config detServ ");
+Serial.print("-> config detServ ");delay(100);
 
+  char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  uint16_t lb=0,lb0=LBUF4000;
+  char buf[lb0];*buf=0x00;
+
+  unsigned long begTPage=millis();     // calcul durée envoi page
+  uint8_t ni=0;
+
+  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
+                                    // à charger au moins une fois par page ; pour les autres formulaires 
+                                    // de la page formBeg() suffit
+
+  pageHeader(buf,jsbuf);            // 1ère ligne page
+  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
+  boutMaj(buf,jsbuf,"MàJ",0);
+
+  ethWrite(cli,buf,&lb);            // tfr -> navigateur
+/*
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
+            char jsbuf[LBUF4000];*jsbuf=0x00;
             uint8_t ni=0;
             uint16_t lb;
  
             htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf);
+            pageHeader(buf,jsbuf);
             usrFormBHtml(buf,1);
-            boutRetourB(buf,"retour",0,0);
-            ethWrite(cli,buf);
-            
-            strcat(buf," <input type=\"submit\" value=\" MàJ \"><br>\n");
+*/            
 
 /* table libellés */
+  tableBeg(buf,jsbuf,0);
+  affText(buf,jsbuf,"   |      Nom      |",0,TRBEG|TDBEG|TREND);
 
-            strcat(buf,"<table><tr><th>   </th><th>      Nom      </th></tr>\n");
+  for(uint8_t nb=0;nb<NBDSRV;nb++){
+    ni++;               
+    uint8_t decal=0;if(nb>=16){decal=16;}
+    affNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
+    char nf[LENNOM+2]="libdsrv__ ";nf[LENNOM]=(nb+decal+PMFNCHAR);nf[LENNOM+1]=0x00;
+    alphaTableHtmlB(buf,jsbuf,&libDetServ[nb][0],nf,LENLIBDETSERV-1,0,TDBE|TREND);
+    //strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td><td><input type=\"text\" name=\"libdsrv__");concat1a(buf,(char)(nb+decal+PMFNCHAR));
+    //            strcat(buf,"\" value=\"");strcat(buf,(char*)&libDetServ[nb][0]);strcat(buf,"\" size=\"12\" maxlength=\"");concatns(buf,(LENLIBDETSERV-1));
+    //            strcat(buf,"\" ></td></tr>\n");
+    lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
+  }
+  tableEnd(buf,jsbuf,BRYES);
+  formEnd(buf,jsbuf,0,0);
+  htmlEnd(buf,jsbuf);
 
-              for(int nb=0;nb<NBDSRV;nb++){
-                ni++;               
-                uint8_t decal=0;if(nb>=16){decal=16;}
-                strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td><td><input type=\"text\" name=\"libdsrv__");concat1a(buf,(char)(nb+decal+PMFNCHAR));
-                strcat(buf,"\" value=\"");strcat(buf,(char*)&libDetServ[nb][0]);strcat(buf,"\" size=\"12\" maxlength=\"");concatns(buf,(LENLIBDETSERV-1));
-                strcat(buf,"\" ></td></tr>\n");
-                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
-              }
-            strcat(buf,"</table><br></form></body></html>");
-            ethWrite(cli,buf);
+  ethWrite(cli,buf,&lb);
+
+  Serial.print("len buf=");Serial.print(lb);Serial.print("  len jsbuf=");Serial.print(strlen(jsbuf));
+  Serial.print("  ms=");Serial.println(millis()-begTPage); 
+
 }
 
 
@@ -432,11 +471,12 @@ void cfgRemoteHtml(EthernetClient* cli)
   uint8_t val;
   const uint16_t lb0=LBUF4000;
   char buf[lb0];buf[0]='\0';
+  char jsbuf[LBUF4000];*jsbuf=0x00;
   
             Serial.print(" config remote ");
  
             htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf);
+            pageHeader(buf,jsbuf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             ethWrite(cli,buf);
@@ -526,11 +566,12 @@ void remoteHtml(EthernetClient* cli)
 
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
+            char jsbuf[LBUF4000];*jsbuf=0x00;
             uint8_t ni=0;                                       // nbre lignes dans buffer
             uint16_t lb;
  
             htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf);
+            pageHeader(buf,jsbuf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             ethWrite(cli,buf);
@@ -710,11 +751,12 @@ void thermoShowHtml(EthernetClient* cli)
             
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
+            char jsbuf[LBUF4000];*jsbuf=0x00;
             uint8_t ni=0;
             uint16_t lb;
 
             htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf);
+            pageHeader(buf,jsbuf);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             strcat(buf,"<br>");
@@ -777,11 +819,12 @@ void thermoCfgHtml(EthernetClient* cli)
 
             const uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
+            char jsbuf[LBUF4000];*jsbuf=0x00;
             uint8_t ni=0;
             uint16_t lb;
  
             htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf,NOFORM);
+            pageHeader(buf,jsbuf,NOFORM);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             boutF(buf,"thermoscfg","","refresh",0,0,1,0);
@@ -831,9 +874,10 @@ void timersHtml(EthernetClient* cli)
             uint16_t lb=0;
             const uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
- 
+            char jsbuf[LBUF4000];*jsbuf=0x00;
+
             htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf,NOFORM);
+            pageHeader(buf,jsbuf,NOFORM);
             usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             boutF(buf,"timershtml","","refresh",0,0,1,0);
@@ -926,9 +970,9 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
             lb1=strlen(buf);if(lb0-lb1<(lb1/ni+100)){ethWrite(cli,buf);ni=0;}
           }
           boutMaj(buf,jsbuf,"Per Update",0);
-          affText(buf,jsbuf,"</fieldset>",0,0);
-          formEnd(buf,jsbuf,0,0);
-          //strcat(buf,"<input type=\"submit\" value=\"Per Update\"></fieldset></form>\n"); 
+          
+          formEnd(buf,jsbuf,TITLE,0,0);
+          strcat(buf,"\n"); 
           
           ethWrite(cli,buf,lb);        
   }
