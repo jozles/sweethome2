@@ -828,7 +828,7 @@ void thermoShowHtml(EthernetClient* cli)
 bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
-void subthd(char* buf,char param,uint8_t nb,void* val,char type)
+void subthd(char* buf,char* jsbuf,char param,uint8_t nb,void* val,char type)
 {
         char nf[LENNOM+1];
         memcpy(nf,"thparams__\0",LENNOM+1);
@@ -836,9 +836,9 @@ void subthd(char* buf,char param,uint8_t nb,void* val,char type)
         nf[LENNOM-1]=nb+PMFNCHAR;                              
         
         switch(type){
-          case 'd': numTf(buf,'b',val,nf,2,1,0);break;                           // n° detec/peri              
-          case 'v': numTf(buf,'I',val,nf,4,1,0);break;                           // value/offset
-          case 'e': checkboxTableBHtml(buf,(uint8_t*)val,nf,NO_STATE,1,"");break;      // enable/state
+          case 'd': numTf(buf,'b',val,nf,2,1,0);break;                              // n° detec/peri              
+          case 'v': numTf(buf,'I',val,nf,4,1,0);break;                              // value/offset
+          case 'e': checkboxTableBHtml(buf,(uint8_t*)val,nf,NO_STATE,1,"");break;   // enable/state
           default:break;
         }
 }
@@ -846,53 +846,69 @@ void subthd(char* buf,char param,uint8_t nb,void* val,char type)
 void thermoCfgHtml(EthernetClient* cli)
 { 
             Serial.print(" config thermos ");
+            
+  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  uint16_t lb=0,lb0=8000;
+  char buf[lb0];*buf=0x00;
 
-            const uint16_t lb0=LBUF4000;
-            char buf[lb0];buf[0]='\0';
-            char jsbuf[LBUF4000];*jsbuf=0x00;
-            uint8_t ni=0;
-            uint16_t lb;
+  unsigned long begTPage=millis();     // calcul durée envoi page
+  uint8_t ni=0;
  
-            htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf,jsbuf,NOFORM);
-            formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
-            //usrFormBHtml(buf,1);
-            boutRetourB(buf,"retour",0,0);
-            boutF(buf,"thermoscfg","","refresh",0,0,1,0);
-            ethWrite(cli,buf);          
+  htmlIntroB(buf,nomserver,cli);                // chargement CSS etc
+  //formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);   // params pour retours navigateur (n° usr + time usr + pericur)
+                                                // à charger au moins une fois par page 
+  pageHeader(buf,jsbuf);                        // 1ère ligne page
+  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
+          
+  boutF(buf,"thermoscfg","","refresh",0,0,1,0);
+  
+  ethWrite(cli,buf,&lb);          
 
 /* table thermos */
 
-            strcat(buf,"<table><tr><th>   </th><th>      Nom      </th><th> peri </th><th>  </th><th> low<br> en</th><th> low<br> state</th><th> low<br> value</th><th> low<br> pitch</th><th> low<br> det</th><th> </th><th> high<br> en</th><th> high<br> state</th><th> high<br> value</th><th> high<br> offset</th><th> high<br> det</th></tr>\n");
+  tableBeg(buf,jsbuf,0);
+  affText(buf,jsbuf,"   |      Nom      | peri |  | low~ en| low~ state| low~ value| low~ pitch| low~ det| | high~ en| high~ state| high~ value| high~ offset| high~ det",0,TDBE|TRBE);
 
-              for(int nb=0;nb<NBTHERMOS;nb++){
-                ni++;
+  for(uint8_t nb=0;nb<NBTHERMOS;nb++){
+    ni++;
                 
-                strcat(buf,"<tr><form method=\"get\" >");
-                formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
-                //usrFormBHtml(buf,1);
-                strcat(buf,"<td>");concatn(buf,nb+1);strcat(buf,"</td>");                                       // n° thermo
-                
-                strcat(buf,"<td><input type=\"text\" name=\"thparamsn");concat1a(buf,(char)(nb+PMFNCHAR));      // nom
-                  strcat(buf,"\" value=\"");
-                  strcat(buf,thermos[nb].nom);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENTHNAME-1);strcat(buf,"\" ></td>\n");
+    formIntro(buf,jsbuf,nullptr,0,nullptr,0,TRBEG);                
+    affNum(buf,jsbuf,'s',&ni,0,0,TDBE);                                                  // n° thermo
+    char nf[LENNOM+1];memset(nf,0x00,LENNOM+1);memcpy(nf,"thparamsn",LENNOM-1);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
+    alphaTableHtmlB(buf,jsbuf,thermos[nb].nom,nf,LENTHNAME-1,0,TDBE);                    // nom
+    //strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENTHNAME-1);
     
-                subthd(buf,'p',nb,&thermos[nb].peri,'d');                                                       // peri
-                  periInitVar();periCur=thermos[nb].peri;if(periCur!=0){periLoad(periCur);}strcat(buf,"<td>");strcat(buf,periNamer);
-                  strcat(buf,"|");concatnf(buf,(float)*periLastVal_/100);strcat(buf,"</td>\n");
-                subthd(buf,'e',nb,&thermos[nb].lowenable,'e');                                                  // low enable
-                subthd(buf,'s',nb,&thermos[nb].lowstate,'e');                                                   // low state
-                subthd(buf,'v',nb,&thermos[nb].lowvalue,'v');                                                   // low value
-                subthd(buf,'o',nb,&thermos[nb].lowoffset,'v');                                                  // low offset
-                subthd(buf,'d',nb,&thermos[nb].lowdetec,'d');                                                   // low det
-                  uint8_t vv=(uint8_t)thermos[nb].lowdetec;strcat(buf," <td>");if(vv!=0){strcat(buf,(char*)(&libDetServ[vv][0]));strcat(buf," ");concat1a(buf,(char)(((memDetServ>>vv)&0x01)+48));}strcat(buf," </td>\n");
-                
+    subthd(buf,jsbuf,'p',nb,&thermos[nb].peri,'d');                                             // peri
+    periInitVar();periCur=thermos[nb].peri;if(periCur!=0){periLoad(periCur);}
+    affText(buf,jsbuf,periNamer,0,TDBEG);
+    affText(buf,jsbuf,":",0,0);
+    float pl=(*periLastVal_)/100;
+    affNum(buf,jsbuf,'f',&pl,2,0,TDEND);
+    subthd(buf,jsbuf,'e',nb,&thermos[nb].lowenable,'e');                                        // low enable
+    subthd(buf,jsbuf,'s',nb,&thermos[nb].lowstate,'e');                                         // low state
+    subthd(buf,jsbuf,'v',nb,&thermos[nb].lowvalue,'v');                                         // low value
+    subthd(buf,jsbuf,'o',nb,&thermos[nb].lowoffset,'v');                                        // low offset
+    subthd(buf,jsbuf,'d',nb,&thermos[nb].lowdetec,'d');                                         // low det
+    
+    uint8_t vv=(uint8_t)thermos[nb].lowdetec;
+    if(vv!=0){affText(buf,jsbuf,(char*)(&libDetServ[vv][0]),0,STRING|TDBEG);
+      affText(buf,jsbuf," ",0,STRING|CONCAT|TDBEG);
+      char oi[]={'0',0x00,'1',0x00};
+      affText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],0,STRING|CONCAT|TDBE);}
 
-                strcat(buf,"<td> <input type=\"submit\" value=\"MàJ\"><br></td></form></tr>\n");
-                lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
-              }
-            strcat(buf,"</table></body></html>\n");
-            ethWrite(cli,buf);
+    boutMaj(buf,jsbuf,"MàJ",TDBE);
+    formEnd(buf,jsbuf,0,TREND);
+                
+    uint16_t lb1=strlen(buf);if(lb0-lb1<(lb1/ni+100)){ethWrite(cli,buf,&lb);ni=0;}
+  }
+  tableEnd(buf,jsbuf,0);
+  htmlEnd(buf,jsbuf);
+  
+  strcat(buf,"\n");
+  
+  ethWrite(cli,buf);
+
+  bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 
