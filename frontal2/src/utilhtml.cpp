@@ -273,6 +273,7 @@ void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t c
 //                TDEND est forcé dans le ctl la commande
 //                les suivants BRYES ou TDEND
 //                le dernier rien : TDEND est déjà dans le ctl de la commande (pour le format html ctl==STRING indique </td> à la fin)
+//                CONCAT pour ajouter du texte à la volée
 {
   uint8_t ctlb=ctl&~STRING;if((ctl&STRING)!=0){ctlb&=~BRYES;if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
   if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0)&&((ctl&CONCAT)==0))){fnJsIntro(jsbuf,JSST,pol,ctlb);} 
@@ -291,7 +292,7 @@ void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t c
   if(ctl==STRING){ctl|=TDEND;}   // pas de JSSCO en fin de dm0 possible dans ce cas
   char a[]={JSSCO};
   if(*(dm0+strlen(dm0)-1)==*a){ctl&=~TDEND;}
-  if((ctl&STRING)!=0){ctl&=~BRYES;}   // évite doublon avec JSSBR de dm0 
+  if((ctl&STRING)!=0){ctl&=~BRYES;pol=0;}   // évite doublon avec JSSBR de dm0 ; bloque le </font> (ajouter fontEnd à la fin du texte)
   fnHtmlEnd(buf,pol,ctl);
 }
 
@@ -1024,11 +1025,13 @@ void cliPrintMac(EthernetClient* cli, byte* mac)
   cli->print(macBuff);
 }
 
-void bufPrintPeriDate(char* buf,char* periDate)
+uint8_t bufPrintPeriDate(char* buf,char* periDate)
 {
-  char dateascii[12];
+  #define LDATEASCII 12
+  char dateascii[LDATEASCII];
   int j;
-  unpackDate(dateascii,periDate);for(j=0;j<12;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}strcat(buf,"<br>\n");
+  unpackDate(dateascii,periDate);for(j=0;j<LDATEASCII;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}strcat(buf,"<br>\n");
+  return LDATEASCII+1;
 }
 
 void trailingSpaces(char* data,uint16_t len)
@@ -1042,4 +1045,12 @@ void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet)
   if(lenEmet>=lenRecep-1){lenEmet=lenRecep-1;}
   memcpy(recep,emet,lenEmet);
   trailingSpaces(recep,lenRecep);
+}
+
+void bufLenShow(char* buf,char* jsbuf,uint16_t lb,unsigned long begTPage)
+{
+  Serial.print("len buf=");Serial.print(lb);
+  Serial.print("  len jsbuf=");Serial.print(strlen(jsbuf));
+  Serial.print("  ms=");Serial.println(millis()-begTPage);
+  delay(10);
 }

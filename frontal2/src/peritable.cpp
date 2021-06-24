@@ -193,7 +193,7 @@ void SwCtlTableHtml(EthernetClient* cli)
   uint16_t lb=0,lb0=LBUF4000,lb1=0;
   char buf[lb0];buf[0]='\0';
 
-  unsigned long begSwT=millis();     // calcul durée envoi page
+  unsigned long begTPage=millis();     // calcul durée envoi page
 
   Serial.print("swCtlTableHtml - periCur=");Serial.print(periCur);
   Serial.print("  free=");Serial.println(freeMemory(), DEC);
@@ -333,9 +333,7 @@ void SwCtlTableHtml(EthernetClient* cli)
   strcat(buf,"</body></html>");
   ethWrite(cli,buf,&lb);
 
-  //Serial.print(" ");Serial.println(jsbuf);
-  Serial.print("SwCtlTableHtml len totale buf=");Serial.print(lb);Serial.print(" len js=");Serial.print(strlen(jsbuf));
-  Serial.print(" ms=");Serial.println(millis()-begSwT);
+bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 void periTableHtml(EthernetClient* cli)
@@ -394,7 +392,7 @@ void periTableHtml(EthernetClient* cli)
           
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
           tableBeg(buf,jsbuf,TRBEG|TDBEG);
-          affText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|~D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|vers. prot~last out~last in|",0,TREND|TDEND);
+          affText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|vers. prot~last out~last in|",0,TREND|TDEND);
 
           ethWrite(cli,buf,&lb);
 
@@ -413,9 +411,7 @@ void periTableHtml(EthernetClient* cli)
           
           periCur=savePeriCur;if(periCur>0){periLoad(periCur);}
 
-          Serial.print("len buf=");Serial.print(lb);Serial.print("  len jsbuf=");Serial.print(strlen(jsbuf));
-          Serial.print("  ms=");Serial.println(millis()-begTPage); 
-          delay(20);
+bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const char* title,const char* nfonc,uint8_t nbLi,const char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,char* rulOptNam,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo,uint16_t* lb)

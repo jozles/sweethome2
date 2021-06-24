@@ -66,7 +66,7 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br);
 void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br,bool sep);
 void concatDate(char* buf,char* periDate);
 void concatDate(char* buf,char* jsbuf,char* periDate);
-void bufPrintPeriDate(char* buf,char* periDate);
+uint8_t bufPrintPeriDate(char* buf,char* periDate);
 void bufPrintDateHeure(char* buf,char* pkdate);
 void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate);
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
@@ -97,5 +97,7 @@ void setColourE(char* buf,char* jsbuf);
 void sliderBHtml(char* buf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint8_t td);
 void htmlIntro0B(char* buf);
 void htmlIntroB(char* buf,char* titre,EthernetClient* cli);
+
+void bufLenShow(char* buf,char* jsbuf,uint16_t lb,unsigned long begTPage);
 
 #endif // _UTILHTML_H_

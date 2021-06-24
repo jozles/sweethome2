@@ -739,7 +739,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   periTableSave();
   
   Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);
-  Serial.print(" màj ; millis=");Serial.print(millis()-t1);Serial.print(" total=");Serial.print(millis()-t0);
+  Serial.print(" màj ; millis=");Serial.print(millis()-t1);Serial.print(" total=");Serial.println(millis()-t0);
 
   delay(1);
   //fhisto.seek(end);
@@ -749,28 +749,34 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
 
 void thermoShowHtml(EthernetClient* cli)
 {
-            Serial.print(" show thermos ");
-            
-            uint16_t lb0=LBUF4000;
-            char buf[lb0];buf[0]='\0';
-            char jsbuf[LBUF4000];*jsbuf=0x00;
-            uint8_t ni=0;
-            uint16_t lb;
+  Serial.print(" show thermos ");
 
-            htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf,jsbuf);
-            formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
-            //usrFormBHtml(buf,1);
-            boutRetourB(buf,jsbuf,"retour",0);
-            strcat(buf,"<br>");
-            ethWrite(cli,buf);
+  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  uint16_t lb=0,lb0=8000;
+  char buf[lb0];*buf=0x00;
+
+  unsigned long begTPage=millis();     // calcul durée envoi page
+  uint8_t ni=0;
+  #define LLITH 200
+  char lith[LLITH];
+
+  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
+                                    // à charger au moins une fois par page ; pour les autres formulaires 
+                                    // de la page formBeg() suffit
+
+  pageHeader(buf,jsbuf);            // 1ère ligne page
+  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
+
+  ethWrite(cli,buf,&lb);            // tfr -> navigateur
  
-            scalcTh(1);          // update periphériques
+  scalcTh(1);          // update periphériques
 
 /* peritable températures */
 
-         strcat(buf,"<table><tr><th>peri</th><th></th><th>TH</th><th>min</th><th>max</th><th>last in</th></tr>\n");
-
+  tableBeg(buf,jsbuf,BRYES|TRBEG);
+  affText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
+  strcat(buf,"\n");
               for(int nuth=0;nuth<NBTHERMOS;nuth++){
                 int16_t nuper=thermos[nuth].peri;
                 if(nuper!=0){
@@ -778,27 +784,48 @@ void thermoShowHtml(EthernetClient* cli)
 
                   if(periMacr[0]!=0x00){
                     ni++;
-                    strcat(buf,"<tr><td>");concatns(buf,periCur);strcat(buf,"</td>\n");
-                    strcat(buf,"<td> <font size=\"7\">");strcat(buf,thermos[nuth].nom);strcat(buf,"</font></td>\n");
-                    strcat(buf,"<td> <font size=\"7\">");concatnf(buf,(float)(*periLastVal_+*periThOffset_)/100,2);strcat(buf,"</font></td>\n");
-                    strcat(buf,"<td> <div style='text-align:right; font-size:30px;'>");concatnf(buf,(float)*periThmin_/100,2);strcat(buf,"</div></td>\n");
-                    strcat(buf,"<td> <div style='text-align:right; font-size:30px;'>");concatnf(buf,(float)*periThmax_/100,2);strcat(buf,"</div></td>\n");
-                    strcat(buf,"<td>");bufPrintPeriDate(buf,periLastDateIn);strcat(buf,"</td>\n");                      
-                    strcat(buf,"</tr>\n");
+                    //memset(lith,0x00,LLITH);
+                    //char* li=lith;
+                    float th;
+
+                    affNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);affText(buf,jsbuf,thermos[nuth].nom,7,TDBE);
+                    //memcpy(li,thermos[nuth].nom,LENTHNAME);strcat(li,"|");li+=strlen(li);
+                    th=(*periLastVal_+*periThOffset_)/100;affNum(buf,jsbuf,'f',&th,2,7,TDBE);
+                    //sprintf(li,"%.2f",(float)(*periLastVal_+*periThOffset_)/100);li+=strlen(li);
+                    //affText(buf,jsbuf,lith,7,TDBE);
+
+                    //memset(lith,0x00,LLITH);li=lith;
+                    th=(*periThmin_/100);affNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
+                    //sprintf(li,"%.2f",(float)*periThmin_/100);li+=strlen(li);*li='|';li++;
+                    th=(*periThmax_/100);affNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
+                    //sprintf(li,"%.2f",(float)*periThmax_/100);li+=strlen(li);
+                    //affText(buf,jsbuf,lith,5,TDBE);
+                    
+                    memset(lith,0x00,LLITH);
+                    uint8_t ld=bufPrintPeriDate(lith,periLastDateIn);
+                    affText(buf,jsbuf,lith,ld,2,TDBE|TREND);
+                    strcat(buf,"\n");                      
+                    
                     lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
                   }
                 }
               }
-          strcat(buf,"</table><br>\n");
+          tableEnd(buf,jsbuf,BRYES);
 
-        strcat(buf,"<p align=\"center\">");
-        boutF(buf,"remotehtml","","remote",0,0,7,0);                
-        boutF(buf,"thermoshow","","refresh",0,0,7,0);
+        //strcat(buf,"<p align=\"center\">");
+        boutF(buf,jsbuf,"remotehtml","","remote",ALIC,7,0);                
+        boutF(buf,jsbuf,"thermoshow","","refresh",ALIC,7,BRYES);
         
-        strcat(buf,"</p><br>");for(int d=0;d<NBDSRV;d++){concat1a(buf,(char)(((memDetServ>>d)&0x01)+48));strcat(buf," ");}
-        strcat(buf,"\n</body></html>\n");
+        //strcat(buf,"</p><br>");
+        memset(lith,0x00,LLITH);
+        for(int d=0;d<NBDSRV;d++){concat1a(lith,(char)(((memDetServ>>d)&0x01)+48));strcat(lith," ");}
+        affText(buf,jsbuf,lith,0,BRYES);
+        htmlEnd(buf,jsbuf);
+        strcat(buf,"\n");
         
         ethWrite(cli,buf);
+
+bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 void subthd(char* buf,char param,uint8_t nb,void* val,char type)
@@ -945,9 +972,7 @@ Serial.print(" config timers ");delay(100);
   
   ethWrite(cli,buf,&lb);
 
-  Serial.print("len buf=");Serial.print(lb);
-  Serial.print("  len jsbuf=");Serial.print(strlen(jsbuf));
-  Serial.print("  ms=");Serial.println(millis()-begTPage);
+bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 
