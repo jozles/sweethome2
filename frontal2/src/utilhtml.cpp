@@ -82,8 +82,8 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl)
 void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour)
 { 
   if(buf!=nullptr){
-    if((ctl&TRMASK)==TRBEG || (ctl&TDMASK)==TRBE){strcat(buf,"<tr>");}
-    if((ctl&TDMASK)==TDBEG || (ctl&TDMASK)==TDBE){strcat(buf,"<td>");}
+    if((ctl&TRBEG)!=0 || (ctl&TDMASK)==TRBE){strcat(buf,"<tr>");}
+    if((ctl&TDBEG)!=0 || (ctl&TDMASK)==TDBE){strcat(buf,"<td>");}
     if(*colour!=0x00){strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");}
     if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
   }
@@ -100,9 +100,8 @@ void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl)
   if(buf!=nullptr){
     if(pol!=0){strcat(buf,"</font>");}
     if((ctl&BRMASK)!=0){strcat(buf,"<br>");}
-    if((ctl&TDMASK)==TDEND || (ctl&TDMASK)==TDBE){strcat(buf,"</td>");}
-    if((ctl&TRMASK)==TREND || (ctl&TRMASK)==TRBE){strcat(buf,"</tr>");}
-    //strcat(buf,"\n");
+    if((ctl&TDEND)!=0 || (ctl&TDMASK)==TDBE){strcat(buf,"</td>");}
+    if((ctl&TREND)!=0 || (ctl&TRMASK)==TRBE){strcat(buf,"</tr>");}
   }
 }
 
@@ -413,16 +412,6 @@ void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* val
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol)
 {
   numTf(buf,nullptr,type,valfonct,nomfonct,len,2,pol,BRNO|td|TRNO);
-}
-
-void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol)
-{
-  numTf(buf,jsbuf,type,valfonct,nomfonct,len,2,pol,BRNO|td|TRNO);
-}
-
-void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec)
-{
-  numTf(buf,nullptr,type,valfonct,nomfonct,len,dec,pol,BRNO|td|TRNO);
 }
 
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br)
@@ -758,14 +747,24 @@ void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t ctl)
   fnHtmlEnd(buf,0,ctl);
 }
 
-void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval)        // nbval boutons radio
-{                                                                               // valeur = checked (0-n) 
-      concatns(buf,valeur);//strcat(buf,"<br>");
+void radioTableBHtml(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl)        // nbval boutons radio
+{                                                                                           // valeur = checked (0-n) 
+      fnJsIntro(jsbuf,JSRAD,pol,ctl);
+      fnHtmlIntro(buf,pol,ctl);
+      char nbv=(nbval+PMFNCVAL);
+      jscat(jsbuf,nomfonct,SEP);jscat(jsbuf,&nbv);
+      concatns(buf,valeur);
       for(uint8_t j=0;j<nbval;j++){
           strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,nomfonct);
           strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+j));strcat(buf,"\"");
           if(j==valeur){strcat(buf," checked");}strcat(buf,"/>");
       }
+      fnHtmlEnd(buf,pol,ctl);
+}
+
+void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval)
+{
+  radioTableBHtml(buf,nullptr,valeur,nomfonct,nbval,0,0);
 }
 
 void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td)                    // 1 line ; nb = page row

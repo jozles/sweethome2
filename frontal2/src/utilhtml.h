@@ -70,8 +70,6 @@ uint8_t bufPrintPeriDate(char* buf,char* periDate);
 void bufPrintDateHeure(char* buf,char* pkdate);
 void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate);
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
-void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec);
-void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
 void affSpace(char* buf,char* jsbuf);
@@ -89,6 +87,7 @@ void boutF(char* buf,const char* nomfonct,const char* valfonct,const char* lib,u
 void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl);
 void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t td);
 void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval);
+void radioTableBHtml(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl);
 void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td);
 void setColourB(char* buf,const char* textColour);
 void setColourB(char* buf,char* jsbuf,const char* textColour);

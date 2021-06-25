@@ -47,6 +47,7 @@
 #define JSSBR  "~"         // séparateur <br> dans les chaines texte     
 #define JSCHK  "^"         // checked 
 #define JSCTL  "x"         // troisieme car optionnel de fonction (reçoit ctl) 
+#define JSSPC  " "
 
 /* commande Js (les commandes non commentées sont inutilisées) */
 /* attributs */
@@ -68,6 +69,7 @@
 #define JSATB  "ax"        // saisie alphaTableHtmlB  *JSATBnomfonct}valfonct}len
 #define JSSTB  "kx"        // saisie selectbox        JSSTBnnomfonc}nom_options n=n°sel+PMFNCVAL
 #define JSSOP  "K "        // selectbox options table JSCELvnloptions v=nom n=nbre+PMFNCVAL l=len+PMFNCVAL
+#define JSRAD  "lx"        // bouton radio            JSRABnomfonct}nbre
 /* affichages */
 #define JSSP   "S "        // affichage space
 #define JSCLB  "( "        // parenthese ouverte

@@ -296,12 +296,15 @@ void swCtlTableHtml(EthernetClient* cli,int i)
             byte binp[PERINPLEN];memcpy(binp,periInput+offsetInp,PERINPLEN);
             offsetInp+=PERINPLEN;
 
-            affNum(buf,jsbuf,'d',&ninp,0,0,TRBEG|TDBE);
+            affNum(buf,jsbuf,'s',&ninp,0,0,TRBEG|TDBE);
             //strcat(buf,"\n<tr><td>");concatn(buf,ninp);strcat(buf,"</td>");
-            vv=(binp[2]  & PERINPEN_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,1,TDBEG);             // bit enable
-            vv=(binp[2]  & PERINPVALID_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,9,0);              // bit active level
-            vv=(binp[2]  & PERINPOLDLEV_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,2,0);             // bit prev lev
-            vv=(binp[2]  & PERINPDETES_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,3,TDEND);          // bit edge/static            
+            vv=(binp[2] & PERINPEN_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,1,TDBEG);              // bit enable
+            affSpace(buf,jsbuf);
+            vv=(binp[2] & PERINPVALID_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,9,0);               // bit active level
+            affSpace(buf,jsbuf);
+            vv=(binp[2] & PERINPOLDLEV_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,2,0);              // bit prev lev
+            affSpace(buf,jsbuf);
+            vv=(binp[2] & PERINPDETES_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,3,TDEND);           // bit edge/static            
            
             vv=(binp[0]  & PERINPNT_MS);                                                                // type detec source
             selectTableBHtml(buf,jsbuf,inptyps,optNam1,xfonc1,vv,4,ninp,0,TDBEG);
@@ -364,12 +367,12 @@ void periTableHtml(EthernetClient* cli)
 // ------------------------------------------------------------- header end 
 
           fontBeg(buf,jsbuf,2,0);
-          numTf(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0);
+          numTf(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0,0);
           
           affText(buf,jsbuf,"(",0,0);affNum(buf,jsbuf,'l',&fhsize,0,0,0);affText(buf,jsbuf,")",0,0);
           //strcat(buf,"(");concatn(buf,fhsize);strcat(buf,") ");
           
-          numTf(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0);
+          numTf(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0,0);
           alphaTableHtmlB(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);    
           boutMaj(buf,jsbuf,"ok",0);
       
@@ -588,9 +591,12 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
                       numTf(buf,jsbuf,'b',periSwNb,"peri_intnb",1,2,0,TDBEG|BRYES);
                       numTf(buf,jsbuf,'b',periDetNb,"peri_detnb",1,3,0,TDEND);
                       char fonc[]={"peri_vsw__\0"},oi[]={"OI"};
-                      strcat(buf,"<td>");
-                      for(int k=0;k<*periSwNb;k++){fonc[LENNOM-1]=PMFNCHAR+k;radioTableBHtml(buf,periSwCde(k),fonc,2);concat1a(buf,oi[periSwLev(k)]);if(k<*periSwNb-1){strcat(buf,"<br>");}strcat(buf,"\n");}
-                      strcat(buf,"</td>");
+                      uint8_t lctl=TDBEG;
+                      for(int k=0;k<*periSwNb;k++){fonc[LENNOM-1]=PMFNCHAR+k;radioTableBHtml(buf,jsbuf,periSwCde(k),fonc,2,0,lctl);
+                        lctl=0;if(k<*periSwNb-1){lctl=BRYES;}
+                        affText(buf,jsbuf,&oi[periSwLev(k)],1,0,lctl|STRING|CONCAT);
+                        lctl=0;}
+                      strcat(buf,"\n");
 
                       char bb[LENNOM];bb[0]='\0';
                       for(int k=0;k<6;k++){concat1a(bb,chexa[periMacr[k]/16]);concat1a(bb,chexa[periMacr[k]%16]);}
