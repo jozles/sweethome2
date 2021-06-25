@@ -468,13 +468,13 @@ void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,i
 
 Les formulaires nécessitent :
 
-1) une fonction de début : formIntro(buf,jsbuf,fonction,pol,ctl) à placer avant toute saisie et avant le bouton submit (boutMaj())
+1) une fonction de début : formIntro(buf,jsbuf,[f]onction],pol,ctl) à placer avant toute saisie et avant le bouton submit (boutMaj())
     
-    génère 2 arguments lors du submit : 
+    génère 1 ou 2 arguments lors du submit : 
 
     user_ref_n=ttttt...         identifie l'utilisateur 'n' et donne la milli de la génération de la page 'tttt...' 
-    xxxxxxxx_x=A                fonction d'init spécifique au formulaire ("constructeur") ; A = PMFNCHAR+periCur
-                                si aucune fonction d'init n'est nécessaire, peri_cur__ est utilisée par défaut
+    xxxxxxxx_x=A                fonction facultative d'init spécifique au formulaire ("constructeur") ; A = PMFNCHAR+periCur
+                                
 
 2) une fonction de fin pour délimiter le formulaire : formEnd()
 
@@ -502,9 +502,9 @@ void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char
           strcat(buf,"\" value=\"");
           concatn(buf,usrtime[usernum]);
           strcat(buf,"\">");
-          if(locfonc==nullptr){
-            strcat(buf,"<input type=\"text\" name=\"peri_cur__\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
-          }
+ //         if((locfonc==nullptr)&&(periCur>0)&&(periCur<=NBPERIF)){       // certains formulaires n'ont pas de periCur valide (genre pages cfg)
+ //           strcat(buf,"<input type=\"text\" name=\"peri_cur__\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
+ //         }
           if(locfonc!=nullptr){
             char fonc[LENNOM+1];memcpy(fonc,locfonc,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
             strcat(buf,"<input type=\"text\" name=\"");strcat(buf,fonc);strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");

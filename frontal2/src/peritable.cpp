@@ -185,9 +185,9 @@ void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8
 }
 
 
-void SwCtlTableHtml(EthernetClient* cli)
+void swCtlTableHtml(EthernetClient* cli,int i)
 {
-/* >>>>>>>>>>>>>>>>>>>>>>> modèle de page <<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+  periCur=i;
 
   char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF4000,lb1=0;
@@ -212,6 +212,7 @@ void SwCtlTableHtml(EthernetClient* cli)
   perifHeader(buf,jsbuf);           // 2nde ligne page
   
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
+// ------------------------------------------------------------- header end 
 
 /* boutons */
     boutRetourB(buf,jsbuf,"retour",TDBE);strcat(buf," ");
@@ -360,7 +361,7 @@ void periTableHtml(EthernetClient* cli)
   boutRetourB(buf,jsbuf,"refresh",0);  
   
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
-
+// ------------------------------------------------------------- header end 
 
           fontBeg(buf,jsbuf,2,0);
           numTf(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0);
@@ -396,7 +397,6 @@ void periTableHtml(EthernetClient* cli)
 
           ethWrite(cli,buf,&lb);
 
-          Serial.print("lb=");Serial.print(lb);Serial.print("  len jsbuf=");Serial.println(strlen(jsbuf));
           for(i=1;i<=NBPERIF;i++){
                 // !!!!!!!!!!!!!!!!!! pericur doit étre le premier de la liste !!!!!!!!!!!!!!!!!!!!!!!!!
                 // pour permettre periLoad préalablement aux mises à jour des données quand le navigateur 
@@ -507,7 +507,7 @@ void showDates(char* buf,char* jsbuf)
           setColourE(buf,jsbuf);
 }
 
-void periLineHtml(EthernetClient* cli,int i)
+void periLineHtml(EthernetClient* cli,int i)                // i=periCur
 {
 /* >>>>>>>>>>>>>>>>>>>>>>> modèle de page <<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
 
@@ -523,7 +523,6 @@ void periLineHtml(EthernetClient* cli,int i)
   htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
   optSelHtml(jsbuf,rulop,optNam0);  // chargement tables params
 
-  //usrPeriCurB(buf,jsbuf,"peri_cur__",0,2,0);
   formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
@@ -532,6 +531,7 @@ void periLineHtml(EthernetClient* cli,int i)
   perifHeader(buf,jsbuf);           // 2nde ligne page
   
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
+// ------------------------------------------------------------- header end 
 
 /* boutons */
 

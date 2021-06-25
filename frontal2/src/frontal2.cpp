@@ -1116,7 +1116,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
       Serial.println();Serial.print((long)cxtime);Serial.print(" *** serveur(");Serial.print((char)ab);Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
 
       nbreparams=getnv(cli,bufData,bufDataLen);     //Serial.print("---- nbparams ");Serial.println(nbreparams);
-        
+
 /*  getnv() décode la chaine GET ou POST ; le reste est ignoré
     forme ?nom1:valeur1&nom2:valeur2&... etc (NBVAL max)
     le séparateur nom/valeur est ':' ou '=' 
@@ -1261,7 +1261,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 
 //Serial.print(i);Serial.print(" numfonct[i]=");Serial.print(numfonct[i]);Serial.print(" valf=");Serial.println((char*)valf);
 //Serial.print("strHisto=");Serial.println(strHisto);
-          
+      delay(20); // pour permettre l'affichage des Serial.print en debug
             switch (numfonct[i])
               {
               case 0:  pertemp=0;conv_atobl(valf,&pertemp);break;                                           // pertemp serveur
@@ -1305,7 +1305,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        periLoad(periCur);                                                           // + bouton refresh  (switchs)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                // + bouton erase    (switchs)
                        else{periReq(&cliext,periCur,"etat______");}                                 // si pas erase demande d'état
-                       SwCtlTableHtml(cli);break;                                                                               
+                       swCtlTableHtml(cli,periCur);break;                                                                               
               case 9:  {byte a=*(libfonctions+2*i+1);
                         if(a=='B'){usrReboot();}
                        }break;                                                                      // si pas 'R' déco donc -> accueil                                             
@@ -1358,13 +1358,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        periSwCdUpdate(sw,cd);                                                       // maj periSwVal (periCur ok, periLoad effectué)
                        remoteUpdate(periCur,sw,cd,PERILINE);                                        // maj remotes concernées
                        }break;
-              case 31: what=4;                                                                      // (pulses SwCtlTableHtml/en-tête) peri_t_sw_ 
+              case 31: what=4;                                                                      // (pulses swCtlTableHtml/en-tête) peri_t_sw_ 
                        //periCur=0;conv_atob(valf,&periCur);                                        // periCur à jour via formIntro/peri_cur__
                        //if(periCur>NBPERIF){periCur=NBPERIF;}
                        //periInitVar();periLoad(periCur);
                        memset(periSwPulseCtl,0x00,PCTLLEN);                                         // effact bits cb otf enable pulses et free run 
                        break;  
-              case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);            // (pulses SwCtlTableHtml) peri_otf__ bits généraux (FOT)
+              case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);            // (pulses swCtlTableHtml) peri_otf__ bits généraux (FOT)
                        uint16_t sh=0;
                         switch (b){
                            case 'F':sh=PMFRO_VB;break;
@@ -1500,8 +1500,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           default:break;
                         } 
                        }break;
-              case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis thparams__ (thermosCfg())
-                        switch (*(libfonctions+2*i)){
+              case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;char nf=*(libfonctions+2*i);    // submit depuis thparams__ (thermosCfg())
+                        Serial.print("cfgTh lf+1/lf=");Serial.print(nb);Serial.print(" lf=");Serial.println(nf);
+                        switch (nf){
                           case 'n':alphaTfr((char*)&thermos[nb].nom,LENTHNAME,valf,nvalf[i+1]-nvalf[i]);
                                    break;
                           case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToInt(valf,&j);
@@ -1641,7 +1642,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                   if(ab=='b'){remoteHtml(cli);} break;     
           case 3: periMess=periAns(cli,"set_______");break;            // data_read
           case 4: periMess=periSave(periCur,PERISAVESD);               // switchs
-                  SwCtlTableHtml(cli);
+                  swCtlTableHtml(cli,periCur);
                   cliext.stop();
                   periMess=periReq(&cliext,periCur,"set_______");break;
           case 5: periMess=periSave(periCur,PERISAVESD);               // (periLine) modif ligne de peritable

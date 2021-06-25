@@ -180,7 +180,7 @@ void dumpHisto(EthernetClient* cli)
   boutRetourB(buf,jsbuf,"retour",0);
 
   ethWrite(cli,buf,&lb);
-
+// ------------------------------------------------------------- header end
   trigwd();
 
   strcat(buf,"histoSD ");
@@ -368,7 +368,7 @@ void cfgServerHtml(EthernetClient* cli)
             //usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             ethWrite(cli,buf);
-            
+// ------------------------------------------------------------- header end            
             strcat(buf," <input type=\"submit\" value=\" MàJ \"><br> \n");
             
             /*cli->print(" password <input type=\"text\" name=\"pwdcfg____\" value=\"");cli->print(userpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");
@@ -425,6 +425,7 @@ Serial.print("-> config detServ ");delay(100);
   boutMaj(buf,jsbuf,"MàJ",0);
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
+// ------------------------------------------------------------- header end
 /*
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
@@ -480,7 +481,7 @@ void cfgRemoteHtml(EthernetClient* cli)
             //usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             ethWrite(cli,buf);
-            
+// ------------------------------------------------------------- header end            
             strcat(buf," <input type=\"submit\" value=\"MàJ\"><br>");
 
 /* table remotes */
@@ -577,7 +578,8 @@ void remoteHtml(EthernetClient* cli)
             //usrFormBHtml(buf,1);
             boutRetourB(buf,"retour",0,0);
             ethWrite(cli,buf);
-            
+// ------------------------------------------------------------- header end
+
 /* table remotes */
            
             strcat(buf,"<table>");            
@@ -764,12 +766,11 @@ void thermoShowHtml(EthernetClient* cli)
   formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
-
   pageHeader(buf,jsbuf);            // 1ère ligne page
   boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
- 
+ // ------------------------------------------------------------- header end 
   scalcTh(1);          // update periphériques
 
 /* peritable températures */
@@ -843,6 +844,15 @@ void subthd(char* buf,char* jsbuf,char param,uint8_t nb,void* val,char type)
         }
 }
 
+void subthc(char* buf,char* jsbuf,uint8_t vv)
+{
+    if(vv!=0){affText(buf,jsbuf,(char*)(&libDetServ[vv][0]),0,STRING|TDBEG);
+      affText(buf,jsbuf,":",0,STRING|CONCAT);
+      char oi[]={'0',0x00,'1',0x00};
+      affText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],0,STRING|CONCAT);}
+    else affText(buf,jsbuf," ",0,TDBE);
+}
+
 void thermoCfgHtml(EthernetClient* cli)
 { 
             Serial.print(" config thermos ");
@@ -863,11 +873,12 @@ void thermoCfgHtml(EthernetClient* cli)
   boutF(buf,"thermoscfg","","refresh",0,0,1,0);
   
   ethWrite(cli,buf,&lb);          
+// ------------------------------------------------------------- header end 
 
 /* table thermos */
 
   tableBeg(buf,jsbuf,0);
-  affText(buf,jsbuf,"   |      Nom      | peri |  | low~ en| low~ state| low~ value| low~ pitch| low~ det| | high~ en| high~ state| high~ value| high~ offset| high~ det",0,TDBE|TRBE);
+  affText(buf,jsbuf,"   |      Nom      | peri |  | low~ en| low~ state| low~ value| low~ pitch| low~ det| | high~ en| high~ state| high~ value| high~ offset| high~ det| | ",0,TDBE|TRBE);
 
   for(uint8_t nb=0;nb<NBTHERMOS;nb++){
     ni++;
@@ -890,12 +901,21 @@ void thermoCfgHtml(EthernetClient* cli)
     subthd(buf,jsbuf,'o',nb,&thermos[nb].lowoffset,'v');                                        // low offset
     subthd(buf,jsbuf,'d',nb,&thermos[nb].lowdetec,'d');                                         // low det
     
-    uint8_t vv=(uint8_t)thermos[nb].lowdetec;
-    if(vv!=0){affText(buf,jsbuf,(char*)(&libDetServ[vv][0]),0,STRING|TDBEG);
-      affText(buf,jsbuf," ",0,STRING|CONCAT|TDBEG);
+    subthc(buf,jsbuf,(uint8_t)thermos[nb].lowdetec);
+    /*if(vv!=0){affText(buf,jsbuf,(char*)(&libDetServ[vv][0]),0,STRING|TDBEG);
+      affText(buf,jsbuf,":",0,STRING|CONCAT);
       char oi[]={'0',0x00,'1',0x00};
-      affText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],0,STRING|CONCAT|TDBE);}
+      affText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],0,STRING|CONCAT);}
+    else affText(buf,jsbuf," ",0,TDBE);
+*/
+    subthd(buf,jsbuf,'E',nb,&thermos[nb].highenable,'e');                                        // high enable
+    subthd(buf,jsbuf,'S',nb,&thermos[nb].highstate,'e');                                         // high state
+    subthd(buf,jsbuf,'V',nb,&thermos[nb].highvalue,'v');                                         // high value
+    subthd(buf,jsbuf,'O',nb,&thermos[nb].highoffset,'v');                                        // high offset
+    subthd(buf,jsbuf,'D',nb,&thermos[nb].highdetec,'d');                                         // high det
 
+    subthc(buf,jsbuf,(uint8_t)thermos[nb].highdetec);
+    
     boutMaj(buf,jsbuf,"MàJ",TDBE);
     formEnd(buf,jsbuf,0,TREND);
                 
@@ -934,6 +954,7 @@ Serial.print(" config timers ");delay(100);
   boutF(buf,jsbuf,"timershtml","","refresh",ALICNO,2,0);
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
+// ------------------------------------------------------------- header end 
 
   detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);
 
