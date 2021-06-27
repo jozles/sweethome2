@@ -5,6 +5,9 @@
 
 #define NOFORM (bool)false
 
+#define BORDER VRAI
+#define NOBORDER FAUX
+
 void bufcat(char* buf,char* jsbuf,const char* s);
 void jscat(char* jsbuf,const char* s,bool sep);
 void jscat(char* jsbuf,const char* s);
@@ -48,6 +51,8 @@ void checkboxTableBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,
 void fontBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void fontEnd(char* buf,char* jsbuf,uint8_t ctl);
 void tableBeg(char* buf,char* jsbuf,uint8_t ctl);
+void tableBeg(char* buf,char* jsbuf,bool border,uint8_t ctl);
+void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t ctl);
 void tableEnd(char* buf,char* jsbuf,uint8_t ctl);
 void concatIp(char* buf,byte* ip);
 void concat1a(char* buf,char a);
@@ -70,22 +75,24 @@ uint8_t bufPrintPeriDate(char* buf,char* periDate);
 void bufPrintDateHeure(char* buf,char* pkdate);
 void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate);
 void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol);
-void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br);
+//void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
+void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
 void affSpace(char* buf,char* jsbuf);
 void affColonBeg(char* buf,char* jsbuf);
 void affColonEnd(char* buf,char* jsbuf);
 void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl);
-void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t ctl);
+void affText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,uint8_t ctl);
 void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl);
 void affNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl);
 void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len);
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl);
+void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl);
 void boutRetourB(char* buf,const char* lib,uint8_t td,uint8_t br);
 void boutRetourB(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void boutF(char* buf,const char* nomfonct,const char* valfonct,const char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter);
 void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl);
-void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t td);
+void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval);
 void radioTableBHtml(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl);
 void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td);

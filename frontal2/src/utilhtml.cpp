@@ -43,6 +43,9 @@ char colour[LENCOLOUR+1];
 int16_t valMin=-9999;
 int16_t valMax=9999;
 
+bool borderparam=NOBORDER;  // pour forcer l'init du navigateur
+uint16_t styleTdWidth=0;    // forçage largeur des colonnes de table en px
+
 /* utilitaires des fonctions JS et HTML */
 
 void jscat(char* jsbuf,const char* s){if(jsbuf!=nullptr){strcat(jsbuf,s);}}
@@ -83,7 +86,11 @@ void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour)
 { 
   if(buf!=nullptr){
     if((ctl&TRBEG)!=0 || (ctl&TDMASK)==TRBE){strcat(buf,"<tr>");}
-    if((ctl&TDBEG)!=0 || (ctl&TDMASK)==TDBE){strcat(buf,"<td>");}
+    if((ctl&TDBEG)!=0 || (ctl&TDMASK)==TDBE){
+      strcat(buf,"<td");
+      if(styleTdWidth!=0){strcat(buf," style=\"width: ");concatn(buf,styleTdWidth);strcat(buf,"px\"");} 
+      strcat(buf,">");
+    }
     if(*colour!=0x00){strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");}
     if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
   }
@@ -251,12 +258,32 @@ void fontEnd(char* buf,char* jsbuf,uint8_t ctl)
   fnHtmlEnd(buf,0,ctl);
 }
 
-void tableBeg(char* buf,char* jsbuf,uint8_t ctl)
+void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t ctl)
 {
-  strcat(buf,"<table>");
+  char tborder[]={" border=\"1px\""};
+
+  strcat(buf,"<table");
+  
+  if(border==NOBORDER){borderparam=NOBORDER;strcat(buf," border=\"0\"");}
+  else {if(borderparam==NOBORDER){borderparam=BORDER;strcat(buf,tborder);}} //");}} // border-color:green");}} //border-color=\"green\"");}}
+  if(police!=nullptr){
+    strcat(buf,police);}
+  strcat(buf,">");
   fnJsIntro(jsbuf,JSTB,0,ctl);
+  jscat(jsbuf,police,SEP);
+  jscat(jsbuf,tborder);
   fnHtmlIntro(buf,0,ctl);
   //fnHtmlEnd(buf,0,ctl);
+}
+
+void tableBeg(char* buf,char* jsbuf,bool border,uint8_t ctl)
+{
+  tableBeg(buf,jsbuf,nullptr,border,ctl);
+}
+
+void tableBeg(char* buf,char* jsbuf,uint8_t ctl)
+{
+  tableBeg(buf,jsbuf,BORDER,ctl);
 }
 
 void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
@@ -266,7 +293,7 @@ void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
   strcat(buf,"</table>\n");
 }
 
-void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t ctl)
+void affText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,uint8_t ctl)
 // mode STRING :  ne fonctionne que dans une ligne de table
 //                le premier appel comporte TDBEG pour forcer le nom de la commande et BRYES (ignoré dans ctl) ou TDEND 
 //                TDEND est forcé dans le ctl la commande
@@ -274,14 +301,17 @@ void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t c
 //                le dernier rien : TDEND est déjà dans le ctl de la commande (pour le format html ctl==STRING indique </td> à la fin)
 //                CONCAT pour ajouter du texte à la volée
 {
+  styleTdWidth=tdWidth;
   uint8_t ctlb=ctl&~STRING;if((ctl&STRING)!=0){ctlb&=~BRYES;if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
   if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0)&&((ctl&CONCAT)==0))){fnJsIntro(jsbuf,JSST,pol,ctlb);} 
   
   fnHtmlIntro(buf,pol,ctl);
   char* dm=jsbuf+strlen(jsbuf);
   char* dm0=dm;
-  if(len==-1){jscat(jsbuf,txt);}
-  else {while(len>0){*dm++=*txt++;len--;*dm='\0';}}
+
+  jscat(jsbuf,txt);
+  /*if(len<=0){jscat(jsbuf,txt);}
+  else {while(len>0){*dm++=*txt++;len--;*dm='\0';}}*/
 
   if(((ctl&STRING)!=0)&&((ctl&BRYES)!=0)){jscat(jsbuf,JSSBR);}
   if(((ctl&STRING)!=0)&&((ctl&TDEND)!=0)){jscat(jsbuf,JSSCO);}
@@ -297,7 +327,7 @@ void affText(char* buf,char* jsbuf,const char* txt,int len,uint8_t pol,uint8_t c
 
 void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
 {
-  affText(buf,jsbuf,txt,-1,pol,ctl);
+  affText(buf,jsbuf,txt,0,pol,ctl);
 }
 
 void affSpace(char* buf,char* jsbuf)
@@ -318,7 +348,7 @@ void affColonEnd(char* buf,char* jsbuf)
   fnJsIntro(jsbuf,JSCLE,0,0);
 }
 
-void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl)
+void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl)
 {
   fnJsIntro(jsbuf,JSATB,pol,ctl);
   fnHtmlIntro(buf,pol,ctl);
@@ -326,9 +356,15 @@ void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomf
   strcat(buf,nomfonct);jscat(jsbuf,nomfonct,SEP);
   strcat(buf,"\" value=\"");
   strcat(buf,valfonct);jscat(jsbuf,valfonct,SEP);
-  strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,jsbuf,len);
+  strcat(buf,"\" size=\"");if(size==0){strcat(buf,"12");}else concatn(buf,jsbuf,size);
+  strcat(buf,"\" maxlength=\"");concatn(buf,jsbuf,len);
   strcat(buf,"\" >");
   fnHtmlEnd(buf,pol,ctl);
+}
+
+void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl)
+{
+  alphaTableHtmlB(buf,jsbuf,valfonct,nomfonct,0,len,pol,ctl);
 }
 
 void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len)
@@ -409,18 +445,7 @@ void affNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* val
   setColourE(buf,jsbuf);
 }
 
-void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol)
-{
-  numTf(buf,nullptr,type,valfonct,nomfonct,len,2,pol,BRNO|td|TRNO);
-}
-
-void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br)
-{
-  uint8_t ctl=td;if(br){ctl|=BRYES;}
-  numTf(buf,jsbuf,type,valfonct,nomfonct,len,dec,pol,ctl);
-}
-
-void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl)
+void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t dec,uint8_t pol,uint8_t ctl)
 {                          
   fnJsIntro(jsbuf,JSNTB,pol,ctl);
   fnHtmlIntro(buf,pol,ctl);
@@ -448,10 +473,27 @@ void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,i
     case 'g':concatn(buf,jsbuf,*(uint32_t*)valfonct,SEP);break;    
     default:break;
   }*/
-  int sizeHtml=1;if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}
+  int sizeHtml=1;
+  if(size!=0){sizeHtml=size;}
+  else {if(len>=3){sizeHtml=2;}if(len>=6){sizeHtml=4;}if(len>=9){sizeHtml=6;}}
   strcat(buf,"\" size=\"");concatn(buf,jsbuf,sizeHtml,SEP);strcat(buf,"\" maxlength=\"");concatn(buf,jsbuf,len);strcat(buf,"\" >");
   fnHtmlEnd(buf,pol,ctl);
 }
+
+void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl)
+{
+  numTf(buf,jsbuf,type,valfonct,nomfonct,0,len,dec,pol,ctl);
+}
+void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol)
+{
+  numTf(buf,nullptr,type,valfonct,nomfonct,len,2,pol,BRNO|td|TRNO);
+}
+
+/*void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t td,int pol,uint8_t dec,bool br)
+{
+  uint8_t ctl=td;if(br){ctl|=BRYES;}
+  numTf(buf,jsbuf,type,valfonct,nomfonct,len,dec,pol,ctl);
+}*/
 
 /* 
 
@@ -842,18 +884,18 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
           strcat(buf,"<style>");         
 
             strcat(buf,"table {");
-              strcat(buf,"font-family: Courier, sans-serif;");
+              //strcat(buf,"font-family: Courier, sans-serif;");
               strcat(buf,"border-collapse: collapse;");
+              //strcat(buf,"border: 1px solid #dddddd;\n");
+              strcat(buf,"border-color: #dddddd;\n");
               //cli->println("width: 100%;");
               strcat(buf,"overflow: auto;\n");
               strcat(buf,"white-space:nowrap;"); 
             strcat(buf,"}\n");
-
-  ethWrite(cli,buf);
   
             strcat(buf,"td, th {");
-              strcat(buf,"font-family: Courier, sans-serif;\n");
-              strcat(buf,"border: 1px solid #dddddd;\n");
+              //strcat(buf,"font-family: Courier, sans-serif;\n");
+              //strcat(buf,"border: 1px solid #dddddd;\n");
               strcat(buf,"text-align: left;\n"); 
             strcat(buf,"}\n");
 
@@ -891,8 +933,8 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             //strcat(buf,"body { margin: 2rem;font-family: Roboto, sans-serif;}\n");
             strcat(buf,".content {display:flex;flex-wrap:wrap;gap:1rem;justify-content:flex-start;}\n");
             strcat(buf,".content > div{flex-basis:200px;border:1px solid #ccc;padding:1rem;box-shadow: 0px 1px 1px rgba(0,0,0,0.2), 0px 1px 1px rgba(0,0,0,0.2);}\n");
-            strcat(buf,"h1{font-weight: normal; color: var(--txt-color);}\n");
-            strcat(buf,"h2 {font-size: 1.1rem;color: var(--txt-color);font-weight: normal;text-transform: uppercase;margin:0 0 2rem;border-bottom: 1px solid #ccc;}\n");
+            //strcat(buf,"h1{font-weight: normal; color: var(--txt-color);}\n");
+            //strcat(buf,"h2{font-size: 1.1rem;color: var(--txt-color);font-weight: normal;text-transform: uppercase;margin:0 0 2rem;border-bottom: 1px solid #ccc;}\n");
   
   ethWrite(cli,buf);            
   
@@ -913,6 +955,8 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
 
           strcat(buf,"</style>\n");  
   strcat(buf,"</head>\n");
+  
+  borderparam=NOBORDER;   // force l'init du navigateur
   ethWrite(cli,buf);
 }
 

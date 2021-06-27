@@ -395,7 +395,7 @@ void periTableHtml(EthernetClient* cli)
           detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
           
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
-          tableBeg(buf,jsbuf,TRBEG|TDBEG);
+          tableBeg(buf,jsbuf," style=\"font-family: Courier, sans-serif\"",BORDER,TRBEG|TDBEG);
           affText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|vers. prot~last out~last in|",0,TREND|TDEND);
 
           ethWrite(cli,buf,&lb);
@@ -594,7 +594,8 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
                       uint8_t lctl=TDBEG;
                       for(int k=0;k<*periSwNb;k++){fonc[LENNOM-1]=PMFNCHAR+k;radioTableBHtml(buf,jsbuf,periSwCde(k),fonc,2,0,lctl);
                         lctl=0;if(k<*periSwNb-1){lctl=BRYES;}
-                        affText(buf,jsbuf,&oi[periSwLev(k)],1,0,lctl|STRING|CONCAT);
+                        char tt[2]={oi[periSwLev(k)],0x00};
+                        affText(buf,jsbuf,tt,0,lctl|STRING|CONCAT);
                         lctl=0;}
                       strcat(buf,"\n");
 
@@ -715,21 +716,22 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           affNum(buf,jsbuf,'s',(uint8_t*)periDetNb,0,0,STRING|TDEND);                                                 
           //concat1aH(buf,(char)(*periSwVal));strcat(buf,"<br>");
           
-          char tt[3];
+          char tt[4];tt[3]=0x00;
           for(uint8_t k=0;k<*periSwNb;k++){
                       tt[0]=oi[periSwCde(k)];tt[1]='_';tt[2]=oi[periSwLev(k)];
-                      //affText(buf,jsbuf,&oi[periSwCde(k)],1,0,lctl);affText(buf,jsbuf,"_",1,0,0);
+                      //affText(buf,jsbuf,&oi[periSwCde(k)],0,lctl);affText(buf,jsbuf,"_",0,0);
                       //lctl=0;
                       if(k<*periSwNb-1){lctl=STRING|BRYES;}
                       else {lctl=STRING|TDEND;}
-                      //affText(buf,jsbuf,&oi[periSwLev(k)],1,0,lctl);
-                      affText(buf,jsbuf,tt,3,0,lctl);
+                      //affText(buf,jsbuf,&oi[periSwLev(k)],0,lctl);
+                      affText(buf,jsbuf,tt,0,lctl);
           }
           if(*periSwNb==0){affText(buf,jsbuf," ",0,STRING|TDEND);}          
           for(uint8_t k=0;k<*periDetNb;k++){
             if(k<*periDetNb-1){lctl=STRING|BRYES;}
             else lctl=STRING|TDEND;
-            affText(buf,jsbuf,&oi[(*periDetVal>>(k*2))&DETBITLH_VB],1,0,lctl);
+            char tt[2]={oi[(*periDetVal>>(k*2))&DETBITLH_VB],0x00};
+            affText(buf,jsbuf,tt,0,lctl);     //&oi[(*periDetVal>>(k*2))&DETBITLH_VB],1,0,lctl);
           }
           if(*periDetNb==0){affText(buf,jsbuf," ",0,STRING|TDEND);}
 // analog 

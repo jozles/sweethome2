@@ -75,12 +75,15 @@ extern struct Timers timersN[NBTIMERS];
 
 extern struct Thermo thermos[NBTHERMOS];
 
-extern int       fdatasave;
+extern int        fdatasave;
 
-extern char      mdsSrc[];
-extern uint32_t  memDetServ;                   // image mémoire NBDSRV détecteurs
-extern char      libDetServ[NBDSRV][LENLIBDETSERV];
-extern uint16_t  sourceDetServ[NBDSRV];
+extern char       mdsSrc[];
+extern uint32_t   memDetServ;                   // image mémoire NBDSRV détecteurs
+extern char       libDetServ[NBDSRV][LENLIBDETSERV];
+extern uint16_t   sourceDetServ[NBDSRV];
+
+extern bool       borderparam;
+extern uint16_t   styleTdWidth;
 
    // Un formulaire ou une page html nécessite dans l'ordre :
    //      1) une fonction user_ref_ avec ses paramètres pour éviter le retour au mot de passe
@@ -299,20 +302,24 @@ void accueilHtml(EthernetClient* cli)
       unsigned long begTPage=millis();
       
             Serial.print(" accueilHtml ");
+            usernum=0;
             htmlIntro0B(buf);                                               // ,nomserver,cli);
-            formIntro(buf,jsbuf,0,0);
+            //formIntro(buf,jsbuf,0,0);
             
             affText(buf,jsbuf,VERSION,5,BRYES);
             //strcat(buf,"<h1 class=\"point\">");
             //strcat(buf,VERSION);strcat(buf,"<br>");
 
+            strcat(buf,"<form method=\"GET \">");
             strcat(buf,"<p><input type=\"username\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Username\" name=\"username__\"  value=\"\" size=\"6\" maxlength=\"8\" ></p>\n");            
             strcat(buf,"<p><input type=\"password\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>\n");
-            boutRetourB(buf,jsbuf,"Login",0);
-            //strcat(buf," <input type=\"submit\" text style=\"width:300px;height:60px;font-size:40px\" value=\"login\"><br></h1>\n");
-            formEnd(buf,jsbuf,0,0);
-            htmlEnd(buf,jsbuf);
-            //strcat(buf,"</form></body></html>\n");
+            //boutRetourB(buf,jsbuf,"Login",0);
+            strcat(buf," <input type=\"submit\" text style=\"width:300px;height:60px;font-size:40px\" value=\"login\"><br></h1>\n");
+            //formEnd(buf,jsbuf,0,0);
+            
+            //htmlEnd(buf,jsbuf);
+            strcat(buf,"</form></body></html>\n");
+            
             ethWrite(cli,buf,&lb);
             
             bufLenShow(buf,jsbuf,lb,begTPage);
@@ -336,119 +343,140 @@ void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,const void* value,
                                                                     // type =2 int16_t /    (int16t*)value+nb
                                                                     // type =3 int8_t  /    value=int8_t*
 {
-  int sizbx=len-3;if(sizbx<=0){sizbx=1;}
+  int8_t sizbx=len-3;if(sizbx<=0){sizbx=1;}
   char nf[LENNOM+1];memcpy(nf,nom,LENNOM-1);nf[LENNOM-1]=(char)(nb+PMFNCHAR);nf[LENNOM]=0x00;
 
   
   //strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nom);concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
-  if(type==0){alphaTableHtmlB(buf,jsbuf,(char*)value,nf,len,0,ctl);} //strcat(buf,(char*)value);strcat(buf,"\" size=\"");concatn(buf,sizbx);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>");}
-  if(type==1){alphaTableHtmlB(buf,jsbuf,(char*)((char*)value+(nb*(len+1))),nf,len,0,ctl);} //strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatn(buf,len);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");}  
+  if(type==0){alphaTableHtmlB(buf,jsbuf,(char*)value,nf,sizbx,len,0,ctl);} //strcat(buf,(char*)value);strcat(buf,"\" size=\"");concatn(buf,sizbx);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>");}
+  if(type==1){alphaTableHtmlB(buf,jsbuf,(char*)((char*)value+(nb*(len+1))),nf,sizbx,len,0,ctl);} //strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatn(buf,len);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");}  
   if(type==2){numTf(buf,jsbuf,'I',((int16_t*)value+nb),nf,2,1,0,ctl);} //concatn(buf,*((int16_t*)value+nb));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>");}
   if(type==3){numTf(buf,jsbuf,'s',(int8_t*)value,nf,2,1,0,ctl);} //concatn(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
 }
 
 void subcfgtable(char* buf,char* jsbuf,const char* titre,int nbl,const char* nom1,const char* value1,int len1,uint8_t type1,const char* nom2,void* value2,int len2,const char* titre2,uint8_t type2)
-{   
-    strcat(buf,"<table><col width=\"22\"><tr><th></th><th>");strcat(buf,titre);strcat(buf,"</th><th>");strcat(buf,titre2);strcat(buf,"</th></tr>\n");
-
+{ 
+    borderparam=NOBORDER;  
+    tableBeg(buf,jsbuf,0);affText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);affText(buf,jsbuf,titre,0,STRING|TDEND);affText(buf,jsbuf,titre2,0,STRING|TREND);
+    //strcat(buf,"<table><col width=\"22\"><tr><th></th><th>");strcat(buf,titre);strcat(buf,"</th><th>");strcat(buf,titre2);strcat(buf,"</th></tr>\n");
+Serial.println((char*)(buf+strlen(buf)-100));
     for(int nb=0;nb<nbl;nb++){
-      strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td>");
+      affNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
+      //strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td>");
 
-      sscfgtB(buf,jsbuf,nom1,nb,value1,len1,type1,0);                      
-      sscfgtB(buf,jsbuf,nom2,nb,value2,len2,type2,0);
+      sscfgtB(buf,jsbuf,nom1,nb,value1,len1,type1,TDBE);                      
+      sscfgtB(buf,jsbuf,nom2,nb,value2,len2,type2,TDBE);
 
       if(len2==-1){
         int16_t peri=*((int16_t*)value2+nb);
-        if(peri>0){Serial.print(peri);periLoad(peri);strcat(buf,"<td>");strcat(buf,periNamer);strcat(buf,"</td>");}
+        if(peri>0){Serial.print(peri);periLoad(peri);
+          affText(buf,jsbuf,periNamer,0,TDBE);}
+          //strcat(buf,"<td>");strcat(buf,periNamer);strcat(buf,"</td>");}
         if(nb==nbl-1){Serial.println();}
       }
-      strcat(buf,"</tr>");
+      affText(buf,jsbuf," ",0,TREND);
+      //strcat(buf,"</tr>");
     }
-    strcat(buf,"</table>");
+    tableEnd(buf,jsbuf,0);
 }
 
 void cfgServerHtml(EthernetClient* cli)
 {
-            Serial.print(" config serveur ");
-
-            char buf[LBUF4000];buf[0]='\0';
-            char jsbuf[LBUF4000];*jsbuf=0x00;
-
-            htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf,jsbuf);
-            formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
-            //usrFormBHtml(buf,1);
-            boutRetourB(buf,"retour",0,0);
-            ethWrite(cli,buf);
-// ------------------------------------------------------------- header end            
-            strcat(buf," <input type=\"submit\" value=\" MàJ \"><br> \n");
-            
-            /*cli->print(" password <input type=\"text\" name=\"pwdcfg____\" value=\"");cli->print(userpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");
-            cli->print("  modpass <input type=\"text\" name=\"modpcfg___\" value=\"");cli->print(modpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");            
-            cli->print(" peripass <input type=\"text\" name=\"peripcfg__\" value=\"");cli->print(peripass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");*/
-
-            strcat(buf," serverMac <input type=\"text\" name=\"ethcfg___m\" value=\"");
-            for(int k=0;k<MACADDRLENGTH;k++){concat1a(buf,chexa[mac[k]/16]);concat1a(buf,chexa[mac[k]%16]);}strcat(buf,"\" size=\"11\" maxlength=\"12\" >\n");                        
-            strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
-            for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
-            strcat(buf," portserver ");numTf(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
-            ethWrite(cli,buf);
-            subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
-            ethWrite(cli,buf);
-            strcat(buf," to password ");numTf(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
-            subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
-            
-            ethWrite(cli,buf);
-            
-            strcat(buf," mail From <input type=\"text\" name=\"mailcfg__f\" value=\"");strcat(buf,mailFromAddr);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" >\n");
-            strcat(buf," password  <input type=\"text\" name=\"mailcfg__w\" value=\"");strcat(buf,mailPass);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" ><br>\n");
-            strcat(buf," mail To #1 <input type=\"text\" name=\"mailcfg__1\" value=\"");strcat(buf,mailToAddr1);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" >\n");
-            strcat(buf," mail To #2 <input type=\"text\" name=\"mailcfg__2\" value=\"");strcat(buf,mailToAddr2);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" ><br>\n");
-            
-            strcat(buf," perif 1 ");numTf(buf,'d',periMail1,"mailcfg__p",2,0,0);strcat(buf,"<br>\n");
-            strcat(buf," perif 2 ");numTf(buf,'d',periMail2,"mailcfg__q",2,0,0);strcat(buf,"<br>\n");
-
-            strcat(buf,"maxCxWt ");numTf(buf,'l',maxCxWt,"ethcfg___q",8,0,0);
-            strcat(buf," maxCxWu ");numTf(buf,'l',maxCxWu,"ethcfg___r",8,0,0);strcat(buf,"<br>\n");
-            strcat(buf,"</form></body></html>\n");
-            
-            ethWrite(cli,buf);
-}
-
-void cfgDetServHtml(EthernetClient* cli)
-{
-  
-Serial.print("-> config detServ ");delay(100);
+  Serial.print(" config serveur ");
 
   char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF4000;
   char buf[lb0];*buf=0x00;
 
   unsigned long begTPage=millis();     // calcul durée envoi page
-  uint8_t ni=0;
 
-  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
-  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
-                                    // à charger au moins une fois par page ; pour les autres formulaires 
-                                    // de la page formBeg() suffit
+  htmlIntroB(buf,nomserver,cli);    
+  formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
 
   pageHeader(buf,jsbuf);            // 1ère ligne page
   boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
-  boutMaj(buf,jsbuf,"MàJ",0);
+  boutMaj(buf,jsbuf,"MàJ",BRYES);
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
 // ------------------------------------------------------------- header end
-/*
-            uint16_t lb0=LBUF4000;
-            char buf[lb0];buf[0]='\0';
-            char jsbuf[LBUF4000];*jsbuf=0x00;
-            uint8_t ni=0;
-            uint16_t lb;
- 
-            htmlIntroB(buf,nomserver,cli);
-            pageHeader(buf,jsbuf);
-            usrFormBHtml(buf,1);
-*/            
+            
+            /*cli->print(" password <input type=\"text\" name=\"pwdcfg____\" value=\"");cli->print(userpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");
+            cli->print("  modpass <input type=\"text\" name=\"modpcfg___\" value=\"");cli->print(modpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");            
+            cli->print(" peripass <input type=\"text\" name=\"peripcfg__\" value=\"");cli->print(peripass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");*/
+
+fontBeg(buf,jsbuf,2,0);
+
+            #define LBUFL 16
+            char lbuf[LBUFL];*lbuf=0x00;for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[mac[k]/16]);concat1a(lbuf,chexa[mac[k]%16]);}
+            affText(buf,jsbuf," serverMac ",0,0);alphaTableHtmlB(buf,jsbuf,lbuf,"ethcfg___m",11,MACADDRLENGTH,0,0);
+            //strcat(buf," serverMac <input type=\"text\" name=\"ethcfg___m\" value=\"");
+            //for(int k=0;k<MACADDRLENGTH;k++){concat1a(buf,chexa[mac[k]/16]);concat1a(buf,chexa[mac[k]%16]);}strcat(buf,"\" size=\"11\" maxlength=\"12\" >\n");                        
+            *lbuf=0x00;for(int k=0;k<4;k++){concatns(lbuf,localIp[k]);if(k!=3){strcat(lbuf,".");}}
+            affText(buf,jsbuf," localIp ",0,0);alphaTableHtmlB(buf,jsbuf,lbuf,"ethcfg___i",11,LBUFL,0,0);
+            //strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
+            //for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
+            affText(buf,jsbuf," portserver ",0,0);numTf(buf,jsbuf,'d',portserver,"ethcfg___p",4,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," portserver ");numTf(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
+
+            affText(buf,jsbuf,"",0,BRYES);
+            subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
+            affText(buf,jsbuf," to password ",0,0);numTf(buf,jsbuf,'d',toPassword,"to_passwd_",6,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," to password ");numTf(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
+            subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
+            ethWrite(cli,buf,&lb);
+            
+            tableBeg(buf,jsbuf,NOBORDER,BRYES);  //affText(buf,jsbuf," ",100,2,TDBE);
+            affText(buf,jsbuf,"mailFrom ",2,TRBEG|TDBE);alphaTableHtmlB(buf,jsbuf,mailFromAddr,"mailcfg__f",16,LMAILADD,0,TDBE);strcat(buf,"\n");
+            //strcat(buf," mail From <input type=\"text\" name=\"mailcfg__f\" value=\"");strcat(buf,mailFromAddr);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD));strcat(buf,"\" >\n");
+            affText(buf,jsbuf," ",40,2,TDBE);affText(buf,jsbuf,"password  ",0,TDBE);alphaTableHtmlB(buf,jsbuf,mailPass,"mailcfg__w",16,LMAILPWD,0,TDBE|TREND);strcat(buf,"\n");
+            //strcat(buf," password  <input type=\"text\" name=\"mailcfg__w\" value=\"");strcat(buf,mailPass);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" ><br>\n");
+            affText(buf,jsbuf,"mailTo #1 ",0,TRBEG|TDBE);alphaTableHtmlB(buf,jsbuf,mailToAddr1,"mailcfg__1",16,LMAILADD,0,TDBE);strcat(buf,"\n");
+            //strcat(buf," mail To #1 <input type=\"text\" name=\"mailcfg__1\" value=\"");strcat(buf,mailToAddr1);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" >\n");
+            affText(buf,jsbuf," ",40,2,TDBE);affText(buf,jsbuf,"mailTo #2 ",0,TDBE);alphaTableHtmlB(buf,jsbuf,mailToAddr2,"mailcfg__2",16,LMAILADD,0,TDBE|TREND);strcat(buf,"\n");
+            //strcat(buf," mail To #2 <input type=\"text\" name=\"mailcfg__2\" value=\"");strcat(buf,mailToAddr2);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" ><br>\n");
+            tableEnd(buf,jsbuf,BRYES);
+
+            affText(buf,jsbuf,"mail perif 1 ",0,0);numTf(buf,jsbuf,'d',periMail1,"mailcfg__p",2,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," perif 1 ");numTf(buf,'d',periMail1,"mailcfg__p",2,0,0);strcat(buf,"<br>\n");
+            affText(buf,jsbuf,"mail perif 2 ",0,0);numTf(buf,jsbuf,'d',periMail2,"mailcfg__q",2,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," perif 2 ");numTf(buf,'d',periMail2,"mailcfg__q",2,0,0);strcat(buf,"<br>\n");
+
+            
+            affText(buf,jsbuf,"maxCxWt ",0,0);numTf(buf,jsbuf,'l',maxCxWt,"ethcfg___q",8,0,0,0);
+            //strcat(buf,"maxCxWt ");numTf(buf,'l',maxCxWt,"ethcfg___q",8,0,0);
+            affText(buf,jsbuf," maxCxWu ",0,0);numTf(buf,jsbuf,'l',maxCxWu,"ethcfg___r",8,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," maxCxWu ");numTf(buf,'l',maxCxWu,"ethcfg___r",8,0,0);strcat(buf,"<br>\n");
+            
+            formEnd(buf,jsbuf,0,0);
+fontEnd(buf,jsbuf,0);
+            htmlEnd(buf,jsbuf);
+            
+            ethWrite(cli,buf);
+
+            bufLenShow(buf,jsbuf,lb,begTPage);
+}
+
+void cfgDetServHtml(EthernetClient* cli)
+{
+  
+Serial.print("-> config detServ ");
+
+  char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  uint16_t lb=0,lb0=LBUF4000;
+  char buf[lb0];*buf=0x00;
+
+  unsigned long begTPage=millis();                  // calcul durée envoi page
+  uint8_t ni=0;
+
+  htmlIntroB(buf,nomserver,cli);                    // chargement CSS etc
+  formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);       // params pour retours navigateur (n° usr + time usr + pericur)
+
+  pageHeader(buf,jsbuf);                            // 1ère ligne page
+  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
+  boutMaj(buf,jsbuf,"MàJ",0);
+
+  ethWrite(cli,buf,&lb);       
+// ------------------------------------------------------------- header end
 
 /* table libellés */
   tableBeg(buf,jsbuf,0);
@@ -471,9 +499,7 @@ Serial.print("-> config detServ ");delay(100);
 
   ethWrite(cli,buf,&lb);
 
-  Serial.print("len buf=");Serial.print(lb);Serial.print("  len jsbuf=");Serial.print(strlen(jsbuf));
-  Serial.print("  ms=");Serial.println(millis()-begTPage); 
-
+  bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 
@@ -491,7 +517,7 @@ void cfgRemoteHtml(EthernetClient* cli)
  
   htmlIntroB(buf,nomserver,cli);                // chargement CSS etc
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);   // params pour retours navigateur (n° usr + time usr + pericur)
-                                                // à charger au moins une fois par page 
+
   pageHeader(buf,jsbuf);                        // 1ère ligne page
   boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
   
@@ -533,6 +559,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
 /* table détecteurs */
 
+            borderparam=FAUX;
             tableBeg(buf,jsbuf,0);
             affText(buf,jsbuf,"  |remote |detec on/off|detec en|peri|switch",0,TRBE|TDBE);
               
@@ -810,7 +837,7 @@ void thermoShowHtml(EthernetClient* cli)
 
 /* peritable températures */
 
-  tableBeg(buf,jsbuf,BRYES|TRBEG);
+  tableBeg(buf,jsbuf," style=font-family: Courier, sans-serif",BORDER,BRYES|TRBEG);
   affText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
   strcat(buf,"\n");
               for(int nuth=0;nuth<NBTHERMOS;nuth++){
@@ -838,8 +865,8 @@ void thermoShowHtml(EthernetClient* cli)
                     //affText(buf,jsbuf,lith,5,TDBE);
                     
                     memset(lith,0x00,LLITH);
-                    uint8_t ld=bufPrintPeriDate(lith,periLastDateIn);
-                    affText(buf,jsbuf,lith,ld,2,TDBE|TREND);
+                    bufPrintPeriDate(lith,periLastDateIn);
+                    affText(buf,jsbuf,lith,2,TDBE|TREND);
                     strcat(buf,"\n");                      
                     
                     lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
@@ -890,7 +917,7 @@ void subthc(char* buf,char* jsbuf,uint8_t vv)
 
 void thermoCfgHtml(EthernetClient* cli)
 { 
-            Serial.print(" config thermos ");
+  Serial.print(" config thermos ");
             
   char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=8000;
@@ -913,7 +940,7 @@ void thermoCfgHtml(EthernetClient* cli)
 /* table thermos */
 
   tableBeg(buf,jsbuf,0);
-  affText(buf,jsbuf,"   |      Nom      | peri |  | low~ en| low~ state| low~ value| low~ pitch| low~ det| | high~ en| high~ state| high~ value| high~ offset| high~ det| | ",0,TDBE|TRBE);
+  affText(buf,jsbuf,"   |      Nom      | peri |  | low~ en| low~ state| low~ value| low~ pitch| low~ det| | high~ en| high~ state| high~ value| high~ offset| high~ det| | ",2,TDBE|TRBE);
 
   for(uint8_t nb=0;nb<NBTHERMOS;nb++){
     ni++;
@@ -1071,7 +1098,7 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
 
             fontBeg(buf,jsbuf,1,0);
             affColonBeg(buf,jsbuf);
-            affText(buf,jsbuf,&(mdsSrc[sourceDetServ[k]/256]),1,0,0);
+            affText(buf,jsbuf,&(mdsSrc[sourceDetServ[k]/256]),0,0);
             if(sourceDetServ[k]/256!=0){
               concatn(buf,jsbuf,sourceDetServ[k]&0x00ff);
               affText(buf,jsbuf,") ",0,0);}
