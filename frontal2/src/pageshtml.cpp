@@ -176,7 +176,8 @@ void dumpHisto(EthernetClient* cli)
   long pos=histoPos;
   char file[]={"fdhisto.txt"};
 
-  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+  htmlBeg(buf,jsbuf,nomserver,cli);    // chargement CSS etc
+  htmlBegE(buf,cli);
   formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
@@ -303,7 +304,7 @@ void accueilHtml(EthernetClient* cli)
       
             Serial.print(" accueilHtml ");
             usernum=0;
-            htmlIntro0B(buf);                                               // ,nomserver,cli);
+            htmlBeg0(buf,jsbuf);                         
             //formIntro(buf,jsbuf,0,0);
             
             affText(buf,jsbuf,VERSION,5,BRYES);
@@ -390,7 +391,8 @@ void cfgServerHtml(EthernetClient* cli)
 
   unsigned long begTPage=millis();     // calcul durée envoi page
 
-  htmlIntroB(buf,nomserver,cli);    
+  htmlBeg(buf,jsbuf,nomserver,cli);
+  htmlBegE(buf,cli);   
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
 
   pageHeader(buf,jsbuf);            // 1ère ligne page
@@ -468,7 +470,8 @@ Serial.print("-> config detServ ");
   unsigned long begTPage=millis();                  // calcul durée envoi page
   uint8_t ni=0;
 
-  htmlIntroB(buf,nomserver,cli);                    // chargement CSS etc
+  htmlBeg(buf,jsbuf,nomserver,cli);                    // chargement CSS etc
+  htmlBegE(buf,cli);
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);       // params pour retours navigateur (n° usr + time usr + pericur)
 
   pageHeader(buf,jsbuf);                            // 1ère ligne page
@@ -515,7 +518,8 @@ void cfgRemoteHtml(EthernetClient* cli)
   char nf[LENNOM+1];nf[LENNOM]='\0';
   uint8_t val;
  
-  htmlIntroB(buf,nomserver,cli);                // chargement CSS etc
+  htmlBeg(buf,jsbuf,nomserver,cli);                // chargement CSS etc
+  htmlBegE(buf,cli);
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);   // params pour retours navigateur (n° usr + time usr + pericur)
 
   pageHeader(buf,jsbuf);                        // 1ère ligne page
@@ -559,7 +563,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
 /* table détecteurs */
 
-            borderparam=FAUX;
+            borderparam=NOBORDER;
             tableBeg(buf,jsbuf,0);
             affText(buf,jsbuf,"  |remote |detec on/off|detec en|peri|switch",0,TRBE|TDBE);
               
@@ -568,14 +572,12 @@ void cfgRemoteHtml(EthernetClient* cli)
                 formIntro(buf,jsbuf,nullptr,0,nullptr,0,TRBEG);
                 uint8_t nb1=nb++;
                 affNum(buf,jsbuf,'s',&nb1,0,0,TDBE);                                          // n° ligne de table
-                strcat(buf,"\n");
 
                 memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° remote
                 numTf(buf,jsbuf,'b',&remoteT[nb].num,nf,2,0,0,TDBEG);
                 char ttsp[]={' ',0x00};
                 char* tt=remoteN[remoteT[nb].num-1].nam;if(remoteT[nb].num==0){tt=ttsp;}
                 affText(buf,jsbuf,tt,0,TDEND);
-                strcat(buf,"\n");
 
                 memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec on/off
                 numTf(buf,jsbuf,'b',&remoteT[nb].detec,nf,2,0,0,TDBEG);
@@ -634,7 +636,11 @@ void remoteHtml(EthernetClient* cli)
             uint8_t ni=0;                                       // nbre lignes dans buffer
             uint16_t lb;
  
-            htmlIntroB(buf,nomserver,cli);
+            htmlBeg(buf,jsbuf,nomserver,cli);
+            htmlStyleSliders(buf);
+            htmlStyleSqrBut(buf); 
+            htmlBegE(buf,cli);
+
             pageHeader(buf,jsbuf);
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
             //usrFormBHtml(buf,1);
@@ -644,29 +650,33 @@ void remoteHtml(EthernetClient* cli)
 
 /* table remotes */
            
-            strcat(buf,"<table>");            
+            tableBeg(buf,jsbuf,0); //strcat(buf,"<table>");            
 
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               ni++;
               if(remoteN[nb].nam[0]!='\0'){
-                strcat(buf,"<tr><td>");concatn(buf,nb+1);strcat(buf,"</td>\n");  // numéro de ligne
+                uint8_t nb1=nb+1;
+                affNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);                                         
 
                 // affichage état d'un éventuel switch
-                // boucle des détecteurs pour trouver un switch (voir le commentaire des disjoncteurs, c'est idem)               
-                strcat(buf,"<td>");
+                // boucle des détecteurs pour trouver un switch 
+                // (voir le commentaire des disjoncteurs, c'est idem)               
+                uint8_t lctl=TDBEG;
                 for(uint8_t td=0;td<MAXREMLI;td++){
                   if(remoteT[td].num==nb+1 && remoteT[td].peri!=0){           // même remote et présence périphérique
                     periCur=remoteT[td].peri;periLoad(periCur);
                     
                     if(periSwLev(remoteT[td].sw)==1){                         // switch ON
-                      strcat(buf," ON <div id=\"rond_jaune\"></div>");
+                      affText(buf,jsbuf," ON ",0,lctl);lctl=0;
+                      affRondJaune(buf,jsbuf,TDEND);
+                      //strcat(buf," ON <div id=\"rond_jaune\"></div>");
                     }
                     else {
-                      strcat(buf," OFF ");}
+                      affText(buf,jsbuf," OFF ",0,TDEND);}  //strcat(buf," OFF ");}
                   }
                 }
-                
-                strcat(buf,"</td><td> <font size=\"7\">");strcat(buf,remoteN[nb].nam);strcat(buf,"</font></td>");      // nom remote
+                affText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
+                //strcat(buf,"</td><td> <font size=\"7\">");strcat(buf,remoteN[nb].nam);strcat(buf,"</font></td>");      // nom remote
                 // slider on/off
                 // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
                 // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
@@ -675,11 +685,12 @@ void remoteHtml(EthernetClient* cli)
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
                 strcat(buf,"<input type=\"hidden\" name=\"remote_cn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">");
-                sliderBHtml(buf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);             // slider
+                sliderBHtml(buf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);     // slider
 
-                  strcat(buf,"<td>- - - - -</td>\n");                                           // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
-                  bool vert=FAUX;                                                               // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
-                  yradioTableBHtml(buf,remoteN[nb].enable,"remote_cs",2,vert,nb,1);             // renvoie 0,1,2 selon OFF,ON,FOR
+                  affText(buf,jsbuf,"- - - - -",0,TDBE);                                // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
+                  //strcat(buf,"<td>- - - - -</td>\n");                                 
+                  bool vert=FAUX;                                                       // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
+                  yradioTableBHtml(buf,remoteN[nb].enable,"remote_cs",2,vert,nb,1);     // renvoie 0,1,2 selon OFF,ON,FOR
 
                 strcat(buf,"</tr>");
                 
@@ -687,14 +698,14 @@ void remoteHtml(EthernetClient* cli)
              }
             }
             if(buf[0]!='\0'){ethWrite(cli,buf);}
-            strcat(buf,"</table>");
+            tableEnd(buf,jsbuf,0);
             
-            strcat(buf,"<p align=\"center\" ><input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
-            boutF(buf,"thermoshow","","températures",0,0,7,0);strcat(buf," \n");
-            boutF(buf,"remotehtml","","refresh",0,0,7,0);
-            strcat(buf,"</p>\n");
+            boutMaj(buf,jsbuf,"MàJ",ALIC,7,BRYES); //<input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
+            boutF(buf,jsbuf,"thermoshow","","températures",ALIC,7,0);
+            boutF(buf,jsbuf,"remotehtml","","refresh",ALIC,7,BRYES);
             
-            strcat(buf,"</form></body></html>");
+            formEnd(buf,jsbuf,0,0);
+            htmlEnd(buf,jsbuf);
             ethWrite(cli,buf);
 }
 
@@ -824,7 +835,8 @@ void thermoShowHtml(EthernetClient* cli)
   #define LLITH 200
   char lith[LLITH];
 
-  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+  htmlBeg(buf,jsbuf,nomserver,cli);    // chargement CSS etc
+  htmlBegE(buf,cli);
   formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
@@ -923,11 +935,12 @@ void thermoCfgHtml(EthernetClient* cli)
   uint16_t lb=0,lb0=8000;
   char buf[lb0];*buf=0x00;
 
-  unsigned long begTPage=millis();     // calcul durée envoi page
+  unsigned long begTPage=millis();              // calcul durée envoi page
   uint8_t ni=0;
  
-  htmlIntroB(buf,nomserver,cli);                // chargement CSS etc
-  //formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);   // params pour retours navigateur (n° usr + time usr + pericur)
+  htmlBeg(buf,jsbuf,nomserver,cli);             // chargement CSS etc
+  htmlBegE(buf,cli);
+  //formIntro(buf,jsbuf,nullptr,0,nullptr,0,0); // params pour retours navigateur (n° usr + time usr + pericur)
                                                 // à charger au moins une fois par page 
   pageHeader(buf,jsbuf);                        // 1ère ligne page
   boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
@@ -1003,19 +1016,20 @@ Serial.print(" config timers ");delay(100);
   uint16_t lb=0,lb0=8000;
   char buf[lb0];*buf=0x00;
 
-  unsigned long begTPage=millis();     // calcul durée envoi page
+  unsigned long begTPage=millis();    // calcul durée envoi page
   int nucb;
 
-  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
-  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
-                                    // à charger au moins une fois par page ; pour les autres formulaires 
-                                    // de la page formBeg() suffit
+  htmlBeg(buf,jsbuf,nomserver,cli);   // chargement CSS etc
+  htmlBegE(buf,cli);
+  formIntro(buf,jsbuf,0,0);           // params pour retours navigateur (n° usr + time usr + pericur)
+                                      // à charger au moins une fois par page ; pour les autres formulaires 
+                                      // de la page formBeg() suffit
 
-  pageHeader(buf,jsbuf);            // 1ère ligne page
+  pageHeader(buf,jsbuf);              // 1ère ligne page
   boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
   boutF(buf,jsbuf,"timershtml","","refresh",ALICNO,2,0);
 
-  ethWrite(cli,buf,&lb);            // tfr -> navigateur
+  ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 
 
   detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);

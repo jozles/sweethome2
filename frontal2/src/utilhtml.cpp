@@ -43,7 +43,7 @@ char colour[LENCOLOUR+1];
 int16_t valMin=-9999;
 int16_t valMax=9999;
 
-bool borderparam=NOBORDER;  // pour forcer l'init du navigateur
+bool borderparam=false;  // pour forcer l'init du navigateur
 uint16_t styleTdWidth=0;    // forçage largeur des colonnes de table en px
 
 /* utilitaires des fonctions JS et HTML */
@@ -260,18 +260,18 @@ void fontEnd(char* buf,char* jsbuf,uint8_t ctl)
 
 void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t ctl)
 {
-  char tborder[]={" border=\"1px\""};
+  char tBorder[]={'0','\"',0x00,'1','\"',0x00};
 
-  strcat(buf,"<table");
+  strcat(buf,"<table border=\"");
+  strcat(buf,tBorder+border*3);
+
+  if(police!=nullptr){strcat(buf,police);}
   
-  if(border==NOBORDER){borderparam=NOBORDER;strcat(buf," border=\"0\"");}
-  else {if(borderparam==NOBORDER){borderparam=BORDER;strcat(buf,tborder);}} //");}} // border-color:green");}} //border-color=\"green\"");}}
-  if(police!=nullptr){
-    strcat(buf,police);}
   strcat(buf,">");
+
   fnJsIntro(jsbuf,JSTB,0,ctl);
   jscat(jsbuf,police,SEP);
-  jscat(jsbuf,tborder);
+  if(border){jscat(jsbuf,"B");}
   fnHtmlIntro(buf,0,ctl);
   //fnHtmlEnd(buf,0,ctl);
 }
@@ -283,7 +283,7 @@ void tableBeg(char* buf,char* jsbuf,bool border,uint8_t ctl)
 
 void tableBeg(char* buf,char* jsbuf,uint8_t ctl)
 {
-  tableBeg(buf,jsbuf,BORDER,ctl);
+  tableBeg(buf,jsbuf,nullptr,true,ctl);
 }
 
 void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
@@ -301,24 +301,39 @@ void affText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,
 //                le dernier rien : TDEND est déjà dans le ctl de la commande (pour le format html ctl==STRING indique </td> à la fin)
 //                CONCAT pour ajouter du texte à la volée
 {
-  styleTdWidth=tdWidth;
-  uint8_t ctlb=ctl&~STRING;if((ctl&STRING)!=0){ctlb&=~BRYES;if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
-  if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0)&&((ctl&CONCAT)==0))){fnJsIntro(jsbuf,JSST,pol,ctlb);} 
+  // --------------------- debut traitement js
+  bool flagWidth=false;   // true si fnJsIntro() est effectué et tdWidth!=0
   
-  fnHtmlIntro(buf,pol,ctl);
+  uint8_t ctlb=ctl&~STRING;if((ctl&STRING)!=0){ctlb&=~BRYES;if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
+  if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0)&&((ctl&CONCAT)==0))){
+    fnJsIntro(jsbuf,JSST,pol,ctlb);
+    if(tdWidth!=0){flagWidth=true;}
+  } 
+
+  if(flagWidth==true){
+    jscat(jsbuf,JSSEP);
+    #define LWPX 12
+    char widthPx[LWPX];memset(widthPx,0x00,LWPX);
+    concatn(widthPx,styleTdWidth);
+    jscat(jsbuf,widthPx,SEP);
+  }
+
   char* dm=jsbuf+strlen(jsbuf);
   char* dm0=dm;
 
   jscat(jsbuf,txt);
-  /*if(len<=0){jscat(jsbuf,txt);}
-  else {while(len>0){*dm++=*txt++;len--;*dm='\0';}}*/
 
   if(((ctl&STRING)!=0)&&((ctl&BRYES)!=0)){jscat(jsbuf,JSSBR);}
   if(((ctl&STRING)!=0)&&((ctl&TDEND)!=0)){jscat(jsbuf,JSSCO);}
+  // -------------------- fin traitement js
+
+  // -------------------- début traitement html
+  styleTdWidth=tdWidth;   // pour fnHtmlIntro()
+  fnHtmlIntro(buf,pol,ctl);
   
   buftxcat(buf,dm0);
   
-  if(ctl==STRING){ctl|=TDEND;}   // pas de JSSCO en fin de dm0 possible dans ce cas
+  if(ctl==STRING){ctl|=TDEND;}              // pas de JSSCO en fin de dm0 possible dans ce cas
   char a[]={JSSCO};
   if(*(dm0+strlen(dm0)-1)==*a){ctl&=~TDEND;}
   if((ctl&STRING)!=0){ctl&=~BRYES;pol=0;}   // évite doublon avec JSSBR de dm0 ; bloque le </font> (ajouter fontEnd à la fin du texte)
@@ -346,6 +361,12 @@ void affColonEnd(char* buf,char* jsbuf)
 {
   strcat(buf,")");
   fnJsIntro(jsbuf,JSCLE,0,0);
+}
+
+void affRondJaune(char* buf,char* jsbuf,uint8_t ctl)
+{
+  strcat(buf,"<div id=\"rond_jaune\"></div>");
+  fnJsIntro(jsbuf,JSRJ,0,ctl);
 }
 
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl)
@@ -730,7 +751,7 @@ void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate)
 void boutF(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 /* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
 {
-    fnJsIntro(jsbuf,JSAC,0,0);
+    //fnJsIntro(jsbuf,JSAC,0,0);
     fnJsIntro(jsbuf,JSBFB,sizfnt,ctl);
     fnHtmlIntro(buf,sizfnt,ctl);
     
@@ -779,14 +800,22 @@ void boutRetourB(char* buf,const char* lib,uint8_t td,uint8_t br)
   boutRetourB(buf,nullptr,lib,ctl);
 }
 
+void boutMaj(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
+{
+  fnHtmlIntro(buf,sizfnt,ctl);
+  fnJsIntro(jsbuf,JSBMB,0,ctl);
+  if(aligncenter){strcat(buf,"<p align=\"center\">");}
+  strcat(buf,"<input type=\"submit\" value=\"");
+  if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\" ");}
+  bufcat(buf,jsbuf,lib);
+  strcat(buf," \">");
+  if(aligncenter){strcat(buf,"</p>");}
+  fnHtmlEnd(buf,0,ctl);
+}
+
 void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t ctl)
 {
-  fnHtmlIntro(buf,0,ctl);
-  fnJsIntro(jsbuf,JSBMB,0,ctl);
-  strcat(buf,"<input type=\"submit\" value=\"");
-  bufcat(buf,jsbuf,lib);
-  strcat(buf," \">\n");
-  fnHtmlEnd(buf,0,ctl);
+  boutMaj(buf,jsbuf,lib,ALICNO,0,ctl);
 }
 
 void radioTableBHtml(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl)        // nbval boutons radio
@@ -861,28 +890,30 @@ void htmlEnd(char* buf,char* jsbuf)
   fnJsIntro(jsbuf,JSHE,0,0);
 }
 
-void htmlIntro0B(char* buf)    // suffisant pour commande péripheriques
+void htmlIntro0(char* dm)    // suffisant pour commande péripheriques
 {
-  strcat(buf,"HTTP/1.1 200 OK\n");
+  strcat(dm,"HTTP/1.1 200 OK\n");
   //cli->println("Location: http://82.64.32.56:1789/");
   //cli->println("Cache-Control: private");
-  strcat(buf,"CONTENT-Type: text/html; charset=UTF-8\n");
-  strcat(buf,"Connection: close\n\n");
-  strcat(buf,"<!DOCTYPE HTML ><html>\n");
+  strcat(dm,"CONTENT-Type: text/html; charset=UTF-8\n");
+  strcat(dm,"Connection: close\n\n");
+  strcat(dm,"<!DOCTYPE HTML ><html>\n");
 }
 
-void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
+void htmlIntroB(char* buf,char* titre)
 {
+  if(buf!=nullptr){
+      strcat(buf,"<head>");
+      char locbuf[10]={0};
+      if(perrefr!=0){strcat(buf,"<meta HTTP-EQUIV=\"Refresh\" content=\"");sprintf(locbuf,"%d",perrefr);strcat(buf,locbuf);strcat(buf,"\">");}
+      if(titre!=nullptr){strcat(buf,"<title>");strcat(buf,titre);strcat(buf,"</title>\n");}
+      strcat(buf,"<style>");         
+  }
+}
 
-  htmlIntro0B(buf);
-
-  strcat(buf,"<head>");
-  char locbuf[10]={0};
-  if(perrefr!=0){strcat(buf,"<meta HTTP-EQUIV=\"Refresh\" content=\"");sprintf(locbuf,"%d",perrefr);strcat(buf,locbuf);strcat(buf,"\">");}
-  strcat(buf,"<title>");strcat(buf,titre);strcat(buf,"</title>\n");
-  
-          strcat(buf,"<style>");         
-
+void htmlStyleTable(char* buf)
+{
+  if(buf!=nullptr){
             strcat(buf,"table {");
               //strcat(buf,"font-family: Courier, sans-serif;");
               strcat(buf,"border-collapse: collapse;");
@@ -898,18 +929,29 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
               //strcat(buf,"border: 1px solid #dddddd;\n");
               strcat(buf,"text-align: left;\n"); 
             strcat(buf,"}\n");
+  }
+}
 
-            strcat(buf,"#nt1{width:10px;}\n");
-            strcat(buf,"#nt2{width:18px;}\n");
+void htmlStyleCbBut(char* buf)
+{
+  if(buf!=nullptr){
+            strcat(buf,"#nt1{width:10px;}\n");    // inutilisé ?
+            strcat(buf,"#nt2{width:18px;}\n");    // dans jsPeriCur() seult ?
+
+            /* check box */
             strcat(buf,"#cb1{width:10px; padding:0px; margin:0px; text-align: center};\n");
             strcat(buf,"#cb2{width:20px; text-align: center};\n");
 
+            /* buttons */
             strcat(buf,".button {background-color: #195B6A; border: none; color: white; padding: 32px 80px:"); //16px 40px;");
             strcat(buf,"text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}\n");
             strcat(buf,".button2 {background-color: #77878A;}\n");
+  }
+}
 
-  ethWrite(cli,buf);
-  
+void htmlStyleSliders(char* buf)
+{
+  if(buf!=nullptr){  
             /* big sliders */
             strcat(buf,".switch {position: relative;display: inline-block;width: 220px;height: 100px; margin: 16px;}\n");
             strcat(buf,".switch input {opacity: 0;width: 0;hight: 0;}\n");
@@ -924,9 +966,12 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             /* Rounded sliders */
             strcat(buf,".slider.round {border-radius: 50px;}\n");
             strcat(buf,".slider.round:before {border-radius: 50%;}\n");
+  }
+}
 
-  ethWrite(cli,buf);            
-  
+void  htmlStyleSqrBut(char* buf) 
+{
+  if(buf!=nullptr){  
             /* pour bouton radio carrés */     
             strcat(buf,"@import url(\"https://fonts.googleapis.com/css?family=Roboto:400,400i,700\");\n");
             //strcat(buf,":root {  --txt-color: #00B7E8;}\n");
@@ -935,9 +980,6 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
             strcat(buf,".content > div{flex-basis:200px;border:1px solid #ccc;padding:1rem;box-shadow: 0px 1px 1px rgba(0,0,0,0.2), 0px 1px 1px rgba(0,0,0,0.2);}\n");
             //strcat(buf,"h1{font-weight: normal; color: var(--txt-color);}\n");
             //strcat(buf,"h2{font-size: 1.1rem;color: var(--txt-color);font-weight: normal;text-transform: uppercase;margin:0 0 2rem;border-bottom: 1px solid #ccc;}\n");
-  
-  ethWrite(cli,buf);            
-  
             strcat(buf,"input[type=\"radio\"].sqbr {display: none;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr + label {padding: 0.5rem 1rem;font-size: 1.50rem;line-height: 1.5;border-radius: 0.3rem;color: #fff;background-color: #6c757d;border: 1px solid transparent;transition: all 0.15s ease-in-out;}\n");
             strcat(buf,"input[type=\"radio\"].sqbr.br_off:hover + label { background-color: #28a745;border-color: #28a745;}\n");
@@ -952,12 +994,33 @@ void htmlIntroB(char* buf,char* titre,EthernetClient* cli)
   
             /* rond jaune */
             strcat(buf,"#rond_jaune {width: 40px;height: 40px;border-radius: 20px;background: yellow;}");
+  }
+}
 
-          strcat(buf,"</style>\n");  
-  strcat(buf,"</head>\n");
-  
-  borderparam=NOBORDER;   // force l'init du navigateur
-  ethWrite(cli,buf);
+void htmlBeg0(char* buf,char* jsbuf)    // suffisant pour commande péripheriques
+{
+  if(buf!=nullptr){htmlIntro0(buf);}
+  if(jsbuf!=nullptr){fnJsIntro(jsbuf,JSHB,0,0);}
+}
+
+/* htmlBeg() et htmlBegE() encadrent les styles optionnels */
+
+void htmlBeg(char* buf,char* jsbuf,char* titre,EthernetClient* cli)
+{
+  htmlBeg0(buf,jsbuf);
+  htmlIntroB(buf,titre);
+  htmlStyleTable(buf);
+  htmlStyleCbBut(buf);
+}
+
+void htmlBegE(char* buf,EthernetClient* cli)
+{
+  if(buf!=nullptr){
+      strcat(buf,"</style>\n");  
+      strcat(buf,"</head>\n");
+      ethWrite(cli,buf);
+      borderparam=NOBORDER;   // force l'init du navigateur
+  }
 }
 
 void bufcat(char* buf,char* jsbuf,const char* s){strcat(buf,s);jscat(jsbuf,s);}

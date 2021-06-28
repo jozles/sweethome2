@@ -22,13 +22,29 @@ void buftxcat(char* buf,char* txt)
   }
 }
 
-uint8_t ctlJsB(char*buf,char*jsbuf,const char* jsCde)
+uint8_t ctlJsB(char* buf,char* jsbuf,const char* jsCde)
 {
     uint8_t a=*(jsCde+1);
+    
     if(a==*JSCTL){
+      
+      bool width=false;
+      uint8_t lw=0;
+      char* dm=jsbuf;
       a=*jsbuf++;
+      if((a&CTLPO)!=0){dm++;}                   // search for JSSEP if width present
+      if(*dm++==*JSSEP){                        // found ; now search end
+          width=true;
+          while(*(dm+lw++)!=*JSSEP){}           // lw char to skip ; next operand at dm+lw
+          if(lw>0x05){lw=5;}                    // maxi 4+JSSEP (9999Px)
+      }       
+
       if((a&TRBEG)!=0){strcat(buf,"<tr>");}
-      if((a&TDBEG)!=0){strcat(buf,"<td>");}
+      if((a&TDBEG)!=0){
+        strcat(buf,"<td");
+        if(width){strcat(buf," style=\"width: ");memcpy(buf,dm,lw-1);strcat(buf,"px\"");jsbuf=dm+lw;}
+        strcat(buf,">");
+      }
       if((a&CTLPO)!=0){strcat(buf,"<font size=\"");concat1a(buf,*jsbuf++);strcat(buf,"\">");}
     }
     else {a=0x00;}
@@ -45,7 +61,7 @@ void ctlJsE(char* buf,uint8_t ctl)
     strcat(buf,"\n");
 }
 
-char* jsGetArg(char* jsbuf)
+char* jsGetArg(char* jsbuf)  // retourne la position de l'argument, efface le séparateur et avance le ptr sur la suite
 {
     char* dm=jsbuf;
     while(*jsbuf!=0x00 && *jsbuf!=*JSSEP){jsbuf++;}
@@ -58,7 +74,7 @@ char* jsGetMemAddr(char optNam)
     return nullptr;
 }
 
-void jsPeriCur(char* buf,char* jsbuf)
+void jsPeriCur(char* buf,char* jsbuf)       // (inutilisé?) génère une saisie de periCur 
 {
     strcat(buf,"<input type=\"text\" name=\"peri_cur__@\" id=\"nt22\" value=\"");
     strcat(buf,jsGetArg(jsbuf));
@@ -71,54 +87,54 @@ void cvJs2Html(char* jsbuf,char* buf)
     char a=*jsbuf,ctlJs=0x00;
     while(a!=0x00){
         switch(a){
-            case *JSCOB:ctlJs=ctlJsB(buf,jsbuf,JSCOB);                          // couleur
+            case *JSCOB:ctlJs=ctlJsB(buf,jsbuf,JSCOB);                  // couleur
                         strcat(buf,"<font color=\"");strcat(buf,jsGetArg(jsbuf));strcat(buf,"\">");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSFNB:ctlJs=ctlJsB(buf,jsbuf,JSFNB);                          // font size
+            case *JSFNB:ctlJs=ctlJsB(buf,jsbuf,JSFNB);                  // font size
                         strcat(buf,"<font size=\"");concat1a(buf,*jsbuf++);strcat(buf,"\">");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSFNE:ctlJs=ctlJsB(buf,jsbuf,JSFNE);                          // font size/color end
+            case *JSFNE:ctlJs=ctlJsB(buf,jsbuf,JSFNE);                  // font size/color end
                         strcat(buf,"</font>");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSHIDB:ctlJs=ctlJsB(buf,jsbuf,JSHIDB);                        // hide beg
+            case *JSHIDB:ctlJs=ctlJsB(buf,jsbuf,JSHIDB);                // hide beg
                         strcat(buf,"<p hidden>");
                         ctlJsE(buf,ctlJs);
                         break;                        
-            case *JSHIDE:ctlJs=ctlJsB(buf,jsbuf,JSHIDE);                        // hide end
+            case *JSHIDE:ctlJs=ctlJsB(buf,jsbuf,JSHIDE);                // hide end
                         strcat(buf,"</p>");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSAC :ctlJs=ctlJsB(buf,jsbuf,JSAC);                           // align center beg
+            case *JSAC :ctlJs=ctlJsB(buf,jsbuf,JSAC);                   // align center beg
                         strcat(buf,"<p align=\"center\">");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSACE:ctlJs=ctlJsB(buf,jsbuf,JSACE);                          // align center end
+            case *JSACE:ctlJs=ctlJsB(buf,jsbuf,JSACE);                  // align center end
                         strcat(buf,"</p>");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSSP :ctlJs=ctlJsB(buf,jsbuf,JSSP);                           // space
+            case *JSSP :ctlJs=ctlJsB(buf,jsbuf,JSSP);                   // space
                         strcat(buf," ");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSST :ctlJs=ctlJsB(buf,jsbuf,JSST);                           // texte 
+            case *JSST :ctlJs=ctlJsB(buf,jsbuf,JSST);                   // texte JSSTx[police][}width}]texte
                         buftxcat(buf,jsGetArg(jsbuf));
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSNT :ctlJs=ctlJsB(buf,jsbuf,JSNT);                           // nombre 
+            case *JSNT :ctlJs=ctlJsB(buf,jsbuf,JSNT);                   // nombre 
                         jsbuf++;    // skip type
                         strcat(buf,jsGetArg(jsbuf));
                         ctlJsE(buf,ctlJs);
                         break;                        
-            case *JSNTI:ctlJs=ctlJsB(buf,jsbuf,JSNTI);                          // nombre avec couleur
+            case *JSNTI:ctlJs=ctlJsB(buf,jsbuf,JSNTI);                  // nombre avec couleur
                         strcat(buf,"<font color=\"");strcat(buf,jsGetArg(jsbuf));strcat(buf,"\">");
                         strcat(buf,jsGetArg(jsbuf));
                         strcat(buf,"</font>");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSBRB :ctlJs=ctlJsB(buf,jsbuf,JSBRB);                         // bouton Retour                        
+            case *JSBRB :ctlJs=ctlJsB(buf,jsbuf,JSBRB);                 // bouton Retour                        
                         strcat(buf,"<a href=\"?user_ref_");
                         concat1a(buf,(char)(jsUsrNum+PMFNCHAR));strcat(buf,"=");concatn(buf,jsUsrTime[jsUsrNum]);
                         strcat(buf,"\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");
@@ -126,13 +142,13 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf,"\"></a>");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSBMB :ctlJs=ctlJsB(buf,jsbuf,JSBMB);                         // bouton MàJ
+            case *JSBMB :ctlJs=ctlJsB(buf,jsbuf,JSBMB);                 // bouton MàJ
                         strcat(buf,"<input type=\"submit\" value=\"");
                         strcat(buf,jsGetArg(jsbuf));
                         strcat(buf,"\">");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSBFB :ctlJs=ctlJsB(buf,jsbuf,JSBFB);                         // bouton fonction
+            case *JSBFB :ctlJs=ctlJsB(buf,jsbuf,JSBFB);                 // bouton fonction
                         {char b[]={(char)(jsUsrNum+PMFNCHAR),'\0'};
                         strcat(buf,"<a href=\"?user_ref_");
                         strcat(buf,b);strcat(buf,"=");concatn(buf,jsUsrTime[jsUsrNum]);
@@ -147,7 +163,7 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf,"></a>");
                         ctlJsE(buf,ctlJs);
                         }break;                        
-            case *JSNTB :ctlJs=ctlJsB(buf,jsbuf,JSNTB);                         // saisie numérique
+            case *JSNTB :ctlJs=ctlJsB(buf,jsbuf,JSNTB);                 // saisie numérique
                         strcat(buf,"<input type=\"text\" name=\"");
                         strcat(buf,jsGetArg(jsbuf));    // nomfonct
                         //strcat(buf,"\" id=\"nt");
@@ -161,7 +177,7 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf,"\" >");
                         ctlJsE(buf,ctlJs);
                         break;                        
-            case *JSATB  :ctlJs=ctlJsB(buf,jsbuf,JSATB);                        // saisie alpha
+            case *JSATB  :ctlJs=ctlJsB(buf,jsbuf,JSATB);                // saisie alpha
                         strcat(buf,"<input type=\"text\" name=\"");
                         strcat(buf,jsGetArg(jsbuf));    // nomfonct
                         strcat(buf,"\" value=\"");
@@ -171,7 +187,7 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf,"\" >");
                         ctlJsE(buf,ctlJs);
                         break;                        
-            case *JSDB  :ctlJs=ctlJsB(buf,jsbuf,JSDB);                          // saisie checkbox
+            case *JSDB  :ctlJs=ctlJsB(buf,jsbuf,JSDB);                  // saisie checkbox
                         strcat(buf,"<input type=\"checkbox\" name=\"");
                         jsGetArg(jsbuf);                // nomfonct
                         strcat(buf,"\" id=\"cb1\" value=\"1\"");
@@ -180,7 +196,7 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf,jsGetArg(jsbuf));    // etat
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSSTB :ctlJs=ctlJsB(buf,jsbuf,JSSTB);                          // select box
+            case *JSSTB :ctlJs=ctlJsB(buf,jsbuf,JSSTB);                 // select box
                         {strcat(buf,"<SELECT name=\"");
                         strcat(buf,jsGetArg(jsbuf));    // nomfonct
                         strcat(buf,"\">");
@@ -201,7 +217,7 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf,"</SELECT>");
                         ctlJsE(buf,ctlJs);
                         }break;
-            case *JSTB :ctlJs=ctlJsB(buf,jsbuf,JSTB);                          // table beg
+            case *JSTB :ctlJs=ctlJsB(buf,jsbuf,JSTB);                   // table beg JSSTBx[pol]
                         strcat(buf,"<table>");
                         ctlJsE(buf,ctlJs);
                         break;
@@ -229,7 +245,6 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf,"\" value=\"");
                         concatn(buf,jsUsrTime[jsUsrNum]);
                         strcat(buf,"\">");
-                        jsPeriCur(buf,jsbuf);
                         strcat(buf,"/p");
                         break;
             default:strcat(buf,"<br><br> commande inconnue :");concat1a(buf,a);strcat(buf,"<br><br>");break;

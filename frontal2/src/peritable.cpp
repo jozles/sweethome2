@@ -166,8 +166,10 @@ void subModePulseTime(char* buf,char* jsbuf,uint8_t npu,uint32_t* pulse,uint32_t
   numTf(buf,jsbuf,'l',(pulse+npu),fonc2,8,0,0,BRYES);                             // durée pulse   
 //char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
 //strcat(buf,"<br>(");concatn(buf,*(dur+npu));strcat(buf,")</font>");
+  affText(buf,jsbuf,"(",0,0);
   uint32_t v=*(dur+npu);
-  affNum(buf,jsbuf,'l',&v,0,2,(ctl&TDEND)|(ctl&BRYES));
+  affNum(buf,jsbuf,'l',&v,0,0,0);
+  affText(buf,jsbuf,")",0,(ctl&TDEND)|(ctl&BRYES));
 }
 
 void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv,uint8_t ctl)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
@@ -198,7 +200,8 @@ void swCtlTableHtml(EthernetClient* cli,int i)
   Serial.print("swCtlTableHtml - periCur=");Serial.print(periCur);
   Serial.print("  free=");Serial.println(freeMemory(), DEC);
 
-  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+  htmlBeg(buf,jsbuf,nomserver,cli);    // chargement CSS etc
+  htmlBegE(buf,cli);
   optSelHtml(jsbuf,inptyps,optNam1);
   optSelHtml(jsbuf,inptypd,optNam2);
   optSelHtml(jsbuf,inpact,optNam3);
@@ -353,7 +356,8 @@ void periTableHtml(EthernetClient* cli)
 
   int savePeriCur=periCur;          // restoré à la fin
 
-  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
+  htmlBeg(buf,jsbuf,nomserver,cli); // chargement CSS etc
+  htmlBegE(buf,cli);
 
   //usrFormBHtml(buf,HID);
   formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
@@ -519,21 +523,22 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
   char buf[lb0];*buf=0x00;
 
   int j;
-  unsigned long begTPage=millis();     // calcul durée envoi page
+  unsigned long begTPage=millis();    // calcul durée envoi page
 
   Serial.print("periLineHtml - periCur=");Serial.print(periCur);Serial.print("/");Serial.print(i);
 
-  htmlIntroB(buf,nomserver,cli);    // chargement CSS etc
-  optSelHtml(jsbuf,rulop,optNam0);  // chargement tables params
+  htmlBeg(buf,jsbuf,nomserver,cli);   // chargement CSS etc
+  htmlBegE(buf,cli);
+  optSelHtml(jsbuf,rulop,optNam0);    // chargement tables params
 
-  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
-                                    // à charger au moins une fois par page ; pour les autres formulaires 
-                                    // de la page formBeg() suffit
+  formIntro(buf,jsbuf,0,0);           // params pour retours navigateur (n° usr + time usr + pericur)
+                                      // à charger au moins une fois par page ; pour les autres formulaires 
+                                      // de la page formBeg() suffit
 
-  pageHeader(buf,jsbuf);            // 1ère ligne page
-  perifHeader(buf,jsbuf);           // 2nde ligne page
+  pageHeader(buf,jsbuf);              // 1ère ligne page
+  perifHeader(buf,jsbuf);             // 2nde ligne page
   
-  ethWrite(cli,buf,&lb);            // tfr -> navigateur
+  ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 
 
 /* boutons */

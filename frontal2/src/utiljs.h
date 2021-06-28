@@ -74,6 +74,7 @@
 #define JSSP   "S "        // affichage space
 #define JSCLB  "( "        // parenthese ouverte
 #define JSCLE  ") "        // parenthese fermée 
+#define JSRJ   "y "        // affiche rond jaune
 #define JSST   "sx"        // affichage texte         JSSTtexte
 #define JSNT   "Ux"        // affichage num           JSNTtexte
 #define JSNTI  "ux"        // affichage num (min/max) JSNTcouleur}valfonct/100 
