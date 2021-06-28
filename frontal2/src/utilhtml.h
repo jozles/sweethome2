@@ -19,10 +19,10 @@ void htmlBeg(char* buf,char* jsbuf,char* titre,EthernetClient* cli);
 void htmlBegE(char* buf,EthernetClient* cli);
 void htmlEnd(char* buf,char* jsbuf);
 
-void  htmlStyleTable(char* buf);
-void  htmlStyleCbBut(char* buf);
-void  htmlStyleSliders(char* buf);
-void  htmlStyleSqrBut(char* buf); 
+void htmlStyleTable(char* buf);
+void htmlStyleCbBut(char* buf);
+void htmlStyleSliders(char* buf);
+void htmlStyleSqrBut(char* buf); 
 
 void pageHeader(char* buf,char* jsbuf);
 void pageHeader(char* buf,bool form);
@@ -81,6 +81,7 @@ void numTf(char* buf,char type,void* valfonct,const char* nomfonct,int len,uint8
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
 void numTf(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
 void affSpace(char* buf,char* jsbuf);
+void affSpace(char* buf,char* jsbuf,uint8_t ctl);
 void affColonBeg(char* buf,char* jsbuf);
 void affColonEnd(char* buf,char* jsbuf);
 void affRondJaune(char* buf,char* jsbuf,uint8_t ctl);

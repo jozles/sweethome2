@@ -650,7 +650,8 @@ void remoteHtml(EthernetClient* cli)
 
 /* table remotes */
            
-            tableBeg(buf,jsbuf,0); //strcat(buf,"<table>");            
+            tableBeg(buf,jsbuf," style=\"font-family: Courier, sans-serif\"",true,0); 
+            strcat(buf,"\n");            
 
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               ni++;
@@ -661,18 +662,21 @@ void remoteHtml(EthernetClient* cli)
                 // affichage état d'un éventuel switch
                 // boucle des détecteurs pour trouver un switch 
                 // (voir le commentaire des disjoncteurs, c'est idem)               
-                uint8_t lctl=TDBEG;
+                
                 for(uint8_t td=0;td<MAXREMLI;td++){
-                  if(remoteT[td].num==nb+1 && remoteT[td].peri!=0){           // même remote et présence périphérique
-                    periCur=remoteT[td].peri;periLoad(periCur);
+                  if(remoteT[td].num==nb+1){ 
+                    if(remoteT[td].peri!=0){           // même remote et présence périphérique
+                      periCur=remoteT[td].peri;periLoad(periCur);
                     
-                    if(periSwLev(remoteT[td].sw)==1){                         // switch ON
-                      affText(buf,jsbuf," ON ",0,lctl);lctl=0;
-                      affRondJaune(buf,jsbuf,TDEND);
-                      //strcat(buf," ON <div id=\"rond_jaune\"></div>");
+                      if(periSwLev(remoteT[td].sw)==1){                         // switch ON
+                        affText(buf,jsbuf," ON ",0,TDBEG|BRYES);
+                        affRondJaune(buf,jsbuf,TDEND);
+                        //strcat(buf," ON <div id=\"rond_jaune\"></div>");
+                      }
+                      else {
+                        affText(buf,jsbuf," OFF ",0,TDBE);}  //strcat(buf," OFF ");}
                     }
-                    else {
-                      affText(buf,jsbuf," OFF ",0,TDEND);}  //strcat(buf," OFF ");}
+                    else {affText(buf,jsbuf,".",0,TDBE);}
                   }
                 }
                 affText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
@@ -701,8 +705,8 @@ void remoteHtml(EthernetClient* cli)
             tableEnd(buf,jsbuf,0);
             
             boutMaj(buf,jsbuf,"MàJ",ALIC,7,BRYES); //<input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
-            boutF(buf,jsbuf,"thermoshow","","températures",ALIC,7,0);
-            boutF(buf,jsbuf,"remotehtml","","refresh",ALIC,7,BRYES);
+            boutF(buf,jsbuf,"thermoshow","","températures",ALICNO,7,0);
+            boutF(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,BRYES);
             
             formEnd(buf,jsbuf,0,0);
             htmlEnd(buf,jsbuf);

@@ -404,6 +404,14 @@ void setup() {                          // ====================================
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
   periTableLoad();                  // le premier (après config) pour permettre les mails
+
+periLoad(3);
+char mm[]={0x84,0xF3,0xEB,0xFB,0xF9,0x05};
+memcpy(periMacr,mm,6);
+char ii[]={192,168,0,202};
+memcpy(periIpAddr,ii,4);
+periSave(3,PERISAVESD);
+
   mailEnable=VRAI;
   memDetLoad();                     // le second pour Sync 
   //remoteNPlus(8);while(1){};
@@ -453,7 +461,7 @@ void setup() {                          // ====================================
 
   histoStore_textdh(RESET,"","<br>\n\0");
   Serial.print("Mail START ");
-  mail("START","");
+  //mail("START","");
 
   Serial.println(">>>>>>>>> fin setup\n");
 }
@@ -483,9 +491,9 @@ void loop()
 
             scanDate();         
             
-            scanThermos();
+            //scanThermos();
 
-            scanTimers();
+            //scanTimers();
 
             watchdog();
 
@@ -1451,7 +1459,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 52: what=8;                                                                          // submit depuis cfgRemotehtml
                        {int nb=*(libfonctions+2*i+1)-PMFNCHAR;
                         uint16_t v1=0;
-                        switch(*(libfonctions+2*i)){                                               
+                        char a=*(libfonctions+2*i);
+                        switch(a){                                               
                             case 'n': alphaTfr(remoteN[nb].nam,LENREMNAM,valf,nvalf[i+1]-nvalf[i]);     // (remotecf) nom remote courante              
                                       remoteN[nb].enable=0;remoteN[nb].onoff=0;break;                   // (remotecf) effacement cb 
                             case 'e': remoteN[nb].enable=*valf-PMFNCVAL;break;                          // (remotecf) en enable remote courante

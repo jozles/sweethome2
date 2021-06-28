@@ -345,10 +345,15 @@ void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
   affText(buf,jsbuf,txt,0,pol,ctl);
 }
 
-void affSpace(char* buf,char* jsbuf)
+void affSpace(char* buf,char* jsbuf,uint8_t ctl)
 {
   strcat(buf," ");
-  fnJsIntro(jsbuf,JSSP,0,0);
+  fnJsIntro(jsbuf,JSSP,0,ctl);
+}
+
+void affSpace(char* buf,char* jsbuf)
+{
+  affSpace(buf,jsbuf,0);
 }
 
 void affColonBeg(char* buf,char* jsbuf)
@@ -805,10 +810,11 @@ void boutMaj(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t sizf
   fnHtmlIntro(buf,sizfnt,ctl);
   fnJsIntro(jsbuf,JSBMB,0,ctl);
   if(aligncenter){strcat(buf,"<p align=\"center\">");}
-  strcat(buf,"<input type=\"submit\" value=\"");
+  strcat(buf,"<input type=\"submit\"");
   if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\" ");}
+  strcat(buf," value=\"");
   bufcat(buf,jsbuf,lib);
-  strcat(buf," \">");
+  strcat(buf,"\">");
   if(aligncenter){strcat(buf,"</p>");}
   fnHtmlEnd(buf,0,ctl);
 }
