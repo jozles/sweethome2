@@ -69,7 +69,7 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl) //,ch
       jspt++;
       if(pol!=0){
         *jspt|=CTLPO;jspt++;
-        *jspt=(pol&0x7F)|0x40;jspt++;
+        *jspt=(pol&0x7F)|PMFNCHAR;jspt++;
       }
     }
     *(jspt)=0x00;
@@ -312,14 +312,15 @@ void affText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,
 
   if(flagWidth==true){
     jscat(jsbuf,JSSEP);
+    
     #define LWPX 12
     char widthPx[LWPX];memset(widthPx,0x00,LWPX);
     concatn(widthPx,styleTdWidth);
     jscat(jsbuf,widthPx,SEP);
   }
 
-  char* dm=jsbuf+strlen(jsbuf);
-  char* dm0=dm;
+  char* dm0=jsbuf+strlen(jsbuf); // début texte+ctl pour html
+  //char* dm0=dm;
 
   jscat(jsbuf,txt);
 
@@ -328,16 +329,16 @@ void affText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,
   // -------------------- fin traitement js
 
   // -------------------- début traitement html
-  styleTdWidth=tdWidth;   // pour fnHtmlIntro()
-  fnHtmlIntro(buf,pol,ctl);
+  styleTdWidth=tdWidth;                     // pour fnHtmlIntro()
+  fnHtmlIntro(buf,pol,ctl);                 // ajoute [<tr>][<td style width="nnnpx"]>]
   
-  buftxcat(buf,dm0);
+  buftxcat(buf,dm0);                        // ajout texte (<br> et </td><td> décodés)
   
   if(ctl==STRING){ctl|=TDEND;}              // pas de JSSCO en fin de dm0 possible dans ce cas
   char a[]={JSSCO};
   if(*(dm0+strlen(dm0)-1)==*a){ctl&=~TDEND;}
   if((ctl&STRING)!=0){ctl&=~BRYES;pol=0;}   // évite doublon avec JSSBR de dm0 ; bloque le </font> (ajouter fontEnd à la fin du texte)
-  fnHtmlEnd(buf,pol,ctl);
+  fnHtmlEnd(buf,pol,ctl);                   // ajoute [<br>][</td>][</tr>]
 }
 
 void affText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
@@ -374,18 +375,41 @@ void affRondJaune(char* buf,char* jsbuf,uint8_t ctl)
   fnJsIntro(jsbuf,JSRJ,0,ctl);
 }
 
-void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl)
+void alphaTableHtmlB0(char* fn,char* htmlType,char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl)
 {
-  fnJsIntro(jsbuf,JSATB,pol,ctl);
+  #define NOSIZE 100
+  // -------------------- début traitement js
+  fnJsIntro(jsbuf,fn,pol,ctl);
+  jscat(jsbuf,nomfonct,SEP);
+  jscat(jsbuf,valfonct,SEP);
+  #define LTT 6
+  char tt[LTT];
+  if(size<NOSIZE){
+    memset(tt,0x00,LTT);concatn(tt,size);jscat(jsbuf,tt,SEP);}
+  if(len!=0){
+    memset(tt,0x00,LTT);concatn(tt,size);jscat(jsbuf,tt);}
+  // -------------------- fin traitement js
+
+  // -------------------- début traitement html
   fnHtmlIntro(buf,pol,ctl);
-  strcat(buf,"<input type=\"text\" name=\"");
+  strcat(buf,"<input type=\"");strcat(buf,htmlType);strcat(buf,"\" name=\"");
   strcat(buf,nomfonct);jscat(jsbuf,nomfonct,SEP);
   strcat(buf,"\" value=\"");
   strcat(buf,valfonct);jscat(jsbuf,valfonct,SEP);
-  strcat(buf,"\" size=\"");if(size==0){strcat(buf,"12");}else concatn(buf,jsbuf,size);
-  strcat(buf,"\" maxlength=\"");concatn(buf,jsbuf,len);
+  if(size<NOSIZE){strcat(buf,"\" size=\"");if(size==0){strcat(buf,"12");}else concatn(buf,jsbuf,size);}
+  if(len!=0){strcat(buf,"\" maxlength=\"");concatn(buf,jsbuf,len);}
   strcat(buf,"\" >");
   fnHtmlEnd(buf,pol,ctl);
+}
+
+void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl)
+{
+  alphaTableHtmlB0(JSATB,"text",buf,jsbuf,valfonct,nomfonct,size,len,pol,ctl);
+}
+
+void hiddenAlpha(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t pol,uint8_t ctl)
+{
+  alphaTableHtmlB0(JSHID,"hidden",buf,jsbuf,valfonct,nomfonct,100,0,pol,ctl);
 }
 
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl)
@@ -827,9 +851,11 @@ void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t ctl)
 void radioTableBHtml(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl)        // nbval boutons radio
 {                                                                                           // valeur = checked (0-n) 
       fnJsIntro(jsbuf,JSRAD,pol,ctl);
-      fnHtmlIntro(buf,pol,ctl);
+      
       char nbv=(nbval+PMFNCVAL);
       jscat(jsbuf,nomfonct,SEP);jscat(jsbuf,&nbv);
+      
+      fnHtmlIntro(buf,pol,ctl);
       concatns(buf,valeur);
       for(uint8_t j=0;j<nbval;j++){
           strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,nomfonct);
@@ -844,12 +870,20 @@ void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval)
   radioTableBHtml(buf,nullptr,valeur,nomfonct,nbval,0,0);
 }
 
-void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td)                    // 1 line ; nb = page row
-{                                                                                                                                  // sqbr square button
-                                                                                                                                   // nbval à traiter
-  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");}  
-    valeur&=0x03;                                                               
+void yradioTableBHtml(char* buf,char* jsbuf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t ctl)                    
+{                        // sqbr square button // 1 line ; nb = page row  // nbval à traiter
+  valeur&=0x03;                                                               
+                                                                                                            
+  fnJsIntro(jsbuf,JSRADS,0,ctl);                                        
+  jscat(jsbuf,nomfonct,SEP);
+  char nn[2];nn[0]=nb+PMFNCHAR;nn[1]=0x00;
+  jscat(jsbuf,nn,SEP);
+  nn[0]=valeur+PMFNCVAL;
+  jscat(jsbuf,nn);
   
+  // 3 fois le même : seul checked change selon valeur
+  
+  fnHtmlIntro(buf,0,ctl);
   
   strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,nomfonct);concat1a(buf,(char)(nb+PMFNCHAR));
   strcat(buf,"\" class=\"sqbr br_off\" id=\"sqbrb");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
@@ -871,23 +905,7 @@ void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,b
   if(valeur==2 || valeur==3){strcat(buf," checked");}strcat(buf,">");
   strcat(buf,"<label for=\"sqbrc");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">FOR</label>\n");
 
-
-  if(td==TDEND || td==TDBE){strcat(buf,"</td>");}      
-  strcat(buf,"<br>\n");
-}
-
-void sliderBHtml(char* buf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint8_t td)
-{
-  if(td==TDBEG || td==TDBE){strcat(buf,"<td>");}
-
-  char nf[LENNOM+1];nf[LENNOM]='\0';
-  memcpy(nf,nomfonct,LENNOM);if(nb>=0){nf[LENNOM-1]=(char)(nb+PMFNCHAR);}
-  strcat(buf,"<label class=\"switch\"><input type=\"checkbox\" style=\"color:Khaki;\" name=\"");strcat(buf,nf);strcat(buf,"\" value=\"1\"");
-  if((*val & 0x01)!=0){strcat(buf," checked");}
-  strcat(buf," ><span class=\"slider ");if(sqr==0){strcat(buf," round");}
-  strcat(buf,"\"></span></label>");
-  
-  if(td==TDEND || td==TDBE){strcat(buf,"</td>\n");}
+  fnHtmlEnd(buf,0,ctl);
 }
 
 void htmlEnd(char* buf,char* jsbuf)
@@ -1112,6 +1130,25 @@ void checkboxTableBHtml(char* buf,uint8_t* val,const char* nomfonct,int etat,uin
   checkboxTableBHtml(buf,nullptr,val,nomfonct,etat,td,lib);
 }
 
+void sliderBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint8_t ctl)
+{
+  char nf[LENNOM+1];nf[LENNOM]='\0';
+  memcpy(nf,nomfonct,LENNOM);if(nb>=0){nf[LENNOM-1]=(char)(nb+PMFNCHAR);}
+
+  fnJsIntro(jsbuf,JSSLD,0,ctl);
+  jscat(jsbuf,nf,SEP);
+  if((*val & 0x01)!=0){jscat(jsbuf,JSCHK);}
+  if(sqr==0){strcat(jsbuf,"R");}
+  
+  fnHtmlIntro(buf,0,ctl);
+
+  strcat(buf,"<label class=\"switch\"><input type=\"checkbox\" style=\"color:Khaki;\" name=\"");strcat(buf,nf);strcat(buf,"\" value=\"1\"");
+  if((*val & 0x01)!=0){strcat(buf," checked");}
+  strcat(buf," ><span class=\"slider ");if(sqr==0){strcat(buf," round");}
+  strcat(buf,"\"></span></label>");
+  
+  fnHtmlEnd(buf,0,ctl);
+}
 
 void subDSnB(char* buf,char* jsbuf,const char* fnc,uint32_t val,uint8_t num,char* lib) // checkbox transportant 1 bit 
                                                                     // num le numéro du bit dans le mot

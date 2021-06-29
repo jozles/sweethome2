@@ -55,8 +55,6 @@
 #define JSCOE  "W "        // couleur End
 #define JSFNB  "xx"        // police beg 
 #define JSFNE  "X "        // police fin
-#define JSHIDB "hx"        // hide beg
-#define JSHIDE "H "        // hide end
 #define JSAC   "v "        // align center beg
 #define JSACE  "V "        // align center end
 /* boutons */
@@ -66,10 +64,14 @@
 /* saisies */
 #define JSNTB  "nx"        // saisie numtf            *JSNTBnomfonct}dec}typevaleur}size}maxlen
 #define JSDB   "dx"        // saisie cb               JSDBnomfonct}lib}[JSCHK][etat]     
-#define JSATB  "ax"        // saisie alphaTableHtmlB  *JSATBnomfonct}valfonct}len
+#define JSSLD  "Dx"        // saisie cb slider
+#define JSATB  "ax"        // saisie alphaTableHtmlB  *JSATB[font size]nomfonct}valfonct}size[}len]
+#define JSHID  "hx"        // saisie hidden alpha     *JSATBnomfonct}valfonct}len
 #define JSSTB  "kx"        // saisie selectbox        JSSTBnnomfonc}nom_options n=n°sel+PMFNCVAL
 #define JSSOP  "K "        // selectbox options table JSCELvnloptions v=nom n=nbre+PMFNCVAL l=len+PMFNCVAL
 #define JSRAD  "lx"        // bouton radio            JSRABnomfonct}nbre
+#define JSRADS "Lx"        // bouton radio square
+
 /* affichages */
 #define JSSP   "S "        // affichage space
 #define JSCLB  "( "        // parenthese ouverte

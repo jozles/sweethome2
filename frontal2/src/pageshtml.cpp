@@ -688,15 +688,15 @@ void remoteHtml(EthernetClient* cli)
                 // et la comparaison avec onoff permet de connaitre la transition (ou non transition)
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
-                strcat(buf,"<input type=\"hidden\" name=\"remote_cn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">");
-                sliderBHtml(buf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);     // slider
+                char fn[]="remote_cn_\0";fn[LENNOM-1]=(char)(nb+PMFNCHAR);
+                hiddenAlpha(buf,jsbuf,"",fn,0,0);
+                //strcat(buf,"<input type=\"hidden\" name=\"remote_cn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">");
+                sliderBHtml(buf,jsbuf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);     // slider
 
                   affText(buf,jsbuf,"- - - - -",0,TDBE);                                // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
                   //strcat(buf,"<td>- - - - -</td>\n");                                 
                   bool vert=FAUX;                                                       // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
-                  yradioTableBHtml(buf,remoteN[nb].enable,"remote_cs",2,vert,nb,1);     // renvoie 0,1,2 selon OFF,ON,FOR
-
-                strcat(buf,"</tr>");
+                  yradioTableBHtml(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);     // renvoie 0,1,2 selon OFF,ON,FOR
                 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
              }
@@ -704,9 +704,9 @@ void remoteHtml(EthernetClient* cli)
             if(buf[0]!='\0'){ethWrite(cli,buf);}
             tableEnd(buf,jsbuf,0);
             
-            boutMaj(buf,jsbuf,"MàJ",ALIC,7,BRYES); //<input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
+            boutMaj(buf,jsbuf,"MàJ",ALICNO,7,BRYES); //<input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
             boutF(buf,jsbuf,"thermoshow","","températures",ALICNO,7,0);
-            boutF(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,BRYES);
+            boutF(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,0);
             
             formEnd(buf,jsbuf,0,0);
             htmlEnd(buf,jsbuf);

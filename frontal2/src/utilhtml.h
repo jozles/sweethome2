@@ -92,6 +92,7 @@ void affNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,
 void alphaTableHtmlB(char* buf,const char* valfonct,const char* nomfonct,int len);
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl);
 void alphaTableHtmlB(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl);
+void hiddenAlpha(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t pol,uint8_t ctl);
 void boutRetourB(char* buf,const char* lib,uint8_t td,uint8_t br);
 void boutRetourB(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void boutF(char* buf,const char* nomfonct,const char* valfonct,const char* lib,uint8_t td,uint8_t br,uint8_t sizfnt,bool aligncenter);
@@ -100,12 +101,12 @@ void boutMaj(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void boutMaj(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl);
 void radioTableBHtml(char* buf,byte valeur,char* nomfonct,uint8_t nbval);
 void radioTableBHtml(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl);
-void yradioTableBHtml(char* buf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t td);
+void yradioTableBHtml(char* buf,char* jsbuf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t ctl);
 void setColourB(char* buf,const char* textColour);
 void setColourB(char* buf,char* jsbuf,const char* textColour);
 void setColourE(char* buf);
 void setColourE(char* buf,char* jsbuf);
-void sliderBHtml(char* buf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint8_t td);
+void sliderBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint8_t ctl);
 
 void bufLenShow(char* buf,char* jsbuf,uint16_t lb,unsigned long begTPage);
 
