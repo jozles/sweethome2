@@ -57,6 +57,8 @@
 #define JSFNE  "X "        // police fin
 #define JSAC   "v "        // align center beg
 #define JSACE  "V "        // align center end
+#define JSTDS  "zx"        // tdSet
+#define JSTDR  "Z "        // tdReset
 /* boutons */
 #define JSBRB  "rx"        // bouton retour
 #define JSBMB  "mx"        // bouton Maj 

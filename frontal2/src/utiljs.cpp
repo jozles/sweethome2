@@ -7,13 +7,21 @@
 int            jsUsrNum;
 unsigned long* jsUsrTime;
 
+extern bool       borderparam;
+extern uint16_t   styleTdWidth;
+extern const char*  courier;
+extern char*      styleTdFont;
+extern uint16_t   styleTdFSize;
+
+#define LCTDFNT 16
+char currentTdFont[LCTDFNT];
 
 void buftxcat(char* buf,char* txt)
 {
   char c[2]={*txt,'\0'};
   while (*c!=0x00){
     switch (*c){
-      case *JSSCO:strcat(buf,"</td><td>");break;
+      case *JSSCO:strcat(buf,"</td>");tdcat(buf);break;
       case *JSSBR:strcat(buf,"<br>");break;
       case '\n':break;           // ignore LF !
       default: strcat(buf,c);
@@ -93,7 +101,8 @@ void jsGetEndArg(char* buf,char* jsbuf)   // remplace strcat(buf,jsGetArg(jsbuf)
 {
   char* dm=jsGetArg(jsbuf);               // something ?
   if(dm!=nullptr){                  
-    memcpy(buf,dm,jsbuf-dm);}             // pas de séparateur de fin donc strcat ne fonctionne pas
+    char* dm0=buf+strlen(buf);
+    memcpy(dm0,dm,dm0-dm);}               // pas de séparateur de fin donc strcat ne fonctionne pas
 }
 
 char* jsGetMemAddr(char optNam)
@@ -148,11 +157,24 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf," ");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSST :ctlJs=ctlJsB(buf,jsbuf,JSST);                   // texte JSSTx[police][}width}]texte
+            case *JSTDS :ctlJs=ctlJsB(buf,jsbuf,JSTDS);                 // tdSet JSTDSxwidth}font}font-size
+                        styleTdWidth=*jsbuf-PMFNCVAL;jsbuf+=2;          // width
+                        memcpy(currentTdFont,jsGetArg(jsbuf),LCTDFNT);  // police
+                        styleTdFont=currentTdFont;
+                        styleTdFSize=*jsbuf-PMFNCVAL;jsbuf++;           // font-size
+                        ctlJsE(buf,ctlJs);
+                        break;   
+            case *JSTDR :ctlJs=ctlJsB(buf,jsbuf,JSTDR);                 // reset Td
+                        styleTdWidth=0;
+                        styleTdFont=nullptr;
+                        styleTdFSize=0;
+                        ctlJsE(buf,ctlJs);
+                        break;                          
+            case *JSST  :ctlJs=ctlJsB(buf,jsbuf,JSST);                   // texte JSSTx[police][}width}]texte
                         buftxcat(buf,jsGetArg(jsbuf));              //////////////////////////////////////////////////// jsGetarg de fin
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSNT :ctlJs=ctlJsB(buf,jsbuf,JSNT);                   // nombre 
+            case *JSNT  :ctlJs=ctlJsB(buf,jsbuf,JSNT);                   // nombre 
                         jsbuf++;    // skip type
                         jsGetEndArg(buf,jsbuf);
                         ctlJsE(buf,ctlJs);

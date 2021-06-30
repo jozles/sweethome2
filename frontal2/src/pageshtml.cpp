@@ -84,6 +84,10 @@ extern uint16_t   sourceDetServ[NBDSRV];
 
 extern bool       borderparam;
 extern uint16_t   styleTdWidth;
+extern const char*  courier;
+extern char*      styleTdFont;
+extern uint16_t   styleTdFSize;
+
 
    // Un formulaire ou une page html nécessite dans l'ordre :
    //      1) une fonction user_ref_ avec ses paramètres pour éviter le retour au mot de passe
@@ -107,18 +111,14 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
         File32 fimg;                              // = SD.open(fimgname,FILE_READ);
         if(sdOpen(fimgname,&fimg)==SDKO){return SDKO;}
         else {
-          
-          cli->println("HTTP/1.1 200 OK");
-          cli->println("CONTENT-Type: image/jpg");
-          cli->println();
-
           long fimgSiz=fimg.size();
           Serial.print(" size=");Serial.print(fimgSiz);
           #define ICONLENGTH 1000
           if(fimgSiz>=ICONLENGTH){Serial.println(" fichier icon trop grand *********");}
           else {
-            char icon[ICONLENGTH];            
-            for(int i=0;i<fimgSiz;i++){icon[i]=fimg.read();}
+            char icon[ICONLENGTH+JPGINTROLEN];*icon=0x00;
+            jpgIntro0(icon);
+            for(int i=strlen(icon);i<fimgSiz+JPGINTROLEN;i++){icon[i]=fimg.read();}
             icon[fimgSiz]='\0';
             Serial.print(" ms_rd=");Serial.print(millis()-begIC);
             ethWrite(cli,icon);
@@ -510,15 +510,15 @@ void cfgRemoteHtml(EthernetClient* cli)
 {
   Serial.print(" config remote ");
             
-  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;
   uint16_t lb=0,lb0=8000;
   char buf[lb0];*buf=0x00;
 
-  unsigned long begTPage=millis();     // calcul durée envoi page
+  unsigned long begTPage=millis();              // calcul durée envoi page
   char nf[LENNOM+1];nf[LENNOM]='\0';
   uint8_t val;
  
-  htmlBeg(buf,jsbuf,nomserver,cli);                // chargement CSS etc
+  htmlBeg(buf,jsbuf,nomserver,cli);             // chargement CSS etc
   htmlBegE(buf,cli);
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);   // params pour retours navigateur (n° usr + time usr + pericur)
 
@@ -567,55 +567,55 @@ void cfgRemoteHtml(EthernetClient* cli)
             tableBeg(buf,jsbuf,0);
             affText(buf,jsbuf,"  |remote |detec on/off|detec en|peri|switch",0,TRBE|TDBE);
               
-              for(uint8_t nb=0;nb<MAXREMLI;nb++){
+            for(uint8_t nb=0;nb<MAXREMLI;nb++){
                 
-                formIntro(buf,jsbuf,nullptr,0,nullptr,0,TRBEG);
-                uint8_t nb1=nb++;
-                affNum(buf,jsbuf,'s',&nb1,0,0,TDBE);                                          // n° ligne de table
+              formIntro(buf,jsbuf,nullptr,0,nullptr,0,TRBEG);
+              uint8_t nb1=nb++;
+              affNum(buf,jsbuf,'s',&nb1,0,0,TDBE);                                          // n° ligne de table
 
-                memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° remote
-                numTf(buf,jsbuf,'b',&remoteT[nb].num,nf,2,0,0,TDBEG);
-                char ttsp[]={' ',0x00};
-                char* tt=remoteN[remoteT[nb].num-1].nam;if(remoteT[nb].num==0){tt=ttsp;}
-                affText(buf,jsbuf,tt,0,TDEND);
+              memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° remote
+              numTf(buf,jsbuf,'b',&remoteT[nb].num,nf,2,0,0,TDBEG);
+              char ttsp[]={' ',0x00};
+              char* tt=remoteN[remoteT[nb].num-1].nam;if(remoteT[nb].num==0){tt=ttsp;}
+              affText(buf,jsbuf,tt,0,TDEND);
 
-                memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec on/off
-                numTf(buf,jsbuf,'b',&remoteT[nb].detec,nf,2,0,0,TDBEG);
-                #define DML PERINAMLEN+LENLIBDETSERV+1
-                char dm[DML];memset(dm,0x00,DML);
-                if(remoteT[nb].num!=0){
-                  strcat(dm,(char*)(&libDetServ[remoteT[nb].detec][0]));strcat(dm," ");
-                  concat1a(dm,(char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}
-                affText(buf,jsbuf,dm,0,TDEND);
-                strcat(buf,"\n");
+              memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec on/off
+              numTf(buf,jsbuf,'b',&remoteT[nb].detec,nf,2,0,0,TDBEG);
+              #define DML PERINAMLEN+LENLIBDETSERV+1
+              char dm[DML];memset(dm,0x00,DML);
+              if(remoteT[nb].num!=0){
+                strcat(dm,(char*)(&libDetServ[remoteT[nb].detec][0]));strcat(dm," ");
+                concat1a(dm,(char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}
+              affText(buf,jsbuf,dm,0,TDEND);
+              strcat(buf,"\n");
 
-                memcpy(nf,"remotecfb_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec enable
-                numTf(buf,jsbuf,'b',&remoteT[nb].deten,nf,2,0,2,TDBEG);
-                memset(dm,0x00,DML);
-                if(remoteT[nb].num!=0){
-                  strcat(dm,(char*)(&libDetServ[remoteT[nb].deten][0]));strcat(dm," ");
-                  concat1a(dm,(char)(((memDetServ>>remoteT[nb].deten)&0x01)+48));}
-                affText(buf,jsbuf,dm,0,TDEND);
-                strcat(buf,"\n");
+              memcpy(nf,"remotecfb_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec enable
+              numTf(buf,jsbuf,'b',&remoteT[nb].deten,nf,2,0,2,TDBEG);
+              memset(dm,0x00,DML);
+              if(remoteT[nb].num!=0){
+                strcat(dm,(char*)(&libDetServ[remoteT[nb].deten][0]));strcat(dm," ");
+                concat1a(dm,(char)(((memDetServ>>remoteT[nb].deten)&0x01)+48));}
+              affText(buf,jsbuf,dm,0,TDEND);
+              strcat(buf,"\n");
 
-                memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° périphérique
-                numTf(buf,jsbuf,'b',&remoteT[nb].peri,nf,2,0,2,TDBEG);
-                memset(dm,0x00,DML);
-                uint8_t rp=remoteT[nb].peri;
-                if(rp!=0){periLoad(rp);periCur=rp;strcat(dm,periNamer);strcat(dm," ");}
-                affText(buf,jsbuf,dm,0,TDEND);
-                strcat(buf,"\n");
+              memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° périphérique
+              numTf(buf,jsbuf,'b',&remoteT[nb].peri,nf,2,0,2,TDBEG);
+              memset(dm,0x00,DML);
+              uint8_t rp=remoteT[nb].peri;
+              if(rp!=0){periLoad(rp);periCur=rp;strcat(dm,periNamer);strcat(dm," ");}
+              affText(buf,jsbuf,dm,0,TDEND);
+              strcat(buf,"\n");
 
-                memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° switch
-                numTf(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,2,TDBE);
-                strcat(buf,"\n");
+              memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° switch
+              numTf(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,2,TDBE);
+              strcat(buf,"\n");
 
-                boutMaj(buf,jsbuf,"MàJ",TDBE|TREND);
-                formEnd(buf,jsbuf,0,0);
-                strcat(buf,"\n");
+              boutMaj(buf,jsbuf,"MàJ",TDBE|TREND);
+              formEnd(buf,jsbuf,0,0);
+              strcat(buf,"\n");
                 
-                if(nb-nb/5*5==0){ethWrite(cli,buf,&lb);}
-              }
+              if(nb-nb/5*5==0){ethWrite(cli,buf,&lb);}
+            }
               
             tableEnd(buf,jsbuf,0);
             htmlEnd(buf,jsbuf);
@@ -633,8 +633,9 @@ void remoteHtml(EthernetClient* cli)
             uint16_t lb0=LBUF4000;
             char buf[lb0];buf[0]='\0';
             char jsbuf[LBUF4000];*jsbuf=0x00;
-            uint8_t ni=0;                                       // nbre lignes dans buffer
+            uint8_t ni=0;                                     // nbre lignes dans buffer
             uint16_t lb;
+            unsigned long begTPage=millis();                  // calcul durée envoi page
  
             htmlBeg(buf,jsbuf,nomserver,cli);
             htmlStyleSliders(buf);
@@ -644,13 +645,13 @@ void remoteHtml(EthernetClient* cli)
             pageHeader(buf,jsbuf);
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
             //usrFormBHtml(buf,1);
-            boutRetourB(buf,"retour",0,0);
-            ethWrite(cli,buf);
+            boutRetourB(buf,jsbuf,"retour",0);
+            ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
 
 /* table remotes */
            
-            tableBeg(buf,jsbuf," style=\"font-family: Courier, sans-serif\"",true,0); 
+            tableBeg(buf,jsbuf,courier,true,0); 
             strcat(buf,"\n");            
 
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
@@ -671,7 +672,6 @@ void remoteHtml(EthernetClient* cli)
                       if(periSwLev(remoteT[td].sw)==1){                         // switch ON
                         affText(buf,jsbuf," ON ",0,TDBEG|BRYES);
                         affRondJaune(buf,jsbuf,TDEND);
-                        //strcat(buf," ON <div id=\"rond_jaune\"></div>");
                       }
                       else {
                         affText(buf,jsbuf," OFF ",0,TDBE);}  //strcat(buf," OFF ");}
@@ -680,7 +680,6 @@ void remoteHtml(EthernetClient* cli)
                   }
                 }
                 affText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
-                //strcat(buf,"</td><td> <font size=\"7\">");strcat(buf,remoteN[nb].nam);strcat(buf,"</font></td>");      // nom remote
                 // slider on/off
                 // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
                 // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
@@ -690,13 +689,11 @@ void remoteHtml(EthernetClient* cli)
                 // pour la maj via PerToSend des périphériques concernés
                 char fn[]="remote_cn_\0";fn[LENNOM-1]=(char)(nb+PMFNCHAR);
                 hiddenAlpha(buf,jsbuf,"",fn,0,0);
-                //strcat(buf,"<input type=\"hidden\" name=\"remote_cn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">");
                 sliderBHtml(buf,jsbuf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);     // slider
 
-                  affText(buf,jsbuf,"- - - - -",0,TDBE);                                // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
-                  //strcat(buf,"<td>- - - - -</td>\n");                                 
-                  bool vert=FAUX;                                                       // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
-                  yradioTableBHtml(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);     // renvoie 0,1,2 selon OFF,ON,FOR
+                affText(buf,jsbuf,"- - - - -",0,TDBE);                                // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
+                bool vert=FAUX;                                                       // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
+                yradioTableBHtml(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);     // renvoie 0,1,2 selon OFF,ON,FOR
                 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
              }
@@ -710,7 +707,9 @@ void remoteHtml(EthernetClient* cli)
             
             formEnd(buf,jsbuf,0,0);
             htmlEnd(buf,jsbuf);
-            ethWrite(cli,buf);
+            ethWrite(cli,buf,&lb);
+            
+            bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd derniers jours
@@ -853,7 +852,7 @@ void thermoShowHtml(EthernetClient* cli)
 
 /* peritable températures */
 
-  tableBeg(buf,jsbuf," style=font-family: Courier, sans-serif",BORDER,BRYES|TRBEG);
+  tableBeg(buf,jsbuf,courier,BORDER,BRYES|TRBEG);
   affText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
   strcat(buf,"\n");
               for(int nuth=0;nuth<NBTHERMOS;nuth++){
@@ -915,19 +914,19 @@ void subthd(char* buf,char* jsbuf,char param,uint8_t nb,void* val,char type)
         nf[LENNOM-1]=nb+PMFNCHAR;                              
         
         switch(type){
-          case 'd': numTf(buf,'b',val,nf,2,1,0);break;                              // n° detec/peri              
-          case 'v': numTf(buf,'I',val,nf,4,1,0);break;                              // value/offset
-          case 'e': checkboxTableBHtml(buf,(uint8_t*)val,nf,NO_STATE,1,"");break;   // enable/state
+          case 'd': numTf(buf,jsbuf,'b',val,nf,0,2,0,0,TDBE);break;                             // n° detec/peri              
+          case 'v': numTf(buf,jsbuf,'I',val,nf,0,4,2,1,TDBE);break;                             // value/offset
+          case 'e': checkboxTableBHtml(buf,jsbuf,(uint8_t*)val,nf,NO_STATE,"",0,TDBE);break;    // enable/state
           default:break;
         }
 }
 
 void subthc(char* buf,char* jsbuf,uint8_t vv)
 {
-    if(vv!=0){affText(buf,jsbuf,(char*)(&libDetServ[vv][0]),0,STRING|TDBEG);
-      affText(buf,jsbuf,":",0,STRING|CONCAT);
+    if(vv!=0){affText(buf,jsbuf,(char*)(&libDetServ[vv][0]),2,STRING|TDBEG);
+      affText(buf,jsbuf,":",2,STRING|CONCAT);
       char oi[]={'0',0x00,'1',0x00};
-      affText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],0,STRING|CONCAT);}
+      affText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],2,STRING|CONCAT);}
     else affText(buf,jsbuf," ",0,TDBE);
 }
 
@@ -935,13 +934,13 @@ void thermoCfgHtml(EthernetClient* cli)
 { 
   Serial.print(" config thermos ");
             
-  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
-  uint16_t lb=0,lb0=8000;
+  char jsbuf[12000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  uint16_t lb=0,lb0=12000;
   char buf[lb0];*buf=0x00;
 
   unsigned long begTPage=millis();              // calcul durée envoi page
   uint8_t ni=0;
- 
+
   htmlBeg(buf,jsbuf,nomserver,cli);             // chargement CSS etc
   htmlBegE(buf,cli);
   //formIntro(buf,jsbuf,nullptr,0,nullptr,0,0); // params pour retours navigateur (n° usr + time usr + pericur)
@@ -949,49 +948,56 @@ void thermoCfgHtml(EthernetClient* cli)
   pageHeader(buf,jsbuf);                        // 1ère ligne page
   boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
           
-  boutF(buf,"thermoscfg","","refresh",0,0,1,0);
+  boutF(buf,jsbuf,"thermoscfg","","refresh",0,0,BRYES);
   
   ethWrite(cli,buf,&lb);          
 // ------------------------------------------------------------- header end 
 
 /* table thermos */
 
-  tableBeg(buf,jsbuf,0);
-  affText(buf,jsbuf,"   |      Nom      | peri |  | low~ en| low~ state| low~ value| low~ pitch| low~ det| | high~ en| high~ state| high~ value| high~ offset| high~ det| | ",2,TDBE|TRBE);
+  strcat(buf,"\n");
+  tableBeg(buf,jsbuf,courier,true,0);
+  strcat(buf,"\n");
+  tdSet(jsbuf,0,courier,12,0);
+  affText(buf,jsbuf,"   |      Nom      | peri |  | low~ en| low~ state| low~ value| low~ pitch| low~ det| | high~ en| high~ state| high~ value| high~ offset| high~ det| | ",0,TDBE|TRBE);
+  tdReset();
+  strcat(buf,"\n");
 
   for(uint8_t nb=0;nb<NBTHERMOS;nb++){
     ni++;
-                
-    formIntro(buf,jsbuf,nullptr,0,nullptr,0,TRBEG);                
-    affNum(buf,jsbuf,'s',&ni,0,0,TDBE);                                                  // n° thermo
-    char nf[LENNOM+1];memset(nf,0x00,LENNOM+1);memcpy(nf,"thparamsn",LENNOM-1);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
-    alphaTableHtmlB(buf,jsbuf,thermos[nb].nom,nf,LENTHNAME-1,0,TDBE);                    // nom
+    
+    formIntro(buf,jsbuf,nullptr,0,nullptr,2,TRBEG);                
+    uint8_t nb1=nb+1;
+    affNum(buf,jsbuf,'s',&nb1,0,2,TDBE);                                              // n° thermo
+    char nf[LENNOM+1];memset(nf,0x00,LENNOM+1);
+    memcpy(nf,"thparamsn",LENNOM-1);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
+    alphaTableHtmlB(buf,jsbuf,thermos[nb].nom,nf,LENTHNAME-1,0,TDBE);                 // nom
     //strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENTHNAME-1);
     
-    subthd(buf,jsbuf,'p',nb,&thermos[nb].peri,'d');                                             // peri
-    periInitVar();periCur=thermos[nb].peri;if(periCur!=0){periLoad(periCur);}
-    affText(buf,jsbuf,periNamer,0,TDBEG);
-    affText(buf,jsbuf,":",0,0);
-    float pl=(*periLastVal_)/100;
-    affNum(buf,jsbuf,'f',&pl,2,0,TDEND);
-    subthd(buf,jsbuf,'e',nb,&thermos[nb].lowenable,'e');                                        // low enable
-    subthd(buf,jsbuf,'s',nb,&thermos[nb].lowstate,'e');                                         // low state
-    subthd(buf,jsbuf,'v',nb,&thermos[nb].lowvalue,'v');                                         // low value
-    subthd(buf,jsbuf,'o',nb,&thermos[nb].lowoffset,'v');                                        // low offset
-    subthd(buf,jsbuf,'d',nb,&thermos[nb].lowdetec,'d');                                         // low det
+    subthd(buf,jsbuf,'p',nb,&thermos[nb].peri,'d');                                   // peri
+    
+    periInitVar();periCur=thermos[nb].peri;                                           // nom;lastVal    
+    if(periCur!=0){
+      periLoad(periCur);
+      affText(buf,jsbuf,periNamer,2,TDBEG);
+      affText(buf,jsbuf,":",2,0);
+      float pl=(*periLastVal_)/100;
+      affNum(buf,jsbuf,'f',&pl,2,2,TDEND);}
+    else {affText(buf,jsbuf,"",0,TDBE);}
+    
+    subthd(buf,jsbuf,'e',nb,&thermos[nb].lowenable,'e');                              // low enable
+    subthd(buf,jsbuf,'s',nb,&thermos[nb].lowstate,'e');                               // low state
+    subthd(buf,jsbuf,'v',nb,&thermos[nb].lowvalue,'v');                               // low value
+    subthd(buf,jsbuf,'o',nb,&thermos[nb].lowoffset,'v');                              // low offset
+    subthd(buf,jsbuf,'d',nb,&thermos[nb].lowdetec,'d');                               // low det
     
     subthc(buf,jsbuf,(uint8_t)thermos[nb].lowdetec);
-    /*if(vv!=0){affText(buf,jsbuf,(char*)(&libDetServ[vv][0]),0,STRING|TDBEG);
-      affText(buf,jsbuf,":",0,STRING|CONCAT);
-      char oi[]={'0',0x00,'1',0x00};
-      affText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],0,STRING|CONCAT);}
-    else affText(buf,jsbuf," ",0,TDBE);
-*/
-    subthd(buf,jsbuf,'E',nb,&thermos[nb].highenable,'e');                                        // high enable
-    subthd(buf,jsbuf,'S',nb,&thermos[nb].highstate,'e');                                         // high state
-    subthd(buf,jsbuf,'V',nb,&thermos[nb].highvalue,'v');                                         // high value
-    subthd(buf,jsbuf,'O',nb,&thermos[nb].highoffset,'v');                                        // high offset
-    subthd(buf,jsbuf,'D',nb,&thermos[nb].highdetec,'d');                                         // high det
+
+    subthd(buf,jsbuf,'E',nb,&thermos[nb].highenable,'e');                             // high enable
+    subthd(buf,jsbuf,'S',nb,&thermos[nb].highstate,'e');                              // high state
+    subthd(buf,jsbuf,'V',nb,&thermos[nb].highvalue,'v');                              // high value
+    subthd(buf,jsbuf,'O',nb,&thermos[nb].highoffset,'v');                             // high offset
+    subthd(buf,jsbuf,'D',nb,&thermos[nb].highdetec,'d');                              // high det
 
     subthc(buf,jsbuf,(uint8_t)thermos[nb].highdetec);
     

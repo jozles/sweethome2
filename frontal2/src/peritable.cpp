@@ -391,7 +391,7 @@ void periTableHtml(EthernetClient* cli)
           boutF(buf,jsbuf,"thermoscfg","","thermo_cfg",ALICNO,0,0);
           boutF(buf,jsbuf,"thermoshow","","thermoshow",ALICNO,0,0);
           boutF(buf,jsbuf,"timershtml","","timershtml",ALICNO,0,0);
-          boutF(buf,"dsrvhtml__","","detsrvhtml",0,0,0,0);                 
+          boutF(buf,jsbuf,"dsrvhtml__","","detsrvhtml",ALICNO,0,BRYES);                 
         
           formEnd(buf,jsbuf,0,0);
           strcat(buf,"\n");
@@ -399,7 +399,7 @@ void periTableHtml(EthernetClient* cli)
           detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
           
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
-          tableBeg(buf,jsbuf," style=\"font-family: Courier, sans-serif\"",BORDER,TRBEG|TDBEG);
+          tableBeg(buf,jsbuf,"Courier, sans-serif\"",BORDER,TRBEG|TDBEG);
           affText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|vers. prot~last out~last in|",0,TREND|TDEND);
 
           ethWrite(cli,buf,&lb);
