@@ -127,6 +127,9 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
           fimg.close();        
         }
         Serial.print(" ms=");Serial.println(millis()-begIC);
+#ifdef DEBUG_ON
+  delay(10);
+#endif
         return SDOK;          // attention !!! pas de cli.stop sinon une suite éventuelle ne pourra pas partir (acceuilHtml par ex)
 }
 
@@ -137,7 +140,7 @@ void htmlFavicon(EthernetClient* cli)
 
 void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long histoPos,uint16_t lb0,uint16_t* lb)   // liste le fichier histo depuis une adresse
 {
-  affNum(buf,jsbuf,'l',&histoPos,0,0,0);affText(buf,jsbuf,"/",0,STRING|CONCAT|TDBEG);affNum(buf,jsbuf,'l',&fhsize,0,0,BRYES);
+  scrDspNum(buf,jsbuf,'l',&histoPos,0,0,0);scrDspText(buf,jsbuf,"/",0,STRING|CONCAT|TDBEG);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,BRYES);
   strcat(buf,"\n");
 
   ethWrite(cli,buf,lb);
@@ -164,8 +167,10 @@ void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long histoPos,uint16_t 
 
 void dumpHisto(EthernetClient* cli)
 {
-  Serial.print(" dump histo ");delay(100);
-
+  Serial.print(" dump histo ");
+#ifdef DEBUG_ON
+  delay(100);
+#endif
   char jsbuf[16000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf ne fonctionne pas avec dumpHisto0 !!!!!!!!!!!!!!!!!!!!!!!!! 
   uint16_t lb=0,lb0=LBUF4000;
   char buf[lb0];*buf=0x00;
@@ -183,25 +188,25 @@ void dumpHisto(EthernetClient* cli)
                                     // de la page formBeg() suffit
 
   pageHeader(buf,jsbuf);            // 1ère ligne page
-  boutRetourB(buf,jsbuf,"retour",0);
+  scrGetButRet(buf,jsbuf,"retour",0);
 
   ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
   trigwd();
 
-  affText(buf,jsbuf,"histoSD ",0,0);
-  if(sdOpen(file,&fhisto)==SDKO){affText(buf,jsbuf,"KO",0,0);return;}
+  scrDspText(buf,jsbuf,"histoSD ",0,0);
+  if(sdOpen(file,&fhisto)==SDKO){scrDspText(buf,jsbuf,"KO",0,0);return;}
   fhsize=fhisto.size();
 
   if(histoDh[0]=='2'){
     shDateHist(histoDh,&pos);
-    affText(buf,jsbuf,histoDh,0,0);affText(buf,jsbuf," - ",0,STRING|CONCAT|TDBEG);
+    scrDspText(buf,jsbuf,histoDh,0,0);scrDspText(buf,jsbuf," - ",0,STRING|CONCAT|TDBEG);
   }
   ethWrite(cli,buf,&lb);
 
   dumpHisto0(cli,buf,jsbuf,pos,lb0,&lb);
 
-  boutRetourB(buf,jsbuf,"retour",1);
+  scrGetButRet(buf,jsbuf,"retour",1);
   htmlEnd(buf,jsbuf);
 
   ethWrite(cli,buf,&lb);
@@ -307,14 +312,14 @@ void accueilHtml(EthernetClient* cli)
             htmlBeg0(buf,jsbuf);                         
             //formIntro(buf,jsbuf,0,0);
             
-            affText(buf,jsbuf,VERSION,5,BRYES);
+            scrDspText(buf,jsbuf,VERSION,5,BRYES);
             //strcat(buf,"<h1 class=\"point\">");
             //strcat(buf,VERSION);strcat(buf,"<br>");
 
             strcat(buf,"<form method=\"GET \">");
             strcat(buf,"<p><input type=\"username\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Username\" name=\"username__\"  value=\"\" size=\"6\" maxlength=\"8\" ></p>\n");            
             strcat(buf,"<p><input type=\"password\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Password\" name=\"password__\" value=\"\" size=\"6\" maxlength=\"8\" ></p>\n");
-            //boutRetourB(buf,jsbuf,"Login",0);
+            //scrGetButRet(buf,jsbuf,"Login",0);
             strcat(buf," <input type=\"submit\" text style=\"width:300px;height:60px;font-size:40px\" value=\"login\"><br></h1>\n");
             //formEnd(buf,jsbuf,0,0);
             
@@ -334,7 +339,7 @@ void sscb(char* buf,char* jsbuf,bool val,const char* nomfonct,int nuf,int etat,u
   nf[LENNOM]='\0';
   nf[LENNOM-1]=(char)(nb+PMFNCHAR);
   nf[LENNOM-2]=(char)(nuf+PMFNCHAR);
-  checkboxTableBHtml(buf,jsbuf,(uint8_t*)&val,nf,etat,"",0,ctl);
+  scrGetCheckbox(buf,jsbuf,(uint8_t*)&val,nf,etat,"",0,ctl);
 }
 
 void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,const void* value,int len,uint8_t type,uint8_t ctl)   
@@ -349,20 +354,20 @@ void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,const void* value,
 
   
   //strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nom);concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
-  if(type==0){alphaTableHtmlB(buf,jsbuf,(char*)value,nf,sizbx,len,0,ctl);} //strcat(buf,(char*)value);strcat(buf,"\" size=\"");concatn(buf,sizbx);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>");}
-  if(type==1){alphaTableHtmlB(buf,jsbuf,(char*)((char*)value+(nb*(len+1))),nf,sizbx,len,0,ctl);} //strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatn(buf,len);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");}  
-  if(type==2){numTf(buf,jsbuf,'I',((int16_t*)value+nb),nf,2,1,0,ctl);} //concatn(buf,*((int16_t*)value+nb));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>");}
-  if(type==3){numTf(buf,jsbuf,'s',(int8_t*)value,nf,2,1,0,ctl);} //concatn(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
+  if(type==0){scrGetText(buf,jsbuf,(char*)value,nf,sizbx,len,0,ctl);} //strcat(buf,(char*)value);strcat(buf,"\" size=\"");concatn(buf,sizbx);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>");}
+  if(type==1){scrGetText(buf,jsbuf,(char*)((char*)value+(nb*(len+1))),nf,sizbx,len,0,ctl);} //strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatn(buf,len);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");}  
+  if(type==2){scrGetNum(buf,jsbuf,'I',((int16_t*)value+nb),nf,2,1,0,ctl);} //concatn(buf,*((int16_t*)value+nb));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>");}
+  if(type==3){scrGetNum(buf,jsbuf,'s',(int8_t*)value,nf,2,1,0,ctl);} //concatn(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
 }
 
 void subcfgtable(char* buf,char* jsbuf,const char* titre,int nbl,const char* nom1,const char* value1,int len1,uint8_t type1,const char* nom2,void* value2,int len2,const char* titre2,uint8_t type2)
 { 
     borderparam=NOBORDER;  
-    tableBeg(buf,jsbuf,0);affText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);affText(buf,jsbuf,titre,0,STRING|TDEND);affText(buf,jsbuf,titre2,0,STRING|TREND);
+    tableBeg(buf,jsbuf,0);scrDspText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);scrDspText(buf,jsbuf,titre,0,STRING|TDEND);scrDspText(buf,jsbuf,titre2,0,STRING|TREND);
     //strcat(buf,"<table><col width=\"22\"><tr><th></th><th>");strcat(buf,titre);strcat(buf,"</th><th>");strcat(buf,titre2);strcat(buf,"</th></tr>\n");
 Serial.println((char*)(buf+strlen(buf)-100));
     for(int nb=0;nb<nbl;nb++){
-      affNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
+      scrDspNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
       //strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td>");
 
       sscfgtB(buf,jsbuf,nom1,nb,value1,len1,type1,TDBE);                      
@@ -371,11 +376,11 @@ Serial.println((char*)(buf+strlen(buf)-100));
       if(len2==-1){
         int16_t peri=*((int16_t*)value2+nb);
         if(peri>0){Serial.print(peri);periLoad(peri);
-          affText(buf,jsbuf,periNamer,0,TDBE);}
+          scrDspText(buf,jsbuf,periNamer,0,TDBE);}
           //strcat(buf,"<td>");strcat(buf,periNamer);strcat(buf,"</td>");}
         if(nb==nbl-1){Serial.println();}
       }
-      affText(buf,jsbuf," ",0,TREND);
+      scrDspText(buf,jsbuf," ",0,TREND);
       //strcat(buf,"</tr>");
     }
     tableEnd(buf,jsbuf,0);
@@ -396,8 +401,8 @@ void cfgServerHtml(EthernetClient* cli)
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
 
   pageHeader(buf,jsbuf);            // 1ère ligne page
-  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
-  boutMaj(buf,jsbuf,"MàJ",BRYES);
+  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
+  scrGetButSub(buf,jsbuf,"MàJ",BRYES);
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
 // ------------------------------------------------------------- header end
@@ -410,44 +415,44 @@ fontBeg(buf,jsbuf,2,0);
 
             #define LBUFL 16
             char lbuf[LBUFL];*lbuf=0x00;for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[mac[k]/16]);concat1a(lbuf,chexa[mac[k]%16]);}
-            affText(buf,jsbuf," serverMac ",0,0);alphaTableHtmlB(buf,jsbuf,lbuf,"ethcfg___m",11,MACADDRLENGTH,0,0);
+            scrDspText(buf,jsbuf," serverMac ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___m",11,MACADDRLENGTH,0,0);
             //strcat(buf," serverMac <input type=\"text\" name=\"ethcfg___m\" value=\"");
             //for(int k=0;k<MACADDRLENGTH;k++){concat1a(buf,chexa[mac[k]/16]);concat1a(buf,chexa[mac[k]%16]);}strcat(buf,"\" size=\"11\" maxlength=\"12\" >\n");                        
             *lbuf=0x00;for(int k=0;k<4;k++){concatns(lbuf,localIp[k]);if(k!=3){strcat(lbuf,".");}}
-            affText(buf,jsbuf," localIp ",0,0);alphaTableHtmlB(buf,jsbuf,lbuf,"ethcfg___i",11,LBUFL,0,0);
+            scrDspText(buf,jsbuf," localIp ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___i",11,LBUFL,0,0);
             //strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
             //for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
-            affText(buf,jsbuf," portserver ",0,0);numTf(buf,jsbuf,'d',portserver,"ethcfg___p",4,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," portserver ");numTf(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
+            scrDspText(buf,jsbuf," portserver ",0,0);scrGetNum(buf,jsbuf,'d',portserver,"ethcfg___p",4,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," portserver ");scrGetNum(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
 
-            affText(buf,jsbuf,"",0,BRYES);
+            scrDspText(buf,jsbuf,"",0,BRYES);
             subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
-            affText(buf,jsbuf," to password ",0,0);numTf(buf,jsbuf,'d',toPassword,"to_passwd_",6,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," to password ");numTf(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
+            scrDspText(buf,jsbuf," to password ",0,0);scrGetNum(buf,jsbuf,'d',toPassword,"to_passwd_",6,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," to password ");scrGetNum(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
             subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
             ethWrite(cli,buf,&lb);
             
-            tableBeg(buf,jsbuf,NOBORDER,BRYES);  //affText(buf,jsbuf," ",100,2,TDBE);
-            affText(buf,jsbuf,"mailFrom ",2,TRBEG|TDBE);alphaTableHtmlB(buf,jsbuf,mailFromAddr,"mailcfg__f",16,LMAILADD,0,TDBE);strcat(buf,"\n");
+            tableBeg(buf,jsbuf,NOBORDER,BRYES);  //scrDspText(buf,jsbuf," ",100,2,TDBE);
+            scrDspText(buf,jsbuf,"mailFrom ",2,TRBEG|TDBE);scrGetText(buf,jsbuf,mailFromAddr,"mailcfg__f",16,LMAILADD,0,TDBE);strcat(buf,"\n");
             //strcat(buf," mail From <input type=\"text\" name=\"mailcfg__f\" value=\"");strcat(buf,mailFromAddr);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD));strcat(buf,"\" >\n");
-            affText(buf,jsbuf," ",40,2,TDBE);affText(buf,jsbuf,"password  ",0,TDBE);alphaTableHtmlB(buf,jsbuf,mailPass,"mailcfg__w",16,LMAILPWD,0,TDBE|TREND);strcat(buf,"\n");
+            scrDspText(buf,jsbuf," ",40,2,TDBE);scrDspText(buf,jsbuf,"password  ",0,TDBE);scrGetText(buf,jsbuf,mailPass,"mailcfg__w",16,LMAILPWD,0,TDBE|TREND);strcat(buf,"\n");
             //strcat(buf," password  <input type=\"text\" name=\"mailcfg__w\" value=\"");strcat(buf,mailPass);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" ><br>\n");
-            affText(buf,jsbuf,"mailTo #1 ",0,TRBEG|TDBE);alphaTableHtmlB(buf,jsbuf,mailToAddr1,"mailcfg__1",16,LMAILADD,0,TDBE);strcat(buf,"\n");
+            scrDspText(buf,jsbuf,"mailTo #1 ",0,TRBEG|TDBE);scrGetText(buf,jsbuf,mailToAddr1,"mailcfg__1",16,LMAILADD,0,TDBE);strcat(buf,"\n");
             //strcat(buf," mail To #1 <input type=\"text\" name=\"mailcfg__1\" value=\"");strcat(buf,mailToAddr1);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" >\n");
-            affText(buf,jsbuf," ",40,2,TDBE);affText(buf,jsbuf,"mailTo #2 ",0,TDBE);alphaTableHtmlB(buf,jsbuf,mailToAddr2,"mailcfg__2",16,LMAILADD,0,TDBE|TREND);strcat(buf,"\n");
+            scrDspText(buf,jsbuf," ",40,2,TDBE);scrDspText(buf,jsbuf,"mailTo #2 ",0,TDBE);scrGetText(buf,jsbuf,mailToAddr2,"mailcfg__2",16,LMAILADD,0,TDBE|TREND);strcat(buf,"\n");
             //strcat(buf," mail To #2 <input type=\"text\" name=\"mailcfg__2\" value=\"");strcat(buf,mailToAddr2);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" ><br>\n");
             tableEnd(buf,jsbuf,BRYES);
 
-            affText(buf,jsbuf,"mail perif 1 ",0,0);numTf(buf,jsbuf,'d',periMail1,"mailcfg__p",2,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," perif 1 ");numTf(buf,'d',periMail1,"mailcfg__p",2,0,0);strcat(buf,"<br>\n");
-            affText(buf,jsbuf,"mail perif 2 ",0,0);numTf(buf,jsbuf,'d',periMail2,"mailcfg__q",2,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," perif 2 ");numTf(buf,'d',periMail2,"mailcfg__q",2,0,0);strcat(buf,"<br>\n");
+            scrDspText(buf,jsbuf,"mail perif 1 ",0,0);scrGetNum(buf,jsbuf,'d',periMail1,"mailcfg__p",2,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," perif 1 ");scrGetNum(buf,'d',periMail1,"mailcfg__p",2,0,0);strcat(buf,"<br>\n");
+            scrDspText(buf,jsbuf,"mail perif 2 ",0,0);scrGetNum(buf,jsbuf,'d',periMail2,"mailcfg__q",2,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," perif 2 ");scrGetNum(buf,'d',periMail2,"mailcfg__q",2,0,0);strcat(buf,"<br>\n");
 
             
-            affText(buf,jsbuf,"maxCxWt ",0,0);numTf(buf,jsbuf,'l',maxCxWt,"ethcfg___q",8,0,0,0);
-            //strcat(buf,"maxCxWt ");numTf(buf,'l',maxCxWt,"ethcfg___q",8,0,0);
-            affText(buf,jsbuf," maxCxWu ",0,0);numTf(buf,jsbuf,'l',maxCxWu,"ethcfg___r",8,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," maxCxWu ");numTf(buf,'l',maxCxWu,"ethcfg___r",8,0,0);strcat(buf,"<br>\n");
+            scrDspText(buf,jsbuf,"maxCxWt ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWt,"ethcfg___q",8,0,0,0);
+            //strcat(buf,"maxCxWt ");scrGetNum(buf,'l',maxCxWt,"ethcfg___q",8,0,0);
+            scrDspText(buf,jsbuf," maxCxWu ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWu,"ethcfg___r",8,0,0,BRYES);strcat(buf,"\n");
+            //strcat(buf," maxCxWu ");scrGetNum(buf,'l',maxCxWu,"ethcfg___r",8,0,0);strcat(buf,"<br>\n");
             
             formEnd(buf,jsbuf,0,0);
 fontEnd(buf,jsbuf,0);
@@ -475,22 +480,22 @@ Serial.print("-> config detServ ");
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);       // params pour retours navigateur (n° usr + time usr + pericur)
 
   pageHeader(buf,jsbuf);                            // 1ère ligne page
-  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
-  boutMaj(buf,jsbuf,"MàJ",0);
+  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
+  scrGetButSub(buf,jsbuf,"MàJ",0);
 
   ethWrite(cli,buf,&lb);       
 // ------------------------------------------------------------- header end
 
 /* table libellés */
   tableBeg(buf,jsbuf,0);
-  affText(buf,jsbuf,"   |      Nom      |",0,TRBEG|TDBEG|TREND);
+  scrDspText(buf,jsbuf,"   |      Nom      |",0,TRBEG|TDBEG|TREND);
 
   for(uint8_t nb=0;nb<NBDSRV;nb++){
     ni++;               
     uint8_t decal=0;if(nb>=16){decal=16;}
-    affNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
+    scrDspNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
     char nf[LENNOM+2]="libdsrv__ ";nf[LENNOM]=(nb+decal+PMFNCHAR);nf[LENNOM+1]=0x00;
-    alphaTableHtmlB(buf,jsbuf,&libDetServ[nb][0],nf,LENLIBDETSERV-1,0,TDBE|TREND);
+    scrGetText(buf,jsbuf,&libDetServ[nb][0],nf,LENLIBDETSERV-1,0,TDBE|TREND);
     //strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td><td><input type=\"text\" name=\"libdsrv__");concat1a(buf,(char)(nb+decal+PMFNCHAR));
     //            strcat(buf,"\" value=\"");strcat(buf,(char*)&libDetServ[nb][0]);strcat(buf,"\" size=\"12\" maxlength=\"");concatns(buf,(LENLIBDETSERV-1));
     //            strcat(buf,"\" ></td></tr>\n");
@@ -523,35 +528,35 @@ void cfgRemoteHtml(EthernetClient* cli)
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);   // params pour retours navigateur (n° usr + time usr + pericur)
 
   pageHeader(buf,jsbuf);                        // 1ère ligne page
-  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
+  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
   
   ethWrite(cli,buf,&lb);          
 // ------------------------------------------------------------- header end 
 
-  boutMaj(buf,jsbuf,"MàJ",BRYES);
+  scrGetButSub(buf,jsbuf,"MàJ",BRYES);
 
 /* table remotes */
 
               tableBeg(buf,jsbuf,0);
-              affText(buf,jsbuf,"   |      Nom      | on/off | en ",0,TDBE|TRBE);
+              scrDspText(buf,jsbuf,"   |      Nom      | on/off | en ",0,TDBE|TRBE);
 
               for(int nb=0;nb<NBREMOTE;nb++){
                 uint8_t nb1=nb+1;
-                affNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);                                   // n° remote
+                scrDspNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);                                   // n° remote
                 memcpy(nf,"remotecfn_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
-                alphaTableHtmlB(buf,jsbuf,remoteN[nb].nam,nf,LENREMNAM+1,0,TDBE);
+                scrGetText(buf,jsbuf,remoteN[nb].nam,nf,LENREMNAM+1,0,TDBE);
                 //strcat(buf,"<td><input type=\"text\" name=\"remotecfn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
                 //        strcat(buf,remoteN[nb].nam);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENREMNAM-1);strcat(buf,"\" ></td>");
 
                 memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // état on/off
                 val=(uint8_t)remoteN[nb].onoff;
-                checkboxTableBHtml(buf,jsbuf,&val,nf,NO_STATE,"",0,TDBE);
+                scrGetCheckbox(buf,jsbuf,&val,nf,NO_STATE,"",0,TDBE);
                 
                 memcpy(nf,"remotecfe_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // enable (inutilisé ?)
                 val=(uint8_t)remoteN[nb].enable;
-                //checkboxTableBHtml(buf,jsbuf,&val,nf,NO_STATE,"",TDBE);
+                //scrGetCheckbox(buf,jsbuf,&val,nf,NO_STATE,"",TDBE);
                 
-                radioTableBHtml(buf,jsbuf,val,nf,3,0,TDBE|TREND);
+                scrGetRadiobut(buf,jsbuf,val,nf,3,0,TDBE|TREND);
                 strcat(buf,"\n");
 
                 if(nb-nb/5*5==0){ethWrite(cli,buf);}
@@ -565,52 +570,52 @@ void cfgRemoteHtml(EthernetClient* cli)
 
             borderparam=NOBORDER;
             tableBeg(buf,jsbuf,0);
-            affText(buf,jsbuf,"  |remote |detec on/off|detec en|peri|switch",0,TRBE|TDBE);
+            scrDspText(buf,jsbuf,"  |remote |detec on/off|detec en|peri|switch",0,TRBE|TDBE);
               
             for(uint8_t nb=0;nb<MAXREMLI;nb++){
                 
               formIntro(buf,jsbuf,nullptr,0,nullptr,0,TRBEG);
-              uint8_t nb1=nb++;
-              affNum(buf,jsbuf,'s',&nb1,0,0,TDBE);                                          // n° ligne de table
+              uint8_t nb1=nb+1;
+              scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);                                          // n° ligne de table
 
               memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° remote
-              numTf(buf,jsbuf,'b',&remoteT[nb].num,nf,2,0,0,TDBEG);
+              scrGetNum(buf,jsbuf,'b',&remoteT[nb].num,nf,2,0,0,TDBEG);
               char ttsp[]={' ',0x00};
               char* tt=remoteN[remoteT[nb].num-1].nam;if(remoteT[nb].num==0){tt=ttsp;}
-              affText(buf,jsbuf,tt,0,TDEND);
+              scrDspText(buf,jsbuf,tt,0,TDEND);
 
               memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec on/off
-              numTf(buf,jsbuf,'b',&remoteT[nb].detec,nf,2,0,0,TDBEG);
+              scrGetNum(buf,jsbuf,'b',&remoteT[nb].detec,nf,2,0,0,TDBEG);
               #define DML PERINAMLEN+LENLIBDETSERV+1
               char dm[DML];memset(dm,0x00,DML);
               if(remoteT[nb].num!=0){
                 strcat(dm,(char*)(&libDetServ[remoteT[nb].detec][0]));strcat(dm," ");
                 concat1a(dm,(char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}
-              affText(buf,jsbuf,dm,0,TDEND);
+              scrDspText(buf,jsbuf,dm,0,TDEND);
               strcat(buf,"\n");
 
               memcpy(nf,"remotecfb_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec enable
-              numTf(buf,jsbuf,'b',&remoteT[nb].deten,nf,2,0,2,TDBEG);
+              scrGetNum(buf,jsbuf,'b',&remoteT[nb].deten,nf,2,0,2,TDBEG);
               memset(dm,0x00,DML);
               if(remoteT[nb].num!=0){
                 strcat(dm,(char*)(&libDetServ[remoteT[nb].deten][0]));strcat(dm," ");
                 concat1a(dm,(char)(((memDetServ>>remoteT[nb].deten)&0x01)+48));}
-              affText(buf,jsbuf,dm,0,TDEND);
+              scrDspText(buf,jsbuf,dm,0,TDEND);
               strcat(buf,"\n");
 
               memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° périphérique
-              numTf(buf,jsbuf,'b',&remoteT[nb].peri,nf,2,0,2,TDBEG);
+              scrGetNum(buf,jsbuf,'b',&remoteT[nb].peri,nf,2,0,2,TDBEG);
               memset(dm,0x00,DML);
               uint8_t rp=remoteT[nb].peri;
               if(rp!=0){periLoad(rp);periCur=rp;strcat(dm,periNamer);strcat(dm," ");}
-              affText(buf,jsbuf,dm,0,TDEND);
+              scrDspText(buf,jsbuf,dm,0,TDEND);
               strcat(buf,"\n");
 
               memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° switch
-              numTf(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,2,TDBE);
+              scrGetNum(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,2,TDBE);
               strcat(buf,"\n");
 
-              boutMaj(buf,jsbuf,"MàJ",TDBE|TREND);
+              scrGetButSub(buf,jsbuf,"MàJ",TDBE|TREND);
               formEnd(buf,jsbuf,0,0);
               strcat(buf,"\n");
                 
@@ -645,7 +650,7 @@ void remoteHtml(EthernetClient* cli)
             pageHeader(buf,jsbuf);
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
             //usrFormBHtml(buf,1);
-            boutRetourB(buf,jsbuf,"retour",0);
+            scrGetButRet(buf,jsbuf,"retour",0);
             ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
 
@@ -658,7 +663,7 @@ void remoteHtml(EthernetClient* cli)
               ni++;
               if(remoteN[nb].nam[0]!='\0'){
                 uint8_t nb1=nb+1;
-                affNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);                                         
+                scrDspNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);                                         
 
                 // affichage état d'un éventuel switch
                 // boucle des détecteurs pour trouver un switch 
@@ -670,16 +675,16 @@ void remoteHtml(EthernetClient* cli)
                       periCur=remoteT[td].peri;periLoad(periCur);
                     
                       if(periSwLev(remoteT[td].sw)==1){                         // switch ON
-                        affText(buf,jsbuf," ON ",0,TDBEG|BRYES);
+                        scrDspText(buf,jsbuf," ON ",0,TDBEG|BRYES);
                         affRondJaune(buf,jsbuf,TDEND);
                       }
                       else {
-                        affText(buf,jsbuf," OFF ",0,TDBE);}  //strcat(buf," OFF ");}
+                        scrDspText(buf,jsbuf," OFF ",0,TDBE);}  //strcat(buf," OFF ");}
                     }
-                    else {affText(buf,jsbuf,".",0,TDBE);}
+                    else {scrDspText(buf,jsbuf,".",0,TDBE);}
                   }
                 }
-                affText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
+                scrDspText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
                 // slider on/off
                 // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
                 // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
@@ -688,12 +693,12 @@ void remoteHtml(EthernetClient* cli)
                 // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
                 // pour la maj via PerToSend des périphériques concernés
                 char fn[]="remote_cn_\0";fn[LENNOM-1]=(char)(nb+PMFNCHAR);
-                hiddenAlpha(buf,jsbuf,"",fn,0,0);
+                scrGetHidden(buf,jsbuf,"",fn,0,0);
                 sliderBHtml(buf,jsbuf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);     // slider
 
-                affText(buf,jsbuf,"- - - - -",0,TDBE);                                // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
+                scrDspText(buf,jsbuf,"- - - - -",0,TDBE);                                // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
                 bool vert=FAUX;                                                       // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
-                yradioTableBHtml(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);     // renvoie 0,1,2 selon OFF,ON,FOR
+                yscrGetRadiobut(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);     // renvoie 0,1,2 selon OFF,ON,FOR
                 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
              }
@@ -701,9 +706,9 @@ void remoteHtml(EthernetClient* cli)
             if(buf[0]!='\0'){ethWrite(cli,buf);}
             tableEnd(buf,jsbuf,0);
             
-            boutMaj(buf,jsbuf,"MàJ",ALICNO,7,BRYES); //<input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
-            boutF(buf,jsbuf,"thermoshow","","températures",ALICNO,7,0);
-            boutF(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,0);
+            scrGetButSub(buf,jsbuf,"MàJ",ALICNO,7,BRYES); //<input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
+            scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,7,0);
+            scrGetButFn(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,0);
             
             formEnd(buf,jsbuf,0,0);
             htmlEnd(buf,jsbuf);
@@ -818,8 +823,9 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   
   Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);
   Serial.print(" màj ; millis=");Serial.print(millis()-t1);Serial.print(" total=");Serial.println(millis()-t0);
-
+#ifdef DEBUG_ON
   delay(1);
+#endif
   //fhisto.seek(end);
   return 1;
   //return sdOpen("fdhisto.txt",&fhisto);
@@ -844,7 +850,7 @@ void thermoShowHtml(EthernetClient* cli)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
   pageHeader(buf,jsbuf);            // 1ère ligne page
-  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
+  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
  // ------------------------------------------------------------- header end 
@@ -853,7 +859,7 @@ void thermoShowHtml(EthernetClient* cli)
 /* peritable températures */
 
   tableBeg(buf,jsbuf,courier,BORDER,BRYES|TRBEG);
-  affText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
+  scrDspText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
   strcat(buf,"\n");
               for(int nuth=0;nuth<NBTHERMOS;nuth++){
                 int16_t nuper=thermos[nuth].peri;
@@ -866,22 +872,22 @@ void thermoShowHtml(EthernetClient* cli)
                     //char* li=lith;
                     float th;
 
-                    affNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);affText(buf,jsbuf,thermos[nuth].nom,7,TDBE);
+                    scrDspNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,7,TDBE);
                     //memcpy(li,thermos[nuth].nom,LENTHNAME);strcat(li,"|");li+=strlen(li);
-                    th=(*periLastVal_+*periThOffset_)/100;affNum(buf,jsbuf,'f',&th,2,7,TDBE);
+                    th=(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,7,TDBE);
                     //sprintf(li,"%.2f",(float)(*periLastVal_+*periThOffset_)/100);li+=strlen(li);
-                    //affText(buf,jsbuf,lith,7,TDBE);
+                    //scrDspText(buf,jsbuf,lith,7,TDBE);
 
                     //memset(lith,0x00,LLITH);li=lith;
-                    th=(*periThmin_/100);affNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
+                    th=(*periThmin_/100);scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
                     //sprintf(li,"%.2f",(float)*periThmin_/100);li+=strlen(li);*li='|';li++;
-                    th=(*periThmax_/100);affNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
+                    th=(*periThmax_/100);scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
                     //sprintf(li,"%.2f",(float)*periThmax_/100);li+=strlen(li);
-                    //affText(buf,jsbuf,lith,5,TDBE);
+                    //scrDspText(buf,jsbuf,lith,5,TDBE);
                     
                     memset(lith,0x00,LLITH);
                     bufPrintPeriDate(lith,periLastDateIn);
-                    affText(buf,jsbuf,lith,2,TDBE|TREND);
+                    scrDspText(buf,jsbuf,lith,2,TDBE|TREND);
                     strcat(buf,"\n");                      
                     
                     lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
@@ -891,13 +897,13 @@ void thermoShowHtml(EthernetClient* cli)
           tableEnd(buf,jsbuf,BRYES);
 
         //strcat(buf,"<p align=\"center\">");
-        boutF(buf,jsbuf,"remotehtml","","remote",ALIC,7,0);                
-        boutF(buf,jsbuf,"thermoshow","","refresh",ALIC,7,BRYES);
+        scrGetButFn(buf,jsbuf,"remotehtml","","remote",ALIC,7,0);                
+        scrGetButFn(buf,jsbuf,"thermoshow","","refresh",ALIC,7,BRYES);
         
         //strcat(buf,"</p><br>");
         memset(lith,0x00,LLITH);
         for(int d=0;d<NBDSRV;d++){concat1a(lith,(char)(((memDetServ>>d)&0x01)+48));strcat(lith," ");}
-        affText(buf,jsbuf,lith,0,BRYES);
+        scrDspText(buf,jsbuf,lith,0,BRYES);
         htmlEnd(buf,jsbuf);
         strcat(buf,"\n");
         
@@ -914,20 +920,20 @@ void subthd(char* buf,char* jsbuf,char param,uint8_t nb,void* val,char type)
         nf[LENNOM-1]=nb+PMFNCHAR;                              
         
         switch(type){
-          case 'd': numTf(buf,jsbuf,'b',val,nf,0,2,0,0,TDBE);break;                             // n° detec/peri              
-          case 'v': numTf(buf,jsbuf,'I',val,nf,0,4,2,1,TDBE);break;                             // value/offset
-          case 'e': checkboxTableBHtml(buf,jsbuf,(uint8_t*)val,nf,NO_STATE,"",0,TDBE);break;    // enable/state
+          case 'd': scrGetNum(buf,jsbuf,'b',val,nf,0,2,0,0,TDBE);break;                             // n° detec/peri              
+          case 'v': scrGetNum(buf,jsbuf,'I',val,nf,0,4,2,1,TDBE);break;                             // value/offset
+          case 'e': scrGetCheckbox(buf,jsbuf,(uint8_t*)val,nf,NO_STATE,"",0,TDBE);break;    // enable/state
           default:break;
         }
 }
 
 void subthc(char* buf,char* jsbuf,uint8_t vv)
 {
-    if(vv!=0){affText(buf,jsbuf,(char*)(&libDetServ[vv][0]),2,STRING|TDBEG);
-      affText(buf,jsbuf,":",2,STRING|CONCAT);
+    if(vv!=0){scrDspText(buf,jsbuf,(char*)(&libDetServ[vv][0]),2,STRING|TDBEG);
+      scrDspText(buf,jsbuf,":",2,STRING|CONCAT);
       char oi[]={'0',0x00,'1',0x00};
-      affText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],2,STRING|CONCAT);}
-    else affText(buf,jsbuf," ",0,TDBE);
+      scrDspText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],2,STRING|CONCAT);}
+    else scrDspText(buf,jsbuf," ",0,TDBE);
 }
 
 void thermoCfgHtml(EthernetClient* cli)
@@ -946,9 +952,9 @@ void thermoCfgHtml(EthernetClient* cli)
   //formIntro(buf,jsbuf,nullptr,0,nullptr,0,0); // params pour retours navigateur (n° usr + time usr + pericur)
                                                 // à charger au moins une fois par page 
   pageHeader(buf,jsbuf);                        // 1ère ligne page
-  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
+  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
           
-  boutF(buf,jsbuf,"thermoscfg","","refresh",0,0,BRYES);
+  scrGetButFn(buf,jsbuf,"thermoscfg","","refresh",0,0,BRYES);
   
   ethWrite(cli,buf,&lb);          
 // ------------------------------------------------------------- header end 
@@ -959,7 +965,7 @@ void thermoCfgHtml(EthernetClient* cli)
   tableBeg(buf,jsbuf,courier,true,0);
   strcat(buf,"\n");
   tdSet(jsbuf,0,courier,12,0);
-  affText(buf,jsbuf,"   |      Nom      | peri |  | low~ en| low~ state| low~ value| low~ pitch| low~ det| | high~ en| high~ state| high~ value| high~ offset| high~ det| | ",0,TDBE|TRBE);
+  scrDspText(buf,jsbuf,"   |      Nom      | peri |  | low~ en| low~ state| low~ value| low~ pitch| low~ det| | high~ en| high~ state| high~ value| high~ offset| high~ det| | ",0,TDBE|TRBE);
   tdReset();
   strcat(buf,"\n");
 
@@ -968,10 +974,10 @@ void thermoCfgHtml(EthernetClient* cli)
     
     formIntro(buf,jsbuf,nullptr,0,nullptr,2,TRBEG);                
     uint8_t nb1=nb+1;
-    affNum(buf,jsbuf,'s',&nb1,0,2,TDBE);                                              // n° thermo
+    scrDspNum(buf,jsbuf,'s',&nb1,0,2,TDBE);                                              // n° thermo
     char nf[LENNOM+1];memset(nf,0x00,LENNOM+1);
     memcpy(nf,"thparamsn",LENNOM-1);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
-    alphaTableHtmlB(buf,jsbuf,thermos[nb].nom,nf,LENTHNAME-1,0,TDBE);                 // nom
+    scrGetText(buf,jsbuf,thermos[nb].nom,nf,LENTHNAME-1,0,TDBE);                 // nom
     //strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENTHNAME-1);
     
     subthd(buf,jsbuf,'p',nb,&thermos[nb].peri,'d');                                   // peri
@@ -979,11 +985,11 @@ void thermoCfgHtml(EthernetClient* cli)
     periInitVar();periCur=thermos[nb].peri;                                           // nom;lastVal    
     if(periCur!=0){
       periLoad(periCur);
-      affText(buf,jsbuf,periNamer,2,TDBEG);
-      affText(buf,jsbuf,":",2,0);
+      scrDspText(buf,jsbuf,periNamer,2,TDBEG);
+      scrDspText(buf,jsbuf,":",2,0);
       float pl=(*periLastVal_)/100;
-      affNum(buf,jsbuf,'f',&pl,2,2,TDEND);}
-    else {affText(buf,jsbuf,"",0,TDBE);}
+      scrDspNum(buf,jsbuf,'f',&pl,2,2,TDEND);}
+    else {scrDspText(buf,jsbuf,"",0,TDBE);}
     
     subthd(buf,jsbuf,'e',nb,&thermos[nb].lowenable,'e');                              // low enable
     subthd(buf,jsbuf,'s',nb,&thermos[nb].lowstate,'e');                               // low state
@@ -1001,7 +1007,7 @@ void thermoCfgHtml(EthernetClient* cli)
 
     subthc(buf,jsbuf,(uint8_t)thermos[nb].highdetec);
     
-    boutMaj(buf,jsbuf,"MàJ",TDBE);
+    scrGetButSub(buf,jsbuf,"MàJ",TDBE);
     formEnd(buf,jsbuf,0,TREND);
                 
     uint16_t lb1=strlen(buf);if(lb0-lb1<(lb1/ni+100)){ethWrite(cli,buf,&lb);ni=0;}
@@ -1020,8 +1026,10 @@ void thermoCfgHtml(EthernetClient* cli)
 void timersHtml(EthernetClient* cli)
 {
     
-Serial.print(" config timers ");delay(100);
-
+Serial.print(" config timers ");
+#ifdef DEBUG_ON
+  delay(100);
+#endif
   char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=8000;
   char buf[lb0];*buf=0x00;
@@ -1036,8 +1044,8 @@ Serial.print(" config timers ");delay(100);
                                       // de la page formBeg() suffit
 
   pageHeader(buf,jsbuf);              // 1ère ligne page
-  boutRetourB(buf,jsbuf,"retour",0);strcat(buf," ");    
-  boutF(buf,jsbuf,"timershtml","","refresh",ALICNO,2,0);
+  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
+  scrGetButFn(buf,jsbuf,"timershtml","","refresh",ALICNO,2,0);
 
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 
@@ -1045,14 +1053,14 @@ Serial.print(" config timers ");delay(100);
   detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);
 
   tableBeg(buf,jsbuf,0);
-  affText(buf,jsbuf,"|nom|det|h_beg|h_end|OI det|e_p_c_|7_d_ l_m_m_ j_v_s|dh_beg_cycle|dh_end_cycle",0,TRBE|TDBE);
+  scrDspText(buf,jsbuf,"|nom|det|h_beg|h_end|OI det|e_p_c_|7_d_ l_m_m_ j_v_s|dh_beg_cycle|dh_end_cycle",0,TRBE|TDBE);
 
   for(uint8_t nt=0;nt<NBTIMERS;nt++){
     formIntro(buf,jsbuf,0,TRBEG|TDBEG);
                       /*strcat(buf,"<form method=\"GET \">");
                       usrFormBHtml(buf,1);
                       strcat(buf,"<td>");*/
-    affNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
+    scrDspNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
                      
     sscfgtB(buf,jsbuf,"tim_name_",nt,timersN[nt].nom,LENTIMNAM,0,TDBE);
     sscfgtB(buf,jsbuf,"tim_det__",nt,&timersN[nt].detec,2,3,TDBE);                                            
@@ -1064,7 +1072,7 @@ Serial.print(" config timers ");delay(100);
     
     oo[1]=oi[timersN[nt].curstate];
     oo[4]=(PMFNCVAL)+((memDetServ>>timersN[nt].detec)&0x01);                     
-    affText(buf,jsbuf,oo,0,TDBE);
+    scrDspText(buf,jsbuf,oo,0,TDBE);
     nucb=0;sscb(buf,jsbuf,timersN[nt].enable,"tim_chkb__",nucb,NO_STATE,TDBEG,nt);affSpace(buf,jsbuf);
     nucb++;sscb(buf,jsbuf,timersN[nt].perm,"tim_chkb__",nucb,NO_STATE,0,nt);affSpace(buf,jsbuf);
     nucb++;sscb(buf,jsbuf,timersN[nt].cyclic,"tim_chkb__",nucb,NO_STATE,TDEND,nt);   
@@ -1082,7 +1090,7 @@ Serial.print(" config timers ");delay(100);
                     
     sscfgtB(buf,jsbuf,"tim_hdf_b",nt,&timersN[nt].dhdebcycle,14,0,TDBE);
     sscfgtB(buf,jsbuf,"tim_hdf_e",nt,&timersN[nt].dhfincycle,14,0,TDBE); 
-    boutMaj(buf,jsbuf,"MàJ",TDBE);
+    scrGetButSub(buf,jsbuf,"MàJ",TDBE);
 
     formEnd(buf,jsbuf,0,TDEND|TREND);
     strcat(buf,"\n");
@@ -1109,7 +1117,7 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
   
-          affText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>",0,0);
+          scrDspText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>",0,0);
 
           uint8_t ni=0;
           uint16_t lb1=0;
@@ -1121,16 +1129,16 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
             subDSnB(buf,jsbuf,"mem_dsrv__\0",*mds,k,libb);
 
             fontBeg(buf,jsbuf,1,0);
-            affColonBeg(buf,jsbuf);
-            affText(buf,jsbuf,&(mdsSrc[sourceDetServ[k]/256]),0,0);
+            scrDspText(buf,jsbuf,"(",0,0);
+            scrDspText(buf,jsbuf,&(mdsSrc[sourceDetServ[k]/256]),0,0);
             if(sourceDetServ[k]/256!=0){
               concatn(buf,jsbuf,sourceDetServ[k]&0x00ff);
-              affText(buf,jsbuf,") ",0,0);}
-            else{affText(buf,jsbuf,"--) ",0,0);}
+              scrDspText(buf,jsbuf,") ",0,0);}
+            else{scrDspText(buf,jsbuf,"--) ",0,0);}
             fontEnd(buf,jsbuf,0);
             lb1=strlen(buf);if(lb0-lb1<(lb1/ni+100)){ethWrite(cli,buf);ni=0;}
           }
-          boutMaj(buf,jsbuf,"Per Update",0);
+          scrGetButSub(buf,jsbuf,"Per Update",0);
           
           formEnd(buf,jsbuf,TITLE,0,0);
           strcat(buf,"\n"); 

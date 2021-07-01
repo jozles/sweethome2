@@ -67,7 +67,7 @@
 #define JSNTB  "nx"        // saisie numtf            *JSNTBnomfonct}dec}typevaleur}size}maxlen
 #define JSDB   "dx"        // saisie cb               JSDBnomfonct}lib}[JSCHK][etat]     
 #define JSSLD  "Dx"        // saisie cb slider
-#define JSATB  "ax"        // saisie alphaTableHtmlB  *JSATB[font size]nomfonct}valfonct}size[}len]
+#define JSATB  "ax"        // saisie scrGetText  *JSATB[font size]nomfonct}valfonct}size[}len]
 #define JSHID  "hx"        // saisie hidden alpha     *JSATBnomfonct}valfonct}len
 #define JSSTB  "kx"        // saisie selectbox        JSSTBnnomfonc}nom_options n=n°sel+PMFNCVAL
 #define JSSOP  "K "        // selectbox options table JSCELvnloptions v=nom n=nbre+PMFNCVAL l=len+PMFNCVAL
@@ -76,8 +76,6 @@
 
 /* affichages */
 #define JSSP   "S "        // affichage space
-#define JSCLB  "( "        // parenthese ouverte
-#define JSCLE  ") "        // parenthese fermée 
 #define JSRJ   "y "        // affiche rond jaune
 #define JSST   "sx"        // affichage texte         JSSTtexte
 #define JSNT   "Ux"        // affichage num           JSNTtexte

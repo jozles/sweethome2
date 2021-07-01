@@ -22,6 +22,9 @@ SdFat32 sd32;
 File32 fhisto;            // fichier histo sd card
 File32 fhtml;             // fichiers pages html
 
+#define DEBUG_ON
+
+
 //#define _AVEC_AES
 #ifdef _AVEC_AES
 #include "aes.h"      //encryptage AES
@@ -962,8 +965,9 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
 
         switch(ncde){
           case 1:           // GET
-            if(strstr(bufli,"favicon")>0){numfonct[0]=ffavicon;nbreparams=0;} //htmlFavicon(cli);}
-            if(bufli[0]=='?' || strstr(bufli,"page.html?")>0 || strstr(bufli,"cx?")>0){return analyse(cli,data,dataLen,&ptr);}
+            if(strstr(bufli,"favicon")>0){
+              numfonct[0]=ffavicon;}
+            else if(bufli[0]=='?' || strstr(bufli,"page.html?")>0 || strstr(bufli,"cx?")>0){return analyse(cli,data,dataLen,&ptr);}
             break;
           case 2:           // POST
             if(c=='\n' && cr>=3){return analyse(cli,data,dataLen,&ptr);}
@@ -1205,8 +1209,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
       1 - accueil : saisie de mot de passe
       2 - serveur pour périphériques : seules fonctions dataRead et dataSave ; contiennent l'adr mac pour identifier le périphérique.
       3 - serveur pour navigateur : dans les message GET ou POST, 
-          pour assurer la validité des données du périphérique concerné, periCur doit être positioné et periLoad() effectué 
-          par une fonction qui précède les fonctions modifiant des variables du formulaire concerné (peri_cur__, peri_t_sw_) 
+          pour assurer la validité des données si un périphérique particulier est concerné, periCur doit être positioné et periLoad() 
+          effectué par une fonction qui précède les fonctions modifiant des variables du formulaire concerné 
+          formIntro permet d'insérer une fonction après user_ref (peri_cur__ ou une fonction dédiée pour positionner what si 5 ne va pas)
+          et le paramètre ninp permet de passer periCur
 
     si la première fonction est fperipass, c'est un périphérique, sinon un browser 
     si c'est un browser : username__ puis password__ en cas de login, 
@@ -1238,8 +1244,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 
       if(numfonct[0]!=fperipass && numfonct[0]!=ffavicon){                                          // si la première fonction n'est pas peri_pass_ (mot de passe des périfs)
         if((numfonct[0]!=fusername || numfonct[1]!=fpassword) && numfonct[0]!=fuserref){            //   si (la 1ère fonct n'est pas username__ ou la 2nde pas password__ ) et la 1ère pas user_ref__
-                                                                                                    //   ... en résumé : ni un périf, ni une nlle cx utilisateur, ni une continuation d'utilisateur
-          what=-1;nbreparams=-1;}                                                                   //  what==-1 --> accueil   (voir plus haut les explications)
+                                                                                                    //   ... en résumé : ni un périf, ni une nlle cx utilisateur, ni une continuation d'utilisateur  
+          if(nbreparams<=0){what=-1;}nbreparams=-1;   //  what==-1 -> accueil (pas de params donc tentative de connexion) 
+        }                                             //  sinon what==0 aucune action - attente d'une connexion valide
       }                                                                                             //  nbreparams==-1   skip all
 /*
     boucle des fonctions accumulées par getnv 
@@ -1269,7 +1276,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 
 //Serial.print(i);Serial.print(" numfonct[i]=");Serial.print(numfonct[i]);Serial.print(" valf=");Serial.println((char*)valf);
 //Serial.print("strHisto=");Serial.println(strHisto);
-      delay(20); // pour permettre l'affichage des Serial.print en debug
+#ifdef DEBUG_ON      
+      delay(60); // pour permettre l'affichage des Serial.print en debug
+#endif
             switch (numfonct[i])
               {
               case 0:  pertemp=0;conv_atobl(valf,&pertemp);break;                                           // pertemp serveur
@@ -1303,6 +1312,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           if(nbreparams==0){what=2;}
                         }
                         Serial.println();
+#ifdef DEBUG_ON
+  delay(10);
+#endif
                         }//if(periCur==3){Serial.println("user_ref_ =================");periPrint(periCur);}
                         break;  
               case 5:  *toPassword=TO_PASSWORD;conv_atob(valf,toPassword);Serial.print(" topass=");Serial.println(valf);break;                     // to_passwd_
@@ -1446,7 +1458,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 49: memset(modpass,0x00,LPWD);memcpy(modpass,valf,nvalf[i+1]-nvalf[i]);break;        // (config) modpcfg___
               case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__ // submit depuis cfgServervHtml                              
 */
-              case 51: what=6;switch(*(libfonctions+2*i+1)){                                            // (config) eth config
+              case 51: what=6;switch(*(libfonctions+2*i+1)){                                            // (config) ethcfg___
                           case 'i': break;memset(localIp,0x00,4);                                       // (config) localIp
 //                                    for(j=0;j<4;j++){conv_atob(valf,localIp+j);}break;   // **** à faire ****
                           case 'p': *portserver=0;conv_atob(valf,portserver);break;                     // (config) portserver
@@ -1621,7 +1633,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           }
                         }
                        }break;                                                                                                        
-              case 74: htmlFavicon(cli);break;
+              case 74: what=0;htmlFavicon(cli);break;
               
               /* fin des fonctions */
               default:break;
@@ -1691,6 +1703,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         if(ab=='u'){Serial.print(" *** end udp - ");}
         else {Serial.print(" *** end tcp - ");}
         Serial.println(millis()-cxDur);
+#ifdef DEBUG_ON
+  delay(20);
+#endif        
 }
 
 

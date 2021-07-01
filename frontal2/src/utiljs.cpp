@@ -4,8 +4,9 @@
 #include "utiljs.h"
 #include "utilhtml.h"
 
-int            jsUsrNum;
-unsigned long* jsUsrTime;
+uint8_t        jsUsrNum;
+unsigned long  jsUsrTime;
+uint16_t       jsPeriCur;
 
 extern bool       borderparam;
 extern uint16_t   styleTdWidth;
@@ -19,7 +20,7 @@ char currentTdFont[LCTDFNT];
 void buftxcat(char* buf,char* txt)
 {
   char c[2]={*txt,'\0'};
-  while (*c!=0x00){
+  while ((*c!=0x00) && (*c!=*JSSEP) && (*c!=*JSFON)){
     switch (*c){
       case *JSSCO:strcat(buf,"</td>");tdcat(buf);break;
       case *JSSBR:strcat(buf,"<br>");break;
@@ -30,7 +31,7 @@ void buftxcat(char* buf,char* txt)
   }
 }
 
-uint8_t ctlJsB(char* buf,char* jsbuf,const char* jsCde)
+uint8_t ctlJsB(char* buf,char* jsbuf,char* size,const char* jsCde)
 /*    buf ptr début buffer sortie 
       jsbuf ptr sur caractère suivant le code commande
       jsCde ptr dans table des commandes
@@ -60,11 +61,17 @@ uint8_t ctlJsB(char* buf,char* jsbuf,const char* jsCde)
         if(width){strcat(buf," style=\"width: ");memcpy(buf,dm,lw-1);strcat(buf,"px\"");}
         strcat(buf,">");
       }
-      if((a&CTLPO)!=0){strcat(buf,"<font size=\"");concat1a(buf,*jsbuf++);strcat(buf,"\">");}
+      if((a&CTLPO)!=0){*size=*jsbuf++;strcat(buf,"<font size=\"");concat1a(buf,*size);strcat(buf,"\">");}
       jsbuf=dm+lw;
     }
     else {a=0x00;}
     return a;
+}
+
+uint8_t ctlJsB(char* buf,char* jsbuf,const char* jsCde)
+{
+  char bid;
+  return ctlJsB(buf,jsbuf,&bid,jsCde);
 }
 
 void ctlJsE(char* buf,uint8_t ctl)
@@ -77,7 +84,8 @@ void ctlJsE(char* buf,uint8_t ctl)
     strcat(buf,"\n");
 }
 
-char* jsGetArg(char* jsbuf,uint8_t* sep)  // retourne la position de l'argument, efface le séparateur de fin éventuel pour mettre une fin 0x00 à l'argument
+char* jsGetArg(char* jsbuf,uint8_t* sep)  // retourne la position de l'argument, efface le séparateur de fin éventuel 
+                                          // pour mettre une fin 0x00 à l'argument
                                           // et avance le ptr sur la suite
                                           // si position==nullptr pas d'argument
                                           // retour sep==0 pas de séparateur (donc dernier argument)
@@ -97,12 +105,14 @@ char* jsGetArg(char* jsbuf)
   return jsGetArg(jsbuf,&bid);
 }
 
-void jsGetEndArg(char* buf,char* jsbuf)   // remplace strcat(buf,jsGetArg(jsbuf)) pour le dernier argument qui n'a pas de séparateur de fin
+char* jsGetEndArg(char* buf,char* jsbuf)   // remplace strcat(buf,jsGetArg(jsbuf)) pour le dernier argument qui n'a pas de séparateur de fin
 {
+  char* dm0=jsbuf;
   char* dm=jsGetArg(jsbuf);               // something ?
-  if(dm!=nullptr){                  
-    char* dm0=buf+strlen(buf);
-    memcpy(dm0,dm,dm0-dm);}               // pas de séparateur de fin donc strcat ne fonctionne pas
+  if(dm!=nullptr && buf!=nullptr){                  
+    char* dm1=buf+strlen(buf);
+    memcpy(dm1,dm,dm0-dm);}               // pas de séparateur de fin donc strcat ne fonctionne pas
+  return dm0;
 }
 
 char* jsGetMemAddr(char optNam)
@@ -110,23 +120,46 @@ char* jsGetMemAddr(char optNam)
     return nullptr;
 }
 
-void jsPeriCur(char* buf,char* jsbuf)       // (inutilisé?) génère une saisie de periCur 
+/*void jsPeriCur(char* buf,char* jsbuf)       // (inutilisé?) génère une saisie de periCur 
 {
     strcat(buf,"<input type=\"text\" name=\"peri_cur__@\" id=\"nt22\" value=\"");
     strcat(buf,jsGetArg(jsbuf));
     strcat(buf,"\" size=\"1\" maxlength=\"2\" >");    
-}
+}*/
+
+void hidAlpha(char* buf,char* jsbuf,const char* type,uint8_t ctlJs)
+                        {
+                          strcat(buf,"<input type=\"");
+                          strcat(buf,type);
+                          strcat(buf,"\" name=\"");
+                          strcat(buf,jsGetArg(jsbuf));      // nomfonct
+                          strcat(buf,"\" value=\"");
+                          strcat(buf,jsGetArg(jsbuf));      // valfonct
+                          strcat(buf,"\" size=\"");
+                          uint8_t sep=0;
+                          char* dm=jsGetArg(jsbuf,&sep);
+                          if(sep!=0){                       // size présent
+                            strcat(buf,dm);
+                            strcat(buf,"\"");
+                            dm=jsGetArg(jsbuf);}            // len ?
+                          else {strcat(buf,"12\"");}                      
+                          if(dm!=nullptr){                  // len présent
+                            strcat(buf,"maxlength=\"");
+                            memcpy(buf,dm,jsbuf-dm);}       // pas de séparateur de fin donc strcat ne fonctionne pas
+                          strcat(buf,"\" >");
+                          ctlJsE(buf,ctlJs);
+                        }
 
 void cvJs2Html(char* jsbuf,char* buf)
 {
-    uint8_t sep=0;      // indique la présence d'un séparateur de fin en retour de jsGetArg
     char* dm=nullptr;   // pour les retour de jsGetArg
     *buf=0x00;
-    char a=*jsbuf,ctlJs=0x00;
+    char a=*jsbuf;
+    uint8_t ctlJs=0x00;
     while(a!=0x00){
         switch(a){
-            case *JSCOB:ctlJs=ctlJsB(buf,jsbuf,JSCOB);                  // couleur
-                        strcat(buf,"<font color=\"");strcat(buf,jsGetArg(jsbuf));strcat(buf,"\">");
+            case *JSCOB:ctlJs=ctlJsB(buf,jsbuf,JSCOB);                  // couleur (JSCOE inutile - pris en charge par ctlJsE)
+                        strcat(buf,"<font color=\"");jsGetEndArg(buf,jsbuf);strcat(buf,"\">");
                         ctlJsE(buf,ctlJs);
                         break;
             case *JSFNB:ctlJs=ctlJsB(buf,jsbuf,JSFNB);                  // font size
@@ -157,6 +190,9 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf," ");
                         ctlJsE(buf,ctlJs);
                         break;
+            case *JSRJ :ctlJs=ctlJsB(buf,jsbuf,JSRJ);                   // rond jaune
+                        strcat(buf,"<div id=\"rond_jaune\"></div>");
+                        break;                        
             case *JSTDS :ctlJs=ctlJsB(buf,jsbuf,JSTDS);                 // tdSet JSTDSxwidth}font}font-size
                         styleTdWidth=*jsbuf-PMFNCVAL;jsbuf+=2;          // width
                         memcpy(currentTdFont,jsGetArg(jsbuf),LCTDFNT);  // police
@@ -170,11 +206,11 @@ void cvJs2Html(char* jsbuf,char* buf)
                         styleTdFSize=0;
                         ctlJsE(buf,ctlJs);
                         break;                          
-            case *JSST  :ctlJs=ctlJsB(buf,jsbuf,JSST);                   // texte JSSTx[police][}width}]texte
-                        buftxcat(buf,jsGetArg(jsbuf));              //////////////////////////////////////////////////// jsGetarg de fin
+            case *JSST  :ctlJs=ctlJsB(buf,jsbuf,JSST);                  // disp texte JSSTx[font-size][}width}]texte                        
+                        buftxcat(buf,jsGetEndArg(nullptr,jsbuf));
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSNT  :ctlJs=ctlJsB(buf,jsbuf,JSNT);                   // nombre 
+            case *JSNT  :ctlJs=ctlJsB(buf,jsbuf,JSNT);                  // disp nombre JSNTx[pol]Ttt... T type inutilisé ttt... texte
                         jsbuf++;    // skip type
                         jsGetEndArg(buf,jsbuf);
                         ctlJsE(buf,ctlJs);
@@ -187,7 +223,7 @@ void cvJs2Html(char* jsbuf,char* buf)
                         break;
             case *JSBRB :ctlJs=ctlJsB(buf,jsbuf,JSBRB);                 // bouton Retour                        
                         strcat(buf,"<a href=\"?user_ref_");
-                        concat1a(buf,(char)(jsUsrNum+PMFNCHAR));strcat(buf,"=");concatn(buf,jsUsrTime[jsUsrNum]);
+                        concat1a(buf,(char)(jsUsrNum+PMFNCHAR));strcat(buf,"=");concatn(buf,jsUsrTime);
                         strcat(buf,"\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");
                         jsGetEndArg(buf,jsbuf);
                         strcat(buf,"\"></a>");
@@ -199,83 +235,111 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf,"\">");
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSBFB :ctlJs=ctlJsB(buf,jsbuf,JSBFB);                 // bouton fonction
-                        {char b[]={(char)(jsUsrNum+PMFNCHAR),'\0'};
+            case *JSBFB :{char size;
+                        ctlJs=ctlJsB(buf,jsbuf,&size,JSBFB);            // bouton fonction JSBFBx[size]ANtt...tt}nomfonc}valfonc}lib
+                        char aligncenter=*jsbuf++;
+                        jsUsrNum=*jsbuf++;
+                        char* jsUsrTime=jsGetArg(jsbuf);
                         strcat(buf,"<a href=\"?user_ref_");
-                        strcat(buf,b);strcat(buf,"=");concatn(buf,jsUsrTime[jsUsrNum]);
+                        concat1a(buf,jsUsrNum);strcat(buf,"=");strcat(buf,jsUsrTime);
                         strcat(buf,"?");
                         strcat(buf,jsGetArg(jsbuf));    // nomfonct
                         strcat(buf,"=");
                         strcat(buf,jsGetArg(jsbuf));    // valfonct
                         strcat(buf,"\">");
-                        strcat(buf,"<input type=\"button\" value=\"");strcat(buf,jsGetArg(jsbuf)); // lib
-                        strcat(buf,"\"");   
-                        if(*jsGetArg(jsbuf)=='7'){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"");}
+                        if(aligncenter=='A'){strcat(buf,"<p align=\"center\">");}
+                        strcat(buf,"<input type=\"button\" value=\"");jsGetEndArg(buf,jsbuf); // lib
+                        strcat(buf,"\"");
+                        if(size=='7'){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"");}
+                        if(aligncenter){strcat(buf,"></p></a>");}
                         strcat(buf,"></a>");
                         ctlJsE(buf,ctlJs);
-                        }break;                        
-            case *JSNTB :ctlJs=ctlJsB(buf,jsbuf,JSNTB);                 // saisie numérique
-                        strcat(buf,"<input type=\"text\" name=\"");
-                        strcat(buf,jsGetArg(jsbuf));    // nomfonct
-                        //strcat(buf,"\" id=\"nt");
-                        
-                        strcat(buf,jsGetArg(jsbuf));    // dec
-                        strcat(buf,"\" value=\"");
-                        jsbuf++;                        // skip type
-                        strcat(buf,jsGetArg(jsbuf));   
-                        strcat(buf,"\" size=\"");strcat(buf,jsGetArg(jsbuf));      
-                        strcat(buf,"\" maxlength=\"");
-                        jsGetEndArg(buf,jsbuf);
-                        strcat(buf,"\" >");
+                        }break;                  
+            case *JSRAD :ctlJs=ctlJsB(buf,jsbuf,JSRAD);                 // saisie boutons radio
+                        {dm=jsGetArg(jsbuf);              // nom fonction
+                        char nb=*jsbuf++;nb-=PMFNCVAL;    // nombre boutons
+                        uint8_t vv=*jsbuf++;vv-=PMFNCVAL; // n° checked
+                        for(uint8_t j=0;j<nb;j++){
+                          strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,dm);
+                          strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+j));strcat(buf,"\"");
+                          if(j==vv){strcat(buf," checked");}strcat(buf,"/>");
+                        }
                         ctlJsE(buf,ctlJs);
-                        break;                        
-            case *JSATB  :ctlJs=ctlJsB(buf,jsbuf,JSATB);                // saisie alpha JSATBx[size police]name}value}[size}][maxlen]
-                        strcat(buf,"<input type=\"text\" name=\"");
+                        }break;           
+            case *JSRADS :ctlJs=ctlJsB(buf,jsbuf,JSRADS);               // saisie bouton radio carrés spécial remote
+                        {dm=jsGetArg(jsbuf);              // nom fonction
+                        char nb=*jsbuf++;nb-=PMFNCVAL;    // nombre boutons  
+                        uint8_t vv=*jsbuf++;vv-=PMFNCVAL; // n° checked
+                        char dir=*jsbuf++;                // 'V' si vertical 'H' si horizontal
+
+                          strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,dm);concat1a(buf,(char)(nb+PMFNCHAR));
+                          strcat(buf,"\" class=\"sqbr br_off\" id=\"sqbrb");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
+                          strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+0));strcat(buf,"\"");
+                          if(vv==0){strcat(buf," checked");}strcat(buf,">");
+                          strcat(buf,"<label for=\"sqbrb");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">OFF</label>\n");
+
+                          if(dir=='V'){strcat(buf,"<br><br>\n");}
+
+                          strcat(buf," <input type=\"radio\" name=\"");strcat(buf,dm);concat1a(buf,(char)(nb+PMFNCHAR));
+                          strcat(buf,"\" class=\"sqbr br_on\" id=\"sqbra");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
+                          strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+1));strcat(buf,"\"");
+                          if(vv==1){strcat(buf," checked");}strcat(buf,">");
+                          strcat(buf,"<label for=\"sqbra");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">ON</label>\n");
+
+                          strcat(buf," <input type=\"radio\" name=\"");strcat(buf,dm);concat1a(buf,(char)(nb+PMFNCHAR));
+                          strcat(buf,"\" class=\"sqbr br_for\" id=\"sqbrc");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
+                          strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+2));strcat(buf,"\"");
+                          if(vv==2 || vv==3){strcat(buf," checked");}strcat(buf,">");
+                          strcat(buf,"<label for=\"sqbrc");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\">FOR</label>\n");
+
+                        ctlJsE(buf,ctlJs);
+                        }break;            
+            case *JSNTB :ctlJs=ctlJsB(buf,jsbuf,JSNTB);                 // saisie num JSNTBx[pol]nom}val}TSDL
+                        {strcat(buf,"<input type=\"text\" name=\"");
                         strcat(buf,jsGetArg(jsbuf));      // nomfonct
                         strcat(buf,"\" value=\"");
-                        strcat(buf,jsGetArg(jsbuf));      // valfonct
+                        strcat(buf,jsGetArg(jsbuf));      // valeur
+                        jsbuf++;                          // skip type
                         strcat(buf,"\" size=\"");
-                        dm=jsGetArg(jsbuf,&sep);
-                        if(sep!=0){                       // size présent
-                          strcat(buf,dm);
-                          strcat(buf,"\"");
-                          dm=jsGetArg(jsbuf);}            // len ?
-                        else {strcat(buf,"12\"");}                      
-                        if(dm!=nullptr){                  // len présent
-                          strcat(buf,"maxlength=\"");
-                          memcpy(buf,dm,jsbuf-dm);}       // pas de séparateur de fin donc strcat ne fonctionne pas
-                        strcat(buf,"\" >");
+                        concat1a(buf,*jsbuf++);           // size
+                        strcat(buf,"\"");
+                        char dec=*jsbuf++;                // dec
+                        char len=*jsbuf++;                // len
+                        strcat(buf,"\"");
+                        if(len<='2'){
+                          strcat(buf,"\" id=\"nt");
+                          concat1a(buf,len);
+                          concat1a(buf,dec);
+                        }
+                        strcat(buf,"\" pattern=\"[");
+                        if(dec!='0'){strcat(buf,".,");}strcat(buf,"0-9]{1,");
+                        if(len!='0'){concat1a(buf,len);}else{concat1a(buf,'9');}
+                        strcat(buf,"}\">");
+                        ctlJsE(buf,ctlJs);
+                        }break;              
+            case *JSHID :ctlJs=ctlJsB(buf,jsbuf,JSHID);                 // saisie alpha JSHIDx[size police]name}value}[size}][maxlen]                      
+                        hidAlpha(buf,jsbuf,"hidden",ctlJs);
+                        break;
+            case *JSATB :ctlJs=ctlJsB(buf,jsbuf,JSATB);                 // saisie alpha JSATBx[size police]name}value}[size}][maxlen]
+                        hidAlpha(buf,jsbuf,"text",ctlJs);
+                        break;
+            case *JSDB  :ctlJs=ctlJsB(buf,jsbuf,JSDB);                  // saisie checkbox
+                        strcat(buf,"<input type=\"checkbox\" name=\"");
+                        jsGetArg(jsbuf);                  // nomfonct
+                        strcat(buf,"\" id=\"cb1\" value=\"1\"");
+                        if(*jsbuf==*JSCHK){strcat(buf," checked");jsbuf++;}
+                        strcat(buf,">");
+                        jsGetEndArg(buf,jsbuf);
                         ctlJsE(buf,ctlJs);
                         break;
-            case *JSDB    :ctlJs=ctlJsB(buf,jsbuf,JSDB);                // saisie checkbox
-                          strcat(buf,"<input type=\"checkbox\" name=\"");
-                          jsGetArg(jsbuf);                  // nomfonct
-                          strcat(buf,"\" id=\"cb1\" value=\"1\"");
-                          if(*jsbuf==*JSCHK){strcat(buf," checked");jsbuf++;}
-                          strcat(buf,">");
-                          jsGetEndArg(buf,jsbuf);
-                          ctlJsE(buf,ctlJs);
-                          break;
-            case *JSRADS  :ctlJs=ctlJsB(buf,jsbuf,JSRADS);              // saisie checkbox big
-                          {dm=jsGetArg(jsbuf);               // nom fonction
-                          char nb=*jsbuf++;
-                          uint8_t vv=*jsbuf++;vv-=PMFNCVAL;
-                          for(uint8_t i=0;i<3;i++){
-                            strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,dm);concat1a(buf,nb);
-                            strcat(buf,"\" class=\"sqbr br_off\" id=\"sqbrb");concat1a(buf,nb);strcat(buf,"\"");
-                            strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+0));strcat(buf,"\"");
-                            if(vv==i or (vv==3 && i==2)){strcat(buf," checked");}strcat(buf,">");
-                            strcat(buf,"<label for=\"sqbrb");concat1a(buf,nb);strcat(buf,"\">OFF</label>\n");
-                          }
-                          }break;
             case *JSSLD :ctlJs=ctlJsB(buf,jsbuf,JSSLD);                 // saisie slider (cb) JSSLDx[size police]name}value}[^][R]
-                          strcat(buf,"<label class=\"switch\"><input type=\"checkbox\" style=\"color:Khaki;\" name=\"");
-                          jsGetArg(jsbuf);
-                          strcat(buf,"\" value=\"1\""); 
-                          if(*jsbuf==*JSCHK){strcat(buf," checked");jsbuf++;}
-                          strcat(buf," ><span class=\"slider ");
-                          if(*jsbuf=='R'){strcat(buf," round");jsbuf++;}
-                          strcat(buf,"\"></span></label>");
+                        strcat(buf,"<label class=\"switch\"><input type=\"checkbox\" style=\"color:Khaki;\" name=\"");
+                        jsGetArg(jsbuf);
+                        strcat(buf,"\" value=\"1\""); 
+                        if(*jsbuf==*JSCHK){strcat(buf," checked");jsbuf++;}
+                        strcat(buf," ><span class=\"slider ");
+                        if(*jsbuf=='R'){strcat(buf," round");jsbuf++;}
+                        strcat(buf,"\"></span></label>");
                         break;
             case *JSSTB :ctlJs=ctlJsB(buf,jsbuf,JSSTB);                 // select box
                         {strcat(buf,"<SELECT name=\"");
@@ -298,10 +362,21 @@ void cvJs2Html(char* jsbuf,char* buf)
                         strcat(buf,"</SELECT>");
                         ctlJsE(buf,ctlJs);
                         }break;
-            case *JSTB :ctlJs=ctlJsB(buf,jsbuf,JSTB);                   // table beg JSSTBx[pol]
-                        strcat(buf,"<table>");
+            case *JSTB :ctlJs=ctlJsB(buf,jsbuf,JSTB);                   // table beg JSSTBx[size]police}[B]
+                        {strcat(buf,"<table");
+                        if(*jsbuf!=*JSSEP){
+                          strcat(buf," style=\"font-family: ");
+                          strcat(buf,jsGetArg(jsbuf));
+                          strcat(buf,"\"");
+                        }
+                        char tBorder[]={'0','\"',0x00,'1','\"',0x00};
+                        uint8_t border=0;
+                        if(*jsbuf=='B'){border=1;}
+                        strcat(buf," border=\"");
+                        strcat(buf,tBorder+border*3);
+                        strcat(buf,"\">");
                         ctlJsE(buf,ctlJs);
-                        break;
+                        }break;
             case *JSTE :ctlJs=ctlJsB(buf,jsbuf,JSTE);                   // table end
                         strcat(buf,"</table>");
                         ctlJsE(buf,ctlJs);
@@ -320,14 +395,24 @@ void cvJs2Html(char* jsbuf,char* buf)
                         ctlJsE(buf,ctlJs);
                         break;
             case *JSFBH:ctlJs=ctlJsB(buf,jsbuf,JSFBH);                  // form Intro
+                        {jsPeriCur=(uint8_t)(*jsbuf++)-PMFNCVAL; // periCur
+                        jsUsrNum=*jsbuf++;                      // usernum                       
+                        char* jsUsrTime=jsGetArg(jsbuf);        // userTime[userNum]
+                        char* title=jsGetArg(jsbuf);            // legend
+                        char* fonc=jsGetArg(jsbuf);             // fonc
                         strcat(buf,"<form method=\"GET \">");
+                        if(title!=nullptr){
+                          strcat(buf,"<fieldset><legend>");strcat(buf,title);strcat(buf," :</legend>");} 
                         strcat(buf,"<p hidden><input type=\"text\" name=\"user_ref_");
-                        concat1a(buf,(char)(jsUsrNum+PMFNCHAR));
+                        concat1a(buf,jsUsrNum);
                         strcat(buf,"\" value=\"");
-                        concatn(buf,jsUsrTime[jsUsrNum]);
-                        strcat(buf,"\">");
-                        strcat(buf,"/p");
-                        break;
+                        strcat(buf,jsUsrTime);
+                        if(fonc!=nullptr){
+                          strcat(buf,"<input type=\"text\" name=\"");strcat(buf,fonc);strcat(buf,"\" value=\"");
+                          concat1a(buf,(char)(jsPeriCur+PMFNCVAL));strcat(buf,"\">");
+                        }
+                        strcat(buf,"</p>");
+                        }break;
             default:strcat(buf,"<br><br> commande inconnue :");concat1a(buf,a);strcat(buf,"<br><br>");break;
             a=*jsbuf++;if(a==LF){a=*jsbuf++;}    
         }

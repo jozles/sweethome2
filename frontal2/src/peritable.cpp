@@ -161,15 +161,15 @@ void subModePulseTime(char* buf,char* jsbuf,uint8_t npu,uint32_t* pulse,uint32_t
   uint8_t val=(((*(uint16_t*)periSwPulseCtl)>>pbit)&0x01)+PMFNCVAL;                                        
   //strcat(buf,"<font size=\"2\">");
   fonc1[LENNOM-1]=onetwo;
-  checkboxTableBHtml(buf,jsbuf,&val,fonc1,NO_STATE,"",2,ctl&TDBEG);               // bit enable pulse
+  scrGetCheckbox(buf,jsbuf,&val,fonc1,NO_STATE,"",2,ctl&TDBEG);               // bit enable pulse
   if(*(pulse+npu)<0){*(pulse+npu)=0;}  
-  numTf(buf,jsbuf,'l',(pulse+npu),fonc2,8,0,0,BRYES);                             // durée pulse   
+  scrGetNum(buf,jsbuf,'l',(pulse+npu),fonc2,8,0,0,BRYES);                             // durée pulse   
 //char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
 //strcat(buf,"<br>(");concatn(buf,*(dur+npu));strcat(buf,")</font>");
-  affText(buf,jsbuf,"(",0,0);
+  scrDspText(buf,jsbuf,"(",0,0);
   uint32_t v=*(dur+npu);
-  affNum(buf,jsbuf,'l',&v,0,0,0);
-  affText(buf,jsbuf,")",0,(ctl&TDEND)|(ctl&BRYES));
+  scrDspNum(buf,jsbuf,'l',&v,0,0,0);
+  scrDspText(buf,jsbuf,")",0,(ctl&TDEND)|(ctl&BRYES));
 }
 
 void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv,uint8_t ctl)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
@@ -180,8 +180,8 @@ void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8
   ft[LENNOM-1]=(char)(nuinp+PMFNCHAR);
   
   switch (type){
-    case 'c':if(val!=0){vv=1;};checkboxTableBHtml(buf,jsbuf,&vv,ft,NO_STATE,"",0,ctl);break;
-    case 'n':numTf(buf,jsbuf,'d',&val,ft,lmax,0,0,ctl);break;
+    case 'c':if(val!=0){vv=1;};scrGetCheckbox(buf,jsbuf,&vv,ft,NO_STATE,"",0,ctl);break;
+    case 'n':scrGetNum(buf,jsbuf,'d',&val,ft,lmax,0,0,ctl);break;
     default: break;
   }
 }
@@ -195,76 +195,63 @@ void swCtlTableHtml(EthernetClient* cli,int i)
   uint16_t lb=0,lb0=LBUF4000,lb1=0;
   char buf[lb0];buf[0]='\0';
 
-  unsigned long begTPage=millis();     // calcul durée envoi page
+  unsigned long begTPage=millis();        // calcul durée envoi page
 
   Serial.print("swCtlTableHtml - periCur=");Serial.print(periCur);
   Serial.print("  free=");Serial.println(freeMemory(), DEC);
 
-  htmlBeg(buf,jsbuf,nomserver,cli);    // chargement CSS etc
+  htmlBeg(buf,jsbuf,nomserver,cli);       // chargement CSS etc
   htmlBegE(buf,cli);
   optSelHtml(jsbuf,inptyps,optNam1);
   optSelHtml(jsbuf,inptypd,optNam2);
   optSelHtml(jsbuf,inpact,optNam3);
 
   //usrPeriCurB(buf,jsbuf,"peri_t_sw_",0,2,0);
-  formIntro(buf,jsbuf,"peri_t_sw_",0,0);         // params pour retours navigateur (n° usr + time usr + pericur + locfonc pour inits)
-                                    // à charger au moins une fois par page ; pour les autres formulaires 
-                                    // de la page formBeg() suffit
+  formIntro(buf,jsbuf,"peri_t_sw_",0,0);  // n° usr + time usr + pericur + locfonc pour inits
 
-  pageHeader(buf,jsbuf);            // 1ère ligne page
-  perifHeader(buf,jsbuf);           // 2nde ligne page
+  pageHeader(buf,jsbuf);                  // 1ère ligne page
+  perifHeader(buf,jsbuf);                 // 2nde ligne page
   
-  ethWrite(cli,buf,&lb);            // tfr -> navigateur
+  ethWrite(cli,buf,&lb);                  // tfr -> navigateur
 // ------------------------------------------------------------- header end 
 
 /* boutons */
-    boutRetourB(buf,jsbuf,"retour",TDBE);strcat(buf," ");
-    formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
-    //formBeg(buf,jsbuf);
-    boutMaj(buf,jsbuf," MàJ ",0);
-    //strcat(buf," <input type=\"submit\" value=\" MàJ \"> ");
+    scrGetButRet(buf,jsbuf,"retour",TDBE);
+    affSpace(buf,jsbuf);
+    scrGetButSub(buf,jsbuf," MàJ ",0);
+
     char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-    boutF(buf,jsbuf,swf,"","refresh",ALICNO,0,0);
+    scrGetButFn(buf,jsbuf,swf,"","refresh",ALICNO,0,0);
     affSpace(buf,jsbuf);
     swf[LENNOM-2]='X';
-    boutF(buf,jsbuf,swf,""," erase ",ALICNO,0,BRYES);
+    scrGetButFn(buf,jsbuf,swf,""," erase ",ALICNO,0,BRYES);
 
     ethWrite(cli,buf,&lb);
 
 /* pulses */
-    affText(buf,jsbuf,"Pulses",0,BRYES); 
+    scrDspText(buf,jsbuf,"Pulses",0,BRYES); 
     tableBeg(buf,jsbuf,TRBEG|TDBEG);
-    //strcat(buf,"<tr><th></th><th>time One<br>time Two</th><th>free<br>run</th>");
-    affText(buf,jsbuf," |time One~time Two|free~run",0,TDEND|TREND);
+    scrDspText(buf,jsbuf," |time One~time Two|free~run",0,TDEND|TREND);
 
       char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
       char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
       char rfonc[]="peri_otfbv__\0";          // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
 
-      //strcat(buf,"<tr>");
-      affText(buf,jsbuf,"",0,TRBEG);
+      scrDspText(buf,jsbuf,"",0,TRBEG);
 
       for(int pu=0;pu<NBPULSE;pu++){          // boucle des pulses
-
-        //strcat(buf,"<td>");concatn(buf,pu);strcat(buf,"</td>");
-        affNum(buf,jsbuf,'d',&pu,0,0,TDBE);
+        scrDspNum(buf,jsbuf,'d',&pu,0,0,TDBE);
 
         pfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         qfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         rfonc[LENNOM-2]=(char)(pu+PMFNCHAR);        
       
-        //strcat(buf,"<td>");
         subModePulseTime(buf,jsbuf,pu,periSwPulseOne,periSwPulseCurrOne,rfonc,pfonc,'O',TDBEG|BRYES);     // bit et valeur time one
-        //strcat(buf,"<br>");
         subModePulseTime(buf,jsbuf,pu,periSwPulseTwo,periSwPulseCurrTwo,rfonc,qfonc,'T',TDEND);           // bit et valeur time two
-      
-        //strcat(buf,"</td><td> ");
         uint8_t val=(*(uint16_t*)periSwPulseCtl>>(PCTLBIT*pu+PMFRO_PB))&0x01;rfonc[LENNOM-1]='F';         // bit freerun
-        checkboxTableBHtml(buf,jsbuf,&val,rfonc,NO_STATE,"",0,TDBEG|BRYES);                  
-        //strcat(buf,"<br>");
+        scrGetCheckbox(buf,jsbuf,&val,rfonc,NO_STATE,"",0,TDBEG|BRYES);                  
         char ttsp[LENTSP+1];memcpy(ttsp,&(psps[periSwPulseSta[pu]*LENTSP]),LENTSP);ttsp[LENTSP]='\0';
-        affText(buf,jsbuf,ttsp,0,TDEND);
-        //for(int tsp=0;tsp<LENTSP;tsp++){concat1a(buf,psps[periSwPulseSta[pu]*LENTSP+tsp]);}strcat(buf,"</td>\n");         // staPulse 
+        scrDspText(buf,jsbuf,ttsp,0,TDEND);
 
         ethWrite(cli,buf,&lb);
       } // pulse suivant
@@ -278,9 +265,9 @@ void swCtlTableHtml(EthernetClient* cli,int i)
     ethWrite(cli,buf,&lb);
 
 /* affichage/saisie règles */
-  affText(buf,jsbuf,"Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
+  scrDspText(buf,jsbuf,"Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
   tableBeg(buf,jsbuf,0);
-  affText(buf,jsbuf,"|e.r p.e~n.f.r.s| source | destin.| action",0,TDBE|TRBE);
+  scrDspText(buf,jsbuf,"|e.r p.e~n.f.r.s| source | destin.| action",0,TDBE|TRBE);
   ethWrite(cli,buf,&lb);
 
       char xfonc1[]="p_inp1____\0";
@@ -299,7 +286,7 @@ void swCtlTableHtml(EthernetClient* cli,int i)
             byte binp[PERINPLEN];memcpy(binp,periInput+offsetInp,PERINPLEN);
             offsetInp+=PERINPLEN;
 
-            affNum(buf,jsbuf,'s',&ninp,0,0,TRBEG|TDBE);
+            scrDspNum(buf,jsbuf,'s',&ninp,0,0,TRBEG|TDBE);
             //strcat(buf,"\n<tr><td>");concatn(buf,ninp);strcat(buf,"</td>");
             vv=(binp[2] & PERINPEN_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,1,TDBEG);              // bit enable
             affSpace(buf,jsbuf);
@@ -310,22 +297,22 @@ void swCtlTableHtml(EthernetClient* cli,int i)
             vv=(binp[2] & PERINPDETES_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,3,TDEND);           // bit edge/static            
            
             vv=(binp[0]  & PERINPNT_MS);                                                                // type detec source
-            selectTableBHtml(buf,jsbuf,inptyps,optNam1,xfonc1,vv,4,ninp,0,TDBEG);
+            scrGetSelect(buf,jsbuf,inptyps,optNam1,xfonc1,vv,4,ninp,0,TDBEG);
 
             vv=(binp[0]>>PERINPNVLS_PB);perinpBfnc(buf,jsbuf,ninp,vv,'n',2,xfonc1,5,TDEND);              // num detec source
             strcat(buf,"\n");            
 
             vv=(binp[3]  & PERINPNT_MS);                                                                // type detec dest
-            selectTableBHtml(buf,jsbuf,inptypd,optNam2,xfonc1,vv,6,ninp,0,TDBEG);
+            scrGetSelect(buf,jsbuf,inptypd,optNam2,xfonc1,vv,6,ninp,0,TDBEG);
 
             vv=(binp[3]>>PERINPNVLS_PB);perinpBfnc(buf,jsbuf,ninp,vv,'n',2,xfonc1,7,TDEND);              // num detec  dest
             strcat(buf,"\n");            
 
             vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                  // action 
-            selectTableBHtml(buf,jsbuf,inpact,optNam3,xfonc1,vv,8,ninp,0,TDBE);
+            scrGetSelect(buf,jsbuf,inpact,optNam3,xfonc1,vv,8,ninp,0,TDBE);
 
             //strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
-            boutMaj(buf,jsbuf,"Màj",TDBE);
+            scrGetButSub(buf,jsbuf,"Màj",TDBE);
                                                                                                         //strcat(buf, ajouter nom de la source si det
             //strcat(buf,"</form></tr>\n\n");
             formEnd(buf,jsbuf,0,TREND);
@@ -360,38 +347,36 @@ void periTableHtml(EthernetClient* cli)
   htmlBegE(buf,cli);
 
   //usrFormBHtml(buf,HID);
-  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
-                                    // à charger au moins une fois par page ; pour les autres formulaires 
-                                    // de la page formBeg() suffit
+  formIntro(buf,jsbuf,0,0);         // (n° usr + time usr + pericur)
 
   pageHeader(buf,jsbuf);            // 1ère ligne page
-  boutRetourB(buf,jsbuf,"refresh",0);  
+  scrGetButRet(buf,jsbuf,"refresh",0);  
   
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
 // ------------------------------------------------------------- header end 
 
           fontBeg(buf,jsbuf,2,0);
-          numTf(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0,0);
+          scrGetNum(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0,0);
           
-          affText(buf,jsbuf,"(",0,0);affNum(buf,jsbuf,'l',&fhsize,0,0,0);affText(buf,jsbuf,")",0,0);
+          scrDspText(buf,jsbuf,"(",0,0);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,0);scrDspText(buf,jsbuf,")",0,0);
           //strcat(buf,"(");concatn(buf,fhsize);strcat(buf,") ");
           
-          numTf(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0,0);
-          alphaTableHtmlB(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);    
-          boutMaj(buf,jsbuf,"ok",0);
+          scrGetNum(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0,0);
+          scrGetText(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);    
+          scrGetButSub(buf,jsbuf,"ok",0);
       
-          boutF(buf,jsbuf,"dump_his__","","histo",ALICNO,0,BRYES);
+          scrGetButFn(buf,jsbuf,"dump_his__","","histo",ALICNO,0,BRYES);
 
           //cli->print("<br>");
-          boutF(buf,jsbuf,"deco______","","_  deco  _",ALICNO,0,0);
-          boutF(buf,jsbuf,"deco_____B","","_ reboot _",ALICNO,0,0);          
-          boutF(buf,jsbuf,"cfgserv___","","_ config _",ALICNO,0,0);
-          boutF(buf,jsbuf,"remote____","","remote_cfg",ALICNO,0,0);
-          boutF(buf,jsbuf,"remotehtml","","remotehtml",ALICNO,0,0);
-          boutF(buf,jsbuf,"thermoscfg","","thermo_cfg",ALICNO,0,0);
-          boutF(buf,jsbuf,"thermoshow","","thermoshow",ALICNO,0,0);
-          boutF(buf,jsbuf,"timershtml","","timershtml",ALICNO,0,0);
-          boutF(buf,jsbuf,"dsrvhtml__","","detsrvhtml",ALICNO,0,BRYES);                 
+          scrGetButFn(buf,jsbuf,"deco______","","_  deco  _",ALICNO,0,0);
+          scrGetButFn(buf,jsbuf,"deco_____B","","_ reboot _",ALICNO,0,0);          
+          scrGetButFn(buf,jsbuf,"cfgserv___","","_ config _",ALICNO,0,0);
+          scrGetButFn(buf,jsbuf,"remote____","","remote_cfg",ALICNO,0,0);
+          scrGetButFn(buf,jsbuf,"remotehtml","","remotehtml",ALICNO,0,0);
+          scrGetButFn(buf,jsbuf,"thermoscfg","","thermo_cfg",ALICNO,0,0);
+          scrGetButFn(buf,jsbuf,"thermoshow","","thermoshow",ALICNO,0,0);
+          scrGetButFn(buf,jsbuf,"timershtml","","timershtml",ALICNO,0,0);
+          scrGetButFn(buf,jsbuf,"dsrvhtml__","","detsrvhtml",ALICNO,0,BRYES);                 
         
           formEnd(buf,jsbuf,0,0);
           strcat(buf,"\n");
@@ -400,7 +385,7 @@ void periTableHtml(EthernetClient* cli)
           
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
           tableBeg(buf,jsbuf,"Courier, sans-serif\"",BORDER,TRBEG|TDBEG);
-          affText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|vers. prot~last out~last in|",0,TREND|TDEND);
+          scrDspText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|vers. prot~last out~last in|",0,TREND|TDEND);
 
           ethWrite(cli,buf,&lb);
 
@@ -428,23 +413,19 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
   char namfonct[LENNOM+1];memcpy(namfonct,nfonc,LENNOM);namfonct[LENNOM]='\0';
   char colnb=PMFNCHAR;
 
-  //formBeg(buf,jsbuf,title);
-  //strcat(buf,"<form><fieldset><legend>");strcat(buf,title);strcat(buf," :</legend>\n");
-  //jscat(jsbuf,JSFB);strcat(jsbuf,title);strcat(jsbuf,";");
   char inifonc[LENNOM];memcpy(inifonc,nfonc,4);memcpy(inifonc+4,"init__",LENNOM-4);
-  //usrPeriCurB(buf,inifonc,nbfonc,2,0);
+
   formIntro(buf,jsbuf,inifonc,0,title,2,0);
   
   tableBeg(buf,jsbuf,0);
-  //strcat(buf,"<th></th><th>e.l. p.e<br>n.v. r.s</th><th> op </th><th>rdet</th><th>det</th></tr>\n");
-  affText(buf,jsbuf,"|e.l. p.e~n.v. r.s| op |rdet|det",0,TRBE|TDBE);
+  scrDspText(buf,jsbuf,"|e.l. p.e~n.v. r.s| op |rdet|det",0,TRBE|TDBE);
   
   char bb[libsize+1];
   for(int i=0;i<nbLi;i++){    
     namfonct[LENNOM-1]=(char)(i+PMFNCHAR); // le dernier caractère est le n° de ligne ; l'avant dernier le n° de colonne
 /* libellé ligne */
     *bb='\0';concatn(bb,i+1);strcat(bb," ");strcat(bb,(char*)(lib+i*libsize));
-    affText(buf,jsbuf,bb,0,TRBEG|TDBE);
+    scrDspText(buf,jsbuf,bb,0,TRBEG|TDBE);
 
 // checkbox 
 
@@ -458,32 +439,32 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
         case CBNB-1:cbtd=TDEND;break;
         default: break;
       }
-      namfonct[LENNOM-2]=(char)(colnb);checkboxTableBHtml(buf,jsbuf,&k,namfonct,NO_STATE,"",0,cbtd);
+      namfonct[LENNOM-2]=(char)(colnb);scrGetCheckbox(buf,jsbuf,&k,namfonct,NO_STATE,"",0,cbtd);
       if(j<(CBNB-1)){affSpace(buf,jsbuf);}
       colnb++;
     }      
     
 // opé logique 
     op=(*(cb+i))>>4;
-    selectTableBHtml(buf,jsbuf,rulOp,rulOptNam,namfonct,op,colnb-PMFNCHAR,i,0,TDBE);
+    scrGetSelect(buf,jsbuf,rulOp,rulOptNam,namfonct,op,colnb-PMFNCHAR,i,0,TDBE);
     colnb++;
 // det ref 
-    namfonct[LENNOM-2]=colnb;colnb++;numTf(buf,jsbuf,'s',&rdet[i],namfonct,2,0,0,TDBE);
+    namfonct[LENNOM-2]=colnb;colnb++;scrGetNum(buf,jsbuf,'s',&rdet[i],namfonct,2,0,0,TDBE);
     namfonct[LENNOM-2]=colnb;   
     
 // det dest 
-    namfonct[LENNOM-2]=colnb;colnb++;numTf(buf,jsbuf,'s',&det[i],namfonct,2,0,0,TDBE);
+    namfonct[LENNOM-2]=colnb;colnb++;scrGetNum(buf,jsbuf,'s',&det[i],namfonct,2,0,0,TDBE);
     namfonct[LENNOM-2]=colnb;
 // mémo 
     const char* mem="\0";
     if(memo[i]>=0 && memo[i]<NBMEMOS){mem=&memosTable[memo[i]*LMEMO];}
-    alphaTableHtmlB(buf,jsbuf,mem,namfonct,LMEMO-1,0,TDBE|TREND);
+    scrGetText(buf,jsbuf,mem,namfonct,LMEMO-1,0,TDBE|TREND);
 
     ethWrite(cli,buf,lb);
   }
 
   tableEnd(buf,jsbuf,BRYES);
-  boutMaj(buf,jsbuf,"MàJ",0);
+  scrGetButSub(buf,jsbuf,"MàJ",0);
   formEnd(buf,jsbuf,TITLE,0,0);
   strcat(buf,"\n");
   //strcat(buf,"<input type=\"submit\" value=\"MàJ\"></fieldset></form>\n"); 
@@ -503,13 +484,13 @@ void showDates(char* buf,char* jsbuf)
           if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                      
           memset(strDate,0x00,LSTRD);
           concatDate(strDate,nullptr,periLastDateOut);
-          affText(buf,jsbuf,strDate,0,BRYES);
+          scrDspText(buf,jsbuf,strDate,0,BRYES);
           memcpy(colourbr,"black\0",6);
           if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
           if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                 
           memset(strDate,0x00,LSTRD);
           concatDate(strDate,nullptr,periLastDateIn);
-          affText(buf,jsbuf,strDate,0,TDEND);
+          scrDspText(buf,jsbuf,strDate,0,TDEND);
           setColourB(buf,jsbuf,"black");                      
           setColourE(buf,jsbuf);
 }
@@ -531,13 +512,13 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
   htmlBegE(buf,cli);
   optSelHtml(jsbuf,rulop,optNam0);    // chargement tables params
 
-  formIntro(buf,jsbuf,0,0);           // params pour retours navigateur (n° usr + time usr + pericur)
-                                      // à charger au moins une fois par page ; pour les autres formulaires 
-                                      // de la page formBeg() suffit
+  formIntro(buf,jsbuf,"peri_cur__",0,0);  // n° usr + time usr + pericur + what=5 (faire periSave si MàJ)
 
   pageHeader(buf,jsbuf);              // 1ère ligne page
   perifHeader(buf,jsbuf);             // 2nde ligne page
-  
+  scrGetButRet(buf,jsbuf,"retour",TDBE);strcat(buf," ");
+  scrGetButSub(buf,jsbuf,"MàJ",TDBEG);
+
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 
 
@@ -546,24 +527,21 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
     //strcat(buf,"<table><tr>\n");
     tableBeg(buf,jsbuf,0);
 
-    boutRetourB(buf,jsbuf,"retour",TDBE);strcat(buf," ");
-    
-    boutMaj(buf,jsbuf,"MàJ",TDBEG);
     char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    boutF(buf,jsbuf,line,"","refresh",ALICNO,0,0);
+    scrGetButFn(buf,jsbuf,line,"","refresh",ALICNO,0,0);
     if(*periSwNb!=0){
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-      boutF(buf,jsbuf,swf,"","Switchs",ALICNO,0,0);
+      scrGetButFn(buf,jsbuf,swf,"","Switchs",ALICNO,0,0);
     }
     affSpace(buf,jsbuf);
     char raz[]="peri_raz___";raz[LENNOM-1]=periCur+PMFNCHAR;
-    boutF(buf,jsbuf,raz,"","Raz",ALICNO,0,BRYES);
+    scrGetButFn(buf,jsbuf,raz,"","Raz",ALICNO,0,BRYES);
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    line[LENNOM-2]='0';boutF(buf,jsbuf,line,"","tst__SW0",ALICNO,0,0);
-    line[LENNOM-2]='1';boutF(buf,jsbuf,line,"","tst__SW1",ALICNO,0,0);
+    line[LENNOM-2]='0';scrGetButFn(buf,jsbuf,line,"","tst__SW0",ALICNO,0,0);
+    line[LENNOM-2]='1';scrGetButFn(buf,jsbuf,line,"","tst__SW1",ALICNO,0,0);
     affSpace(buf,jsbuf);
-    line[LENNOM-2]='m';boutF(buf,jsbuf,line,"","tst_mail",ALICNO,0,TREND|TDEND);
+    line[LENNOM-2]='m';scrGetButFn(buf,jsbuf,line,"","tst_mail",ALICNO,0,TREND|TDEND);
     tableEnd(buf,jsbuf,0);
     //strcat(buf,"</tr></table>\n");
     
@@ -577,83 +555,74 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
 
                 tableBeg(buf,jsbuf,0);
                       //strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   
-                      affText(buf,jsbuf,"||~periph_name|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|._D_ _l~._i_ _e~._s_ _v|mac_addr~ip_addr|version Th~last out~last in",0,TRBE);
-                      affNum(buf,jsbuf,'d',&periCur,0,0,TDBE);
-                      alphaTableHtmlB(buf,jsbuf,periNamer,"peri_nom__",PERINAMLEN-1,0,TRNO|TDBE|BRNO);                    
-                      affNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);            
+                      scrDspText(buf,jsbuf,"||~periph_name|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|._D_ _l~._i_ _e~._s_ _v|mac_addr~ip_addr|version Th~last out~last in",0,TRBE);
+                      scrDspNum(buf,jsbuf,'d',&periCur,0,0,TDBE);
+                      scrGetText(buf,jsbuf,periNamer,"peri_nom__",PERINAMLEN-1,0,TRNO|TDBE|BRNO);                    
+                      scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);            
                       float ff=((float)*periThmin_)/100;
-                      affNum(buf,jsbuf,'f',&ff,2,0,BRYES);     
+                      scrDspNum(buf,jsbuf,'f',&ff,2,0,BRYES);     
                       ff=((float)*periThmax_)/100;
-                      affNum(buf,jsbuf,'f',&ff,2,0,TDEND);
-                      affNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,BRYES|TDBEG);
-                      numTf(buf,jsbuf,'I',periVmin_,"peri_vmin_",5,0,0,BRYES);
-                      numTf(buf,jsbuf,'I',periVmax_,"peri_vmax_",5,0,0,TDEND);
-                      numTf(buf,jsbuf,'d',(uint32_t*)periPerTemp,"peri_rtemp",5,2,0,BRYES|TDBEG);
-                      numTf(buf,jsbuf,'r',periPitch_,"peri_pitch",5,2,0,BRYES);
-                      numTf(buf,jsbuf,'r',periThOffset_,"peri_tofs_",5,3,0,TDEND);
-                      numTf(buf,jsbuf,'l',(uint32_t*)periPerRefr,"peri_refr_",5,2,0,TDBEG|BRYES);
-                      checkboxTableBHtml(buf,jsbuf,(uint8_t*)periProg,"peri_prog_",NO_STATE,TDEND,"");
-                      numTf(buf,jsbuf,'b',periSwNb,"peri_intnb",1,2,0,TDBEG|BRYES);
-                      numTf(buf,jsbuf,'b',periDetNb,"peri_detnb",1,3,0,TDEND);
+                      scrDspNum(buf,jsbuf,'f',&ff,2,0,TDEND);
+                      scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,BRYES|TDBEG);
+                      scrGetNum(buf,jsbuf,'I',periVmin_,"peri_vmin_",1,5,0,0,BRYES);
+                      scrGetNum(buf,jsbuf,'I',periVmax_,"peri_vmax_",1,5,0,0,TDEND);
+                      scrGetNum(buf,jsbuf,'d',(uint32_t*)periPerTemp,"peri_rtemp",1,5,0,0,BRYES|TDBEG);
+                      scrGetNum(buf,jsbuf,'r',periPitch_,"peri_pitch",1,4,2,0,BRYES);
+                      scrGetNum(buf,jsbuf,'r',periThOffset_,"peri_tofs_",1,4,2,0,TDEND);
+                      strcat(buf,"\n");
+                      scrGetNum(buf,jsbuf,'l',(uint32_t*)periPerRefr,"peri_refr_",1,5,0,0,TDBEG|BRYES);
+                      scrGetCheckbox(buf,jsbuf,(uint8_t*)periProg,"peri_prog_",NO_STATE,TDEND,"");
+                      scrGetNum(buf,jsbuf,'b',periSwNb,"peri_intnb",1,1,0,0,TDBEG|BRYES);
+                      scrGetNum(buf,jsbuf,'b',periDetNb,"peri_detnb",1,1,0,0,TDEND);
+                      strcat(buf,"\n");
                       char fonc[]={"peri_vsw__\0"},oi[]={"OI"};
                       uint8_t lctl=TDBEG;
-                      for(int k=0;k<*periSwNb;k++){fonc[LENNOM-1]=PMFNCHAR+k;radioTableBHtml(buf,jsbuf,periSwCde(k),fonc,2,0,lctl);
+                      for(int k=0;k<*periSwNb;k++){
+                        fonc[LENNOM-1]=PMFNCHAR+k;
+                        scrGetRadiobut(buf,jsbuf,periSwCde(k),fonc,2,0,lctl);
                         lctl=0;if(k<*periSwNb-1){lctl=BRYES;}
                         char tt[2]={oi[periSwLev(k)],0x00};
-                        affText(buf,jsbuf,tt,0,lctl|STRING|CONCAT);
+                        scrDspText(buf,jsbuf,tt,0,lctl|STRING|CONCAT);
                         lctl=0;}
                       strcat(buf,"\n");
 
                       char bb[LENNOM];bb[0]='\0';
                       for(int k=0;k<6;k++){concat1a(bb,chexa[periMacr[k]/16]);concat1a(bb,chexa[periMacr[k]%16]);}
-                      alphaTableHtmlB(buf,jsbuf,bb,"peri_mac__",12,0,TDBEG|BRYES);      
-                      affText(buf,jsbuf,"port=",0,0);
-                      numTf(buf,jsbuf,'d',periPort,"peri_port_",4,0,0,0,BRYES);
-                      affText(buf,jsbuf,(char*)"",2,0);       // set police 2
+                      scrGetText(buf,jsbuf,bb,"peri_mac__",12,0,TDBEG|BRYES);      
+                      scrDspText(buf,jsbuf,"port=",0,0);
+                      scrGetNum(buf,jsbuf,'d',periPort,"peri_port_",3,4,0,0,BRYES);
+                      scrDspText(buf,jsbuf,(char*)"",2,0);       // set police 2
                       #define LIP 16
                       char bc[LIP];memset(bc,'\0',LIP);
                       for(j=0;j<4;j++){concatns(bc,periIpAddr[j]);if(j<3){strcat(bc,".");}}
-                      affText(buf,jsbuf,bc,0,TDEND);
+                      scrDspText(buf,jsbuf,bc,0,TDEND);
                       fontEnd(buf,jsbuf,TDEND);
-                      affText(buf,jsbuf,(char*)"",2,TDBEG);   // set police 2
+                      scrDspText(buf,jsbuf,(char*)"",2,TDBEG);   // set police 2
                       char bd[LENVERSION+1];memcpy(bd,periVers,LENVERSION);bd[LENVERSION]='\0';
-                      affText(buf,jsbuf,bd,0,0);
+                      scrDspText(buf,jsbuf,bd,0,0);
                       *bd=*periProtocol;*(bd+1)='\0';
-                      affText(buf,jsbuf,bd,0,BRYES);
+                      scrDspText(buf,jsbuf,bd,0,BRYES);
                       showDates(buf,jsbuf);
-/*                    char colourbr[6];
-                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}
-                      setColourB(buf,jsbuf,colourbr);                      
-                      concatDate(buf,jsbuf,periLastDateOut);
-                      affText(buf,jsbuf," ",0,BRYES);
-                      memcpy(colourbr,"black\0",6);if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"red\0",4);}
-                      setColourB(buf,jsbuf,colourbr);                      
-                      concatDate(buf,jsbuf,periLastDateIn);
- */                     
                       fontEnd(buf,jsbuf,TDEND);
                       
                 tableEnd(buf,jsbuf,TREND|BRYES);
-                //setColourB(buf,jsbuf,"black");
+
                 ethWrite(cli,buf,&lb);
 
 // table analogique
                 
-                affText(buf,jsbuf,"Analog Input",0,BRYES);
+                scrDspText(buf,jsbuf,"Analog Input",0,BRYES);
                 tableBeg(buf,jsbuf,TRBEG);
-                affText(buf,jsbuf,"val~Low~High",0,TDBE);
-                affNum(buf,jsbuf,(int16_t*)periAnal,&valMin,&valMax,BRYES|TDBEG);
-                numTf(buf,jsbuf,'I',periAnalLow,"peri_ana@",5,0,0,BRYES);
-                numTf(buf,jsbuf,'I',periAnalHigh,"peri_anaA",5,0,0,NOBR|TDEND);
-                  //strcat(buf,"\n<td>Off1<br>Fact<br>Off2</td>\n<td>");
-                affText(buf,jsbuf,"Off1~Fact~Off2",0,TDBE);
-                numTf(buf,jsbuf,'I',periAnalOffset1,"peri_anaB_",5,0,0,TDBEG|BRYES);
-                      //numTf(buf,'I',periAnalOffset1,"peri_anaB_",5,0,0);strcat(buf,"<br>");
-                      //strcat(buf,"<br>");jscat(jsbuf,JSBR);                    
-                numTf(buf,jsbuf,'F',periAnalFactor,"peri_anaC_",7,0,0,4,BRYES);
-                      //numTf(buf,'F',periAnalFactor,"peri_anaC_",7,0,0,4);                        
-                numTf(buf,jsbuf,'F',periAnalOffset2,"peri_anaD_",7,0,0,4,TDEND|TREND);
-                      //numTf(buf,'F',periAnalOffset2,"peri_anaD_",7,0,0,4);                      
+                scrDspText(buf,jsbuf,"val~Low~High",0,TDBE);
+                scrDspNum(buf,jsbuf,(int16_t*)periAnal,&valMin,&valMax,BRYES|TDBEG);
+                scrGetNum(buf,jsbuf,'I',periAnalLow,"peri_ana@",5,0,0,BRYES);
+                scrGetNum(buf,jsbuf,'I',periAnalHigh,"peri_anaA",5,0,0,NOBR|TDEND);
+                scrDspText(buf,jsbuf,"Off1~Fact~Off2",0,TDBE);
+                scrGetNum(buf,jsbuf,'I',periAnalOffset1,"peri_anaB_",5,0,0,TDBEG|BRYES);
+                scrGetNum(buf,jsbuf,'F',periAnalFactor,"peri_anaC_",2,1,0,4,BRYES);               
+                scrGetNum(buf,jsbuf,'F',periAnalOffset2,"peri_anaD_",2,1,0,4,TDEND|TREND);                   
                 tableEnd(buf,jsbuf,BRYES);
+
                 formEnd(buf,jsbuf,0,0);
                 
                 ethWrite(cli,buf,&lb);
@@ -675,12 +644,11 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
                   subCbdet(buf,jsbuf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,optNam0,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo,&lb);
                 }
                 
-                htmlEnd(buf,jsbuf);
-                ethWrite(cli,buf,&lb);
+            htmlEnd(buf,jsbuf);
 
-                Serial.print("  len buf=");Serial.print(lb);
-                Serial.print("  len jsbuf=");Serial.print(strlen(jsbuf));
-                Serial.print("  ms=");Serial.println(millis()-begTPage);
+            ethWrite(cli,buf,&lb);
+
+            bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate,uint16_t* lb)
@@ -698,51 +666,51 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           //char* dm;dm=jsbuf+strlen(jsbuf);
           uint8_t lctl=STRING|TRBEG|TDBE;
 
-          affNum(buf,jsbuf,'d',&periCur,0,0,lctl);
-          affText(buf,jsbuf,periNamer,0,STRING);
-          affNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
-          vv=*periThmin_/100;affNum(buf,jsbuf,'f',&vv,2,0,BRYES);
-          vv=*periThmax_/100;affNum(buf,jsbuf,'f',&vv,2,0,TDEND);
-          affNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);          
-          vv=*periVmin_/100;affNum(buf,jsbuf,'f',&vv,2,0,BRYES);
-          vv=*periVmax_/100;affNum(buf,jsbuf,'f',&vv,2,0,TDEND);               
+          scrDspNum(buf,jsbuf,'d',&periCur,0,0,lctl);
+          scrDspText(buf,jsbuf,periNamer,0,STRING);
+          scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
+          vv=*periThmin_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,BRYES);
+          vv=*periThmax_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,TDEND);
+          scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);          
+          vv=*periVmin_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,BRYES);
+          vv=*periVmax_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,TDEND);               
 // pertemp/pitch/offset 
-          affNum(buf,jsbuf,'d',periPerTemp,0,0,STRING|TDBEG|BRYES);
-          vv=*periPitch_/100;affNum(buf,jsbuf,'f',&vv,2,0,STRING|BRYES);
-          vv=*periThOffset_/100;affNum(buf,jsbuf,'f',&vv,2,0,STRING|TDEND);
+          scrDspNum(buf,jsbuf,'d',periPerTemp,0,0,STRING|TDBEG|BRYES);
+          vv=*periPitch_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,STRING|BRYES);
+          vv=*periThOffset_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,STRING|TDEND);
       
           char oi[2]={'O','I'};
           if(*periProg==0){lctl=STRING|TDEND;}
           else {lctl=STRING|BRYES;}
-          affNum(buf,jsbuf,'d',(uint16_t*)periPerRefr,0,0,lctl);
-          if(*periProg!=0){affText(buf,jsbuf,"serv",0,STRING|TDEND);}
+          scrDspNum(buf,jsbuf,'d',(uint16_t*)periPerRefr,0,0,lctl);
+          if(*periProg!=0){scrDspText(buf,jsbuf,"serv",0,STRING|TDEND);}
             
-          affNum(buf,jsbuf,'s',(uint8_t*)periSwNb,0,0,STRING|BRYES);
-          affNum(buf,jsbuf,'s',(uint8_t*)periDetNb,0,0,STRING|TDEND);                                                 
+          scrDspNum(buf,jsbuf,'s',(uint8_t*)periSwNb,0,0,STRING|BRYES);
+          scrDspNum(buf,jsbuf,'s',(uint8_t*)periDetNb,0,0,STRING|TDEND);                                                 
           //concat1aH(buf,(char)(*periSwVal));strcat(buf,"<br>");
           
           char tt[4];tt[3]=0x00;
           for(uint8_t k=0;k<*periSwNb;k++){
                       tt[0]=oi[periSwCde(k)];tt[1]='_';tt[2]=oi[periSwLev(k)];
-                      //affText(buf,jsbuf,&oi[periSwCde(k)],0,lctl);affText(buf,jsbuf,"_",0,0);
+                      //scrDspText(buf,jsbuf,&oi[periSwCde(k)],0,lctl);scrDspText(buf,jsbuf,"_",0,0);
                       //lctl=0;
                       if(k<*periSwNb-1){lctl=STRING|BRYES;}
                       else {lctl=STRING|TDEND;}
-                      //affText(buf,jsbuf,&oi[periSwLev(k)],0,lctl);
-                      affText(buf,jsbuf,tt,0,lctl);
+                      //scrDspText(buf,jsbuf,&oi[periSwLev(k)],0,lctl);
+                      scrDspText(buf,jsbuf,tt,0,lctl);
           }
-          if(*periSwNb==0){affText(buf,jsbuf," ",0,STRING|TDEND);}          
+          if(*periSwNb==0){scrDspText(buf,jsbuf," ",0,STRING|TDEND);}          
           for(uint8_t k=0;k<*periDetNb;k++){
             if(k<*periDetNb-1){lctl=STRING|BRYES;}
             else lctl=STRING|TDEND;
             char tt[2]={oi[(*periDetVal>>(k*2))&DETBITLH_VB],0x00};
-            affText(buf,jsbuf,tt,0,lctl);     //&oi[(*periDetVal>>(k*2))&DETBITLH_VB],1,0,lctl);
+            scrDspText(buf,jsbuf,tt,0,lctl);     //&oi[(*periDetVal>>(k*2))&DETBITLH_VB],1,0,lctl);
           }
-          if(*periDetNb==0){affText(buf,jsbuf," ",0,STRING|TDEND);}
+          if(*periDetNb==0){scrDspText(buf,jsbuf," ",0,STRING|TDEND);}
 // analog 
-          vv=(*periAnal+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
-          vv=(*periAnalLow+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
-          vv=(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;affNum(buf,jsbuf,'f',&vv,4,0,STRING|TDEND);
+          vv=(*periAnal+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;scrDspNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
+          vv=(*periAnalLow+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;scrDspNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
+          vv=(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;scrDspNum(buf,jsbuf,'f',&vv,4,0,STRING|TDEND);
           strcat(buf,"\n");
 // mac                    
           lctl=TDBEG;
@@ -752,11 +720,11 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             m[k*3+1]=chexa[periMacr[k]%16];
             if(k<5){m[k*3+2]='.';}
           }
-          affText(buf,jsbuf,m,0,STRING|BRYES);
+          scrDspText(buf,jsbuf,m,0,STRING|BRYES);
 
           if(*periProg!=0 || *periProtocol=='U'){
-            affText(buf,jsbuf,"port=",0,STRING|CONCAT);affNum(buf,jsbuf,'d',periPort,0,0,STRING|BRYES);}
-          else{affText(buf,jsbuf,"",0,STRING|BRYES);}
+            scrDspText(buf,jsbuf,"port=",0,STRING|CONCAT);scrDspNum(buf,jsbuf,'d',periPort,0,0,STRING|BRYES);}
+          else{scrDspText(buf,jsbuf,"",0,STRING|BRYES);}
 // IP addr
           char w[16];memset(w,0x00,16);
           uint8_t s=0;
@@ -764,12 +732,12 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             s+=sprintf(w+s,"%hu",(uint8_t)periIpAddr[j]);
             if(j<3){w[s]='.';s++;}
           }
-          affText(buf,jsbuf,w,0,STRING|TDEND);
+          scrDspText(buf,jsbuf,w,0,STRING|TDEND);
 // version protocol
           char vers[LENVERSION+1];memcpy(vers,periVers,LENVERSION);vers[LENVERSION]='\0';
-          affText(buf,jsbuf,vers,0,STRING|CONCAT);affText(buf,jsbuf," ",0,STRING|CONCAT);
+          scrDspText(buf,jsbuf,vers,0,STRING|CONCAT);scrDspText(buf,jsbuf," ",0,STRING|CONCAT);
           long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}
-          char* a=protocStr+LENPROSTR*p;affText(buf,jsbuf,a,0,STRING|CONCAT|BRYES);                
+          char* a=protocStr+LENPROSTR*p;scrDspText(buf,jsbuf,a,0,STRING|CONCAT|BRYES);                
 // date_heures
           showDates(buf,jsbuf);
 /*          char colourbr[6];
@@ -782,22 +750,22 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                      
           memset(strDate,0x00,LSTRD);
           concatDate(strDate,nullptr,periLastDateOut);
-          affText(buf,jsbuf,strDate,0,BRYES);
+          scrDspText(buf,jsbuf,strDate,0,BRYES);
           memcpy(colourbr,"black\0",6);
           if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
           if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                 
           memset(strDate,0x00,LSTRD);
           concatDate(strDate,nullptr,periLastDateIn);
-          affText(buf,jsbuf,strDate,0,TDEND);
+          scrDspText(buf,jsbuf,strDate,0,TDEND);
           setColourB(buf,jsbuf,"black");                      
           setColourE(buf,jsbuf);
 */              
           strcat(buf,"\n");
 // boutons
           char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';                      
-          boutF(buf,jsbuf,line,"","Periph",ALICNO,0,TDBEG|BRYES);                         // bouton periph
+          scrGetButFn(buf,jsbuf,line,"","Periph",ALICNO,0,TDBEG|BRYES);                         // bouton periph
           if(*periSwNb!=0){char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-            boutF(buf,jsbuf,swf,"","Switchs",ALICNO,0,TDEND);}                            // bouton switchs
+            scrGetButFn(buf,jsbuf,swf,"","Switchs",ALICNO,0,TDEND);}                            // bouton switchs
           strcat(buf,"\n");                                    
 // fin
           formEnd(buf,jsbuf,0,TREND);
