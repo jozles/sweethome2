@@ -1230,7 +1230,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
     Si usrtime a changé ou si le délai de validité est dépassé ---> accueil.
     Le délai est modifiable dans la config (commun à tous les utilisateurs)
     ------------------------------------------------------------------------------------------------------------------------------------------------------
-    la structure des pages doit être : <form> (éventuellemnt dans pageHeader) usrPericur() {boutons etc... toute la page - Un bouton de MàJ par formulaire} </form>
+    la structure des pages doit être : <form> (éventuellemnt dans pageLineOne) usrPericur() {boutons etc... toute la page - Un bouton de MàJ par formulaire} </form>
     <form>...</form> délimite l'espace d'action de sbmit du bouton MàJ  ;  plusieurs formulaires possibles dans une page
     ------------------------------------------------------------------------------------------------------------------------------------------------------
                                        

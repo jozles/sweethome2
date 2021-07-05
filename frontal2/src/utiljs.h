@@ -89,6 +89,8 @@
 #define JSFFS  "J "        // fieldset end
 #define JSHB   "i "        // htmlIntro
 #define JSHE   "I "        // htmlEnd
+#define JSSCST "q "        // store text
+#define JSSCRC "Q "        // recall text
 
 #define JSUSR  "r "        // usrPeriCurB
 

@@ -88,20 +88,13 @@ extern const char*  courier;
 extern char*      styleTdFont;
 extern uint16_t   styleTdFSize;
 
+extern bool styleLoadedGeneral;
+extern bool styleLoadedRemote;
 
-   // Un formulaire ou une page html nécessite dans l'ordre :
-   //      1) une fonction user_ref_ avec ses paramètres pour éviter le retour au mot de passe
-   //      2) une fonction d'en tête hidden pour effectuer 
-   //         les inits éventuels lors du submit de validation (posit what et effacements cb par ex)
-   //         si pas d'inits à faire, elle n'est pas nécessaire
-   //      3) n fonctions pour valoriser des champs
-   //      ... n'importe où après (2) un bouton submit 
-   //       
-   // La fonction user_ref_ est fournie par userFormHtml()
-   // S'il faut passer une fonction d'en-tête utiliser userFormInitHtml()
-   // Si le passage de periCur est nécessaire utiliser usrPeriCur()
-   //
-
+extern const char* introHttp;
+extern const char* introHtmlE;
+extern const char* generalSt;
+extern const char* remoteSt;
 
 
 int htmlImg(EthernetClient* cli,const char* fimgname)   
@@ -181,13 +174,13 @@ void dumpHisto(EthernetClient* cli)
   long pos=histoPos;
   char file[]={"fdhisto.txt"};
 
-  htmlBeg(buf,jsbuf,nomserver,cli);    // chargement CSS etc
-  htmlBegE(buf,cli);
+  htmlBeg(buf,jsbuf,nomserver);     // chargement CSS etc
+  
   formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
 
-  pageHeader(buf,jsbuf);            // 1ère ligne page
+  pageLineOne(buf,jsbuf);            // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);
 
   ethWrite(cli,buf,&lb);
@@ -301,6 +294,9 @@ void shDicDateHist(char* dhasc,long* but)
 
 void accueilHtml(EthernetClient* cli)
 {
+      styleLoadedGeneral=false;
+      styleLoadedRemote =false;
+
       uint16_t lb0=LBUF4000,lb=0;
       char buf[lb0];buf[0]='\0';
       char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;
@@ -309,7 +305,7 @@ void accueilHtml(EthernetClient* cli)
       
             Serial.print(" accueilHtml ");
             usernum=0;
-            htmlBeg0(buf,jsbuf);                         
+            pageIntro0(buf,jsbuf);                       
             //formIntro(buf,jsbuf,0,0);
             
             scrDspText(buf,jsbuf,VERSION,5,BRYES);
@@ -325,7 +321,9 @@ void accueilHtml(EthernetClient* cli)
             
             //htmlEnd(buf,jsbuf);
             strcat(buf,"</form></body></html>\n");
-            
+
+            scrStore(jsbuf,GENSTYLE,generalSt);
+
             ethWrite(cli,buf,&lb);
             
             bufLenShow(buf,jsbuf,lb,begTPage);
@@ -396,11 +394,11 @@ void cfgServerHtml(EthernetClient* cli)
 
   unsigned long begTPage=millis();     // calcul durée envoi page
 
-  htmlBeg(buf,jsbuf,nomserver,cli);
-  htmlBegE(buf,cli);   
+  htmlBeg(buf,jsbuf,nomserver);
+
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
 
-  pageHeader(buf,jsbuf);            // 1ère ligne page
+  pageLineOne(buf,jsbuf);            // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
   scrGetButSub(buf,jsbuf,"MàJ",BRYES);
 
@@ -475,11 +473,11 @@ Serial.print("-> config detServ ");
   unsigned long begTPage=millis();                  // calcul durée envoi page
   uint8_t ni=0;
 
-  htmlBeg(buf,jsbuf,nomserver,cli);                    // chargement CSS etc
-  htmlBegE(buf,cli);
+  htmlBeg(buf,jsbuf,nomserver);                     // chargement CSS etc
+
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);       // params pour retours navigateur (n° usr + time usr + pericur)
 
-  pageHeader(buf,jsbuf);                            // 1ère ligne page
+  pageLineOne(buf,jsbuf);                            // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
   scrGetButSub(buf,jsbuf,"MàJ",0);
 
@@ -523,11 +521,11 @@ void cfgRemoteHtml(EthernetClient* cli)
   char nf[LENNOM+1];nf[LENNOM]='\0';
   uint8_t val;
  
-  htmlBeg(buf,jsbuf,nomserver,cli);             // chargement CSS etc
-  htmlBegE(buf,cli);
+  htmlBeg(buf,jsbuf,nomserver);                 // chargement CSS etc
+
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);   // params pour retours navigateur (n° usr + time usr + pericur)
 
-  pageHeader(buf,jsbuf);                        // 1ère ligne page
+  pageLineOne(buf,jsbuf);                        // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
   
   ethWrite(cli,buf,&lb);          
@@ -635,19 +633,16 @@ void remoteHtml(EthernetClient* cli)
 {              
             Serial.print(millis());Serial.print(" remoteHtml() ");
 
-            uint16_t lb0=LBUF4000;
+            uint16_t lb0=8000;
             char buf[lb0];buf[0]='\0';
             char jsbuf[LBUF4000];*jsbuf=0x00;
             uint8_t ni=0;                                     // nbre lignes dans buffer
             uint16_t lb;
             unsigned long begTPage=millis();                  // calcul durée envoi page
  
-            htmlBeg(buf,jsbuf,nomserver,cli);
-            htmlStyleSliders(buf);
-            htmlStyleSqrBut(buf); 
-            htmlBegE(buf,cli);
+            htmlBeg(buf,jsbuf,nomserver,'R');
 
-            pageHeader(buf,jsbuf);
+            pageLineOne(buf,jsbuf);
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
             //usrFormBHtml(buf,1);
             scrGetButRet(buf,jsbuf,"retour",0);
@@ -844,12 +839,12 @@ void thermoShowHtml(EthernetClient* cli)
   #define LLITH 200
   char lith[LLITH];
 
-  htmlBeg(buf,jsbuf,nomserver,cli);    // chargement CSS etc
-  htmlBegE(buf,cli);
+  htmlBeg(buf,jsbuf,nomserver);     // chargement CSS etc
+
   formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
-  pageHeader(buf,jsbuf);            // 1ère ligne page
+  pageLineOne(buf,jsbuf);            // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
@@ -947,11 +942,11 @@ void thermoCfgHtml(EthernetClient* cli)
   unsigned long begTPage=millis();              // calcul durée envoi page
   uint8_t ni=0;
 
-  htmlBeg(buf,jsbuf,nomserver,cli);             // chargement CSS etc
-  htmlBegE(buf,cli);
+  htmlBeg(buf,jsbuf,nomserver);                 // chargement CSS etc
+
   //formIntro(buf,jsbuf,nullptr,0,nullptr,0,0); // params pour retours navigateur (n° usr + time usr + pericur)
                                                 // à charger au moins une fois par page 
-  pageHeader(buf,jsbuf);                        // 1ère ligne page
+  pageLineOne(buf,jsbuf);                        // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
           
   scrGetButFn(buf,jsbuf,"thermoscfg","","refresh",0,0,BRYES);
@@ -1037,13 +1032,13 @@ Serial.print(" config timers ");
   unsigned long begTPage=millis();    // calcul durée envoi page
   int nucb;
 
-  htmlBeg(buf,jsbuf,nomserver,cli);   // chargement CSS etc
-  htmlBegE(buf,cli);
+  htmlBeg(buf,jsbuf,nomserver);       // chargement CSS etc
+
   formIntro(buf,jsbuf,0,0);           // params pour retours navigateur (n° usr + time usr + pericur)
                                       // à charger au moins une fois par page ; pour les autres formulaires 
                                       // de la page formBeg() suffit
 
-  pageHeader(buf,jsbuf);              // 1ère ligne page
+  pageLineOne(buf,jsbuf);              // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
   scrGetButFn(buf,jsbuf,"timershtml","","refresh",ALICNO,2,0);
 

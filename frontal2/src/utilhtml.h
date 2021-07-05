@@ -8,6 +8,13 @@
 #define BORDER (bool)true
 #define NOBORDER (bool)false
 
+
+#define INTROHTTP 'H'
+#define INTROHTMLE 'h'
+#define GENSTYLE 'G'
+#define REMOTESTYLE 'R'
+
+
 void bufcat(char* buf,const char* s);
 void jscat(char* jsbuf,const char* s,bool sep);
 void jscat(char* jsbuf,const char* s);
@@ -20,11 +27,17 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl);
 void fnHtmlIntro(char* buf,const char* fonc,uint8_t pol,const uint8_t ctl);
 void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl);
 
+void scrStore(char* jsbuf,char name,const char* data);
+void scrRecall(char* jsbuf,char name);
+
 void jpgIntro0(char* dm);
-void htmlIntro0(char* buf,char* jsbuf);
-void htmlBeg0(char* buf,char* jsbuf);
-void htmlBeg(char* buf,char* jsbuf,char* titre,EthernetClient* cli);
-void htmlBegE(char* buf,EthernetClient* cli);
+//void htmlIntro0(char* buf,char* jsbuf);
+void pageIntro(char* buf,char* jsbuf,char* titre);
+void pageIntro0(char* buf,char* jsbuf);
+//void htmlBeg0(char* buf,char* jsbuf);
+void htmlBeg(char* buf,char* jsbuf,char* titre);
+void htmlBeg(char* buf,char* jsbuf,char* titre,char rem);
+//void htmlBegE(char* buf,EthernetClient* cli);
 void htmlEnd(char* buf,char* jsbuf);
 
 void htmlStyleTable(char* buf);
@@ -32,7 +45,7 @@ void htmlStyleCbBut(char* buf);
 void htmlStyleSliders(char* buf);
 void htmlStyleSqrBut(char* buf); 
 
-void pageHeader(char* buf,char* jsbuf);
+void pageLineOne(char* buf,char* jsbuf);
 
 void formIntro(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t pol,uint8_t ctl);

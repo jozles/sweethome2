@@ -191,7 +191,7 @@ void swCtlTableHtml(EthernetClient* cli,int i)
 {
   periCur=i;
 
-  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  char jsbuf[10000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF4000,lb1=0;
   char buf[lb0];buf[0]='\0';
 
@@ -200,8 +200,8 @@ void swCtlTableHtml(EthernetClient* cli,int i)
   Serial.print("swCtlTableHtml - periCur=");Serial.print(periCur);
   Serial.print("  free=");Serial.println(freeMemory(), DEC);
 
-  htmlBeg(buf,jsbuf,nomserver,cli);       // chargement CSS etc
-  htmlBegE(buf,cli);
+  htmlBeg(buf,jsbuf,nomserver);           // chargement CSS etc
+
   optSelHtml(jsbuf,inptyps,optNam1);
   optSelHtml(jsbuf,inptypd,optNam2);
   optSelHtml(jsbuf,inpact,optNam3);
@@ -209,7 +209,7 @@ void swCtlTableHtml(EthernetClient* cli,int i)
   //usrPeriCurB(buf,jsbuf,"peri_t_sw_",0,2,0);
   formIntro(buf,jsbuf,"peri_t_sw_",0,0);  // n° usr + time usr + pericur + locfonc pour inits
 
-  pageHeader(buf,jsbuf);                  // 1ère ligne page
+  pageLineOne(buf,jsbuf);                  // 1ère ligne page
   perifHeader(buf,jsbuf);                 // 2nde ligne page
   
   ethWrite(cli,buf,&lb);                  // tfr -> navigateur
@@ -267,7 +267,7 @@ void swCtlTableHtml(EthernetClient* cli,int i)
 /* affichage/saisie règles */
   scrDspText(buf,jsbuf,"Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
   tableBeg(buf,jsbuf,0);
-  scrDspText(buf,jsbuf,"|e.r p.e~n.f.r.s| source | destin.| action",0,TDBE|TRBE);
+  scrDspText(buf,jsbuf,"|e...r...p...e~n...f...r...s| source | destin.| action",0,TDBE|TRBE);
   ethWrite(cli,buf,&lb);
 
       char xfonc1[]="p_inp1____\0";
@@ -343,13 +343,12 @@ void periTableHtml(EthernetClient* cli)
 
   int savePeriCur=periCur;          // restoré à la fin
 
-  htmlBeg(buf,jsbuf,nomserver,cli); // chargement CSS etc
-  htmlBegE(buf,cli);
+  htmlBeg(buf,jsbuf,nomserver);     // chargement CSS etc
 
   //usrFormBHtml(buf,HID);
   formIntro(buf,jsbuf,0,0);         // (n° usr + time usr + pericur)
 
-  pageHeader(buf,jsbuf);            // 1ère ligne page
+  pageLineOne(buf,jsbuf);            // 1ère ligne page
   scrGetButRet(buf,jsbuf,"refresh",0);  
   
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
@@ -386,6 +385,7 @@ void periTableHtml(EthernetClient* cli)
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
           tableBeg(buf,jsbuf,"Courier, sans-serif\"",BORDER,TRBEG|TDBEG);
           scrDspText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|vers. prot~last out~last in|",0,TREND|TDEND);
+          strcat(buf,"\n\n");
 
           ethWrite(cli,buf,&lb);
 
@@ -508,16 +508,16 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
 
   Serial.print("periLineHtml - periCur=");Serial.print(periCur);Serial.print("/");Serial.print(i);
 
-  htmlBeg(buf,jsbuf,nomserver,cli);   // chargement CSS etc
-  htmlBegE(buf,cli);
+  htmlBeg(buf,jsbuf,nomserver);       // chargement CSS etc
+  
   optSelHtml(jsbuf,rulop,optNam0);    // chargement tables params
 
   formIntro(buf,jsbuf,"peri_cur__",0,0);  // n° usr + time usr + pericur + what=5 (faire periSave si MàJ)
 
-  pageHeader(buf,jsbuf);              // 1ère ligne page
+  pageLineOne(buf,jsbuf);             // 1ère ligne page
   perifHeader(buf,jsbuf);             // 2nde ligne page
-  scrGetButRet(buf,jsbuf,"retour",TDBE);strcat(buf," ");
-  scrGetButSub(buf,jsbuf,"MàJ",TDBEG);
+
+  
 
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 
@@ -525,10 +525,14 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
 /* boutons */
 
     //strcat(buf,"<table><tr>\n");
-    tableBeg(buf,jsbuf,0);
+    tableBeg(buf,jsbuf,false,0);
 
+    scrGetButRet(buf,jsbuf,"retour",TRBEG|TDBE);strcat(buf," ");
+
+    scrGetButSub(buf,jsbuf,"MàJ",TDBEG);
     char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
     scrGetButFn(buf,jsbuf,line,"","refresh",ALICNO,0,0);
+    
     if(*periSwNb!=0){
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
       scrGetButFn(buf,jsbuf,swf,"","Switchs",ALICNO,0,0);
@@ -556,13 +560,15 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
                 tableBeg(buf,jsbuf,0);
                       //strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   
                       scrDspText(buf,jsbuf,"||~periph_name|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|._D_ _l~._i_ _e~._s_ _v|mac_addr~ip_addr|version Th~last out~last in",0,TRBE);
+                      strcat(buf,"\n");
                       scrDspNum(buf,jsbuf,'d',&periCur,0,0,TDBE);
-                      scrGetText(buf,jsbuf,periNamer,"peri_nom__",PERINAMLEN-1,0,TRNO|TDBE|BRNO);                    
+                      scrGetText(buf,jsbuf,periNamer,"peri_nom__",12,PERINAMLEN-1,0,TRNO|TDBE|BRNO);                    
                       scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);            
                       float ff=((float)*periThmin_)/100;
                       scrDspNum(buf,jsbuf,'f',&ff,2,0,BRYES);     
                       ff=((float)*periThmax_)/100;
                       scrDspNum(buf,jsbuf,'f',&ff,2,0,TDEND);
+                      strcat(buf,"\n");
                       scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,BRYES|TDBEG);
                       scrGetNum(buf,jsbuf,'I',periVmin_,"peri_vmin_",1,5,0,0,BRYES);
                       scrGetNum(buf,jsbuf,'I',periVmax_,"peri_vmax_",1,5,0,0,TDEND);
@@ -588,9 +594,9 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
 
                       char bb[LENNOM];bb[0]='\0';
                       for(int k=0;k<6;k++){concat1a(bb,chexa[periMacr[k]/16]);concat1a(bb,chexa[periMacr[k]%16]);}
-                      scrGetText(buf,jsbuf,bb,"peri_mac__",12,0,TDBEG|BRYES);      
+                      scrGetText(buf,jsbuf,bb,"peri_mac__",12,12,0,TDBEG|BRYES);      
                       scrDspText(buf,jsbuf,"port=",0,0);
-                      scrGetNum(buf,jsbuf,'d',periPort,"peri_port_",3,4,0,0,BRYES);
+                      scrGetNum(buf,jsbuf,'d',periPort,"peri_port_",1,4,0,0,BRYES);
                       scrDspText(buf,jsbuf,(char*)"",2,0);       // set police 2
                       #define LIP 16
                       char bc[LIP];memset(bc,'\0',LIP);
@@ -606,6 +612,7 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
                       fontEnd(buf,jsbuf,TDEND);
                       
                 tableEnd(buf,jsbuf,TREND|BRYES);
+                strcat(buf,"\n\n");
 
                 ethWrite(cli,buf,&lb);
 
