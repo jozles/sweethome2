@@ -416,9 +416,11 @@ void initDate()
     Serial.print(js);Serial.print(" ");Serial.print(amj);Serial.print(" ");Serial.print(hms);Serial.println(" GMT");
     ds3231.getDate(&hms2,&amj2,&js2,strdate);               // read DS3231
     if(amj!=amj2 || hms!=hms2 || js!=js2){
-      Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.print(hms2);Serial.println(" setup DS3231 ");
+      Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.print(hms2);Serial.print(" setup DS3231 ");
       ds3231.setTime((byte)(hms%100),(byte)((hms%10000)/100),(byte)(hms/10000),js,(byte)(amj%100),(byte)((amj%10000)/100),(byte)((amj/10000)-2000)); // SET GMT TIME      
       ds3231.getDate(&hms2,&amj2,&js2,strdate);
+      if(amj!=amj2 || hms!=hms2 || js!=js2){Serial.println("failed");}
+      else {Serial.println("ok");}
     }
   }
 }  

@@ -14,6 +14,7 @@
 #define GENSTYLE 'G'
 #define REMOTESTYLE 'R'
 
+#define NOJSBUF
 
 void bufcat(char* buf,const char* s);
 void jscat(char* jsbuf,const char* s,bool sep);

@@ -121,16 +121,33 @@ const char* remoteSt=
 
 void bufcat(char* buf,const char* s){strcat(buf,s);}
 
-void jscat(char* jsbuf,const char* s){if(jsbuf!=nullptr){strcat(jsbuf,s);}}
+void jscat(char* jsbuf,const char* s){
+#ifndef NOJSBUF
+  if(jsbuf!=nullptr){strcat(jsbuf,s);}
+#endif // NOJSBUF
+}
 
-void jscat(char* jsbuf,const char* s,bool sep){jscat(jsbuf,s);if(sep){strcat(jsbuf,JSSEP);}}
+void jscat(char* jsbuf,const char* s,bool sep){
+#ifndef NOJSBUF
+  jscat(jsbuf,s);if(sep){strcat(jsbuf,JSSEP);}
+#endif // NOJSBUF  
+}
 
-void jscatch(char* jsbuf,const char s){if(jsbuf!=nullptr){char* pt=jsbuf+strlen(jsbuf);*pt=s;*(pt+1)=*(pt+2)=0x00;}}
+void jscatch(char* jsbuf,const char s){
+#ifndef NOJSBUF
+  if(jsbuf!=nullptr){char* pt=jsbuf+strlen(jsbuf);*pt=s;*(pt+1)=*(pt+2)=0x00;}
+#endif // NOJSBUF
+}
 
-void jscatch(char* jsbuf,const char s,bool sep){if(jsbuf!=nullptr){char* pt=jsbuf+strlen(jsbuf);*pt=s;*(pt+1)=*JSSEP;*(pt+2)=0x00;}}
+void jscatch(char* jsbuf,const char s,bool sep){
+#ifndef NOJSBUF
+  if(jsbuf!=nullptr){char* pt=jsbuf+strlen(jsbuf);*pt=s;*(pt+1)=*JSSEP;*(pt+2)=0x00;}
+#endif // NOJSBUF
+}
 
 void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl)   // construit les 2,3 ou 4 premiers caractères d'une fonction
 {
+#ifndef NOJSBUF
   if(jsbuf!=nullptr){
     char* jspt=jsbuf+strlen(jsbuf);
     if(*(jspt-1)!=LF){*jspt=LF;jspt++;}
@@ -147,18 +164,22 @@ void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl)   // 
     }
     *(jspt)=0x00;
   }
+#endif // NOJSBUF
 }
 
 void tdSet(char* jsbuf,uint8_t width,const char* font,uint8_t fsize,uint8_t ctl)
 {
+#ifndef NOJSBUF
   if(jsbuf!=nullptr){fnJsIntro(jsbuf,JSTDS,0,ctl);}
   jscatch(jsbuf,width+PMFNCVAL,SEP);
   jscat(jsbuf,font,SEP);
   jscatch(jsbuf,fsize+PMFNCVAL);
-  
+#endif // NOJSBUF
+
   if(width!=0){styleTdWidth=width;}
   if(font!=nullptr){styleTdFont=font;}
   if(fsize!=0){styleTdFSize=fsize;}
+
 }
 
 void tdReset()
@@ -235,7 +256,9 @@ void concatn(char* buf,char* jsbuf,unsigned long val)               // concatene
   uint16_t s;
   char dm[10];
   s=sprintf(dm,"%lu",val);dm[s]='\0';
-  jscat(jsbuf,dm);
+  if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
+    strcat(jsbuf,dm);
+  }
   if(buf!=nullptr){strcat(buf,dm);} 
 }
 
@@ -257,8 +280,9 @@ void concatns(char* buf,char* jsbuf,long val,bool sep)
   s=sprintf(bb,"%lu",val);
   if(s>LSPR){ledblink(BCODESYSERR);}
   bb[s]='\0';
-  jscat(jsbuf,bb);
-  if(sep){jscat(jsbuf,JSSEP);}
+  if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
+    strcat(jsbuf,bb);if(sep){strcat(jsbuf,JSSEP);}
+  }
   if(buf!=nullptr){strcat(buf,bb);}
 }
 
@@ -307,17 +331,25 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br,bool sep)
   s=sprintf(bb,d,val);
   if(s>LSPR){ledblink(BCODESYSERR);}
   bb[s]='\0';
-  jscat(jsbuf,bb);if(sep){jscat(jsbuf,JSSEP);}
+
+  if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
+    strcat(jsbuf,bb);if(sep){strcat(jsbuf,JSSEP);}
+  }
   if(buf!=nullptr){strcat(buf,bb);if(br){strcat(buf,"<br>");}}
 }
 
 void concatDate(char* buf,char* jsbuf,char* periDate)
 {
-  char dateascii[12];
-  int j;
-  char* dm=buf+strlen(buf);
-  unpackDate(dateascii,periDate);for(j=0;j<12;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}
-  jscat(jsbuf,dm);
+  char dateascii[LDATEASCII+2];
+  //int j;
+
+  unpackDate(dateascii+1,periDate);memcpy(dateascii,dateascii+1,6);
+  *(dateascii+6)=' ';*(dateascii+LDATEASCII+1)=0x00;
+  strcat(buf,dateascii);
+  //for(j=0;j<LDATEASCII;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}
+#ifndef NOJSBUF
+  jscat(jsbuf,dateascii);
+#endif // NOJSBUF
 }
 
 void concatDate(char* buf,char* periDate)
@@ -332,13 +364,17 @@ void bufPrintDateHeure(char* buf,char* pkdate)
 
 void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate)
 {
+#ifndef NOJSBUF
   char* dm=buf+strlen(buf);
-  
+#endif // NOJSBUF
+
   char bufdate[LNOW];ds3231.alphaNow(bufdate);packDate(pkdate,bufdate+2); // skip siècle
   for(int zz=0;zz<14;zz++){concat1a(buf,bufdate[zz]);if(zz==7){strcat(buf,"-");}}
   strcat(buf,"(");concatn(buf,bufdate[14]);strcat(buf,")");strcat(buf," GMT ");
 
+#ifndef NOJSBUF
   jscat(jsbuf,dm);
+#endif // NOJSBUF
 }
 
 void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet)
@@ -367,10 +403,12 @@ void setColourB(char* buf,char* jsbuf,const char* textColour)
   if(buf!=nullptr){
     memcpy(colour,textColour,LENCOLOUR);strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
   }
+#ifndef NOJSBUF  
   if(jsbuf!=nullptr){
     fnJsIntro(jsbuf,JSCOB,0,0);  
     jscat(jsbuf,textColour);
   }
+#endif // NOJSBUF  
 }
 
 void fontBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
@@ -396,7 +434,9 @@ void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t p
 //                le dernier rien : TDEND est déjà dans le ctl de la commande (pour le format html ctl==STRING indique </td> à la fin)
 //                CONCAT pour ajouter du texte à la volée
 {
+
   // --------------------- debut traitement js
+#ifndef NOJSBUF
   bool flagWidth=false;   // true si fnJsIntro() est effectué et tdWidth!=0
   
   uint8_t ctlb=ctl&~STRING;if((ctl&STRING)!=0){ctlb&=~BRYES;if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
@@ -411,13 +451,15 @@ void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t p
     concatn(widthPx,styleTdWidth);
     jscat(jsbuf,JSSEP);jscat(jsbuf,widthPx,SEP);
   }
-
+#endif // NOJSBUF
   char* dm0=jsbuf+strlen(jsbuf); // début texte+ctl pour html
 
-  jscat(jsbuf,txt);
+  if(jsbuf!=nullptr){  // jscat ne copie pas si NOFSBUF
+    strcat(jsbuf,txt);
+    if(((ctl&STRING)!=0)&&((ctl&BRYES)!=0)){strcat(jsbuf,JSSBR);}
+    if(((ctl&STRING)!=0)&&((ctl&TDEND)!=0)){strcat(jsbuf,JSSCO);}
+  }    
 
-  if(((ctl&STRING)!=0)&&((ctl&BRYES)!=0)){jscat(jsbuf,JSSBR);}
-  if(((ctl&STRING)!=0)&&((ctl&TDEND)!=0)){jscat(jsbuf,JSSCO);}
   // -------------------- fin traitement js
 
   // -------------------- début traitement html
@@ -493,10 +535,11 @@ void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t p
   char* dm;dm=jsbuf+strlen(jsbuf);
   
   concNum(nullptr,jsbuf,type,dec,value,0);
-  
-  if(((ctl&STRING)!=0) && ((ctl&BRYES)!=0)){jscat(jsbuf,JSSBR);}
-  if(((ctl&STRING)!=0) && ((ctl&TDEND)!=0)){jscat(jsbuf,JSSCO);}
-  
+  if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
+    if(((ctl&STRING)!=0) && ((ctl&BRYES)!=0)){strcat(jsbuf,JSSBR);}
+    if(((ctl&STRING)!=0) && ((ctl&TDEND)!=0)){strcat(jsbuf,JSSCO);}
+  }
+
   buftxcat(buf,dm);
   if((ctl&STRING)!=0){ctl&=~TDEND;}   // évite le double emploi avec JSSCO déjà dans dm
   if((ctl&STRING)!=0){ctl&=~BRYES;}   // évite le double emploi avec JSSBR déjà dans dm
@@ -566,6 +609,7 @@ void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char
           }
           strcat(buf,"</p>\n");
     }
+#ifndef NOJSBUF    
     if(jsbuf!=nullptr){
           fnJsIntro(jsbuf,JSFBH,pol,ctl);
           jscatch(jsbuf,periCur+PMFNCVAL);
@@ -575,6 +619,7 @@ void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char
           jscat(jsbuf,title,SEP);
           jscat(jsbuf,fonc,SEP);
     }
+#endif // NOJSBUF    
 }
 
 void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,uint8_t pol,uint8_t ctl)
@@ -604,11 +649,12 @@ void formEnd(char* buf,char* jsbuf,bool title,uint8_t pol,uint8_t ctl)
           strcat(buf,"</form>\n");
           fnHtmlEnd(buf,pol,ctl);
     }
+#ifndef NOJSBUF    
     if(jsbuf!=nullptr){
           if(title){fnJsIntro(jsbuf,JSFFS,pol,ctl&(~TDBEG)&(~TRBEG));}
           fnJsIntro(jsbuf,JSFE,pol,ctl&(~TDBEG)&(~TRBEG));
     }
-
+#endif // NOJSBUF    
 }
 
 void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
@@ -629,10 +675,11 @@ void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t ctl)
     strcat(buf,"\"");}
   
   strcat(buf,">");
-
+#ifndef NOJSBUF
   fnJsIntro(jsbuf,JSTB,0,ctl);
   jscat(jsbuf,police,SEP);
   if(border){jscat(jsbuf,"B");}
+#endif // NOJSBUF  
   fnHtmlIntro(buf,0,ctl);
   //fnHtmlEnd(buf,0,ctl);
 }
@@ -660,6 +707,7 @@ void scrGetText0(const char* fn,const char* htmlType,char* buf,char* jsbuf,const
 {
   #define NOSIZE 100
   // -------------------- début traitement js
+#ifndef NOJSBUF
   fnJsIntro(jsbuf,fn,pol,ctl);
   jscat(jsbuf,nomfonct,SEP);
   jscat(jsbuf,valfonct,SEP);
@@ -669,6 +717,7 @@ void scrGetText0(const char* fn,const char* htmlType,char* buf,char* jsbuf,const
     memset(tt,0x00,LTT);concatn(tt,size);jscat(jsbuf,tt,SEP);}
   if(len!=0){
     memset(tt,0x00,LTT);concatn(tt,size);jscat(jsbuf,tt);}
+#endif // NOJSBUF    
   // -------------------- fin traitement js
 
   // -------------------- début traitement html
@@ -744,7 +793,6 @@ void scrGetSelect(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,uint
   ft[LENNOM-1]=(char)(ninp+PMFNCHAR);   
   
   fnHtmlIntro(buf,0,ctl);
-  fnJsIntro(jsbuf,JSSTB,0,ctl);
   
   strcat(buf,"<SELECT name=\"");strcat(buf,ft);strcat(buf,"\">");
   for(i=0;i<nbre;i++){
@@ -755,18 +803,23 @@ void scrGetSelect(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,uint
     }
   }
   strcat(buf,"</SELECT>");
-
   fnHtmlEnd(buf,0,ctl);
   strcat(buf,"\n");
+
+#ifndef NOJSBUF
+  fnJsIntro(jsbuf,JSSTB,0,ctl);
   jscatch(jsbuf,sel+PMFNCVAL);
   jscat(jsbuf,ft,SEP);
+#endif // NOJSBUF
 }
 
 void optSelHtml(char* jsbuf,char* val,char* name)
 {
+#ifndef NOJSBUF  
   fnJsIntro(jsbuf,JSSOP,0,0);
   jscat(jsbuf,name);
   jscat(jsbuf,val);
+#endif // NOJSBUF
 }
 
 void scrGetSelect(char* buf,char* jsbuf,char* val,char* name,char* ft,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl)
@@ -780,6 +833,7 @@ void scrGetSelect(char* buf,char* jsbuf,char* val,char* name,char* ft,uint8_t se
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 /* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
 {
+#ifndef NOJSBUF
     //fnJsIntro(jsbuf,JSAC,0,0);
     fnJsIntro(jsbuf,JSBFB,sizfnt,ctl);
     jscatch(jsbuf,aligncenter+PMFNCVAL);
@@ -787,6 +841,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     concatn(jsbuf,usrtime[usernum]);
     jscat(jsbuf,JSSEP);
     jscat(jsbuf,nomfonct,SEP);jscat(jsbuf,valfonct,SEP);jscat(jsbuf,lib);
+#endif // NOJSBUF
 
     fnHtmlIntro(buf,sizfnt,ctl);
     char b[]={(char)(usernum+PMFNCHAR),'\0'};
@@ -810,20 +865,25 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
 void scrGetButRet(char* buf,char* jsbuf,const char* lib,uint8_t ctl)
 {
     fnHtmlIntro(buf,0,ctl);
-    fnJsIntro(jsbuf,JSBRB,0,ctl);
     strcat(buf,"<a href=\"?user_ref_");
     concat1a(buf,(char)(usernum+PMFNCHAR));strcat(buf,"=");concatn(buf,usrtime[usernum]);
     strcat(buf,"\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");
-    strcat(buf,lib);jscat(jsbuf,lib);
+    strcat(buf,lib);
     strcat(buf,"\"></a>\n");
     fnHtmlEnd(buf,0,ctl);
+#ifndef NOJSBUF
+    fnJsIntro(jsbuf,JSBRB,0,ctl);
+    jscat(jsbuf,lib);
+#endif // NOJSBUF    
 }
 
 void scrGetButSub(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 {
+#ifndef NOJSBUF  
   fnJsIntro(jsbuf,JSBMB,0,ctl);
   jscat(jsbuf,lib);
   if(aligncenter){jscat(jsbuf,JSSEP);jscat(jsbuf,"A");}
+#endif // NOJSBUF
 
   fnHtmlIntro(buf,sizfnt,ctl);
   if(aligncenter){strcat(buf,"<p align=\"center\">");}
@@ -842,11 +902,13 @@ void scrGetButSub(char* buf,char* jsbuf,const char* lib,uint8_t ctl)
 }
 
 void scrGetRadiobut(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl)        // nbval boutons radio
-{                                                                                           // valeur = checked (0-n) 
+{
+#ifndef NOJSBUF                                                                                             // valeur = checked (0-n) 
       fnJsIntro(jsbuf,JSRAD,pol,ctl);
       jscat(jsbuf,nomfonct,SEP);
       jscatch(jsbuf,nbval+PMFNCVAL);
       jscatch(jsbuf,valeur+PMFNCVAL);
+#endif // NOJSBUF
 
       fnHtmlIntro(buf,pol,ctl);
       //concatns(buf,valeur);
@@ -861,15 +923,16 @@ void scrGetRadiobut(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbv
 void yscrGetRadiobut(char* buf,char* jsbuf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t ctl)                    
 {                        // sqbr square button // 1 line ; nb = page row  // nbval à traiter
   valeur&=0x03;                                                               
-                                                                                                            
+
+#ifndef NOJSBUF                                                                                                            
   fnJsIntro(jsbuf,JSRADS,0,ctl);                                        
   jscat(jsbuf,nomfonct,SEP);
   jscatch(jsbuf,nb+PMFNCVAL);
   jscatch(jsbuf,valeur+PMFNCVAL);
   if(vert){jscat(jsbuf,"V");}else{jscat(jsbuf,"H");}
-  
-  fnHtmlIntro(buf,0,ctl);
+#endif // NOJSBUF
 
+  fnHtmlIntro(buf,0,ctl);
   strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,nomfonct);concat1a(buf,(char)(nb+PMFNCHAR));
   strcat(buf,"\" class=\"sqbr br_off\" id=\"sqbrb");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\"");
   strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+0));strcat(buf,"\"");
@@ -997,21 +1060,26 @@ void  htmlStyleSqrBut(char* buf)
 
 void pageIntro0(char* buf,char* jsbuf)
 {
+#ifndef NOJSBUF  
   jscat(jsbuf,introHttp);
+#endif // NOJSBUF
   strcat(buf,introHttp);
 }
 
 void pageIntro(char* buf,char* jsbuf,char* titre)
 {
   if(buf!=nullptr){
+#ifndef NOJSBUF      
       char* dm=buf+strlen(buf);
+#endif // NOJSBUF
       strcat(buf,"<head>");
       char locbuf[10]={0};
       if(perrefr!=0){strcat(buf,"<meta HTTP-EQUIV=\"Refresh\" content=\"");sprintf(locbuf,"%d",perrefr);strcat(buf,locbuf);strcat(buf,"\">");}
       if(titre!=nullptr){strcat(buf,"<title>");strcat(buf,titre);strcat(buf,"</title>\n");}
       strcat(buf,"<style>");
-      
+#ifndef NOJSBUF      
       jscat(jsbuf,dm);
+#endif // NOJSBUF      
   }
 }
 
@@ -1019,10 +1087,12 @@ void htmlBeg(char* buf,char* jsbuf,char* titre,char rem)    // en-tête de page 
 {   
   pageIntro0(buf,jsbuf);                        // en-tête HTTP
   pageIntro(buf,jsbuf,titre);                   // en-tête HTML
-  
+
+#ifndef NOJSBUF  
   scrRecall(jsbuf,GENSTYLE);                    // style général
   if(rem=='R'){scrRecall(jsbuf,REMOTESTYLE);}    // style remote
   scrRecall(jsbuf,INTROHTMLE);                  // fin en-tête
+#endif // NOJSBUF
 
   strcat(buf,generalSt);
   strcat(buf,"\n");
@@ -1068,11 +1138,13 @@ void scrGetCheckbox(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int 
 {
   if(etat!=NO_STATE && !(*val & 0x01)){etat=2;}
 
+#ifndef NOJSBUF
   fnJsIntro(jsbuf,JSDB,pol,ctl);
   jscat(jsbuf,nomfonct,SEP);
   if((*val & 0x01)!=0){jscat(jsbuf,JSCHK);}
   jscat(jsbuf,lib,SEP);
   jscatch(jsbuf,etat+PMFNCVAL);
+#endif // NOJSBUF
 
   fnHtmlIntro(buf,pol,ctl);
   strcat(buf,"<input type=\"checkbox\" name=\"");
@@ -1107,13 +1179,14 @@ void sliderBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int nb,
   char nf[LENNOM+1];nf[LENNOM]='\0';
   memcpy(nf,nomfonct,LENNOM);if(nb>=0){nf[LENNOM-1]=(char)(nb+PMFNCHAR);}
 
+#ifndef NOJSBUF
   fnJsIntro(jsbuf,JSSLD,0,ctl);
   jscat(jsbuf,nf,SEP);
   if((*val & 0x01)!=0){jscat(jsbuf,JSCHK);}
   if(sqr==0){strcat(jsbuf,"R");}
-  
-  fnHtmlIntro(buf,0,ctl);
+#endif // NOJSBUF
 
+  fnHtmlIntro(buf,0,ctl);
   strcat(buf,"<label class=\"switch\"><input type=\"checkbox\" style=\"color:Khaki;\" name=\"");strcat(buf,nf);strcat(buf,"\" value=\"1\"");
   if((*val & 0x01)!=0){strcat(buf," checked");}
   strcat(buf," ><span class=\"slider ");if(sqr==0){strcat(buf," round");}
@@ -1136,15 +1209,19 @@ void subDSnB(char* buf,char* jsbuf,const char* fnc,uint32_t val,uint8_t num,char
 
 void scrStore(char* jsbuf,char name,const char* data)
 {
+#ifndef NOJSBUF
   fnJsIntro(jsbuf,JSSCST,0,0);
   jscatch(jsbuf,name);
   jscat(jsbuf,data);
+#endif // NOJSBUF  
 }
 
 void scrRecall(char* jsbuf,char name)
 {
+#ifndef NOJSBUF
   fnJsIntro(jsbuf,JSSCRC,0,0);
   jscatch(jsbuf,name);
+#endif // NOJSBUF  
 }
 
 void cliPrintMac(EthernetClient* cli, byte* mac)
@@ -1156,7 +1233,6 @@ void cliPrintMac(EthernetClient* cli, byte* mac)
 
 uint8_t bufPrintPeriDate(char* buf,char* periDate)
 {
-  #define LDATEASCII 12
   char dateascii[LDATEASCII];
   int j;
   unpackDate(dateascii,periDate);for(j=0;j<LDATEASCII;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}strcat(buf,"<br>\n");

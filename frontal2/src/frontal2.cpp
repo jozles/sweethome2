@@ -360,6 +360,8 @@ void yield()
 
 void setup() {                          // ====================================
 
+/* >>>>>>     hardware setup     <<<<<< */
+
   initLed((uint8_t) PINLED);
 
   pinMode(PINLED,OUTPUT);
@@ -372,16 +374,31 @@ void setup() {                          // ====================================
   printf("StackPtr %d\n", stackPtr); */
 
   pinMode(STOPREQ,INPUT_PULLUP);      // push button "HALT REQ"
+#ifdef REDV1
+  digitalWrite(POWCD,POWOFF);
+  pinMode(POWCD,OUTPUT);
+  digitalWrite(POWCD,POWON);
+  delay(100);
+#endif // REDV1
+
+#ifdef REDV0  // alimentation DS3231
+  digitalWrite(PINGNDDS,LOW);pinMode(PINGNDDS,OUTPUT);  
+  digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT); 
+#endif // REDV0
 
 /* >>>>>>     config     <<<<<< */  
   
   Serial.println();Serial.print(VERSION);Serial.print(" ");
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" FreeStack: ");Serial.println(FreeStack());
 
-  digitalWrite(PINGNDDS,LOW);pinMode(PINGNDDS,OUTPUT);  
-  digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT); 
   ds3231.i2cAddr=DS3231_I2C_ADDRESS; // doit être avant getDate
+#ifdef REDV0
   Wire.begin();
+#endif // REDV0
+#ifdef REDV1
+  Wire1.begin();
+#endif // REDV1
+
 
   trigwd();
 
