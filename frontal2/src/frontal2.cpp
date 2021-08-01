@@ -324,8 +324,11 @@ char  c=' ';
 char  b[2]={0,0};
 const char* chexa="0123456789ABCDEFabcdef\0";
 const byte  maskbit[]={0xfe,0x01,0xfd,0x02,0xfb,0x04,0xf7,0x08,0xef,0x10,0xdf,0x20,0xbf,0x40,0x7f,0x80};
-const byte  mask[]={0x00,0x01,0x03,0x07,0x0F};
+const byte mask[]={0x00,0x01,0x03,0x07,0x0F};
 
+unsigned long blinkt=millis();
+extern uint32_t pinLed;
+extern bool wdEnable;
 
 /* prototypes */
 
@@ -357,23 +360,26 @@ void yield()
   trigwd();
 }
 
+void trigWdSetup()
+{
+  digitalWrite(PINLED,HIGH);delay(10);digitalWrite(PINLED,LOW);   // trig watchdog
+}
+
 
 void setup() {                          // ====================================
 
 /* >>>>>>     hardware setup     <<<<<< */
 
-  initLed((uint8_t) PINLED);
+  initLed();                            // incorpore trigwd()
 
-  pinMode(PINLED,OUTPUT);
-  digitalWrite(PINLED,HIGH);delay(10);digitalWrite(PINLED,LOW);
-
-  Serial.begin (115200);delay(2000);    // eponge le délai entre la fin de l'upload et le reset du Jlink
+  Serial.begin (115200);delay(2000);    // éponge le délai entre la fin de l'upload et le reset du Jlink
   Serial.print("+");delay(100);
+  trigwd();
 
   /* void* stackPtr = alloca(4); // This returns a pointer to the current bottom of the stack
   printf("StackPtr %d\n", stackPtr); */
 
-  pinMode(STOPREQ,INPUT_PULLUP);      // push button "HALT REQ"
+  pinMode(STOPREQ,INPUT_PULLUP);        // push button "HALT REQ"
 #ifdef REDV1
   digitalWrite(POWCD,POWOFF);
   pinMode(POWCD,OUTPUT);
@@ -388,6 +394,8 @@ void setup() {                          // ====================================
 
 /* >>>>>>     config     <<<<<< */  
   
+//  wdEnable=true;                // start trigwd() (in yield())
+
   Serial.println();Serial.print(VERSION);Serial.print(" ");
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" FreeStack: ");Serial.println(FreeStack());
 
@@ -399,9 +407,6 @@ void setup() {                          // ====================================
   Wire1.begin();
 #endif // REDV1
 
-
-  trigwd();
-
   uint32_t        amj2,hms2;
   byte            js2;
   ds3231.getDate(&hms2,&amj2,&js2,strdate);
@@ -410,8 +415,6 @@ void setup() {                          // ====================================
 //remInit();remoteSave();while(1){ledblink(0);delay(1000);};
 //periConvert();
 //periMaintenance();
-
-  trigwd();
   
   sdInit();
   configInit();configLoad();
@@ -425,7 +428,8 @@ void setup() {                          // ====================================
 
   periTableLoad();                  // le premier (après config) pour permettre les mails
 
-periLoad(3);
+// perif3 dev et mails
+periLoad(3);                
 char mm[]={0x84,0xF3,0xEB,0xFB,0xF9,0x05};
 memcpy(periMacr,mm,6);
 char ii[]={192,168,0,202};
@@ -442,32 +446,28 @@ periSave(3,PERISAVESD);
   //memosInit();memosSave(-1);  
   memosLoad(-1);
 
-  trigwd();
-
 /* >>>>>> ethernet start <<<<<< */
 
   Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);
   Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
-  
+
+  trigwd(); //trigWdSetup();
+
   if(Ethernet.begin(mac) == 0)
     {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
     Ethernet.begin (mac, localIp); 
     }
   Serial.print("localIP=");Serial.println(Ethernet.localIP());
-
-  trigwd();
   
   Serial.print("Udp.begin(");Serial.print(PORTUDP);Serial.print(") ");
   if(!Udp.begin(PORTUDP)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd();delay(1000);}}
   Serial.println("ok");
 
-  trigwd();
-  
+  trigwd(); //trigWdSetup();
+
   periserv.begin();Serial.println("periserv.begin ");   // serveur périphériques
 
   pilotserv.begin();Serial.println("pilotserv.begin ");  //  remote serveur
-  
-  delay(100);
 
 /* >>>>>> RTC ON, check date/heure et maj éventuelle par NTP  <<<<<< */
 /* ethernet doit être branché pour l'udp */
@@ -480,9 +480,13 @@ periSave(3,PERISAVESD);
   }*/
 
   histoStore_textdh(RESET,"","<br>\n\0");
+
+  trigwd(); //trigWdSetup();
+
   Serial.print("Mail START ");
   //mail("START","");
 
+  //wdEnable=true;          // start trigwd in yield()
   Serial.println(">>>>>>>>> fin setup\n");
 }
 
@@ -534,7 +538,8 @@ void stoprequest()
     mail("HALTed",(char*)(usrnames+usernum*LENUSRNAME));
 
     while(1){
-      digitalWrite(PINLED,HIGH);delay(300);digitalWrite(PINLED,LOW);delay(300);
+      pinMode(PINLED,OUTPUT);
+      digitalWrite(PINLED,HIGH);delay(500);digitalWrite(PINLED,LOW);delay(500);
     }
   }
 }
