@@ -203,7 +203,7 @@ void sdInit()
   if (!sd32.begin(SD_CONFIG)) {
     mail("SD_INIT_ERROR_HALT","");
     Serial.println("SD_INIT_ERROR_HALT");
-    while(1){trigwd();delay(1000);}
+    while(1){trigwd();}
     sd32.initErrorHalt(&Serial);
   }
 

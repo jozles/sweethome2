@@ -370,21 +370,23 @@ void setup() {                          // ====================================
 
 /* >>>>>>     hardware setup     <<<<<< */
 
-  initLed();                            // incorpore trigwd()
+  delay(2000);  // éponge le délai entre la fin de l'upload et le reset du Jlink
+  
+  initLed();
+  wdEnable=true;trigwd(10000);
 
-  Serial.begin (115200);delay(2000);    // éponge le délai entre la fin de l'upload et le reset du Jlink
-  Serial.print("+");delay(100);
-  trigwd();
+  Serial.begin (115200);
+  Serial.print("+");//Serial.print(pinLed);
+  wdEnable=false;delay(1000);
 
   /* void* stackPtr = alloca(4); // This returns a pointer to the current bottom of the stack
   printf("StackPtr %d\n", stackPtr); */
 
   pinMode(STOPREQ,INPUT_PULLUP);        // push button "HALT REQ"
 #ifdef REDV1
-  digitalWrite(POWCD,POWOFF);
   pinMode(POWCD,OUTPUT);
   digitalWrite(POWCD,POWON);
-  delay(100);
+  wdEnable=true;trigwd(1000000);
 #endif // REDV1
 
 #ifdef REDV0  // alimentation DS3231
@@ -415,7 +417,7 @@ void setup() {                          // ====================================
 //remInit();remoteSave();while(1){ledblink(0);delay(1000);};
 //periConvert();
 //periMaintenance();
-  
+
   sdInit();
   configInit();configLoad();
   *toPassword=TO_PASSWORD;if(*maxCxWt==0 || *maxCxWu==0){*maxCxWt=MAXCXWT;*maxCxWu=MAXCXWU;configSave();}
