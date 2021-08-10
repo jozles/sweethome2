@@ -15,8 +15,7 @@ extern char*      nomserver;
 extern byte*      mac;              // adresse server
 extern byte*      localIp;
 extern uint16_t*  portserver;
-extern char*      userpass;         // mot de passe browser
-extern char*      modpass;          // mot de passe modif
+
 extern char*      peripass;         // mot de passe périphériques
 extern unsigned long* maxCxWt;
 extern unsigned long* maxCxWu;
@@ -405,12 +404,11 @@ void cfgServerHtml(EthernetClient* cli)
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
 // ------------------------------------------------------------- header end
             
-            /*cli->print(" password <input type=\"text\" name=\"pwdcfg____\" value=\"");cli->print(userpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");
-            cli->print("  modpass <input type=\"text\" name=\"modpcfg___\" value=\"");cli->print(modpass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");            
-            cli->print(" peripass <input type=\"text\" name=\"peripcfg__\" value=\"");cli->print(peripass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");*/
+            /*cli->print(" peripass <input type=\"text\" name=\"peripcfg__\" value=\"");cli->print(peripass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");*/
 
 fontBeg(buf,jsbuf,2,0);
 
+            scrDspText(buf,jsbuf,"nom serveur ",2,TRBEG|TDBE);scrGetText(buf,jsbuf,nomserver,"ethcfg___s",16,LNSERV,0,TDBE);strcat(buf,"\n");
             #define LBUFL 16
             char lbuf[LBUFL];*lbuf=0x00;for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[mac[k]/16]);concat1a(lbuf,chexa[mac[k]%16]);}
             scrDspText(buf,jsbuf," serverMac ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___m",11,MACADDRLENGTH,0,0);

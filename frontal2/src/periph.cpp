@@ -19,8 +19,7 @@ extern byte*    mac;
 extern byte*    localIp;
 extern int*     portserver;
 extern char*    nomserver;
-extern char*    userpass;
-extern char*    modpass;
+
 extern char*    peripass;
 extern char*    ssid;   
 extern char*    passssid;
@@ -169,14 +168,24 @@ extern  int   nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fp
 
 /* >>>>>>>>> configuration <<<<<<<<<< */
 
+void factoryResetConfig()
+{
+  memset(nomserver,0x00,LNSERV);
+  memcpy(nomserver,NOMSERV,LNSERV);
+  memset(usrnames,0x00,LENUSRNAME);
+  memcpy(usrnames,"admin",5);
+  memset(usrpass,0x00,LENUSRPASS);
+  memcpy(usrpass,"admin",5);
+
+  configSave();
+}
+
 void configInitVar()
 {
 memset(mac,0x00,6);
 memset(localIp,0x00,4); 
 *portserver = 0;
 memset(nomserver,0x00,LNSERV);memcpy(nomserver,NOMSERV,strlen(NOMSERV));
-memset(userpass,0x00,LPWD+1);memcpy(userpass,USRPASS,strlen(SRVPASS));
-memset(modpass,0x00,LPWD+1);memcpy(modpass,MODPASS,strlen(MODPASS));
 memset(peripass,0x00,LPWD+1);memcpy(peripass,SRVPASS,strlen(PERIPASS));
 memset(ssid,0x00,MAXSSID*(LENSSID+1));
 //memcpy(ssid,SSID1,strlen(SSID1));memcpy(ssid+LENSSID+1,SSID2,strlen(SSID2));   
@@ -207,9 +216,9 @@ byte* temp=(byte*)configRec;
   temp+=sizeof(int);
   nomserver=(char*)temp;
   temp+=LNSERV;
-  userpass=(char*)temp;
+  char* dispo=(char*)temp;    
   temp+=(LPWD+1);
-  modpass=(char*)temp;  
+  char* dispo2=(char*)temp;  
   temp+=(LPWD+1);  
   peripass=(char*)temp;
   temp+=(LPWD+1);
@@ -295,16 +304,17 @@ void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned 
 
 void configPrint()
 {
-  Serial.print("Mac=");serialPrintMac(mac,0);
-  Serial.print(" ");Serial.print(nomserver);
+  Serial.print("nomserver=");Serial.println(nomserver);
+  Serial.print(" Mac=");serialPrintMac(mac,0);
   Serial.print(" localIp=");for(int pp=0;pp<4;pp++){Serial.print((uint8_t)localIp[pp]);if(pp<3){Serial.print(".");}}Serial.print("/");Serial.println(*portserver);
-  Serial.print("password=");Serial.print(userpass);Serial.print(" modpass=");Serial.print(modpass);Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
-  Serial.println("table ssid ");subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
-  Serial.println("table user ");subcprint(usrnames,usrpass,NBUSR,LENUSRNAME,LENUSRPASS,usrtime);
-  Serial.print("mailFrom=");Serial.print(mailFromAddr);Serial.print(" pass= ");Serial.println(mailPass);     
-  Serial.print("mailTo1=");Serial.print(mailToAddr1);Serial.print(" mailTo2=");Serial.println(mailToAddr2);  
-  Serial.print("peri1=");Serial.print(*periMail1);Serial.print(" peri2=");Serial.println(*periMail2);
-  Serial.print("maxCxWt ");Serial.print(*maxCxWt);Serial.print(" maxCxWu ");Serial.println(*maxCxWu);
+  Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
+  Serial.println(" table ssid ");subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
+  Serial.println(" table user ");subcprint(usrnames,usrpass,NBUSR,LENUSRNAME,LENUSRPASS,usrtime);
+  Serial.print(" mailFrom=");Serial.print(mailFromAddr);Serial.print(" pass= ");Serial.println(mailPass);     
+  Serial.print(" mailTo1=");Serial.print(mailToAddr1);Serial.print(" mailTo2=");Serial.println(mailToAddr2);  
+  Serial.print(" peri1=");Serial.print(*periMail1);Serial.print(" peri2=");Serial.println(*periMail2);
+  Serial.print(" maxCxWt ");Serial.print(*maxCxWt);Serial.print(" maxCxWu ");Serial.println(*maxCxWu);
+  Serial.println();
 }
 
 int configLoad()

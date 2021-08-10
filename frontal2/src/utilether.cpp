@@ -188,14 +188,15 @@ void cidDmp() {
   cid_t cid;
   if (!sd32.card()->readCID(&cid)) {error("readCID failed");
   }
-  Serial.print("Manufacturer ID: ");Serial.print(int(cid.mid),HEX);
+  Serial.print(" Manufacturer ID: ");Serial.print(int(cid.mid),HEX);
   Serial.print(" OEM ID: ");Serial.print(cid.oid[0]);Serial.println(cid.oid[1]);
-  Serial.print("Product: ");
+  Serial.print(" Product: ");
   for (uint8_t i = 0; i < 5; i++) {Serial.print(cid.pnm[i]);}
   Serial.print(" Version: ");Serial.print(int(cid.prv_n));Serial.print(".");Serial.println(int(cid.prv_m));
-  Serial.print("Serial number: ");Serial.println(cid.psn,HEX);
-  Serial.print("Manufacturing date: ");Serial.print(int(cid.mdt_month));Serial.print('/');
+  Serial.print(" Serial number: ");Serial.println(cid.psn,HEX);
+  Serial.print(" Manufacturing date: ");Serial.print(int(cid.mdt_month));Serial.print('/');
   Serial.println((2000 + cid.mdt_year_low + 10 * cid.mdt_year_high));
+  Serial.println();
 }
 
 void sdInit()
@@ -222,7 +223,7 @@ void sdInit()
   Serial.print(" Card size: ");Serial.print(sizeMB);
   Serial.println(" MB (MB = 1,000,000 bytes)");
   //Serial.print("Volume is FAT");Serial.print((int)(sd32.vol()->fatType()));
-  Serial.print("Cluster size (bytes): ");Serial.println(sd32.vol()->bytesPerCluster());
+  Serial.print(" Cluster size (bytes): ");Serial.println(sd32.vol()->bytesPerCluster());
 
   cidDmp();
 }

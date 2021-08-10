@@ -66,8 +66,8 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   byte* localIp;              // adresse server
   uint16_t* portserver;       //
   char* nomserver;            //
-  char* userpass;             // mot de passe browser
-  char* modpass;              // mot de passe modif
+  //char* userpass;             // mot de passe browser
+  //char* modpass;              // mot de passe modif
   char* peripass;             // mot de passe périphériques
   char* ssid;                 // MAXSSID ssid
   char* passssid;             // MAXSSID password SSID
@@ -365,6 +365,11 @@ void trigWdSetup()
   digitalWrite(PINLED,HIGH);delay(10);digitalWrite(PINLED,LOW);   // trig watchdog
 }
 
+void factoryReset()
+{
+  factoryResetConfig();
+}
+
 
 void setup() {                          // ====================================
 
@@ -428,6 +433,13 @@ void setup() {                          // ====================================
     
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
+  unsigned long beg=millis();
+  #define FRDLY 5  // sec
+  while(digitalRead(STOPREQ)==LOW){
+      if(millis()>(beg+FRDLY*1000)){factoryReset();}
+  }
+
+
   periTableLoad();                  // le premier (après config) pour permettre les mails
 
 // perif3 dev et mails
@@ -447,10 +459,11 @@ periSave(3,PERISAVESD);
   thermosLoad();
   //memosInit();memosSave(-1);  
   memosLoad(-1);
+  Serial.println();
 
 /* >>>>>> ethernet start <<<<<< */
 
-  Serial.print("NOMSERV=");Serial.print(NOMSERV);Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);
+  Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);
   Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
 
   trigwd(); //trigWdSetup();
@@ -1478,8 +1491,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        }break;                       
               case 47: cfgServerHtml(cli);break;                                                        // bouton config
 /*
-              case 48: memset(userpass,0x00,LPWD);memcpy(userpass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) pwdcfg____ // submit depuis cfgServervHtml
-              case 49: memset(modpass,0x00,LPWD);memcpy(modpass,valf,nvalf[i+1]-nvalf[i]);break;        // (config) modpcfg___
+              case 48: rien
+              case 49: rien
               case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__ // submit depuis cfgServervHtml                              
 */
               case 51: what=6;switch(*(libfonctions+2*i+1)){                                            // (config) ethcfg___
@@ -1489,6 +1502,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;                // (config) mac
                           case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                          // (config) TO sans TCP
                           case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                          // (config) TO sans UDP
+                          case 's': alphaTfr(nomserver,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;          // (config) nom serveur
                           default: break;
                        }
                        break;

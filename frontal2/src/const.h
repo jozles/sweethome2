@@ -87,7 +87,8 @@
    1.53 après tfr vscpio ; installation buffer json dans peritable.cpp : jsbuf ; traitement periline.
    1.54 instances multiples datées pour TCP avec stop reporté. getCde révisé/corrigé. 
         réponse datasave à set______ -> réaffichages (remote/preitable etc) reportés après periReq. corrections periRemoteUpdate.
-   1.55 incorpore metaJS pour periline ; #define NOJSBUF accélère la sortie html
+   1.55 incorpore metaJS pour periline ; #define NOJSBUF accélère la sortie html ; révision initLed ; ajout red1.1 (powerOn)
+        config nomserver (confightml) ; création factoryReset() ;
 
    BUGS :
 

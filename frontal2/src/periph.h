@@ -37,6 +37,7 @@ int   configLoad();
 int   configSave();
 void  configInitVar(); 
 void  configPrint();
+void factoryResetConfig();
 
 void  remotePrint();
 void  remInit();

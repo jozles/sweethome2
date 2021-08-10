@@ -27,11 +27,9 @@ extern uint16_t  sourceDetServ();
 
 extern uint16_t  perrefr;
 
-extern char*     userpass;            // mot de passe browser
-extern char*     modpass;             // mot de passe modif
 extern char*     peripass;            // mot de passe périphériques
 extern char*     usrnames;            // usernames
-extern char*     usrpass;             // userpass
+
 extern unsigned long*     usrtime;
 extern int       usernum;
 extern char*     thermonames;
