@@ -302,6 +302,32 @@ void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned 
   }
 }
 
+void configExport(char* bec,uint16_t* lbec,uint8_t selssid)
+{
+  long unsigned ll=0;
+  *bec=0x00;
+  strcat(bec,nomserver);ll+=strlen(bec);
+  //memcpy(bec,nomserver,LNSERV);ll+=LNSERV;
+  *(bec+ll)=';';ll++;
+  for(int pp=0;pp<4;pp++){
+    sprintf(bec+ll+pp*4,"%03u",(uint16_t)localIp[pp]);
+    if(pp<3){*(bec+ll+(pp+1)*4-1)='.';}}ll+=15;
+  *(bec+ll)=';';ll++;
+  sprintf(bec+ll,"%05u",(uint16_t)*portserver);ll+=5;
+  *(bec+ll)=';';ll++;
+  sprintf(bec+ll,"%05u",(uint16_t)PORTUDP);ll+=5;
+  *(bec+ll)=';';ll++;
+  *(bec+ll)='\0';
+  strcat(bec+ll,ssid+(selssid-1)*LENSSID);
+  strcat(bec,";");
+  strcat(bec+ll,passssid+(selssid-1)*LPWSSID);
+  strcat(bec,";\0");
+  ll=strlen(bec);
+  
+  *(bec+ll)='\0';
+  *lbec=(uint16_t)ll;
+}
+
 void configPrint()
 {
   Serial.print("nomserver=");Serial.println(nomserver);

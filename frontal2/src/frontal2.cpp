@@ -62,10 +62,10 @@ char ab;                            // protocole et type de la connexion en cour
 
 char configRec[CONFIGRECLEN];       // enregistrement de config  
 
-  byte* mac;                  // adresse server
-  byte* localIp;              // adresse server
-  uint16_t* portserver;       //
-  char* nomserver;            //
+  byte* mac;                  // mac adresse server
+  byte* localIp;              // ip  adresse server
+  uint16_t* portserver;       // port server
+  char* nomserver;            // nom server
   //char* userpass;             // mot de passe browser
   //char* modpass;              // mot de passe modif
   char* peripass;             // mot de passe périphériques
@@ -330,6 +330,11 @@ unsigned long blinkt=millis();
 extern uint32_t pinLed;
 extern bool wdEnable;
 
+uint16_t rcvcnt=0;
+#define LSERB 1000
+char serialbuf[LSERB];
+uint16_t lrcv;
+
 /* prototypes */
 
 int  getnv(EthernetClient* cli);
@@ -354,6 +359,7 @@ void wdReboot(const char* msg,unsigned long maxCx);
 void usrReboot();
 void periDetecUpdate();
 void testSwitch(const char* command,char* perihost,int periport);
+uint16_t serialServer(char* rcv,uint16_t maxl);
 
 void yield()
 {
@@ -463,7 +469,7 @@ periSave(3,PERISAVESD);
 
 /* >>>>>> ethernet start <<<<<< */
 
-  Serial.print(" PORTSERVER=");Serial.print(PORTSERVER);
+  Serial.print("PORTSERVER=");Serial.print(PORTSERVER);
   Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
 
   trigwd(); //trigWdSetup();
@@ -472,21 +478,27 @@ periSave(3,PERISAVESD);
     {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
     Ethernet.begin (mac, localIp); 
     }
-  Serial.print("localIP=");Serial.println(Ethernet.localIP());
-  
-  Serial.print("Udp.begin(");Serial.print(PORTUDP);Serial.print(") ");
+  Serial.print(" localIP=");Serial.println(Ethernet.localIP());
+
+#define LBEC 1000
+char bec[LBEC];uint16_t lbec;configExport(bec,&lbec,1);
+Serial1.begin(115200);
+Serial1.println(bec);
+
+  Serial.print(" Udp.begin(");Serial.print(PORTUDP);Serial.print(") ");
   if(!Udp.begin(PORTUDP)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd();delay(1000);}}
   Serial.println("ok");
 
   trigwd(); //trigWdSetup();
 
-  periserv.begin();Serial.println("periserv.begin ");   // serveur périphériques
+  periserv.begin();Serial.println(" periserv.begin ");   // serveur périphériques
 
-  pilotserv.begin();Serial.println("pilotserv.begin ");  //  remote serveur
+  pilotserv.begin();Serial.println(" pilotserv.begin ");  //  remote serveur
 
 /* >>>>>> RTC ON, check date/heure et maj éventuelle par NTP  <<<<<< */
 /* ethernet doit être branché pour l'udp */
 
+  Serial.println();
   initDate();
   
 /*  while(1){
@@ -526,6 +538,11 @@ void loop()
 
             ledblink(0);
             
+            lrcv=serialServer(serialbuf,LSERB);
+            if(lrcv!=0){rcvcnt++;
+              Serial.print(rcvcnt);Serial.print(" ");Serial.print(lrcv);Serial.print("->");Serial.println(serialbuf);
+            }
+
             scanTemp(); 
 
             scanDate();         
@@ -1481,7 +1498,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        alphaTfr(ssid+nb*(LENSSID+1),LENSSID,valf,nvalf[i+1]-nvalf[i]);
                        }break;
               case 44: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) passssid[libf+1]
-                       alphaTfr(passssid+nb*(LPWSSID+1),LENSSID,valf,nvalf[i+1]-nvalf[i]);
+                       alphaTfr(passssid+nb*(LPWSSID+1),LPWSSID,valf,nvalf[i+1]-nvalf[i]);
+                       //Serial.print(nb);Serial.print(';');Serial.print(nvalf[i+1]-nvalf[i]);Serial.print(';');Serial.println(valf);
                        }break;
               case 45: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) usrname[libf+1]
                        alphaTfr(usrnames+nb*(LENUSRNAME+1),LENUSRNAME,valf,nvalf[i+1]-nvalf[i]);
@@ -1829,6 +1847,34 @@ void pilotServer()
   }     
 }
 
+uint16_t serialServer(char* rcv,uint16_t maxl)
+{
+  ab='s';
+  
+  char inch='a';
+  uint8_t lfcnt=0;
+  uint16_t lrcv=0;
+
+    while(Serial1.available() && (lfcnt<3 || inch=='a')){
+      if(lfcnt==0){delay(2);}   // acquisition 
+      inch=Serial1.read();
+      if(inch=='a'){
+        lfcnt++;
+        //Serial1.print(inch);Serial1.print(" ");Serial1.println(lfcnt);
+      }
+      else if (lfcnt<3){lfcnt=0;}
+    }
+    
+    if(lfcnt>=3){
+      *rcv=inch;lrcv++;
+      while(Serial1.available() && lrcv<(maxl-1)){
+        *(rcv+lrcv)=Serial1.read();lrcv++;
+      }
+      *(rcv+lrcv)='\0';
+      //Serial1.print(lrcv);Serial1.print(" ");Serial1.println(rcv);
+    }
+    return lrcv;
+}
 
 void testUdp()
 {

@@ -37,7 +37,8 @@ int   configLoad();
 int   configSave();
 void  configInitVar(); 
 void  configPrint();
-void factoryResetConfig();
+void  factoryResetConfig();
+void  configExport(char* bec,uint16_t* lbec,uint8_t selssid);
 
 void  remotePrint();
 void  remInit();
