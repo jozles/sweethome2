@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.55"
+#define VERSION "1.56"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
    1.1a ajout volts et version dans table
    1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -140,6 +140,7 @@
   la box doit avoir une redirection de port paramétrée vers l'IP de la carte ethernet (donc de préférence un bail fixe).
   (PORTPERISERVER et PORTPILOTSERVER proviennent de shconst.h)
   "portserver" du fichier config est inutilisé (v1.2b)
+  "portserver" du fichier config est utilisé (v1.56)
 
   pour initialiser un serveur :
   configurer (MACADDR) mac de config + PORTSERVER et PORTPILOT qui doivent correspondre au DHCP et redirection de port de la box

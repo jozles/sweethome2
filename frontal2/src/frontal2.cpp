@@ -95,8 +95,10 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   bool    periPassOk=FAUX;  // contrôle du mot de passe des périphériques
   int     usernum=-1;       // numéro(0-n) de l'utilisateur connecté (valide durant commonserver)   
 
-EthernetServer periserv(PORTSERVER);  // serveur perif et table port 1789 service, 1790 devt, 1786 devt2
-EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
+//EthernetServer periserv(PORTSERVER);  // serveur perif et table port 1789 service, 1790 devt, 1786 devt2
+EthernetServer* periserv=nullptr;
+//EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
+EthernetServer* pilotserv=nullptr;
 
   uint8_t lip[]=LOCALSERVERIP;                       
   uint8_t   remote_IP[4]={0,0,0,0};           // periserver
@@ -474,7 +476,8 @@ periSave(3,PERISAVESD);
 /* >>>>>> ethernet start <<<<<< */
 
   Serial.print("PORTSERVER=");Serial.print(PORTSERVER);
-  Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);Serial.print(" PORTUDP=");Serial.println(PORTUDP);
+  Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);
+  Serial.print(" PORTUDP=");Serial.println(PORTUDP);
 
   trigwd(); //trigWdSetup();
 
@@ -493,9 +496,11 @@ periSave(3,PERISAVESD);
 
   trigwd(); //trigWdSetup();
 
-  periserv.begin();Serial.println(" periserv.begin ");   // serveur périphériques
+  periserv=new EthernetServer(PORTSERVER);
+  periserv->begin();Serial.println(" periserv.begin ");   // serveur périphériques
 
-  pilotserv.begin();Serial.println(" pilotserv.begin ");  //  remote serveur
+  pilotserv=new EthernetServer(PORTPILOT);
+  pilotserv->begin();Serial.println(" pilotserv.begin ");  //  remote serveur
 
 /* >>>>>> RTC ON, check date/heure et maj éventuelle par NTP  <<<<<< */
 /* ethernet doit être branché pour l'udp */
@@ -1818,7 +1823,7 @@ void tcpPeriServer()
 
   cli_a[preTPS].stop();                         // confirme la libération de l'instance
 
-  if(cli_a[preTPS] = periserv.available())      // attente d'un client
+  if(cli_a[preTPS] = periserv->available())      // attente d'un client
   {
     getremote_IP(&cli_a[preTPS],remote_IP,remote_MAC);      
     //serialPrintIp(remote_IP);Serial.println(" connecté");
@@ -1835,7 +1840,7 @@ void pilotServer()
   ab='b';
 
   cli_b.stop();
-  if(cli_b = pilotserv.available())      // attente d'un client
+  if(cli_b = pilotserv->available())      // attente d'un client
   {
     getremote_IP(&cli_b,remote_IP,remote_MAC);      
     //serialPrintIp(remote_IP);Serial.println(" connecté");
