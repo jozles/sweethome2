@@ -330,10 +330,11 @@ unsigned long blinkt=millis();
 extern uint32_t pinLed;
 extern bool wdEnable;
 
-uint16_t rcvcnt=0;
-#define LSERB 1000
-char serialbuf[LSERB];
-uint16_t lrcv;
+/* buffer export config */
+
+#define LBEC 1000
+char bec[LBEC];uint16_t lbec;
+uint16_t rcvcnt=0;              // cnt requetes 
 
 /* prototypes */
 
@@ -359,7 +360,8 @@ void wdReboot(const char* msg,unsigned long maxCx);
 void usrReboot();
 void periDetecUpdate();
 void testSwitch(const char* command,char* perihost,int periport);
-uint16_t serialServer(char* rcv,uint16_t maxl);
+void serialServer();
+uint16_t serialRcv(char* rcv,uint16_t maxl);
 
 void yield()
 {
@@ -385,6 +387,8 @@ void setup() {                          // ====================================
   
   initLed();
   wdEnable=true;trigwd(10000);
+
+  Serial1.begin (115200);               // export config periphériques
 
   Serial.begin (115200);
   Serial.print("+");//Serial.print(pinLed);
@@ -480,10 +484,8 @@ periSave(3,PERISAVESD);
     }
   Serial.print(" localIP=");Serial.println(Ethernet.localIP());
 
-#define LBEC 1000
-char bec[LBEC];uint16_t lbec;configExport(bec,&lbec,1);
-Serial1.begin(115200);
-Serial1.println(bec);
+  configExport(bec,&lbec,1);
+  Serial.println(bec);
 
   Serial.print(" Udp.begin(");Serial.print(PORTUDP);Serial.print(") ");
   if(!Udp.begin(PORTUDP)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd();delay(1000);}}
@@ -538,10 +540,7 @@ void loop()
 
             ledblink(0);
             
-            lrcv=serialServer(serialbuf,LSERB);
-            if(lrcv!=0){rcvcnt++;
-              Serial.print(rcvcnt);Serial.print(" ");Serial.print(lrcv);Serial.print("->");Serial.println(serialbuf);
-            }
+            serialServer();
 
             scanTemp(); 
 
@@ -1847,25 +1846,45 @@ void pilotServer()
   }     
 }
 
-uint16_t serialServer(char* rcv,uint16_t maxl)
+void serialServer()
 {
+  #define LSERB 1000        
+  char serialBuf[LSERB];
+  
+  uint16_t lrcv=serialRcv(serialBuf,LSERB);
+  if(lrcv!=0){
+    rcvcnt++;
+    Serial.print(rcvcnt);Serial.print(" ");Serial.print(lrcv);Serial.print("->");Serial.println(serialBuf);
+    if(memcmp(serialBuf,"srvconf__",10)==0){
+      uint16_t lbec;
+      configExport(bec,&lbec,1);
+      Serial1.println(bec);
+    }
+  }
+}
+
+uint16_t serialRcv(char* rcv,uint16_t maxl)
+{
+  #define RCVSYNCHAR '#'
+  #define RSCNB 3
+  
   ab='s';
   
-  char inch='a';
+  char inch=RCVSYNCHAR;
   uint8_t lfcnt=0;
   uint16_t lrcv=0;
 
-    while(Serial1.available() && (lfcnt<3 || inch=='a')){
+    while(Serial1.available() && (lfcnt<RSCNB || inch==RCVSYNCHAR)){
       if(lfcnt==0){delay(2);}   // acquisition 
       inch=Serial1.read();
-      if(inch=='a'){
+      if(inch==RCVSYNCHAR){
         lfcnt++;
         //Serial1.print(inch);Serial1.print(" ");Serial1.println(lfcnt);
       }
-      else if (lfcnt<3){lfcnt=0;}
+      else if (lfcnt<RSCNB){lfcnt=0;}
     }
     
-    if(lfcnt>=3){
+    if(lfcnt>=RSCNB){
       *rcv=inch;lrcv++;
       while(Serial1.available() && lrcv<(maxl-1)){
         *(rcv+lrcv)=Serial1.read();lrcv++;
