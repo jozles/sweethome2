@@ -20,7 +20,7 @@ extern File32    fhisto;      // fichier histo sd card
 extern long      histoPos;
 extern char      histoDh[LDATEA];
 extern long      fhsize;      // remplissage fhisto
-extern char*     nomserver;
+extern char*     serverName;
 extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
 extern char      libDetServ[NBDSRV][LENLIBDETSERV];
 extern uint16_t  sourceDetServ();
@@ -198,7 +198,7 @@ void swCtlTableHtml(EthernetClient* cli,int i)
   Serial.print("swCtlTableHtml - periCur=");Serial.print(periCur);
   Serial.print("  free=");Serial.println(freeMemory(), DEC);
 
-  htmlBeg(buf,jsbuf,nomserver);           // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);           // chargement CSS etc
 
   optSelHtml(jsbuf,inptyps,optNam1);
   optSelHtml(jsbuf,inptypd,optNam2);
@@ -341,7 +341,7 @@ void periTableHtml(EthernetClient* cli)
 
   int savePeriCur=periCur;          // restoré à la fin
 
-  htmlBeg(buf,jsbuf,nomserver);     // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);     // chargement CSS etc
 
   //usrFormBHtml(buf,HID);
   formIntro(buf,jsbuf,0,0);         // (n° usr + time usr + pericur)
@@ -506,7 +506,7 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
 
   Serial.print("periLineHtml - periCur=");Serial.print(periCur);Serial.print("/");Serial.print(i);
 
-  htmlBeg(buf,jsbuf,nomserver);       // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);       // chargement CSS etc
   
   optSelHtml(jsbuf,rulop,optNam0);    // chargement tables params
 

@@ -64,8 +64,10 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
 
   byte* mac;                  // mac adresse server
   byte* localIp;              // ip  adresse server
-  uint16_t* portserver;       // port server
-  char* nomserver;            // nom server
+  uint16_t* serverPort;       // port server
+  uint16_t* remotePort;       // port remote
+  uint16_t* udpPort;          // port udp
+  char* serverName;           // nom server
   //char* userpass;             // mot de passe browser
   //char* modpass;              // mot de passe modif
   char* peripass;             // mot de passe périphériques
@@ -100,14 +102,11 @@ EthernetServer* periserv=nullptr;
 //EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
 EthernetServer* pilotserv=nullptr;
 
-  uint8_t lip[]=LOCALSERVERIP;                       
+  
   uint8_t   remote_IP[4]={0,0,0,0};           // periserver
   uint8_t   remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
-//  uint8_t   remote_IP_Mac[4]={0,0,0,0};       // maintenance periserver
-//  uint8_t   remote_IPb[4]={0,0,0,0};          // pilotserver
   byte      remote_MAC[6]={0,0,0,0,0,0};      // periserver
-//  byte      remote_MACb[6]={0,0,0,0,0,0};     // pilotserver
-  uint16_t  remote_Port=0;                   
+  uint16_t  remote_Port_Udp=0;                   
 
   int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
@@ -367,7 +366,7 @@ uint16_t serialRcv(char* rcv,uint16_t maxl);
 
 void yield()
 {
-  trigwd();
+  //trigwd();
 }
 
 void trigWdSetup()
@@ -385,7 +384,7 @@ void setup() {                          // ====================================
 
 /* >>>>>>     hardware setup     <<<<<< */
 
-  delay(2000);  // éponge le délai entre la fin de l'upload et le reset du Jlink
+  //delay(2000);  // éponge le délai entre la fin de l'upload et le reset du Jlink
   
   initLed();
   wdEnable=true;trigwd(10000);
@@ -393,8 +392,8 @@ void setup() {                          // ====================================
   Serial1.begin (115200);               // export config periphériques
 
   Serial.begin (115200);
-  Serial.print("+");//Serial.print(pinLed);
-  wdEnable=false;delay(1000);
+  Serial.print("+");
+  delay(1000);
 
   /* void* stackPtr = alloca(4); // This returns a pointer to the current bottom of the stack
   printf("StackPtr %d\n", stackPtr); */
@@ -403,7 +402,7 @@ void setup() {                          // ====================================
 #ifdef REDV1
   pinMode(POWCD,OUTPUT);
   digitalWrite(POWCD,POWON);
-  wdEnable=true;trigwd(1000000);
+  trigwd(1000000);                      // uS
 #endif // REDV1
 
 #ifdef REDV0  // alimentation DS3231
@@ -412,8 +411,6 @@ void setup() {                          // ====================================
 #endif // REDV0
 
 /* >>>>>>     config     <<<<<< */  
-  
-//  wdEnable=true;                // start trigwd() (in yield())
 
   Serial.println();Serial.print(VERSION);Serial.print(" ");
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" FreeStack: ");Serial.println(FreeStack());
@@ -438,17 +435,22 @@ void setup() {                          // ====================================
   sdInit();
   configInit();configLoad();
   *toPassword=TO_PASSWORD;if(*maxCxWt==0 || *maxCxWu==0){*maxCxWt=MAXCXWT;*maxCxWu=MAXCXWU;configSave();}
-  memcpy(mac,MACADDR,6);memcpy(localIp,lip,4);*portserver=PORTSERVER;configSave();
   configPrint();
 
 //for(int z=0;z<nbfonct;z++){Serial.print(z);Serial.print(" ");for(int w=0;w<10;w++){Serial.print(fonctions[z*10+w]);}Serial.println();}
     
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
+  blink(4);
   unsigned long beg=millis();
   #define FRDLY 5  // sec
   while(digitalRead(STOPREQ)==LOW){
-      if(millis()>(beg+FRDLY*1000)){factoryReset();}
+      trigwd();
+      if(millis()>(beg+FRDLY*1000)){
+        blink(4);
+        factoryReset();
+        usrReboot();  
+      }
   }
 
 
@@ -475,32 +477,35 @@ periSave(3,PERISAVESD);
 
 /* >>>>>> ethernet start <<<<<< */
 
-  Serial.print("PORTSERVER=");Serial.print(PORTSERVER);
-  Serial.print(" PORTPILOT=");Serial.print(PORTPILOT);
-  Serial.print(" PORTUDP=");Serial.println(PORTUDP);
+  Serial.print(MODE_EXEC);
+  Serial.print(" mac=");serialPrintMac(mac,0);
+  Serial.print(" serverPort=");Serial.print(*serverPort);
+  Serial.print(" remotePort=");Serial.print(*remotePort);
+  Serial.print(" udpPort=");Serial.print(*udpPort);
 
-  trigwd(); //trigWdSetup();
+  trigwd();
 
   if(Ethernet.begin(mac) == 0)
-    {Serial.print("Failed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
+    {
+    Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
     Ethernet.begin (mac, localIp); 
     }
-  Serial.print(" localIP=");Serial.println(Ethernet.localIP());
+  Serial.print(" localIP=");
+  for(i=0;i<4;i++){localIp[i]=Ethernet.localIP()[i];Serial.print(localIp[i]);if(i<3){Serial.print(".");}}Serial.println();
+  configSave();
+  configExport(bec,&lbec,1);Serial.println(bec);
 
-  configExport(bec,&lbec,1);
-  Serial.println(bec);
-
-  Serial.print(" Udp.begin(");Serial.print(PORTUDP);Serial.print(") ");
-  if(!Udp.begin(PORTUDP)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd();delay(1000);}}
+  Serial.print(" Udp.begin(");Serial.print(*udpPort);Serial.print(") ");
+  if(!Udp.begin(*udpPort)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
   Serial.println("ok");
 
-  trigwd(); //trigWdSetup();
+  trigwd();
 
-  periserv=new EthernetServer(PORTSERVER);
-  periserv->begin();Serial.println(" periserv.begin ");   // serveur périphériques
+  periserv=new EthernetServer(*serverPort);
+  periserv->begin();Serial.print(" periserv.begin(");Serial.print(*serverPort);Serial.println(")");   // serveur périphériques
 
-  pilotserv=new EthernetServer(PORTPILOT);
-  pilotserv->begin();Serial.println(" pilotserv.begin ");  //  remote serveur
+  pilotserv=new EthernetServer(*remotePort);
+  pilotserv->begin();Serial.print(" pilotserv.begin(");Serial.print(*remotePort);Serial.println(")");  //  remote serveur
 
 /* >>>>>> RTC ON, check date/heure et maj éventuelle par NTP  <<<<<< */
 /* ethernet doit être branché pour l'udp */
@@ -515,12 +520,11 @@ periSave(3,PERISAVESD);
 
   histoStore_textdh(RESET,"","<br>\n\0");
 
-  trigwd(); //trigWdSetup();
+  trigwd();
 
   Serial.print("Mail START ");
   //mail("START","");
 
-  //wdEnable=true;          // start trigwd in yield()
   Serial.println(">>>>>>>>> fin setup\n");
 }
 
@@ -574,7 +578,7 @@ void stoprequest()
     mail("HALTed",(char*)(usrnames+usernum*LENUSRNAME));
 
     while(1){
-      pinMode(PINLED,OUTPUT);
+      pinMode(PINLED,OUTPUT);wdEnable=false;
       digitalWrite(PINLED,HIGH);delay(500);digitalWrite(PINLED,LOW);delay(500);
     }
   }
@@ -1520,11 +1524,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 51: what=6;switch(*(libfonctions+2*i+1)){                                            // (config) ethcfg___
                           case 'i': break;memset(localIp,0x00,4);                                       // (config) localIp
 //                                    for(j=0;j<4;j++){conv_atob(valf,localIp+j);}break;   // **** à faire ****
-                          case 'p': *portserver=0;conv_atob(valf,portserver);break;                     // (config) portserver
+                          case 'p': *serverPort=0;conv_atob(valf,serverPort);break;                     // (config) serverPort
+                          case 't': *remotePort=0;conv_atob(valf,remotePort);break;                     // (config) remotePort
+                          case 'u': *udpPort=0;conv_atob(valf,udpPort);break;                           // (config) udpPort
                           case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;                // (config) mac
                           case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                          // (config) TO sans TCP
                           case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                          // (config) TO sans UDP
-                          case 's': alphaTfr(nomserver,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;          // (config) nom serveur
+                          case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;         // (config) nom serveur
                           default: break;
                        }
                        break;
@@ -1784,11 +1790,9 @@ void udpPeriServer()
     
       rip = (uint32_t) Udp.remoteIP();
       memcpy(remote_IP,(char*)&rip+4,4);
-      remote_Port = (uint16_t) Udp.remotePort();
+      remote_Port_Udp = (uint16_t) Udp.remotePort();
       Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
 
-//      Serial.print("port=");Serial.println(remote_Port);
-//      dumpstr(udpData,128);
       packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
       
       lastcxu=millis();     // trig watchdog

@@ -15,101 +15,103 @@ File32 fconfig;     // fichier config
 
 extern char configRec[CONFIGRECLEN];
   
-extern byte*    mac;
-extern byte*    localIp;
-extern int*     portserver;
-extern char*    nomserver;
+extern byte*      mac;
+extern byte*      localIp;
+extern uint16_t*  serverPort;
+extern uint16_t*  remotePort;
+extern uint16_t*  udpPort;
+extern char*      serverName;
 
-extern char*    peripass;
-extern char*    ssid;   
-extern char*    passssid;
-extern int*     nbssid;
-extern char*    usrnames;  
-extern char*    usrpass;     
+extern char*      peripass;
+extern char*      ssid;   
+extern char*      passssid;
+extern int*       nbssid;
+extern char*      usrnames;  
+extern char*      usrpass;     
 extern unsigned long* usrtime;
 extern unsigned long* usrpretime;
 extern uint16_t* toPassword;
 extern unsigned long* maxCxWt;    
 extern unsigned long* maxCxWu;
 
-extern char*    mailFromAddr; 
-extern char*    mailPass;     
-extern char*    mailToAddr1;  
-extern char*    mailToAddr2;  
-extern uint16_t* periMail1;    
-extern uint16_t* periMail2;
+extern char*      mailFromAddr; 
+extern char*      mailPass;     
+extern char*      mailToAddr1;  
+extern char*      mailToAddr2;  
+extern uint16_t*  periMail1;    
+extern uint16_t*  periMail2;
        
-extern byte*    configBegOfRecord;
-extern byte*    configEndOfRecord;
+extern byte*      configBegOfRecord;
+extern byte*      configEndOfRecord;
 
 /* >>>>>>> périphériques <<<<<<<  */
 
 File32 fperi;       // fichiers perif
 
-extern char      periRec[PERIRECLEN];          // 1er buffer de l'enregistrement de périphérique
-extern char      periCache[PERIRECLEN*NBPERIF];   // cache des périphériques
-extern bool      periCacheStatus[NBPERIF];     // indicateur de validité du cache d'un périph
+extern char       periRec[PERIRECLEN];          // 1er buffer de l'enregistrement de périphérique
+extern char       periCache[PERIRECLEN*NBPERIF];   // cache des périphériques
+extern bool       periCacheStatus[NBPERIF];     // indicateur de validité du cache d'un périph
   
-extern int       periCur;                      // Numéro du périphérique courant
+extern int        periCur;                      // Numéro du périphérique courant
 
-extern uint16_t* periNum;                      // ptr ds buffer : Numéro du périphérique courant
-extern int32_t*  periPerRefr;                  // ptr ds buffer : période datasave minimale
-extern uint16_t* periPerTemp;                  // ptr ds buffer : période de lecture tempèrature
-extern int16_t*  periPitch_;                   // ptr ds buffer : variation minimale de température pour datasave
-extern int16_t*  periLastVal_;                 // ptr ds buffer : dernière valeur de température  
-extern int16_t*  periAlim_;                    // ptr ds buffer : dernière tension d'alimentation
-extern char*     periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
-extern char*     periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
-extern char*     periLastDateErr;              // ptr ds buffer : date/heure de derniere anomalie com
-extern int8_t*   periErr;                      // ptr ds buffer : code diag anomalie com (voir MESSxxx shconst.h)
-extern char*     periNamer;                    // ptr ds buffer : description périphérique
-extern char*     periVers;                     // ptr ds buffer : version logiciel du périphérique
-extern char*     periModel;                    // ptr ds buffer : model du périphérique
-extern byte*     periMacr;                     // ptr ds buffer : mac address 
-extern byte*     periIpAddr;                   // ptr ds buffer : Ip address
-extern uint16_t* periPort;                     // ptr ds buffer : port periph server
-extern byte*     periSwNb;                     // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
-extern byte*     periSwVal;                    // ptr ds buffer : état/cde des inter  
-extern byte*     periInput;                    // ptr ds buffer : Mode fonctionnement inters (1 par switch)           
-extern uint32_t* periSwPulseOne;               // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
-extern uint32_t* periSwPulseTwo;               // ptr ds buffer : durée pulses sec OFF(mode astable)
-extern uint32_t* periSwPulseCurrOne;           // ptr ds buffer : temps courant pulses ON
-extern uint32_t* periSwPulseCurrTwo;           // ptr ds buffer : temps courant pulses OFF
-extern byte*     periSwPulseCtl;               // ptr ds buffer : mode pulses
-extern byte*     periSwPulseSta;               // ptr ds buffer : état clock pulses
-extern uint8_t*  periSondeNb;                  // ptr ds buffer : nbre sonde
-extern boolean*  periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
-extern byte*     periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
-extern byte*     periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
-extern int16_t*  periThOffset_;                // ptr ds buffer : offset correctif sur mesure température
-extern int16_t*  periThmin_;                   // ptr ds buffer : mini last 24h
-extern int16_t*  periThmax_;                   // ptr ds buffer : maxi last 24h
-extern int16_t*  periVmin_;                    // ptr ds buffer : alarme mini volts
-extern int16_t*  periVmax_;                    // ptr ds buffer : alarme maxi volts
-extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
-extern byte*     periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
-extern uint16_t* periAnal;                     // ptr ds buffer : analog value
-extern uint16_t* periAnalLow;                  // ptr ds buffer : low analog value 
-extern uint16_t* periAnalHigh;                 // ptr ds buffer : high analog value 
-extern uint16_t* periAnalOffset1;              // ptr ds buffer : offset on adc value
-extern float*    periAnalFactor;               // ptr ds buffer : factor to float for analog value
-extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
-extern uint8_t*  periAnalCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
-extern uint8_t*  periAnalDestDet;              // ptr ds buffer : 5 x n° détect serveur
-extern uint8_t*  periAnalRefDet;               // ptr ds buffer : 5 x n° détect serveur pour op logique (0xff si rien)
-extern int8_t*   periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
-extern uint8_t*  periDigitCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
-extern uint8_t*  periDigitDestDet;             // ptr ds buffer : 5 x n° détect serveur
-extern uint8_t*  periDigitRefDet;              // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
-extern int8_t*   periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
+extern uint16_t*  periNum;                      // ptr ds buffer : Numéro du périphérique courant
+extern int32_t*   periPerRefr;                  // ptr ds buffer : période datasave minimale
+extern uint16_t*  periPerTemp;                  // ptr ds buffer : période de lecture tempèrature
+extern int16_t*   periPitch_;                   // ptr ds buffer : variation minimale de température pour datasave
+extern int16_t*   periLastVal_;                 // ptr ds buffer : dernière valeur de température  
+extern int16_t*   periAlim_;                    // ptr ds buffer : dernière tension d'alimentation
+extern char*      periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
+extern char*      periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
+extern char*      periLastDateErr;              // ptr ds buffer : date/heure de derniere anomalie com
+extern int8_t*    periErr;                      // ptr ds buffer : code diag anomalie com (voir MESSxxx shconst.h)
+extern char*      periNamer;                    // ptr ds buffer : description périphérique
+extern char*      periVers;                     // ptr ds buffer : version logiciel du périphérique
+extern char*      periModel;                    // ptr ds buffer : model du périphérique
+extern byte*      periMacr;                     // ptr ds buffer : mac address 
+extern byte*      periIpAddr;                   // ptr ds buffer : Ip address
+extern uint16_t*  periPort;                     // ptr ds buffer : port periph server
+extern byte*      periSwNb;                     // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
+extern byte*      periSwVal;                    // ptr ds buffer : état/cde des inter  
+extern byte*      periInput;                    // ptr ds buffer : Mode fonctionnement inters (1 par switch)           
+extern uint32_t*  periSwPulseOne;               // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
+extern uint32_t*  periSwPulseTwo;               // ptr ds buffer : durée pulses sec OFF(mode astable)
+extern uint32_t*  periSwPulseCurrOne;           // ptr ds buffer : temps courant pulses ON
+extern uint32_t*  periSwPulseCurrTwo;           // ptr ds buffer : temps courant pulses OFF
+extern byte*      periSwPulseCtl;               // ptr ds buffer : mode pulses
+extern byte*      periSwPulseSta;               // ptr ds buffer : état clock pulses
+extern uint8_t*   periSondeNb;                  // ptr ds buffer : nbre sonde
+extern boolean*   periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
+extern byte*      periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
+extern byte*      periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
+extern int16_t*   periThOffset_;                // ptr ds buffer : offset correctif sur mesure température
+extern int16_t*   periThmin_;                   // ptr ds buffer : mini last 24h
+extern int16_t*   periThmax_;                   // ptr ds buffer : maxi last 24h
+extern int16_t*   periVmin_;                    // ptr ds buffer : alarme mini volts
+extern int16_t*   periVmax_;                    // ptr ds buffer : alarme maxi volts
+extern byte*      periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
+extern byte*      periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern uint16_t*  periAnal;                     // ptr ds buffer : analog value
+extern uint16_t*  periAnalLow;                  // ptr ds buffer : low analog value 
+extern uint16_t*  periAnalHigh;                 // ptr ds buffer : high analog value 
+extern uint16_t*  periAnalOffset1;              // ptr ds buffer : offset on adc value
+extern float*     periAnalFactor;               // ptr ds buffer : factor to float for analog value
+extern float*     periAnalOffset2;              // ptr ds buffer : offset on float value
+extern uint8_t*   periAnalCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
+extern uint8_t*   periAnalDestDet;              // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*   periAnalRefDet;               // ptr ds buffer : 5 x n° détect serveur pour op logique (0xff si rien)
+extern int8_t*    periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
+extern uint8_t*   periDigitCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
+extern uint8_t*   periDigitDestDet;             // ptr ds buffer : 5 x n° détect serveur
+extern uint8_t*   periDigitRefDet;              // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
+extern int8_t*    periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
       
-extern byte*     periBegOfRecord;
-extern byte*     periEndOfRecord;
+extern byte*      periBegOfRecord;
+extern byte*      periEndOfRecord;
 
-extern int8_t    periMess;                    // code diag réception message (voir MESSxxx shconst.h)
-extern byte      periMacBuf[6]; 
+extern int8_t     periMess;                    // code diag réception message (voir MESSxxx shconst.h)
+extern byte       periMacBuf[6]; 
 
-extern byte      lastIpAddr[4];
+extern byte       lastIpAddr[4];
 
 extern char inptyps[];                        // libellés types sources regles switchs
 extern char inptypd[];                        // libellés types destinations regles switchs
@@ -170,8 +172,10 @@ extern  int   nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fp
 
 void factoryResetConfig()
 {
-  memset(nomserver,0x00,LNSERV);
-  memcpy(nomserver,NOMSERV,LNSERV);
+  memset(serverName,0x00,LNSERV);
+  memcpy(serverName,DEFNOMSERV,LNSERV);
+  memcpy(mac,DEFMACADDR,MACADDRLENGTH);
+  *serverPort=DEFSERVERPORT;
   memset(usrnames,0x00,LENUSRNAME);
   memcpy(usrnames,"admin",5);
   memset(usrpass,0x00,LENUSRPASS);
@@ -184,9 +188,9 @@ void configInitVar()
 {
 memset(mac,0x00,6);
 memset(localIp,0x00,4); 
-*portserver = 0;
-memset(nomserver,0x00,LNSERV);memcpy(nomserver,NOMSERV,strlen(NOMSERV));
-memset(peripass,0x00,LPWD+1);memcpy(peripass,SRVPASS,strlen(PERIPASS));
+*serverPort = 0;
+memset(serverName,0x00,LNSERV);
+memset(peripass,0x00,LPWD+1);
 memset(ssid,0x00,MAXSSID*(LENSSID+1));
 //memcpy(ssid,SSID1,strlen(SSID1));memcpy(ssid+LENSSID+1,SSID2,strlen(SSID2));   
 memset(passssid,0x00,MAXSSID*(LPWSSID+1));
@@ -212,14 +216,18 @@ byte* temp=(byte*)configRec;
   temp+=6;
   localIp=(byte*)temp;
   temp+=4;
-  portserver=(int*)temp;
-  temp+=sizeof(int);
-  nomserver=(char*)temp;
+  serverPort=(uint16_t*)temp;
+  temp+=sizeof(uint16_t);
+  remotePort=(uint16_t*)temp;
+  temp+=sizeof(uint16_t);
+  serverName=(char*)temp;
   temp+=LNSERV;
-  char* dispo=(char*)temp;    
-  temp+=(LPWD+1);
+  udpPort=(uint16_t*)temp;
+  temp+=sizeof(uint16_t);
+  char* dispo=(char*)temp; 
+  temp+=7;
   char* dispo2=(char*)temp;  
-  temp+=(LPWD+1);  
+  temp+=9;  
   peripass=(char*)temp;
   temp+=(LPWD+1);
   ssid=(char*)temp;
@@ -306,21 +314,23 @@ void configExport(char* bec,uint16_t* lbec,uint8_t selssid)
 {
   long unsigned ll=0;
   *bec=0x00;
-  strcat(bec,nomserver);ll+=strlen(bec);
-  //memcpy(bec,nomserver,LNSERV);ll+=LNSERV;
+  strcat(bec,serverName);ll+=strlen(bec);                     // nom server
+  //memcpy(bec,serverName,LNSERV);ll+=LNSERV;
   *(bec+ll)=';';ll++;
-  for(int pp=0;pp<4;pp++){
+  for(int pp=0;pp<4;pp++){                                    // ip server
     sprintf(bec+ll+pp*4,"%03u",(uint16_t)localIp[pp]);
     if(pp<3){*(bec+ll+(pp+1)*4-1)='.';}}ll+=15;
   *(bec+ll)=';';ll++;
-  sprintf(bec+ll,"%05u",(uint16_t)*portserver);ll+=5;
+  sprintf(bec+ll,"%05u",(uint16_t)*serverPort);ll+=5;         // serverPort
   *(bec+ll)=';';ll++;
-  sprintf(bec+ll,"%05u",(uint16_t)PORTUDP);ll+=5;
+  sprintf(bec+ll,"%05u",(uint16_t)*remotePort);ll+=5;         // remote
+  *(bec+ll)=';';ll++;
+  sprintf(bec+ll,"%05u",(uint16_t)*udpPort);ll+=5;            // udp
   *(bec+ll)=';';ll++;
   *(bec+ll)='\0';
-  strcat(bec+ll,ssid+(selssid-1)*LENSSID);
+  strcat(bec+ll,ssid+(selssid-1)*LENSSID);                    // ssid1
   strcat(bec,";");
-  strcat(bec+ll,passssid+(selssid-1)*LPWSSID);
+  strcat(bec+ll,passssid+(selssid-1)*LPWSSID);                // pwd1
   strcat(bec,";\0");
   ll=strlen(bec);
   
@@ -330,9 +340,9 @@ void configExport(char* bec,uint16_t* lbec,uint8_t selssid)
 
 void configPrint()
 {
-  Serial.print("nomserver=");Serial.println(nomserver);
+  Serial.print("serverName=");Serial.println(serverName);
   Serial.print(" Mac=");serialPrintMac(mac,0);
-  Serial.print(" localIp=");for(int pp=0;pp<4;pp++){Serial.print((uint8_t)localIp[pp]);if(pp<3){Serial.print(".");}}Serial.print("/");Serial.println(*portserver);
+  Serial.print(" localIp=");for(int pp=0;pp<4;pp++){Serial.print((uint8_t)localIp[pp]);if(pp<3){Serial.print(".");}}Serial.print("/");Serial.println(*serverPort);
   Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.println(" table ssid ");subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
   Serial.println(" table user ");subcprint(usrnames,usrpass,NBUSR,LENUSRNAME,LENUSRPASS,usrtime);

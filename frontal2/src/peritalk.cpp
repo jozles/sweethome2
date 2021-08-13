@@ -14,7 +14,7 @@ extern Ds3231 ds3231;
 
 extern EthernetUDP Udp;
 
-extern uint16_t remote_Port;
+extern uint16_t remote_Port_Udp;
 extern uint8_t remote_IP_cur[4];                   
 
 extern char ab;
@@ -247,7 +247,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
   return periMess;
 }
 
-int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphérique cli ... ou udp(remote_IP,remote_Port)
+int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphérique cli ... ou udp(remote_IP,remote_Port_Udp)
                     // envoie une page html (bufServer encapsulé dans <body>...</body>) (fonction ack suite à réception de datasave - set si dataread)
                     // periCur est à jour (0 ou n) et periMess contient le diag du dataread/save reçu
                     // format bufServer <body>message...</body>
@@ -393,7 +393,7 @@ Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(
   }
   if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
   memcpy(periIpAddr,remote_IP_cur,4);                                                                            // Ip addr
-  if(remote_Port!=0 && *periProtocol=='U'){*periPort=remote_Port;}                                               // port
+  if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}                                               // port
   periSave(periCur,PERISAVELOCAL);
   checkdate(6);
 }

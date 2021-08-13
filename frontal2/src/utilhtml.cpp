@@ -26,7 +26,7 @@ extern byte      periMacBuf[6];
 
 extern uint16_t  perrefr;
 
-extern char*     nomserver;
+extern char*     serverName;
 extern char*     usrnames; 
 extern char*     usrpass; 
 extern unsigned long* usrtime;  
@@ -1123,7 +1123,7 @@ void pageLineOne(char* buf,char* jsbuf)
   strcat(dm0,"MODE_DEVT2 ");
   #endif // _MODE_DEVT2
 
-  scrDspText(buf,jsbuf,nomserver,0,0);
+  scrDspText(buf,jsbuf,serverName,0,0);
   affSpace(buf,jsbuf);
   bufPrintDateHeure(dm0,nullptr,pkdate);
   scrDspText(buf,jsbuf,dm0,0,0);

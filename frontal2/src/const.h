@@ -88,7 +88,8 @@
    1.54 instances multiples datées pour TCP avec stop reporté. getCde révisé/corrigé. 
         réponse datasave à set______ -> réaffichages (remote/preitable etc) reportés après periReq. corrections periRemoteUpdate.
    1.55 incorpore metaJS pour periline ; #define NOJSBUF accélère la sortie html ; révision initLed ; ajout red1.1 (powerOn)
-        config nomserver (confightml) ; création factoryReset() ;
+        config serverName (confightml) ; création factoryReset() ;
+   1.56 Le fichier config devient la source des données réseau ; Le mécanisme d'initialisation est installé.
 
    BUGS :
 
@@ -129,63 +130,58 @@
   ce qui permet de démarrer le service avec "Ethernet.begin(mac)"
   Sinon utiliser "Ethernet.begin(mac,localIp)" pour forcer une adresse IP particulière (localIp provient du fichier de config)
   (si elle est déjà prise sur le routeur ça ne fonctionnera pas).
+  
   Pour configurer la table DHCP de la box, l'adresse MAC doit en être connue :
     démarrer le serveur avec Ethernet.begin(mac), la box fourni une adresse Ip quelconque, puis configurer DHCP sur la box)
-  localIp ne sert à rien en cas de bail fixe sur la box.
-  localIp du fichier config est inutilisé (v1.2b)
-
-
-  PORTSERVER et PORTPILOT sont les port des serveurs.
+  localIp ne sert à rien en cas de bail fixe sur la box (mis à jour à chaque Ethernet.begin() avec Ethernet.localIp())  
+  
   Pour permettre aux appels entrants sur l'adresse de la box (forme xxx.xxx.xxx.xxx/pppp) d'aboutir aux serveurs,
-  la box doit avoir une redirection de port paramétrée vers l'IP de la carte ethernet (donc de préférence un bail fixe).
-  (PORTPERISERVER et PORTPILOTSERVER proviennent de shconst.h)
-  "portserver" du fichier config est inutilisé (v1.2b)
-  "portserver" du fichier config est utilisé (v1.56)
+  la box doit avoir une redirection de port paramétrée vers l'IP de la carte ethernet (qui a donc besoin d'un bail fixe).
+  
+  jusqu'à v1.55 PORTSERVER et PORTPILOT sont les port des serveurs (proviennent de shconst.h) ; "serverPort" du fichier config est inutilisé.
+  depuis v1.56 !!! MODIF structure fichier config !!!
+  les variables du fichier config serverName, serverPort, remotePort, udpPort sont utilisées. 
+  localIp est fournie par Ethernet.localIp()
 
   pour initialiser un serveur :
-  configurer (MACADDR) mac de config + PORTSERVER et PORTPILOT qui doivent correspondre au DHCP et redirection de port de la box
-
+     faire un "factory reset" : efface localIP du fichier config, serverport=7700, mac=90.90.90.90.90.90
+     le serveur redémarre
+     dans la liste des baux actifs on trouve l'adresse mac associée avec l'Ip fournie par le DHCP
+     créer une redirection de port sur cette adresse permet d'accéder au serveur (adresseIP:port)   
+     configurer l'adresse mac + les ports et redémarrer le serveur
+     sur le routeur le serveur est visible avec la bonne adresse mac ; configurer l'IP fixe et les 3 redirections de port
+     (supprimer la redirection sur l'adresse mac 90...)
+     redémarrer le serveur
 */
 
 
 #define _MODE_DEVT    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
-/*
-#ifdef _MODE_DEVT2
-#define MODE_EXEC "DEVT2"
-#define MACADDR "\x90\xA2\xDA\x0F\xDF\xAE"
-#define LOCALSERVERIP HOSTIPADDR2                       // 36          
-#define PORTSERVER PORTPERISERVER2                      // 1786
-#define PORTPILOT  PORTPILOTSERVER2                     // 1788
-#define PORTUDP    PORTUDPSERVER2                       // 8886
-#define NOMSERV "sweet dev2\0"
+
+#define DEFMACADDR "\x90\x90\x90\x90\x90\x90"   // adresse mac factory reset
+#define DEFSERVERPORT 7700
 #define LNSERV  17
-#endif // _MODE_DEVT2
-*/
+
 #ifdef _MODE_DEVT
 #define MODE_EXEC "DEVT"
-#define MACADDR "\x90\xA2\xDA\x0F\xDF\xAC"    //adresse mac carte ethernet AB service ; AC devt
-#define LOCALSERVERIP {192,168,0,35}                   //adresse IP    ---- 34 service, 35 devt
-#define PORTSERVER PORTPERISERVER                      // 1790
-#define PORTPILOT  PORTPILOTSERVER                     // 1792
-#define PORTUDP    PORTUDPSERVER                       // 8885
-#define NOMSERV "sweet hdev\0"
-#define LNSERV  17
+//#define LOCALSERVERIP {192,168,0,35}                   //adresse IP    ---- 34 service, 35 devt
+//#define PORTSERVER 1790                       // 1790
+//#define PORTPILOT  1792                       // 1792
+//#define PORTUDP    8890                       // 8890
+#define DEFNOMSERV "sweet_hdev\0"
 #endif // _MODE_DEVT
 
 #ifdef _MODE_RUN
 #define MODE_EXEC "RUN"
-#define MACADDR "\x90\xA2\xDA\x0F\xDF\xAB"    //adresse mac carte ethernet AB service ; AC devt
-#define LOCALSERVERIP {192,168,0,34}                   //adresse IP    ---- 34 service, 35 devt
-#define PORTSERVER PORTPERISERVER                      // 1790
-#define PORTPILOT  PORTPILOTSERVER                     // 1792
-#define NOMSERV "sweet home\0"
-#define LNSERV  17
+//#define LOCALSERVERIP {192,168,0,36}                   //adresse IP    ---- 34 service, 35 devt
+//#define PORTSERVER 1786                       // 1786
+//#define PORTPILOT  1788                       // 1788
+//#define PORTUDP    8886                       // 8886
+#define DEFNOMSERV "sweet_home\0"
 #endif // _MODE_RUN
 
 #define UDPUSAGE
 
 #define DS3231_I2C_ADDRESS 0x68               // adresse 3231 sur bus I2C
-
 
 #define NBPERIF 28
 #define PERINAMLEN 16+1                      // longueur nom perif

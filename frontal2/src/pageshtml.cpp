@@ -11,10 +11,12 @@
 
 extern Ds3231 ds3231;
 
-extern char*      nomserver;
+extern char*      serverName;
 extern byte*      mac;              // adresse server
 extern byte*      localIp;
-extern uint16_t*  portserver;
+extern uint16_t*  serverPort;
+extern uint16_t*  remotePort;
+extern uint16_t*  udpPort;
 
 extern char*      peripass;         // mot de passe périphériques
 extern unsigned long* maxCxWt;
@@ -173,7 +175,7 @@ void dumpHisto(EthernetClient* cli)
   long pos=histoPos;
   char file[]={"fdhisto.txt"};
 
-  htmlBeg(buf,jsbuf,nomserver);     // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);     // chargement CSS etc
   
   formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
@@ -393,7 +395,7 @@ void cfgServerHtml(EthernetClient* cli)
 
   unsigned long begTPage=millis();     // calcul durée envoi page
 
-  htmlBeg(buf,jsbuf,nomserver);
+  htmlBeg(buf,jsbuf,serverName);
 
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
 
@@ -408,18 +410,20 @@ void cfgServerHtml(EthernetClient* cli)
 
 fontBeg(buf,jsbuf,2,0);
 
-            scrDspText(buf,jsbuf,"nom serveur ",2,TRBEG|TDBE);scrGetText(buf,jsbuf,nomserver,"ethcfg___s",16,LNSERV,0,TDBE);strcat(buf,"\n");
+            scrDspText(buf,jsbuf,"nom serveur ",2,TRBEG|TDBE);scrGetText(buf,jsbuf,serverName,"ethcfg___s",16,LNSERV,0,TDBE);strcat(buf,"\n");
             #define LBUFL 16
             char lbuf[LBUFL];*lbuf=0x00;for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[mac[k]/16]);concat1a(lbuf,chexa[mac[k]%16]);}
-            scrDspText(buf,jsbuf," serverMac ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___m",11,MACADDRLENGTH,0,0);
+            scrDspText(buf,jsbuf," serverMac ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___m",11,MACADDRLENGTH*2,0,0);
             //strcat(buf," serverMac <input type=\"text\" name=\"ethcfg___m\" value=\"");
             //for(int k=0;k<MACADDRLENGTH;k++){concat1a(buf,chexa[mac[k]/16]);concat1a(buf,chexa[mac[k]%16]);}strcat(buf,"\" size=\"11\" maxlength=\"12\" >\n");                        
             *lbuf=0x00;for(int k=0;k<4;k++){concatns(lbuf,localIp[k]);if(k!=3){strcat(lbuf,".");}}
-            scrDspText(buf,jsbuf," localIp ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___i",11,LBUFL,0,0);
+            scrDspText(buf,jsbuf," localIp ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___i",11,LBUFL,0,BRYES);strcat(buf,"\n");
             //strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
             //for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
-            scrDspText(buf,jsbuf," portserver ",0,0);scrGetNum(buf,jsbuf,'d',portserver,"ethcfg___p",4,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," portserver ");scrGetNum(buf,'d',portserver,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
+            scrDspText(buf,jsbuf," serverPort ",0,0);scrGetNum(buf,jsbuf,'d',serverPort,"ethcfg___p",4,0,0,0);
+            //strcat(buf," serverPort ");scrGetNum(buf,'d',serverPort,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
+            scrDspText(buf,jsbuf," remotePort ",0,0);scrGetNum(buf,jsbuf,'d',remotePort,"ethcfg___t",4,0,0,0);
+            scrDspText(buf,jsbuf," udpPort ",0,0);scrGetNum(buf,jsbuf,'d',udpPort,"ethcfg___u",4,0,0,BRYES);strcat(buf,"\n");
 
             scrDspText(buf,jsbuf,"",0,BRYES);
             subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
@@ -471,7 +475,7 @@ Serial.print("-> config detServ ");
   unsigned long begTPage=millis();                  // calcul durée envoi page
   uint8_t ni=0;
 
-  htmlBeg(buf,jsbuf,nomserver);                     // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);                     // chargement CSS etc
 
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);       // params pour retours navigateur (n° usr + time usr + pericur)
 
@@ -519,7 +523,7 @@ void cfgRemoteHtml(EthernetClient* cli)
   char nf[LENNOM+1];nf[LENNOM]='\0';
   uint8_t val;
  
-  htmlBeg(buf,jsbuf,nomserver);                 // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);                 // chargement CSS etc
 
   formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);   // params pour retours navigateur (n° usr + time usr + pericur)
 
@@ -638,7 +642,7 @@ void remoteHtml(EthernetClient* cli)
             uint16_t lb;
             unsigned long begTPage=millis();                  // calcul durée envoi page
  
-            htmlBeg(buf,jsbuf,nomserver,'R');
+            htmlBeg(buf,jsbuf,serverName,'R');
 
             pageLineOne(buf,jsbuf);
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
@@ -837,7 +841,7 @@ void thermoShowHtml(EthernetClient* cli)
   #define LLITH 200
   char lith[LLITH];
 
-  htmlBeg(buf,jsbuf,nomserver);     // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);     // chargement CSS etc
 
   formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
@@ -940,7 +944,7 @@ void thermoCfgHtml(EthernetClient* cli)
   unsigned long begTPage=millis();              // calcul durée envoi page
   uint8_t ni=0;
 
-  htmlBeg(buf,jsbuf,nomserver);                 // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);                 // chargement CSS etc
 
   //formIntro(buf,jsbuf,nullptr,0,nullptr,0,0); // params pour retours navigateur (n° usr + time usr + pericur)
                                                 // à charger au moins une fois par page 
@@ -1030,7 +1034,7 @@ Serial.print(" config timers ");
   unsigned long begTPage=millis();    // calcul durée envoi page
   int nucb;
 
-  htmlBeg(buf,jsbuf,nomserver);       // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);       // chargement CSS etc
 
   formIntro(buf,jsbuf,0,0);           // params pour retours navigateur (n° usr + time usr + pericur)
                                       // à charger au moins une fois par page ; pour les autres formulaires 

@@ -46,8 +46,9 @@ extern char     strdate[LDATEB];
 
 extern char*    chexa;
 
-extern char*    mailToAddr1;
-extern uint16_t* periMail1;
+extern uint16_t*  serverPort;
+extern char*      mailToAddr1;
+extern uint16_t*  periMail1;
 
 extern File32 fhisto;           // fichier histo sd card
 extern long   fhsize;           // remplissage fhisto
@@ -100,7 +101,7 @@ void mail(const char* a, const char* mm)
       uint32_t bufIp=Ethernet.localIP();
       charIp((byte*)&bufIp,ms,nullptr);
       strcat(ms,"/");
-      concatn(ms,PORTSERVER);
+      concatn(ms,*serverPort);
       strcat(ms," ");
       strcat(ms,a);strcat(ms,"==");
       strcat(ms,mailToAddr1);strcat(ms,"==");
