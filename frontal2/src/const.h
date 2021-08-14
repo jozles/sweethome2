@@ -107,15 +107,15 @@
       gérer le periLoad KO dans periTableLoad
       remplacer date14 par date unix sur 8 digits dans les messages ACK et SET
 
-      ajouter nbre inputs dans assyset
+      ajouter nbre rules dans assyset
 
       détecter les changements à la réception des dataread/save pour effectuer un refresh de l'affichage de peritable
 
       timers : ajouter option "1 jour sur n" : dhdebcycle=1ère date... calculer si date courante ok (récupérer un bool inutile - cyclic? )
       pulses : option entrée clock depuis input
 
-      dans fenetre switchs ; table inputs avec pour chaque ligne boutons poubelle/validation, + (nouv ligne), xmit(pertosend)
-                             ajouter visu diag/état des inputs(?)
+      dans fenetre switchs ; table rules avec pour chaque ligne boutons poubelle/validation, + (nouv ligne), xmit(pertosend)
+                             ajouter visu diag/état des rules(?)
 
       ajouter crc sur fichiers config,periphériques,remotes,timers,etc
 
@@ -124,33 +124,29 @@
 */
 
 /* mac,adressage,port
-
-  (MACADDR) mac du fichier config définit la carte ethernet.
-  Le routeur doit la connaitre via la table DHCP pour lui attribuer une adresse IP fixe
-  ce qui permet de démarrer le service avec "Ethernet.begin(mac)"
-  Sinon utiliser "Ethernet.begin(mac,localIp)" pour forcer une adresse IP particulière (localIp provient du fichier de config)
-  (si elle est déjà prise sur le routeur ça ne fonctionnera pas).
   
-  Pour configurer la table DHCP de la box, l'adresse MAC doit en être connue :
-    démarrer le serveur avec Ethernet.begin(mac), la box fourni une adresse Ip quelconque, puis configurer DHCP sur la box)
-  localIp ne sert à rien en cas de bail fixe sur la box (mis à jour à chaque Ethernet.begin() avec Ethernet.localIp())  
+  (jusqu'à v1.55 PORTSERVER et PORTPILOT sont les port des serveurs (proviennent de shconst.h) ; "portserver" du fichier config est inutilisé.)
   
-  Pour permettre aux appels entrants sur l'adresse de la box (forme xxx.xxx.xxx.xxx/pppp) d'aboutir aux serveurs,
-  la box doit avoir une redirection de port paramétrée vers l'IP de la carte ethernet (qui a donc besoin d'un bail fixe).
+  Depuis v1.56 !!! MODIF structure fichier config !!!
+  les variables du fichier config mac,serverName, serverPort, remotePort, udpPort sont utilisées. 
   
-  jusqu'à v1.55 PORTSERVER et PORTPILOT sont les port des serveurs (proviennent de shconst.h) ; "serverPort" du fichier config est inutilisé.
-  depuis v1.56 !!! MODIF structure fichier config !!!
-  les variables du fichier config serverName, serverPort, remotePort, udpPort sont utilisées. 
-  localIp est fournie par Ethernet.localIp()
+  La carte W5500 recoit l'adresse mac du fichier config.
+  Pour permettre la redirection de port et l'accès au serveur depuis les périphériques ou les navigateurs,
+  l'adresse IP locale du serveur doit être fixe. 
+  L'adresse IP locale est fournie par Ethernet.localIp() à chaque Ethernet.begin() 
+  puis chargée dans localIp du fichier config pour assurer que l'adresse fournie aux périphériques soit valide.
 
   pour initialiser un serveur :
-     faire un "factory reset" : efface localIP du fichier config, serverport=7700, mac=90.90.90.90.90.90
-     le serveur redémarre
-     dans la liste des baux actifs on trouve l'adresse mac associée avec l'Ip fournie par le DHCP
-     créer une redirection de port sur cette adresse permet d'accéder au serveur (adresseIP:port)   
-     configurer l'adresse mac + les ports et redémarrer le serveur
-     sur le routeur le serveur est visible avec la bonne adresse mac ; configurer l'IP fixe et les 3 redirections de port
-     (supprimer la redirection sur l'adresse mac 90...)
+     sur le serveur, faire un "factory reset" qui modifie le fichier config : 
+          efface localIP, serverPort=7700, remotePort=7701, udpPort=7702, mac=90.90.90.90.90.90, admin/admin pour l'accès
+          le serveur redémarre
+          (si un équipement local utilise un de ces port ou cette adresse mac, l'éteindre le temps de l'installation)
+     sur le routeur, dans la liste des baux actifs du routeur on trouve l'adresse MAC 90.90... associée avec l'Ip fournie par le DHCP
+          créer une redirection de port sur cette adresse IP ce qui permet d'accéder au serveur (adresseIP:port)   
+     (éventuellement, sur le serveur, changer l'adresse MAC et/ou les ports et le redémarrer ... sur le routeur, le serveur est visible avec la bonne adresse MAC)
+          associer une adresse IP fixe à cette adresse MAC (éventuellement l'adresse courante)
+          créer les redirections des ports définis sur le serveur sur cette adresse IP 
+          (si l'adresse mac a été changée, supprimer la redirection sur l'adresse mac 90.90...)
      redémarrer le serveur
 */
 
@@ -158,7 +154,7 @@
 #define _MODE_DEVT    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
 #define DEFMACADDR "\x90\x90\x90\x90\x90\x90"   // adresse mac factory reset
-#define DEFSERVERPORT 7700
+#define DEFSERVERPORT 7700                      // base ports  factory reset
 #define LNSERV  17
 
 #ifdef _MODE_DEVT
@@ -181,7 +177,7 @@
 
 #define UDPUSAGE
 
-#define DS3231_I2C_ADDRESS 0x68               // adresse 3231 sur bus I2C
+#define DS3231_I2C_ADDRESS 0x68              // adresse 3231 sur bus I2C
 
 #define NBPERIF 28
 #define PERINAMLEN 16+1                      // longueur nom perif
@@ -193,28 +189,25 @@
 #define LBUF2000 2048
 #define LBUF4000 4096                        // buf size html print 
 
-#define MAXCXWT 120000                       // time out delay if no TCP connection (à mettre dans la config)    
-#define MAXCXWU 900000                       // time out delay if no UDP connection (à mettre dans la config)    
+#define MAXCXWT 120000                       // (defaut) time out delay if no TCP connection 
+#define MAXCXWU 900000                       // (defaut) time out delay if no UDP connection 
 
 #define LDATEA 17                            // len date alpha
 
-#define TO_PASSWORD 600                      // sec (pour initialiser toPassword à la mise sous tension
+#define TO_PASSWORD 600                      // (defaut) sec toPassword
 
 #define MAXIMGLEN   4000                     // longueur maxi pour fichiers image
 
-#define MAXSERVACCESS 120                    // (sec) période maximale accés au serveur par défaut
-#define TEMPERPREF   20                      // (sec) période check température par défaut sur périphérique
-#define DEFPITCH     25                      // pitch par defaut pour periInitVar
-#define MINTHCHGE    0.25                    // changement minimal th pour save
+#define MAXSERVACCESS 120                    // (defaut) (sec) période maximale accés au serveur
+#define TEMPERPREF   20                      // (defaut) (sec) période check température sur périphérique
+#define DEFPITCH     25                      // (defaut) pitch pour periInitVar
+#define MINTHCHGE    0.25                    // (defaut) changement minimal th pour save
 
 #define SDOK 1
 #define SDKO 0
 
 #define CACHEISFILE 1
 
-
-
-//enum {FAUX,VRAI};
 
 #define LENREMNAM 16    // remote name length
 #define NBREMOTE 16     // remote entrys
@@ -307,7 +300,7 @@ struct Thermo
 
 /*  PRINCIPES DE FONCTIONNEMENT
 
-  Le frontal utilise le protocole http pour communiquer avec les périphériques wifi et l'utilisateur ; udp pour les périphériques radio
+  Le frontal utilise le protocole http pour communiquer avec les périphériques wifi et l'utilisateur ; udp pour les périphériques radio via un concentrateur
 
   Il y a 2 types de connexions possibles :
     1) mode serveur (reception de commandes GET et POST et envoi de pages html)
@@ -335,11 +328,11 @@ struct Thermo
       Le frontal peut aussi recevoir via GET ou POST des fonctions en provenance des pages html qu'il a fourni à des navigateurs.
       Elles n'ont ni longueur ni crc.
 
-  Une couche d'encryptage sera ajoutée lorsque l'ensemble sera stabilisé. l'HTTPS n'est pas disponible.
+  Une couche d'encryptage sera ajoutée lorsque l'ensemble sera stabilisé. l'HTTPS n'est pas disponible dans les libs ethernet actuelles.
 
   FONCTIONS
 
-  (fonctions des périphériques serveurs : etat______ ; set_______ ; ack_______ ; reset_____ ; sleep_____ )
+  (fonctions des périphériques serveurs : etat______ ; set_______ ; ack_______ ; reset_____ ; sleep_____ ; mail______ )
 
   Certaines n'ont pas d'arguments donc il n'y a pas de données dans les messages correspondants.
     (pour assurer la variabilité des encryptages ultérieurs, des données aléatoires seront insérées)
@@ -354,14 +347,17 @@ struct Thermo
 
   Le frontal reçoit de façon asynchrone des messages avec les fonctions (GET)data_read (réponse (page.html)set_______) et (
   (GET)data_save_ (réponse (page.html)ack_______.)
-  Les données contenues dans ces messages sont enregistrées dans le fichier du périphérique dans la carte SD. 
+  Les données contenues dans ces messages sont enregistrées dans le cache du fichier du périphérique en mémoire.
+  La recopie du cache sur SD est liée à certai évènements (HALT etc) 
   Le message complet est enregistré dans l'historique.
 
-  Sur action de l'utilisateur via un navigateur, la configuration d'un périphérique peut être modifiée ce qui génère
-  l'envoi d'un message (GET)set_______ (réponse non attendue : (GET)done______ ou (GET)data_save_ suivie de (page.html)ack_______ ).
+  Sur action de l'utilisateur via un navigateur (et via les changements de detMem), la configuration d'un périphérique peut être modifiée
+     ce qui génère l'envoi d'un message (GET)set_______ 
+     (réponse non attendue : (GET)done______ ou (GET)data_save_ suivie de (page.html)ack_______ ).
 
-  Lorsqu'un message sortant ou entrant se déroule anormalement, l'incident est noté et daté. Les périphériques passent en mode "dégradé" :
-  Leur période de communication est augmentée pour éviter que les retrys ne plombent la consommation.
+  Lorsqu'un message sortant ou entrant se déroule anormalement, l'incident est noté et daté. 
+     Les périphériques passent en mode "dégradé" : 
+     Leur période de communication est augmentée pour éviter que les retrys ne plombent la consommation.
 
   Un périphérique sans serveur ne reçoit des messages que par page html.
   Un périphérique avec serveur reçoit des messages par les 2 modes.
@@ -371,7 +367,7 @@ struct Thermo
 
   Un fichier séquentiel accumule et date tous les échanges qui se produisent.
 
-  MISE EN OEUVRE
+  MISE EN OEUVRE !!!! la suite N'EST PAS forcément à jour !!!!
 
   (le mot fonction désigne maintenant les fonctions du C)
 
@@ -380,7 +376,6 @@ struct Thermo
   int messToServer(*client,const ip,const port,const *données)  connecte à un serveur http et envoie un message
   (dans shmess)   renvoie  0 connexion pas réussie
                   ou 1 ok, la donnée est transmise, la connexion n'est pas fermée, le client est valide
-
 
   (dans frontal)
   periAns() envoie une page html minimale contenant une fonction (set_______/etat______...) dans <body></body>
