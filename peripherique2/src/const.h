@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.u_"
+#define VERSION "1.v_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -65,6 +65,7 @@
  *     le texte est actuellement libre
  * 1.S création buildData() pour isoler la construction du message de dataRead/Save et permettre la réponse à set dans ordreExt()
  * 1.u ordreExt rebranché ledblink corrigé ; talkServer revu ;
+ * 1.v les paramètres de réseau et de wifi sont chargés depuis le serveur en série ; tout est stocké en EEPROM quelque soit le mode
  * 
 Modifier : 
 
@@ -82,11 +83,7 @@ Modifier :
   Lorsque l'alim est bloquée allumée, enchainer sur une communication série : 
     toutes les 2 sec envoi RDY et attente réponse au format des messages http (avec longueur,fonctions,params et crc)
     sur le serveur : vidage réception série, attente 1 seconde, si vide attente RDY puis envoi, sinon vider et recommencer
-  
-  commande à créer qui utilise la config du serveur :
-  SSID1nnnnn...,SSID2nnnn....,PWD1nnnn....,PWD2nnnn....,SERVIPPxxx.xxx.xxx.xxx/nnnn, (16 car pour SSID et 48 car pour PWD) à stocker séparément des constantes)
-  créer un protocole usb pour charger ssid, password, IP et port du host sans reprogrammer le 8266  
-  
+    
 */
 
 #include "Arduino.h"
@@ -225,7 +222,8 @@ Modifier :
 #if POWER_MODE==NO_MODE
   #define _SERVER_MODE          /* Mode server */
   #define TBITS T12BITS       // résolution DSX20
-  #define CONSTANT RTCSAVED
+//  #define CONSTANT RTCSAVED
+  #define CONSTANT EEPROMSAVED
   #define CONSTANTADDR 64     // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
 #endif // PM==NO_MODE
 
@@ -237,7 +235,8 @@ Modifier :
 
 #if POWER_MODE==DS_MODE
   #define TBITS T10BITS       // résolution DSX20
-  #define CONSTANT RTCSAVED
+  //#define CONSTANT RTCSAVED
+  #define CONSTANT EEPROMSAVED  
   #define CONSTANTADDR 64     // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
 #endif // PM==DS_MODE
 
@@ -438,8 +437,14 @@ union {
   uint16_t  analVal;              //  2   dernière valeur analogique lue
   uint16_t  analLow;              //  2   seuil analogique low
   uint16_t  analHigh;             //  2   seuil analogique high
-  uint16_t  dispo;                //  2                               ---------- inutilisé  
-  uint16_t  portServer;           //  2   port en mode serveur          
+  uint16_t  serverPort;           //  2   sweet_home server port
+  uint16_t  periPort;             //  2   server mode peri port   
+  IPAddress serverIp;             //  4   sweet_home server ip addr
+  char      ssid1[16];            // 16   ssid1 
+  char      pwd1[64];             // 64   pwd1         
+  char      ssid2[16];            // 16   ssid2 
+  char      pwd2[64];             // 64   pwd2        
+
 #define LENFILLERCST 31
   byte      filler[LENFILLERCST]; //  
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer la longueur
@@ -448,7 +453,7 @@ union {
 
 #define STEPDATASAVE 6            // code pour talkstep de dataSave()
 
-#define LENRTC 250
+#define LENCST 250+164
 
 
 

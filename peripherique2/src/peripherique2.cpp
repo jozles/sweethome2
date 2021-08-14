@@ -38,22 +38,22 @@ Ds1820 ds1820;
 
   const char* ssid;
   const char* password;
-#define DEVOLO  
-#ifdef DEVOLO
-  const char* ssid2= "pinks";
-  const char* password2 = "cain ne dormant pas songeait au pied des monts";
-  const char* ssid1= "devolo-5d3";
-  const char* password1= "JNCJTRONJMGZEEQL";
-#endif // DEVOLO
-#ifndef DEVOLO
+//#define DEVOLO  
+//#ifdef DEVOLO
+  const char* ssid2; //= "pinks";
+  const char* password2; //= "cain ne dormant pas songeait au pied des monts";
+  const char* ssid1; //= "devolo-5d3";
+  const char* password1; //= "JNCJTRONJMGZEEQL";
+//#endif // DEVOLO
+/*#ifndef DEVOLO
   const char* ssid1= "pinks";
   const char* password1 = "cain ne dormant pas songeait au pied des monts";
   const char* ssid2= "devolo-5d3";
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif // DEVOLO
-
-  const char* host = HOSTIPADDR2;         // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
-  const int   port = PORTPERISERVER2; 
+*/
+//  const IPaddr* host;  //= HOSTIPADDR2;         // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
+//  const int   port;  //= PORTPERISERVER2; 
 
 WiFiClient cli;                           // instance du serveur externe (utilisé pour dataread/save)
 
@@ -194,8 +194,7 @@ delay(1);
   Serial.println();
 #endif // PM==NO_MODE  
 
-  initLed(PINLED);
-  //pinMode(PINLED,OUTPUT);
+  initLed();
 
 #if CARTE==VR || CARTE==VRR || CARTE==VRDEV
   for(uint8_t sw=0;sw<MAXSW;sw++){
@@ -288,7 +287,7 @@ delay(1);
   if((resetInfo->reason)!=5){           // 5 deepsleep awake ; 6 external reset
     ds1820.convertDs(WPIN);
     delay(tconversion);
-    initConstant();
+    //initConstant();
     }
 #endif // PM==DS_MODE
 
@@ -298,19 +297,19 @@ delay(1);
   EEPROM.begin(512);
 #endif
 
-#if POWER_MODE!=DS_MODE
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et lancer une conversion */
   //la longueur est chargée depuis le 1er car de l'enregistrement ; si fausse ou crc faux readConstant renvoie 0
   if(!readConstant()){    
     initConstant();
-    if(cstRec.cstlen!=LENRTC){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){};} // blocage param faux, le programme a changé
-    }
-#endif // PM!=DS_MODE
+    if(cstRec.cstlen!=LENCST){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){};} // blocage param faux, le programme a changé
+  }
 
   Serial.print("CONSTANT=");Serial.print(CONSTANT);Serial.print(" time=");Serial.print(millis()-debTime);Serial.println(" ready !");
   yield();
   printConstant();
   delay(20);
+
+
 
 #if POWER_MODE==NO_MODE
 
@@ -325,9 +324,9 @@ delay(1);
 #ifdef  _SERVER_MODE
   clkFastStep=1;talkReq();              // forçage com pour acquisition port perif server
   
-  ssid=ssid1;password=password1;        // setup wifi pour ordreExt()
+  ssid=cstRec.ssid1;password=cstRec.pwd1;        // setup wifi pour ordreExt()
   if(!wifiConnexion(ssid,password)){
-    ssid=ssid2;password=password2;
+    ssid=cstRec.ssid2;password=cstRec.pwd2;
     wifiConnexion(ssid,password);       // tentative sur ssid bis
   }
 #endif // def_SERVER_MODE
@@ -564,9 +563,9 @@ if(diags){Serial.println(" dataTransfer() ");}
               conv_atoh((data+MPOSMDETSRV+k*2),((byte*)&cstRec.extDetec)+MDSLEN-1-k);
               }   
 
-            cstRec.portServer=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
+            cstRec.periPort=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
             //printConstant();
-            if(server==nullptr){server=new WiFiServer(cstRec.portServer);}
+            if(server==nullptr){server=new WiFiServer(cstRec.periPort);}
         }
         if(periMess!=MESSOK){
           memcpy(cstRec.numPeriph,"00",2);cstRec.IpLocal=IPAddress(0,0,0,0);
@@ -656,7 +655,7 @@ int buildReadSave(const char* nomfonction,const char* data)   // construit et en
 
   buildData(nomfonction,data);
 
-  return messToServer(&cli,host,port,bufServer); 
+  return messToServer(&cli,(char*)&cstRec.serverIp,cstRec.serverPort,bufServer); 
 }
 
 char* tempStr()
@@ -754,13 +753,13 @@ switch(cstRec.talkStep&=TALKCNTBIT){
   case 0:break;
   
   case TALKWIFI2:
-      ssid=ssid2;password=password2; // tentative sur ssid bis
+      ssid=cstRec.ssid2;password=cstRec.pwd2; // tentative sur ssid bis
       if(wifiConnexion(ssid,password)){talkSet(TALKDATA);}
       else {talkWifiKo();}
       break;
   
   case TALKWIFI1:
-      ssid=ssid1;password=password1;
+      ssid=cstRec.ssid1;password=cstRec.pwd1;
       //Serial.print("+");
       if(!wifiConnexion(ssid,password)){talkSet(TALKWIFI2);break;}
       if((millis()-dateOn)>1){talkSet(TALKDATA);break;}
@@ -786,9 +785,9 @@ switch(cstRec.talkStep&=TALKCNTBIT){
 
 #ifdef  _SERVER_MODE
         if(server!=nullptr){      //} && !serverStarted){
-          server->begin(cstRec.portServer);
+          server->begin(cstRec.periPort);
           serverStarted=true;
-          Serial.print(" server.begin:");Serial.println((int)cstRec.portServer);
+          Serial.print(" server.begin:");Serial.println((int)cstRec.periPort);
         }
 #endif // def_SERVER_MODE
       }

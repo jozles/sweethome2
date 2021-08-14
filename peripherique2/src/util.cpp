@@ -88,7 +88,7 @@ Serial.print("/");Serial.print((uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1);
 Serial.print(" crc=");Serial.print(*(cstRecA+cstRec.cstlen-1),HEX);Serial.print(" calc_crc=");
 byte calc_crc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1);Serial.println(calc_crc,HEX);
 //dumpstr((char*)cstRecA,256);
-if(*(cstRecA+cstRec.cstlen-1)==calc_crc && cstRec.cstlen==LENRTC){return 1;}
+if(*(cstRecA+cstRec.cstlen-1)==calc_crc && cstRec.cstlen==LENCST){return 1;}
 return 0;
 }
 
@@ -113,13 +113,15 @@ cstRec.cstcrc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1);
 #endif
 Serial.print("writeConstant ");for(int h=0;h<4;h++){Serial.print(cstRec.cstVers[h]);};Serial.print(" ");
 Serial.print((long)cstRecA,HEX);
-Serial.print(" len=");Serial.print((char*)&cstRec.cstcrc-cstRecA+1);
+Serial.print(" len=");Serial.print((unsigned long)&cstRec.cstcrc-(unsigned long)cstRecA+1);
 Serial.print("/");Serial.print(cstRec.cstlen);
 Serial.print(" crc=");Serial.print(cstRec.cstcrc,HEX);Serial.print(" ");Serial.print((long)&cstRec.cstcrc,HEX);
 Serial.print(" numperiph=");Serial.print((char)cstRec.numPeriph[0]);Serial.print((char)cstRec.numPeriph[1]);
 #ifdef _SERVER_MODE
-Serial.print(" portServer=");Serial.println(cstRec.portServer);
+Serial.print(" periPort=");Serial.println(cstRec.periPort);
 #endif
+Serial.print(" serverPort=");Serial.println(cstRec.serverPort);
+Serial.print(" serverIP=");serialPrintIp((uint8_t*)&cstRec.serverIp);
 Serial.println();
 
 }
@@ -143,7 +145,6 @@ void initConstant()  // inits mise sous tension
     cstRec.durPulseTwo[i]=0;
     cstRec.cntPulseOne[i]=0;
     cstRec.cntPulseTwo[i]=0;}
-    cstRec.IpLocal=IPAddress(0,0,0,0);
   char detDis=DETDIS<<DETBITST_PB;
   memset(cstRec.memDetec,detDis,MAXDET);
   memcpy(cstRec.cstVers,VERSION,LENVERSION);
@@ -151,7 +152,18 @@ void initConstant()  // inits mise sous tension
   memset(cstRec.perInput,0x00,NBPERINPUT*PERINPLEN);
   cstRec.extDetec=0;
   cstRec.analVal=0;
-  cstRec.portServer=9999;
+  cstRec.IpLocal=IPAddress(0,0,0,0);  
+  cstRec.periPort=9999;
+  cstRec.serverIp=IPAddress(192,168,0,35);
+  cstRec.periPort=1790;
+  memset(cstRec.ssid1,'\0',LENSSID);
+  strcat(cstRec.ssid1,"pinks");
+  memset(cstRec.ssid2,'\0',LENSSID);
+  strcat(cstRec.ssid2,"devolo-5d3");
+  memset(cstRec.pwd1,'\0',LPWSSID);
+  strcat(cstRec.pwd1,"cain ne dormant pas songeait au pied des monts");
+  memset(cstRec.pwd2,'\0',LPWSSID);
+  strcat(cstRec.pwd2,"JNCJTRONJMGZEEQL");
   memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
   Serial.println("Init Constant done");
   writeConstant();
@@ -222,7 +234,7 @@ void printConstant()
 if(diags){  
   char buf[3];memcpy(buf,cstRec.numPeriph,2);buf[2]='\0';
   Serial.print("numPeriph=");Serial.print(buf);Serial.print(" IpLocal=");Serial.print(IPAddress(cstRec.IpLocal));
-  Serial.print("  port=");Serial.print(cstRec.portServer);Serial.print("  sw=");Serial.print(NBSW);Serial.print("  det=");Serial.print(NBDET);
+  Serial.print("  port=");Serial.print(cstRec.periPort);Serial.print("  sw=");Serial.print(NBSW);Serial.print("  det=");Serial.print(NBDET);
   Serial.print("  ");Serial.println(VERSION);
   Serial.print("SWcde=(");if((cstRec.swCde&0xF0)==0){Serial.print("0");}Serial.print(cstRec.swCde,HEX);Serial.print(") ");
   for(int s=MAXSW;s>=1;s--){Serial.print((char)(((cstRec.swCde>>(2*s-1))&0x01)+48));}
