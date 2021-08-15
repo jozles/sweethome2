@@ -199,7 +199,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRR             // <------------- modèle carte
+#define CARTE VRDEV             // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation 
 //#define PININT_MODE             // <------------- avec/sans pin d'interruption
 
@@ -408,8 +408,9 @@ Modifier :
 #define DETIMP            1000    // millis trig cde impulsionnelle
 
 typedef struct {
-  uint8_t   cstlen;               //  1   doit être la 1ère variable (adresse utilisée pour le calcul de longueur)
+  uint16_t  cstlen;               //  2   doit être la 1ère variable (adresse utilisée pour le calcul de longueur)
   byte      swCde;                //  1   2 bits par sw cde/état (*periSwVal) bits 8(sw4), 6(sw3), 4(sw2), 2(sw1)
+  byte      dispo;                //  1
   char      cstVers[LENVERSION];  //  4  
   char      cstModel[LENMODEL];   //  6
   char      numPeriph[2];         //  2
@@ -433,27 +434,27 @@ union {
   byte      perInput[NBPERINPUT*PERINPLEN]; // 96  configuration (24*4)
   byte      memDetec[MAXDET];     //  4   image mem des détecteurs physiques (1 byte par détecteur)   
   uint32_t  extDetec;             //  4   1 bit par detecteur externe
-  IPAddress IpLocal;              //  4
+  IPAddress IpLocal;              //  8
   uint16_t  analVal;              //  2   dernière valeur analogique lue
   uint16_t  analLow;              //  2   seuil analogique low
   uint16_t  analHigh;             //  2   seuil analogique high
   uint16_t  serverPort;           //  2   sweet_home server port
   uint16_t  periPort;             //  2   server mode peri port   
-  IPAddress serverIp;             //  4   sweet_home server ip addr
+  IPAddress serverIp;             //  8   sweet_home server ip addr
   char      ssid1[16];            // 16   ssid1 
   char      pwd1[64];             // 64   pwd1         
   char      ssid2[16];            // 16   ssid2 
   char      pwd2[64];             // 64   pwd2        
 
 #define LENFILLERCST 31
-  byte      filler[LENFILLERCST]; //  
+  byte      filler[LENFILLERCST]; 
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer la longueur
              // total 238 = 60 mots ; 256 maxi pour RTC
 } constantValues;
 
 #define STEPDATASAVE 6            // code pour talkstep de dataSave()
 
-#define LENCST 250+164
+#define LENCST 420 // 250+164+?
 
 
 

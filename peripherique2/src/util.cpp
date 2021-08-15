@@ -84,9 +84,9 @@ bool readConstant()
 #endif
 
 Serial.print("readConstant ");Serial.print((long)cstRecA,HEX);Serial.print(" len=");Serial.print(cstRec.cstlen);
-Serial.print("/");Serial.print((uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1);
+Serial.print("/");Serial.print((uint16_t)((long)&cstRec.cstcrc-(long)cstRecA)+1);
 Serial.print(" crc=");Serial.print(*(cstRecA+cstRec.cstlen-1),HEX);Serial.print(" calc_crc=");
-byte calc_crc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1);Serial.println(calc_crc,HEX);
+byte calc_crc=calcCrc(cstRecA,(uint16_t)cstRec.cstlen-1);Serial.println(calc_crc,HEX);
 //dumpstr((char*)cstRecA,256);
 if(*(cstRecA+cstRec.cstlen-1)==calc_crc && cstRec.cstlen==LENCST){return 1;}
 return 0;
@@ -96,7 +96,7 @@ void writeConstant()
 {
 memcpy(cstRec.cstVers,VERSION,LENVERSION);
 cstRec.analVal=0;
-cstRec.cstcrc=calcCrc(cstRecA,(uint8_t)cstRec.cstlen-1); 
+cstRec.cstcrc=calcCrc(cstRecA,cstRec.cstlen-1);
   
 #if CONSTANT==RTCSAVED
   int temp=CONSTANTADDR;
@@ -118,18 +118,17 @@ Serial.print("/");Serial.print(cstRec.cstlen);
 Serial.print(" crc=");Serial.print(cstRec.cstcrc,HEX);Serial.print(" ");Serial.print((long)&cstRec.cstcrc,HEX);
 Serial.print(" numperiph=");Serial.print((char)cstRec.numPeriph[0]);Serial.print((char)cstRec.numPeriph[1]);
 #ifdef _SERVER_MODE
-Serial.print(" periPort=");Serial.println(cstRec.periPort);
+Serial.print(" periPort=");Serial.print(cstRec.periPort);
 #endif
-Serial.print(" serverPort=");Serial.println(cstRec.serverPort);
-Serial.print(" serverIP=");serialPrintIp((uint8_t*)&cstRec.serverIp);
-Serial.println();
+Serial.print(" serverIP=");Serial.print((IPAddress)cstRec.serverIp);Serial.print(" serverPort=");Serial.print(cstRec.serverPort);
 
+Serial.println();
 }
 
 void initConstant()  // inits mise sous tension
 {
-  cstRec.cstlen=(uint8_t)((long)&cstRec.cstcrc-(long)cstRecA)+1;  
-  //cstRec.cstlen=(sizeof(constantValues));  // si le crc est faux, retour à la valeur par défaut
+  cstRec.cstlen=(uint16_t)((long)&cstRec.cstcrc-(long)cstRecA)+1;
+  Serial.print(" init_len=");Serial.println(cstRec.cstlen);
   memcpy(cstRec.numPeriph,"00",2);
   cstRec.serverTime=PERSERV+1;             // forçage talkserver à l'init
   cstRec.serverPer=PERSERV;
@@ -155,24 +154,25 @@ void initConstant()  // inits mise sous tension
   cstRec.IpLocal=IPAddress(0,0,0,0);  
   cstRec.periPort=9999;
   cstRec.serverIp=IPAddress(192,168,0,35);
-  cstRec.periPort=1790;
+  cstRec.serverPort=1790;
   memset(cstRec.ssid1,'\0',LENSSID);
-  strcat(cstRec.ssid1,"pinks");
   memset(cstRec.ssid2,'\0',LENSSID);
-  strcat(cstRec.ssid2,"devolo-5d3");
   memset(cstRec.pwd1,'\0',LPWSSID);
-  strcat(cstRec.pwd1,"cain ne dormant pas songeait au pied des monts");
   memset(cstRec.pwd2,'\0',LPWSSID);
-  strcat(cstRec.pwd2,"JNCJTRONJMGZEEQL");
   memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
+/*
+  strcat(cstRec.ssid1,"pinks");
+  strcat(cstRec.pwd1,"cain ne dormant pas songeait au pied des monts");
+  strcat(cstRec.ssid2,"devolo-5d3");
+  strcat(cstRec.pwd2,"JNCJTRONJMGZEEQL");
+*/
   Serial.println("Init Constant done");
   writeConstant();
-  //dumpstr((char*)cstRecA,256);
 }
 
 void periInputPrint(byte* input)
 {
-  Serial.print("rules ");
+  Serial.println("rules ");
 #define LBINP 29
   char binput[LBINP];
   byte a;
@@ -194,7 +194,7 @@ void periInputPrint(byte* input)
       a=(*((uint8_t*)(input+2+ninp*PERINPLEN))&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+20,&a);  // act input
       for(int tact=0;tact<LENTACT;tact++){binput[24+tact]=inpact[a*LENTACT+tact];}
       Serial.print(binput);
-      sp("/ ",0);
+      sp("/ ",0);if((ninp-(ninp/4*4))==3){Serial.println();}
     }
     Serial.println();
 }
@@ -236,6 +236,8 @@ if(diags){
   Serial.print("numPeriph=");Serial.print(buf);Serial.print(" IpLocal=");Serial.print(IPAddress(cstRec.IpLocal));
   Serial.print("  port=");Serial.print(cstRec.periPort);Serial.print("  sw=");Serial.print(NBSW);Serial.print("  det=");Serial.print(NBDET);
   Serial.print("  ");Serial.println(VERSION);
+  Serial.print("ssid1=");Serial.print(cstRec.ssid1);Serial.print(" pwd1=");Serial.println(cstRec.pwd1);
+  Serial.print("ssid2=");Serial.print(cstRec.ssid1);Serial.print(" pwd2=");Serial.println(cstRec.pwd1);
   Serial.print("SWcde=(");if((cstRec.swCde&0xF0)==0){Serial.print("0");}Serial.print(cstRec.swCde,HEX);Serial.print(") ");
   for(int s=MAXSW;s>=1;s--){Serial.print((char)(((cstRec.swCde>>(2*s-1))&0x01)+48));}
   Serial.print(" serverTime=");Serial.print(cstRec.serverTime);Serial.print(" serverPer=");Serial.print(cstRec.serverPer);

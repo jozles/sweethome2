@@ -66,6 +66,7 @@ bool serverStarted=false;
   char   httpMess[LHTTPMESS];             // buffer d'entrée en mode serveur
 #endif // _SERVER
 
+  char shServerIp[16];                    // sweethome server IpAddr
   const char* srvpswd=PERIPASS;
   byte  lsrvpswd=LPWD;
 
@@ -154,7 +155,8 @@ void  dataTransfer(char* data);
 void  readTemp();
 void  ordreExt();
 void  outputCtl();
-void readAnalog();
+void  readAnalog();
+uint16_t  getServerConfig();
 
 #ifdef MAIL_SENDER
 void mail(char* subj,char* dest,char* msg);
@@ -189,6 +191,7 @@ delay(1);
 
 #if POWER_MODE==NO_MODE
   diags=false;
+  delay(1000);
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" ; une touche pour diags ");
   while((millis()-t_on)<6000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
   Serial.println();
@@ -297,18 +300,32 @@ delay(1);
   EEPROM.begin(512);
 #endif
 
-/* si erreur sur les variables permanentes (len ou crc faux), initialiser et lancer une conversion */
-  //la longueur est chargée depuis le 1er car de l'enregistrement ; si fausse ou crc faux readConstant renvoie 0
-  if(!readConstant()){    
+/* si erreur sur les variables permanentes (len ou crc faux), initialiser et sauver */
+
+  if(!readConstant()){   
     initConstant();
+    yield();
     if(cstRec.cstlen!=LENCST){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){};} // blocage param faux, le programme a changé
   }
 
   Serial.print("CONSTANT=");Serial.print(CONSTANT);Serial.print(" time=");Serial.print(millis()-debTime);Serial.println(" ready !");
-  yield();
   printConstant();
+  char buf[8];
+  for(int i=0;i<4;i++){         // mise au format alpha pour messToServer
+    memset(buf,'\0',8);sprintf(buf,"%d",cstRec.serverIp[i]);strcat(shServerIp,buf);if(i<3){strcat(shServerIp,".");}
+  }
+  //charIp((IPAddress*)&cstRec.serverIp,shServerIp); // ne fonctionne pas ... pb avec <ESP8266WiFi.h>
   delay(20);
 
+  blink(4);delay(2000);
+  #define FRDLY 5  // sec
+  pinMode(PINDTC,INPUT);
+  if(digitalRead(PINDTC)==LOW){
+    yield();
+    Serial.print(getServerConfig());
+    blink(8);
+  }
+  Serial.println();
 
 
 #if POWER_MODE==NO_MODE
@@ -318,7 +335,7 @@ delay(1);
   talkReq(); 
 
   memdetinit();pulsesinit();
-  Serial.print(" ssid=");Serial.print(ssid1);Serial.print(" - ");Serial.println(ssid2);
+  Serial.print(" ssid=");Serial.print(cstRec.ssid1);Serial.print(" - ");Serial.println(cstRec.ssid2);
   yield();
   
 #ifdef  _SERVER_MODE
@@ -398,7 +415,7 @@ delay(1);
                       case 7:   readAnalog();break;
                       case 8:   pulseClkisr();break;
                       case 9:   readTemp();
-                                Serial.print("!");
+                                Serial.print("!");Serial.print(digitalRead(PINDTC));
                                 break;
                       case 10:  pulseClkisr();
                                 clkSlowStep=0;
@@ -655,7 +672,7 @@ int buildReadSave(const char* nomfonction,const char* data)   // construit et en
 
   buildData(nomfonction,data);
 
-  return messToServer(&cli,(char*)&cstRec.serverIp,cstRec.serverPort,bufServer); 
+  return messToServer(&cli,shServerIp,cstRec.serverPort,bufServer); 
 }
 
 char* tempStr()
@@ -1058,4 +1075,37 @@ void getTemp()
 #endif // PM!=DS_MODE
 
       checkVoltage();
+}
+
+uint16_t getServerConfig()
+{
+  char bf[MAXSER];*buf='\0';
+  uint16_t maxl=MAXSER;
+  
+  for(uint8_t i=0;i<=RSCNB;i++){Serial.print(RCVSYNCHAR);}
+  Serial.print(MESSCONFIG);
+  uint16_t rcvl=serialRcv(bf,maxl,0);
+  //Serial.println(bf);
+
+  if(rcvl<10){return 0;}
+
+  char a=' ';
+  char* b=bf;
+  uint16_t ll=0;
+  while(a!=';' && a!='\0' && ll<rcvl){a=b[0];b+=1;}
+  b[3]='!';b[7]='!';b[10]='!';
+  for(uint8_t i=0;i<4;i++){uint16_t ipSeg=0;conv_atob(b,&ipSeg);b+=4;cstRec.serverIp[i]=ipSeg;}
+  delay(10000);
+  Serial.print("\n--------");Serial.print((IPAddress)cstRec.serverIp);Serial.print(' ');Serial.println(b);
+/*
+  cstRec.serverIp
+  cstRec.serverPort
+  cstRec.remotePort
+  cstRec.udpPort
+  cstRec.ssid1
+  cstRec.pwd1
+  cstRec.ssid1
+  cstRec.pwd2
+*/
+  return rcvl;
 }
