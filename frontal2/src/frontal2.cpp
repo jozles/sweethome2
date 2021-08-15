@@ -433,9 +433,7 @@ void setup() {                          // ====================================
 //periMaintenance();
 
   sdInit();
-  configInit();configLoad();
-  *toPassword=TO_PASSWORD;if(*maxCxWt==0 || *maxCxWu==0){*maxCxWt=MAXCXWT;*maxCxWu=MAXCXWU;configSave();}
-  configPrint();
+  configInit();configLoad();configPrint();
 
 //for(int z=0;z<nbfonct;z++){Serial.print(z);Serial.print(" ");for(int w=0;w<10;w++){Serial.print(fonctions[z*10+w]);}Serial.println();}
     
@@ -449,7 +447,7 @@ void setup() {                          // ====================================
       if(millis()>(beg+FRDLY*1000)){
         blink(4);
         factoryReset();
-        usrReboot();  
+        forceWd();
       }
   }
 
@@ -1860,48 +1858,16 @@ void serialServer()
   #define LSERB 1000        
   char serialBuf[LSERB];
   
-  uint16_t lrcv=serialRcv(serialBuf,LSERB);
+  uint16_t lrcv=serialRcv(serialBuf,LSERB,1);
   if(lrcv!=0){
     rcvcnt++;
     Serial.print(rcvcnt);Serial.print(" ");Serial.print(lrcv);Serial.print("->");Serial.println(serialBuf);
-    if(memcmp(serialBuf,"srvconf__",10)==0){
+    if(memcmp(serialBuf,MESSCONFIG,10)==0){
       uint16_t lbec;
       configExport(bec,&lbec,1);
       Serial1.println(bec);
     }
   }
-}
-
-uint16_t serialRcv(char* rcv,uint16_t maxl)
-{
-  #define RCVSYNCHAR '#'
-  #define RSCNB 3
-  
-  ab='s';
-  
-  char inch=RCVSYNCHAR;
-  uint8_t lfcnt=0;
-  uint16_t lrcv=0;
-
-    while(Serial1.available() && (lfcnt<RSCNB || inch==RCVSYNCHAR)){
-      if(lfcnt==0){delay(2);}   // acquisition 
-      inch=Serial1.read();
-      if(inch==RCVSYNCHAR){
-        lfcnt++;
-        //Serial1.print(inch);Serial1.print(" ");Serial1.println(lfcnt);
-      }
-      else if (lfcnt<RSCNB){lfcnt=0;}
-    }
-    
-    if(lfcnt>=RSCNB){
-      *rcv=inch;lrcv++;
-      while(Serial1.available() && lrcv<(maxl-1)){
-        *(rcv+lrcv)=Serial1.read();lrcv++;
-      }
-      *(rcv+lrcv)='\0';
-      //Serial1.print(lrcv);Serial1.print(" ");Serial1.println(rcv);
-    }
-    return lrcv;
 }
 
 void testUdp()

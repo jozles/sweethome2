@@ -176,10 +176,15 @@ void factoryResetConfig()
   memcpy(serverName,DEFNOMSERV,LNSERV);
   memcpy(mac,DEFMACADDR,MACADDRLENGTH);
   *serverPort=DEFSERVERPORT;
+  *remotePort=DEFSERVERPORT+1;
+  *udpPort=DEFSERVERPORT+2;
   memset(usrnames,0x00,LENUSRNAME);
   memcpy(usrnames,"admin",5);
   memset(usrpass,0x00,LENUSRPASS);
   memcpy(usrpass,"admin",5);
+  *toPassword=TO_PASSWORD;
+  *maxCxWt=MAXCXWT;
+  *maxCxWu=MAXCXWU;
 
   configSave();
 }
@@ -200,9 +205,9 @@ memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
 //memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
 memset(usrtime,0x00,NBUSR*sizeof(long));
 memset(usrpretime,0x00,NBUSR*sizeof(long));
-*toPassword=TO_PASSWORD;
-*maxCxWt=MAXCXWT;
-*maxCxWu=MAXCXWU;
+*toPassword=0;
+*maxCxWt=0;
+*maxCxWu=0;
 }
 
 
@@ -643,7 +648,7 @@ int periRemove(uint16_t num)
 int periRaz(uint16_t num)
 {
   periRemove(num);
-  
+
   char periFile[7];periFname(num,periFile);
 
   if (!fperi.open(periFile, O_RDWR | O_CREAT | O_TRUNC)) {
@@ -656,7 +661,7 @@ int periRaz(uint16_t num)
   if (!fperi.preAllocate(PERIRECLEN+100)) {
     mail("SD PREALLOC FAIL",periFile);
     Serial.print(periFile);Serial.println(" preallocation failed");
-  } 
+  }
   fperi.close();
   return SDOK;
 }
