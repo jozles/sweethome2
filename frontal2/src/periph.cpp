@@ -317,11 +317,13 @@ void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned 
 
 void configExport(char* bec,uint16_t* lbec,uint8_t selssid)
 {
-  long unsigned ll=0;
-  *bec=0x00;
-  strcat(bec,serverName);ll+=strlen(bec);                     // nom server
-  //memcpy(bec,serverName,LNSERV);ll+=LNSERV;
-  *(bec+ll)=';';ll++;
+  uint16_t ll=0;
+  *bec=0x00;strcat(bec,"0000;");                              // len ascii
+  strcat(bec,serverName);                                     // nom server
+  strcat(bec," v");strcat(bec,VERSION);                       // version
+  strcat(bec,";");
+  ll=strlen(bec);
+  
   for(int pp=0;pp<4;pp++){                                    // ip server
     sprintf(bec+ll+pp*4,"%03u",(uint16_t)localIp[pp]);
     if(pp<3){*(bec+ll+(pp+1)*4-1)='.';}}ll+=15;
@@ -338,9 +340,12 @@ void configExport(char* bec,uint16_t* lbec,uint8_t selssid)
   strcat(bec+ll,passssid+(selssid-1)*LPWSSID);                // pwd1
   strcat(bec,";\0");
   ll=strlen(bec);
+  sprintf(bec,"%04u",ll);
+  bec[4]=';';
+  setcrc(bec,ll);
   
-  *(bec+ll)='\0';
-  *lbec=(uint16_t)ll;
+  *(bec+ll+2)='\0';
+  *lbec=(uint16_t)ll+2;
 }
 
 void configPrint()

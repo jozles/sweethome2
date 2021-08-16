@@ -1865,7 +1865,10 @@ void serialServer()
     if(memcmp(serialBuf,MESSCONFIG,10)==0){
       uint16_t lbec;
       configExport(bec,&lbec,1);
-      Serial1.println(bec);
+      //dumpstr(bec,120);
+      for(uint8_t i=0;i<RSCNB+1;i++){Serial1.print(RCVSYNCHAR);}
+      Serial1.print(bec);
+      Serial.println(bec);
     }
   }
 }
