@@ -322,7 +322,7 @@ delay(1);
   pinMode(PINDTC,INPUT);
   if(digitalRead(PINDTC)==LOW){
     yield();
-    Serial.print(getServerConfig());
+    getServerConfig();
     blink(8);
   }
   Serial.println();
@@ -1080,32 +1080,39 @@ void getTemp()
 uint16_t getServerConfig()
 {
   char bf[MAXSER];*buf='\0';
-  uint16_t maxl=MAXSER;
   
   for(uint8_t i=0;i<=RSCNB;i++){Serial.print(RCVSYNCHAR);}
   Serial.print(MESSCONFIG);
-  uint16_t rcvl=serialRcv(bf,maxl,0);
-  //Serial.println(bf);
+  delay(10);                                 // tx time (14*100uS) + response time (100uS)
+  uint16_t rcvl=serialRcv(bf,MAXSER,0);     // longueur effectivement reçue (strlen(bf))
+  
+  if(rcvl>0){
+    Serial.println(bf);
+  
+    Serial.print("checkData=");
+    uint16_t ll=0;
+    int cd=checkData(bf,&ll);               // longueur stockée dans le message
+    Serial.print(cd);
+    if(cd!=1){                              // renvoie mess = MESSOK (1) OK ; MESSCRC (-2) CRC ; MESSLEN (-3) 
+      Serial.println(" ko");return 0;}     
+    Serial.println(" ok");
 
-  if(rcvl<10){return 0;}
+    char a=' ';
+    char* b=bf;
+    uint8_t cntpv=0;
 
-  char a=' ';
-  char* b=bf;
-  uint16_t ll=0;
-  while(a!=';' && a!='\0' && ll<rcvl){a=b[0];b+=1;}
-  b[3]='!';b[7]='!';b[10]='!';
-  for(uint8_t i=0;i<4;i++){uint16_t ipSeg=0;conv_atob(b,&ipSeg);b+=4;cstRec.serverIp[i]=ipSeg;}
-  delay(10000);
-  Serial.print("\n--------");Serial.print((IPAddress)cstRec.serverIp);Serial.print(' ');Serial.println(b);
-/*
-  cstRec.serverIp
-  cstRec.serverPort
-  cstRec.remotePort
-  cstRec.udpPort
-  cstRec.ssid1
-  cstRec.pwd1
-  cstRec.ssid1
-  cstRec.pwd2
-*/
+    while(cntpv<2 && a!='\0' && b<(bf+rcvl)){a=*b++;if(a==';'){cntpv++;}}                       // skip len+name+version
+    uint16_t temp=0;
+    for(uint8_t i=0;i<4;i++){temp=0;conv_atob(b,&temp);b+=4;cstRec.serverIp[i]=temp;}           // serverIp  
+    temp=0;conv_atob(b,&temp);b+=6;cstRec.serverPort=temp;                                      // serverPort
+    b+=12;                                                                                      // skip remote+udp ports
+
+    temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.ssid1[temp]=a;temp++;}
+    cstRec.ssid1[temp]='\0';b+=temp;
+    temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.pwd1[temp]=a;temp++;}
+    cstRec.pwd1[temp]='\0';b+=temp;
+
+    //bool svd=diags;diags=true;printConstant();diags=svd;
+  }
   return rcvl;
 }

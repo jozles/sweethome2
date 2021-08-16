@@ -237,7 +237,7 @@ if(diags){
   Serial.print("  port=");Serial.print(cstRec.periPort);Serial.print("  sw=");Serial.print(NBSW);Serial.print("  det=");Serial.print(NBDET);
   Serial.print("  ");Serial.println(VERSION);
   Serial.print("ssid1=");Serial.print(cstRec.ssid1);Serial.print(" pwd1=");Serial.println(cstRec.pwd1);
-  Serial.print("ssid2=");Serial.print(cstRec.ssid1);Serial.print(" pwd2=");Serial.println(cstRec.pwd1);
+  Serial.print("ssid2=");Serial.print(cstRec.ssid2);Serial.print(" pwd2=");Serial.println(cstRec.pwd2);
   Serial.print("SWcde=(");if((cstRec.swCde&0xF0)==0){Serial.print("0");}Serial.print(cstRec.swCde,HEX);Serial.print(") ");
   for(int s=MAXSW;s>=1;s--){Serial.print((char)(((cstRec.swCde>>(2*s-1))&0x01)+48));}
   Serial.print(" serverTime=");Serial.print(cstRec.serverTime);Serial.print(" serverPer=");Serial.print(cstRec.serverPer);
