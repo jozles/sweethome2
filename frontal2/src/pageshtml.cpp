@@ -59,6 +59,13 @@ extern char       strHisto[RECCHAR];
 
 extern char*      ssid;
 extern char*      passssid;
+extern uint8_t*   concMac;
+extern uint16_t*  concChannel;
+extern uint16_t*  concRfSpeed;      
+extern byte*      concIp;               
+extern uint16_t*  concPort;         
+extern uint8_t*   concNb;            
+
 extern char*      usrnames;
 extern char*      usrpass;
 extern unsigned long*     usrtime;
@@ -385,6 +392,35 @@ Serial.println((char*)(buf+strlen(buf)-100));
     tableEnd(buf,jsbuf,0);
 }
 
+void conctable(char* buf,char* jsbuf)
+{ 
+    char concFn[]={"ethcfg___"};
+    borderparam=NOBORDER;
+    tableBeg(buf,jsbuf,0);scrDspText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);scrDspText(buf,jsbuf,"mac|channel|RF_S|IP|Port",0,STRING|TREND);
+Serial.println((char*)(buf+strlen(buf)-150));
+    
+    for(int nb=0;nb<MAXCONC;nb++){
+      concFn[LENNOM-2]=nb+PMFNCVAL;
+      scrDspNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
+    
+      #define LBL 32
+      char lbuf[LBL];*lbuf=0x00;
+      for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[concMac[nb*MACADDRLENGTH+k]/16]);concat1a(lbuf,chexa[concMac[nb*MACADDRLENGTH+k]%16]);}
+      concFn[LENNOM-1]='M';scrGetText(buf,jsbuf,lbuf,concFn,11,MACADDRLENGTH*2,0,TDBE);
+    
+      concFn[LENNOM-1]='C';scrGetNum(buf,jsbuf,'d',(concChannel+nb),concFn,4,0,0,TDBE);
+      concFn[LENNOM-1]='S';scrGetNum(buf,jsbuf,'d',(concRfSpeed+nb),concFn,4,0,0,TDBE);
+      *lbuf=0x00;for(int k=0;k<4;k++){concatns(lbuf,concIp[nb*4+k]);if(k!=3){strcat(lbuf,".");}}
+      concFn[LENNOM-1]='I';scrGetText(buf,jsbuf,lbuf,concFn,11,LBL,0,TDBE);
+      concFn[LENNOM-1]='P';scrGetNum(buf,jsbuf,'d',(concPort+nb),concFn,4,0,0,TDBE);
+    
+      scrDspText(buf,jsbuf," ",0,TREND);
+    }
+    
+    tableEnd(buf,jsbuf,0);
+}
+
+
 void cfgServerHtml(EthernetClient* cli)
 {
   Serial.print(" config serveur ");
@@ -427,6 +463,7 @@ fontBeg(buf,jsbuf,2,0);
 
             scrDspText(buf,jsbuf,"",0,BRYES);
             subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
+            //conctable(buf,jsbuf);
             scrDspText(buf,jsbuf," to password ",0,0);scrGetNum(buf,jsbuf,'d',toPassword,"to_passwd_",6,0,0,BRYES);strcat(buf,"\n");
             //strcat(buf," to password ");scrGetNum(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
             subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);

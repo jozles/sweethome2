@@ -25,7 +25,14 @@ extern char*      serverName;
 extern char*      peripass;
 extern char*      ssid;   
 extern char*      passssid;
-extern int*       nbssid;
+extern int*       nbssid;             // inutilisé
+extern uint8_t*   concMac;
+extern uint16_t*  concChannel;
+extern uint16_t*  concRfSpeed;      
+extern byte*      concIp;               
+extern uint16_t*  concPort;         
+extern uint8_t*   concNb;            
+ 
 extern char*      usrnames;  
 extern char*      usrpass;     
 extern unsigned long* usrtime;
@@ -200,7 +207,12 @@ memset(ssid,0x00,MAXSSID*(LENSSID+1));
 //memcpy(ssid,SSID1,strlen(SSID1));memcpy(ssid+LENSSID+1,SSID2,strlen(SSID2));   
 memset(passssid,0x00,MAXSSID*(LPWSSID+1));
 //memcpy(passssid,PWDSSID1,strlen(PWDSSID1));memcpy(passssid+LPWSSID+1,PWDSSID2,strlen(PWDSSID2));
-*nbssid = MAXSSID;
+memset(concMac,0x00,MAXCONC*MACADDRLENGTH);
+memset(concChannel,0x00,MAXCONC*sizeof(uint8_t));
+memset(concRfSpeed,0x00,MAXCONC*sizeof(uint8_t));
+memset(concIp,0x00,MAXCONC*4);
+memset(concPort,0x00,MAXCONC*sizeof(uint16_t));
+*concNb=0;
 memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
 //memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
 memset(usrtime,0x00,NBUSR*sizeof(long));
@@ -229,18 +241,28 @@ byte* temp=(byte*)configRec;
   temp+=LNSERV;
   udpPort=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
-  char* dispo=(char*)temp; 
-  temp+=7;
-  char* dispo2=(char*)temp;  
-  temp+=9;  
+  temp+=16;                        // dispo  
   peripass=(char*)temp;
   temp+=(LPWD+1);
   ssid=(char*)temp;
   temp+=(MAXSSID*(LENSSID+1));
   passssid=(char*)temp;
   temp+=(MAXSSID*(LPWSSID+1));
-  nbssid=(int*)temp;
+  nbssid=(int*)temp;              // inutilisé
   temp+=sizeof(int);
+  concMac=(uint8_t*)temp;
+  temp+=(MAXCONC*MACADDRLENGTH);
+  concChannel=(uint16_t*)temp;
+  temp+=(MAXCONC*sizeof(uint16_t));
+  concRfSpeed=(uint16_t*)temp;
+  temp+=(MAXCONC*sizeof(uint16_t));
+  concIp=(byte*)temp;
+  temp+=(MAXCONC*sizeof(uint8_t));
+  concPort=(uint16_t*)temp;
+  temp+=(MAXCONC*sizeof(uint16_t));
+  concNb=(uint8_t*)temp;
+  temp+=sizeof(uint8_t);
+  temp+=211;                      // dispo 
   usrnames=(char*)temp;
   temp+=NBUSR*(LENUSRNAME+1);
   usrpass=(char*)temp;
@@ -274,10 +296,12 @@ byte* temp=(byte*)configRec;
 
   configInitVar();
 
+  
+//  Serial.print((long)configEndOfRecord);Serial.print(" ");Serial.println((long)configBegOfRecord);
   long configRecLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
   Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configRecLength);Serial.print("  ");
   Serial.print("MLMSET/LENMESS=");Serial.print(MLMSET);Serial.print("/");Serial.print(LENMESS);
-  //delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
+  delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
   
   nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;
   faccueil=(strstr(fonctions,"accueil___")-fonctions)/LENNOM;

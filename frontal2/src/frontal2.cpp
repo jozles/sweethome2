@@ -74,6 +74,12 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   char* ssid;                 // MAXSSID ssid
   char* passssid;             // MAXSSID password SSID
   int*  nbssid;               // inutilisé
+  uint8_t*  concMac;          // (table concentrateurs) macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
+  uint16_t* concChannel;      // (table concentrateurs) n° channel nrf utilisé par le concentrateur
+  uint16_t* concRfSpeed;      // (table concentrateurs) RF_Speed concentrateur
+  byte* concIp;               // (table concentrateurs) adresse IP concentrateur
+  uint16_t* concPort;         // (table concentrateurs) port concentrateur
+  uint8_t* concNb;            // numéro de concentrateur pour périf nrf
   char* usrnames;             // usernames
   char* usrpass;              // userpass
   unsigned long* usrtime;     // user cx time
@@ -1519,19 +1525,27 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 49: rien
               case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__ // submit depuis cfgServervHtml                              
 */
-              case 51: what=6;switch(*(libfonctions+2*i+1)){                                            // (config) ethcfg___
-                          case 'i': break;memset(localIp,0x00,4);                                       // (config) localIp
+              case 51: what=6;                                                                          // (config) ethcfg___
+                       {uint8_t nC=*(libfonctions+2*i)-PMFNCVAL;                                          // num concentrateur             
+                          switch(*(libfonctions+2*i+1)){                                            
+                            case 'i': break;memset(localIp,0x00,4);                                       // (config) localIp
 //                                    for(j=0;j<4;j++){conv_atob(valf,localIp+j);}break;   // **** à faire ****
-                          case 'p': *serverPort=0;conv_atob(valf,serverPort);break;                     // (config) serverPort
-                          case 't': *remotePort=0;conv_atob(valf,remotePort);break;                     // (config) remotePort
-                          case 'u': *udpPort=0;conv_atob(valf,udpPort);break;                           // (config) udpPort
-                          case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;                // (config) mac
-                          case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                          // (config) TO sans TCP
-                          case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                          // (config) TO sans UDP
-                          case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;         // (config) nom serveur
-                          default: break;
-                       }
-                       break;
+                            case 'p': *serverPort=0;conv_atob(valf,serverPort);break;                     // (config) serverPort
+                            case 't': *remotePort=0;conv_atob(valf,remotePort);break;                     // (config) remotePort
+                            case 'u': *udpPort=0;conv_atob(valf,udpPort);break;                           // (config) udpPort
+                            case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;                // (config) mac
+                            case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                          // (config) TO sans TCP
+                            case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                          // (config) TO sans UDP
+                            case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;         // (config) nom serveur
+                        
+                            case 'I': break;memset(localIp,0x00,4);                                       // (config) concIp
+                            case 'P': break;*serverPort=0;conv_atob(valf,serverPort);break;               // (config) concPort
+                            case 'M': for(j=0;j<6;j++){conv_atoh(valf+j*2,(concMac+MACADDRLENGTH*nC+j));}break;            // (config) concMac
+                            case 'C': break;*maxCxWu=0;conv_atobl(valf,maxCxWu);break;                    // (config) concchannel
+                            case 'S': break;alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;   // (config) concRfSpeed
+                            default: break;
+                          }
+                       }break;
               case 52: what=8;                                                                          // submit depuis cfgRemotehtml
                        {int nb=*(libfonctions+2*i+1)-PMFNCHAR;
                         uint16_t v1=0;

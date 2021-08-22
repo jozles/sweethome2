@@ -192,7 +192,8 @@ delay(1);
 #if POWER_MODE==NO_MODE
   diags=false;
   delay(1000);
-  Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" ; une touche pour diags ");
+  //Serial.print("\nSerial buffer size =");Serial.println(Serial.getRxBufferSize());
+  Serial.print("\nstart setup v");Serial.print(VERSION);Serial.print(" ; une touche pour diags ");
   while((millis()-t_on)<6000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
   Serial.println();
 #endif // PM==NO_MODE  
