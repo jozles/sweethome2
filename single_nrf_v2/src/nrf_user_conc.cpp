@@ -59,9 +59,9 @@ extern bool diags;
 
   EthernetUDP Udp;
 
-uint16_t      port     = PORTUDPCONC;         // (8887 intérieur ; 8888 ext)
-byte          mac[]    = MACADDRUDP;          //{0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
-uint16_t      hport    = PORTUDPSERVER2;      // port server sh devt2
+uint16_t      port     = 8888;        // conc udp port                // PORTUDPCONC;         // (8887 intérieur ; 8888 ext)
+byte          mac[]    = {0xDE,0xAD,0xBE,0xEF,0xFE,0xEF};             // MACADDRUDP2;          //{0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
+uint16_t      hport    = 8886;        // host udp port                // PORTUDPSERVER2;      // port server sh devt2
 
 IPAddress localIp(CONCNRFIPADDR);
 IPAddress host(SHIPADDR);

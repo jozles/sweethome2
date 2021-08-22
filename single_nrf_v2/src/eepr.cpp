@@ -1,7 +1,15 @@
+#include "nrf24l01s_const.h"
 
-#include <EEPROM.h>
+#ifndef DUE
+  #include "EEPROM.h"
+#endif // DUE
+#ifdef DUE
+  #include "DueFlashStorage.h"
+  DueFlashStorage dFS;
+#endif // DUE
+
 #include "eepr.h"
-#include <shutil2.h>
+#include "shutil2.h"
 
 
 
@@ -41,7 +49,13 @@ void Eepr::eeread(byte* data,uint16_t length,uint16_t addr)
   //Serial.print("eeread ");Serial.print(length);Serial.print(" at ");Serial.println(addr);
     length&=0x00ff; // maxi 256
     for(uint8_t i=0;i<length;i++){
+#ifndef DUE
         data[i] = EEPROM.read(addr+i);}
+#endif // DUE        
+#ifdef DUE
+        data[i] = dFS.read(addr+i);}
+#endif // DUE        
+
   //dumpstr((char*)data,length);
 }
 
@@ -49,7 +63,12 @@ void Eepr::eewrite(byte* data,uint16_t length,uint16_t addr)
 {
     length&=0x00ff; // maxi 256
     for(uint8_t i=0;i<length;i++){
+#ifndef DUE      
         EEPROM.update(addr+i,data[i]);}
+#endif // DUE
+#ifdef DUE      
+        dFS.write(addr+i,data[i]);}
+#endif // DUE
 }
 
 void Eepr::store(byte* data,uint16_t length)
