@@ -396,6 +396,7 @@ void conctable(char* buf,char* jsbuf)
 { 
     char concFn[]={"ethcfg___"};
     borderparam=NOBORDER;
+    scrDspText(buf,jsbuf,"concentrateurs",0,BRYES);
     tableBeg(buf,jsbuf,0);scrDspText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);scrDspText(buf,jsbuf,"mac|channel|RF_S|IP|Port",0,STRING|TREND);
 Serial.println((char*)(buf+strlen(buf)-150));
     
@@ -416,7 +417,6 @@ Serial.println((char*)(buf+strlen(buf)-150));
     
       scrDspText(buf,jsbuf," ",0,TREND);
     }
-    
     tableEnd(buf,jsbuf,0);
 }
 
@@ -463,7 +463,8 @@ fontBeg(buf,jsbuf,2,0);
 
             scrDspText(buf,jsbuf,"",0,BRYES);
             subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
-            //conctable(buf,jsbuf);
+            ethWrite(cli,buf,&lb);            // tfr -> navigateur
+            conctable(buf,jsbuf);
             scrDspText(buf,jsbuf," to password ",0,0);scrGetNum(buf,jsbuf,'d',toPassword,"to_passwd_",6,0,0,BRYES);strcat(buf,"\n");
             //strcat(buf," to password ");scrGetNum(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
             subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
