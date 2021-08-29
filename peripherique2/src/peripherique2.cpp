@@ -318,12 +318,13 @@ delay(1);
   //charIp((IPAddress*)&cstRec.serverIp,shServerIp); // ne fonctionne pas ... pb avec <ESP8266WiFi.h>
   delay(20);
 
-  blink(4);delay(2000);
   #define FRDLY 5  // sec
   pinMode(PINDTC,INPUT);
   if(digitalRead(PINDTC)==LOW){
+    blink(4);delay(2000);
     yield();
     getServerConfig();
+    writeConstant();
     blink(8);
   }
   Serial.println();
