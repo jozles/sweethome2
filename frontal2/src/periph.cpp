@@ -250,6 +250,7 @@ byte* temp=(byte*)configRec;
   temp+=(MAXSSID*(LPWSSID+1));
   nbssid=(int*)temp;              // inutilisé
   temp+=sizeof(int);
+  
   concMac=(uint8_t*)temp;
   temp+=(MAXCONC*MACADDRLENGTH);
   concChannel=(uint16_t*)temp;
@@ -257,12 +258,13 @@ byte* temp=(byte*)configRec;
   concRfSpeed=(uint16_t*)temp;
   temp+=(MAXCONC*sizeof(uint16_t));
   concIp=(byte*)temp;
-  temp+=(MAXCONC*sizeof(uint8_t));
+  temp+=(MAXCONC*sizeof(byte*)*4);
   concPort=(uint16_t*)temp;
   temp+=(MAXCONC*sizeof(uint16_t));
   concNb=(uint8_t*)temp;
   temp+=sizeof(uint8_t);
-  temp+=211;                      // dispo 
+
+  temp+=151;                      // dispo 
   usrnames=(char*)temp;
   temp+=NBUSR*(LENUSRNAME+1);
   usrpass=(char*)temp;
@@ -339,7 +341,31 @@ void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned 
   }
 }
 
-void configExport(char* bec,uint16_t* lbec,uint8_t selssid)
+void subConcPrint()
+{
+  for(uint8_t i=0;i<MAXCONC;i++){
+    serialPrintMac(concMac+i*MACADDRLENGTH,0);Serial.print(" ");
+    serialPrintIp(concIp+i*4*sizeof(byte));Serial.print("/");
+    Serial.print(*(concPort+i));Serial.print(" ");
+    Serial.print(*(concChannel+i));Serial.print(" ");
+    Serial.print(*(concRfSpeed+i));Serial.print(" ");
+    Serial.println();
+  }
+  Serial.print("N° perif ");Serial.println(*concNb);
+}
+
+uint16_t setExpEnd(char* bec)
+{
+  uint16_t ll=(uint16_t)strlen(bec);
+  sprintf(bec,"%04u",ll);
+  bec[4]=';';
+  setcrc(bec,ll);
+  
+  *(bec+ll+2)='\0';
+  return (uint16_t)(ll+2);
+}
+
+void configExport(char* bec)
 {
   uint16_t ll=0;
   *bec=0x00;strcat(bec,"0000;");                              // len ascii
@@ -357,26 +383,54 @@ void configExport(char* bec,uint16_t* lbec,uint8_t selssid)
   sprintf(bec+ll,"%05u",(uint16_t)*remotePort);ll+=5;         // remote
   *(bec+ll)=';';ll++;
   sprintf(bec+ll,"%05u",(uint16_t)*udpPort);ll+=5;            // udp
-  *(bec+ll)=';';ll++;
-  *(bec+ll)='\0';
-  strcat(bec+ll,ssid+(selssid-1)*LENSSID);                    // ssid1
+  *(bec+ll)=';';
+  *(bec+ll+1)='\0';
+}
+
+void wifiExport(char* bec,uint8_t selssid)
+{
+  strcat(bec,ssid+(selssid-1)*(LENSSID+1));                    // ssid1
   strcat(bec,";");
-  strcat(bec+ll,passssid+(selssid-1)*LPWSSID);                // pwd1
-  strcat(bec,";\0");
-  ll=strlen(bec);
-  sprintf(bec,"%04u",ll);
-  bec[4]=';';
-  setcrc(bec,ll);
-  
-  *(bec+ll+2)='\0';
-  *lbec=(uint16_t)ll+2;
+  strcat(bec,passssid+(selssid-1)*(LPWSSID+1));                // pwd1
+  strcat(bec,";");
+}  
+
+void concExport(char* bec,uint8_t concNb)
+{
+  uint16_t ll=strlen(bec);
+  uint8_t i0=concNb;
+  uint8_t i1=concNb;
+  if(concNb==99){i0=0;i1=MAXCONC;}
+
+  for(uint8_t i=i0;i<i1;i++){                                             // conc Mac
+    //memcpy(bec+ll,(concMac+i*MACADDRLENGTH),MACADDRLENGTH);
+    unpackMac(bec+ll,(concMac+i*MACADDRLENGTH));
+    ll+=MACADDRLENGTH*3-1;
+    *(bec+ll)=';';ll++;
+    for(int pp=0;pp<4;pp++){                                                  // ip concentrateur
+      sprintf(bec+ll+pp*4,"%03u",(uint16_t)*(concIp+i*4));
+      if(pp<3){*(bec+ll+(pp+1)*4-1)='.';}}ll+=15;
+    *(bec+ll)=';';ll++;
+    sprintf(bec+ll,"%05u",(uint16_t)*(concPort+i*sizeof(uint16_t)));ll+=5;    // concPort
+    *(bec+ll)=';';ll++;
+    sprintf(bec+ll,"%03u",(uint16_t)*(concChannel+i*sizeof(uint16_t)));ll+=3; // concChannel
+    *(bec+ll)=';';ll++;
+    sprintf(bec+ll,"%01u",(uint16_t)*(concRfSpeed+i*sizeof(uint16_t)));ll+=1; // concRfSpeed
+    *(bec+ll)=';';ll++;
+    *(bec+ll)='\0';
+  }
+}
+
+void concExport(char* bec)
+{
+  return concExport(bec,99);
 }
 
 void configPrint()
 {
   Serial.print("serverName=");Serial.println(serverName);
   Serial.print(" Mac=");serialPrintMac(mac,0);
-  Serial.print(" localIp=");for(int pp=0;pp<4;pp++){Serial.print((uint8_t)localIp[pp]);if(pp<3){Serial.print(".");}}Serial.print("/");Serial.println(*serverPort);
+  Serial.print(" localIp=");serialPrintIp(localIp);Serial.print("/");Serial.println(*serverPort);   //for(int pp=0;pp<4;pp++){Serial.print((uint8_t)localIp[pp]);if(pp<3){Serial.print(".");}}Serial.print("/");Serial.println(*serverPort);
   Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.println(" table ssid ");subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
   Serial.println(" table user ");subcprint(usrnames,usrpass,NBUSR,LENUSRNAME,LENUSRPASS,usrtime);
@@ -384,6 +438,7 @@ void configPrint()
   Serial.print(" mailTo1=");Serial.print(mailToAddr1);Serial.print(" mailTo2=");Serial.println(mailToAddr2);  
   Serial.print(" peri1=");Serial.print(*periMail1);Serial.print(" peri2=");Serial.println(*periMail2);
   Serial.print(" maxCxWt ");Serial.print(*maxCxWt);Serial.print(" maxCxWu ");Serial.println(*maxCxWu);
+  subConcPrint();
   Serial.println();
 }
 

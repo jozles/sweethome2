@@ -394,11 +394,11 @@ Serial.println((char*)(buf+strlen(buf)-100));
 
 void conctable(char* buf,char* jsbuf)
 { 
-    char concFn[]={"ethcfg___"};
+    char concFn[]={"ethcfg____"};
     borderparam=NOBORDER;
     scrDspText(buf,jsbuf,"concentrateurs",0,BRYES);
     tableBeg(buf,jsbuf,0);scrDspText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);scrDspText(buf,jsbuf,"mac|channel|RF_S|IP|Port",0,STRING|TREND);
-Serial.println((char*)(buf+strlen(buf)-150));
+//Serial.println((char*)(buf+strlen(buf)-150));
     
     for(int nb=0;nb<MAXCONC;nb++){
       concFn[LENNOM-2]=nb+PMFNCVAL;
@@ -418,6 +418,9 @@ Serial.println((char*)(buf+strlen(buf)-150));
       scrDspText(buf,jsbuf," ",0,TREND);
     }
     tableEnd(buf,jsbuf,0);
+    scrDspText(buf,jsbuf,"N° conc pour périf : ",0,0);
+    uint16_t a=*concNb;
+    concFn[LENNOM-1]='N';scrGetNum(buf,jsbuf,'d',&a,concFn,0,0,0,BRYES);strcat(buf,"\n");
 }
 
 
@@ -465,9 +468,9 @@ fontBeg(buf,jsbuf,2,0);
             subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
             ethWrite(cli,buf,&lb);            // tfr -> navigateur
             conctable(buf,jsbuf);
-            scrDspText(buf,jsbuf," to password ",0,0);scrGetNum(buf,jsbuf,'d',toPassword,"to_passwd_",6,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," to password ");scrGetNum(buf,'d',toPassword,"to_passwd_",6,0,0);strcat(buf,"<br>\n");
+
             subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
+            scrDspText(buf,jsbuf," to password ",0,0);scrGetNum(buf,jsbuf,'d',toPassword,"to_passwd_",6,0,0,BRYES);strcat(buf,"\n");
             ethWrite(cli,buf,&lb);
             
             tableBeg(buf,jsbuf,NOBORDER,BRYES);  //scrDspText(buf,jsbuf," ",100,2,TDBE);

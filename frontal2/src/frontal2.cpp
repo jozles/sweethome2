@@ -340,7 +340,8 @@ extern bool wdEnable;
 /* buffer export config */
 
 #define LBEC 1000
-char bec[LBEC];uint16_t lbec;
+char bec[LBEC];        
+//uint16_t lbec;
 uint16_t rcvcnt=0;              // cnt requetes 
 
 /* prototypes */
@@ -440,6 +441,7 @@ void setup() {                          // ====================================
 
   sdInit();
   configInit();configLoad();configPrint();
+  *serverPort=1790;
 
 //for(int z=0;z<nbfonct;z++){Serial.print(z);Serial.print(" ");for(int w=0;w<10;w++){Serial.print(fonctions[z*10+w]);}Serial.println();}
     
@@ -497,7 +499,7 @@ periSave(3,PERISAVESD);
   Serial.print(" localIP=");
   for(i=0;i<4;i++){localIp[i]=Ethernet.localIP()[i];Serial.print(localIp[i]);if(i<3){Serial.print(".");}}Serial.println();
   configSave();
-  configExport(bec,&lbec,1);Serial.println(bec);
+  configExport(bec);wifiExport(bec,2);wifiExport(bec,1);concExport(bec);setExpEnd(bec);Serial.println(bec);
 
   Serial.print(" Udp.begin(");Serial.print(*udpPort);Serial.print(") ");
   if(!Udp.begin(*udpPort)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
@@ -1526,23 +1528,35 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__ // submit depuis cfgServervHtml                              
 */
               case 51: what=6;                                                                          // (config) ethcfg___
-                       {uint8_t nC=*(libfonctions+2*i)-PMFNCVAL;                                          // num concentrateur             
+                       {uint8_t nC=*(libfonctions+2*i)-PMFNCVAL;                                        // num concentrateur             
                           switch(*(libfonctions+2*i+1)){                                            
-                            case 'i': break;memset(localIp,0x00,4);                                       // (config) localIp
-//                                    for(j=0;j<4;j++){conv_atob(valf,localIp+j);}break;   // **** à faire ****
-                            case 'p': *serverPort=0;conv_atob(valf,serverPort);break;                     // (config) serverPort
-                            case 't': *remotePort=0;conv_atob(valf,remotePort);break;                     // (config) remotePort
-                            case 'u': *udpPort=0;conv_atob(valf,udpPort);break;                           // (config) udpPort
-                            case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;                // (config) mac
-                            case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                          // (config) TO sans TCP
-                            case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                          // (config) TO sans UDP
-                            case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;         // (config) nom serveur
+                            case 'i': memset(localIp,0x00,4);                                           // (config) localIp
+                                      textIp((byte*)valf,localIp);break;   
+                            case 'p': *serverPort=0;conv_atob(valf,serverPort);break;                   // (config) serverPort
+                            case 't': *remotePort=0;conv_atob(valf,remotePort);break;                   // (config) remotePort
+                            case 'u': *udpPort=0;conv_atob(valf,udpPort);break;                         // (config) udpPort
+                            case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;              // (config) mac
+                            case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                        // (config) TO sans TCP
+                            case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                        // (config) TO sans UDP
+                            case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;       // (config) nom serveur
                         
-                            case 'I': break;memset(localIp,0x00,4);                                       // (config) concIp
-                            case 'P': break;*serverPort=0;conv_atob(valf,serverPort);break;               // (config) concPort
-                            case 'M': for(j=0;j<6;j++){conv_atoh(valf+j*2,(concMac+MACADDRLENGTH*nC+j));}break;            // (config) concMac
-                            case 'C': break;*maxCxWu=0;conv_atobl(valf,maxCxWu);break;                    // (config) concchannel
-                            case 'S': break;alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;   // (config) concRfSpeed
+                            case 'I': memset((concIp+4*nC*sizeof(byte)),0x00,4);        // (config) concIp
+                                      textIp((byte*)valf,concIp+4*nC*sizeof(uint8_t));break;
+                            case 'P': *(concPort+nC)=0;
+                                      conv_atob(valf,(concPort+nC));break;              // (config) concPort
+                            case 'M': for(j=0;j<6;j++){
+                                        conv_atoh(valf+j*2,(concMac+MACADDRLENGTH*nC+j));}break;   // (config) concMac
+                            case 'C': *(concChannel+nC)=0;
+                                      conv_atob(valf,(concChannel+nC));break;           // (config) concchannel
+                            case 'S': *(concRfSpeed+nC)=0;
+                                      conv_atob(valf,(concRfSpeed+nC));break;           // (config) concRfSpeed
+                            case 'N': *concNb=0;
+                                      uint16_t a;conv_atob(valf,&a);
+                                      Serial.print("=====");Serial.print(valf);Serial.print(" ");Serial.print(a);
+                                      if(a>MAXCONC){a=0;}*concNb=(uint8_t)a;
+                                      Serial.print(" ");Serial.println(*concNb);
+                                      break;      // (config) N° conc pour périf
+
                             default: break;
                           }
                        }break;
@@ -1868,22 +1882,32 @@ void pilotServer()
 }
 
 void serialServer()
-{
-  #define LSERB 1000        
-  char serialBuf[LSERB];
+{       
+  char serialBuf[MAXSER];
   
-  uint16_t lrcv=serialRcv(serialBuf,LSERB,1);
+  uint16_t lrcv=serialRcv(serialBuf,MAXSER,1);
   if(lrcv!=0){
     rcvcnt++;
     Serial.print(rcvcnt);Serial.print(" ");Serial.print(lrcv);Serial.print("->");Serial.println(serialBuf);
-    if(memcmp(serialBuf,MESSCONFIG,10)==0){
-      uint16_t lbec;
-      configExport(bec,&lbec,1);
-      //dumpstr(bec,120);
-      for(uint8_t i=0;i<RSCNB+1;i++){Serial1.print(RCVSYNCHAR);}
-      Serial1.print(bec);
-      Serial.println(bec);
+    
+    if(memcmp(serialBuf,WIFICFG,10)==0){
+      configExport(bec);
+      wifiExport(bec,1);
+      setExpEnd(bec);
     }
+    if(memcmp(serialBuf,CONCCFG,10)==0){
+      configExport(bec);
+      concExport(bec);
+      setExpEnd(bec);
+    }
+    if(memcmp(serialBuf,PERICFG,10)==0){
+      concExport(bec,*concNb);
+      setExpEnd(bec);
+    }
+    
+    for(uint8_t i=0;i<RSCNB+1;i++){Serial1.print(RCVSYNCHAR);}
+    Serial1.println(bec);
+    Serial.println(bec);
   }
 }
 
