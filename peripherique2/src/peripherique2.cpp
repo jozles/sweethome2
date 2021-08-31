@@ -118,7 +118,7 @@ char* cstRecA=(char*)&cstRec.cstlen;
   float voltage=0;                    // tension alim
   
   byte  mac[6];
-  char  buf[3];                       //={0,0,0};
+  //char  buf[3];                       //={0,0,0};
 
   int   cntreq=0;
 
@@ -1081,7 +1081,7 @@ void getTemp()
 
 uint16_t getServerConfig()
 {
-  char bf[MAXSER];*buf='\0';
+  char bf[MAXSER];//*buf='\0';
   
   for(uint8_t i=0;i<=RSCNB;i++){Serial.print(RCVSYNCHAR);}
   Serial.print(WIFICFG);

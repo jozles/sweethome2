@@ -52,7 +52,10 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
     //WiFi.forceSleepWake();delay(1);
     //WiFi.forceSleepEnd();       // réveil modem
     
+    if(ssid[0]==' '){return false;}
+    
     int wifistatus=printWifiStatus(ssid,print);
+
     if(wifistatus!=WL_CONNECTED){    
 /*
       WL_CONNECTED after successful connection is established
