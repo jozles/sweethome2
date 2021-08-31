@@ -33,19 +33,19 @@ Ds1820 ds1820;
 
   char model[LENMODEL];
 
-  unsigned long dateOn=millis();            // awake start time
+  unsigned long dateOn=millis();          // awake start time
   unsigned long boucleTime=millis();
 
-  const char* ssid;
-  const char* password;
+  const char* ssid;                       // current ssid
+  const char* ssidPwd;                    // current ssid pwd 
 //#define DEVOLO  
-//#ifdef DEVOLO
+/*#ifdef DEVOLO
   const char* ssid2; //= "pinks";
   const char* password2; //= "cain ne dormant pas songeait au pied des monts";
   const char* ssid1; //= "devolo-5d3";
   const char* password1; //= "JNCJTRONJMGZEEQL";
-//#endif // DEVOLO
-/*#ifndef DEVOLO
+#endif // DEVOLO
+#ifndef DEVOLO
   const char* ssid1= "pinks";
   const char* password1 = "cain ne dormant pas songeait au pied des monts";
   const char* ssid2= "devolo-5d3";
@@ -343,10 +343,10 @@ delay(1);
 #ifdef  _SERVER_MODE
   clkFastStep=1;talkReq();              // forçage com pour acquisition port perif server
   
-  ssid=cstRec.ssid1;password=cstRec.pwd1;        // setup wifi pour ordreExt()
-  if(!wifiConnexion(ssid,password)){
-    ssid=cstRec.ssid2;password=cstRec.pwd2;
-    wifiConnexion(ssid,password);       // tentative sur ssid bis
+  ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;        // setup wifi pour ordreExt()
+  if(!wifiConnexion(ssid,ssidPwd)){
+    ssid=cstRec.ssid2;ssidPwd=cstRec.pwd2;
+    wifiConnexion(ssid,ssidPwd);       // tentative sur ssid bis si existe
   }
 #endif // def_SERVER_MODE
 
@@ -398,7 +398,7 @@ delay(1);
           case 1:   timeOvfSet(1);if(cstRec.talkStep!=0){talkServer();}timeOvfCtl(1);
                     break;
           case 2:   break;
-          case 3:   wifiConnexion(ssid,password,NOPRINT);break;
+          case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
           case 4:   break;
           case 5:   timeOvfSet(5);actions();timeOvfCtl(5);break;
           case 6:   outputCtl();break;
@@ -772,15 +772,15 @@ switch(cstRec.talkStep&=TALKCNTBIT){
   case 0:break;
   
   case TALKWIFI2:
-      ssid=cstRec.ssid2;password=cstRec.pwd2; // tentative sur ssid bis
-      if(wifiConnexion(ssid,password)){talkSet(TALKDATA);}
+      ssid=cstRec.ssid2;ssidPwd=cstRec.pwd2; // tentative sur ssid bis
+      if(wifiConnexion(ssid,ssidPwd)){talkSet(TALKDATA);}
       else {talkWifiKo();}
       break;
   
   case TALKWIFI1:
-      ssid=cstRec.ssid1;password=cstRec.pwd1;
+      ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;
       //Serial.print("+");
-      if(!wifiConnexion(ssid,password)){talkSet(TALKWIFI2);break;}
+      if(!wifiConnexion(ssid,ssidPwd)){talkSet(TALKWIFI2);break;}
       if((millis()-dateOn)>1){talkSet(TALKDATA);break;}
 
   case TALKDATA:        // connecté au wifi
@@ -829,7 +829,7 @@ unsigned long beg=millis();
 
     //Serial.println("---mail---");
     
-    wifiConnexion(ssid,password);
+    wifiConnexion(ssid,ssidPwd);
 
     char s[64]={"sh "};strcat(s,subj);
     message.subject = s;
@@ -875,7 +875,7 @@ void ordreExt()
 {
   //uint32_t boe=millis();
 
-  if(server!=nullptr && talkSta()==0 && wifiConnexion(ssid,password,NOPRINT)){     
+  if(server!=nullptr && talkSta()==0 && wifiConnexion(ssid,ssidPwd,NOPRINT)){     
   // server démarré, pas de com->SH en cours, wifi on    
   
     uint16_t hm=0,nl=0;
@@ -1084,7 +1084,7 @@ uint16_t getServerConfig()
   char bf[MAXSER];*buf='\0';
   
   for(uint8_t i=0;i<=RSCNB;i++){Serial.print(RCVSYNCHAR);}
-  Serial.print(MESSCONFIG);
+  Serial.print(WIFICFG);
   delay(10);                                 // tx time (14*100uS) + response time (100uS)
   uint16_t rcvl=serialRcv(bf,MAXSER,0);     // longueur effectivement reçue (strlen(bf))
   
@@ -1113,6 +1113,11 @@ uint16_t getServerConfig()
     cstRec.ssid1[temp]='\0';b+=temp;
     temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.pwd1[temp]=a;temp++;}
     cstRec.pwd1[temp]='\0';b+=temp;
+
+    temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.ssid2[temp]=a;temp++;}
+    cstRec.ssid2[temp]='\0';b+=temp;
+    temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.pwd2[temp]=a;temp++;}
+    cstRec.pwd2[temp]='\0';b+=temp;
 
     //bool svd=diags;diags=true;printConstant();diags=svd;
   }
