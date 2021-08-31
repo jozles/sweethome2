@@ -6,10 +6,11 @@
 #include "nrf_powerSleep.h"
 #include "nrf_user_peri.h"
 #include "nrf_user_conc.h"
-#if NRF_MODE == 'P'
+
+//#if NRF_MODE == 'P'
 #include <eepr.h>
 Eepr eeprom;
-#endif // NRF_MODE == 'P'
+//#endif // NRF_MODE == 'P'
 
  /* single signifie 1 seul concentrateur avec une seule adresse de réception
  *  l'option P ou C dans const.h définit si compilation du code pour concentrateur ou périphérique
@@ -18,6 +19,7 @@ Eepr eeprom;
  */
  
 #ifdef DUE
+#include "config.h"
 #include <MemoryFree.h>
 #endif // def DUE 
 
@@ -30,20 +32,31 @@ byte     setds[]={0,0x7f,0x80,0x3f},readds[8];   // 1f=93mS 9 bits accu 0,5° ; 
 #endif // DS18X20 
 
 #if NRF_MODE == 'C'
-extern struct NrfConTable tableC[NBPERIF+1];
+
+/* >>>> config concentrateur <<<<<< */
+
+extern char configRec[CONCRECLEN];       // enregistrement de config  
+
+/* pointeurs dans l'enregitrement de config */
+
+  extern uint16_t* cfgLen;           // cfg record length
+
+  extern byte*     serverIp;         // server ip addr
+  extern uint16_t* serverPort;       // server port
+  extern uint16_t* udpPort;          // conc udp port
+
+  extern char*     peripass;         // mot de passe périphériques
+
+  extern uint8_t*  concMac;          // (table concentrateurs) macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
+  extern uint16_t* concChannel;      // (table concentrateurs) n° channel nrf utilisé par le concentrateur
+  extern uint16_t* concRfSpeed;      // (table concentrateurs) RF_Speed concentrateur
+  extern byte*     concIp;           // (table concentrateurs) adresse IP concentrateur
+  extern uint16_t* concPort;         // (table concentrateurs) port concentrateur
+  extern uint8_t*  concNb;
+
+extern struct NrfConTable tableC[NBPERIF+1]; // teble périf
 bool menu=true;
 #endif // NRF_MODE == 'C'
-
-#define CONFIGLEN 40                      // len maxi paramètres de config en Eeprom (37 v01 ; 38 v02)
-byte    configData[CONFIGLEN];
-
-byte*     configVers;
-float*    thFactor;
-float*    thOffset;
-float*    vFactor;
-float*    vOffset;
-byte*     macAddr;
-uint8_t*  numC;
 
 Nrfp radio;
 
@@ -129,6 +142,17 @@ byte*   concAddr=concAddrTable[DEFCONC];
 #if NRF_MODE == 'P'
 
 const char*  chexa="0123456789ABCDEFabcdef\0";
+
+#define CONFIGLEN 40                      // len maxi paramètres de config en Eeprom (37 v01 ; 38 v02)
+byte    configData[CONFIGLEN];
+
+byte*     configVers;
+float*    thFactor;
+float*    thOffset;
+float*    vFactor;
+float*    vOffset;
+byte*     macAddr;
+uint8_t*  numC;
 
 /*** gestion sleep ***/
 
@@ -281,23 +305,56 @@ void setup() {
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" PP=");Serial.print(PP);Serial.print(" ");
   Serial.print(TXRX_MODE);
 
-  pinMode(NUMC_BIT0,INPUT_PULLUP);
-  pinMode(NUMC_BIT1,INPUT_PULLUP);
-  //numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
-  numConc=1;
-  channel=channelTable[numConc];
-  Serial.print(" numConc=");Serial.println(numConc);
-
   pinMode(LED,OUTPUT);
   
-  userResetSetup();
+  pinMode(NUMC_BIT0,INPUT_PULLUP);
+  pinMode(NUMC_BIT1,INPUT_PULLUP);
+  numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
+  Serial.print(" numConc=");Serial.println(numConc);
 
-  radio.locAddr=concAddrTable[numConc];      // première init à faire !!
+/* version avec params de réseau/radio en eeprom */
+
+///* version frontal
+  configInit();
+  
+  blink(4);
+  unsigned long beg=millis();
+  #define FRDLY 5  // sec
+  while(digitalRead(STOPREQ)==LOW){
+      trigwd();
+      if(millis()>(beg+FRDLY*1000)){
+        blink(4);
+        getServerConfig();
+        configSave();
+        blink(8);
+      }
+  }
+
+  if(!eeprom.load((byte*)configRec,CONCRECLEN)){Serial.println("***EEPROM KO***");blink(BCODESDCARDKO);}
+  Serial.println("eeprom ok");
+  
+  configPrint();
+  channel=*concChannel;
+  radio.locAddr=concMac;               // première init à faire !!
   radio.tableCInit();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
   radio.powerOn(channel);
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);                // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
-  
+
+ /* // version avec tout en dur //
+  numConc=1;
+  channel=channelTable[numConc];
+  Serial.print(" numConc=");Serial.println(numConc);
+
+  radio.locAddr=concAddrTable[numConc];               // première init à faire !!
+  radio.tableCInit();
+  memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
+  radio.powerOn(channel);
+  radio.addrWrite(RX_ADDR_P2,CB_ADDR);                // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
+*/  
+
+  userResetSetup();
+
 #ifdef DUE
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
 #endif //  
@@ -1090,7 +1147,7 @@ void initConf()
 
 #if NRF_MODE == 'C'
 
-void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
+void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,unsigned long dly)
 /*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 
     bnb=(on+off) nb in one sequence ; dly=total delay time   */
 {  

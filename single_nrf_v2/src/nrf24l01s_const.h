@@ -5,7 +5,7 @@
 #include "shconst2.h"
 #include "shutil2.h"
 
-#define VERSION "1.8 "
+#define VERSION "1.9 "
 #define LENVERSION 4
 
 /*
@@ -53,6 +53,7 @@ v1.5  transfert valeur entrée analogique + seuils (user_conc exportData()) le s
 v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résistance 11.2K ; ajout calcul/affichage du temps de diag
 v1.7  définition du numConc dans la config et paramétrage du canal et du nom de concentrateur selon numConc
 v1.8  passage PC0(ADC0) PC6(ADC6) PD3(INT1-Rreed) PD5 PD6 au concentrateur
+v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server
 */
 
 //#define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
