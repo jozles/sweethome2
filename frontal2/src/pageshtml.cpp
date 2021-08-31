@@ -59,6 +59,8 @@ extern char       strHisto[RECCHAR];
 
 extern char*      ssid;
 extern char*      passssid;
+extern uint8_t*   ssid1;
+extern uint8_t*   ssid2;
 extern uint8_t*   concMac;
 extern uint16_t*  concChannel;
 extern uint16_t*  concRfSpeed;      
@@ -373,7 +375,8 @@ void subcfgtable(char* buf,char* jsbuf,const char* titre,int nbl,const char* nom
     //strcat(buf,"<table><col width=\"22\"><tr><th></th><th>");strcat(buf,titre);strcat(buf,"</th><th>");strcat(buf,titre2);strcat(buf,"</th></tr>\n");
 Serial.println((char*)(buf+strlen(buf)-100));
     for(int nb=0;nb<nbl;nb++){
-      scrDspNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
+      uint8_t n=nb+1;
+      scrDspNum(buf,jsbuf,'s',&n,0,0,TRBEG|TDBE);
       //strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td>");
 
       sscfgtB(buf,jsbuf,nom1,nb,value1,len1,type1,TDBE);                      
@@ -466,6 +469,9 @@ fontBeg(buf,jsbuf,2,0);
 
             scrDspText(buf,jsbuf,"",0,BRYES);
             subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
+            scrDspText(buf,jsbuf,"ssid1 ",0,0);scrGetNum(buf,jsbuf,'b',ssid1,"ethcfg___W",1,1,0,0,0);
+            scrDspText(buf,jsbuf," ssid2 ",0,0);scrGetNum(buf,jsbuf,'b',ssid2,"ethcfg___w",1,1,0,0,BRYES);strcat(buf,"\n");
+
             ethWrite(cli,buf,&lb);            // tfr -> navigateur
             conctable(buf,jsbuf);
 

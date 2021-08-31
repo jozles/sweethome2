@@ -62,26 +62,27 @@ char ab;                            // protocole et type de la connexion en cour
 
 char configRec[CONFIGRECLEN];       // enregistrement de config  
 
-  byte* mac;                  // mac adresse server
-  byte* localIp;              // ip  adresse server
+/* pointeurs dans l'enregitrement de config */
+
+  byte*     mac;              // mac adresse server
+  byte*     localIp;          // ip  adresse server
   uint16_t* serverPort;       // port server
   uint16_t* remotePort;       // port remote
   uint16_t* udpPort;          // port udp
-  char* serverName;           // nom server
-  //char* userpass;             // mot de passe browser
-  //char* modpass;              // mot de passe modif
-  char* peripass;             // mot de passe périphériques
-  char* ssid;                 // MAXSSID ssid
-  char* passssid;             // MAXSSID password SSID
-  int*  nbssid;               // inutilisé
+  char*     serverName;       // nom server
+  char*     peripass;         // mot de passe périphériques
+  char*     ssid;             // liste des ssid pour peripherique2
+  char*     passssid;         // liste des password ssid pour peripherique2
+  uint8_t*  ssid1;            // n° 1er ssid à essayer pour peripherique2 (1-n)
+  uint8_t*  ssid2;            // n° 2nd ssid à essayer pour peripherique2 (1-n)
   uint8_t*  concMac;          // (table concentrateurs) macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
   uint16_t* concChannel;      // (table concentrateurs) n° channel nrf utilisé par le concentrateur
   uint16_t* concRfSpeed;      // (table concentrateurs) RF_Speed concentrateur
-  byte* concIp;               // (table concentrateurs) adresse IP concentrateur
+  byte*     concIp;           // (table concentrateurs) adresse IP concentrateur
   uint16_t* concPort;         // (table concentrateurs) port concentrateur
-  uint8_t* concNb;            // numéro de concentrateur pour périf nrf
-  char* usrnames;             // usernames
-  char* usrpass;              // userpass
+  uint8_t*  concNb;           // numéro de concentrateur pour périf nrf
+  char*     usrnames;         // usernames
+  char*     usrpass;          // userpass
   unsigned long* usrtime;     // user cx time
   unsigned long* usrpretime;  // user cx time précédent
   uint16_t* toPassword;       // Délai validité password en sec !
@@ -98,23 +99,21 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   byte* configBegOfRecord;
   byte* configEndOfRecord;
 
+
   bool mailEnable=FAUX;     // interdit les mails si config n'est pas chargé et periCacheLoad n'est pas terminé 
 
   bool    periPassOk=FAUX;  // contrôle du mot de passe des périphériques
   int     usernum=-1;       // numéro(0-n) de l'utilisateur connecté (valide durant commonserver)   
 
-//EthernetServer periserv(PORTSERVER);  // serveur perif et table port 1789 service, 1790 devt, 1786 devt2
-EthernetServer* periserv=nullptr;
-//EthernetServer pilotserv(PORTPILOT);  // serveur pilotage 1792 devt, 1788 devt2
-EthernetServer* pilotserv=nullptr;
-
+EthernetServer* periserv=nullptr;             // serveur perif
+EthernetServer* pilotserv=nullptr;            // serveur remote
   
   uint8_t   remote_IP[4]={0,0,0,0};           // periserver
   uint8_t   remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
   byte      remote_MAC[6]={0,0,0,0,0,0};      // periserver
   uint16_t  remote_Port_Udp=0;                   
 
-  int8_t  numfonct[NBVAL];             // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
+  int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
   const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___pwdcfg____modpcfg___peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___mailcfg___thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
@@ -441,7 +440,6 @@ void setup() {                          // ====================================
 
   sdInit();
   configInit();configLoad();configPrint();
-  *serverPort=1790;
 
 //for(int z=0;z<nbfonct;z++){Serial.print(z);Serial.print(" ");for(int w=0;w<10;w++){Serial.print(fonctions[z*10+w]);}Serial.println();}
     
@@ -1539,7 +1537,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                        // (config) TO sans TCP
                             case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                        // (config) TO sans UDP
                             case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;       // (config) nom serveur
-                        
+                            case 'W': *ssid1=0;*ssid1=*valf-PMFNCVAL;break;                             // (config) ssid1
+                            case 'w': *ssid2=0;*ssid2=*valf-PMFNCVAL;break;                             // (config) ssid2
+
                             case 'I': memset((concIp+4*nC*sizeof(byte)),0x00,4);        // (config) concIp
                                       textIp((byte*)valf,concIp+4*nC*sizeof(uint8_t));break;
                             case 'P': *(concPort+nC)=0;
@@ -1892,7 +1892,8 @@ void serialServer()
     
     if(memcmp(serialBuf,WIFICFG,10)==0){
       configExport(bec);
-      wifiExport(bec,1);
+      wifiExport(bec,*ssid1);
+      wifiExport(bec,*ssid2);
       setExpEnd(bec);
     }
     if(memcmp(serialBuf,CONCCFG,10)==0){
