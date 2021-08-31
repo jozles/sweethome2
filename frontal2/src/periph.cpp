@@ -403,9 +403,9 @@ void concExport(char* bec,uint8_t concNb)
   uint16_t ll=strlen(bec);
   uint8_t i0=concNb;
   uint8_t i1=concNb;
-  if(concNb==99){i0=0;i1=MAXCONC;}
+  if(concNb>MAXCONC){i0=0;i1=MAXCONC;}
 
-  for(uint8_t i=i0;i<i1;i++){                                             // conc Mac
+  for(uint8_t i=i0;i<i1;i++){                                                 // conc Mac
     //memcpy(bec+ll,(concMac+i*MACADDRLENGTH),MACADDRLENGTH);
     unpackMac(bec+ll,(concMac+i*MACADDRLENGTH));
     ll+=MACADDRLENGTH*3-1;
