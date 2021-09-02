@@ -81,16 +81,20 @@ v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server
 
 /* MACADDR concentrateur provient de l'EEPROM sur perif (chargé lors du test du périf - à développer le mode chuchotement)
 *  et du numConc (dip sw) sur concentrateur */
-#define NBCONC 4
-
+/*
 #define CC_ADDR0   (byte*)"dtest"
 #define CC_ADDR1   (byte*)"ctest"
 #define CC_ADDR2   (byte*)"btest"
 #define CC_ADDR3   (byte*)"atest"
-
+*/
 #define CB_ADDR   (byte*)"shcc0"      // adresse fixe de broadcast concentrateurs (recup MAC_ADDR concentrateurs) 0 nécessaire pour read()
 #define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
-
+/*
+#define CC_UDP0   8800
+#define CC_UDP1   8801
+#define CC_UDP2   8802
+#define CC_UDP3   8803
+*/
 #define CLK_PIN    13
 #define MISO_PIN   12
 #define MOSI_PIN   11
@@ -164,11 +168,12 @@ v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server
 #endif //
 
 /* un canal par n° de concentrateur */
+/* 
   #define CHANNEL0    120        // numéro canal radio
   #define CHANNEL1    110        // numéro canal radio
   #define CHANNEL2    100        // numéro canal radio
   #define CHANNEL3    90         // numéro canal radio
-  
+*/  
   #define RF_SPEED   RF_SPD_1MB // vitesse radio  RF_SPD_2MB // RF_SPD_1MB // RF_SPD_250K
   #define ARD_VALUE  0          // ((0-15)+1) x 250uS delay before repeat
   #define ARC_VALUE  4          // (0-15) repetitions

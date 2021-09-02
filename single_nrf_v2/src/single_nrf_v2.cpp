@@ -128,16 +128,16 @@ unsigned long tLast=0;             // date unix dernier message reçu
 
 #endif // NRF_MODE == 'C'
 
-
-#define DEFCONC 1
-
 uint8_t numConc;
+uint8_t channel;
 
-uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal bvs N° conc 
-uint8_t channel=channelTable[DEFCONC];                          // valeur pour 'P' qui n'a pas de numConc
+//#define DEFCONC 1
 
-byte*   concAddrTable[NBCONC] = {CC_ADDR0,CC_ADDR1,CC_ADDR2,CC_ADDR3};
-byte*   concAddr=concAddrTable[DEFCONC];
+//uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal bvs N° conc 
+//channel=channelTable[DEFCONC];                          // valeur pour 'P' qui n'a pas de numConc
+
+//byte*   concAddrTable[NBCONC] = {CC_ADDR0,CC_ADDR1,CC_ADDR2,CC_ADDR3};
+//byte*   concAddr=concAddrTable[DEFCONC];
 
 #if NRF_MODE == 'P'
 
@@ -334,6 +334,7 @@ void setup() {
   Serial.println("eeprom ok");
   
   configPrint();
+  
   channel=*concChannel;
   radio.locAddr=concMac;               // première init à faire !!
   radio.tableCInit();
