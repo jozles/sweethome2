@@ -467,6 +467,8 @@ fontBeg(buf,jsbuf,2,0);
             scrDspText(buf,jsbuf," remotePort ",0,0);scrGetNum(buf,jsbuf,'d',remotePort,"ethcfg___t",4,0,0,0);
             scrDspText(buf,jsbuf," udpPort ",0,0);scrGetNum(buf,jsbuf,'d',udpPort,"ethcfg___u",4,0,0,BRYES);strcat(buf,"\n");
 
+            scrDspText(buf,jsbuf,"peripass ",0,0);scrGetText(buf,jsbuf,peripass,"peripcfg__",5,LPWD,0,BRYES);strcat(buf,"\n");
+
             scrDspText(buf,jsbuf,"",0,BRYES);
             subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
             scrDspText(buf,jsbuf,"ssid1 ",0,0);scrGetNum(buf,jsbuf,'b',ssid1,"ethcfg___W",1,1,0,0,0);

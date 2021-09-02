@@ -338,7 +338,6 @@ extern bool wdEnable;
 
 /* buffer export config */
 
-#define LBEC 1000
 char bec[LBEC];        
 //uint16_t lbec;
 uint16_t rcvcnt=0;              // cnt requetes 
@@ -1350,7 +1349,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 0:  pertemp=0;conv_atobl(valf,&pertemp);break;                                           // pertemp serveur
               case 1:  if(checkData(valf)==MESSOK){                                                         // peri_pass_
                          periPassOk=ctlpass(valf+5,peripass);                                               // skip len
-                         if(periPassOk==FAUX){memset(remote_IP_cur,0x00,4);histoStore_textdh("pp","ko",strHisto);}
+                         if(!periPassOk){memset(remote_IP_cur,0x00,4);histoStore_textdh("pp","ko",strHisto);}
                          else {memcpy(remote_IP_cur,(byte*)&remote_IP,4);}
                        }break;
               case 2:  usernum=searchusr(valf);if(usernum<0){                                        // username__
@@ -1894,20 +1893,23 @@ void serialServer()
       configExport(bec);
       wifiExport(bec,*ssid1);
       wifiExport(bec,*ssid2);
+      Serial.println("wifi ");dumpstr(bec,256);
       setExpEnd(bec);
     }
     if(memcmp(serialBuf,CONCCFG,10)==0){
       configExport(bec);
       concExport(bec);
+      Serial.println("conc ");dumpstr(bec,256);
       setExpEnd(bec);
     }
     if(memcmp(serialBuf,PERICFG,10)==0){
       concExport(bec,*concNb);
+      Serial.println("peri ");dumpstr(bec,256);
       setExpEnd(bec);
     }
     
-    for(uint8_t i=0;i<RSCNB+1;i++){Serial1.print(RCVSYNCHAR);}
-    Serial1.println(bec);
+    for(uint8_t i=0;i<TSCNB+1;i++){Serial1.print(RCVSYNCHAR);}
+    Serial1.print(bec);
     Serial.println(bec);
   }
 }

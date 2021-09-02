@@ -89,7 +89,9 @@
         réponse datasave à set______ -> réaffichages (remote/preitable etc) reportés après periReq. corrections periRemoteUpdate.
    1.55 incorpore metaJS pour periline ; #define NOJSBUF accélère la sortie html ; révision initLed ; ajout red1.1 (powerOn)
         config serverName (confightml) ; création factoryReset() ;
-   1.56 Le fichier config devient la source des données réseau ; Le mécanisme d'initialisation est installé.
+   1.56 Le fichier config devient la source des données réseau et des données de config des périfs et concentrateurs ; 
+        Le mécanisme d'initialisation est installé. 
+        Les concentrateurs et périphériques demandent leurs données de config au serveur via Serial1 du serveur, Serial1 du concentrateur, Serial des périfs.
 
    BUGS :
 
@@ -188,6 +190,8 @@
 #define LBUF1000 1000
 #define LBUF2000 2048
 #define LBUF4000 4096                        // buf size html print 
+
+#define LBEC 1000                            // longueur buffer pour export message config
 
 #define MAXCXWT 120000                       // (defaut) time out delay if no TCP connection 
 #define MAXCXWU 900000                       // (defaut) time out delay if no UDP connection 

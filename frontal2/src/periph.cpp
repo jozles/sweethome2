@@ -8,7 +8,6 @@
 #include "periph.h"
 
 
-
 /* >>>>>>>> config <<<<<<< */
 
 File32 fconfig;     // fichier config
@@ -167,7 +166,11 @@ extern uint32_t  mDSmaskbit[];
 File32 fmemos;      // fichier memos
 extern char   memosTable[LMEMO*NBMEMOS];
 
+uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal bvs N° conc 
+byte*   concAddrTable[MAXCONC] = {CC_ADDR0,CC_ADDR1,CC_ADDR2,CC_ADDR3};
+uint16_t portTable[MAXCONC] = {CC_UDP0,CC_UDP1,CC_UDP2,CC_UDP3};
 
+#define DEFCONC 0
 
 extern uint16_t perrefr;
 extern char strdate[33];
@@ -190,9 +193,19 @@ void factoryResetConfig()
   memcpy(usrnames,"admin",5);
   memset(usrpass,0x00,LENUSRPASS);
   memcpy(usrpass,"admin",5);
+  memset(peripass,0x00,LPWD);
+  memcpy(peripass,"sweeth",6);
   *toPassword=TO_PASSWORD;
   *maxCxWt=MAXCXWT;
   *maxCxWu=MAXCXWU;
+
+  memcpy(concMac,concAddrTable,MACADDRLENGTH*MAXCONC);
+  memset(concIp,0x00,4*MAXCONC);
+  for(uint8_t i=0;i<MAXCONC;i++){
+    concPort[i]=portTable[i];
+    concChannel[i]=channelTable[i];
+    //concRfSpeed[i]=RF_SPEED;
+  }
 
   configSave();
 }
@@ -365,13 +378,15 @@ uint16_t setExpEnd(char* bec)
   setcrc(bec,ll);
   
   *(bec+ll+2)='\0';
+  dumpstr(bec,128);
   return (uint16_t)(ll+2);
 }
 
 void configExport(char* bec)
 {
   uint16_t ll=0;
-  *bec=0x00;strcat(bec,"0000;");                              // len ascii
+  memset(bec,0x00,LBEC);
+  strcat(bec,"0000;");                                        // len ascii
   strcat(bec,serverName);                                     // nom server
   strcat(bec," v");strcat(bec,VERSION);                       // version
   strcat(bec,";");
@@ -386,8 +401,9 @@ void configExport(char* bec)
   sprintf(bec+ll,"%05u",(uint16_t)*remotePort);ll+=5;         // remote
   *(bec+ll)=';';ll++;
   sprintf(bec+ll,"%05u",(uint16_t)*udpPort);ll+=5;            // udp
-  *(bec+ll)=';';
-  *(bec+ll+1)='\0';
+  *(bec+ll)=';';ll++;
+  strcat(bec+ll,peripass);                                    // peripass
+  strcat(bec,";");
 }
 
 void wifiExport(char* bec,uint8_t selssid)
@@ -396,6 +412,7 @@ void wifiExport(char* bec,uint8_t selssid)
   strcat(bec,";");
   strcat(bec,passssid+(selssid-1)*(LPWSSID+1));                // pwd1
   strcat(bec,";");
+  dumpstr(bec,256);
 }  
 
 void concExport(char* bec,uint8_t concNb)
