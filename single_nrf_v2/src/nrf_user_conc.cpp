@@ -14,7 +14,7 @@ extern Nrfp radio;
 /* user includes */
 
 #include <SPI.h>
-#include <Ethernet.h> //bibliothèque W5x00 Ethernet
+#include <Ethernet.h> 
 #include "shconst2.h"
 #include "shutil2.h"
 #include "shmess2.h"
@@ -27,7 +27,7 @@ extern bool diags;
   int         port      = PORTTCPCONC;     
 //byte        host[]    = HOSTIPADDR2;        // ip server sh devt2
   byte        host[]    = {82,64,32,56};
-  int         hport     = PORTPERISERVER2;    // port server sh devt2
+  int         hostPort     = PORTPERISERVER2;    // port server sh devt2
 
 #define CLICX cli.connected()
 #define CLIAV cli.available()
@@ -43,6 +43,7 @@ extern bool diags;
 
 #include <EthernetUdp.h>
 
+/*
 #define INTERIEUR       // concentrateur intérieur
 //#define EXTERIEUR       // concentrateur extérieur
 
@@ -56,15 +57,21 @@ extern bool diags;
   #define PORTUDPCONC   PORTUDPCONC2
   #define MACADDRUDP    MACADDRUDP2
 #endif //  EXTERIEUR  
-
+*/
   EthernetUDP Udp;
 
-uint16_t      port     = 8888;        // conc udp port                // PORTUDPCONC;         // (8887 intérieur ; 8888 ext)
-byte          mac[]    = {0xDE,0xAD,0xBE,0xEF,0xFE,0xEF};             // MACADDRUDP2;          //{0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
-uint16_t      hport    = 8886;        // host udp port                // PORTUDPSERVER2;      // port server sh devt2
+//uint16_t          port     = 8888;    // conc udp port                          // PORTUDPCONC;         // (8887 intérieur ; 8888 ext)
+//byte              mac[]    = {0xDE,0xAD,0xBE,0xEF,0xFE,0xEF};                   // MACADDRUDP2;         //{0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
 
-IPAddress localIp(CONCNRFIPADDR);
-IPAddress host(SHIPADDR);
+IPAddress         localIp;
+extern byte*      serverIp;
+extern byte*      concIp;
+
+extern uint16_t*  concPort;
+extern byte*      concMac;
+extern uint16_t   hostPort;              // host port (TCP/UDP selon TXRX_MODE)    // PORTUDPSERVER2;      // port server sh devt2
+
+IPAddress host;
 
 IPAddress     rxIpAddr;   // IPAddress from received message
 unsigned int  rxPort;     // port      from received message
@@ -93,8 +100,7 @@ extern uint8_t numConc;
 #define LBODY 6 // "<body>"
   extern char bufServer[BUF_SERVER_LENGTH];
 
-  const char* srvpswd=PERIPASS;
-  byte  lsrvpswd=LPWD;
+  extern char* peripass;
 
   const char* fonctions={"set_______ack_______etat______reset_____sleep_____testaoff__testa_on__testboff__testb_on__last_fonc_"};
   uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__;;
@@ -144,9 +150,9 @@ extern uint8_t numConc;
 
 /* cycle functions */
 
-int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hport,char* data);    // connecte au serveur et transfère la data
+int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data);    // connecte au serveur et transfère la data
 
-void userResetSetup()
+void userResetSetup(byte* serverIp)
 {
   nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;  
   fset_______=(strstr(fonctions,"set_______")-fonctions)/LENNOM;
@@ -160,60 +166,39 @@ void userResetSetup()
   ftestb_on__=(strstr(fonctions,"testb_on__")-fonctions)/LENNOM;
      
   unsigned long t_beg=millis();
-
-/*
-    ************* le numéro de la carte s'ajoute au poids faible de la macAddr ****************
-*/
-
- // mac[5]+=numConc;
-
-IPAddress slaveIp(192, 168, 0, 31);
-#define IP slaveIp
-#define PORT PORTUDPCONC // 8887
-  if(diags){
-  Serial.println();
-  for(int i=0;i<6;i++){Serial.print(mac[i],HEX);if(i!=5){Serial.print(":");}}
-  Serial.print(" ready on ");
-  for(int i=0;i<4;i++){Serial.print(IP[i]);if(i!=3){Serial.print(".");}}
-  }
-  Serial.print(":");Serial.print(PORT);
-// start ethernet,udp    
-  Ethernet.begin(mac, localIp);
-  Serial.print(" Udp.begin ");
-  if(!Udp.begin(port)){Serial.println(" ko");while(1){};}
-  Serial.print(" ready on ");Serial.print(Ethernet.localIP());
-  Serial.print(":");Serial.print(port);
-  Serial.print(" ");Serial.print(millis()-t_beg);Serial.println("mS");
-
-/*if(diags){Serial.println(" ok");}
-  Serial.print("\nEthernet mac=");serialPrintMac(mac,0);
-  if(Ethernet.begin((uint8_t*)mac) == 0){
-    Serial.print(" failed with DHCP... forcing Ip ");serialPrintIp(localIp);delay(10);
-    Ethernet.begin ((uint8_t*)mac, localIp);
+ 
+  if(Ethernet.begin(concMac) == 0){
+    Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(concIp);Serial.println();
+    for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.print((IPAddress)localIp);Serial.println();
+    Ethernet.begin (concMac, localIp); 
   }
   
+  Serial.print(" localIP=");
+  for(uint8_t i=0;i<4;i++){localIp[i]=Ethernet.localIP()[i];}Serial.print((IPAddress)localIp);Serial.println();
+   
 #if TXRX_MODE == 'U'
-  Serial.print(" UDPport=");Serial.print(port);
-  if(!Udp.begin(port)){Serial.print(" begin ko ");while(1){};}
-  else{Serial.print(" begin ok");}
-#endif //  TXRX_UDP  
-  
-if(diags){Serial.print(" local IP=");Serial.print(Ethernet.localIP());Serial.print(" ");Serial.println(millis()-t_beg);}
-*/
+  Serial.print(" Udp.begin (");Serial.print(*concPort);Serial.print(")");
+  if(!Udp.begin(*concPort)){Serial.println(" ko");while(1){trigwd(1000);}}
+ 
+  Serial.print(" ready on ");Serial.print(Ethernet.localIP());
+  Serial.print(" ");Serial.print(millis()-t_beg);Serial.println("mS");
+#endif
+
+  for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];}
 }
 
-int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hport,char* data)    // connecte au serveur et transfère la data{
+int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)    // connecte au serveur et transfère la data{
 {
 #ifdef DIAG
-/*  
+  
   Serial.print(TXRX_MODE);Serial.print(" to ");
   for(int i=0;i<4;i++){Serial.print((uint8_t)host[i]);Serial.print(" ");}
-  Serial.print(":");Serial.print(hport);Serial.print("...");
-*/
+  Serial.print(":");Serial.print(hostPort);Serial.print("...");
+
 #endif //  DIAG
 
 #if TXRX_MODE == 'U'
-  Udp.beginPacket(host,hport);
+  Udp.beginPacket(host,hostPort);
   t3_01=micros();
   Udp.write(data,strlen(data));
   Udp.endPacket();
@@ -229,7 +214,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hport,char* data)   
   while(!cxStatus && repeat<MAXREPEAT){
     
     repeat++;
-    cxStatus=cli->connect(host,hport);
+    cxStatus=cli->connect(host,hostPort);
     cxStatus=cli->connected();
     if(diags){
     Serial.print(repeat);Serial.print("/");Serial.print(cxStatus);
@@ -341,8 +326,8 @@ int exportData(uint8_t numT)                            // formatting periBuf da
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
   strcpy(bufServer,"GET /cx?\0");
-  if(buildMess("peri_pass_",srvpswd,"?")<=0){
-    Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};
+  if(buildMess("peri_pass_",peripass,"?")<=0){
+    Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(peripass);return MESSDEC;};
 
   char message[LENVAL];
   int sb=0,i=0;
@@ -426,9 +411,10 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     #define MAXRST 2      // nombre de redémarrages ethernet si pas de connexion
     
     while(cnt<MAXRST){
-      periMess=mess2Server(&cli,host,hport,bufServer);                                  // send message to server
+      periMess=mess2Server(&cli,host,hostPort,bufServer);                          // send message to server
+      
       if(periMess!=-7){cnt=MAXRST;t3_02=micros();}
-      else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup();t3_2=micros();}}}       // si connecté fin sinon redémarrer ethernet
+      else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup(serverIp);t3_2=micros();}}}       // si connecté fin sinon redémarrer ethernet
 
     if(diags){
     Serial.print(" periMess=");Serial.print(periMess);

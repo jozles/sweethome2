@@ -5,7 +5,7 @@
 
 int  exportData(uint8_t numT);
 int  importData(uint32_t* tLast);
-void userResetSetup();
+void userResetSetup(byte* serverIp);
 
 #endif // NRF_MODE == 'C'
 

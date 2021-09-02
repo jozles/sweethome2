@@ -42,8 +42,8 @@ extern char configRec[CONCRECLEN];       // enregistrement de config
   extern uint16_t* cfgLen;           // cfg record length
 
   extern byte*     serverIp;         // server ip addr
-  extern uint16_t* serverPort;       // server port
-  extern uint16_t* udpPort;          // conc udp port
+  extern uint16_t* serverTcpPort;    // server port
+  extern uint16_t* serverUdpPort;    // server udp port
 
   extern char*     peripass;         // mot de passe périphériques
 
@@ -54,6 +54,7 @@ extern char configRec[CONCRECLEN];       // enregistrement de config
   extern uint16_t* concPort;         // (table concentrateurs) port concentrateur
   extern uint8_t*  concNb;
 
+extern uint16_t hostPort;               // server Port (TCP/UDP selon TXRX_MODE)
 extern struct NrfConTable tableC[NBPERIF+1]; // teble périf
 bool menu=true;
 #endif // NRF_MODE == 'C'
@@ -300,13 +301,18 @@ void setup() {
   PP4_INIT
   
   delay(100);
-  Serial.begin(115200);
+  Serial.begin(115200);Serial1.begin(115200);
 
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" PP=");Serial.print(PP);Serial.print(" ");
   Serial.print(TXRX_MODE);
 
   pinMode(LED,OUTPUT);
-  
+#ifdef REDV1
+  pinMode(POWCD,OUTPUT);                // power ON shield
+  digitalWrite(POWCD,POWON);
+  trigwd(1000000);                      // uS
+#endif // REDV1
+
   pinMode(NUMC_BIT0,INPUT_PULLUP);
   pinMode(NUMC_BIT1,INPUT_PULLUP);
   numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
@@ -317,24 +323,33 @@ void setup() {
 ///* version frontal
   configInit();
   
+  initLed();
   blink(4);
-  unsigned long beg=millis();
-  #define FRDLY 5  // sec
-  while(digitalRead(STOPREQ)==LOW){
+
+  pinMode(STOPREQ,INPUT_PULLUP);
+  //Serial.print("STOPREQ=");Serial.println(digitalRead(STOPREQ));
+  if(digitalRead(STOPREQ)==LOW){
       trigwd();
-      if(millis()>(beg+FRDLY*1000)){
-        blink(4);
-        getServerConfig();
-        configSave();
-        blink(8);
-      }
+      blink(4);
+      Serial.print(getServerConfig());Serial.print(" ");
+      configSave();
+      blink(8);
   }
 
-  if(!eeprom.load((byte*)configRec,CONCRECLEN)){Serial.println("***EEPROM KO***");blink(BCODESDCARDKO);}
+  if(!eeprom.load((byte*)configRec,CONCRECLEN)){Serial.println("***EEPROM KO***");ledblink(BCODESDCARDKO);}
   Serial.println("eeprom ok");
+
+#if TXRX_MODE == 'U' 
+    hostPort=*serverUdpPort;
+#endif // TXRX_MODE U
+#if TXRX_MODE == 'T' 
+    hostPort=*serverTcpPort;
+#endif // TXRX_MODE T
   
   configPrint();
   
+while(1){blink(1);delay(1000);}
+
   channel=*concChannel;
   radio.locAddr=concMac;               // première init à faire !!
   radio.tableCInit();
@@ -354,7 +369,7 @@ void setup() {
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);                // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
 */  
 
-  userResetSetup();
+  userResetSetup(serverIp);
 
 #ifdef DUE
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
