@@ -324,8 +324,7 @@ delay(1);
   if(digitalRead(PINDTC)==LOW){
     blink(4);delay(2000);
     yield();
-    int n=getServerConfig();   // bloque si ko
-    if(n>0){writeConstant();}
+    if(getServerConfig()>0){writeConstant();} // getServerConfig bloque si ko
     blink(8);
   }
   Serial.println();
@@ -670,8 +669,8 @@ int buildReadSave(const char* nomfonction,const char* data)   // construit et en
                                                   //   (sortie MESSCX connexion échouée)                                                  
 {
   strcpy(bufServer,"GET /cx?\0");
-  if(!buildMess("peri_pass_",cstRec.srvPass,"?",diags)==MESSOK){
-    if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(cstRec.srvPass);return MESSDEC;};}
+  if(!buildMess("peri_pass_",cstRec.peripass,"?",diags)==MESSOK){
+    if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(cstRec.peripass);return MESSDEC;};}
 
   buildData(nomfonction,data);
 
@@ -1091,7 +1090,7 @@ uint16_t getServerConfig()
   
   if(rcvl>5){                               // nnnn;  length
     Serial.print(strlen(bf));Serial.print(" ");Serial.println(bf);
-  dumpstr(bf,128);
+  
     Serial.print("checkData : ");
     uint16_t ll=0;
     int cd=checkData(bf,&ll);               // longueur stockée dans le message
@@ -1110,8 +1109,8 @@ uint16_t getServerConfig()
     temp=0;conv_atob(b,&temp);b+=6;cstRec.serverPort=temp;                                      // serverPort
     b+=12;                                                                                      // skip remote+udp ports
 
-    temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.srvPass[temp]=a;temp++;}  // peripass
-    cstRec.srvPass[temp]='\0';b+=temp;
+    temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl) && temp<LPWD){a=b[temp];cstRec.peripass[temp]=a;temp++;}  // peripass
+    cstRec.peripass[temp]='\0';b+=temp;
 
     temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.ssid1[temp]=a;temp++;}
     cstRec.ssid1[temp]='\0';b+=temp;
