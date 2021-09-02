@@ -153,7 +153,7 @@ void initConstant()  // inits mise sous tension
   cstRec.analVal=0;
   cstRec.IpLocal=IPAddress(0,0,0,0);  
   cstRec.periPort=9999;
-  cstRec.serverIp=IPAddress(192,168,0,35);
+  cstRec.serverIp=IPAddress(0,0,0,0);
   cstRec.serverPort=1790;
   memset(cstRec.ssid1,'\0',LENSSID);
   memset(cstRec.ssid2,'\0',LENSSID);

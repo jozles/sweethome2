@@ -444,9 +444,10 @@ union {
   char      ssid1[16];            // 16   ssid1 
   char      pwd1[64];             // 64   pwd1         
   char      ssid2[16];            // 16   ssid2 
-  char      pwd2[64];             // 64   pwd2        
+  char      pwd2[64];             // 64   pwd2 
+  char      srvPass[LPWD];        //  8   server passwd       
 
-#define LENFILLERCST 31
+#define LENFILLERCST 23
   byte      filler[LENFILLERCST]; 
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer la longueur
              // total 238 = 60 mots ; 256 maxi pour RTC

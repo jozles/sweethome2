@@ -66,9 +66,8 @@ bool serverStarted=false;
   char   httpMess[LHTTPMESS];             // buffer d'entrée en mode serveur
 #endif // _SERVER
 
-  char shServerIp[16];                    // sweethome server IpAddr
-  const char* srvpswd=PERIPASS;
-  byte  lsrvpswd=LPWD;
+  #define LSRVTEXTIP TEXTIPADDRLENGTH+1
+  char textServerIp[LSRVTEXTIP];                  // sweethome server alpha IpAddr
 
 // enregistrement pour serveur externe
 
@@ -306,25 +305,27 @@ delay(1);
   if(!readConstant()){   
     initConstant();
     yield();
-    if(cstRec.cstlen!=LENCST){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){};} // blocage param faux, le programme a changé
+    if(cstRec.cstlen!=LENCST){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){yield();}} // blocage param faux, le programme a changé
   }
 
   Serial.print("CONSTANT=");Serial.print(CONSTANT);Serial.print(" time=");Serial.print(millis()-debTime);Serial.println(" ready !");
   printConstant();
-  char buf[8];
-  for(int i=0;i<4;i++){         // mise au format alpha pour messToServer
-    memset(buf,'\0',8);sprintf(buf,"%d",cstRec.serverIp[i]);strcat(shServerIp,buf);if(i<3){strcat(shServerIp,".");}
-  }
-  //charIp((IPAddress*)&cstRec.serverIp,shServerIp); // ne fonctionne pas ... pb avec <ESP8266WiFi.h>
-  delay(20);
+
+  // Ip au format texte pour MessToServer
+  // charIp ne fonctionne pas avec le format IPAddress ; changer pour byte* modifie cstRec
+  char buf[TEXTIPADDRLENGTH+1];memset(buf,0X00,TEXTIPADDRLENGTH+1);
+  for(uint8_t i=0;i<4;i++){
+    sprintf(buf+strlen(buf),"%d",cstRec.serverIp[i]);if(i<3){strcat(buf,".");}}
+  memcpy(textServerIp,buf,LSRVTEXTIP);
+  Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);Serial.print(" textServerIp ");Serial.println(textServerIp);
 
   #define FRDLY 5  // sec
   pinMode(PINDTC,INPUT);
   if(digitalRead(PINDTC)==LOW){
     blink(4);delay(2000);
     yield();
-    getServerConfig();
-    writeConstant();
+    int n=getServerConfig();   // bloque si ko
+    if(n>0){writeConstant();}
     blink(8);
   }
   Serial.println();
@@ -669,12 +670,12 @@ int buildReadSave(const char* nomfonction,const char* data)   // construit et en
                                                   //   (sortie MESSCX connexion échouée)                                                  
 {
   strcpy(bufServer,"GET /cx?\0");
-  if(!buildMess("peri_pass_",srvpswd,"?",diags)==MESSOK){
-    if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(srvpswd);return MESSDEC;};}
+  if(!buildMess("peri_pass_",cstRec.srvPass,"?",diags)==MESSOK){
+    if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(cstRec.srvPass);return MESSDEC;};}
 
   buildData(nomfonction,data);
 
-  return messToServer(&cli,shServerIp,cstRec.serverPort,bufServer); 
+  return messToServer(&cli,textServerIp,cstRec.serverPort,bufServer); 
 }
 
 char* tempStr()
@@ -1083,15 +1084,15 @@ uint16_t getServerConfig()
 {
   char bf[MAXSER];//*buf='\0';
   
-  for(uint8_t i=0;i<=RSCNB;i++){Serial.print(RCVSYNCHAR);}
+  for(uint8_t i=0;i<=TSCNB;i++){Serial.print(RCVSYNCHAR);}
   Serial.print(WIFICFG);
-  delay(10);                                 // tx time (14*100uS) + response time (100uS)
+  delay(1000);                                // tx time (14*100uS) + response time (100uS)
   uint16_t rcvl=serialRcv(bf,MAXSER,0);     // longueur effectivement reçue (strlen(bf))
   
-  if(rcvl>0){
-    Serial.println(bf);
-  
-    Serial.print("checkData=");
+  if(rcvl>5){                               // nnnn;  length
+    Serial.print(strlen(bf));Serial.print(" ");Serial.println(bf);
+  dumpstr(bf,128);
+    Serial.print("checkData : ");
     uint16_t ll=0;
     int cd=checkData(bf,&ll);               // longueur stockée dans le message
     Serial.print(cd);
@@ -1109,6 +1110,9 @@ uint16_t getServerConfig()
     temp=0;conv_atob(b,&temp);b+=6;cstRec.serverPort=temp;                                      // serverPort
     b+=12;                                                                                      // skip remote+udp ports
 
+    temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.srvPass[temp]=a;temp++;}  // peripass
+    cstRec.srvPass[temp]='\0';b+=temp;
+
     temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.ssid1[temp]=a;temp++;}
     cstRec.ssid1[temp]='\0';b+=temp;
     temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.pwd1[temp]=a;temp++;}
@@ -1121,5 +1125,6 @@ uint16_t getServerConfig()
 
     //bool svd=diags;diags=true;printConstant();diags=svd;
   }
+  else {Serial.print(" ko ");Serial.println(rcvl);ledblink(BCODESDCARDKO);}
   return rcvl;
 }
