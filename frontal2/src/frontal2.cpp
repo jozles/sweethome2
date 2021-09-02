@@ -1883,6 +1883,7 @@ void pilotServer()
 void serialServer()
 {       
   char serialBuf[MAXSER];
+  memset(bec,0x00,LBEC);
   
   uint16_t lrcv=serialRcv(serialBuf,MAXSER,1);
   if(lrcv!=0){
@@ -1893,23 +1894,24 @@ void serialServer()
       configExport(bec);
       wifiExport(bec,*ssid1);
       wifiExport(bec,*ssid2);
-      Serial.println("wifi ");dumpstr(bec,256);
       setExpEnd(bec);
+      Serial.println("wifi ");dumpstr(bec,300);
     }
     if(memcmp(serialBuf,CONCCFG,10)==0){
       configExport(bec);
       concExport(bec);
-      Serial.println("conc ");dumpstr(bec,256);
       setExpEnd(bec);
+      Serial.println("conc ");dumpstr(bec,300);      
     }
     if(memcmp(serialBuf,PERICFG,10)==0){
       concExport(bec,*concNb);
-      Serial.println("peri ");dumpstr(bec,256);
       setExpEnd(bec);
+      Serial.println("peri ");dumpstr(bec,300);      
     }
     
     for(uint8_t i=0;i<TSCNB+1;i++){Serial1.print(RCVSYNCHAR);}
-    Serial1.print(bec);
+    //Serial1.print(bec);
+    for(uint16_t lb=0;lb<strlen(bec);lb++){Serial1.print(*(bec+lb));delay(1);}
     Serial.println(bec);
   }
 }

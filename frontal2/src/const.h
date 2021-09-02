@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.56"
+#define VERSION "1.57"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
    1.1a ajout volts et version dans table
    1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -92,6 +92,7 @@
    1.56 Le fichier config devient la source des données réseau et des données de config des périfs et concentrateurs ; 
         Le mécanisme d'initialisation est installé. 
         Les concentrateurs et périphériques demandent leurs données de config au serveur via Serial1 du serveur, Serial1 du concentrateur, Serial des périfs.
+   1.57 debug config concentrateurs
 
    BUGS :
 

@@ -378,7 +378,6 @@ uint16_t setExpEnd(char* bec)
   setcrc(bec,ll);
   
   *(bec+ll+2)='\0';
-  dumpstr(bec,128);
   return (uint16_t)(ll+2);
 }
 
@@ -412,7 +411,6 @@ void wifiExport(char* bec,uint8_t selssid)
   strcat(bec,";");
   strcat(bec,passssid+(selssid-1)*(LPWSSID+1));                // pwd1
   strcat(bec,";");
-  dumpstr(bec,256);
 }  
 
 void concExport(char* bec,uint8_t concNb)
