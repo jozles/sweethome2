@@ -370,10 +370,11 @@ void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,const void* value,
 
 void subcfgtable(char* buf,char* jsbuf,const char* titre,int nbl,const char* nom1,const char* value1,int len1,uint8_t type1,const char* nom2,void* value2,int len2,const char* titre2,uint8_t type2)
 { 
-    borderparam=NOBORDER;  
+    borderparam=NOBORDER; 
+     
     tableBeg(buf,jsbuf,0);scrDspText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);scrDspText(buf,jsbuf,titre,0,STRING|TDEND);scrDspText(buf,jsbuf,titre2,0,STRING|TREND);
     //strcat(buf,"<table><col width=\"22\"><tr><th></th><th>");strcat(buf,titre);strcat(buf,"</th><th>");strcat(buf,titre2);strcat(buf,"</th></tr>\n");
-Serial.println((char*)(buf+strlen(buf)-100));
+
     for(int nb=0;nb<nbl;nb++){
       uint8_t n=nb+1;
       scrDspNum(buf,jsbuf,'s',&n,0,0,TRBEG|TDBE);
@@ -413,10 +414,10 @@ void conctable(char* buf,char* jsbuf)
       concFn[LENNOM-1]='M';scrGetText(buf,jsbuf,lbuf,concFn,11,MACADDRLENGTH*2,0,TDBE);
     
       concFn[LENNOM-1]='C';scrGetNum(buf,jsbuf,'d',(concChannel+nb),concFn,4,0,0,TDBE);
-      concFn[LENNOM-1]='S';scrGetNum(buf,jsbuf,'d',(concRfSpeed+nb),concFn,4,0,0,TDBE);
+      concFn[LENNOM-1]='S';scrGetNum(buf,jsbuf,'d',(concRfSpeed+nb),concFn,1,0,0,TDBE);
       *lbuf=0x00;for(int k=0;k<4;k++){concatns(lbuf,concIp[nb*4+k]);if(k!=3){strcat(lbuf,".");}}
       concFn[LENNOM-1]='I';scrGetText(buf,jsbuf,lbuf,concFn,11,LBL,0,TDBE);
-      concFn[LENNOM-1]='P';scrGetNum(buf,jsbuf,'d',(concPort+nb),concFn,4,0,0,TDBE);
+      concFn[LENNOM-1]='P';scrGetNum(buf,jsbuf,'d',(concPort+nb),concFn,5,0,0,TDBE);
     
       scrDspText(buf,jsbuf," ",0,TREND);
     }
@@ -462,14 +463,15 @@ fontBeg(buf,jsbuf,2,0);
             scrDspText(buf,jsbuf," localIp ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___i",11,LBUFL,0,BRYES);strcat(buf,"\n");
             //strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
             //for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
-            scrDspText(buf,jsbuf," serverPort ",0,0);scrGetNum(buf,jsbuf,'d',serverPort,"ethcfg___p",4,0,0,0);
+            scrDspText(buf,jsbuf," serverPort ",0,0);scrGetNum(buf,jsbuf,'d',serverPort,"ethcfg___p",5,0,0,0);
             //strcat(buf," serverPort ");scrGetNum(buf,'d',serverPort,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
-            scrDspText(buf,jsbuf," remotePort ",0,0);scrGetNum(buf,jsbuf,'d',remotePort,"ethcfg___t",4,0,0,0);
-            scrDspText(buf,jsbuf," udpPort ",0,0);scrGetNum(buf,jsbuf,'d',udpPort,"ethcfg___u",4,0,0,BRYES);strcat(buf,"\n");
+            scrDspText(buf,jsbuf," remotePort ",0,0);scrGetNum(buf,jsbuf,'d',remotePort,"ethcfg___t",5,0,0,0);
+            scrDspText(buf,jsbuf," udpPort ",0,0);scrGetNum(buf,jsbuf,'d',udpPort,"ethcfg___u",5,0,0,BRYES);strcat(buf,"\n");
 
             scrDspText(buf,jsbuf,"peripass ",0,0);scrGetText(buf,jsbuf,peripass,"peripcfg__",5,LPWD,0,BRYES);strcat(buf,"\n");
 
             scrDspText(buf,jsbuf,"",0,BRYES);
+
             subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
             scrDspText(buf,jsbuf,"ssid1 ",0,0);scrGetNum(buf,jsbuf,'b',ssid1,"ethcfg___W",1,1,0,0,0);
             scrDspText(buf,jsbuf," ssid2 ",0,0);scrGetNum(buf,jsbuf,'b',ssid2,"ethcfg___w",1,1,0,0,BRYES);strcat(buf,"\n");

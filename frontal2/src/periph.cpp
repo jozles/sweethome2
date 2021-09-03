@@ -166,9 +166,10 @@ extern uint32_t  mDSmaskbit[];
 File32 fmemos;      // fichier memos
 extern char   memosTable[LMEMO*NBMEMOS];
 
-uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal bvs N° conc 
-byte*   concAddrTable[MAXCONC] = {CC_ADDR0,CC_ADDR1,CC_ADDR2,CC_ADDR3};
+uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal vs N° conc 
+const char  concAddrTable[] = {CC_ADDRX};
 uint16_t portTable[MAXCONC] = {CC_UDP0,CC_UDP1,CC_UDP2,CC_UDP3};
+uint16_t speedTable[MAXCONC]= {CC_SPEED,CC_SPEED,CC_SPEED,CC_SPEED};
 
 #define DEFCONC 0
 
@@ -204,9 +205,11 @@ void factoryResetConfig()
   for(uint8_t i=0;i<MAXCONC;i++){
     concPort[i]=portTable[i];
     concChannel[i]=channelTable[i];
-    //concRfSpeed[i]=RF_SPEED;
+    concRfSpeed[i]=speedTable[i];
   }
-
+  configPrint();
+  Serial.println("\nFactoryReset (lâcher HALT si OK)");
+  while(digitalRead(STOPREQ)==LOW){blink(1);delay(500);}
   configSave();
 }
 
@@ -359,7 +362,9 @@ void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned 
 
 void subConcPrint()
 {
+  Serial.println("concentrateurs");
   for(uint8_t i=0;i<MAXCONC;i++){
+    Serial.print(i+1);Serial.print(" ");
     serialPrintMac(concMac+i*MACADDRLENGTH,0);Serial.print(" ");
     serialPrintIp(concIp+i*4*sizeof(byte));Serial.print("/");
     Serial.print(*(concPort+i));Serial.print(" ");
@@ -367,7 +372,7 @@ void subConcPrint()
     Serial.print(*(concRfSpeed+i));Serial.print(" ");
     Serial.println();
   }
-  Serial.print("N° perif ");Serial.println(*concNb);
+  Serial.print("N° concentrateur pour perif ");Serial.println(*concNb);
 }
 
 uint16_t setExpEnd(char* bec)
@@ -448,7 +453,8 @@ void configPrint()
 {
   Serial.print("serverName=");Serial.println(serverName);
   Serial.print(" Mac=");serialPrintMac(mac,0);
-  Serial.print(" localIp=");serialPrintIp(localIp);Serial.print("/");Serial.println(*serverPort);   //for(int pp=0;pp<4;pp++){Serial.print((uint8_t)localIp[pp]);if(pp<3){Serial.print(".");}}Serial.print("/");Serial.println(*serverPort);
+  Serial.print(" localIp=");serialPrintIp(localIp);
+  Serial.print("/");Serial.print(*serverPort);Serial.print("/");Serial.print(*remotePort);Serial.print("/");Serial.println(*udpPort);      
   Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.print(" table ssid ");Serial.print(*ssid1);Serial.print("/");Serial.println(*ssid2);
   subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);

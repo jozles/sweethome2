@@ -141,10 +141,12 @@
 
   pour initialiser un serveur :
      sur le serveur, faire un "factory reset" qui modifie le fichier config : 
-          efface localIP, serverPort=7700, remotePort=7701, udpPort=7702, mac=90.90.90.90.90.90, admin/admin pour l'accès
-          le serveur redémarre
+          (factory reset : appuyer RESET, appuyer HALT, relacher RESET, après environ 2 secondes
+          la led jaune blink 1/0,5sec lâcher HALT : blink 2/seconde ; faire RESET)
+          efface localIP, serverPort=55550, remotePort=55551, udpPort=55552, mac=55.55.55.55.55.55, admin/admin pour l'accès
+          initialise la table des concentrateurs mac ashco\0,b,c,d ; IP 0 ; ports 55556,7,8,9 channel 120/110/100/90 RfSpeed 2 
           (si un équipement local utilise un de ces port ou cette adresse mac, l'éteindre le temps de l'installation)
-     sur le routeur, dans la liste des baux actifs du routeur on trouve l'adresse MAC 90.90... associée avec l'Ip fournie par le DHCP
+     sur le routeur, dans la liste des baux actifs du routeur on trouve l'adresse MAC 55.55... associée avec l'Ip fournie par le DHCP
           créer une redirection de port sur cette adresse IP ce qui permet d'accéder au serveur (adresseIP:port)   
      (éventuellement, sur le serveur, changer l'adresse MAC et/ou les ports et le redémarrer ... sur le routeur, le serveur est visible avec la bonne adresse MAC)
           associer une adresse IP fixe à cette adresse MAC (éventuellement l'adresse courante)
@@ -156,8 +158,10 @@
 
 #define _MODE_DEVT    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
-#define DEFMACADDR "\x90\x90\x90\x90\x90\x90"   // adresse mac factory reset
-#define DEFSERVERPORT 7700                      // base ports  factory reset
+// valeurs pour factoryReset
+
+#define DEFMACADDR "\x55\x55\x55\x55\x55\x55"   // adresse mac server
+#define DEFSERVERPORT 55550                     // base ports server (+1 remote, +2Udp)
 #define LNSERV  17
 
 #ifdef _MODE_DEVT

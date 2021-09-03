@@ -420,16 +420,25 @@ void setup() {                          // ====================================
   Serial.println();Serial.print(VERSION);Serial.print(" ");
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" FreeStack: ");Serial.println(FreeStack());
 
-  ds3231.i2cAddr=DS3231_I2C_ADDRESS; // doit être avant getDate
 #ifdef REDV0
+  Serial.print("carte red v0 ");
   Wire.begin();
 #endif // REDV0
 #ifdef REDV1
+  Serial.print("carte red v1");
+#ifdef AP2112
+  Serial.println(".2 (AP2112)");
+#endif // AP2112  
+#ifndef AP2112
+  Serial.println(".1 (LD1117)");
+#endif // AP2112  
+
   Wire1.begin();
 #endif // REDV1
 
   uint32_t        amj2,hms2;
   byte            js2;
+  ds3231.i2cAddr=DS3231_I2C_ADDRESS; // doit être avant getDate
   ds3231.getDate(&hms2,&amj2,&js2,strdate);
   Serial.print("DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
 
@@ -438,6 +447,7 @@ void setup() {                          // ====================================
 //periMaintenance();
 
   sdInit();
+
   configInit();configLoad();configPrint();
 
 //for(int z=0;z<nbfonct;z++){Serial.print(z);Serial.print(" ");for(int w=0;w<10;w++){Serial.print(fonctions[z*10+w]);}Serial.println();}
@@ -445,15 +455,15 @@ void setup() {                          // ====================================
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
   blink(4);
-  unsigned long beg=millis();
-  #define FRDLY 5  // sec
-  while(digitalRead(STOPREQ)==LOW){
+  //unsigned long beg=millis();
+  //#define FRDLY 5  // sec
+  if(digitalRead(STOPREQ)==LOW){
       trigwd();
-      if(millis()>(beg+FRDLY*1000)){
+      //if(millis()>(beg+FRDLY*1000)){
         blink(4);
         factoryReset();
-        forceWd();
-      }
+        while(1){blink(2);delay(1000);}
+      //}
   }
 
 
@@ -496,7 +506,7 @@ periSave(3,PERISAVESD);
   Serial.print(" localIP=");
   for(i=0;i<4;i++){localIp[i]=Ethernet.localIP()[i];Serial.print(localIp[i]);if(i<3){Serial.print(".");}}Serial.println();
   configSave();
-  configExport(bec);wifiExport(bec,2);wifiExport(bec,1);concExport(bec);setExpEnd(bec);Serial.println(bec);
+//  configExport(bec);wifiExport(bec,2);wifiExport(bec,1);concExport(bec);setExpEnd(bec);Serial.println(bec);
 
   Serial.print(" Udp.begin(");Serial.print(*udpPort);Serial.print(") ");
   if(!Udp.begin(*udpPort)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
@@ -1382,7 +1392,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 #endif
                         }//if(periCur==3){Serial.println("user_ref_ =================");periPrint(periCur);}
                         break;  
-              case 5:  *toPassword=TO_PASSWORD;conv_atob(valf,toPassword);Serial.print(" topass=");Serial.println(valf);break;                     // to_passwd_
+              case 5:  *toPassword=TO_PASSWORD;conv_atob(valf,toPassword);break;                    // to_passwd_
               case 6:  what=2;perrefr=0;conv_atob(valf,&perrefr);                                   // (en tête peritable) periode refresh browser
                        break;                                                                               
               case 7:  *periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) Th Offset
@@ -1518,12 +1528,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 46: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) usrpass[libf+1]
                        alphaTfr(usrpass+nb*(LENUSRPASS+1),LENUSRPASS,valf,nvalf[i+1]-nvalf[i]);
                        }break;                       
-              case 47: cfgServerHtml(cli);break;                                                        // bouton config
+              case 47: if(memcmp((usrnames+usernum*LENUSRNAME),"admin",5)==0){cfgServerHtml(cli);}       // bouton config
+                       break;                                                        
 /*
               case 48: rien
               case 49: rien
+*/              
               case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__ // submit depuis cfgServervHtml                              
-*/
               case 51: what=6;                                                                          // (config) ethcfg___
                        {uint8_t nC=*(libfonctions+2*i)-PMFNCVAL;                                        // num concentrateur             
                           switch(*(libfonctions+2*i+1)){                                            
@@ -1551,7 +1562,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       conv_atob(valf,(concRfSpeed+nC));break;           // (config) concRfSpeed
                             case 'N': *concNb=0;
                                       uint16_t a;conv_atob(valf,&a);
-                                      Serial.print("=====");Serial.print(valf);Serial.print(" ");Serial.print(a);
+                                      //Serial.print("=====");Serial.print(valf);Serial.print(" ");Serial.print(a);
                                       if(a>MAXCONC){a=0;}*concNb=(uint8_t)a;
                                       Serial.print(" ");Serial.println(*concNb);
                                       break;      // (config) N° conc pour périf

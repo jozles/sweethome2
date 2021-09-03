@@ -239,7 +239,9 @@ void concat1a(char* buf,char* jsbuf,char a)
   char b[2];b[1]='\0';
   b[0]=(char)(a);
   if(buf!=nullptr){strcat(buf,b);}
+#ifndef NOJSBUF
   jscat(jsbuf,b);
+#endif  
 }
 
 void concat1aH(char* buf,char a)
@@ -257,15 +259,20 @@ void concatn(char* buf,char* jsbuf,unsigned long val)               // concatene
   uint16_t s;
   char dm[10];
   s=sprintf(dm,"%lu",val);dm[s]='\0';
+#ifndef NOJSBUF
   if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
     strcat(jsbuf,dm);
   }
+#endif  
   if(buf!=nullptr){strcat(buf,dm);} 
 }
 
 void concatn(char* buf,char* jsbuf,unsigned long val,bool sep)
 {
-  concatn(buf,jsbuf,val);if(sep){jscat(jsbuf,JSSEP);}
+  concatn(buf,jsbuf,val);
+#ifndef NOJSBUF  
+  if(sep){jscat(jsbuf,JSSEP);}
+#endif  
 }
 
 void concatn(char* buf,unsigned long val)           // !!!!!!!!!!!!! ne fonctionne pas pour jsbuf utiliser la version surchargée !!!!!!!!!!!!!!
@@ -281,9 +288,11 @@ void concatns(char* buf,char* jsbuf,long val,bool sep)
   s=sprintf(bb,"%lu",val);
   if(s>LSPR){ledblink(BCODESYSERR);}
   bb[s]='\0';
+ #ifndef NOJSBUF 
   if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
     strcat(jsbuf,bb);if(sep){strcat(jsbuf,JSSEP);}
   }
+ #endif 
   if(buf!=nullptr){strcat(buf,bb);}
 }
 
@@ -724,11 +733,18 @@ void scrGetText0(const char* fn,const char* htmlType,char* buf,char* jsbuf,const
   // -------------------- début traitement html
   fnHtmlIntro(buf,pol,ctl);
   strcat(buf,"<input type=\"");strcat(buf,htmlType);strcat(buf,"\" name=\"");
-  strcat(buf,nomfonct);jscat(jsbuf,nomfonct,SEP);
+  strcat(buf,nomfonct);
+#ifndef NOJSBUF  
+  jscat(jsbuf,nomfonct,SEP);
+#endif
   strcat(buf,"\" value=\"");
-  strcat(buf,valfonct);jscat(jsbuf,valfonct,SEP);
+  strcat(buf,valfonct);
+#ifndef NOJSBUF  
+  jscat(jsbuf,valfonct,SEP);
+#endif  
   if(size<NOSIZE){strcat(buf,"\" size=\"");if(size==0){strcat(buf,"2");}else concatn(buf,jsbuf,size);}
-  if(len!=0){strcat(buf,"\" maxlength=\"");concatn(buf,jsbuf,len);}
+  if(len!=0){strcat(buf,"\" maxlength=\"");    
+  concatn(buf,jsbuf,len);}
   strcat(buf,"\" >");
   fnHtmlEnd(buf,pol,ctl);
 }
