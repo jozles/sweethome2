@@ -125,6 +125,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
   char    libfonctions[NBVAL*2];       // les 2 caractères de fin des noms de fonctions
   int     nbreparams=0;                // 
   int     what=0;                      // ce qui doit être fait après traitement des fonctions (0=rien)
+  uint32_t loopCnt=0;
 
 #define LENCDEHTTP 6
   const char*   cdes="GET   POST  \0";       // commandes traitées par le serveur
@@ -553,27 +554,28 @@ void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC
 
 void loop()                         
 {
-
+            loopCnt++;
+//Serial.print("tcp=");Serial.println(millis());
             tcpPeriServer();     // *** périphérique TCP ou maintenance
-
+//Serial.print("udp=");Serial.println(millis());
             udpPeriServer();     // *** périphérique UDP via NRF
-            
+//Serial.print("pil=");Serial.println(millis());            
             pilotServer();       // *** pilotage
-
+//Serial.print("led=");Serial.println(millis());
             ledblink(0);
-            
+//Serial.print("ser=");Serial.println(millis());            
             serialServer();
-
+//Serial.print("tem=");Serial.println(millis());
             scanTemp(); 
-
+//Serial.print("dat=");Serial.println(millis());
             scanDate();         
             
             //scanThermos();
 
             //scanTimers();
-
+//Serial.print("wdg=");Serial.println(millis());
             watchdog();
-
+//Serial.print("hal=");Serial.println(millis());
             stoprequest();
 
 }
@@ -1276,7 +1278,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
     
     what indique le traitement à effectuer (voir switch(what) pour les détails)
 */
-        what=0;                           // pas de traitement subsidiaire
+        what=0;                           // pas de traitement subsidiaire (what=99 pour accueil)
 
 /*
       3 modes de fonctionnement :
@@ -1401,7 +1403,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                // + bouton erase    (switchs)
                        else{periReq(&cliext,periCur,"etat______");}                                 // si pas erase demande d'état
                        swCtlTableHtml(cli,periCur);break;                                                                               
-              case 9:  {byte a=*(libfonctions+2*i+1);
+              case 9:  what=99;{byte a=*(libfonctions+2*i+1);
                         if(a=='B'){usrReboot();}
                        }break;                                                                      // si pas 'R' déco donc -> accueil                                             
               case 10: dumpHisto(cli);break;                                                        // bouton dump_histo
@@ -1758,6 +1760,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           }                                           // 1 ligne par commande GET
 
         periMess=MESSOK;
+        // what==99 pour accueil
+        if(what==0){Serial.print("!!!!!!!!!!!!!!");}
         switch(what){                                           
           case 0: break;                                                
           case 1: periMess=periAns(cli,"ack_______");break;            // data_save
@@ -1852,7 +1856,7 @@ void tcpPeriServer()
   ab='a';
   
   for(int t=0;t<MAXTPS;t++){                    // effectue les .stop() pour libérer les clients
-    if(tPSStop[t]!=0 && (millis()-tPSStop[t])>1200){
+    if(tPSStop[t]!=0 && (millis()-tPSStop[t])>600){
       tPSStop[t]=0;
       cli_a[t].stop();
      }
@@ -1861,7 +1865,11 @@ void tcpPeriServer()
   uint8_t preTPS=tPS+1;                         // attribue l'instance suivante
   if(preTPS>=MAXTPS){preTPS=0;}
 
+  unsigned long tStop=millis();
   cli_a[preTPS].stop();                         // confirme la libération de l'instance
+  if(millis()-tStop>1){
+    Serial.print(loopCnt);Serial.print(" tStop=");Serial.println(millis()-tStop);
+  }
 
   if(cli_a[preTPS] = periserv->available())      // attente d'un client
   {

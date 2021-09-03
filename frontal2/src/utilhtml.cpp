@@ -259,20 +259,16 @@ void concatn(char* buf,char* jsbuf,unsigned long val)               // concatene
   uint16_t s;
   char dm[10];
   s=sprintf(dm,"%lu",val);dm[s]='\0';
-#ifndef NOJSBUF
   if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
     strcat(jsbuf,dm);
   }
-#endif  
   if(buf!=nullptr){strcat(buf,dm);} 
 }
 
 void concatn(char* buf,char* jsbuf,unsigned long val,bool sep)
 {
-  concatn(buf,jsbuf,val);
-#ifndef NOJSBUF  
+  concatn(buf,jsbuf,val); 
   if(sep){jscat(jsbuf,JSSEP);}
-#endif  
 }
 
 void concatn(char* buf,unsigned long val)           // !!!!!!!!!!!!! ne fonctionne pas pour jsbuf utiliser la version surchargée !!!!!!!!!!!!!!

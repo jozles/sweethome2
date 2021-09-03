@@ -432,13 +432,14 @@ void concExport(char* bec,uint8_t concNb)
     *(bec+ll)=';';ll++;
     for(int pp=0;pp<4;pp++){                                                  // ip concentrateur
       sprintf(bec+ll+pp*4,"%03u",(uint16_t)*(concIp+i*4));
-      if(pp<3){*(bec+ll+(pp+1)*4-1)='.';}}ll+=15;
+      if(pp<3){*(bec+ll+(pp+1)*4-1)='.';}}
+    ll+=15;
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%05u",(uint16_t)*(concPort+i*sizeof(uint16_t)));ll+=5;    // concPort
+    sprintf(bec+ll,"%05u",(uint16_t)*(concPort+i));ll+=5;    // concPort
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%03u",(uint16_t)*(concChannel+i*sizeof(uint16_t)));ll+=3; // concChannel
+    sprintf(bec+ll,"%03u",(uint16_t)*(concChannel+i));ll+=3; // concChannel
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%01u",(uint16_t)*(concRfSpeed+i*sizeof(uint16_t)));ll+=1; // concRfSpeed
+    sprintf(bec+ll,"%01u",(uint16_t)*(concRfSpeed+i));ll+=1; // concRfSpeed
     *(bec+ll)=';';ll++;
     *(bec+ll)='\0';
   }

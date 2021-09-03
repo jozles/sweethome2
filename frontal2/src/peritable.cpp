@@ -726,9 +726,9 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             if(k<5){m[k*3+2]='.';}
           }
           scrDspText(buf,jsbuf,m,0,STRING|BRYES);
-
           if(*periProg!=0 || *periProtocol=='U'){
-            scrDspText(buf,jsbuf,"port=",0,STRING|CONCAT);scrDspNum(buf,jsbuf,'d',periPort,0,0,STRING|BRYES);}
+            scrDspText(buf,jsbuf,"port=",0,STRING|CONCAT);
+            scrDspNum(buf,jsbuf,'d',periPort,0,0,STRING|BRYES);}
           else{scrDspText(buf,jsbuf,"",0,STRING|BRYES);}
 // IP addr
           char w[16];memset(w,0x00,16);
