@@ -38,7 +38,8 @@ char configRec[CONCRECLEN];       // enregistrement de config
   byte* configEndOfRecord;
 
   uint8_t  channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal bvs N° conc 
-  byte*    concAddrTable[MAXCONC] = {CC_ADDR0,CC_ADDR1,CC_ADDR2,CC_ADDR3};
+  const char  concAddrTable[] = {CC_ADDRX};
+  //byte*    concAddrTable[MAXCONC] = {CC_ADDR0,CC_ADDR1,CC_ADDR2,CC_ADDR3};
   uint16_t portTable[MAXCONC] = {CC_UDP0,CC_UDP1,CC_UDP2,CC_UDP3};
   #define DEFCONC 0
 

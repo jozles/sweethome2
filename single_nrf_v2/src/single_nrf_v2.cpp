@@ -304,7 +304,7 @@ void setup() {
   Serial.begin(115200);Serial1.begin(115200);
 
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" PP=");Serial.print(PP);Serial.print(" ");
-  Serial.print(TXRX_MODE);
+  Serial.print(TXRX_MODE);Serial.print(" ");
 
   pinMode(LED,OUTPUT);
 #ifdef REDV1
@@ -313,16 +313,12 @@ void setup() {
   trigwd(1000000);                      // uS
 #endif // REDV1
 
-  pinMode(NUMC_BIT0,INPUT_PULLUP);
-  pinMode(NUMC_BIT1,INPUT_PULLUP);
-  numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
-  Serial.print(" numConc=");Serial.println(numConc);
-
 /* version avec params de réseau/radio en eeprom */
 
 ///* version frontal
+
   configInit();
-  
+
   initLed();
   blink(4);
 
@@ -339,6 +335,11 @@ void setup() {
   if(!eeprom.load((byte*)configRec,CONCRECLEN)){Serial.println("***EEPROM KO***");ledblink(BCODESDCARDKO);}
   Serial.println("eeprom ok");
 
+  pinMode(NUMC_BIT0,INPUT_PULLUP);       // après configInit et configLoad !!
+  pinMode(NUMC_BIT1,INPUT_PULLUP);
+  numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
+  //Serial.print(" numConc=");Serial.println(numConc);
+
 #if TXRX_MODE == 'U' 
     hostPort=*serverUdpPort;
 #endif // TXRX_MODE U
@@ -348,7 +349,7 @@ void setup() {
   
   configPrint();
   
-while(1){blink(1);delay(1000);}
+//while(1){blink(1);delay(1000);}
 
   channel=*concChannel;
   radio.locAddr=concMac;               // première init à faire !!
