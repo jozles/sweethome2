@@ -125,10 +125,12 @@ void configSave()
     eeprom.store((byte*)configRec,CONCRECLEN);
 }
 
-uint16_t nextpv(char* b,uint16_t l)
+bool nextpv(char* b,char** newb,int maxl)
 {
-    while(*b!=';' && l>0){b++;l--;}
-    return l;
+  while(*b++!=';' && 0<maxl--){}
+  if(maxl<=0){return 0;}
+  
+  *newb=b;return 1;
 }
 
 uint16_t getServerConfig()
@@ -154,16 +156,16 @@ uint16_t getServerConfig()
 
     char a=' ';
     char* b=bf;
+    char* newb;
     uint8_t cntpv=0;
     uint16_t temp=0;
-    uint16_t lpv,ppv;
+//    uint16_t lpv,ppv;
 
     while(cntpv<2 && a!='\0' && b<(bf+rcvl)){a=*b++;if(a==';'){cntpv++;}}                // skip len+name+version
     
     for(uint8_t i=0;i<4;i++){temp=0;conv_atob(b,&temp);b+=4;serverIp[i]=temp;}           // serverIp  
     temp=0;conv_atob(b,&temp);b+=6;*serverTcpPort=temp;                                  // server tcp Port
-    lpv=6;ppv=nextpv(b,lpv);if(ppv==0){return 0;}                                        // skip remote port
-    b+=lpv-ppv+1;
+    if(!nextpv(b,&newb,6)){return 0;}b=newb;
     temp=0;conv_atob(b,&temp);b+=6;*serverUdpPort=temp;                                  // server udp Port 
     temp=0;a=' ';while((a=*b++)!=';' && a!='\0' && b<(bf+rcvl) && temp<LPWD){peripass[temp]=a;temp++;}  // peripass
 
@@ -177,10 +179,10 @@ uint16_t getServerConfig()
             temp=0;conv_atob(b,&temp);b+=2;*concRfSpeed=temp;                            // Speed
         }
         else {
-          for(uint8_t i=0;i<NBCF;i++){
-            lpv=(MACADDRLENGTH*3-1+1)+15+6+4+2;ppv=nextpv(b,lpv);
-            if(ppv==0){return 0;}}}                   
-            b+=lpv-ppv+1;                                                                // skip other
+          for(uint8_t i=0;i<NBCF;i++){                                                   // skip other
+            if(!nextpv(b,&newb,(MACADDRLENGTH*3-1+1)+15+6+4+2)){return 0;}b=newb;
+          }
+        }                                                                
     }
   }
   return rcvl;

@@ -167,7 +167,12 @@ void userResetSetup(byte* serverIp)
      
   unsigned long t_beg=millis();
  
+ //memset(concMac,0x90,6);
+  Serial.print(" Ethernet begin mac=");serialPrintMac(concMac,0);
+  
+  trigwd();
   if(Ethernet.begin(concMac) == 0){
+    trigwd();
     Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(concIp);Serial.println();
     for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.print((IPAddress)localIp);Serial.println();
     Ethernet.begin (concMac, localIp); 
@@ -179,9 +184,8 @@ void userResetSetup(byte* serverIp)
 #if TXRX_MODE == 'U'
   Serial.print(" Udp.begin (");Serial.print(*concPort);Serial.print(")");
   if(!Udp.begin(*concPort)){Serial.println(" ko");while(1){trigwd(1000);}}
- 
-  Serial.print(" ready on ");Serial.print(Ethernet.localIP());
-  Serial.print(" ");Serial.print(millis()-t_beg);Serial.println("mS");
+
+  Serial.print(" ok ");Serial.print(millis()-t_beg);Serial.println("mS");
 #endif
 
   for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];}

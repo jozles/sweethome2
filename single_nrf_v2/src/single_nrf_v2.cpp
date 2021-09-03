@@ -322,23 +322,22 @@ void setup() {
   initLed();
   blink(4);
 
+  if(!eeprom.load((byte*)configRec,CONCRECLEN)){Serial.println("***EEPROM KO***");ledblink(BCODESDCARDKO);}
+  Serial.println("eeprom ok");
+
+  pinMode(NUMC_BIT0,INPUT_PULLUP);       // après configInit et configLoad ; avant chargt config !!
+  pinMode(NUMC_BIT1,INPUT_PULLUP);
+  numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
+numConc=1; // ************************************************** émulation concentrateur précédent
+  
   pinMode(STOPREQ,INPUT_PULLUP);
-  //Serial.print("STOPREQ=");Serial.println(digitalRead(STOPREQ));
-  if(digitalRead(STOPREQ)==LOW){
+  if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
       trigwd();
       blink(4);
       Serial.print(getServerConfig());Serial.print(" ");
       configSave();
-      blink(8);
+      while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
   }
-
-  if(!eeprom.load((byte*)configRec,CONCRECLEN)){Serial.println("***EEPROM KO***");ledblink(BCODESDCARDKO);}
-  Serial.println("eeprom ok");
-
-  pinMode(NUMC_BIT0,INPUT_PULLUP);       // après configInit et configLoad !!
-  pinMode(NUMC_BIT1,INPUT_PULLUP);
-  numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
-  //Serial.print(" numConc=");Serial.println(numConc);
 
 #if TXRX_MODE == 'U' 
     hostPort=*serverUdpPort;
@@ -349,20 +348,17 @@ void setup() {
   
   configPrint();
   
-//while(1){blink(1);delay(1000);}
-
+/* // version paramétrée //
   channel=*concChannel;
   radio.locAddr=concMac;               // première init à faire !!
   radio.tableCInit();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
   radio.powerOn(channel);
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);                // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
-
+*/
  /* // version avec tout en dur //
   numConc=1;
   channel=channelTable[numConc];
-  Serial.print(" numConc=");Serial.println(numConc);
-
   radio.locAddr=concAddrTable[numConc];               // première init à faire !!
   radio.tableCInit();
   memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
