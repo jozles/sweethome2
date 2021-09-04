@@ -167,7 +167,6 @@ void userResetSetup(byte* serverIp)
      
   unsigned long t_beg=millis();
  
- //memset(concMac,0x90,6);
   Serial.print(" Ethernet begin mac=");serialPrintMac(concMac,0);
   
   trigwd();

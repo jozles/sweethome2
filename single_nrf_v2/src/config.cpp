@@ -136,14 +136,15 @@ bool nextpv(char* b,char** newb,int maxl)
 uint16_t getServerConfig()
 {
   char bf[MAXSER];memset(bf,0x00,MAXSER);
+  uint16_t rcvl=0;
   serPurge(1);
   
   for(uint8_t i=0;i<=TSCNB;i++){Serial1.print(RCVSYNCHAR);}
   Serial1.print(CONCCFG);
-  //delay(1000);                              // tx time (14*100uS) + response time (100uS)
-  uint16_t rcvl=serialRcv(bf,MAXSER,1);     // longueur effectivement reçue (strlen(bf))
   
-  if(rcvl>0){
+  while(rcvl==0){rcvl=serialRcv(bf,MAXSER,1);}  // attente réponse sans time out
+
+  if(rcvl>5){
     Serial.print(rcvl);Serial.print(" ");Serial.println(bf);
   
     Serial.print("checkData=");
@@ -179,9 +180,11 @@ uint16_t getServerConfig()
             temp=0;conv_atob(b,&temp);b+=2;*concRfSpeed=temp;                            // Speed
         }
         else {
-          for(uint8_t i=0;i<NBCF;i++){                                                   // skip other
-            if(!nextpv(b,&newb,(MACADDRLENGTH*3-1+1)+15+6+4+2)){return 0;}b=newb;
-          }
+          if(!nextpv(b,&newb,(MACADDRLENGTH*3-1+1))){return 0;}b=newb;                   // mac
+          if(!nextpv(b,&newb,(4*3-1+1))){return 0;}b=newb;                               // ip
+          if(!nextpv(b,&newb,6)){return 0;}b=newb;                                       // ports
+          if(!nextpv(b,&newb,4)){return 0;}b=newb;                                       // channels
+          if(!nextpv(b,&newb,2)){return 0;}b=newb;                                       // speed
         }                                                                
     }
   }
