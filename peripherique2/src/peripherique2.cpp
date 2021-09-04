@@ -1083,14 +1083,16 @@ uint16_t getServerConfig()
 {
   char bf[MAXSER];//*buf='\0';
   
+  serPurge(0);
   for(uint8_t i=0;i<=TSCNB;i++){Serial.print(RCVSYNCHAR);}
   Serial.print(WIFICFG);
-  delay(1000);                                // tx time (14*100uS) + response time (100uS)
-  uint16_t rcvl=serialRcv(bf,MAXSER,0);     // longueur effectivement reçue (strlen(bf))
   
+  uint16_t rcvl=0;                          // longueur effectivement reçue (strlen(bf))
+  
+  while(rcvl==0){rcvl=serialRcv(bf,MAXSER,0);}
+
   if(rcvl>5){                               // nnnn;  length
     Serial.print(strlen(bf));Serial.print(" ");Serial.println(bf);
-  
     Serial.print("checkData : ");
     uint16_t ll=0;
     int cd=checkData(bf,&ll);               // longueur stockée dans le message
@@ -1121,8 +1123,6 @@ uint16_t getServerConfig()
     cstRec.ssid2[temp]='\0';b+=temp;
     temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.pwd2[temp]=a;temp++;}
     cstRec.pwd2[temp]='\0';b+=temp;
-
-    //bool svd=diags;diags=true;printConstant();diags=svd;
   }
   else {Serial.print(" ko ");Serial.println(rcvl);ledblink(BCODESDCARDKO);}
   return rcvl;
