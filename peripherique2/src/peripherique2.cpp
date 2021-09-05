@@ -324,8 +324,7 @@ delay(1);
   if(digitalRead(PINDTC)==LOW){
     blink(4);delay(2000);
     yield();
-    if(getServerConfig()>0){writeConstant();} // getServerConfig bloque si ko
-    blink(8);
+    if(getServerConfig()>0){writeConstant();while(1){blink(1);delay(1000);}} // getServerConfig bloque si ko
   }
   Serial.println();
 
