@@ -143,7 +143,7 @@
      sur le serveur, faire un "factory reset" qui modifie le fichier config : 
           (factory reset : appuyer RESET, appuyer HALT, relacher RESET, après environ 2 secondes
           la led jaune blink 1/0,5sec lâcher HALT : blink 2/seconde ; faire RESET)
-          efface localIP, serverPort=55550, remotePort=55551, udpPort=55552, mac=55.55.55.55.55.55, admin/admin pour l'accès
+          efface localIP, serverPort=55550, remotePort=55551, udpPort=55552, mac=54.55.55.55.55.55, admin/admin pour l'accès
           initialise la table des concentrateurs mac ashco\0,b,c,d ; IP 0 ; ports 55556,7,8,9 channel 120/110/100/90 RfSpeed 2 
           (si un équipement local utilise un de ces port ou cette adresse mac, l'éteindre le temps de l'installation)
      sur le routeur, dans la liste des baux actifs du routeur on trouve l'adresse MAC 55.55... associée avec l'Ip fournie par le DHCP
@@ -160,7 +160,7 @@
 
 // valeurs pour factoryReset
 
-#define DEFMACADDR "\x55\x55\x55\x55\x55\x55"   // adresse mac server
+#define DEFMACADDR "\x54\x55\x55\x55\x55\x55"   // def server mac addr
 #define DEFSERVERPORT 55550                     // base ports server (+1 remote, +2Udp)
 #define LNSERV  17
 

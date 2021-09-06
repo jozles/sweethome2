@@ -133,4 +133,5 @@ void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate);
 void cliPrintMac(EthernetClient* cli, byte* mac);
 void trailingSpaces(char* data,uint16_t len);
 void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet);
+void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet,uint8_t st);
 #endif // _UTILHTML_H_

@@ -383,6 +383,7 @@ void periTableHtml(EthernetClient* cli)
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
           tableBeg(buf,jsbuf,"Courier, sans-serif\"",BORDER,TRBEG|TDBEG);
           scrDspText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|vers. prot~last out~last in|",0,TREND|TDEND);
+          
           strcat(buf,"\n\n");
 
           ethWrite(cli,buf,&lb);
@@ -536,7 +537,7 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
       scrGetButFn(buf,jsbuf,swf,"","Switchs",ALICNO,0,0);
     }
     affSpace(buf,jsbuf);
-    char raz[]="peri_raz___";raz[LENNOM-1]=periCur+PMFNCHAR;
+    char raz[]="peri_raz__";raz[LENNOM-1]=periCur+PMFNCHAR;
     scrGetButFn(buf,jsbuf,raz,"","Raz",ALICNO,0,BRYES);
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
@@ -661,7 +662,10 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
   //Serial.print("showLine ");Serial.println(numline);
   float vv=0;
 //#define LBSHOWLINE 1000
-      periInitVar();periLoad(numline);periCur=numline;
+      //periInit();
+      //periInitVar();
+      periLoad(numline);
+      periCur=numline;
       if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}  
       if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}
 
@@ -745,26 +749,6 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           char* a=protocStr+LENPROSTR*p;scrDspText(buf,jsbuf,a,0,STRING|CONCAT|BRYES);                
 // date_heures
           showDates(buf,jsbuf);
-/*          char colourbr[6];
-          #define LSTRD 14
-          char strDate[LSTRD];
-          long late;
-          late=*periPerRefr+*periPerRefr/10;
-          memcpy(colourbr,"black\0",6);
-          if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
-          if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                      
-          memset(strDate,0x00,LSTRD);
-          concatDate(strDate,nullptr,periLastDateOut);
-          scrDspText(buf,jsbuf,strDate,0,BRYES);
-          memcpy(colourbr,"black\0",6);
-          if(dateCmp(periLastDateIn,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
-          if(dateCmp(periLastDateIn,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                 
-          memset(strDate,0x00,LSTRD);
-          concatDate(strDate,nullptr,periLastDateIn);
-          scrDspText(buf,jsbuf,strDate,0,TDEND);
-          setColourB(buf,jsbuf,"black");                      
-          setColourE(buf,jsbuf);
-*/              
           strcat(buf,"\n");
 // boutons
           char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';                      
@@ -776,6 +760,5 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           formEnd(buf,jsbuf,0,TREND);
           strcat(buf,"\n");
 
-          ethWrite(cli,buf,lb);         //Serial.print("lb=");Serial.println(*lb);
-//if(*periDetNb!=0){Serial.print("\n====================");Serial.println(dm);}          
+          ethWrite(cli,buf,lb);
 }

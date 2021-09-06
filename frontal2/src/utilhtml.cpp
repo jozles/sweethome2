@@ -383,12 +383,18 @@ void bufPrintDateHeure(char* buf,char* jsbuf,char* pkdate)
 #endif // NOJSBUF
 }
 
-void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet)
+void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet,uint8_t st)
 {
+  // st =1 => \0 final sinon rien
   memset(recep,0x00,lenRecep);
-  if(lenEmet>=lenRecep-1){lenEmet=lenRecep-1;}
+  if(lenEmet>=lenRecep-1){lenEmet=lenRecep-st;}
   memcpy(recep,emet,lenEmet);
   trailingSpaces(recep,lenRecep);
+}
+
+void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet)
+{
+  return alphaTfr(recep,lenRecep,emet,lenEmet,1);
 }
 
 /* ------------------- fonctions attributs --------------------- */

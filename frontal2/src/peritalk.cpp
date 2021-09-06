@@ -198,26 +198,29 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                     // si set ou ack :
                     //    format datas     NN_mm.mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._   NN numpériph ; mm.mm... mac
 {                   // sinon chaine libre issue de msg
-  Serial.print(millis());Serial.print(" periReq(");Serial.print((char)*periProtocol);Serial.print(" peri=");Serial.print(periCur);
-  Serial.print(" port=");Serial.print(*periPort);Serial.print(") ");
 
   unsigned long dur=millis();
   char message[LENMESS]={'\0'};
   char date14[LNOW];ds3231.alphaNow(date14);
   char host[16];memset(host,'\0',16);
 
-  if(*periProg!=0 && *periPort!=0){charIp(periIpAddr,host);}
+  if(*periProg!=0 && *periPort!=0){
+    charIp(periIpAddr,host);
   
-  if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
+    Serial.print(millis());Serial.print(" periReq(");Serial.print((char)*periProtocol);
+    Serial.print(" peri=");Serial.print(periCur);
+    Serial.print(" port=");Serial.print(*periPort);Serial.print(") ");
+
+    if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
         assySet(message,periCur,periDiag(periMess),date14);}  // assemblage datas 
-  else if(strlen(msg)<LENMESS){strcat(message,msg);}
+    else if(strlen(msg)<LENMESS){strcat(message,msg);}
 
-  *bufServer='\0';
-  memcpy(bufServer,"GET /\0",6);                  // commande directe de périphérique en mode serveur
-  buildMess(nfonct,message,"",NODIAGS);                   // bufServer complété   
-  Serial.println(millis());
+    *bufServer='\0';
+    memcpy(bufServer,"GET /\0",6);                  // commande directe de périphérique en mode serveur
+    buildMess(nfonct,message,"",NODIAGS);                   // bufServer complété   
+    Serial.println(millis());
 
-  if(*periProtocol=='T'){                         // UDP à développer
+    if(*periProtocol=='T'){                         // UDP à développer
           periMess=messToServer(cli,host,*periPort,bufServer);
           //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(messToServer)=");Serial.println(periMess);
           Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
@@ -239,12 +242,14 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
           }
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=periMess;
+    }
+    Serial.print(millis());
+    cli->stop();                              // cliext
+    periSave(periCur,PERISAVELOCAL);          // màj cache ... toujours OK
+    Serial.print(" pM(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
+    return periMess;
   }
-  Serial.print(millis());
-  cli->stop();                              // cliext
-  periSave(periCur,PERISAVELOCAL);          // màj cache ... toujours OK
-  Serial.print(" pM(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
-  return periMess;
+  return MESSCX; // pas de port pas de connexion
 }
 
 int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphérique cli ... ou udp(remote_IP,remote_Port_Udp)

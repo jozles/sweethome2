@@ -62,6 +62,7 @@ extern char*      passssid;
 extern uint8_t*   ssid1;
 extern uint8_t*   ssid2;
 extern uint8_t*   concMac;
+extern uint8_t*   concRx;
 extern uint16_t*  concChannel;
 extern uint16_t*  concRfSpeed;      
 extern byte*      concIp;               
@@ -401,7 +402,7 @@ void conctable(char* buf,char* jsbuf)
     char concFn[]={"ethcfg____"};
     borderparam=NOBORDER;
     scrDspText(buf,jsbuf,"concentrateurs",0,BRYES);
-    tableBeg(buf,jsbuf,0);scrDspText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);scrDspText(buf,jsbuf,"mac|channel|RF_S|IP|Port",0,STRING|TREND);
+    tableBeg(buf,jsbuf,0);scrDspText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);scrDspText(buf,jsbuf,"mac|IP|Port|R Addr|channel|RF_S",0,STRING|TREND);
 //Serial.println((char*)(buf+strlen(buf)-150));
     
     for(int nb=0;nb<MAXCONC;nb++){
@@ -412,13 +413,17 @@ void conctable(char* buf,char* jsbuf)
       char lbuf[LBL];*lbuf=0x00;
       for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[concMac[nb*MACADDRLENGTH+k]/16]);concat1a(lbuf,chexa[concMac[nb*MACADDRLENGTH+k]%16]);}
       concFn[LENNOM-1]='M';scrGetText(buf,jsbuf,lbuf,concFn,11,MACADDRLENGTH*2,0,TDBE);
-    
-      concFn[LENNOM-1]='C';scrGetNum(buf,jsbuf,'d',(concChannel+nb),concFn,4,0,0,TDBE);
-      concFn[LENNOM-1]='S';scrGetNum(buf,jsbuf,'d',(concRfSpeed+nb),concFn,1,0,0,TDBE);
+
       *lbuf=0x00;for(int k=0;k<4;k++){concatns(lbuf,concIp[nb*4+k]);if(k!=3){strcat(lbuf,".");}}
       concFn[LENNOM-1]='I';scrGetText(buf,jsbuf,lbuf,concFn,11,LBL,0,TDBE);
       concFn[LENNOM-1]='P';scrGetNum(buf,jsbuf,'d',(concPort+nb),concFn,5,0,0,TDBE);
     
+      memset(lbuf,0x00,LBL);memcpy(lbuf,concRx+nb*RADIO_ADDR_LENGTH,RADIO_ADDR_LENGTH);
+      concFn[LENNOM-1]='R';scrGetText(buf,jsbuf,lbuf,concFn,7,RADIO_ADDR_LENGTH,0,TDBE);    
+      concFn[LENNOM-1]='C';scrGetNum(buf,jsbuf,'d',(concChannel+nb),concFn,4,0,0,TDBE);
+      concFn[LENNOM-1]='S';scrGetNum(buf,jsbuf,'d',(concRfSpeed+nb),concFn,1,0,0,TDBE);
+
+
       scrDspText(buf,jsbuf," ",0,TREND);
     }
     tableEnd(buf,jsbuf,0);
@@ -478,6 +483,7 @@ fontBeg(buf,jsbuf,2,0);
 
             ethWrite(cli,buf,&lb);            // tfr -> navigateur
             conctable(buf,jsbuf);
+            ethWrite(cli,buf,&lb);
 
             subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
             scrDspText(buf,jsbuf," to password ",0,0);scrGetNum(buf,jsbuf,'d',toPassword,"to_passwd_",6,0,0,BRYES);strcat(buf,"\n");

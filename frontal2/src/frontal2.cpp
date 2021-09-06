@@ -76,11 +76,12 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   uint8_t*  ssid1;            // n° 1er ssid à essayer pour peripherique2 (1-n)
   uint8_t*  ssid2;            // n° 2nd ssid à essayer pour peripherique2 (1-n)
   uint8_t*  concMac;          // (table concentrateurs) macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
-  uint16_t* concChannel;      // (table concentrateurs) n° channel nrf utilisé par le concentrateur
-  uint16_t* concRfSpeed;      // (table concentrateurs) RF_Speed concentrateur
   byte*     concIp;           // (table concentrateurs) adresse IP concentrateur
   uint16_t* concPort;         // (table concentrateurs) port concentrateur
-  uint8_t*  concNb;           // numéro de concentrateur pour périf nrf
+  uint8_t*  concRx;           // (table concentrateurs) radio Addr length
+  uint16_t* concChannel;      // (table concentrateurs) n° channel nrf utilisé par le concentrateur
+  uint16_t* concRfSpeed;      // (table concentrateurs) RF_Speed concentrateur
+  uint8_t*  concNb;           // numéro de concentrateur pour config concentrateurs et périphériques
   char*     usrnames;         // usernames
   char*     usrpass;          // userpass
   unsigned long* usrtime;     // user cx time
@@ -398,6 +399,7 @@ void setup() {                          // ====================================
   Serial1.begin (115200);               // export config periphériques
 
   Serial.begin (115200);
+  
   Serial.print("+");
   delay(1000);
 
@@ -433,6 +435,7 @@ void setup() {                          // ====================================
 #ifndef AP2112
   Serial.println(".1 (LD1117)");
 #endif // AP2112  
+
 
   Wire1.begin();
 #endif // REDV1
@@ -1557,7 +1560,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 'P': *(concPort+nC)=0;
                                       conv_atob(valf,(concPort+nC));break;              // (config) concPort
                             case 'M': for(j=0;j<6;j++){
-                                        conv_atoh(valf+j*2,(concMac+MACADDRLENGTH*nC+j));}break;   // (config) concMac
+                                        conv_atoh(valf+j*2,(concMac+MACADDRLENGTH*nC+j));}break;          // (config) concMac
+                            case 'R': alphaTfr((char*)(concRx+nC*RADIO_ADDR_LENGTH),RADIO_ADDR_LENGTH,valf,nvalf[i+1]-nvalf[i],0);break;  // (config) Radio RX Addr
                             case 'C': *(concChannel+nC)=0;
                                       conv_atob(valf,(concChannel+nC));break;           // (config) concchannel
                             case 'S': *(concRfSpeed+nC)=0;
@@ -1610,9 +1614,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           }
                        }break;                                                                       
               case 54: remoteHtml(cli);break;                                                           // remotehtml
-              case 55: what=5;periInitVar();                                                            // peri_raz__  
-                        periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                         // récup pericur vérifier et mettre en service
-                        periRaz(periCur);break;
+              case 55: what=5;periCur=*(libfonctions+2*i+1)-PMFNCHAR;                                                                          // peri_raz__  
+                        //periInit();
+                        periInitVar();
+                        //periCur=*(libfonctions+2*i+1)-PMFNCHAR;                // periCur après PeriInitVar !!
+                        break;
               case 56: {switch (*(libfonctions+2*i+1)){                                                 // mailcfg___
                           case 'f':alphaTfr(mailFromAddr,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;      // (config) mailFrom
                           case 'w':alphaTfr(mailPass,LMAILPWD,valf,nvalf[i+1]-nvalf[i]);break;          // (config) pwd mailFrom
@@ -1900,32 +1906,38 @@ void pilotServer()
 }
 
 void serialServer()
-{       
+{
+  //while(1){if(Serial1.available()){char a=Serial1.read();Serial.print(":");Serial.print(a);}}       
+  
   char serialBuf[MAXSER];
   memset(bec,0x00,LBEC);
-  
+
   uint16_t lrcv=serialRcv(serialBuf,MAXSER,1);
+  
   if(lrcv!=0){
     rcvcnt++;
     Serial.print(rcvcnt);Serial.print(" ");Serial.print(lrcv);Serial.print("->");Serial.println(serialBuf);
     
+  /* !!!!!!!!! maxi 255 caractères sinon agrandir le buffer de Tx !!!!!!!!!*/
+
     if(memcmp(serialBuf,WIFICFG,10)==0){
       configExport(bec);
       wifiExport(bec,*ssid1);
       wifiExport(bec,*ssid2);
       setExpEnd(bec);
-      Serial.println("wifi ");dumpstr(bec,300);
+      Serial.println("wifi ");//dumpstr(bec,300);
     }
     if(memcmp(serialBuf,CONCCFG,10)==0){
       configExport(bec);
-      concExport(bec);
+      concExport(bec,*concNb);
+      periExport(bec,*concNb);
       setExpEnd(bec);
-      Serial.println("conc ");dumpstr(bec,300);      
+      Serial.println("conc ");//dumpstr(bec,300);      
     }
     if(memcmp(serialBuf,PERICFG,10)==0){
-      concExport(bec,*concNb);
+      periExport(bec,*concNb);
       setExpEnd(bec);
-      Serial.println("peri ");dumpstr(bec,300);      
+      Serial.println("peri ");//dumpstr(bec,300);      
     }
     
     for(uint8_t i=0;i<TSCNB+1;i++){Serial1.print(RCVSYNCHAR);}

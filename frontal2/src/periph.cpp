@@ -27,10 +27,11 @@ extern char*      passssid;
 extern uint8_t*   ssid1;
 extern uint8_t*   ssid2;
 extern uint8_t*   concMac;
+extern byte*      concIp;               
+extern uint16_t*  concPort; 
+extern uint8_t*   concRx;
 extern uint16_t*  concChannel;
 extern uint16_t*  concRfSpeed;      
-extern byte*      concIp;               
-extern uint16_t*  concPort;         
 extern uint8_t*   concNb;            
  
 extern char*      usrnames;  
@@ -167,7 +168,7 @@ File32 fmemos;      // fichier memos
 extern char   memosTable[LMEMO*NBMEMOS];
 
 uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal vs N° conc 
-const char  concAddrTable[] = {CC_ADDRX};
+const char  concMacTable[] = {CC_ADDRX};
 uint16_t portTable[MAXCONC] = {CC_UDP0,CC_UDP1,CC_UDP2,CC_UDP3};
 uint16_t speedTable[MAXCONC]= {CC_SPEED,CC_SPEED,CC_SPEED,CC_SPEED};
 
@@ -200,9 +201,11 @@ void factoryResetConfig()
   *maxCxWt=MAXCXWT;
   *maxCxWu=MAXCXWU;
 
-  memcpy(concMac,concAddrTable,MACADDRLENGTH*MAXCONC);
+  memcpy(concMac,concMacTable,MACADDRLENGTH*MAXCONC);
   memset(concIp,0x00,4*MAXCONC);
   for(uint8_t i=0;i<MAXCONC;i++){
+    memcpy(concRx+i*RADIO_ADDR_LENGTH,CC_NRF_ADDR,(MAXCONC-1)*(RADIO_ADDR_LENGTH-1));
+    *(concRx+i*RADIO_ADDR_LENGTH+RADIO_ADDR_LENGTH-1)=PMFNCVAL+i;
     concPort[i]=portTable[i];
     concChannel[i]=channelTable[i];
     concRfSpeed[i]=speedTable[i];
@@ -225,6 +228,7 @@ memset(ssid,0x00,MAXSSID*(LENSSID+1));
 memset(passssid,0x00,MAXSSID*(LPWSSID+1));
 //memcpy(passssid,PWDSSID1,strlen(PWDSSID1));memcpy(passssid+LPWSSID+1,PWDSSID2,strlen(PWDSSID2));
 memset(concMac,0x00,MAXCONC*MACADDRLENGTH);
+memset(concRx,' ',MAXCONC*RADIO_ADDR_LENGTH);
 memset(concChannel,0x00,MAXCONC*sizeof(uint8_t));
 memset(concRfSpeed,0x00,MAXCONC*sizeof(uint8_t));
 memset(concIp,0x00,MAXCONC*4);
@@ -282,8 +286,9 @@ byte* temp=(byte*)configRec;
   temp+=(MAXCONC*sizeof(uint16_t));
   concNb=(uint8_t*)temp;
   temp+=sizeof(uint8_t);
-
-  temp+=151;                      // dispo 
+  concRx=(uint8_t*)temp;
+  temp+=RADIO_ADDR_LENGTH*MAXCONC;
+  temp+=131;                         // dispo 
   usrnames=(char*)temp;
   temp+=NBUSR*(LENUSRNAME+1);
   usrpass=(char*)temp;
@@ -368,6 +373,7 @@ void subConcPrint()
     serialPrintMac(concMac+i*MACADDRLENGTH,0);Serial.print(" ");
     serialPrintIp(concIp+i*4*sizeof(byte));Serial.print("/");
     Serial.print(*(concPort+i));Serial.print(" ");
+    for(uint8_t j=0;j<RADIO_ADDR_LENGTH;j++){Serial.print((char)*(concRx+i*RADIO_ADDR_LENGTH+j));}Serial.print(" ");
     Serial.print(*(concChannel+i));Serial.print(" ");
     Serial.print(*(concRfSpeed+i));Serial.print(" ");
     Serial.println();
@@ -425,7 +431,7 @@ void concExport(char* bec,uint8_t concNb)
   uint8_t i1=concNb;
   if(concNb>MAXCONC){i0=0;i1=MAXCONC;}
 
-  for(uint8_t i=i0;i<i1;i++){                                                 // conc Mac
+  for(uint8_t i=i0;i<=i1;i++){                                                // conc Mac
     //memcpy(bec+ll,(concMac+i*MACADDRLENGTH),MACADDRLENGTH);
     unpackMac(bec+ll,(concMac+i*MACADDRLENGTH));
     ll+=MACADDRLENGTH*3-1;
@@ -435,11 +441,7 @@ void concExport(char* bec,uint8_t concNb)
       if(pp<3){*(bec+ll+(pp+1)*4-1)='.';}}
     ll+=15;
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%05u",(uint16_t)*(concPort+i));ll+=5;    // concPort
-    *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%03u",(uint16_t)*(concChannel+i));ll+=3; // concChannel
-    *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%01u",(uint16_t)*(concRfSpeed+i));ll+=1; // concRfSpeed
+    sprintf(bec+ll,"%05u",(uint16_t)*(concPort+i));ll+=5;                     // concPort
     *(bec+ll)=';';ll++;
     *(bec+ll)='\0';
   }
@@ -448,6 +450,22 @@ void concExport(char* bec,uint8_t concNb)
 void concExport(char* bec)
 {
   return concExport(bec,99);
+}
+
+void periExport(char*bec ,uint8_t concNb)
+{
+    uint16_t ll=strlen(bec);
+
+    memcpy(bec+ll,concRx+concNb*RADIO_ADDR_LENGTH,RADIO_ADDR_LENGTH);              // conc Rx addr
+    ll+=RADIO_ADDR_LENGTH;
+    *(bec+ll)=';';ll++;
+    sprintf(bec+ll,"%03u",(uint16_t)*(concChannel+concNb));ll+=3;                  // concChannel
+    *(bec+ll)=';';ll++;
+    sprintf(bec+ll,"%01u",(uint16_t)*(concRfSpeed+concNb));ll+=1;                  // concRfSpeed
+    *(bec+ll)=';';ll++;
+    sprintf(bec+ll,"%01u",concNb);ll+=1;                                           // rang conc 
+    *(bec+ll)=';';ll++;
+    *(bec+ll)='\0';
 }
 
 void configPrint()
@@ -769,7 +787,7 @@ int periRaz(uint16_t num)
 // contiguous clusters
   fperi.truncate(0);
   if (!fperi.preAllocate(PERIRECLEN+100)) {
-    mail("SD PREALLOC FAIL",periFile);
+    mail("periRaz SD PREALLOC FAIL",periFile);
     Serial.print(periFile);Serial.println(" preallocation failed");
   }
   fperi.close();
