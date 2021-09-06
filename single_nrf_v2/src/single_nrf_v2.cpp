@@ -31,6 +31,10 @@ byte     setds[]={0,0x7f,0x80,0x3f},readds[8];   // 1f=93mS 9 bits accu 0,5° ; 
 #define  TCONVDS2 T125  // sleep PwrDown mS !!
 #endif // DS18X20 
 
+#if NRF_ADDR_LENGTH != RADIO_ADDR_LENGTH
+  //fail // RADIO_ADDR_LENTH
+#endif
+
 #if NRF_MODE == 'C'
 
 /* >>>> config concentrateur <<<<<< */
@@ -47,11 +51,12 @@ extern char configRec[CONCRECLEN];       // enregistrement de config
 
   extern char*     peripass;         // mot de passe périphériques
 
-  extern uint8_t*  concMac;          // (table concentrateurs) macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
-  extern uint16_t* concChannel;      // (table concentrateurs) n° channel nrf utilisé par le concentrateur
-  extern uint16_t* concRfSpeed;      // (table concentrateurs) RF_Speed concentrateur
-  extern byte*     concIp;           // (table concentrateurs) adresse IP concentrateur
-  extern uint16_t* concPort;         // (table concentrateurs) port concentrateur
+  extern uint8_t*  concMac;          // macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
+  extern byte*     concIp;           // adresse IP concentrateur
+  extern uint16_t* concPort;         // port concentrateur
+  extern uint8_t*  concRx;           // RX Addre concentrateur
+  extern uint16_t* concChannel;      // n° channel nrf utilisé par le concentrateur
+  extern uint16_t* concRfSpeed;      // RF_Speed concentrateur
   extern uint8_t*  concNb;
 
 extern uint16_t hostPort;               // server Port (TCP/UDP selon TXRX_MODE)
@@ -129,16 +134,7 @@ unsigned long tLast=0;             // date unix dernier message reçu
 
 #endif // NRF_MODE == 'C'
 
-uint8_t numConc;
 uint8_t channel;
-
-//#define DEFCONC 1
-
-//uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal bvs N° conc 
-//channel=channelTable[DEFCONC];                          // valeur pour 'P' qui n'a pas de numConc
-
-//byte*   concAddrTable[NBCONC] = {CC_ADDR0,CC_ADDR1,CC_ADDR2,CC_ADDR3};
-//byte*   concAddr=concAddrTable[DEFCONC];
 
 #if NRF_MODE == 'P'
 
@@ -322,14 +318,6 @@ void setup() {
   initLed();
   blink(4);
 
-  if(!eeprom.load((byte*)configRec,CONCRECLEN)){Serial.println("***EEPROM KO***");ledblink(BCODESDCARDKO);}
-  Serial.println("eeprom ok");
-
-  pinMode(NUMC_BIT0,INPUT_PULLUP);       // après configInit et configLoad ; avant chargt config !!
-  pinMode(NUMC_BIT1,INPUT_PULLUP);
-  numConc=digitalRead(NUMC_BIT1)*2+digitalRead(NUMC_BIT0);
-numConc=1; // ************************************************** émulation concentrateur précédent
-  
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
       trigwd();
@@ -339,34 +327,27 @@ numConc=1; // ************************************************** émulation conc
       while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
   }
 
+  if(!eeprom.load((byte*)configRec,CONCRECLEN)){Serial.println("***EEPROM KO***");ledblink(BCODESDCARDKO);}
+  Serial.println("eeprom ok");
+
 #if TXRX_MODE == 'U' 
     hostPort=*serverUdpPort;
 #endif // TXRX_MODE U
 #if TXRX_MODE == 'T' 
     hostPort=*serverTcpPort;
 #endif // TXRX_MODE T
-  
-  configPrint();
-  
-/* // version paramétrée //
-  channel=*concChannel;
-  radio.locAddr=concMac;               // première init à faire !!
-  radio.tableCInit();
-  memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
-  radio.powerOn(channel);
-  radio.addrWrite(RX_ADDR_P2,CB_ADDR);                // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
-*/
- /* // version avec tout en dur //
-  numConc=1;
-  channel=channelTable[numConc];
-  radio.locAddr=concAddrTable[numConc];               // première init à faire !!
-  radio.tableCInit();
-  memcpy(tableC[1].periMac,testAd,ADDR_LENGTH+1);     // pour broadcast & test
-  radio.powerOn(channel);
-  radio.addrWrite(RX_ADDR_P2,CB_ADDR);                // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
-*/  
 
-  userResetSetup(serverIp);
+  configPrint();
+
+  userResetSetup(serverIp);             // doit être avant les inits radio (le spi.begin vient de la lib ethernet)
+
+ // radio start
+  channel=*concChannel;
+  radio.locAddr=concRx;                 // première init à faire !!
+  radio.tableCInit();
+  memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH+1);     // pour broadcast & test
+  radio.powerOn(channel);
+  radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
 
 #ifdef DUE
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
@@ -441,7 +422,7 @@ void loop() {
       tdiag+=(micros()-localTdiag);}
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
-    uint8_t outLength=ADDR_LENGTH+1;                                  // perifx     - 6
+    uint8_t outLength=NRF_ADDR_LENGTH+1;                                  // perifx     - 6
     memcpy(message+outLength,VERSION,LENVERSION);                     // version    - 4
     outLength+=LENVERSION;
     memcpy(message+outLength,&thN,1);                                 // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
@@ -451,8 +432,8 @@ void loop() {
     //outLength+=9;                                                     //            - 9
  
     messageBuild((char*)message,&outLength);                          // add user data 
-    memcpy(message,macAddr,ADDR_LENGTH);                              // macAddr
-    message[ADDR_LENGTH]=numT+48;                                     // numéro du périphérique
+    memcpy(message,macAddr,NRF_ADDR_LENGTH);                              // macAddr
+    message[NRF_ADDR_LENGTH]=numT+48;                                     // numéro du périphérique
     message[outLength]='\0';
     
     if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR);}
@@ -477,7 +458,7 @@ void loop() {
     if(rdSta>=0){                                                 // no error
 
       /* echo request ? (address field is 0x5555555555) */
-      if(memcmp(messageIn,ECHO_MAC_REQ,ADDR_LENGTH)==0){echo();}
+      if(memcmp(messageIn,ECHO_MAC_REQ,NRF_ADDR_LENGTH)==0){echo();}
       else {          
         importData(messageIn,pldLength);                          // user data
       }
@@ -557,16 +538,16 @@ void loop() {
         else {if(diags){Serial.println(" full");}}                                         // numT = NBPERIF   ; rdSta=0
       }
       if(pipe==2){                                                // conc macAddr request
-        memcpy(tableC[NBPERIF].periMac,messageIn,ADDR_LENGTH+1);  // peri addr in table last entry
-        memcpy(message,messageIn,ADDR_LENGTH+1);
-        memcpy(message+ADDR_LENGTH+1,radio.locAddr,ADDR_LENGTH);        // build message to perif with conc macAddr
+        memcpy(tableC[NBPERIF].periMac,messageIn,NRF_ADDR_LENGTH+1);  // peri addr in table last entry
+        memcpy(message,messageIn,NRF_ADDR_LENGTH+1);
+        memcpy(message+NRF_ADDR_LENGTH+1,radio.locAddr,NRF_ADDR_LENGTH);        // build message to perif with conc macAddr
         txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                // end of transaction so auto ACK
       }                                                           // rdSta=0 so ... end of loop
   }
 
   // ====== no error && valid entry ======         
   
-  if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,ADDR_LENGTH)==0)){ 
+  if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,NRF_ADDR_LENGTH)==0)){ 
                                                       // rdSta is table entry nb
       if(numT==0 && (echoNb!=rdSta || !echoOn)){      // numT=0 means that is not a registration, and message is not an echo answer 
                                                       // so -> incoming message storage
@@ -576,8 +557,8 @@ void loop() {
       
       if(echoNb!=rdSta){                              // if no echo pending on this table entry
       /* build config */
-        memcpy(message,messageIn,ADDR_LENGTH+1);
-        memcpy(message+ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1);    // build message to perif with server data
+        memcpy(message,messageIn,NRF_ADDR_LENGTH+1);
+        memcpy(message+NRF_ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1);    // build message to perif with server data
                                                                                                  // server data is MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
                                                                                                  // see importData()
       /* send it to perif */    
@@ -654,8 +635,8 @@ void echo()
   
   while (getch()!='q'){
     cnt++;
-    memcpy(message,ECHO_MAC_REQ,ADDR_LENGTH);
-    sprintf((char*)message+ADDR_LENGTH,"%05d",cnt);
+    memcpy(message,ECHO_MAC_REQ,NRF_ADDR_LENGTH);
+    sprintf((char*)message+NRF_ADDR_LENGTH,"%05d",cnt);
     message[ECHO_LEN]='\0';
     Serial.print("sent ");Serial.print((char*)message);
 
@@ -725,13 +706,13 @@ void broadcast(char a)
       case 'q':return;
       default:
         if(b!=' '){
-          testAd[0]=b;delay(10);for(int i=1;i<ADDR_LENGTH;i++){testAd[i]=getch();}
+          testAd[0]=b;delay(10);for(int i=1;i<NRF_ADDR_LENGTH;i++){testAd[i]=getch();}
           Serial.println((char*)testAd);
-          memcpy(tableC[1].periMac,testAd,ADDR_LENGTH);
+          memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH);
           radio.tableCPrint();}
-        memcpy(message,testAd,ADDR_LENGTH);
-        message[ADDR_LENGTH]='0';
-        sprintf((char*)(message+ADDR_LENGTH+1),"%08lu",millis());
+        memcpy(message,testAd,NRF_ADDR_LENGTH);
+        message[NRF_ADDR_LENGTH]='0';
+        sprintf((char*)(message+NRF_ADDR_LENGTH+1),"%08lu",millis());
         echo0(ack,8,1);
         titre=true;
         break; 
@@ -755,10 +736,10 @@ char getch()
 
 void getConcParams()
 {
-  numConc=*numC;
-  if(memcmp(configVers,"01",2)==0){numConc=1;}
-  concAddr=concAddrTable[numConc];
-  channel=channelTable[numConc];
+  concNb=*numC;
+  if(memcmp(configVers,"01",2)==0){concNb=1;}
+  concAddr=
+  channel=
 }
 
 
@@ -818,9 +799,9 @@ void echo()
 
   uint8_t cntErr=0;
   unsigned long to=ECHOTO;
-  char echoRef[ADDR_LENGTH+1];
-  memcpy(echoRef,radio.locAddr,ADDR_LENGTH);
-  echoRef[ADDR_LENGTH]='0'+numT;
+  char echoRef[NRF_ADDR_LENGTH+1];
+  memcpy(echoRef,radio.locAddr,NRF_ADDR_LENGTH);
+  echoRef[NRF_ADDR_LENGTH]='0'+numT;
   byte echoMess[ECHO_LEN+1];
   
  // Serial.println("start echo");
@@ -829,7 +810,7 @@ void echo()
 
     /* send echo */
     memcpy(echoMess,messageIn,ECHO_LEN);
-    memcpy(echoMess,echoRef,ADDR_LENGTH+1);
+    memcpy(echoMess,echoRef,NRF_ADDR_LENGTH+1);
     echoMess[ECHO_LEN]='\0';
     radio.write(echoMess,NO_ACK,ECHO_LEN,0);
     trSta=1;
@@ -874,7 +855,7 @@ int txRxMessage()
     if(rdSta<=0){rdSta=-2;return rdSta;}           // numT still 0 ; beginP n'a pas fonctionné
     numT=rdSta;
   }
-  message[ADDR_LENGTH]=numT+48;
+  message[NRF_ADDR_LENGTH]=numT+48;
   memcpy(messageIn,message,pldLength);
 
   return radio.txRx(messageIn,&pldLength);
@@ -889,7 +870,7 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2
     numT=beginP();
     if(numT<=0){trSta=-2;return trSta;}           // beginP n'a pas fonctionné
   }
-  message[ADDR_LENGTH]=numT+48;
+  message[NRF_ADDR_LENGTH]=numT+48;
 #endif // NRF_MODE=='P'
 
   radio.write(message,ack,len,numP);
@@ -1110,7 +1091,7 @@ void configPrint()
     Serial.print("crc     ");dumpfield((char*)configData,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
     char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
     Serial.print("MAC  ");dumpstr((char*)macAddr,6);Serial.print("CONC ");dumpstr((char*)concAddr,6);
-    if(memcmp(configVers,"01",2)!=0){Serial.print("numconc ");dumpstr((char*)&numConc,1);}
+    if(memcmp(configVers,"01",2)!=0){Serial.print("concNb ");dumpstr((char*)&concNb,1);}
 
     Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
     Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   

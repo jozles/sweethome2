@@ -80,14 +80,14 @@ void importData(byte* data,uint8_t dataLength)
   uint16_t perTemp=0;
   int      sizeRead,srt=0;
   
-    perRefr=(long)convStrToNum((char*)(data+ADDR_LENGTH+1),&sizeRead);          // per refresh server
+    perRefr=(long)convStrToNum((char*)(data+NRF_ADDR_LENGTH+1),&sizeRead);          // per refresh server
     aw_min=perRefr/period;
     srt=sizeRead;
-    perTemp=(uint16_t)convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead);  // per check température
+    perTemp=(uint16_t)convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead);  // per check température
     aw_ok=perTemp/period;
     srt+=sizeRead;
-    deltaTemp=(convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead))/100;    // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
-                                                                                // devrait être convStrToNum((char*)(data+ADDR_LENGTH+1+srt),&sizeRead)/100;
+    deltaTemp=(convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead))/100;    // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
+                                                                                // devrait être convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead)/100;
                                                                                 // vérifier srt...   
     if(diags){
     Serial.println();Serial.print("£ ");

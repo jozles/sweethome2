@@ -89,7 +89,7 @@ void Nrfp::setup(uint8_t channel)
     regw=EN_DYN_ACK_BIT | EN_DPL_BIT;  // ack enable ; dyn pld length enable
     regWrite(FEATURE,&regw);
 
-//    regw=(ADDR_LENGTH-2)<<AW;       // addresses width
+//    regw=(NRF_ADDR_LENGTH-2)<<AW;       // addresses width
 //    regWrite(SETUP_AW,&regw);
 
 //    regw=9;//MAX_PAYLOAD_LENGTH;        // set payload length
@@ -147,7 +147,7 @@ void Nrfp::addrRead(uint8_t reg,byte* data)
 {
     CSN_LOW
     SPI.transfer((R_REGISTER | (REGISTER_MASK & reg)));
-    SPI.transfer(data,ADDR_LENGTH);
+    SPI.transfer(data,NRF_ADDR_LENGTH);
     CSN_HIGH
 }
 
@@ -155,7 +155,7 @@ void Nrfp::addrWrite(uint8_t reg,byte* data)
 {
     CSN_LOW
     SPI.transfer((W_REGISTER | (REGISTER_MASK & reg)));
-    for(uint8_t i=0;i<ADDR_LENGTH;i++){SPI.transfer(data[i]);}
+    for(uint8_t i=0;i<NRF_ADDR_LENGTH;i++){SPI.transfer(data[i]);}
     CSN_HIGH
 }
 
@@ -429,8 +429,8 @@ int Nrfp::read(byte* data,uint8_t* pipe,uint8_t* pldLength,int numP)
         CSN_HIGH
 
 #if NRF_MODE == 'C'
-        numP=data[ADDR_LENGTH]-'0';                                       // sender numP
-        if(numP!=0 && memcmp(data,tableC[numP].periMac,ADDR_LENGTH)!=0){  // macAddr ko ?
+        numP=data[NRF_ADDR_LENGTH]-'0';                                       // sender numP
+        if(numP!=0 && memcmp(data,tableC[numP].periMac,NRF_ADDR_LENGTH)!=0){  // macAddr ko ?
             numP=AV_MCADD;rxError();}                                     // if numP==0 registration to do
 #endif // NRF_MODE == 'C'
     }
@@ -451,10 +451,10 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
 {                      // ER_MAXRT ; AV_errors codes ; >=0 numP ok
 
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
-    memcpy(message,locAddr,ADDR_LENGTH);
-    message[ADDR_LENGTH]='0';
+    memcpy(message,locAddr,NRF_ADDR_LENGTH);
+    message[NRF_ADDR_LENGTH]='0';
     
-    write(message,NO_ACK,ADDR_LENGTH+1,0);     // send macAddr + numP=0 to ccAddr ; no ACK
+    write(message,NO_ACK,NRF_ADDR_LENGTH+1,0);     // send macAddr + numP=0 to ccAddr ; no ACK
  
     int trst=1;
     while(trst==1){trst=transmitting(NO_ACK);}
@@ -473,7 +473,7 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     PP4_HIGH
     CE_LOW
     if(numP>=0 && (readTo>=0)){             // no TO && pld ok
-        numP=message[ADDR_LENGTH]-'0';      // numP
+        numP=message[NRF_ADDR_LENGTH]-'0';      // numP
         PP4
         return numP;}                       // PRX mode still true
 
@@ -490,7 +490,7 @@ int Nrfp::txRx(byte* message,uint8_t* pldLength)
 
     //memset(message,0x00,MAX_PAYLOAD_LENGTH+1);
     message[MAX_PAYLOAD_LENGTH]=0x00;
-    memcpy(message,locAddr,ADDR_LENGTH);
+    memcpy(message,locAddr,NRF_ADDR_LENGTH);
     
     write(message,NO_ACK,MAX_PAYLOAD_LENGTH,0);     // send macAddr + numP=0 to ccAddr ; no ACK
  
@@ -511,7 +511,7 @@ int Nrfp::txRx(byte* message,uint8_t* pldLength)
     PP4_HIGH
     CE_LOW
     if(numP>=0 && (readTo>=0)){               // no TO && pld ok
-        numP=message[ADDR_LENGTH]-'0';        // numP
+        numP=message[NRF_ADDR_LENGTH]-'0';        // numP
         PP4
         return numP;}                         // PRX mode still true
 
@@ -531,19 +531,19 @@ uint8_t Nrfp::cRegister(char* message)      // search free line or existing macA
           bool exist=false;
 
           for(i=1;i<NBPERIF;i++){
-            if(memcmp(tableC[i].periMac,message,ADDR_LENGTH)==0){exist=true;break;}      // already exist
+            if(memcmp(tableC[i].periMac,message,NRF_ADDR_LENGTH)==0){exist=true;break;}      // already exist
             else if(freeLine==0 && tableC[i].periMac[0]=='0'){freeLine=i;}        // store free line nb
           }
 
           if(!exist && freeLine!=0){
             i=freeLine;                                                           // i = free line
             exist=true;
-            memcpy(tableC[i].periMac,message,ADDR_LENGTH);                        // record macAddr
-            tableC[i].periMac[ADDR_LENGTH]=i+48;                                  // add numT as 6th char
+            memcpy(tableC[i].periMac,message,NRF_ADDR_LENGTH);                        // record macAddr
+            tableC[i].periMac[NRF_ADDR_LENGTH]=i+48;                                  // add numT as 6th char
           }
 
           if(exist){
-            message[ADDR_LENGTH]=i+48;}
+            message[NRF_ADDR_LENGTH]=i+48;}
 
           return i;
 }
@@ -553,7 +553,7 @@ uint8_t Nrfp::macSearch(char* mac,int* numPer)    // search mac in tableC ; out 
   int i,j;
 
   for(i=1;i<NBPERIF;i++){
-    for(j=ADDR_LENGTH-1;j>=0;j--){
+    for(j=NRF_ADDR_LENGTH-1;j>=0;j--){
       if(mac[j]!=tableC[i].periMac[j]){j=-2;}
     }
     if(j>-2){*numPer=tableC[i].numPeri;break;}
@@ -567,7 +567,7 @@ uint8_t Nrfp::extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len)
   if(len>BUF_SERVER_LENGTH || len>MAX_PAYLOAD_LENGTH){return EDS_STAT_LEN;}
 
   tableC[numT].numPeri=numPer;
-  if(len>MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1){len=MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1;}
+  if(len>MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1){len=MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1;}
   if(len!=0){
     tableC[numT].servBufLength=len;
     memcpy(tableC[numT].servBuf,data,len);}
@@ -596,10 +596,10 @@ void Nrfp::tableCPrint()
 
 void Nrfp::tableCInit()
 {
-  memcpy(tableC[0].periMac,locAddr,ADDR_LENGTH);
+  memcpy(tableC[0].periMac,locAddr,NRF_ADDR_LENGTH);
   for(int i=1;i<=NBPERIF;i++){                      // entry #NBPERIF for BR_ADDR requester
     tableC[i].numPeri=0;
-    memcpy(tableC[i].periMac,"00000",ADDR_LENGTH);
+    memcpy(tableC[i].periMac,"00000",NRF_ADDR_LENGTH);
     tableC[i].servBufLength=SBLINIT;
     memcpy(tableC[i].servBuf,SBVINIT,SBLINIT);
     memset(tableC[i].periBuf,'\0',MAX_PAYLOAD_LENGTH+1);
@@ -621,6 +621,6 @@ int Nrfp::tableCSave()
 
 void Nrfp::printAddr(char* addr,char n)
 {
-  for(int j=0;j<ADDR_LENGTH;j++){Serial.print((char)addr[j]);}
+  for(int j=0;j<NRF_ADDR_LENGTH;j++){Serial.print((char)addr[j]);}
   if(n=='n'){Serial.println();}
 }

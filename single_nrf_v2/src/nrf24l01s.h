@@ -78,7 +78,7 @@
 
 #define NB_PIPE 2          // nombre pipes utilisées
 #define MAX_PAYLOAD_LENGTH 32
-#define ADDR_LENGTH 5
+#define NRF_ADDR_LENGTH 5
 
 #define TO_AVAILABLE 100   // millis()
 #define TO_REGISTER  100   // millis()
@@ -124,7 +124,7 @@
 struct NrfConTable
 {
   uint8_t numPeri;                  // numéro périphérique dans la table du serveur
-  byte    periMac[ADDR_LENGTH+2];   // macAddr (ajout 1 car=num entrée de la table pour former une addr mac pour l'extérieur)
+  byte    periMac[NRF_ADDR_LENGTH+2];   // macAddr (ajout 1 car=num entrée de la table pour former une addr mac pour l'extérieur)
   char    servBuf[MAX_PAYLOAD_LENGTH+1];
   uint8_t servBufLength;
   bool    servBufSent;

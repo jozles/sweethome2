@@ -9,34 +9,30 @@
 #define LENVERSION 4
 
 /*
+Le serveur contient la config des concentrateurs ; (mac,ip pour forçage éventuel,adresse NRF,RF channel, RF speed) ;
+MAXCONC concentrateurs.
+Les périphériques sont attachés à un concentrateur (adresse NRF, RF Channel, RF speed chargés lors de la config série.)
 
-Le circuit NRF n'autorise que 2 adresses en réception : RX0 et RX1 ;
+Le circuit NRF n'autorise que 2 adresses en réception : RX0 et RX1 (NRF_ADDR_LENTH) ;
 les autres RX sont "dérivés" du RX1 (seul le LSB change)
-
-L'adresse RX1 est utilisée pour recevoir les messages spécifiques au circuit ;
-elle est utilisée comme macAddr du circuit ; sa longueur est de 5 bytes (ADDR_LENGTH) ;
-Pour les communications entre le concentrateur et le serveur sweethome, un sixième byte (numConc) est ajouté ce qui forme une adresse unique pour le serveur.
-Le numéro de concentrateur (numConc) provient des bits de port NUMC_BIT0 et NUMC_BIT1.
-Ca fonctionne en laissant la même macAddr, la même IPAddr et le même numéro de port pour tous les concentrateurs. Si on ne change que la mac Addr le concentrateur ne reçoit plus les messages du serveur.
-Le concentrateur et le périphérique utilisent le 6ème byte dans les messages : c'est le numéro d'entrée dans la table du concentrateur (voir plus loin)
-
-L'adresse RX0 n'est utilisée que par les périphériques pour recevoir les messages de broadcast (à traiter)
+RX0 n'est utilisée que par les périphériques pour recevoir les messages de broadcast (à traiter)
+RX1 des concentrateurs provient du serveur via la config série
 
 >> à développer
 >> L'adresse RX2 est utilisée par les concentrateurs avec une adresse générique. Ca permet l'appariemment périphérique/concentrateur.
 >> Les demandes d'adresse de concentrateur sont faites en faible puissance par le périphérique au contact du concentrateur auquel le connecter.
 
-Sur les périphériques l'adresse TX est fixe sur la macAddr du concentrateur
+Sur les périphériques l'adresse TX est fixe sur RX1 du concentrateur auquel ils sont attachés
 
 Le concentrateur gère une table qui associe
-    la macAddr du périphérique (dont le 6ème caractère est son rang dans la table) et son numéro de périphérique dans le serveur sweetHome
-    + un buffer de réception de l'exterieur et un buffer de réception du périphérique 
+    RX périphérique (+ un 6ème caractère : son rang dans la table) et son numéro de périphérique dans le serveur sweetHome
+    + un buffer de réception du serveur et un buffer de réception du périphérique 
     (la dernière entrée de la table est utilisée pour les demandes d'adresse de concentrateur par les périphériques)
 
-Tous les messages commencent par macAddr/numT (numT rang dans la table 0x30 à 0xFF)
-Le concentrateur contrôle et répond si ok ; sinon l'éventuelle macAddr est effacée de la table.
-Si le numT est '0', le concentrateur le recherche et enregistre la macAddr si inex puis renvoie.
-Si c'est une demande d'appariement (pipe 2) le concentrateur répond avec son adresse générique en faible puissance.
+Tous les messages commencent par (RX1 du périphérique)/numT (numT rang dans la table 0x30 à 0xFF)
+Le concentrateur contrôle et répond si ok ; sinon l'éventuelle RX1 est effacée de la table.
+Si le numT est '0', le concentrateur recherche la RX1 dans la table, l'enregistre si inex puis répond numT.
+Si c'est une demande d'appariement (pipe 2) le concentrateur répond avec son adresse générique en faible puissance. (à développer ?)
 
 Tous les messages du concentrateur vers un périphériques sont de la forme :
   mmmmmTxxxxxx...xxxxx   mmmmm mac péri ; T rang dans table ; xxx...xxx buffer messages extérieur
@@ -53,7 +49,14 @@ v1.5  transfert valeur entrée analogique + seuils (user_conc exportData()) le s
 v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résistance 11.2K ; ajout calcul/affichage du temps de diag
 v1.7  définition du numConc dans la config et paramétrage du canal et du nom de concentrateur selon numConc
 v1.8  passage PC0(ADC0) PC6(ADC6) PD3(INT1-Rreed) PD5 PD6 au concentrateur
-v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server
+v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server ; 
+      numConc disparait remplacé par concNb qui provient du serveur (plus de config physique sur le concentrateur)
+      En factory reset, concNb forme le 5ème caractère d'adresse radio des concentrateurs sur le serveur. 
+      (l'adresse RX1 par défaut des concentrateurs est le param CC_NRF_ADDR (4 caractères) + le numéro d'entrée dans la table du serveur ;)
+      Les périfs reçoivent une adresse de concentrateur complète et le n° (inutilisé) du concentrateur dans la table lors de la config série.
+      L'adresse mac de périphérique utilisée par le serveur est l'adresse RX(mac) des périfs complétée par le concentrateur avec concNb.
+      Adresse mac, ip, adresse NRF, channel, speed sont paramétrés dans la table des concentrateurs du serveur.
+      
 */
 
 //#define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
@@ -79,22 +82,9 @@ v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server
   #define DEF_ADDR  "peri_"
 #endif //
 
-/* MACADDR concentrateur provient de l'EEPROM sur perif (chargé lors du test du périf - à développer le mode chuchotement)
-*  et du numConc (dip sw) sur concentrateur */
-/*
-#define CC_ADDR0   (byte*)"dtest"
-#define CC_ADDR1   (byte*)"ctest"
-#define CC_ADDR2   (byte*)"btest"
-#define CC_ADDR3   (byte*)"atest"
-*/
 #define CB_ADDR   (byte*)"shcc0"      // adresse fixe de broadcast concentrateurs (recup MAC_ADDR concentrateurs) 0 nécessaire pour read()
 #define BR_ADDR   (byte*)"bcast"      // adresse fixe de broadcast
-/*
-#define CC_UDP0   8800
-#define CC_UDP1   8801
-#define CC_UDP2   8802
-#define CC_UDP3   8803
-*/
+
 #define CLK_PIN    13
 #define MISO_PIN   12
 #define MOSI_PIN   11
@@ -162,9 +152,6 @@ v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
   #define PP         7          // pin pour pulse de debug analyseur logique (macro PP4)
-  // numéro de concentrateur (positionner les jumpers sur la carte) fournit le 6ème car de l'adresse mac des périfs
-  #define NUMC_BIT0 14          // numConc low bit     numéro concentrateur low bit        1 sur concentrateur intérieur ; 1 ext
-  #define NUMC_BIT1 15          // numConc high bit    numéro concentrateur high bit       0 sur concentrateur intérieur ; 1 ext
 #endif //
 
 /* un canal par n° de concentrateur */

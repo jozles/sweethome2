@@ -69,6 +69,7 @@ extern byte*      concIp;
 
 extern uint16_t*  concPort;
 extern byte*      concMac;
+extern uint8_t*   concNb;
 extern uint16_t   hostPort;              // host port (TCP/UDP selon TXRX_MODE)    // PORTUDPSERVER2;      // port server sh devt2
 
 IPAddress host;
@@ -89,7 +90,6 @@ char  udpData[LBUFSERVER+1];
 
 int k,k1,k2;    // pour macros TCP/UDP
 char c;         // pour macros TCP/UDP
-extern uint8_t numConc;
 
   EthernetClient cli;   
 
@@ -346,8 +346,8 @@ int exportData(uint8_t numT)                            // formatting periBuf da
       sprintf(message,"%02d",tableC[numT].numPeri);                 // N° périf dans table serveur                    
       memcpy(message+2,"_\0",2);                     
       sb=3;
-      unpackMac((char*)(message+sb),tableC[numT].periMac);          // macaddr (last byte is numConc+'0' ... ADDR_LENGTH is 5 bytes)
-      message[sb+16]=numConc+'0';
+      unpackMac((char*)(message+sb),tableC[numT].periMac);          // macaddr périf
+      message[sb+16]=*concNb+'0';                                   // complétée du n° de concentrateur
       sb+=17;
       memcpy(message+sb,"_\0",2);
       sb+=1;
