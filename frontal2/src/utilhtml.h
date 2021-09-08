@@ -95,6 +95,7 @@ void scrGetButSub(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void scrGetButSub(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl);
 
 void scrGetRadiobut(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl);
+void scrGetRadiobut(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,bool vert,char* lib,uint8_t pol,uint8_t ctl);
 void yscrGetRadiobut(char* buf,char* jsbuf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t ctl);
 
 void affSpace(char* buf,char* jsbuf);

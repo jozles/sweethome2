@@ -56,7 +56,6 @@ extern long       histoPos;
 extern char       histoDh[LDATEA];
 extern char       strHisto[RECCHAR];
 
-
 extern char*      ssid;
 extern char*      passssid;
 extern uint8_t*   ssid1;
@@ -68,6 +67,13 @@ extern uint16_t*  concRfSpeed;
 extern byte*      concIp;               
 extern uint16_t*  concPort;         
 extern uint8_t*   concNb;            
+
+extern uint8_t*   concPeriParams; 
+extern float*     thFactor;
+extern float*     thOffset;
+extern float*     vFactor;
+extern float*     vOffset;
+extern byte*      concPeriMac;
 
 extern char*      usrnames;
 extern char*      usrpass;
@@ -125,7 +131,9 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
             for(int i=strlen(icon);i<fimgSiz+JPGINTROLEN;i++){icon[i]=fimg.read();}
             icon[fimgSiz]='\0';
             Serial.print(" ms_rd=");Serial.print(millis()-begIC);
-            ethWrite(cli,icon);
+            cli->write(icon);
+            
+            //ethWrite(cli,icon);
             //dumpstr(icon,512);
           }
           fimg.close();        
@@ -397,13 +405,21 @@ void subcfgtable(char* buf,char* jsbuf,const char* titre,int nbl,const char* nom
     tableEnd(buf,jsbuf,0);
 }
 
-void conctable(char* buf,char* jsbuf)
-{ 
-    char concFn[]={"ethcfg____"};
+
+void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0)
+{
+  if(buf!=nullptr && lb0!=0){
+
+    formIntro(buf,jsbuf,nullptr,0,"peripheriques concentrés",0,0);
+    //formIntro(buf,jsbuf,"dsrv_init_",0,0);
+    //scrDspText(buf,jsbuf,"<fieldset><legend>peripheriques concentrés</legend>",0,0);
+
+    char periFn[]="percocfg__";       // same fonc
+    char concFn[]="percocfg__";       // same fonc
+
     borderparam=NOBORDER;
-    scrDspText(buf,jsbuf,"concentrateurs",0,BRYES);
+    
     tableBeg(buf,jsbuf,0);scrDspText(buf,jsbuf,"|",0,STRING|TRBEG|TDBEG);scrDspText(buf,jsbuf,"mac|IP|Port|R Addr|channel|RF_S",0,STRING|TREND);
-//Serial.println((char*)(buf+strlen(buf)-150));
     
     for(int nb=0;nb<MAXCONC;nb++){
       concFn[LENNOM-2]=nb+PMFNCVAL;
@@ -423,13 +439,62 @@ void conctable(char* buf,char* jsbuf)
       concFn[LENNOM-1]='C';scrGetNum(buf,jsbuf,'d',(concChannel+nb),concFn,4,0,0,TDBE);
       concFn[LENNOM-1]='S';scrGetNum(buf,jsbuf,'d',(concRfSpeed+nb),concFn,1,0,0,TDBE);
 
-
       scrDspText(buf,jsbuf," ",0,TREND);
     }
     tableEnd(buf,jsbuf,0);
-    scrDspText(buf,jsbuf,"N° conc pour périf : ",0,0);
-    uint16_t a=*concNb;
-    concFn[LENNOM-1]='N';scrGetNum(buf,jsbuf,'d',&a,concFn,0,0,0,BRYES);strcat(buf,"\n");
+  
+    concFn[LENNOM-1]='N';scrDspText(buf,jsbuf,"N° concentrateur : ",0,0);scrGetNum(buf,jsbuf,'D',concNb,concFn,0,0,0,BRYES);strcat(buf,"\n");
+
+    periFn[LENNOM-1]='k';
+
+    scrGetRadiobut(buf,jsbuf,*concPeriParams,periFn,2,1,(char*)"keep\0new",0,0);
+  
+    scrDspText(buf,jsbuf,"concPerifMacAddr : ",0,0);
+    #define LBL 32
+    char lbuf[LBL];*lbuf=0x00;
+    for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[concPeriMac[MACADDRLENGTH+k]/16]);concat1a(lbuf,chexa[concPeriMac[MACADDRLENGTH+k]%16]);}
+    periFn[LENNOM-1]='m';scrGetText(buf,jsbuf,lbuf,periFn,11,MACADDRLENGTH*2,0,BRYES);
+
+    scrDspText(buf,jsbuf,"Volts factor : ",0,0);
+    periFn[LENNOM-1]='y';scrGetNum(buf,jsbuf,'f',vFactor,periFn,4,2,0,0);
+    scrDspText(buf,jsbuf," Offset : ",0,0);
+    periFn[LENNOM-1]='v';scrGetNum(buf,jsbuf,'f',vOffset,periFn,4,2,0,0);
+    scrDspText(buf,jsbuf,"  Th Factor : ",0,0);
+    periFn[LENNOM-1]='b';scrGetNum(buf,jsbuf,'f',thFactor,periFn,4,2,0,0);
+    scrDspText(buf,jsbuf," Offset : ",0,0);
+    periFn[LENNOM-1]='e';scrGetNum(buf,jsbuf,'f',thOffset,periFn,4,2,0,0);
+
+    affSpace(buf,jsbuf);
+    scrGetButSub(buf,jsbuf,"Maj",0);
+
+    formEnd(buf,jsbuf,TITLE,0,0);
+    strcat(buf,"\n"); 
+          
+    ethWrite(cli,buf,lb);        
+  }
+}
+
+void mailCfg(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0)
+{
+  if(buf!=nullptr && lb0!=0){
+
+    formIntro(buf,jsbuf,nullptr,0,"mails",0,0);
+    
+    tableBeg(buf,jsbuf,NOBORDER,0);
+    scrDspText(buf,jsbuf,"mailFrom ",2,TRBEG|TDBE);scrGetText(buf,jsbuf,mailFromAddr,"mailcfg__f",16,LMAILADD,0,TDBE);strcat(buf,"\n");
+    scrDspText(buf,jsbuf," ",40,2,TDBE);scrDspText(buf,jsbuf,"password  ",0,TDBE);scrGetText(buf,jsbuf,mailPass,"mailcfg__w",16,LMAILPWD,0,TDBE|TREND);strcat(buf,"\n");
+    scrDspText(buf,jsbuf,"mailTo #1 ",0,TRBEG|TDBE);scrGetText(buf,jsbuf,mailToAddr1,"mailcfg__1",16,LMAILADD,0,TDBE);strcat(buf,"\n");
+    scrDspText(buf,jsbuf," ",40,2,TDBE);scrDspText(buf,jsbuf,"mailTo #2 ",0,TDBE);scrGetText(buf,jsbuf,mailToAddr2,"mailcfg__2",16,LMAILADD,0,TDBE|TREND);strcat(buf,"\n");
+    tableEnd(buf,jsbuf,BRYES);
+
+    scrDspText(buf,jsbuf,"mail perif 1 ",0,0);scrGetNum(buf,jsbuf,'d',periMail1,"mailcfg__p",2,0,0,0);
+    scrDspText(buf,jsbuf," mail perif 2 ",0,0);scrGetNum(buf,jsbuf,'d',periMail2,"mailcfg__q",2,0,0,0);
+
+    affSpace(buf,jsbuf);                    
+    scrGetButSub(buf,jsbuf,"Maj",0);
+    formEnd(buf,jsbuf,TITLE,0,0);
+    strcat(buf,"\n"); 
+  }
 }
 
 
@@ -445,7 +510,7 @@ void cfgServerHtml(EthernetClient* cli)
 
   htmlBeg(buf,jsbuf,serverName);
 
-  formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+  formIntro(buf,jsbuf,0,0);
 
   pageLineOne(buf,jsbuf);            // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
@@ -462,56 +527,32 @@ fontBeg(buf,jsbuf,2,0);
             #define LBUFL 16
             char lbuf[LBUFL];*lbuf=0x00;for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[mac[k]/16]);concat1a(lbuf,chexa[mac[k]%16]);}
             scrDspText(buf,jsbuf," serverMac ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___m",11,MACADDRLENGTH*2,0,0);
-            //strcat(buf," serverMac <input type=\"text\" name=\"ethcfg___m\" value=\"");
-            //for(int k=0;k<MACADDRLENGTH;k++){concat1a(buf,chexa[mac[k]/16]);concat1a(buf,chexa[mac[k]%16]);}strcat(buf,"\" size=\"11\" maxlength=\"12\" >\n");                        
             *lbuf=0x00;for(int k=0;k<4;k++){concatns(lbuf,localIp[k]);if(k!=3){strcat(lbuf,".");}}
             scrDspText(buf,jsbuf," localIp ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___i",11,LBUFL,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," localIp <input type=\"text\" name=\"ethcfg___i\" value=\"");
-            //for(int k=0;k<4;k++){concatns(buf,localIp[k]);if(k!=3){strcat(buf,".");}}strcat(buf,"\" size=\"11\" maxlength=\"15\" >\n");                        
             scrDspText(buf,jsbuf," serverPort ",0,0);scrGetNum(buf,jsbuf,'d',serverPort,"ethcfg___p",5,0,0,0);
-            //strcat(buf," serverPort ");scrGetNum(buf,'d',serverPort,"ethcfg___p",4,0,0);strcat(buf,"<br>\n");
             scrDspText(buf,jsbuf," remotePort ",0,0);scrGetNum(buf,jsbuf,'d',remotePort,"ethcfg___t",5,0,0,0);
             scrDspText(buf,jsbuf," udpPort ",0,0);scrGetNum(buf,jsbuf,'d',udpPort,"ethcfg___u",5,0,0,BRYES);strcat(buf,"\n");
-
-            scrDspText(buf,jsbuf,"peripass ",0,0);scrGetText(buf,jsbuf,peripass,"peripcfg__",5,LPWD,0,BRYES);strcat(buf,"\n");
-
-            scrDspText(buf,jsbuf,"",0,BRYES);
-
-            subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
-            scrDspText(buf,jsbuf,"ssid1 ",0,0);scrGetNum(buf,jsbuf,'b',ssid1,"ethcfg___W",1,1,0,0,0);
-            scrDspText(buf,jsbuf," ssid2 ",0,0);scrGetNum(buf,jsbuf,'b',ssid2,"ethcfg___w",1,1,0,0,BRYES);strcat(buf,"\n");
-
-            ethWrite(cli,buf,&lb);            // tfr -> navigateur
-            conctable(buf,jsbuf);
-            ethWrite(cli,buf,&lb);
+            scrDspText(buf,jsbuf,"peripass ",0,0);scrGetText(buf,jsbuf,peripass,"peripcfg__",5,LPWD,0,0);
+            scrDspText(buf,jsbuf," TO sans cx tcp ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWt,"ethcfg___q",8,0,0,0);
+            scrDspText(buf,jsbuf," TO sans cx udp ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWu,"ethcfg___r",8,0,0,BRYES);strcat(buf,"\n");
+            //scrDspText(buf,jsbuf,"",0,BRYES);
 
             subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
             scrDspText(buf,jsbuf," to password ",0,0);scrGetNum(buf,jsbuf,'d',toPassword,"to_passwd_",6,0,0,BRYES);strcat(buf,"\n");
             ethWrite(cli,buf,&lb);
-            
-            tableBeg(buf,jsbuf,NOBORDER,BRYES);  //scrDspText(buf,jsbuf," ",100,2,TDBE);
-            scrDspText(buf,jsbuf,"mailFrom ",2,TRBEG|TDBE);scrGetText(buf,jsbuf,mailFromAddr,"mailcfg__f",16,LMAILADD,0,TDBE);strcat(buf,"\n");
-            //strcat(buf," mail From <input type=\"text\" name=\"mailcfg__f\" value=\"");strcat(buf,mailFromAddr);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD));strcat(buf,"\" >\n");
-            scrDspText(buf,jsbuf," ",40,2,TDBE);scrDspText(buf,jsbuf,"password  ",0,TDBE);scrGetText(buf,jsbuf,mailPass,"mailcfg__w",16,LMAILPWD,0,TDBE|TREND);strcat(buf,"\n");
-            //strcat(buf," password  <input type=\"text\" name=\"mailcfg__w\" value=\"");strcat(buf,mailPass);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILPWD);strcat(buf,"\" ><br>\n");
-            scrDspText(buf,jsbuf,"mailTo #1 ",0,TRBEG|TDBE);scrGetText(buf,jsbuf,mailToAddr1,"mailcfg__1",16,LMAILADD,0,TDBE);strcat(buf,"\n");
-            //strcat(buf," mail To #1 <input type=\"text\" name=\"mailcfg__1\" value=\"");strcat(buf,mailToAddr1);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" >\n");
-            scrDspText(buf,jsbuf," ",40,2,TDBE);scrDspText(buf,jsbuf,"mailTo #2 ",0,TDBE);scrGetText(buf,jsbuf,mailToAddr2,"mailcfg__2",16,LMAILADD,0,TDBE|TREND);strcat(buf,"\n");
-            //strcat(buf," mail To #2 <input type=\"text\" name=\"mailcfg__2\" value=\"");strcat(buf,mailToAddr2);strcat(buf,"\" size=\"16\" maxlength=\"");concatns(buf,LMAILADD);strcat(buf,"\" ><br>\n");
-            tableEnd(buf,jsbuf,BRYES);
 
-            scrDspText(buf,jsbuf,"mail perif 1 ",0,0);scrGetNum(buf,jsbuf,'d',periMail1,"mailcfg__p",2,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," perif 1 ");scrGetNum(buf,'d',periMail1,"mailcfg__p",2,0,0);strcat(buf,"<br>\n");
-            scrDspText(buf,jsbuf,"mail perif 2 ",0,0);scrGetNum(buf,jsbuf,'d',periMail2,"mailcfg__q",2,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," perif 2 ");scrGetNum(buf,'d',periMail2,"mailcfg__q",2,0,0);strcat(buf,"<br>\n");
-
-            
-            scrDspText(buf,jsbuf,"maxCxWt ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWt,"ethcfg___q",8,0,0,0);
-            //strcat(buf,"maxCxWt ");scrGetNum(buf,'l',maxCxWt,"ethcfg___q",8,0,0);
-            scrDspText(buf,jsbuf," maxCxWu ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWu,"ethcfg___r",8,0,0,BRYES);strcat(buf,"\n");
-            //strcat(buf," maxCxWu ");scrGetNum(buf,'l',maxCxWu,"ethcfg___r",8,0,0);strcat(buf,"<br>\n");
-            
+            subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
+            scrDspText(buf,jsbuf,"ssid1 ",0,0);scrGetNum(buf,jsbuf,'b',ssid1,"ethcfg___W",1,1,0,0,0);
+            scrDspText(buf,jsbuf," ssid2 ",0,0);scrGetNum(buf,jsbuf,'b',ssid2,"ethcfg___w",1,1,0,0,BRYES);strcat(buf,"\n");
             formEnd(buf,jsbuf,0,0);
+            ethWrite(cli,buf,&lb);
+
+            concPerParams(cli,buf,jsbuf,&lb,lb0);
+            ethWrite(cli,buf,&lb);            
+            
+            mailCfg(cli,buf,jsbuf,&lb,lb0);
+            ethWrite(cli,buf,&lb);
+
 fontEnd(buf,jsbuf,0);
             htmlEnd(buf,jsbuf);
             

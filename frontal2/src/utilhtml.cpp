@@ -518,6 +518,7 @@ void concNum(char* buf,char* jsbuf,char type,uint8_t dec,void* value,bool sep)
   switch (type){
     case 'b':concatn(buf,jsbuf,*(byte*)value,sep);break; //strcat(buf,(char*)valfonct);break;
     case 'd':concatn(buf,jsbuf,*(uint16_t*)value,sep);break;
+    case 'D':concatn(buf,jsbuf,*(uint8_t*)value,sep);break;
     case 's':if(*(uint8_t*)value==0xff){break;}v=*(uint8_t*)value;concatn(buf,jsbuf,v,sep);break;
     case 'i':concatns(buf,jsbuf,*(int*)value,sep);break;
     case 'I':concatns(buf,jsbuf,*(int16_t*)value,sep);break;
@@ -601,9 +602,6 @@ Pour changer de page :
 
 void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char* title,uint8_t pol,uint8_t ctl)       // les valeurs à recevoir systématiquement du navigateur
 {
-    char fonc[LENNOM+1];*fonc=0x00;
-    memcpy(fonc,locfonc,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
-
     if(buf!=nullptr){
           fnHtmlIntro(buf,pol,ctl);
           strcat(buf,"<form method=\"GET \">");
@@ -617,6 +615,8 @@ void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char
           strcat(buf,"\">");
  
           if(locfonc!=nullptr){
+            char fonc[LENNOM+1];*fonc=0x00;
+            memcpy(fonc,locfonc,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
             strcat(buf,"<input type=\"text\" name=\"");strcat(buf,fonc);strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
           }
           strcat(buf,"</p>\n");
@@ -920,7 +920,7 @@ void scrGetButSub(char* buf,char* jsbuf,const char* lib,uint8_t ctl)
   scrGetButSub(buf,jsbuf,lib,ALICNO,0,ctl);
 }
 
-void scrGetRadiobut(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl)        // nbval boutons radio
+void scrGetRadiobut(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,bool vert,char* lib,uint8_t pol,uint8_t ctl)        // nbval boutons radio
 {
 #ifndef NOJSBUF                                                                                             // valeur = checked (0-n) 
       fnJsIntro(jsbuf,JSRAD,pol,ctl);
@@ -935,10 +935,16 @@ void scrGetRadiobut(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbv
           strcat(buf,"<input type=\"radio\" name=\"");strcat(buf,nomfonct);
           strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+j));strcat(buf,"\"");
           if(j==valeur){strcat(buf," checked");}strcat(buf,"/>");
+          if(lib!=nullptr){strcat(buf,lib);lib+=strlen(lib)+1;}
+          if(vert){strcat(buf,"<br>");}
       }
       fnHtmlEnd(buf,pol,ctl);
 }
 
+void scrGetRadiobut(char* buf,char* jsbuf,byte valeur,char* nomfonct,uint8_t nbval,uint8_t pol,uint8_t ctl)        // nbval boutons radio
+{
+  return scrGetRadiobut(buf,jsbuf,valeur,nomfonct,nbval,0,nullptr,pol,ctl);        // nbval boutons radio
+}
 void yscrGetRadiobut(char* buf,char* jsbuf,byte valeur,const char* nomfonct,uint8_t nbval,bool vert,uint8_t nb,uint8_t ctl)                    
 {                        // sqbr square button // 1 line ; nb = page row  // nbval à traiter
   valeur&=0x03;                                                               

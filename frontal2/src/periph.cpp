@@ -33,7 +33,14 @@ extern uint8_t*   concRx;
 extern uint16_t*  concChannel;
 extern uint16_t*  concRfSpeed;      
 extern uint8_t*   concNb;            
- 
+
+extern uint8_t*   concPeriParams; 
+extern float*     thFactor;
+extern float*     thOffset;
+extern float*     vFactor;
+extern float*     vOffset;
+extern byte*      concPeriMac;
+
 extern char*      usrnames;  
 extern char*      usrpass;     
 extern unsigned long* usrtime;
@@ -234,6 +241,13 @@ memset(concRfSpeed,0x00,MAXCONC*sizeof(uint8_t));
 memset(concIp,0x00,MAXCONC*4);
 memset(concPort,0x00,MAXCONC*sizeof(uint16_t));
 *concNb=0;
+*concPeriParams=0; 
+*thFactor=0;
+*thOffset=0;
+*vFactor=0;
+*vOffset=0;
+memset(concPeriMac,0x00,MACADDRLENGTH);
+
 memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
 //memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
 memset(usrtime,0x00,NBUSR*sizeof(long));
@@ -288,7 +302,19 @@ byte* temp=(byte*)configRec;
   temp+=sizeof(uint8_t);
   concRx=(uint8_t*)temp;
   temp+=RADIO_ADDR_LENGTH*MAXCONC;
-  temp+=131;                         // dispo 
+  concPeriParams=(uint8_t*)temp;
+  temp+=sizeof(uint8_t*);
+  thFactor=(float*)temp;
+  temp+=sizeof(float*);
+  thOffset=(float*)temp;
+  temp+=sizeof(float*);
+  vFactor=(float*)temp;
+  temp+=sizeof(float*);
+  vOffset=(float*)temp;
+  temp+=sizeof(float*);
+  concPeriMac=(byte*)temp;
+  temp+=sizeof(byte*);
+  temp+=107;                         // dispo 
   usrnames=(char*)temp;
   temp+=NBUSR*(LENUSRNAME+1);
   usrpass=(char*)temp;
