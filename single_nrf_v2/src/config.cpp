@@ -1,3 +1,4 @@
+#ifdef DUE
 
 #include <Arduino.h>
 #include <shconst2.h>
@@ -180,3 +181,4 @@ uint16_t getServerConfig()
   }
   return rcvl;
 }
+#endif // DUE

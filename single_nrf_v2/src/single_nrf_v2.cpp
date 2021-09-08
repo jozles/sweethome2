@@ -135,6 +135,7 @@ unsigned long tLast=0;             // date unix dernier message reçu
 #endif // NRF_MODE == 'C'
 
 uint8_t channel;
+uint8_t speed=RF_SPD_1MB;
 
 #if NRF_MODE == 'P'
 
@@ -149,7 +150,10 @@ float*    thOffset;
 float*    vFactor;
 float*    vOffset;
 byte*     macAddr;
-uint8_t*  numC;
+byte*     concAddr;
+uint8_t*  concNb;
+uint8_t*  concChannel;
+uint8_t*  concSpeed;
 
 /*** gestion sleep ***/
 
@@ -192,7 +196,6 @@ char  thN;                            // thermo code for version
 void sleepNoPwr(uint8_t durat);
 void initConf();
 void configPrint();
-void getConcParams();
 int  beginP();
 void echo();
 void hardwarePwrUp();
@@ -237,7 +240,6 @@ void setup() {
   initConf();
   if(!eeprom.load(configData,CONFIGLEN)){Serial.println("***EEPROM KO***");delayBlk(1,0,250,3,10000);lethalSleep();}
   Serial.println("eeprom ok");
-  getConcParams();
   radio.locAddr=macAddr;
   radio.ccAddr=concAddr;
   configPrint();
@@ -343,10 +345,12 @@ void setup() {
 
  // radio start
   channel=*concChannel;
+  if(memcmp(configVers,"01",2)==0){*concNb=1;}
+  speed=*concSpeed;
   radio.locAddr=concRx;                 // première init à faire !!
   radio.tableCInit();
   memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH+1);     // pour broadcast & test
-  radio.powerOn(channel);
+  radio.powerOn(channel,speed);
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
 
 #ifdef DUE
@@ -445,7 +449,7 @@ void loop() {
     nbS++;
 
     t_on2=micros();                   // message build ... send
-    radio.powerOn(channel);
+    radio.powerOn(channel,speed);
     trSta=0;
     rdSta=txRxMessage();
     t_on21=micros();
@@ -734,15 +738,6 @@ char getch()
 
 #if NRF_MODE == 'P'
 
-void getConcParams()
-{
-  concNb=*numC;
-  if(memcmp(configVers,"01",2)==0){concNb=1;}
-  concAddr=
-  channel=
-}
-
-
 int beginP()                        // manage registration ; output value >0 is numT else error with radio.powerOff()
 {
   int confSta=-1;
@@ -762,7 +757,7 @@ int beginP()                        // manage registration ; output value >0 is 
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
       delayBlk(32,0,125,4,1);           // 4 blinks
-      radio.powerOn(channel);                  // txRx or other running
+      radio.powerOn(channel,speed);     // txRx or other running
       break;                            // ok -> out of while(beginP_retryCnt>0)
     }
 
@@ -782,7 +777,7 @@ int beginP()                        // manage registration ; output value >0 is 
     if(beginP_retryCnt>0){
       sleepNoPwr(0);                    
       delayBlk(1,0,125,2,1);          // 2 blinks
-      radio.powerOn(channel);}   
+      radio.powerOn(channel,speed);}   
   }                                   // next attempt
 
   if(diags){
@@ -1091,7 +1086,7 @@ void configPrint()
     Serial.print("crc     ");dumpfield((char*)configData,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
     char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
     Serial.print("MAC  ");dumpstr((char*)macAddr,6);Serial.print("CONC ");dumpstr((char*)concAddr,6);
-    if(memcmp(configVers,"01",2)!=0){Serial.print("concNb ");dumpstr((char*)&concNb,1);}
+    if(memcmp(configVers,"01",2)!=0){Serial.print("concNb ");Serial.println(*concNb);}
 
     Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
     Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
@@ -1117,14 +1112,20 @@ void initConf()
   temp +=6;
   concAddr=(byte*)temp;
   temp +=6;
-  numC=(uint8_t*)temp;
-  temp +=sizeof(uint8_t);
+  concNb=(uint8_t*)temp;
+  temp +=sizeof(uint8_t*);
+  concChannel=(uint8_t*)temp;
+  temp+=sizeof(uint8_t*);
+  concSpeed=(uint8_t*)temp;
+  temp+=sizeof(uint8_t*);
+
+  temp+=32;                   // dispo
 
   byte* configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
 
   long configLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
   Serial.print("CONFIGLEN=");Serial.print(CONFIGLEN);Serial.print("/");Serial.println(configLength);
-  delay(10);if(configLength>CONFIGLEN) {initLed(LED);ledblink(BCODECONFIGRECLEN);}
+  delay(10);if(configLength>CONFIGLEN) {initLed();ledblink(BCODECONFIGRECLEN);}
 /*
   memcpy(configVers,VERSION,2);
   memcpy(macAddr,DEF_ADDR,6);

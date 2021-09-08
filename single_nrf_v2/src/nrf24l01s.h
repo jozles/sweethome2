@@ -144,7 +144,7 @@ class Nrfp
   public:
     Nrfp();
 
-    void setup(uint8_t channel);
+    void setup(uint8_t channel,uint8_t speed);
 
     int  available(uint8_t* pipe,uint8_t* length);
     int  read(byte* data,uint8_t* pipe,uint8_t* length,int numP);
@@ -152,7 +152,8 @@ class Nrfp
     void write(byte* data,bool ack,uint8_t len,uint8_t numP);
     int  transmitting(bool ack);
 
-    void powerOn(uint8_t channel);
+    //void powerOn(uint8_t channel);
+    void powerOn(uint8_t channel,uint8_t speed);
     void powerOff();
     void powerUp();
     void powerDown();

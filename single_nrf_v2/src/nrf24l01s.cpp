@@ -82,7 +82,7 @@ Nrfp::Nrfp()    // constructeur
 {
 }
 
-void Nrfp::setup(uint8_t channel)
+void Nrfp::setup(uint8_t channel,uint8_t speed)
 { 
     /* registers */
 
@@ -110,7 +110,8 @@ void Nrfp::setup(uint8_t channel)
     regw=channel;
     regWrite(RF_CH,&regw);
 
-    regw=RFREG | RF_SPEED;
+    regw=RFREG | speed;
+  
     regWrite(RF_SETUP,&regw);
 
     regw=(ARD_VALUE<<ARD)+(ARC_VALUE<<ARC);
@@ -176,7 +177,7 @@ void Nrfp::allPinsLow()                     /* all radio/SPI pins low */
 }
 #endif // NRF_MODE='P'  
 
-void Nrfp::powerOn(uint8_t channel)
+void Nrfp::powerOn(uint8_t channel,uint8_t speed)
 {
 #if NRF_MODE == 'P'
 #if PER_PO == 'P'
@@ -211,9 +212,13 @@ void Nrfp::powerOn(uint8_t channel)
 #endif // NRF_MODE == 'C'
 
   powerUp();
-  setup(channel);                        // registry inits 
+  setup(channel,speed);                        // registry inits 
 }
 
+/*void Nrfp::powerOn(uint8_t channel)
+{
+  return powerOn(channel,RF_SPD_1MB);
+}*/
 
 void Nrfp::powerOff()
 {
