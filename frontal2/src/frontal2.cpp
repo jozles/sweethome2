@@ -1978,6 +1978,7 @@ void serialServer()
       Serial.println("conc ");//dumpstr(bec,300);      
     }
     if(memcmp(serialBuf,PERICFG,10)==0){
+      periImport(serialBuf+11);
       periExport(bec,*concNb);
       setExpEnd(bec);
       Serial.println("peri ");//dumpstr(bec,300);      

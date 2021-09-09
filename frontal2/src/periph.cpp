@@ -4,6 +4,7 @@
 #include <Wire.h>
 #include <shconst2.h>
 #include <shutil2.h>
+#include <shmess2.h>
 #include "utilether.h"
 #include "periph.h"
 
@@ -478,21 +479,58 @@ void concExport(char* bec)
   return concExport(bec,99);
 }
 
-void periExport(char*bec ,uint8_t concNb)
+void periExport(char* bec ,uint8_t concNb)
 {
     uint16_t ll=strlen(bec);
 
-    memcpy(bec+ll,concRx+concNb*RADIO_ADDR_LENGTH,RADIO_ADDR_LENGTH);              // conc Rx addr
+    memcpy(bec+ll,concRx+concNb*RADIO_ADDR_LENGTH,RADIO_ADDR_LENGTH);             // conc Rx addr
     ll+=RADIO_ADDR_LENGTH;
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%03u",(uint16_t)*(concChannel+concNb));ll+=3;                  // concChannel
+    sprintf(bec+ll,"%03u",(uint16_t)*(concChannel+concNb));ll+=3;                 // concChannel
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%01u",(uint16_t)*(concRfSpeed+concNb));ll+=1;                  // concRfSpeed
+    sprintf(bec+ll,"%01u",(uint16_t)*(concRfSpeed+concNb));ll+=1;                 // concRfSpeed
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%01u",concNb);ll+=1;                                           // rang conc 
+    sprintf(bec+ll,"%01u",concNb);ll+=1;                                          // rang conc 
+    *(bec+ll)=';';ll++; 
+    
+    sprintf(bec+ll,"%02.2f",*vFactor);ll+=5;                                      // vFactor
+    *(bec+ll)=';';ll++;
+    sprintf(bec+ll,"%02.2f",*vOffset);ll+=5;                                      // vOffset
+    *(bec+ll)=';';ll++;
+    sprintf(bec+ll,"%02.2f",*thFactor);ll+=5;                                     // thFactor
+    *(bec+ll)=';';ll++;
+    sprintf(bec+ll,"%02.2f",*thOffset);ll+=5;                                     // thOffset
+    *(bec+ll)=';';ll++;
+    *bec=*concPeriParams+PMFNCVAL;ll+=1;                                          // provenance periParams (0=périf 1=saisie server)
+    *(bec+ll)=';';ll++;
+    memcpy(bec+ll,concPeriMac,RADIO_ADDR_LENGTH);                                 // perif Rx addr
+    ll+=RADIO_ADDR_LENGTH;
     *(bec+ll)=';';ll++;
     *(bec+ll)='\0';
 }
+
+void periImport(char* bec)
+{
+    Serial.print("checkData=");
+    uint16_t ll=0;
+    int cd=checkData(bec,&ll);                        // longueur stockée dans le message
+    Serial.print(cd);
+    if(cd!=1){Serial.println(" ko");}                 // renvoie mess = MESSOK (1) OK ; MESSCRC (-2) CRC ; MESSLEN (-3) 
+    else {
+      Serial.println(" ok");
+      int sr=0;
+      if(concPeriParams==0){
+        bec+=5;
+        *vFactor=convStrToNum((char*)(bec),&sr);bec+=sr+1;
+        *vOffset=convStrToNum((char*)(bec),&sr);bec+=sr+1;
+        *thFactor=convStrToNum((char*)(bec),&sr);bec+=sr+1;
+        *thOffset=convStrToNum((char*)(bec),&sr);bec+=sr+1;
+        *concPeriParams=*bec-PMFNCVAL;bec+=2;
+        memcpy(concPeriMac,bec,RADIO_ADDR_LENGTH);                                          
+      }
+    }
+}
+
 
 void configPrint()
 {

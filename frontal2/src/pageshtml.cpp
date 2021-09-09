@@ -131,9 +131,9 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
             for(int i=strlen(icon);i<fimgSiz+JPGINTROLEN;i++){icon[i]=fimg.read();}
             icon[fimgSiz]='\0';
             Serial.print(" ms_rd=");Serial.print(millis()-begIC);
-            cli->write(icon);
+            //cli->write(icon);
             
-            //ethWrite(cli,icon);
+            ethWrite(cli,icon);
             //dumpstr(icon,512);
           }
           fimg.close();        

@@ -42,7 +42,8 @@ void  configExport(char* bec);
 void  wifiExport(char* bec,uint8_t selssid);
 void  concExport(char* bec,uint8_t concNb);
 void  concExport(char* bec);
-void  periExport(char*bec ,uint8_t concNb);
+void  periExport(char* bec ,uint8_t concNb);
+void  periImport(char* bec);
 uint16_t setExpEnd(char* bec);
 
 void  remotePrint();
