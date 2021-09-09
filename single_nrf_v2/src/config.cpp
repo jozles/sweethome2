@@ -1,4 +1,3 @@
-#ifdef DUE
 
 #include <Arduino.h>
 #include <shconst2.h>
@@ -8,9 +7,10 @@
 #include "config.h"
 #include "nrf24l01s_const.h"
 #include "nrf24l01s.h"
-//#include <Arduino.h>
 
 extern Eepr eeprom;
+
+#ifdef DUE
 
 /* >>>> config concentrateur <<<<<< */
 
@@ -39,11 +39,7 @@ char configRec[CONCRECLEN];       // enregistrement de config
   byte* configBegOfRecord;
   byte* configEndOfRecord;
 
-  //uint8_t  channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal bvs N° conc 
-  //const char  concMacTable[] = {CC_ADDRX};
-  //uint16_t portTable[MAXCONC] = {CC_UDP0,CC_UDP1,CC_UDP2,CC_UDP3};
-
-uint16_t hostPort=0;             // server port (udp/tcp selon TXRX_MODE) 
+  uint16_t hostPort=0;             // server port (udp/tcp selon TXRX_MODE) 
 
 void configInitVar()
 {

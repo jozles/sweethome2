@@ -7,6 +7,8 @@
 #include "nrf_user_peri.h"
 #include "nrf_user_conc.h"
 
+#include "shconst2.h"
+
 //#if NRF_MODE == 'P'
 #include <eepr.h>
 Eepr eeprom;
@@ -141,7 +143,7 @@ uint8_t speed=RF_SPD_1MB;
 
 const char*  chexa="0123456789ABCDEFabcdef\0";
 
-#define CONFIGLEN 40                      // len maxi paramètres de config en Eeprom (37 v01 ; 38 v02)
+#define CONFIGLEN 76                      // len maxi paramètres de config en Eeprom (37 v01 ; 38 v02 ; 75 v03)
 byte    configData[CONFIGLEN];
 
 byte*     configVers;
@@ -154,6 +156,7 @@ byte*     concAddr;
 uint8_t*  concNb;
 uint8_t*  concChannel;
 uint8_t*  concSpeed;
+uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
 
 /*** gestion sleep ***/
 
@@ -235,13 +238,15 @@ void setup() {
 
   Serial.begin(115200);
 
-//diagT("reset",10);
-
+  initLed();
+  
   initConf();
-  if(!eeprom.load(configData,CONFIGLEN)){Serial.println("***EEPROM KO***");delayBlk(1,0,250,3,10000);lethalSleep();}
-  Serial.println("eeprom ok");
+  if(!eeprom.load(configData,CONFIGLEN)){Serial.println(" ***EEPROM KO***");delayBlk(1,0,250,3,10000);lethalSleep();}
+  Serial.println("   eeprom ok");
   radio.locAddr=macAddr;
   radio.ccAddr=concAddr;
+  channel=*concChannel;
+  speed=*concSpeed;
   configPrint();
 
   /* external timer calibration sequence */
@@ -252,22 +257,20 @@ void setup() {
   iniTemp();
   
   diags=false;
-  Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" macAddr : ");radio.printAddr((char*)macAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);Serial.print(" ; une touche pour diags ");
+  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" macAddr : ");radio.printAddr((char*)macAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);Serial.print(" ; une touche pour diags ");
   while((millis()-t_on)<4000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
-  Serial.println("");
+  Serial.println();delay(1);
   if(diags){
     Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry)");
     Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
   }
 
-  pinMode(LED,OUTPUT);
   delayBlk(500,0,0,1,1);                  // 1 blink 500mS
- 
   sleepNoPwr(0);                          // wait for interrupt from external timer to reach beginning of period
 
   t_on=millis();
   delayBlk(500,0,0,1,1);                  // 1 blink 500mS - external timer calibration begin (100mS blink)
-  
+
   attachInterrupt(0,int_ISR,ISREDGE);     // external timer interrupt
   EIFR=bit(INTF0);                        // clr flag
   while(!extTimer){delay(1);}             // évite le blocage à la fin ... ???  
@@ -275,6 +278,7 @@ void setup() {
   
   period=(float)(millis()-t_on)/1000;
   delayBlk(500,0,0,1,1);                  // 1 blink 500mS - external timer calibration end
+
   if(diags){Serial.print("period ");Serial.print(period);Serial.print("sec ");} // external timer period
 
   getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
@@ -1016,7 +1020,6 @@ void sleepNoPwr(uint8_t durat)
   userHardPowerDown();
   radio.powerOff();
 
-//  bitClear(DDR_LED,BIT_LED);            //pinMode(LED,INPUT); led needed during sleep
   bitClear(DDR_PP,BIT_PP);                //pinMode(PP,INPUT);
   bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
 
@@ -1027,7 +1030,6 @@ void sleepNoPwr(uint8_t durat)
 void hardwarePwrUp()
 { 
   PP4_INIT
-  bitSet(DDR_LED,BIT_LED);                //pinMode(LED,OUTPUT);
   pinMode(REED,INPUT_PULLUP);
 }
 
@@ -1061,14 +1063,12 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
     
 */    
 {
-   
   while(dly>0){
- 
     for(int i=0;i<bnb;i++){
       digitalWrite(LED,HIGH);
       pinMode(LED,OUTPUT);
-      if(dur<DLYSTP){delay(dur);}         // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
-                                      // for 32mS sleep, power saving is greater than 90%
+      if(dur<DLYSTP){delay(dur);}       // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
+                                        // for 32mS sleep, power saving is greater than 90%
       else {sleepDly(dur);}
       digitalWrite(LED,LOW);
       if(bint!=0){sleepDly(bint);}    // 1 blink doesnt need bint
@@ -1086,10 +1086,15 @@ void configPrint()
     Serial.print("crc     ");dumpfield((char*)configData,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
     char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
     Serial.print("MAC  ");dumpstr((char*)macAddr,6);Serial.print("CONC ");dumpstr((char*)concAddr,6);
-    if(memcmp(configVers,"01",2)!=0){Serial.print("concNb ");Serial.println(*concNb);}
-
+    if(memcmp(configVers,"01",2)!=0){
+      Serial.print("concNb ");Serial.print(*concNb);
+      Serial.print("  channel ");Serial.print(*concChannel);
+      Serial.print("  speed ");Serial.print(*concSpeed);
+      Serial.print("  source(0 peri ; 1 server) ");Serial.println(*concPeriParams);
+    }
     Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
     Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
+    delay(10);
 }
 
 void initConf()
@@ -1113,19 +1118,21 @@ void initConf()
   concAddr=(byte*)temp;
   temp +=6;
   concNb=(uint8_t*)temp;
-  temp +=sizeof(uint8_t*);
+  temp +=sizeof(uint8_t);
   concChannel=(uint8_t*)temp;
-  temp+=sizeof(uint8_t*);
+  temp+=sizeof(uint8_t);
   concSpeed=(uint8_t*)temp;
-  temp+=sizeof(uint8_t*);
+  temp+=sizeof(uint8_t);
+  concPeriParams=(uint8_t*)temp;
+  temp+=sizeof(uint8_t);
 
-  temp+=32;                   // dispo
+  temp+=31;                   // dispo
 
   byte* configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
 
   long configLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
-  Serial.print("CONFIGLEN=");Serial.print(CONFIGLEN);Serial.print("/");Serial.println(configLength);
-  delay(10);if(configLength>CONFIGLEN) {initLed();ledblink(BCODECONFIGRECLEN);}
+  Serial.print("CONFIGLEN=");Serial.print(CONFIGLEN);Serial.print("/");Serial.print(configLength);
+  delay(10);if(configLength>CONFIGLEN) {ledblink(BCODECONFIGRECLEN);}
 /*
   memcpy(configVers,VERSION,2);
   memcpy(macAddr,DEF_ADDR,6);

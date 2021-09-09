@@ -13,13 +13,7 @@
 *
 ******************************************************/
 
-/*
-#ifdef MEGA
-#define CSN_HIGH  bitSet(PORTB,4);
-#define CSN_LOW   bitClear(PORTB,4)
-#endif //  // MEGA
-*/
-#ifdef UNO        // idem for PRO MINI
+#ifdef DETS        // idem for PRO MINI
 #define CSN_HIGH  bitSet(PORT_CSN,BIT_CSN);
 #define CSN_LOW   bitClear(PORT_CSN,BIT_CSN);
 #define CE_HIGH   bitSet(PORT_CE,BIT_CE);delayMicroseconds(10);
@@ -29,7 +23,7 @@
 #define CSN_OFF   bitClear(DDR_CSN,BIT_CSN);
 #define CE_INIT   bitSet(DDR_CE,BIT_CE);
 #define CE_OFF    bitClear(DDR_CE,BIT_CE);
-#endif //  // UNO
+#endif // DETS
 
 /*#ifdef DUE
 #define CSN_HIGH  bitSet(PORTC,29);
@@ -179,6 +173,7 @@ void Nrfp::allPinsLow()                     /* all radio/SPI pins low */
 
 void Nrfp::powerOn(uint8_t channel,uint8_t speed)
 {
+  Serial.print(">>>>>>>>>>>>>>>>>>>><channel=");Serial.print(channel,HEX);Serial.print("   speed=");Serial.println(speed,HEX);delay(10);
 #if NRF_MODE == 'P'
 #if PER_PO == 'P'
 

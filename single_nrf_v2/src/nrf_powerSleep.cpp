@@ -203,7 +203,7 @@ uint16_t adcRead0(uint8_t admuxval,uint8_t dly)      // dly=1 if ADC halted
 
     a=ADCL;
     a+=ADCH*256;
-//  Serial.println();Serial.print(" a=");Serial.print(a);Serial.print("  factor=");Serial.println(factor*100);
+
     return a;
 }
 
@@ -214,10 +214,6 @@ float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_
 
 void getVolts()                     // get unregulated voltage and reset watchdog for external timer period 
 {
-// free blink while getVolts()
-//  bitSet(PORT_LED,BIT_LED);                 //digitalWrite(LED,HIGH);
-//  bitSet(DDR_LED,BIT_LED);                  //pinMode(LED,OUTPUT);     
-
   checkOn();
   
   volts=adcRead(VADMUXVAL,VFACTOR,0,0,1);
@@ -240,10 +236,8 @@ void getVolts()                     // get unregulated voltage and reset watchdo
 #endif //  
 //diagT2("getVolt",10);
   checkOff();
-//  bitClear(PORT_LED,BIT_LED);             //digitalWrite(LED,LOW);            
 
   ADCSRA &= ~(1<<ADEN);                   // ADC shutdown for clean next voltage measurement
-  //Serial.println(micros()-t);delay(1);
 }
 
 

@@ -11,9 +11,6 @@
 #include "eepr.h"
 #include "shutil2.h"
 
-
-
-
 Eepr::Eepr()
 {
 }
@@ -92,6 +89,7 @@ bool Eepr::load(byte* data,uint16_t length)
     if(length<usefullLength) {return false;}
 
     eeread(data,usefullLength,0);                                   // charge tout
+
     uint32_t crc32;
     memcpy(&crc32,data,EEPRCRCLENGTH);
     return checkCrc32(data+EEPRCRCLENGTH,usefullLength-EEPRCRCLENGTH,crc32);
