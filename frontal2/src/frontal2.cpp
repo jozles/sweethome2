@@ -51,7 +51,6 @@ char ab;                            // protocole et type de la connexion en cour
 //  EthernetClient cli_a;             // instance serveur de periphériques et browser configuration
   EthernetClient cli_b;             // instance du serveur pilotage
   EthernetClient cliext;            // instance client serveur externe  
-//  EthernetClient cli_udp;           // client inutilisé pour la compatibilité des arguments des fonctions mixtes TCP/UDP
 
   char udpData[UDPBUFLEN];          // buffer paquets UDP
   uint16_t udpDataLen;              // taille paquet contenu

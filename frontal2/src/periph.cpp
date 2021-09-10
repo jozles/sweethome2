@@ -408,17 +408,6 @@ void subConcPrint()
   Serial.print("N° concentrateur pour perif ");Serial.println(*concNb);
 }
 
-uint16_t setExpEnd(char* bec)
-{
-  uint16_t ll=(uint16_t)strlen(bec);
-  sprintf(bec,"%04u",ll);
-  bec[4]=';';
-  setcrc(bec,ll);
-  
-  *(bec+ll+2)='\0';
-  return (uint16_t)(ll+2);
-}
-
 void configExport(char* bec)
 {
   uint16_t ll=0;
@@ -521,9 +510,9 @@ void periImport(char* bec)
       int sr=0;
       if(concPeriParams==0){
         bec+=5;
-        *vFactor=convStrToNum((char*)(bec),&sr);bec+=sr+1;
+        *vFactor=convStrToNum((char*)(bec),&sr)/10000;bec+=sr+1;
         *vOffset=convStrToNum((char*)(bec),&sr);bec+=sr+1;
-        *thFactor=convStrToNum((char*)(bec),&sr);bec+=sr+1;
+        *thFactor=convStrToNum((char*)(bec),&sr)/10000;bec+=sr+1;
         *thOffset=convStrToNum((char*)(bec),&sr);bec+=sr+1;
         *concPeriParams=*bec-PMFNCVAL;bec+=2;
         memcpy(concPeriMac,bec,RADIO_ADDR_LENGTH);                                          
