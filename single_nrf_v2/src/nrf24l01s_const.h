@@ -59,8 +59,6 @@ v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server ;
       
 */
 
-  #define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
-
 /************* config ****************/
   
   #define NRF_MODE 'P'            //  P périphérique
@@ -92,7 +90,8 @@ v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server ;
 #endif // NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'             /* voltage and temp acquisition params */
-  //#define DETS                    // carte DETS (sinon ?) param dans platformo.ini
+   // param carte DETS (sinon ?) dans platformo.ini
+  #define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
   #define PER_PO    'P'           // 'N' no powoff 'P' powoff
   #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
   #define DEF_ADDR  "peri_"

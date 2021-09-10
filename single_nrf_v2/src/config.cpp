@@ -11,10 +11,60 @@
 extern Eepr eeprom;
 
 #ifdef DUE
+#define SERIALX Serial1
+#define SERNB 1
+#endif
+#ifndef DUE
+#define SERIALX Serial
+#define SERNB 0
+#endif
+
+
+byte  configRec[CONFIGRECLEN];
+
+bool configLoad()                    // INUTILISE 
+{
+    if(!eeprom.load((byte*)configRec,(uint16_t)CONFIGRECLEN)){Serial.println("***EEPROM KO***");ledblink(BCODESDCARDKO);} // ledblink bloque
+    Serial.println("eeprom ok");
+    return 1;    
+}
+
+void configSave()
+{
+    eeprom.store((byte*)configRec,CONFIGRECLEN);
+}
+
+bool syncServerConfig(char* bf,char* syncMess,uint16_t* rcvl)
+{
+  Serial.println("\nsync1");delay(10);
+  
+  serPurge(SERNB);
+  
+  Serial.println("\nsync2");delay(10);
+
+  for(uint8_t i=0;i<=TSCNB;i++){SERIALX.print(RCVSYNCHAR);}
+  SERIALX.print(syncMess);
+  if(*bf!=0x00){SERIALX.print(bf);memset(bf,0x00,MAXSER);}
+
+  Serial.println("\nsync3");delay(10);
+  
+  while(*rcvl==0){*rcvl=serialRcv(bf,MAXSER,SERNB);blink(1);}  // attente réponse sans time out
+
+  if(*rcvl>5){
+    Serial.print(*rcvl);Serial.print(" ");Serial.println(bf);
+    Serial.print("checkData=");
+    uint16_t ll=0;
+    int cd=checkData(bf,&ll);               // longueur stockée dans le message
+  
+    if(cd!=1){Serial.println(" ko");return 0;}      // renvoie mess = MESSOK (1) OK ; MESSCRC (-2) CRC ; MESSLEN (-3)  
+    else {Serial.println(" ok");return 1;}
+  }
+  return 0;
+}
+
+#if NRF_MODE == 'C'
 
 /* >>>> config concentrateur <<<<<< */
-
-char configRec[CONCRECLEN];       // enregistrement de config  
 
 /* pointeurs dans l'enregitrement de config */
 
@@ -100,13 +150,6 @@ byte* temp=(byte*)configRec;
   configInitVar();
 }
 
-bool configLoad()                    // INUTILISE 
-{
-    if(!eeprom.load((byte*)configRec,(uint16_t)CONCRECLEN)){Serial.println("***EEPROM KO***");ledblink(BCODESDCARDKO);return 0;}
-    Serial.println("eeprom ok");
-    return 1;    
-}
-
 void configPrint()
 {
   Serial.print("concNb=");Serial.println(*concNb);
@@ -116,11 +159,6 @@ void configPrint()
   Serial.print(" RX Addr=");for(uint8_t i=0;i<RADIO_ADDR_LENGTH;i++){Serial.print((char)*(concRx+i));}
   Serial.print(" channel=");Serial.print(*concChannel);Serial.print(" speed=");Serial.println(*concRfSpeed);
   Serial.print("peripass=");Serial.println(peripass);
-}
-
-void configSave()
-{
-    eeprom.store((byte*)configRec,CONCRECLEN);
 }
 
 bool nextpv(char* b,char** newb,int maxl)
@@ -133,25 +171,10 @@ bool nextpv(char* b,char** newb,int maxl)
 
 uint16_t getServerConfig()
 {
-  char bf[MAXSER];memset(bf,0x00,MAXSER);
-  uint16_t rcvl=0;
-  serPurge(1);
-  
-  for(uint8_t i=0;i<=TSCNB;i++){Serial1.print(RCVSYNCHAR);}
-  Serial1.print(CONCCFG);
-  
-  while(rcvl==0){rcvl=serialRcv(bf,MAXSER,1);}  // attente réponse sans time out
+    char bf[MAXSER];memset(bf,0x00,MAXSER);
+    uint16_t rcvl=0;
 
-  if(rcvl>5){
-    Serial.print(rcvl);Serial.print(" ");Serial.println(bf);
-  
-    Serial.print("checkData=");
-    uint16_t ll=0;
-    int cd=checkData(bf,&ll);               // longueur stockée dans le message
-    Serial.print(cd);
-    if(cd!=1){                              // renvoie mess = MESSOK (1) OK ; MESSCRC (-2) CRC ; MESSLEN (-3) 
-      Serial.println(" ko");return 0;}     
-    Serial.println(" ok");
+    if(!syncServerConfig(bf,(char*)CONCCFG,&rcvl)){return 0;};
 
     char a=' ';
     char* b=bf;
@@ -177,4 +200,165 @@ uint16_t getServerConfig()
   }
   return rcvl;
 }
-#endif // DUE
+#endif // NRF_MODE == 'C'
+
+#if NRF_MODE == 'P'
+
+byte*     configVers;
+float*    thFactor;
+float*    thOffset;
+float*    vFactor;
+float*    vOffset;
+byte*     macAddr;
+byte*     concAddr;
+uint8_t*  concNb;
+uint8_t*  concChannel;
+uint8_t*  concSpeed;
+uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
+
+void configInit()
+{
+  byte* temp=(byte*)configRec;
+
+  byte* configBegOfRecord=(byte*)temp;         // doit être le premier !!!
+
+  configVers=temp+EEPRVERS;
+  temp += EEPRHEADERLENGTH;
+  thFactor=(float*)temp;                           
+  temp +=sizeof(float);
+  thOffset=(float*)temp;
+  temp +=sizeof(float);
+  vFactor=(float*)temp;                           
+  temp +=sizeof(float);
+  vOffset=(float*)temp;
+  temp +=sizeof(float);
+  macAddr=(byte*)temp;
+  temp +=6;
+  concAddr=(byte*)temp;
+  temp +=6;
+  concNb=(uint8_t*)temp;
+  temp +=sizeof(uint8_t);
+  concChannel=(uint8_t*)temp;
+  temp+=sizeof(uint8_t);
+  concSpeed=(uint8_t*)temp;
+  temp+=sizeof(uint8_t);
+  concPeriParams=(uint8_t*)temp;
+  temp+=sizeof(uint8_t);
+
+  temp+=31;                   // dispo
+
+  byte* configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
+
+  long configLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
+  Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configLength);
+  delay(10);if(configLength>CONFIGRECLEN) {ledblink(BCODECONFIGRECLEN);}
+/*
+  memcpy(configVers,VERSION,2);
+  memcpy(macAddr,DEF_ADDR,6);
+  strncpy((char*)concAddr,CONC,5);
+  *thFactor=0.1071;
+  *thOffset=50;
+  *vFactor=0.0057;
+  *vOffset=0;
+*/
+}
+
+void configPrint()
+{
+    uint16_t configLen;memcpy(&configLen,configRec+EEPRLENGTH,2);
+    char configVers[3];memcpy(configVers,configRec+EEPRVERS,2);configVers[3]='\0';
+    Serial.print("crc     ");dumpfield((char*)configRec,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
+    char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
+    Serial.print("MAC  ");dumpstr((char*)macAddr,6);Serial.print("CONC ");dumpstr((char*)concAddr,6);
+    if(memcmp(configVers,"01",2)!=0){
+      Serial.print("concNb ");Serial.print(*concNb);
+      Serial.print("  channel ");Serial.print(*concChannel);
+      Serial.print("  speed ");Serial.print(*concSpeed);
+      Serial.print("  source(0 peri ; 1 server) ");Serial.println(*concPeriParams);
+    }
+    Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
+    Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
+    delay(10);
+}
+
+uint16_t getServerConfig()
+{
+  #define MAXS 50
+    uint16_t rcvl=0;
+    char xf[MAXS];
+    byte* bf=(byte*)xf;
+    memset(bf,0x00,MAXS);
+    strcat(xf,"0123;1234567890");                                    // len ascii
+
+dumpstr((char*)bf,128);
+Serial.println();
+dumpstr((char*)xf,128);
+Serial.println();
+//dumpstr((char*)&bf[64],128);
+//    bf+=64;
+//Serial.println();    
+//dumpstr((char*)bf,128);
+//return 1;
+
+    for(uint8_t i=5;i<15;i++){Serial.print(xf[i]);}
+    Serial.println();
+return 1;
+
+    sprintf((char*)bf,"%04d",(int)(*vFactor*10000));bf+=5;        // vFactor
+    *bf=';';bf++;
+    sprintf((char*)bf,"%04d",(int)*vOffset);bf+=5;                // vOffset
+    *bf=';';bf++;
+    sprintf((char*)bf,"%04d",(int)(*thFactor*10000));bf+=5;       // thFactor
+    *bf=';';bf++;
+    sprintf((char*)bf,"%04d",(int)*thOffset);bf+=5;               // thOffset
+    *bf=';';bf++;
+    *bf=*concPeriParams+PMFNCVAL;bf+=1;                  // provenance periParams (0=périf 1=saisie server)
+    *bf=';';bf++;
+    
+    dumpstr((char*)xf,MAXS);while(1){delay(1000);blink(1);}
+    
+    memcpy(bf,macAddr,RADIO_ADDR_LENGTH);                  // perif Rx addr
+    bf+=RADIO_ADDR_LENGTH;
+    *bf=';';bf++;
+    *bf='\0';
+
+dumpstr((char*)bf,MAXS);    
+delay(1000);
+    Serial.println("\nsync0");delay(10);while(1){delay(1000);blink(1);}
+
+    setExpEnd((char*)xf);                                            // len + crc
+
+    delay(1000);
+    Serial.println("\nsync0");delay(10);while(1){delay(1000);blink(1);}
+    if(!syncServerConfig(xf,(char*)PERICFG,&rcvl)){return 0;}
+
+Serial.println();
+configPrint();
+dumpstr((char*)xf,200);
+
+while(1){delay(1000);blink(1);}
+
+    char a=' ';
+    uint16_t temp=0;
+    uint8_t cntpv=0;
+    int tmp=0;
+    bf=(byte*)xf;
+
+    while(cntpv<2 && a!='\0' && bf<((byte*)xf+rcvl)){a=*bf++;if(a==';'){cntpv++;}}                // skip len+name+version
+    
+    memcpy(concAddr,bf,RADIO_ADDR_LENGTH);bf+=RADIO_ADDR_LENGTH+1;                  
+    temp=0;conv_atob((char*)bf,&temp);bf+=4;*concChannel=temp;                           // Channel
+    temp=0;conv_atob((char*)bf,&temp);bf+=2;*concSpeed=temp;                             // Speed
+    *concNb=(uint8_t)(*bf-PMFNCVAL);bf+=2;                                             
+    
+    *vFactor=convStrToNum((char*)bf,&tmp);bf+=tmp+1;
+    *vOffset=convStrToNum((char*)bf,&tmp);bf+=tmp+1;
+    *thFactor=convStrToNum((char*)bf,&tmp);bf+=tmp+1;
+    *thOffset=convStrToNum((char*)bf,&tmp);bf+=tmp+1;
+    *concPeriParams=*bf-PMFNCVAL;bf+=2;
+    memcpy(macAddr,bf,RADIO_ADDR_LENGTH);bf+=RADIO_ADDR_LENGTH+1;                                                            
+
+  return rcvl;
+}
+
+#endif // NRF_MODE == 'P'

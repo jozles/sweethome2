@@ -2,7 +2,7 @@
 #include "nrf24l01s_const.h"
 #include "nRF24L01.h"
 #include "nrf24l01s.h"
-
+#include "config.h"
 #include "nrf_powerSleep.h"
 #include "nrf_user_peri.h"
 #include "nrf_user_conc.h"
@@ -21,7 +21,6 @@ Eepr eeprom;
  */
  
 #ifdef DUE
-#include "config.h"
 #include <MemoryFree.h>
 #endif // def DUE 
 
@@ -36,35 +35,6 @@ byte     setds[]={0,0x7f,0x80,0x3f},readds[8];   // 1f=93mS 9 bits accu 0,5° ; 
 #if NRF_ADDR_LENGTH != RADIO_ADDR_LENGTH
   //fail // RADIO_ADDR_LENTH
 #endif
-
-#if NRF_MODE == 'C'
-
-/* >>>> config concentrateur <<<<<< */
-
-extern char configRec[CONCRECLEN];       // enregistrement de config  
-
-/* pointeurs dans l'enregitrement de config */
-
-  extern uint16_t* cfgLen;           // cfg record length
-
-  extern byte*     serverIp;         // server ip addr
-  extern uint16_t* serverTcpPort;    // server port
-  extern uint16_t* serverUdpPort;    // server udp port
-
-  extern char*     peripass;         // mot de passe périphériques
-
-  extern uint8_t*  concMac;          // macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
-  extern byte*     concIp;           // adresse IP concentrateur
-  extern uint16_t* concPort;         // port concentrateur
-  extern uint8_t*  concRx;           // RX Addre concentrateur
-  extern uint16_t* concChannel;      // n° channel nrf utilisé par le concentrateur
-  extern uint16_t* concRfSpeed;      // RF_Speed concentrateur
-  extern uint8_t*  concNb;
-
-extern uint16_t hostPort;               // server Port (TCP/UDP selon TXRX_MODE)
-extern struct NrfConTable tableC[NBPERIF+1]; // teble périf
-bool menu=true;
-#endif // NRF_MODE == 'C'
 
 Nrfp radio;
 
@@ -126,7 +96,35 @@ bool    echoOn=false;                     // fonction echo en cours (sur l'entr�
                                           // en attente, echoOn=true ;
                                           // le concentrateur est bloqué pendant la maneuvre
 
+extern char configRec[CONFIGRECLEN];       // enregistrement de config  
+uint8_t channel;
+uint8_t speed=RF_SPD_1MB;
+
 #if NRF_MODE == 'C'
+
+/* >>>> config concentrateur <<<<<< */
+
+/* pointeurs dans l'enregitrement de config */
+
+  extern uint16_t* cfgLen;           // cfg record length
+
+  extern byte*     serverIp;         // server ip addr
+  extern uint16_t* serverTcpPort;    // server port
+  extern uint16_t* serverUdpPort;    // server udp port
+
+  extern char*     peripass;         // mot de passe périphériques
+
+  extern uint8_t*  concMac;          // macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
+  extern byte*     concIp;           // adresse IP concentrateur
+  extern uint16_t* concPort;         // port concentrateur
+  extern uint8_t*  concRx;           // RX Addre concentrateur
+  extern uint16_t* concChannel;      // n° channel nrf utilisé par le concentrateur
+  extern uint16_t* concRfSpeed;      // RF_Speed concentrateur
+  extern uint8_t*  concNb;
+
+extern uint16_t hostPort;               // server Port (TCP/UDP selon TXRX_MODE)
+extern struct NrfConTable tableC[NBPERIF+1]; // teble périf
+bool menu=true;
 
 char    bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
 
@@ -136,27 +134,21 @@ unsigned long tLast=0;             // date unix dernier message reçu
 
 #endif // NRF_MODE == 'C'
 
-uint8_t channel;
-uint8_t speed=RF_SPD_1MB;
-
 #if NRF_MODE == 'P'
 
 const char*  chexa="0123456789ABCDEFabcdef\0";
 
-#define CONFIGLEN 76                      // len maxi paramètres de config en Eeprom (37 v01 ; 38 v02 ; 75 v03)
-byte    configData[CONFIGLEN];
-
-byte*     configVers;
-float*    thFactor;
-float*    thOffset;
-float*    vFactor;
-float*    vOffset;
-byte*     macAddr;
-byte*     concAddr;
-uint8_t*  concNb;
-uint8_t*  concChannel;
-uint8_t*  concSpeed;
-uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
+extern byte*     configVers;
+extern float*    thFactor;
+extern float*    thOffset;
+extern float*    vFactor;
+extern float*    vOffset;
+extern byte*     macAddr;
+extern byte*     concAddr;
+extern uint8_t*  concNb;
+extern uint8_t*  concChannel;
+extern uint8_t*  concSpeed;
+extern uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
 
 /*** gestion sleep ***/
 
@@ -240,14 +232,23 @@ void setup() {
 
   initLed();
   
-  initConf();
-  if(!eeprom.load(configData,CONFIGLEN)){Serial.println(" ***EEPROM KO***");delayBlk(1,0,250,3,10000);lethalSleep();}
-  Serial.println("   eeprom ok");
+  configInit();
+  configLoad();
+  configPrint();
+
+  pinMode(STOPREQ,INPUT_PULLUP);
+  if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
+      blink(4);
+      Serial.println(getServerConfig());
+      configSave();
+      configPrint();
+      while(1){blink(1);delay(1000);}
+  }
+
   radio.locAddr=macAddr;
   radio.ccAddr=concAddr;
   channel=*concChannel;
   speed=*concSpeed;
-  configPrint();
 
   /* external timer calibration sequence */
   t_on=millis();
@@ -333,8 +334,7 @@ void setup() {
       while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
   }
 
-  if(!eeprom.load((byte*)configRec,CONCRECLEN)){Serial.println("***EEPROM KO***");ledblink(BCODESDCARDKO);}
-  Serial.println("eeprom ok");
+  configLoad();
 
 #if TXRX_MODE == 'U' 
     hostPort=*serverUdpPort;
@@ -1076,72 +1076,6 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
     }
     if(bdelay!=0){sleepDly(bdelay);dly-=bdelay;}
   }
-}
-
-
-void configPrint()
-{
-    uint16_t configLen;memcpy(&configLen,configData+EEPRLENGTH,2);
-    char configVers[3];memcpy(configVers,configData+EEPRVERS,2);configVers[3]='\0';
-    Serial.print("crc     ");dumpfield((char*)configData,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
-    char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
-    Serial.print("MAC  ");dumpstr((char*)macAddr,6);Serial.print("CONC ");dumpstr((char*)concAddr,6);
-    if(memcmp(configVers,"01",2)!=0){
-      Serial.print("concNb ");Serial.print(*concNb);
-      Serial.print("  channel ");Serial.print(*concChannel);
-      Serial.print("  speed ");Serial.print(*concSpeed);
-      Serial.print("  source(0 peri ; 1 server) ");Serial.println(*concPeriParams);
-    }
-    Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
-    Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
-    delay(10);
-}
-
-void initConf()
-{
-  byte* temp=(byte*)configData;
-
-  byte* configBegOfRecord=(byte*)temp;         // doit être le premier !!!
-
-  configVers=temp+EEPRVERS;
-  temp += EEPRHEADERLENGTH;
-  thFactor=(float*)temp;                           
-  temp +=sizeof(float);
-  thOffset=(float*)temp;
-  temp +=sizeof(float);
-  vFactor=(float*)temp;                           
-  temp +=sizeof(float);
-  vOffset=(float*)temp;
-  temp +=sizeof(float);
-  macAddr=(byte*)temp;
-  temp +=6;
-  concAddr=(byte*)temp;
-  temp +=6;
-  concNb=(uint8_t*)temp;
-  temp +=sizeof(uint8_t);
-  concChannel=(uint8_t*)temp;
-  temp+=sizeof(uint8_t);
-  concSpeed=(uint8_t*)temp;
-  temp+=sizeof(uint8_t);
-  concPeriParams=(uint8_t*)temp;
-  temp+=sizeof(uint8_t);
-
-  temp+=31;                   // dispo
-
-  byte* configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
-
-  long configLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
-  Serial.print("CONFIGLEN=");Serial.print(CONFIGLEN);Serial.print("/");Serial.print(configLength);
-  delay(10);if(configLength>CONFIGLEN) {ledblink(BCODECONFIGRECLEN);}
-/*
-  memcpy(configVers,VERSION,2);
-  memcpy(macAddr,DEF_ADDR,6);
-  strncpy((char*)concAddr,CONC,5);
-  *thFactor=0.1071;
-  *thOffset=50;
-  *vFactor=0.0057;
-  *vOffset=0;
-*/
 }
 
 #endif // NRF_MODE == 'P'

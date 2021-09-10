@@ -3,9 +3,14 @@
 
 #include "nrf24l01s_const.h"
 
-#ifdef DUE
+#if NRF_MODE == 'C'
+#define CONFIGRECLEN 200
+#endif // NRF_MODE == 'C'
 
-#define CONCRECLEN 200
+#if NRF_MODE == 'P'
+#define CONFIGRECLEN 76                      // len maxi paramètres de config en Eeprom (37 v01 ; 38 v02 ; 75 v03)
+#endif // NRF_MODE == 'C'
+
 #define CONCRECADDR 0
 
 uint16_t getServerConfig();
@@ -13,7 +18,5 @@ void configInit();
 bool configLoad();
 void configSave();
 void configPrint();
-
-#endif // DUE
 
 #endif // CONFIG INCLUDED

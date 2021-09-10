@@ -173,7 +173,6 @@ void Nrfp::allPinsLow()                     /* all radio/SPI pins low */
 
 void Nrfp::powerOn(uint8_t channel,uint8_t speed)
 {
-  Serial.print(">>>>>>>>>>>>>>>>>>>><channel=");Serial.print(channel,HEX);Serial.print("   speed=");Serial.println(speed,HEX);delay(10);
 #if NRF_MODE == 'P'
 #if PER_PO == 'P'
 
