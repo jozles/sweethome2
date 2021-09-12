@@ -1,10 +1,6 @@
 #ifndef _NRF_CONST_INCLUDED
 #define _NRF_CONST_INCLUDED
 
-#include <Arduino.h>
-#include "shconst2.h"
-#include "shutil2.h"
-
 #define VERSION "1.9 "
 #define LENVERSION 4
 
@@ -60,6 +56,8 @@ v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server ;
 */
 
 /************* config ****************/
+
+//#define NOCONFSER
   
   #define NRF_MODE 'P'            //  P périphérique
   //#define NRF_MODE 'C'            //  C concentrateur  

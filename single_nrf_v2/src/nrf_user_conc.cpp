@@ -7,6 +7,7 @@
 /* gestion user data du concentrateur */
 
 #if NRF_MODE == 'C'
+#ifndef DETS
 
 extern struct NrfConTable tableC[NBPERIF+1];
 extern Nrfp radio;
@@ -15,9 +16,9 @@ extern Nrfp radio;
 
 #include <SPI.h>
 #include <Ethernet.h> 
-#include "shconst2.h"
-#include "shutil2.h"
-#include "shmess2.h"
+#include <shconst2.h>
+#include <shutil2.h>
+#include <shmess2.h>
 
 extern bool diags;
 
@@ -483,4 +484,5 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   return periMess;
 }
 
+#endif // DETS
 #endif //  NRF_MODE == 'C'

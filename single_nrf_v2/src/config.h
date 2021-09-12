@@ -14,6 +14,7 @@
 #define CONCRECADDR 0
 
 uint16_t getServerConfig();
+bool syncServerConfig(char* bf,char* syncMess,uint16_t* rcvl);
 void configInit();
 bool configLoad();
 void configSave();

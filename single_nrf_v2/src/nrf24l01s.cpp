@@ -5,14 +5,6 @@
 
 /* AP NFR24L01+ node single */
 
-
-/*************** hardware ****************************
-*
-* setup et confcircuit doivent être effectués
-* dans l'ordre à l'initialisation
-*
-******************************************************/
-
 #ifdef DETS        // idem for PRO MINI
 #define CSN_HIGH  bitSet(PORT_CSN,BIT_CSN);
 #define CSN_LOW   bitClear(PORT_CSN,BIT_CSN);
@@ -30,7 +22,7 @@
 #define CSN_LOW   bitClear(PORTC,29);
 #define CE_HIGH   bitSet(PORTC,21);delayMicroseconds(10);
 #define CE_LOW    bitClear(PORTC,21);
-#endif //  // DUE */
+#endif // DUE */
 
 #ifndef CSN_HIGH
 #define CSN_HIGH  digitalWrite(CSN_PIN,HIGH);

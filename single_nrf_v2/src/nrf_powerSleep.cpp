@@ -31,7 +31,6 @@
 #include <avr/power.h>
 #include <avr/wdt.h>
 
-
 float         volts=0;                           // tension alim (VCC)
 extern bool   lowPower;                          
 extern float  lowPowerValue;                      

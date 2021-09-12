@@ -1,4 +1,6 @@
 #include "nrf24l01s_const.h"
+#include "eepr.h"
+#include <shutil2.h>
 
 #ifndef DUE
   #include "EEPROM.h"
@@ -7,9 +9,6 @@
   #include "DueFlashStorage.h"
   DueFlashStorage dFS;
 #endif // DUE
-
-#include "eepr.h"
-#include "shutil2.h"
 
 Eepr::Eepr()
 {
@@ -52,15 +51,13 @@ void Eepr::eeread(byte* data,uint16_t length,uint16_t addr)
 #ifdef DUE
         data[i] = dFS.read(addr+i);}
 #endif // DUE        
-
-  //dumpstr((char*)data,length);
 }
 
 void Eepr::eewrite(byte* data,uint16_t length,uint16_t addr)
 {
     length&=0x00ff; // maxi 256
     for(uint8_t i=0;i<length;i++){
-#ifndef DUE      
+#ifndef DUE
         EEPROM.update(addr+i,data[i]);}
 #endif // DUE
 #ifdef DUE      
@@ -81,15 +78,14 @@ bool Eepr::load(byte* data,uint16_t length)
 {
   byte header[EEPRHEADERLENGTH];
     if(length<EEPRHEADERLENGTH) {return false;}
+    
     eeread(header,EEPRHEADERLENGTH,0);                              // lit header
     uint16_t usefullLength;
     memcpy(&usefullLength,header+EEPRCRCLENGTH,EEPRLENGTHLENGTH);   // recup longueur-crc
     usefullLength &= 0x00ff; // 256 bytes max
-//    Serial.print("usefullLength=");Serial.print(usefullLength);Serial.print(" data length=");Serial.println(length);
     if(length<usefullLength) {return false;}
 
     eeread(data,usefullLength,0);                                   // charge tout
-
     uint32_t crc32;
     memcpy(&crc32,data,EEPRCRCLENGTH);
     return checkCrc32(data+EEPRCRCLENGTH,usefullLength-EEPRCRCLENGTH,crc32);

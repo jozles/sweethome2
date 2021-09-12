@@ -1,4 +1,6 @@
-
+#include <Arduino.h>
+#include <shconst2.h>
+#include <shutil2.h>
 #include "nrf24l01s_const.h"
 #include "nRF24L01.h"
 #include "nrf24l01s.h"
@@ -7,10 +9,8 @@
 #include "nrf_user_peri.h"
 #include "nrf_user_conc.h"
 
-#include "shconst2.h"
-
 //#if NRF_MODE == 'P'
-#include <eepr.h>
+#include "eepr.h"
 Eepr eeprom;
 //#endif // NRF_MODE == 'P'
 
@@ -21,7 +21,7 @@ Eepr eeprom;
  */
  
 #ifdef DUE
-#include <MemoryFree.h>
+//#include <MemoryFree.h>
 #endif // def DUE 
 
 #ifdef DS18X20
@@ -33,7 +33,7 @@ byte     setds[]={0,0x7f,0x80,0x3f},readds[8];   // 1f=93mS 9 bits accu 0,5° ; 
 #endif // DS18X20 
 
 #if NRF_ADDR_LENGTH != RADIO_ADDR_LENGTH
-  //fail // RADIO_ADDR_LENTH
+  fail // RADIO_ADDR_LENTH
 #endif
 
 Nrfp radio;
@@ -64,6 +64,7 @@ unsigned long t_on3;
 unsigned long t_on4;
 unsigned long time_beg=millis();
 unsigned long time_end;
+
 byte    message[MAX_PAYLOAD_LENGTH+1];    // buffer pour write()
 byte    messageIn[MAX_PAYLOAD_LENGTH+1];  // buffer pour read()
 int     rdSta;                            // return status read() / available()
@@ -78,14 +79,8 @@ extern float   volts;                     // tension alim (VCC)
 #define NTESTAD '1'                       // numéro testad dans table
 byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
 
-#define LDIAGMESS 80
-char    diagMessT[LDIAGMESS];             // buffer texte diag Tx
-char    diagMessR[LDIAGMESS];             // buffer texte diag Tx
-#define LBUFCV 7
-char    bufCv[LBUFCV];                    // buffer conversion sprintf
-
 #define LMERR 9           
-const char*   kk={"time out\0tx maxrt\0rx empty\0mac addr\0length  \0pipe nb \0--      \0ok      \0"};         // codes retour et erreur
+const char*   kk="time out\0tx maxrt\0rx empty\0mac addr\0length  \0pipe nb \0--      \0ok      \0";         // codes retour et erreur
 
 #define ECHO_LEN 10                       // echo message len
 
@@ -95,8 +90,7 @@ bool    echoOn=false;                     // fonction echo en cours (sur l'entr�
                                           // le périphérique n'écoutant que les réponses à ses messages, il faut attendre une demande pour commencer.
                                           // en attente, echoOn=true ;
                                           // le concentrateur est bloqué pendant la maneuvre
-
-extern char configRec[CONFIGRECLEN];       // enregistrement de config  
+ 
 uint8_t channel;
 uint8_t speed=RF_SPD_1MB;
 
@@ -132,6 +126,10 @@ unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buff
 unsigned long tLast=0;             // date unix dernier message reçu 
 #define PERIMPORT 100
 
+#define LDIAGMESS 80
+char    diagMessT[LDIAGMESS];             // buffer texte diag Tx
+char    diagMessR[LDIAGMESS];             // buffer texte diag Tx
+
 #endif // NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'
@@ -143,7 +141,7 @@ extern float*    thFactor;
 extern float*    thOffset;
 extern float*    vFactor;
 extern float*    vOffset;
-extern byte*     macAddr;
+extern byte*     periAddr;
 extern byte*     concAddr;
 extern uint8_t*  concNb;
 extern uint8_t*  concChannel;
@@ -171,6 +169,7 @@ float     timer1;
 bool      timer1Ovf;
 bool      extTimer;
 float     period;
+
 #define PRESCALER_RATIO 256           // prescaler ratio clock timer1 clock
 #define TCCR1B_PRESCALER_MASK 0xF8    // prescaler bit mask in TCCR1B
 #if PRESCALER_RATIO==1024
@@ -204,8 +203,6 @@ void int_ISR()
 void diagT(char* texte,int duree);
 #endif // NRF_MODE == 'P'
 
-/* prototypes */
-
 void ini_t_on();
 void iniTemp();
 void readTemp();
@@ -229,6 +226,7 @@ void setup() {
 #if NRF_MODE == 'P'
 
   Serial.begin(115200);
+  Serial.println("\n+");
 
   initLed();
   
@@ -236,6 +234,7 @@ void setup() {
   configLoad();
   configPrint();
 
+#ifndef NOCONFSER
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
       blink(4);
@@ -244,8 +243,9 @@ void setup() {
       configPrint();
       while(1){blink(1);delay(1000);}
   }
+#endif // NOCONFSER
 
-  radio.locAddr=macAddr;
+  radio.locAddr=periAddr;
   radio.ccAddr=concAddr;
   channel=*concChannel;
   speed=*concSpeed;
@@ -258,7 +258,7 @@ void setup() {
   iniTemp();
   
   diags=false;
-  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" macAddr : ");radio.printAddr((char*)macAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);Serial.print(" ; une touche pour diags ");
+  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");radio.printAddr((char*)periAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);Serial.print(" ; une touche pour diags ");
   while((millis()-t_on)<4000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
   Serial.println();delay(1);
   if(diags){
@@ -280,7 +280,7 @@ void setup() {
   period=(float)(millis()-t_on)/1000;
   delayBlk(500,0,0,1,1);                  // 1 blink 500mS - external timer calibration end
 
-  if(diags){Serial.print("period ");Serial.print(period);Serial.print("sec ");} // external timer period
+  if(diags){Serial.print("per ");Serial.print(period);Serial.print("sec ");} // external timer period
 
   getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
 
@@ -430,7 +430,9 @@ void loop() {
       tdiag+=(micros()-localTdiag);}
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
-    uint8_t outLength=NRF_ADDR_LENGTH+1;                                  // perifx     - 6
+    memset(message,0x00,MAX_PAYLOAD_LENGTH);memset(message,0x20,NRF_ADDR_LENGTH+1);
+
+    uint8_t outLength=NRF_ADDR_LENGTH+1;                              // perifx     - 6
     memcpy(message+outLength,VERSION,LENVERSION);                     // version    - 4
     outLength+=LENVERSION;
     memcpy(message+outLength,&thN,1);                                 // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
@@ -440,28 +442,29 @@ void loop() {
     //outLength+=9;                                                     //            - 9
  
     messageBuild((char*)message,&outLength);                          // add user data 
-    memcpy(message,macAddr,NRF_ADDR_LENGTH);                              // macAddr
-    message[NRF_ADDR_LENGTH]=numT+48;                                     // numéro du périphérique
+    memcpy(message,periAddr,NRF_ADDR_LENGTH);                         // macAddr
+    message[NRF_ADDR_LENGTH]=numT+48;                                 // numéro du périphérique
     message[outLength]='\0';
-    
+
     if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR);}
-    if(diags){Serial.print(" (");Serial.print(outLength);Serial.print(") >>> ");Serial.println((char*)message);}
+    if(diags){Serial.print(" (");Serial.print(outLength);Serial.print(") -> ");Serial.println((char*)message);}
     
     /* One transaction is tx+rx ; if both ok reset counters else retry management*/  
 
     rdSta=-1;
     nbS++;
 
-    t_on2=micros();                   // message build ... send
+    t_on2=micros();                   // message build ... send   
     radio.powerOn(channel,speed);
     trSta=0;
     rdSta=txRxMessage();
     t_on21=micros();
     
-    if(diags){
-      unsigned long localTdiag=micros();    
-      Serial.print("\ntxRxM  ");Serial.print(rdSta);
-      tdiag+=(micros()-localTdiag);}
+    //if(diags){
+      //unsigned long localTdiag=micros();    
+      Serial.print(" rdSta ");Serial.println(rdSta);delay(1);
+      //tdiag+=(micros()-localTdiag);
+    //}
     
     if(rdSta>=0){                                                 // no error
 
@@ -502,7 +505,7 @@ void loop() {
   if(radio.lastSta==0xFF){
     if(diags){
       unsigned long localTdiag=micros();    
-      delay(2);Serial.println("radio HS or missing");delay(4);
+      delay(2);Serial.println("radio HS/missing");delay(4);
       tdiag+=(micros()-localTdiag);}
     delayBlk(2000,0,0,1,1);            // 1x2sec blink
     retryCnt=0;
@@ -880,8 +883,11 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2
 
   time_end=micros();
 
-  if(diags){
   #if NRF_MODE=='C'
+  if(diags){
+  #define LBUFCV 7
+    char    bufCv[LBUFCV];                    // buffer conversion sprintf
+   
     memset(bufCv,0x00,LBUFCV);
     memcpy(diagMessT,message,len);
     diagMessT[len]='\0';
@@ -895,8 +901,9 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2
     sprintf(bufCv,"%ld",(time_end - time_beg));
     strcat(diagMessT,bufCv);
     strcat(diagMessT,"uS");
-  #endif // NRF_MODE=='C'
   }
+  #endif // NRF_MODE=='C'
+  
   return trSta;
 }
 
