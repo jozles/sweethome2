@@ -16,6 +16,10 @@ extern Ds3231 ds3231;
 
 extern bool mailEnable;
 
+extern char  pass[];
+extern char* usrnames;
+extern char* usrpass;
+
 const uint8_t SD_CS_PIN = 4;
 #define SPI_CLOCK SD_SCK_MHZ(8)
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
@@ -426,5 +430,31 @@ void initDate()
     }
   }
 }  
+
+
+int searchusr(char* usrname)
+{
+    int nbu=-1,k,pt;
+    bool ok=FAUX;
+//    Serial.print(usrname);Serial.print(" usernames=");Serial.println(usrnames);
+
+    for (nbu=NBUSR-1;nbu>=0;nbu--){
+//        Serial.print("nbu=");Serial.println(nbu);
+        for(k=0;k<LENUSRNAME;k++){
+//                Serial.print(" ");Serial.print(k);Serial.print(" ");Serial.print(usrname[k]);Serial.print(" ");Serial.println(usrnames[k+nbu*(LENUSRNAME+1)]);
+            pt=nbu*(LENUSRNAME+1)+k;
+            if(usrnames[pt]=='\0' && k==0){break;}
+            else if(usrnames[pt]=='\0'){ok=VRAI;}
+            else if(usrnames[pt]!=usrname[k]){break;}
+        }
+        if(k==LENUSRNAME || ok==VRAI){return nbu;}
+    }
+    return -1;
+}
+
+bool ctlpass(char* data,char* model)
+{
+  return !memcmp(model,data,strlen(model));
+}
 
 #endif // UDPUSAGE
