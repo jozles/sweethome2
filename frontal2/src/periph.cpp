@@ -406,6 +406,10 @@ void subConcPrint()
     Serial.println();
   }
   Serial.print("N° concentrateur pour perif ");Serial.println(*concNb);
+  Serial.print("0-keep/1-new ");Serial.println(*concPeriParams);
+  Serial.print("vFactor ");Serial.print(*vFactor);Serial.print(" vOffset ");Serial.print(*vOffset);Serial.print(" thFactor ");Serial.print(*thFactor);Serial.print(" thOffset ");Serial.println(*thOffset);
+  serialPrintMac(concPeriMac,1);
+  Serial.println();
 }
 
 void configExport(char* bec)
@@ -499,7 +503,8 @@ void periExport(char* bec ,uint8_t concNb)
 }
 
 void periImport(char* bec)
-{
+{   
+    Serial.println(bec);
     Serial.print("checkData=");
     uint16_t ll=0;
     int cd=checkData(bec,&ll);                        // longueur stockée dans le message
@@ -508,14 +513,16 @@ void periImport(char* bec)
     else {
       Serial.println(" ok");
       int sr=0;
-      if(concPeriParams==0){
-        bec+=5;
-        *vFactor=convStrToNum((char*)(bec),&sr)/10000;bec+=sr+1;
-        *vOffset=convStrToNum((char*)(bec),&sr);bec+=sr+1;
-        *thFactor=convStrToNum((char*)(bec),&sr)/10000;bec+=sr+1;
-        *thOffset=convStrToNum((char*)(bec),&sr);bec+=sr+1;
+      if(*concPeriParams==0){
+        Serial.println(bec);
+        bec+=5;      // skip len
+        *vFactor=convStrToNum((char*)(bec),&sr)/10000;bec+=5;
+        *vOffset=convStrToNum((char*)(bec),&sr);bec+=5;
+        *thFactor=convStrToNum((char*)(bec),&sr)/10000;bec+=5;
+        *thOffset=convStrToNum((char*)(bec),&sr);bec+=5;
         *concPeriParams=*bec-PMFNCVAL;bec+=2;
-        memcpy(concPeriMac,bec,RADIO_ADDR_LENGTH);                                          
+        memcpy(concPeriMac,bec,RADIO_ADDR_LENGTH);
+        configPrint();                                          
       }
     }
 }

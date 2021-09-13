@@ -1568,7 +1568,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 'C': *(concChannel+nC)=0;conv_atob(valf,(concChannel+nC));break;       // (config) concchannel
                             case 'S': *(concRfSpeed+nC)=0;conv_atob(valf,(concRfSpeed+nC));break;       // (config) concRfSpeed
                             case 'N': *concNb=0;conv_atob(valf,&aa);if(aa>MAXCONC){aa=0;}*concNb=(uint8_t)aa;                                      
-                                      Serial.print(" ");Serial.println(*concNb);break;  // (config) N° conc pour périf
+                                      Serial.print(" ");Serial.println(*concNb);break;                  // (config) N° conc pour périf
+                            case 'k': *concPeriParams=*valf-PMFNCVAL;break;                              // (config) keep(0)/new(1)
                             case 'c': for(j=0;j<6;j++){conv_atoh(valf+j*2,(concPeriMac+j));}break;      // (config) concPeriMac
                             case 'y': *vFactor=0;*vFactor=convStrToNum(valf,&rr);break;                 // (config) voltsFactor
                             case 'v': *vOffset=0;*vOffset=convStrToNum(valf,&rr);break;                 // (config) voltsOffset
@@ -1977,7 +1978,7 @@ void serialServer()
       Serial.println("conc ");//dumpstr(bec,300);      
     }
     if(memcmp(serialBuf,PERICFG,10)==0){
-      periImport(serialBuf+11);
+      periImport(serialBuf+10);
       periExport(bec,*concNb);
       setExpEnd(bec);
       Serial.println("peri ");//dumpstr(bec,300);      

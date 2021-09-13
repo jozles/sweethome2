@@ -784,11 +784,11 @@ void scrGetNum(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfon
 
   jscatch(jsbuf,dec+PMFNCVAL);                                            // dec
 
-  if(len<=2){
+//  if(len<=2){
     strcat(buf,"\" id=\"nt");
     concatn(buf,len);         
     concatn(buf,dec);
-  }
+//  }
 
   strcat(buf,"\" pattern=\"[");
   if(dec!=0){strcat(buf,".,");}strcat(buf,"0-9]{1,");

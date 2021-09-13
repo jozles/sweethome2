@@ -446,7 +446,6 @@ void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16
     concFn[LENNOM-1]='N';scrDspText(buf,jsbuf,"N° concentrateur : ",0,0);scrGetNum(buf,jsbuf,'D',concNb,concFn,0,0,0,BRYES);strcat(buf,"\n");
 
     periFn[LENNOM-1]='k';
-
     scrGetRadiobut(buf,jsbuf,*concPeriParams,periFn,2,1,(char*)"keep\0new",0,0);
   
     scrDspText(buf,jsbuf,"concPerifMacAddr : ",0,0);
@@ -456,13 +455,13 @@ void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16
     periFn[LENNOM-1]='m';scrGetText(buf,jsbuf,lbuf,periFn,11,MACADDRLENGTH*2,0,BRYES);
 
     scrDspText(buf,jsbuf,"Volts factor : ",0,0);
-    periFn[LENNOM-1]='y';scrGetNum(buf,jsbuf,'f',vFactor,periFn,4,2,0,0);
+    periFn[LENNOM-1]='y';scrGetNum(buf,jsbuf,'f',vFactor,periFn,6,6,4,0,0);
     scrDspText(buf,jsbuf," Offset : ",0,0);
-    periFn[LENNOM-1]='v';scrGetNum(buf,jsbuf,'f',vOffset,periFn,4,2,0,0);
+    periFn[LENNOM-1]='v';scrGetNum(buf,jsbuf,'f',vOffset,periFn,5,5,2,0,0);
     scrDspText(buf,jsbuf,"  Th Factor : ",0,0);
-    periFn[LENNOM-1]='b';scrGetNum(buf,jsbuf,'f',thFactor,periFn,4,2,0,0);
+    periFn[LENNOM-1]='b';scrGetNum(buf,jsbuf,'f',thFactor,periFn,6,6,4,0,0);
     scrDspText(buf,jsbuf," Offset : ",0,0);
-    periFn[LENNOM-1]='e';scrGetNum(buf,jsbuf,'f',thOffset,periFn,4,2,0,0);
+    periFn[LENNOM-1]='e';scrGetNum(buf,jsbuf,'f',thOffset,periFn,5,5,2,0,0);
 
     affSpace(buf,jsbuf);
     scrGetButSub(buf,jsbuf,"Maj",0);
