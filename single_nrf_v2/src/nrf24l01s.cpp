@@ -46,8 +46,12 @@
 #define SPI_OFF     SPI.end();pinMode(MOSI_PIN,INPUT);pinMode(CLK_PIN,INPUT);
 #endif // SPI_MODE
 
-//#define GET_STA   CSN_LOW statu=SPI.transfer(NOP);CSN_HIGH
-#define GET_STA   digitalWrite(CSN_PIN,LOW);statu=SPI.transfer(NOP);CSN_HIGH //digitalWrite(CSN_PIN,HIGH);
+#ifdef DETS
+#define GET_STA     CSN_LOW;statu=SPI.transfer(NOP);CSN_HIGH        
+#endif // DETS
+#ifndef DETS
+#define GET_STA     digitalWrite(CSN_PIN,LOW);statu=SPI.transfer(NOP);CSN_HIGH //digitalWrite(CSN_PIN,HIGH);
+#endif // DETS
 
 #define CLR_TXDS_MAXRT  regw=TX_DS_BIT|MAX_RT_BIT;regWrite(STATUS,&regw);
 #define CLR_RXDR        regw=RX_DR_BIT;regWrite(STATUS,&regw);
@@ -447,10 +451,31 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     
     write(message,NO_ACK,NRF_ADDR_LENGTH+1,0);     // send macAddr + numP=0 to ccAddr ; no ACK
  
+#ifndef DETS
     int trst=1;
     while(trst==1){trst=transmitting(NO_ACK);}
-    if(trst<0){return ER_MAXRT;}            // MAX_RT error should not happen (no ACK mode)
-                                            // radio card HS or missing
+    if(trst<0){return ER_MAXRT;}              // MAX_RT error should not happen (no ACK mode)
+                                              // radio card HS or missing
+#endif // ndef DETS
+      
+#ifdef DETS
+// version accélérée pour minimiser le délai entre TX_DS et setRx() 
+// (jusqu'à 40uS en compil release ; moins de 20uS accéléré)
+    GET_STA
+    conf=(CONFREG) | (PRIM_RX_BIT);           // ready pour setRx()
+    while((statu & (TX_DS_BIT | MAX_RT_BIT))==0){GET_STA}
+
+    if(statu & MAX_RT_BIT){
+      Serial.print("\nsyst err maxrt without ack ");Serial.println(statu,HEX);delay(2);
+      return ER_MAXRT;} 
+
+    CE_LOW              // to change from TX to RX
+    regWrite(CONFIG,&conf);                   // setRx()
+    CE_HIGH
+    prxMode=true;
+
+// fin version accélérée
+#endif // def DETS
 
     unsigned long time_beg = millis();
     long readTo=0;
@@ -464,7 +489,7 @@ int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registratio
     PP4_HIGH
     CE_LOW
     if(numP>=0 && (readTo>=0)){             // no TO && pld ok
-        numP=message[NRF_ADDR_LENGTH]-'0';      // numP
+        numP=message[NRF_ADDR_LENGTH]-'0';  // numP
         PP4
         return numP;}                       // PRX mode still true
 
@@ -484,11 +509,31 @@ int Nrfp::txRx(byte* message,uint8_t* pldLength)
     memcpy(message,locAddr,NRF_ADDR_LENGTH);
     
     write(message,NO_ACK,MAX_PAYLOAD_LENGTH,0);     // send macAddr + numP=0 to ccAddr ; no ACK
- 
+
+#ifndef DETS
     int trst=1;
     while(trst==1){trst=transmitting(NO_ACK);}
     if(trst<0){return ER_MAXRT;}              // MAX_RT error should not happen (no ACK mode)
                                               // radio card HS or missing
+#endif // ndef DETS
+      
+#ifdef DETS
+// version accélérée pour minimiser le délai entre TX_DS et setRx()
+// (jusqu'à 40uS en compil release ; moins de 20uS accéléré)
+    GET_STA
+    conf=(CONFREG) | (PRIM_RX_BIT);           // ready pour setRx()
+    while((statu & (TX_DS_BIT | MAX_RT_BIT))==0){GET_STA}
+
+    if(statu & MAX_RT_BIT){
+      Serial.print("\nsyst err maxrt without ack ");Serial.println(statu,HEX);delay(2);
+      return ER_MAXRT;} 
+
+    CE_LOW              // to change from TX to RX
+    regWrite(CONFIG,&conf);                   // setRx()
+    CE_HIGH
+    prxMode=true;
+// fin version accélérée
+#endif // def DETS
 
     unsigned long time_beg = millis();
     long readTo=0;

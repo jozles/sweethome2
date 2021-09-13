@@ -221,19 +221,9 @@ void getVolts()                     // get unregulated voltage and reset watchdo
 #ifndef DS18X20
   delayMicroseconds(1000);                  // MCP9700 stabilize
   temp=adcRead(TADMUXVAL,TFACTOR,TOFFSET,TREF,0);
-/* step 0.25 ***  
-  uint16_t temp0=((int)temp)*100,temp1=(int)(temp*100); 
-  if((temp1-temp0)>=12 && (temp1-temp0)<38){temp0+=25;}
-  else if((temp1-temp0)>=38 && (temp1-temp0)<63){temp0+=50;}
-  else if((temp1-temp0)>=63 && (temp1-temp0)<88){temp0+=75;}
-  else if((temp1-temp0)>=88){temp0+=100;}
-  temp=(float)temp0/100;
-*/
-/* step 0.1 ***/
   temp=(float)((int)(temp*10))/10;
-//*/
-#endif //  
-//diagT2("getVolt",10);
+#endif 
+
   checkOff();
 
   ADCSRA &= ~(1<<ADEN);                   // ADC shutdown for clean next voltage measurement

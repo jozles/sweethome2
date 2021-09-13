@@ -71,18 +71,18 @@
  *
  */
 
-#define POWONDLY 100       // millis()  - 100 -
-#define POWUPDLY 5         // millis()
+#define POWONDLY 100+10   // millis()  - 100 -
+#define POWUPDLY 5+1      // millis()
 
 #define ACK     true
 #define NO_ACK  false
 
-#define NB_PIPE 2          // nombre pipes utilisées
+#define NB_PIPE 2         // nombre pipes utilisées
 #define MAX_PAYLOAD_LENGTH 32
 #define NRF_ADDR_LENGTH 5
 
-#define TO_AVAILABLE 100   // millis()
-#define TO_REGISTER  100   // millis()
+#define TO_AVAILABLE 20   // millis()
+#define TO_REGISTER  20   // millis()
 
 #define RF_SPD_2MB RF_DR_HIGH_BIT
 #define RF_SPD_1MB 0

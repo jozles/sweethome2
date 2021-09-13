@@ -156,6 +156,7 @@ int       awakeCnt=0;
 int       awakeMinCnt=0;
 int       retryCnt=0;
 uint32_t  nbS=0;                    // nbre com
+uint32_t  nbK=0;                    // nbre com KO
 uint32_t  nbL=0;                    // nbre loops
 bool      lowPower=false;
 float     lowPowerValue=VOLTMIN;
@@ -200,6 +201,7 @@ void int_ISR()
   extTimer=true;
   //Serial.println("int_ISR");
 }
+void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print(" /");Serial.print(nbK);Serial.println("ko");delay(5);}
 void diagT(char* texte,int duree);
 #endif // NRF_MODE == 'P'
 
@@ -232,18 +234,7 @@ void setup() {
   
   configInit();
   configLoad();
-  configPrint();
-
-#ifndef NOCONFSER
-  pinMode(STOPREQ,INPUT_PULLUP);
-  if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
-      blink(4);
-      Serial.println(getServerConfig());
-      configSave();
-      configPrint();
-      while(1){blink(1);delay(1000);}
-  }
-#endif // NOCONFSER
+  //configPrint();
 
   radio.locAddr=periAddr;
   radio.ccAddr=concAddr;
@@ -258,7 +249,22 @@ void setup() {
   iniTemp();
   
   diags=false;
-  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");radio.printAddr((char*)periAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);Serial.print(" ; une touche pour diags ");
+  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");radio.printAddr((char*)periAddr,0);
+  Serial.print(" to ");radio.printAddr((char*)concAddr,0);
+  Serial.print('(');Serial.print(*concNb);Serial.print('-');Serial.print(channel);Serial.print('/');Serial.print(speed);
+
+#ifndef NOCONFSER
+  pinMode(STOPREQ,INPUT_PULLUP);
+  if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
+      blink(4);
+      Serial.println(getServerConfig());
+      configSave();
+      configPrint();
+      while(1){blink(1);delay(1000);}
+  }
+#endif // NOCONFSER
+
+  Serial.print(") une touche pour diags ");
   while((millis()-t_on)<4000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
   Serial.println();delay(1);
   if(diags){
@@ -378,12 +384,14 @@ void loop() {
     t_on4=micros();
     Serial.print("$ ");
     Serial.print(awakeMinCnt);Serial.print(" / ");Serial.print(awakeCnt);Serial.print(" / ");Serial.print(retryCnt);Serial.print(" ; ");
-    Serial.print(volts);Serial.print("V ");Serial.print(temp);Serial.print("/");Serial.print(previousTemp);Serial.print("° t(");
+    Serial.print(volts);Serial.print("V ");
+    Serial.print(deltaTemp);Serial.print(":");
+    Serial.print(temp);Serial.print("/");Serial.print(previousTemp);Serial.print("° t(");
     Serial.print(t_on1-t_on);Serial.print("/");
     Serial.print(t_on2-t_on);Serial.print("/");
     Serial.print(t_on21-t_on);Serial.print("/");
     Serial.print(t_on3-t_on);Serial.print("/");
-    Serial.print(micros()-t_on+5000+1000+1000);Serial.print("/diag="); // 1mS pour 4xSerial.print
+    Serial.print(micros()-t_on+5000+1000+1000);Serial.print("/diag(uS)="); // 1mS pour 4xSerial.print
     delay(5);
     tdiag+=micros()-t_on4+1000;
     Serial.print(tdiag);Serial.println(") $");
@@ -427,7 +435,8 @@ void loop() {
       unsigned long localTdiag=micros();    
       Serial.print("!");
       for(int nb=retryCnt;nb>0;nb--){Serial.print("*");}
-      tdiag+=(micros()-localTdiag);}
+      tdiag+=(micros()-localTdiag);
+    }
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
     memset(message,0x00,MAX_PAYLOAD_LENGTH);memset(message,0x20,NRF_ADDR_LENGTH+1);
@@ -460,14 +469,9 @@ void loop() {
     rdSta=txRxMessage();
     t_on21=micros();
     
-    //if(diags){
-      //unsigned long localTdiag=micros();    
-      Serial.print(" rdSta ");Serial.println(rdSta);delay(1);
-      //tdiag+=(micros()-localTdiag);
-    //}
-    
     if(rdSta>=0){                                                 // no error
-
+      
+      prtCom(" ok");
       /* echo request ? (address field is 0x5555555555) */
       if(memcmp(messageIn,ECHO_MAC_REQ,NRF_ADDR_LENGTH)==0){echo();}
       else {          
@@ -486,6 +490,7 @@ void loop() {
 
     if(trSta<0 || rdSta<0){                                           // error
     
+      nbK++;prtCom(" ko");
       forceSend=true;
       showErr(true);
       trSta=0;rdSta=0;
@@ -985,6 +990,7 @@ void iniTemp()
   //memcpy(thermo,THERMO,LTH);
   thN=THN;
   thSta=true;
+  previousTemp=0;
   
 #ifdef DS18X20  
   checkOn();
@@ -1011,13 +1017,20 @@ void readTemp()
   }                        
 }
 
+void prt(const char* d)
+{
+    Serial.print(deltaTemp);Serial.print(":");
+    Serial.print(temp);Serial.print(d);Serial.print(previousTemp);
+    delay(1);
+}
+
 bool checkTemp()
 {
-  if( (temp>(previousTemp+deltaTemp)) ){                                
-    previousTemp=temp-(deltaTemp/2);
+  if( temp>(previousTemp+deltaTemp) ){                                
+    prt(">");previousTemp=temp-(deltaTemp/2);
     return true;}
-  if( (temp<(previousTemp-deltaTemp)) ){
-    previousTemp=temp+(deltaTemp/2);
+  else if( temp<(previousTemp-deltaTemp) ){
+    prt("<");previousTemp=temp+(deltaTemp/2);
     return true;}
   return false;
 }

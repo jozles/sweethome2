@@ -46,11 +46,11 @@ void messageBuild(char* message,uint8_t* messageLength)
 {
   /* Here add user data >>> be carefull to not override 32 bytes <<< */
   
-    Serial.print(" volts ");Serial.print(volts);
+    Serial.print(" ");Serial.print(volts);
     dtostrf(volts,4,2,(char*)(message+*messageLength));             //          - 4                    
     (*messageLength)+=4;                                            // power voltage
 
-    Serial.print(" temp ");Serial.print(temp);      
+    Serial.print("V ");Serial.print(temp);Serial.print("°");
     char s='+';if(temp<0){s='-';}
     message[*messageLength]=s;
 
