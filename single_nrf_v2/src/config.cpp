@@ -258,21 +258,19 @@ Serial.println();
 */
     char pv=';';
     char spf[]={"%04d"};
+#define CONFMESSLEN 70
+    char message[CONFMESSLEN];
     message[0]=0x00;strcat((char*)message,"1234;");
     for(uint8_t i=0;i<15;i++){Serial.print((char)message[i]);}
-    Serial.println();Serial.println((char*)message);
+//Serial.println();Serial.println((char*)message);
     
-//return 1;
     uint8_t mm=5;
     sprintf((char*)(message+mm),spf,(int)(*vFactor*10000));mm+=4;        // vFactor
     message[mm]=pv;mm++;
-while(1){}
     sprintf((char*)(message+mm),spf,(int)(*vOffset));mm+=4;              // vOffset
     message[mm]=pv;mm++;
-//return 1;
     sprintf((char*)(message+mm),spf,(int)(*thFactor*10000));mm+=4;       // thFactor
     message[mm]=pv;mm++;
-  
     sprintf((char*)(message+mm),spf,(int)*thOffset);mm+=4;               // thOffset
     message[mm]=pv;mm++;
     message[mm]=*concPeriParams+PMFNCVAL;mm+=1;                   // provenance periParams (0=périf 1=saisie server)
@@ -280,18 +278,18 @@ while(1){}
     message[mm]=0x00;
     
     Serial.println((char*)message);delay(10);
-//return 1;
     memcpy(&message[mm],periAddr,RADIO_ADDR_LENGTH);                   // perif Rx addr
     mm+=RADIO_ADDR_LENGTH;
     message[mm]=';';mm++;
     message[mm]='\0';
 
     setExpEnd((char*)message);                                    // len + crc
-    Serial.println((char*)message);delay(10);
-return 1;  
+//Serial.println((char*)message);delay(10);
+//return 1;  
     uint16_t rcvl=0;
     if(!syncServerConfig((char*)message,(char*)PERICFG,&rcvl)){return 0;}
 
+Serial.println(message);
 while(1){delay(1000);blink(1);}
 
     byte a=' ';
@@ -339,13 +337,12 @@ bool syncServerConfig(char* message,char* syncMess,uint16_t* rcvl)
 #ifndef NOCONFSER
 
   serPurge(SERNB);
-
   for(uint8_t i=0;i<=TSCNB;i++){SERIALX.print(RCVSYNCHAR);}
   SERIALX.print(syncMess);
-  if(*message!=0x00){SERIALX.print(message);memset(message,0x00,MAXSER);}
-  
-  while(*rcvl==0){*rcvl=serialRcv(message,MAXSER,SERNB);blink(1);}  // attente réponse sans time out
+  if(*message!=0x00){SERIALX.print(message);}
 
+  while(*rcvl==0){*rcvl=serialRcv(message,CONFMESSLEN-1,SERNB);blink(1);}  // attente réponse sans time out
+  *(message+*rcvl)=0x00;
   if(*rcvl>5){
     Serial.print(*rcvl);Serial.print(" ");Serial.println(message);
     Serial.print("checkData=");
