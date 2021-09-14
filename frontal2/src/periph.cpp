@@ -40,7 +40,7 @@ extern float*     thFactor;
 extern float*     thOffset;
 extern float*     vFactor;
 extern float*     vOffset;
-extern byte*      concPeriMac;
+extern byte*      periRxAddr;
 
 extern char*      usrnames;  
 extern char*      usrpass;     
@@ -247,7 +247,7 @@ memset(concPort,0x00,MAXCONC*sizeof(uint16_t));
 *thOffset=0;
 *vFactor=0;
 *vOffset=0;
-memset(concPeriMac,0x00,MACADDRLENGTH);
+memset(periRxAddr,0x00,RADIO_ADDR_LENGTH);
 
 memset(usrnames,0x00,NBUSR*LENUSRNAME);memset(usrpass,0x00,NBUSR*LENUSRPASS);
 //memcpy(usrnames,"admin",5);memcpy(usrpass,"17515A\0\0",8);
@@ -313,9 +313,9 @@ byte* temp=(byte*)configRec;
   temp+=sizeof(float*);
   vOffset=(float*)temp;
   temp+=sizeof(float*);
-  concPeriMac=(byte*)temp;
-  temp+=sizeof(byte*);
-  temp+=107;                         // dispo 
+  periRxAddr=(byte*)temp;
+  temp+=RADIO_ADDR_LENGTH+1;
+  temp+=105;                         // dispo 
   usrnames=(char*)temp;
   temp+=NBUSR*(LENUSRNAME+1);
   usrpass=(char*)temp;
@@ -373,44 +373,6 @@ byte* temp=(byte*)configRec;
   Serial.print("RECCHAR=");Serial.print(RECCHAR);Serial.print(" LBUFSERVER=");Serial.println(LBUFSERVER);
 }
 
-
-void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned long* cxtime)
-{
-  char* str2=(char*)strv;
-  #define LBUFCPRINT LENSSID+1+LPWSSID+1+3+4+8
-  char bufcprint[LBUFCPRINT];
-
-  for(int nb=0;nb<nbl;nb++){
-    if(*(str1+(nb*(len1+1)))!='\0'){
-        memset(bufcprint,0x00,LBUFCPRINT);bufcprint[0]=0x20;sprintf(bufcprint+1,"%1u",nb+1);strcat(bufcprint," ");if((nb+1)<10){strcat(bufcprint," ");}
-        strcat(bufcprint,str1+(nb*(len1+1)));strcat(bufcprint," ");
-        int lsp=(len1-strlen(str1+nb*(len1+1)));for(int ns=0;ns<lsp;ns++){strcat(bufcprint," ");}
-        strcat(bufcprint,str2+(nb*(len2+1)));
-        lsp=(len2-strlen(str2+nb*(len2+1)));for(int ns=0;ns<lsp;ns++){strcat(bufcprint," ");}
-        Serial.print(bufcprint);if(cxtime[nbl]!=0){Serial.print(cxtime[nbl]);}Serial.println();
-    }
-  }
-}
-
-void subConcPrint()
-{
-  Serial.println("concentrateurs");
-  for(uint8_t i=0;i<MAXCONC;i++){
-    Serial.print(i+1);Serial.print(" ");
-    serialPrintMac(concMac+i*MACADDRLENGTH,0);Serial.print(" ");
-    serialPrintIp(concIp+i*4*sizeof(byte));Serial.print("/");
-    Serial.print(*(concPort+i));Serial.print(" ");
-    for(uint8_t j=0;j<RADIO_ADDR_LENGTH;j++){Serial.print((char)*(concRx+i*RADIO_ADDR_LENGTH+j));}Serial.print(" ");
-    Serial.print(*(concChannel+i));Serial.print(" ");
-    Serial.print(*(concRfSpeed+i));Serial.print(" ");
-    Serial.println();
-  }
-  Serial.print("N° concentrateur pour perif ");Serial.println(*concNb);
-  Serial.print("0-keep/1-new ");Serial.println(*concPeriParams);
-  Serial.print("vFactor ");Serial.print(*vFactor);Serial.print(" vOffset ");Serial.print(*vOffset);Serial.print(" thFactor ");Serial.print(*thFactor);Serial.print(" thOffset ");Serial.println(*thOffset);
-  serialPrintMac(concPeriMac,1);
-  Serial.println();
-}
 
 void configExport(char* bec)
 {
@@ -486,17 +448,22 @@ void periExport(char* bec ,uint8_t concNb)
     sprintf(bec+ll,"%01u",concNb);ll+=1;                                          // rang conc 
     *(bec+ll)=';';ll++; 
     
-    sprintf(bec+ll,"%02.2f",*vFactor);ll+=5;                                      // vFactor
+    uint16_t value;
+    value=(uint16_t)(*vFactor*10000);
+    sprintf(bec+ll,"%04u",value);ll+=4;                                           // vFactor
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%02.2f",*vOffset);ll+=5;                                      // vOffset
+    value=(uint16_t)(*vOffset);
+    sprintf(bec+ll,"%04u",value);ll+=4;                                           // vOffset
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%02.2f",*thFactor);ll+=5;                                     // thFactor
+    value=(uint16_t)(*thFactor*10000);
+    sprintf(bec+ll,"%04u",value);ll+=4;                                           // thFactor
     *(bec+ll)=';';ll++;
-    sprintf(bec+ll,"%02.2f",*thOffset);ll+=5;                                     // thOffset
+    value=(uint16_t)(*thOffset);
+    sprintf(bec+ll,"%04u",value);ll+=4;                                           // thOffset
     *(bec+ll)=';';ll++;
-    *bec=*concPeriParams+PMFNCVAL;ll+=1;                                          // provenance periParams (0=périf 1=saisie server)
+    *(bec+ll)=*concPeriParams+PMFNCVAL;ll+=1;                                          // provenance periParams (0=périf 1=saisie server)
     *(bec+ll)=';';ll++;
-    memcpy(bec+ll,concPeriMac,RADIO_ADDR_LENGTH);                                 // perif Rx addr
+    memcpy(bec+ll,periRxAddr,RADIO_ADDR_LENGTH);                                  // perif Rx addr
     ll+=RADIO_ADDR_LENGTH;
     *(bec+ll)=';';ll++;
     *(bec+ll)='\0';
@@ -520,13 +487,49 @@ void periImport(char* bec)
         *vOffset=convStrToNum((char*)(bec),&sr);bec+=5;
         *thFactor=convStrToNum((char*)(bec),&sr)/10000;bec+=5;
         *thOffset=convStrToNum((char*)(bec),&sr);bec+=5;
-        *concPeriParams=*bec-PMFNCVAL;bec+=2;
-        memcpy(concPeriMac,bec,RADIO_ADDR_LENGTH);
+        memcpy(periRxAddr,bec,RADIO_ADDR_LENGTH);
         configPrint();                                          
       }
     }
 }
 
+void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned long* cxtime)
+{
+  char* str2=(char*)strv;
+  #define LBUFCPRINT LENSSID+1+LPWSSID+1+3+4+8
+  char bufcprint[LBUFCPRINT];
+
+  for(int nb=0;nb<nbl;nb++){
+    if(*(str1+(nb*(len1+1)))!='\0'){
+        memset(bufcprint,0x00,LBUFCPRINT);bufcprint[0]=0x20;sprintf(bufcprint+1,"%1u",nb+1);strcat(bufcprint," ");if((nb+1)<10){strcat(bufcprint," ");}
+        strcat(bufcprint,str1+(nb*(len1+1)));strcat(bufcprint," ");
+        int lsp=(len1-strlen(str1+nb*(len1+1)));for(int ns=0;ns<lsp;ns++){strcat(bufcprint," ");}
+        strcat(bufcprint,str2+(nb*(len2+1)));
+        lsp=(len2-strlen(str2+nb*(len2+1)));for(int ns=0;ns<lsp;ns++){strcat(bufcprint," ");}
+        Serial.print(bufcprint);if(cxtime[nbl]!=0){Serial.print(cxtime[nbl]);}Serial.println();
+    }
+  }
+}
+
+void subConcPrint()
+{
+  Serial.println("concentrateurs");
+  for(uint8_t i=0;i<MAXCONC;i++){
+    Serial.print(i+1);Serial.print(" ");
+    serialPrintMac(concMac+i*MACADDRLENGTH,0);Serial.print(" ");
+    serialPrintIp(concIp+i*4*sizeof(byte));Serial.print("/");
+    Serial.print(*(concPort+i));Serial.print(" ");
+    for(uint8_t j=0;j<RADIO_ADDR_LENGTH;j++){Serial.print((char)*(concRx+i*RADIO_ADDR_LENGTH+j));}Serial.print(" ");
+    Serial.print(*(concChannel+i));Serial.print(" ");
+    Serial.print(*(concRfSpeed+i));Serial.print(" ");
+    Serial.println();
+  }
+  Serial.print("N° concentrateur pour perif ");Serial.println(*concNb);
+  Serial.print("0-keep/1-new ");Serial.print(*concPeriParams);Serial.print("     periRxAddr ");Serial.println((char*)periRxAddr);
+  Serial.print("vFactor ");Serial.print(*vFactor*10000);Serial.print(" vOffset ");Serial.print(*vOffset);
+  Serial.print(" thFactor ");Serial.print(*thFactor*10000);Serial.print(" thOffset ");Serial.println(*thOffset);
+  Serial.println();
+}
 
 void configPrint()
 {

@@ -73,7 +73,7 @@ extern float*     thFactor;
 extern float*     thOffset;
 extern float*     vFactor;
 extern float*     vOffset;
-extern byte*      concPeriMac;
+extern byte*      periRxAddr;
 
 extern char*      usrnames;
 extern char*      usrpass;
@@ -446,20 +446,17 @@ void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16
     concFn[LENNOM-1]='N';scrDspText(buf,jsbuf,"N° concentrateur : ",0,0);scrGetNum(buf,jsbuf,'D',concNb,concFn,0,0,0,BRYES);strcat(buf,"\n");
 
     periFn[LENNOM-1]='k';
-    scrGetRadiobut(buf,jsbuf,*concPeriParams,periFn,2,1,(char*)"keep\0new",0,0);
+    scrGetRadiobut(buf,jsbuf,*concPeriParams,periFn,2,1,(char*)"keep perif values\0force server values",0,0);
   
-    scrDspText(buf,jsbuf,"concPerifMacAddr : ",0,0);
-    #define LBL 32
-    char lbuf[LBL];*lbuf=0x00;
-    for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[concPeriMac[MACADDRLENGTH+k]/16]);concat1a(lbuf,chexa[concPeriMac[MACADDRLENGTH+k]%16]);}
-    periFn[LENNOM-1]='m';scrGetText(buf,jsbuf,lbuf,periFn,11,MACADDRLENGTH*2,0,BRYES);
+    scrDspText(buf,jsbuf,"Radio_Peri_Addr : ",0,0);
+    periFn[LENNOM-1]='c';scrGetText(buf,jsbuf,(char*)periRxAddr,periFn,11,RADIO_ADDR_LENGTH,0,BRYES);
 
-    scrDspText(buf,jsbuf,"Volts factor : ",0,0);
-    periFn[LENNOM-1]='y';scrGetNum(buf,jsbuf,'f',vFactor,periFn,6,6,4,0,0);
+    scrDspText(buf,jsbuf,"Volts factor : ",0,0);float factor=*vFactor*10000;
+    periFn[LENNOM-1]='y';scrGetNum(buf,jsbuf,'f',&factor,periFn,4,7,2,0,0);
     scrDspText(buf,jsbuf," Offset : ",0,0);
     periFn[LENNOM-1]='v';scrGetNum(buf,jsbuf,'f',vOffset,periFn,5,5,2,0,0);
-    scrDspText(buf,jsbuf,"  Th Factor : ",0,0);
-    periFn[LENNOM-1]='b';scrGetNum(buf,jsbuf,'f',thFactor,periFn,6,6,4,0,0);
+    scrDspText(buf,jsbuf,"  Th Factor : ",0,0);factor=*thFactor*10000;
+    periFn[LENNOM-1]='b';scrGetNum(buf,jsbuf,'f',&factor,periFn,4,7,2,0,0);
     scrDspText(buf,jsbuf," Offset : ",0,0);
     periFn[LENNOM-1]='e';scrGetNum(buf,jsbuf,'f',thOffset,periFn,5,5,2,0,0);
 

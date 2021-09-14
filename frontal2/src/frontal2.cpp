@@ -86,7 +86,7 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   float*    thOffset;
   float*    vFactor;
   float*    vOffset;
-  byte*     concPeriMac;
+  byte*     periRxAddr;
 
   char*     usrnames;         // usernames
   char*     usrpass;          // userpass
@@ -1569,11 +1569,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 'S': *(concRfSpeed+nC)=0;conv_atob(valf,(concRfSpeed+nC));break;       // (config) concRfSpeed
                             case 'N': *concNb=0;conv_atob(valf,&aa);if(aa>MAXCONC){aa=0;}*concNb=(uint8_t)aa;                                      
                                       Serial.print(" ");Serial.println(*concNb);break;                  // (config) N° conc pour périf
-                            case 'k': *concPeriParams=*valf-PMFNCVAL;break;                              // (config) keep(0)/new(1)
-                            case 'c': for(j=0;j<6;j++){conv_atoh(valf+j*2,(concPeriMac+j));}break;      // (config) concPeriMac
-                            case 'y': *vFactor=0;*vFactor=convStrToNum(valf,&rr);break;                 // (config) voltsFactor
+                            case 'k': *concPeriParams=*valf-PMFNCVAL;break;                             // (config) keep(0)/new(1)
+                            case 'c': alphaTfr((char*)periRxAddr,RADIO_ADDR_LENGTH,valf,nvalf[i+1]-nvalf[i],0);break;      // (config) periRxAddr
+                            case 'y': *vFactor=0;*vFactor=convStrToNum(valf,&rr)/10000;break;           // (config) voltsFactor
                             case 'v': *vOffset=0;*vOffset=convStrToNum(valf,&rr);break;                 // (config) voltsOffset
-                            case 'b': *thFactor=0;*thFactor=convStrToNum(valf,&rr);break;               // (config) tempFactor
+                            case 'b': *thFactor=0;*thFactor=convStrToNum(valf,&rr)/10000;break;         // (config) tempFactor
                             case 'e': *thOffset=0;*thOffset=convStrToNum(valf,&rr);break;               // (config) voltsOffset
                             default: break;
                           }
@@ -1598,7 +1598,7 @@ Serial.print(*(libfonctions+2*i+1));Serial.print(" ");
                             case 'W': *ssid1=0;*ssid1=*valf-PMFNCVAL;break;                             // (config) ssid1
                             case 'w': *ssid2=0;*ssid2=*valf-PMFNCVAL;break;                             // (config) ssid2
 /*
-                            case 'c': for(j=0;j<6;j++){conv_atoh(valf+j*2,(concPeriMac+j));}break;      // (config) concPeriMac
+                            case 'c': for(j=0;j<6;j++){conv_atoh(valf+j*2,(periRxAddr+j));}break;      // (config) periRxAddr
                             case 'y': *vFactor=0;*vFactor=convStrToNum(valf,&rr);break;                 // (config) voltsFactor
                             case 'v': *vOffset=0;*vOffset=convStrToNum(valf,&rr);break;                 // (config) voltsOffset
                             case 'b': *thFactor=0;*thFactor=convStrToNum(valf,&rr);break;               // (config) tempFactor
@@ -1979,13 +1979,13 @@ void serialServer()
     }
     if(memcmp(serialBuf,PERICFG,10)==0){
       periImport(serialBuf+10);
+      memset(bec,0x00,LBEC);memcpy(bec,"0000;",5);  // len
       periExport(bec,*concNb);
       setExpEnd(bec);
       Serial.println("peri ");//dumpstr(bec,300);      
     }
     
     for(uint8_t i=0;i<TSCNB+1;i++){Serial1.print(RCVSYNCHAR);}
-    //Serial1.print(bec);
     for(uint16_t lb=0;lb<strlen(bec);lb++){Serial1.print(*(bec+lb));delay(1);}
     Serial.println(bec);
   }

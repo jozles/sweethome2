@@ -92,7 +92,8 @@
    1.56 Le fichier config devient la source des données réseau et des données de config des périfs et concentrateurs ; 
         Le mécanisme d'initialisation est installé. 
         Les concentrateurs et périphériques demandent leurs données de config au serveur via Serial1 du serveur, Serial1 du concentrateur, Serial des périfs.
-   1.57 debug config concentrateurs
+   1.57 toutes config séries ok (?) v.19 de single_nrf_v2
+   1.58 
 
    BUGS :
 
