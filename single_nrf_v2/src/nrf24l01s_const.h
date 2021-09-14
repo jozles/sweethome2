@@ -45,14 +45,13 @@ v1.5  transfert valeur entrée analogique + seuils (user_conc exportData()) le s
 v1.6  pas de retry si pas de réponse à txrx ou beginP() ; periode 10sec résistance 11.2K ; ajout calcul/affichage du temps de diag
 v1.7  définition du numConc dans la config et paramétrage du canal et du nom de concentrateur selon numConc
 v1.8  passage PC0(ADC0) PC6(ADC6) PD3(INT1-Rreed) PD5 PD6 au concentrateur
-v1.9  config concentrateur en flash (eepr) chargée via Serial1 depuis server ; 
+v1.9  configs concentrateurs et périfs nrf chargées via Serial1 depuis le server (getServerConfig); 
       numConc disparait remplacé par concNb qui provient du serveur (plus de config physique sur le concentrateur)
-      En factory reset, concNb forme le 5ème caractère d'adresse radio des concentrateurs sur le serveur. 
+      En factory reset, le rang dans la table des concentrateurs forme le 5ème caractère d'adresse radio des concentrateurs sur le serveur. 
       (l'adresse RX1 par défaut des concentrateurs est le param CC_NRF_ADDR (4 caractères) + le numéro d'entrée dans la table du serveur ;)
-      Les périfs reçoivent une adresse de concentrateur complète et le n° (inutilisé) du concentrateur dans la table lors de la config série.
-      L'adresse mac de périphérique utilisée par le serveur est l'adresse RX(mac) des périfs complétée par le concentrateur avec concNb.
-      Adresse mac, ip, adresse NRF, channel, speed sont paramétrés dans la table des concentrateurs du serveur.
-      
+      concNb indique le numéro de concentrateur pour la config série des concentrateurs et périphériques concentrés.
+      Les paramètres des périfs sont chargés ou non dans la config du serveur selon keep/new.
+      La totalité des paramètres de toutes les machines sont définis dans la config du serveur. v1.57 finale de frontal2 
 */
 
 /************* config ****************/

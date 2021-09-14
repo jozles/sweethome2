@@ -141,7 +141,7 @@ extern float*    thFactor;
 extern float*    thOffset;
 extern float*    vFactor;
 extern float*    vOffset;
-extern byte*     periAddr;
+extern byte*     periRxAddr;
 extern byte*     concAddr;
 extern uint8_t*  concNb;
 extern uint8_t*  concChannel;
@@ -203,6 +203,7 @@ void int_ISR()
 }
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print(" /");Serial.print(nbK);Serial.println("ko");delay(5);}
 void diagT(char* texte,int duree);
+void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);}
 #endif // NRF_MODE == 'P'
 
 void ini_t_on();
@@ -234,9 +235,8 @@ void setup() {
   
   configInit();
   configLoad();
-  //configPrint();
 
-  radio.locAddr=periAddr;
+  radio.locAddr=periRxAddr;
   radio.ccAddr=concAddr;
   channel=*concChannel;
   speed=*concSpeed;
@@ -249,22 +249,23 @@ void setup() {
   iniTemp();
   
   diags=false;
-  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");radio.printAddr((char*)periAddr,0);
-  Serial.print(" to ");radio.printAddr((char*)concAddr,0);
-  Serial.print('(');Serial.print(*concNb);Serial.print('-');Serial.print(channel);Serial.print('/');Serial.print(speed);
-
+  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");
+  radio.printAddr((char*)periRxAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);
+  Serial.print('(');Serial.print(*concNb);Serial.print('-');Serial.print(channel);
+  Serial.print('/');Serial.print(speed);Serial.print(")");
+  
 #ifndef NOCONFSER
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
+      getVolts();getVolts();spvt();
       blink(4);
-      Serial.println(getServerConfig());
-      configSave();
+      if(getServerConfig()>5){configSave();}
       configPrint();
       while(1){blink(1);delay(1000);}
   }
 #endif // NOCONFSER
 
-  Serial.print(") une touche pour diags ");
+  Serial.print(" une touche pour diags ");
   while((millis()-t_on)<4000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
   Serial.println();delay(1);
   if(diags){
@@ -294,10 +295,7 @@ void setup() {
   
   userResetSetup();
 
-  if(diags){
-    Serial.print(volts);Serial.print("V ");
-    Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);
-  }
+  if(diags){spvt();}
   ini_t_on();  
 
 //diagT("sleepNoPower à suivre",10);
@@ -451,7 +449,7 @@ void loop() {
     //outLength+=9;                                                     //            - 9
  
     messageBuild((char*)message,&outLength);                          // add user data 
-    memcpy(message,periAddr,NRF_ADDR_LENGTH);                         // macAddr
+    memcpy(message,periRxAddr,NRF_ADDR_LENGTH);                         // macAddr
     message[NRF_ADDR_LENGTH]=numT+48;                                 // numéro du périphérique
     message[outLength]='\0';
 

@@ -161,7 +161,7 @@ float*    thFactor;
 float*    thOffset;
 float*    vFactor;
 float*    vOffset;
-byte*     periAddr;
+byte*     periRxAddr;
 byte*     concAddr;
 uint8_t*  concNb;
 uint8_t*  concChannel;
@@ -184,7 +184,7 @@ void configInit()
   temp +=sizeof(float);
   vOffset=(float*)temp;
   temp +=sizeof(float);
-  periAddr=(byte*)temp;
+  periRxAddr=(byte*)temp;
   temp +=6;
   concAddr=(byte*)temp;
   temp +=6;
@@ -208,7 +208,7 @@ void configInit()
 
 /*
   memcpy(configVers,VERSION,2);
-  memcpy(periAddr,DEF_ADDR,6);
+  memcpy(periRxAddr,DEF_ADDR,6);
   strncpy((char*)concAddr,CONC,5);
   *thFactor=0.1071;
   *thOffset=50;
@@ -223,7 +223,7 @@ void configPrint()
     char configVers[3];memcpy(configVers,configRec+EEPRVERS,2);configVers[3]='\0';
     Serial.print("crc  ");dumpfield((char*)configRec,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
     char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
-    Serial.print("Peri ");dumpstr((char*)periAddr,6);Serial.print("Conc ");dumpstr((char*)concAddr,6);
+    Serial.print("Peri ");dumpstr((char*)periRxAddr,6);Serial.print("Conc ");dumpstr((char*)concAddr,6);
     if(memcmp(configVers,"01",2)!=0){
       Serial.print("concNb ");Serial.print(*concNb);
       Serial.print("  ch ");Serial.print(*concChannel);
@@ -239,30 +239,11 @@ uint16_t getServerConfig()
 {
 #ifndef NOCONFSER
 
-/*  #define MAXS 50
-    char xf[MAXS];
-    byte* bf=(byte*)xf;
-    memset(xf,0x00,MAXS);
-    strcat(xf,"0123;1234567890");                                    // len ascii
-
-dumpstr((char*)bf,128);
-Serial.println();
-dumpstr((char*)xf,128);
-Serial.println();
-//dumpstr((char*)&bf[64],128);
-//    bf+=64;
-//Serial.println();    
-//dumpstr((char*)bf,128);
-//return 1;
-
-*/
     char pv=';';
     char spf[]={"%04d"};
 #define CONFMESSLEN 70
     char message[CONFMESSLEN];
     message[0]=0x00;strcat((char*)message,"1234;");
-    for(uint8_t i=0;i<15;i++){Serial.print((char)message[i]);}
-//Serial.println();Serial.println((char*)message);
     
     uint8_t mm=5;
     sprintf((char*)(message+mm),spf,(int)(*vFactor*10000));mm+=4;        // vFactor
@@ -273,45 +254,33 @@ Serial.println();
     message[mm]=pv;mm++;
     sprintf((char*)(message+mm),spf,(int)*thOffset);mm+=4;               // thOffset
     message[mm]=pv;mm++;
-    message[mm]=*concPeriParams+PMFNCVAL;mm+=1;                   // provenance periParams (0=périf 1=saisie server)
-    message[mm]=pv;mm++;
     message[mm]=0x00;
     
-    Serial.println((char*)message);delay(10);
-    memcpy(&message[mm],periAddr,RADIO_ADDR_LENGTH);                   // perif Rx addr
+    memcpy(&message[mm],periRxAddr,RADIO_ADDR_LENGTH);                     // perif Rx addr
     mm+=RADIO_ADDR_LENGTH;
     message[mm]=';';mm++;
     message[mm]='\0';
 
-    setExpEnd((char*)message);                                    // len + crc
-//Serial.println((char*)message);delay(10);
-//return 1;  
+    setExpEnd((char*)message);                                           // len + crc
     uint16_t rcvl=0;
     if(!syncServerConfig((char*)message,(char*)PERICFG,&rcvl)){return 0;}
 
-Serial.println(message);
-while(1){delay(1000);blink(1);}
-
-    byte a=' ';
     uint16_t cnt=0;
-    uint8_t cntpv=0;
     uint16_t tmp=0;
     int cntint;
 
-    while(cntpv<2 && a!='\0' && cnt<=rcvl){a=message[cnt];cnt++;if(a==';'){cntpv++;}}                // skip len+name+version
-    
-    cnt=0;
-    memcpy(concAddr,message,RADIO_ADDR_LENGTH);cnt+=RADIO_ADDR_LENGTH+1;                  
+    cnt=5;  // skip len
+    memcpy(concAddr,message+cnt,RADIO_ADDR_LENGTH);cnt+=RADIO_ADDR_LENGTH+1;                  
     tmp=0;conv_atob((char*)(message+cnt),&tmp);cnt+=4;*concChannel=tmp;                           // Channel
     tmp=0;conv_atob((char*)(message+cnt),&tmp);cnt+=2;*concSpeed=tmp;                             // Speed
     *concNb=(uint8_t)(*(message+cnt)-PMFNCVAL);cnt+=2;                                             
     
-    *vFactor=convStrToNum((char*)(message+cnt),&cntint);cnt+=cntint+1;
-    *vOffset=convStrToNum((char*)(message+cnt),&cntint);cnt+=cntint+1;
-    *thFactor=convStrToNum((char*)(message+cnt),&cntint);cnt+=cntint+1;
-    *thOffset=convStrToNum((char*)(message+cnt),&cntint);cnt+=cntint+1;
+    *vFactor=convStrToNum((char*)(message+cnt),&cntint)/10000;cnt+=5;
+    *vOffset=convStrToNum((char*)(message+cnt),&cntint);cnt+=5;
+    *thFactor=convStrToNum((char*)(message+cnt),&cntint)/10000;cnt+=5;
+    *thOffset=convStrToNum((char*)(message+cnt),&cntint);cnt+=5;
     *concPeriParams=*(message+cnt)-PMFNCVAL;cnt+=2;
-    memcpy(periAddr,(message+cnt),RADIO_ADDR_LENGTH);
+    memcpy(periRxAddr,(message+cnt),RADIO_ADDR_LENGTH);cnt+=RADIO_ADDR_LENGTH;
 
   return rcvl;
 
@@ -344,8 +313,8 @@ bool syncServerConfig(char* message,char* syncMess,uint16_t* rcvl)
   while(*rcvl==0){*rcvl=serialRcv(message,CONFMESSLEN-1,SERNB);blink(1);}  // attente réponse sans time out
   *(message+*rcvl)=0x00;
   if(*rcvl>5){
-    Serial.print(*rcvl);Serial.print(" ");Serial.println(message);
-    Serial.print("checkData=");
+    Serial.print(" ");Serial.println(message);
+    Serial.print("checkData");
     uint16_t ll=0;
     if(checkData(message,&ll)==MESSOK){Serial.println(" ok");return 1;}
   }
