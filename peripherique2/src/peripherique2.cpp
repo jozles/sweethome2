@@ -38,8 +38,8 @@ Ds1820 ds1820;
 
   const char* ssid;                       // current ssid
   const char* ssidPwd;                    // current ssid pwd 
-//#define DEVOLO  
-/*#ifdef DEVOLO
+#define DEVOLO  
+#ifdef DEVOLO
   const char* ssid2; //= "pinks";
   const char* password2; //= "cain ne dormant pas songeait au pied des monts";
   const char* ssid1; //= "devolo-5d3";
@@ -51,9 +51,9 @@ Ds1820 ds1820;
   const char* ssid2= "devolo-5d3";
   const char* password2= "JNCJTRONJMGZEEQL";
 #endif // DEVOLO
-*/
-//  const IPaddr* host;  //= HOSTIPADDR2;         // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
-//  const int   port;  //= PORTPERISERVER2; 
+//*/
+//  const IPaddr* host//="192.168.0.35";  //= HOSTIPADDR2;         // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
+//  const int   port=1786;  //= PORTPERISERVER2; 
 
 WiFiClient cli;                           // instance du serveur externe (utilisé pour dataread/save)
 
@@ -169,22 +169,26 @@ void tmarker()
 
 void setup() 
 { 
-//pinMode(5,OUTPUT);pinMode(2,OUTPUT);digitalWrite(5,1);digitalWrite(2,1);while(1){};
-/*#if POWER_MODE!=NO_MODE
+#if POWER_MODE!=NO_MODE
 WiFi.disconnect();
 WiFi.forceSleepBegin();
 delay(1);
 #endif // PM!=NO_MODE
-*/
+
+
 /* >>>>>> pins Init <<<<<< */
 
+  Serial.begin(115200);
+
 #if POWER_MODE==PO_MODE
-  wifi_set_sleep_type(LIGHT_SLEEP_T);
+delay(1000);
+Serial.println("+");
+delay(1);
+
+//  wifi_set_sleep_type(LIGHT_SLEEP_T);
   digitalWrite(PINPOFF,LOW);
   pinMode(PINPOFF,OUTPUT);
 #endif // PM==PO_MODE
-
-  Serial.begin(115200);
 
   checkVoltage();                   // power off au plus vite si tension insuffisante (no serial)
 
@@ -253,13 +257,16 @@ delay(1);
   Serial.print(" carte=");Serial.print(CARTE);
 
   if(diags){
+#if CARTE != THESP01
+#if CARTE != THESP02    
     Serial.println();
     Serial.print("    ");for(int sw=0;sw<MAXSW;sw++){Serial.print(" ");Serial.print(sw);}Serial.println();
     Serial.print("pin ");for(int sw=0;sw<MAXSW;sw++){Serial.print(" ");Serial.print(pinSw[sw]);}Serial.println();
     Serial.print("clo ");for(int sw=0;sw<MAXSW;sw++){Serial.print(" ");Serial.print(cloSw[sw]);}Serial.println();
     Serial.print("ope ");for(int sw=0;sw<MAXSW;sw++){Serial.print(" ");Serial.print(openSw[sw]);}Serial.println();
+#endif
+#endif
   }
-  
 
 
 /* >>>>>> gestion ds18x00 <<<<<< */
@@ -267,7 +274,7 @@ delay(1);
  byte setds[4]={0,0x7f,0x80,TBITS},readds[8];    // fonction, high alarm, low alarm, config conversion 
  int v=ds1820.setDs(WPIN,setds,readds); // init & read rom
  tconversion=TCONVERSIONB;if(readds[0]==0X10 || TBITS==T12BITS){tconversion=TCONVERSIONS;}
- if(v==1){Serial.print(" DS1820 0x");Serial.print(readds[0],HEX);Serial.print(" Tconv=");Serial.println(tconversion);}
+ if(v==1){Serial.print("\nDS1820 0x");Serial.print(readds[0],HEX);Serial.print(" Tconv=");Serial.println(tconversion);}
  else {Serial.print(" DS1820 error ");Serial.println(v);}
   
 #if POWER_MODE==NO_MODE
@@ -276,9 +283,10 @@ delay(1);
   //delay(tconversion);
 #endif // PM==NO_MODE
 #if POWER_MODE==PO_MODE
-  //ds1820.convertDs(WPIN);delay(250);
-  debConv=millis();
-  ds1820.convertDs(WPIN); // readTemp() attend la fin de la conversion
+  if(v==1){
+    debConv=millis();
+    ds1820.convertDs(WPIN); // readTemp() attend la fin de la conversion
+  }
 #endif // PM==PO_MODE
 
 #if POWER_MODE==DS_MODE
@@ -297,15 +305,18 @@ delay(1);
 /* >>>>>> gestion variables permanentes <<<<<< */
 
 #if CONSTANT==EEPROMSAVED
+  Serial.print(" EEPROM ");
   EEPROM.begin(512);
 #endif
 
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et sauver */
 
   if(!readConstant()){   
+    Serial.println("KO -> init ");
     initConstant();
     yield();
-    if(cstRec.cstlen!=LENCST){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);while(1){yield();}} // blocage param faux, le programme a changé
+    if(cstRec.cstlen!=LENCST){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);Serial.print("/");Serial.print(LENCST);
+    while(1){blink(1);delay(1000);}} // blocage param faux, le programme a changé
   }
 
   Serial.print("CONSTANT=");Serial.print(CONSTANT);Serial.print(" time=");Serial.print(millis()-debTime);Serial.println(" ready !");
@@ -320,12 +331,14 @@ delay(1);
   Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);Serial.print(" textServerIp ");Serial.println(textServerIp);
 
   #define FRDLY 5  // sec
+#if CARTE != THESP01
   pinMode(PINDTC,INPUT);
   if(digitalRead(PINDTC)==LOW){
     blink(4);delay(2000);
     yield();
     if(getServerConfig()>0){writeConstant();while(1){blink(1);delay(1000);}} // getServerConfig bloque si ko
   }
+#endif    
   Serial.println();
 
 
@@ -583,7 +596,9 @@ if(diags){Serial.println(" dataTransfer() ");}
 
             cstRec.periPort=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
             //printConstant();
+          #ifdef _SERVER_MODE
             if(server==nullptr){server=new WiFiServer(cstRec.periPort);}
+          #endif
         }
         if(periMess!=MESSOK){
           memcpy(cstRec.numPeriph,"00",2);cstRec.IpLocal=IPAddress(0,0,0,0);

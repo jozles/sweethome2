@@ -78,16 +78,21 @@ bool readConstant()
 
 #if CONSTANT==EEPROMSAVED
   cstRec.cstlen=EEPROM.read((int)(CONSTANTADDR));     // charge la longueur telle qu'enregistrée
+  Serial.print(" len=");Serial.println(cstRec.cstlen);delay(1);
+/*  if(cstRec.cstlen>100){cstRec.cstlen=0;}
   for(int temp=0;temp<cstRec.cstlen;temp++){        
-    *(cstRecA+temp)=EEPROM.read((int)(temp+CONSTANTADDR));
+    yield();*(cstRecA+temp)=EEPROM.read((int)(temp+CONSTANTADDR));
   }
+*/
 #endif
 
 Serial.print("readConstant ");Serial.print((long)cstRecA,HEX);Serial.print(" len=");Serial.print(cstRec.cstlen);
 Serial.print("/");Serial.print((uint16_t)((long)&cstRec.cstcrc-(long)cstRecA)+1);
 Serial.print(" crc=");Serial.print(*(cstRecA+cstRec.cstlen-1),HEX);Serial.print(" calc_crc=");
+delay(10);
 byte calc_crc=calcCrc(cstRecA,(uint16_t)cstRec.cstlen-1);Serial.println(calc_crc,HEX);
 //dumpstr((char*)cstRecA,256);
+delay(10);
 if(*(cstRecA+cstRec.cstlen-1)==calc_crc && cstRec.cstlen==LENCST){return 1;}
 return 0;
 }
@@ -154,19 +159,21 @@ void initConstant()  // inits mise sous tension
   cstRec.IpLocal=IPAddress(0,0,0,0);  
   cstRec.periPort=9999;
   cstRec.serverIp=IPAddress(0,0,0,0);
-  cstRec.serverPort=1790;
+  cstRec.serverIp=IPAddress(192,168,0,36);
+  cstRec.serverPort=1786;
   memset(cstRec.peripass,0x00,LPWD+1);
   memset(cstRec.ssid1,'\0',LENSSID);
   memset(cstRec.ssid2,'\0',LENSSID);
   memset(cstRec.pwd1,'\0',LPWSSID);
   memset(cstRec.pwd2,'\0',LPWSSID);
   memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
-/*
+
+  memcpy(cstRec.peripass,"17515A",LPWD+1);
   strcat(cstRec.ssid1,"pinks");
   strcat(cstRec.pwd1,"cain ne dormant pas songeait au pied des monts");
   strcat(cstRec.ssid2,"devolo-5d3");
   strcat(cstRec.pwd2,"JNCJTRONJMGZEEQL");
-*/
+
   Serial.println("Init Constant done");
   writeConstant();
 }

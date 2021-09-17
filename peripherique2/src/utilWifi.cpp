@@ -28,7 +28,7 @@ int printWifiStatus(const char* ssid,bool print)
     //Serial.print(" WiFiStatus=");
     Serial.print(" ");
     Serial.print(ws);Serial.print(" ");Serial.print((char*)(wifiSta+18*ws));
-    Serial.print(" to ");Serial.print(ssid);
+    if(ssid!=nullptr){Serial.print(" to ");Serial.print(ssid);}
   }
   return ws;
 }
@@ -40,7 +40,7 @@ int printWifiStatus(const char* ssid)
 
 int printWifiStatus()
 {
-  return printWifiStatus("",PRINT);
+  return printWifiStatus(nullptr,PRINT);
 }
 
 bool wifiConnexion(const char* ssid,const char* password,bool print)
