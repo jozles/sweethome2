@@ -169,23 +169,22 @@ void tmarker()
 
 void setup() 
 { 
+/*   stop modem
 #if POWER_MODE!=NO_MODE
 WiFi.disconnect();
 WiFi.forceSleepBegin();
 delay(1);
 #endif // PM!=NO_MODE
-
+*/
 
 /* >>>>>> pins Init <<<<<< */
 
   Serial.begin(115200);
 
 #if POWER_MODE==PO_MODE
-delay(1000);
 Serial.println("+");
 delay(1);
 
-//  wifi_set_sleep_type(LIGHT_SLEEP_T);
   digitalWrite(PINPOFF,LOW);
   pinMode(PINPOFF,OUTPUT);
 #endif // PM==PO_MODE
@@ -1023,42 +1022,47 @@ void readTemp()
 uint16_t tempPeriod0=cstRec.tempPer;  // (sec) durée depuis dernier check température
 #endif // PM==DS_MODE
 #if POWER_MODE==PO_MODE
-uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température (fixe : resistance 5111)
+uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température (fixe si PO_MODE : resistance 5111 ; sinon tempPer)
 #endif // PM==PO_MODE
 #if POWER_MODE==NO_MODE
 
   if(chkTrigTemp()){
       uint16_t tempPeriod0=(millis()-tempTime)/1000;   // (sec) durée depuis dernier check température
-      //Serial.print("cT ");Serial.print(millis());Serial.print(" tS ");Serial.print(cstRec.talkStep);
-      //Serial.print(" sT ");Serial.print(cstRec.serverTime);Serial.print(" sP ");Serial.print(cstRec.serverPer);
-      //Serial.print(" tP ");Serial.print(tempPeriod0);
       trigTemp();
 #endif // PM==NO_MODE
 
 /* avance timer server ------------------- */
-      cstRec.serverTime+=tempPeriod0;
-      if(cstRec.serverTime>cstRec.serverPer){
-        //Serial.print(" gT1 ");
+      cstRec.serverTime+=tempPeriod0;             // tempPeriod0 temps écoulé depuis dernier réveil/passage par readTemp
+      
+      /* si temps maxi atteint depuis dernière cx, forçage cx */
+      if(cstRec.serverTime>cstRec.serverPer){     // serverTime temps écoulé depuis dernier talkReq()
+                                                  // serverPer max période programmée depuis le serveur entre 2 talkReq
         getTemp();
         cstRec.serverTime=0;
         talkReq(); 
       }
+      /* si pas de ko en cours, getTemp() au cas où elle soit changée */
       else if (cstRec.serverPer!=PERSERVKO){  // si dernière cx wifi ko, pas de comm jusqu'à fin de tempo    
-/* temp (suffisament) changée ? */
-        //Serial.print(" gT2 ");
         getTemp();
-        if( temp>(cstRec.oldtemp+cstRec.tempPitch) || temp<(cstRec.oldtemp-cstRec.tempPitch)){
-          cstRec.oldtemp=(int16_t)temp;
-          talkReq();                      // temp changée -> talkServer
+        /* temp (suffisament) changée ? */
+        if(temp>cstRec.oldtemp+cstRec.tempPitch){
+          cstRec.oldtemp=(int16_t)temp-cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp-tempPitch/2)
           cstRec.serverTime=0;
+          talkReq(); 
         }
+        else if(temp<cstRec.oldtemp-cstRec.tempPitch){
+          cstRec.oldtemp=(int16_t)temp+cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp+tempPitch/2)
+          cstRec.serverTime=0;
+          talkReq(); 
+        }
+        /* si pas de changt suffisant rien */
       }
 
 #if POWER_MODE==NO_MODE
     }   // chkTigTemp
 #endif // PM==NO_MODE
   }     // talkStep = 0
-//Serial.print("  T ");Serial.print(temp);Serial.print(" ");Serial.print(millis());
+/* writeConstant avant sleep ou power off */
 }
 
 void getTemp()

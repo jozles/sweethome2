@@ -337,7 +337,7 @@ Modifier :
 #define PININTB 5       // in interupt
 #define MEMDINIT 0x0000 // bits enable memDetec
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
-#define PERTEMP 165     // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PERTEMP 170     // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #endif // CARTE==THESP01
 
 #if CARTE==THESP12

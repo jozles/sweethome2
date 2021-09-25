@@ -52,6 +52,7 @@ void checkVoltage()
       voltage=(float)ESP.getVcc()/(float)1024;
       if(voltage<3.2){
 #if POWER_MODE == PO_MODE
+        Serial.print('-');delay(1);
         digitalWrite(PINPOFF,HIGH);        // power down
         pinMode(PINPOFF,OUTPUT);
 #endif // PO_MODE
@@ -77,13 +78,12 @@ bool readConstant()
 #endif
 
 #if CONSTANT==EEPROMSAVED
-  cstRec.cstlen=EEPROM.read((int)(CONSTANTADDR));     // charge la longueur telle qu'enregistrée
+  cstRec.cstlen=EEPROM.read((int)(CONSTANTADDR))+EEPROM.read((int)(CONSTANTADDR+1))*256;     // charge la longueur telle qu'enregistrée
   Serial.print(" len=");Serial.println(cstRec.cstlen);delay(1);
-/*  if(cstRec.cstlen>100){cstRec.cstlen=0;}
+  if(cstRec.cstlen>512){cstRec.cstlen=0;}
   for(int temp=0;temp<cstRec.cstlen;temp++){        
     yield();*(cstRecA+temp)=EEPROM.read((int)(temp+CONSTANTADDR));
   }
-*/
 #endif
 
 Serial.print("readConstant ");Serial.print((long)cstRecA,HEX);Serial.print(" len=");Serial.print(cstRec.cstlen);
@@ -169,10 +169,10 @@ void initConstant()  // inits mise sous tension
   memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
 
   memcpy(cstRec.peripass,"17515A",LPWD+1);
-  strcat(cstRec.ssid1,"pinks");
-  strcat(cstRec.pwd1,"cain ne dormant pas songeait au pied des monts");
-  strcat(cstRec.ssid2,"devolo-5d3");
-  strcat(cstRec.pwd2,"JNCJTRONJMGZEEQL");
+  strcat(cstRec.ssid2,"pinks");
+  strcat(cstRec.pwd2,"cain ne dormant pas songeait au pied des monts");
+  strcat(cstRec.ssid1,"devolo-5d3");
+  strcat(cstRec.pwd1,"JNCJTRONJMGZEEQL");
 
   Serial.println("Init Constant done");
   writeConstant();
