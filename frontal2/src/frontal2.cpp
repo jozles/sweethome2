@@ -67,7 +67,7 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   byte*     localIp;          // ip  adresse server
   uint16_t* serverPort;       // port server
   uint16_t* remotePort;       // port remote
-  uint16_t* udpPort;          // port udp
+  uint16_t* serverUdpPort;          // port udp
   char*     serverName;       // nom server
   char*     peripass;         // mot de passe périphériques
   char*     ssid;             // liste des ssid pour peripherique2
@@ -503,7 +503,7 @@ memcpy(mac,"\x54\x55\x55\x55\x55\x55",6);
   Serial.print(" mac=");serialPrintMac(mac,0);
   Serial.print(" serverPort=");Serial.print(*serverPort);
   Serial.print(" remotePort=");Serial.print(*remotePort);
-  Serial.print(" udpPort=");Serial.print(*udpPort);
+  Serial.print(" serverUdpPort=");Serial.print(*serverUdpPort);
 
   trigwd();
 
@@ -517,8 +517,8 @@ memcpy(mac,"\x54\x55\x55\x55\x55\x55",6);
   configSave();
 //  configExport(bec);wifiExport(bec,2);wifiExport(bec,1);concExport(bec);setExpEnd(bec);Serial.println(bec);
 
-  Serial.print(" Udp.begin(");Serial.print(*udpPort);Serial.print(") ");
-  if(!Udp.begin(*udpPort)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
+  Serial.print(" Udp.begin(");Serial.print(*serverUdpPort);Serial.print(") ");
+  if(!Udp.begin(*serverUdpPort)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
   Serial.println("ok");
 
   trigwd();
@@ -1588,7 +1588,7 @@ Serial.print(*(libfonctions+2*i+1));Serial.print(" ");
                                       textIp((byte*)valf,localIp);break;   
                             case 'p': *serverPort=0;conv_atob(valf,serverPort);break;                   // (config) serverPort
                             case 't': *remotePort=0;conv_atob(valf,remotePort);break;                   // (config) remotePort
-                            case 'u': *udpPort=0;conv_atob(valf,udpPort);break;                         // (config) udpPort
+                            case 'u': *serverUdpPort=0;conv_atob(valf,serverUdpPort);break;                         // (config) serverUdpPort
                             case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;              // (config) mac
                             case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                        // (config) TO sans TCP
                             case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                        // (config) TO sans UDP

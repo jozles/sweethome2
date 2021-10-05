@@ -19,7 +19,7 @@ extern byte*      mac;
 extern byte*      localIp;
 extern uint16_t*  serverPort;
 extern uint16_t*  remotePort;
-extern uint16_t*  udpPort;
+extern uint16_t*  serverUdpPort;
 extern char*      serverName;
 
 extern char*      peripass;
@@ -198,7 +198,7 @@ void factoryResetConfig()
   memcpy(mac,DEFMACADDR,MACADDRLENGTH);
   *serverPort=DEFSERVERPORT;
   *remotePort=DEFSERVERPORT+1;
-  *udpPort=DEFSERVERPORT+2;
+  *serverUdpPort=DEFSERVERPORT+2;
   memset(usrnames,0x00,LENUSRNAME);
   memcpy(usrnames,"admin",5);
   memset(usrpass,0x00,LENUSRPASS);
@@ -275,7 +275,7 @@ byte* temp=(byte*)configRec;
   temp+=sizeof(uint16_t);
   serverName=(char*)temp;
   temp+=LNSERV;
-  udpPort=(uint16_t*)temp;
+  serverUdpPort=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
   temp+=16;                         // dispo  
   peripass=(char*)temp;
@@ -392,7 +392,7 @@ void configExport(char* bec)
   *(bec+ll)=';';ll++;
   sprintf(bec+ll,"%05u",(uint16_t)*remotePort);ll+=5;         // remote
   *(bec+ll)=';';ll++;
-  sprintf(bec+ll,"%05u",(uint16_t)*udpPort);ll+=5;            // udp
+  sprintf(bec+ll,"%05u",(uint16_t)*serverUdpPort);ll+=5;            // udp
   *(bec+ll)=';';ll++;
   strcat(bec+ll,peripass);                                    // peripass
   strcat(bec,";");
@@ -536,7 +536,7 @@ void configPrint()
   Serial.print("serverName=");Serial.println(serverName);
   Serial.print(" Mac=");serialPrintMac(mac,0);
   Serial.print(" localIp=");serialPrintIp(localIp);
-  Serial.print("/");Serial.print(*serverPort);Serial.print("/");Serial.print(*remotePort);Serial.print("/");Serial.println(*udpPort);      
+  Serial.print("/");Serial.print(*serverPort);Serial.print("/");Serial.print(*remotePort);Serial.print("/");Serial.println(*serverUdpPort);      
   Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.print(" table ssid ");Serial.print(*ssid1);Serial.print("/");Serial.println(*ssid2);
   subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);

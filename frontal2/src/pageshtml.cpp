@@ -16,7 +16,7 @@ extern byte*      mac;              // adresse server
 extern byte*      localIp;
 extern uint16_t*  serverPort;
 extern uint16_t*  remotePort;
-extern uint16_t*  udpPort;
+extern uint16_t*  serverUdpPort;
 
 extern char*      peripass;         // mot de passe périphériques
 extern unsigned long* maxCxWt;
@@ -527,7 +527,7 @@ fontBeg(buf,jsbuf,2,0);
             scrDspText(buf,jsbuf," localIp ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___i",11,LBUFL,0,BRYES);strcat(buf,"\n");
             scrDspText(buf,jsbuf," serverPort ",0,0);scrGetNum(buf,jsbuf,'d',serverPort,"ethcfg___p",5,0,0,0);
             scrDspText(buf,jsbuf," remotePort ",0,0);scrGetNum(buf,jsbuf,'d',remotePort,"ethcfg___t",5,0,0,0);
-            scrDspText(buf,jsbuf," udpPort ",0,0);scrGetNum(buf,jsbuf,'d',udpPort,"ethcfg___u",5,0,0,BRYES);strcat(buf,"\n");
+            scrDspText(buf,jsbuf," serverUdpPort ",0,0);scrGetNum(buf,jsbuf,'d',serverUdpPort,"ethcfg___u",5,0,0,BRYES);strcat(buf,"\n");
             scrDspText(buf,jsbuf,"peripass ",0,0);scrGetText(buf,jsbuf,peripass,"peripcfg__",5,LPWD,0,0);
             scrDspText(buf,jsbuf," TO sans cx tcp ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWt,"ethcfg___q",8,0,0,0);
             scrDspText(buf,jsbuf," TO sans cx udp ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWu,"ethcfg___r",8,0,0,BRYES);strcat(buf,"\n");

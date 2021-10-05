@@ -2,7 +2,7 @@
 #define _CONST_H_
 
 
-#define VERSION "1.57"
+#define VERSION "1.58"
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
    1.1a ajout volts et version dans table
    1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -132,7 +132,7 @@
   (jusqu'à v1.55 PORTSERVER et PORTPILOT sont les port des serveurs (proviennent de shconst.h) ; "portserver" du fichier config est inutilisé.)
   
   Depuis v1.56 !!! MODIF structure fichier config !!!
-  les variables du fichier config mac,serverName, serverPort, remotePort, udpPort sont utilisées. 
+  les variables du fichier config mac,serverName, serverPort, remotePort, serverUdpPort sont utilisées. 
   
   La carte W5500 recoit l'adresse mac du fichier config.
   Pour permettre la redirection de port et l'accès au serveur depuis les périphériques ou les navigateurs,
@@ -144,7 +144,7 @@
      sur le serveur, faire un "factory reset" qui modifie le fichier config : 
           (factory reset : appuyer RESET, appuyer HALT, relacher RESET, après environ 2 secondes
           la led jaune blink 1/0,5sec lâcher HALT : blink 2/seconde ; faire RESET)
-          efface localIP, serverPort=55550, remotePort=55551, udpPort=55552, mac=54.55.55.55.55.55, admin/admin pour l'accès
+          efface localIP, serverPort=55550, remotePort=55551, serverUdpPort=55552, mac=54.55.55.55.55.55, admin/admin pour l'accès
           initialise la table des concentrateurs mac ashco\0,b,c,d ; IP 0 ; ports 55556,7,8,9 channel 120/110/100/90 RfSpeed 2 
           (si un équipement local utilise un de ces port ou cette adresse mac, l'éteindre le temps de l'installation)
      sur le routeur, dans la liste des baux actifs du routeur on trouve l'adresse MAC 55.55... associée avec l'Ip fournie par le DHCP
