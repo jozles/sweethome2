@@ -7,6 +7,11 @@
 #include "util.h"
 #include "peripherique2.h"
 
+#ifdef CAPATOUCH
+#include <capaTouch.h>
+extern Capat capaKeys;
+#endif // CAPATOUCH
+
 #if POWER_MODE==NO_MODE
 
 extern constantValues cstRec;
@@ -409,9 +414,10 @@ void memdetinit()                         // init détecteurs physiques à la mi
 {
   Serial.println("init détecteurs");
   
-  for(uint8_t det=0;det<MAXDET;det++){
+  PINCHK;
+  for(uint8_t det=0;det<NBDET;det++){
     cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
-    cstRec.memDetec[det] |= digitalRead(pinDet[det])<<DETBITLH_PB;  // set bit LH 
+    cstRec.memDetec[det] |= PINREAD(det)<<DETBITLH_PB;  // set bit LH 
     detTime[det]=millis();
   }
 }
@@ -420,7 +426,7 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
                                      // memDetec met le débounce en commun si plusieurs inputs
                                      // utilisent le même détecteur (seul bit utilisé : LH)
 {    
-    byte lev=digitalRead(pinDet[det]);
+    byte lev=PINREAD(det); //digitalRead(pinDet[det]);
     if( ((byte)(cstRec.memDetec[det]>>DETBITLH_PB)&0x01) != lev ){    // niveau lu != niveau actuel de memDetec ?
       // level change -> update memDetec
       cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
@@ -434,13 +440,14 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
 
 void polAllDet()                                        // maj de memDetec (via polDx) pour tous les détecteurs locaux
 {                                                       // la tempo de debouce masque polDx
-   for(uint8_t det=0;det<(MAXDET);det++){if(detTime[det]==0){polDx(det);}}    // pas de debounce en cours  
+  PINCHK;
+  for(uint8_t det=0;det<(MAXDET);det++){if(detTime[det]==0){polDx(det);}}    // pas de debounce en cours  
 }
  
 
 void swDebounce()                     
 {
-  for(uint8_t det=0;det<MAXDET;det++){
+  for(uint8_t det=0;det<NBDET;det++){
     if(detTime[det]!=0 && (millis()>(detTime[det]+TDEBOUNCE))){
       detTime[det]=0; 
     }

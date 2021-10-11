@@ -19,13 +19,18 @@ EMailSender emailSend("lucieliu66", "eicul666");
 EMailSender::EMailMessage message;
 #endif //MAIL_SENDER
 
-
 extern "C" {                  
 #include <user_interface.h>                 // pour struct rst_info, system_deep_sleep_set_option(), rtc_mem
 }
 
 #if CONSTANT==EEPROMSAVED
 #include <EEPROM.h>
+#endif
+
+#ifdef CAPATOUCH
+#include <capaTouch.h>
+uint8_t keys[]={KEY2,KEY1};
+Capat capaKeys;
 #endif
 
 Ds1820 ds1820;
@@ -200,6 +205,11 @@ delay(1);
   Serial.println();
 #endif // PM==NO_MODE  
 
+#ifdef CAPATOUCH
+    capaKeys.init(SAMPLES,COMMON,keys,KEYNB);
+    capaKeys.calibrate();
+#endif    
+
   initLed();
 
 #if CARTE==VR || CARTE==VRR || CARTE==VRDEV
@@ -207,9 +217,11 @@ delay(1);
     digitalWrite(pinSw[sw],openSw[sw]);
     pinMode(pinSw[sw],OUTPUT);}
 
+#ifndef CAPATOUCH
   pinMode(PINDTA,INPUT_PULLUP);
   pinMode(PINDTB,INPUT_PULLUP);  
   pinMode(PINDTC,INPUT_PULLUP);  
+#endif // CAPATOUCH
 #endif // VR||VRR
 
 #ifdef PININT_MODE 
@@ -406,18 +418,16 @@ delay(1);
  * (ordreExt() positionne cstRec.talkStep!=0)
  * clkFastStep et cstRec.talkStep == 1 
 */
-          case 1:   timeOvfSet(1);if(cstRec.talkStep!=0){talkServer();}timeOvfCtl(1);
-                    break;
+          case 1:   if(cstRec.talkStep!=0){talkServer();}break;
           case 2:   break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
           case 4:   break;
-          case 5:   timeOvfSet(5);actions();timeOvfCtl(5);break;
+          case 5:   actions();break;
           case 6:   outputCtl();break;
           case 7:   ledblink(-1);break;
-          case 8:   swDebounce();break;                                 // doit être avant polDx
-          case 9:   timeOvfSet(9);polAllDet();timeOvfCtl(9);break;      // polDx doit être après swDebounce                            
-          case 10:  timeOvfSet(10);
-                    clkFastStep=0;              // période 50mS/step
+          case 8:   swDebounce();break;         // doit être avant polDx
+          case 9:   polAllDet();break;          // polDx doit être après swDebounce                            
+          case 10:  clkFastStep=0;              // période 50mS/step
                     switch(clkSlowStep++){
                       case 1:   break;
                       case 2:   pulseClkisr();break;
@@ -435,7 +445,6 @@ delay(1);
                                 break;
                       default:  break;
                     }
-                    timeOvfCtl(10);
                     break;
           default:  //if(clkFastStep==0){Serial.print(" cFS0 ");}
           break;

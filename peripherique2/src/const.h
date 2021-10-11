@@ -66,7 +66,8 @@
  * 1.S création buildData() pour isoler la construction du message de dataRead/Save et permettre la réponse à set dans ordreExt()
  * 1.u ordreExt rebranché ledblink corrigé ; talkServer revu ;
  * 1.v les paramètres de réseau et de wifi sont chargés depuis le serveur en série ; tout est stocké en EEPROM quelque soit le mode
- * 
+ * 1.w capacitives touch
+ *  
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
@@ -173,11 +174,21 @@ Modifier :
       ordreExt                       serveur->péri
       gestion des données (dataRead/Save/Build/dataTransfer)
 
-
-
-
-
 */
+/* macros accès aux pins d'entrées */
+
+#define CAPATOUCH
+
+#ifndef CAPATOUCH
+#define PINCHK
+#define PINREAD(pin) digitalRead(pinDet[pin])
+#endif  // CAPATOUCH
+#ifdef  CAPATOUCH
+#define PINCHK capaKeys.capaKeysCheck()        // charge l'état des touches capacitives
+#define PINREAD(pin) capaKeys.keyVal[pin]
+#endif  // CAPATOUCH
+
+
 /* >>> MODES d'ALIM <<< */
 
 #define DS_MODE 'D' // deep Sleep     (pas de loop ; pas de server ; ESP12 reset-GPIO6 connected)
@@ -192,6 +203,7 @@ Modifier :
 //#define RELAY   
 #define THESP01 '1'
 #define THESP12 '2'
+
 /********************************** 3 config à faire ********************************/
 //                                  1 -- modèle de carte
 //                                  2 -- type alimentation (POWER_MODE)
@@ -199,8 +211,8 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE THESP01             // <------------- modèle carte
-#define POWER_MODE PO_MODE      // <------------- type d'alimentation 
+#define CARTE VRR             // <------------- modèle carte
+#define POWER_MODE NO_MODE      // <------------- type d'alimentation 
 //#define PININT_MODE             // <------------- avec/sans pin d'interruption
 
 /* ds18x20 */
@@ -299,7 +311,9 @@ Modifier :
 #define PINSWD PINSWB   // pin sortie switch D
 #define CLOSD  CLOSB    
 #define OPEND  OPENB
+#ifndef  CAPATOUCH
 #define NBDET  4
+#endif
 #define PINDTA 12       // pin entrée détect bit 0 
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
@@ -310,8 +324,15 @@ Modifier :
 #define MEMDINIT 0x1111 // bits enable
 //#define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#ifdef  CAPATOUCH
+#define NBDET   2
+#define COMMON  PINDTC
+#define KEY1    PINDTA
+#define KEY2    PINDTB
+#define KEYNB   2     
+#define SAMPLES 5     
+#endif // CAPATOUCH
 #endif // CARTE==VRR
-
 
 #if CARTE==THESP01
 #define WPIN   2        // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
@@ -382,7 +403,9 @@ Modifier :
 #define PINSWD 2        // pin sortie switch D
 #define CLOSD  1        // valeur pour fermer (ouvert=!CLOSB)
 #define OPEND  0
+#ifndef CAPATOUCH
 #define NBDET  4
+#endif
 #define PINDTA 12       // pin entrée détect bit 0 
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC 13       // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
@@ -391,6 +414,14 @@ Modifier :
 #define PININTB 14      // in interupt
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#ifdef CAPATOUCH
+#define NBDET 2
+#define COMMON  PINDTC  
+#define KEY1    PINDTA  
+#define KEY2    PINDTB  
+#define KEYNB   2       
+#define SAMPLES 5       
+#endif // CPAPTOUCH
 #endif // CARTE==VRDEV
 
 
