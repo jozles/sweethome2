@@ -204,11 +204,14 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
   char date14[LNOW];ds3231.alphaNow(date14);
   char host[16];memset(host,'\0',16);
 
+  //periPrint(periCur);
+
   if(*periProg!=0 && *periPort!=0){
     charIp(periIpAddr,host);
   
     Serial.print(millis());Serial.print(" periReq(");Serial.print((char)*periProtocol);
     Serial.print(" peri=");Serial.print(periCur);
+    Serial.print(" Ip=");serialPrintIp(periIpAddr);
     Serial.print(" port=");Serial.print(*periPort);Serial.print(") ");
 
     if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
@@ -216,11 +219,11 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     else if(strlen(msg)<LENMESS){strcat(message,msg);}
 
     *bufServer='\0';
-    memcpy(bufServer,"GET /\0",6);                  // commande directe de périphérique en mode serveur
-    buildMess(nfonct,message,"",NODIAGS);                   // bufServer complété   
+    memcpy(bufServer,"GET /\0",6);                            // commande directe de périphérique en mode serveur
+    buildMess(nfonct,message,"",NODIAGS);                     // bufServer complété   
     Serial.println(millis());
 
-    if(*periProtocol=='T'){                         // UDP à développer
+    if(*periProtocol=='T'){                                   // UDP à développer
           periMess=messToServer(cli,host,*periPort,bufServer);
           //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(messToServer)=");Serial.println(periMess);
           Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");

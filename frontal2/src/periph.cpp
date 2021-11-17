@@ -617,14 +617,14 @@ void periInputPrint(byte* input)
       binput[4]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPOLDLEV_PB)&0x01)+48;                      // prev level
       binput[6]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPVALID_PB)&0x01)+48;                       // valid level
       a=*(uint8_t*)(input+ninp*PERINPLEN)&PERINPNT_MS;
-      if(a>3){a=4;}binput[8]=*(inptyps+2+a*2);binput[9]=*(inptyps+2+a*2+1);                                  // type détec src
+      if(a>3){a=4;}binput[8]=*(inptyps+2+a*2);binput[9]=*(inptyps+2+a*2+1);                            // type détec src
       a=*(uint8_t*)(input+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+11,&a);                      // n° détec src
       a=*(uint8_t*)(input+ninp*PERINPLEN+3)&PERINPNT_MS;
-      if(a>3){a=4;}binput[14]=*(inptypd+2+a*2+1);binput[15]=*(inptypd+2+a*2+1);                              // type détec dest
+      if(a>3){a=4;}binput[14]=*(inptypd+2+a*2+1);binput[15]=*(inptypd+2+a*2+1);                        // type détec dest
       a=*(uint8_t*)(input+ninp*PERINPLEN+3)>>PERINPNVLS_PB;conv_htoa(binput+17,&a);                    // n° détec dest
       a=(*((uint8_t*)(input+2+ninp*PERINPLEN))&PERINPACT_MS)>>PERINPACTLS_PB;conv_htoa(binput+20,&a);  // act input
       Serial.print(binput);
-      for(int tact=0;tact<LENTACT;tact++){Serial.print(inpact+2+a*LENTACT+tact);}
+      //for(int tact=0;tact<LENTACT;tact++){Serial.print(inpact+2+a*LENTACT+tact);}
       sp("  / ",0);
     }
     Serial.println();

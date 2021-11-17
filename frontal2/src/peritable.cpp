@@ -283,7 +283,6 @@ void swCtlTableHtml(EthernetClient* cli)
 
             scrDspNum(buf,jsbuf,'s',&ninp,0,0,TRBEG|TDBE);
             vv=(binp[2] & PERINPEN_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,1,TDBEG);              // bit enable
-            Serial.print(ninp);Serial.print("/");Serial.println(xfonc1);
             affSpace(buf,jsbuf);
             vv=(binp[2] & PERINPVALID_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,9,0);               // bit active level
             affSpace(buf,jsbuf);
@@ -654,11 +653,7 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
 
 void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate,uint16_t* lb)
 {
-  //Serial.print("showLine ");Serial.println(numline);
   float vv=0;
-//#define LBSHOWLINE 1000
-      //periInit();
-      //periInitVar();
       periLoad(numline);
       periCur=numline;
       if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}  
@@ -667,7 +662,6 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
 /* line form header */
           formIntro(buf,jsbuf,0,TRBEG);
 /* pericur - nom - th - volts */
-          //char* dm;dm=jsbuf+strlen(jsbuf);
           uint8_t lctl=STRING|TRBEG|TDBE;
 
           scrDspNum(buf,jsbuf,'d',&periCur,0,0,lctl);
@@ -678,7 +672,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);          
           vv=(float)(*periVmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
           vv=(float)(*periVmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);               
-// pertemp/pitch/offset 
+/* pertemp - pitch - offset */ 
           scrDspNum(buf,jsbuf,'d',periPerTemp,0,0,STRING|TDBEG|BRYES);
           vv=(float)(*periPitch_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,STRING|BRYES);
           vv=(float)(*periThOffset_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,STRING|TDEND);          
@@ -691,16 +685,12 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             
           scrDspNum(buf,jsbuf,'s',(uint8_t*)periSwNb,0,0,STRING|BRYES);
           scrDspNum(buf,jsbuf,'s',(uint8_t*)periDetNb,0,0,STRING|TDEND);                                                 
-          //concat1aH(buf,(char)(*periSwVal));strcat(buf,"<br>");
           
           char tt[4];tt[3]=0x00;
           for(uint8_t k=0;k<*periSwNb;k++){
                       tt[0]=oi[periSwCde(k)];tt[1]='_';tt[2]=oi[periSwLev(k)];
-                      //scrDspText(buf,jsbuf,&oi[periSwCde(k)],0,lctl);scrDspText(buf,jsbuf,"_",0,0);
-                      //lctl=0;
                       if(k<*periSwNb-1){lctl=STRING|BRYES;}
                       else {lctl=STRING|TDEND;}
-                      //scrDspText(buf,jsbuf,&oi[periSwLev(k)],0,lctl);
                       scrDspText(buf,jsbuf,tt,0,lctl);
           }
           if(*periSwNb==0){scrDspText(buf,jsbuf," ",0,STRING|TDEND);}          
@@ -708,7 +698,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             if(k<*periDetNb-1){lctl=STRING|BRYES;}
             else lctl=STRING|TDEND;
             char tt[2]={oi[(*periDetVal>>(k*2))&DETBITLH_VB],0x00};
-            scrDspText(buf,jsbuf,tt,0,lctl);     //&oi[(*periDetVal>>(k*2))&DETBITLH_VB],1,0,lctl);
+            scrDspText(buf,jsbuf,tt,0,lctl);   
           }
           if(*periDetNb==0){scrDspText(buf,jsbuf," ",0,STRING|TDEND);}
 // analog 
