@@ -688,21 +688,6 @@ int periCacheLoad(uint16_t num)
     return SDKO;
 }  
 
-int periLoad(uint16_t num)
-{
-if(num<=0 || num>NBPERIF){ledblink(BCODENUMPER);} 
-  int i=0;
-  int sta=SDOK;
-  
-  //if(periCacheStatus[num]!=CACHEISFILE){sta=periCacheLoad(num);}            // --->>>>>>>> le cache est toujours à jour des variables
-  //if(sta==SDOK){
-    for(i=0;i<PERIRECLEN;i++){periRec[i]=periCache[(num-1)*PERIRECLEN+i];}    // copie dans variables  
-  //  Serial.println(" OK-periLoad");}
-  //else {Serial.println(" KO");}
-  
-  return sta;
-}
-
 void memDetPrint(uint32_t ds)
 {
   Serial.print(" memDet=");
@@ -772,7 +757,7 @@ void periDetServUpdate()
   }
 }
 
-int periCacheSave(uint16_t num)
+int periCacheSave(uint16_t num)                                     // sauve les perifs du cache != file
 {     
     int sta=SDOK;
     char periFile[7];periFname(num,periFile);
@@ -785,25 +770,38 @@ int periCacheSave(uint16_t num)
         fperi.close();
         periCacheStatus[num]=CACHEISFILE;                           // le fichier est à l'image du cache
         for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
+        //Serial.print(">>>>>>>>>>>>>>>>>>>>>save cache ");Serial.println(num);
       }
       else{Serial.print(periFile);Serial.println(" ko");sta=SDKO;}
     }
     return sta;
 }
 
+int periLoad(uint16_t num)                                          // charge le cache dans les variables (periRec)
+{
+if(num<=0 || num>NBPERIF){Serial.print(" ");Serial.println(num);delay(5);ledblink(BCODENUMPER);} 
+  int i=0;
+  int sta=SDOK;
+  
+    for(i=0;i<PERIRECLEN;i++){periRec[i]=periCache[(num-1)*PERIRECLEN+i];}    // copie dans variables  
+  
+  return sta;
+}
+
 int periSave(uint16_t num,bool sd)            // si sd==PERISAVELOCAL copie periRec dans cache seul
-                                              // sinon                     copie sur SD aussi
+                                              // sinon                copie sur SD aussi
 {
   int sta=SDOK;
   
-  for(int i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=periRec[i];}    // copie dans cache
-  periCacheStatus[num]=CACHEISFILE;                                         // cache ok
+  for(int i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=periRec[i];}    // chargement perif courant dans cache[num]
+  periCacheStatus[num]=!CACHEISFILE;                                            // cache != file
 
   *periNum=num;
   
   if(sd!=PERISAVELOCAL){
-    periCacheStatus[num]=!CACHEISFILE;                                 // le fichier n'est pas à l'image du cache
-    sta=periCacheSave(num);}                                           // le fichier est à l'image du cache
+    sta=periCacheSave(num);
+    if(sta){periCacheStatus[num]=CACHEISFILE;}               // le fichier est à l'image du cache si sta = ok
+  }
 
 #ifdef SHDIAGS    
   Serial.print(" periSave(");periSub(num,sta,sd);
@@ -811,7 +809,7 @@ int periSave(uint16_t num,bool sd)            // si sd==PERISAVELOCAL copie peri
   return sta;
 }
 
-void periTableLoad()                            // au démarrage du systeme
+void periTableLoad()                            // au démarrage du systeme ; charge le cache complet
 {
   Serial.print("Load table perif ");
   periInit();
@@ -822,12 +820,21 @@ void periTableLoad()                            // au démarrage du systeme
   for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periCacheLoad(h)==SDKO){Serial.println(" KO");mail("PERITABLE_LOAD_HALT","");while(1){trigwd();delay(1000);}};}Serial.println(" ALL OK");
 }  
 
-void periTableSave()                            // à l'arret du systeme
+void periTableSave(bool force)                  // à l'arret du systeme ; sauve le cache (complet si FORCE sinon perifs modifiés seuls)
 {
   Serial.print("Save table perif ");
   
-  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");if(periCacheSave(h)==SDKO){Serial.println(" KO");mail("PERITABLE_SAVE_ERROR_HALT","");while(1){trigwd();delay(1000);}};}Serial.println(" ALL OK");
+  for(int h=1;h<=NBPERIF;h++){
+    Serial.print(".");
+    if(force){periCacheStatus[h]=!CACHEISFILE;}
+    if(periCacheSave(h)==SDKO){Serial.println(" KO");mail("PERITABLE_SAVE_ERROR_HALT","");while(1){trigwd();delay(1000);}};}
+    Serial.println(" ALL OK");
 }  
+
+void periTableSave()
+{
+  periTableSave(false);
+}
 
 int periRemove(uint16_t num)
 {

@@ -93,7 +93,8 @@
         Le mécanisme d'initialisation est installé. 
         Les concentrateurs et périphériques demandent leurs données de config au serveur via Serial1 du serveur, Serial1 du concentrateur, Serial des périfs.
    1.57 toutes config séries ok (?) v.19 de single_nrf_v2
-   1.58 
+   1.58 ajout mode forçage pour periTableSave() / param FORCE ; sortie sur accueil.html si getnv rend 0 params ;
+        corrections gestion cache périfs ;
 
    BUGS :
 
@@ -217,6 +218,7 @@
 #define SDKO 0
 
 #define CACHEISFILE 1
+#define FORCE true
 
 
 #define LENREMNAM 16    // remote name length

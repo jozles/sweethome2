@@ -30,6 +30,7 @@ void  periCheck(uint16_t num,const char* text);
 void  periPrint(uint16_t num);
 void  periTableLoad();
 void  periTableSave();
+void  periTableSave(bool force);
 void  periMaintenance();
 
 void  configInit();

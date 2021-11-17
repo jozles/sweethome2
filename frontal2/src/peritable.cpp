@@ -185,10 +185,8 @@ void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8
 }
 
 
-void swCtlTableHtml(EthernetClient* cli,int i)
+void swCtlTableHtml(EthernetClient* cli)
 {
-  periCur=i;
-
   char jsbuf[10000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF4000,lb1=0;
   char buf[lb0];buf[0]='\0';
@@ -198,16 +196,15 @@ void swCtlTableHtml(EthernetClient* cli,int i)
   Serial.print("swCtlTableHtml - periCur=");Serial.print(periCur);
   Serial.print("  free=");Serial.println(freeMemory(), DEC);
 
-  htmlBeg(buf,jsbuf,serverName);           // chargement CSS etc
+  htmlBeg(buf,jsbuf,serverName);          // chargement CSS etc
 
   optSelHtml(jsbuf,inptyps,optNam1);
   optSelHtml(jsbuf,inptypd,optNam2);
   optSelHtml(jsbuf,inpact,optNam3);
 
-  //usrPeriCurB(buf,jsbuf,"peri_t_sw_",0,2,0);
   formIntro(buf,jsbuf,"peri_t_sw_",0,0);  // n° usr + time usr + pericur + locfonc pour inits
 
-  pageLineOne(buf,jsbuf);                  // 1ère ligne page
+  pageLineOne(buf,jsbuf);                 // 1ère ligne page
   perifHeader(buf,jsbuf);                 // 2nde ligne page
   
   ethWrite(cli,buf,&lb);                  // tfr -> navigateur
@@ -278,15 +275,15 @@ void swCtlTableHtml(EthernetClient* cli,int i)
             ni++;
             
             char fnc[LENNOM+1];memcpy(fnc,"peri_inp__",LENNOM);fnc[LENNOM-1]=(char)(ninp+PMFNCHAR);fnc[LENNOM]='\0';
-            formIntro(buf,jsbuf,fnc,0,0);
+            formIntro(buf,jsbuf,fnc,ninp,0,0);
 
             uint8_t vv;
             byte binp[PERINPLEN];memcpy(binp,periInput+offsetInp,PERINPLEN);
             offsetInp+=PERINPLEN;
 
             scrDspNum(buf,jsbuf,'s',&ninp,0,0,TRBEG|TDBE);
-            //strcat(buf,"\n<tr><td>");concatn(buf,ninp);strcat(buf,"</td>");
             vv=(binp[2] & PERINPEN_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,1,TDBEG);              // bit enable
+            Serial.print(ninp);Serial.print("/");Serial.println(xfonc1);
             affSpace(buf,jsbuf);
             vv=(binp[2] & PERINPVALID_VB);perinpBfnc(buf,jsbuf,ninp,vv,'c',1,xfonc1,9,0);               // bit active level
             affSpace(buf,jsbuf);
@@ -297,22 +294,20 @@ void swCtlTableHtml(EthernetClient* cli,int i)
             vv=(binp[0]  & PERINPNT_MS);                                                                // type detec source
             scrGetSelect(buf,jsbuf,inptyps,optNam1,xfonc1,vv,4,ninp,0,TDBEG);
 
-            vv=(binp[0]>>PERINPNVLS_PB);perinpBfnc(buf,jsbuf,ninp,vv,'n',2,xfonc1,5,TDEND);              // num detec source
+            vv=(binp[0]>>PERINPNVLS_PB);perinpBfnc(buf,jsbuf,ninp,vv,'n',2,xfonc1,5,TDEND);             // num detec source
             strcat(buf,"\n");            
 
             vv=(binp[3]  & PERINPNT_MS);                                                                // type detec dest
             scrGetSelect(buf,jsbuf,inptypd,optNam2,xfonc1,vv,6,ninp,0,TDBEG);
 
-            vv=(binp[3]>>PERINPNVLS_PB);perinpBfnc(buf,jsbuf,ninp,vv,'n',2,xfonc1,7,TDEND);              // num detec  dest
+            vv=(binp[3]>>PERINPNVLS_PB);perinpBfnc(buf,jsbuf,ninp,vv,'n',2,xfonc1,7,TDEND);             // num detec  dest
             strcat(buf,"\n");            
 
             vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                  // action 
             scrGetSelect(buf,jsbuf,inpact,optNam3,xfonc1,vv,8,ninp,0,TDBE);
 
-            //strcat(buf,"<td><input type=\"submit\" value=\"MàJ\"></td>");
             scrGetButSub(buf,jsbuf,"Màj",TDBE);
                                                                                                         //strcat(buf, ajouter nom de la source si det
-            //strcat(buf,"</form></tr>\n\n");
             formEnd(buf,jsbuf,0,TREND);
 
             lb1=strlen(buf);
@@ -337,7 +332,7 @@ void periTableHtml(EthernetClient* cli)
   char buf[lb0];*buf=0x00;
 
   int i;
-  unsigned long begTPage=millis();  // calcul durée envoi page
+  //unsigned long begTPage=millis();  // calcul durée envoi page
 
   int savePeriCur=periCur;          // restoré à la fin
 
@@ -402,7 +397,7 @@ void periTableHtml(EthernetClient* cli)
           
           periCur=savePeriCur;if(periCur>0){periLoad(periCur);}
 
-bufLenShow(buf,jsbuf,lb,begTPage);
+//bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const char* title,const char* nfonc,uint8_t nbLi,const char* lib,uint8_t libsize,uint8_t nbOp,uint8_t lenOp,char* rulOp,char* rulOptNam,uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo,uint16_t* lb)
@@ -494,7 +489,7 @@ void showDates(char* buf,char* jsbuf)
           setColourE(buf,jsbuf);
 }
 
-void periLineHtml(EthernetClient* cli,int i)                // i=periCur
+void periLineHtml(EthernetClient* cli)              // periCur ok
 {
 /* >>>>>>>>>>>>>>>>>>>>>>> modèle de page <<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
 
@@ -505,7 +500,7 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
   int j;
   unsigned long begTPage=millis();    // calcul durée envoi page
 
-  Serial.print("periLineHtml - periCur=");Serial.print(periCur);Serial.print("/");Serial.print(i);
+  Serial.print("periLineHtml - periCur=");Serial.print(periCur);
 
   htmlBeg(buf,jsbuf,serverName);       // chargement CSS etc
   
@@ -552,9 +547,9 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
 
 /* ligne périphérique */                
 
-                periInitVar();periLoad(i);periCur=i;
-                if(*periSwNb>MAXSW){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
-                if(*periDetNb>MAXDET){periCheck(i,"perT");periInitVar();periSave(i,PERISAVESD);}
+                periInitVar();periLoad(periCur);
+                if(*periSwNb>MAXSW){periCheck(periCur,"perT");periInitVar();periSave(periCur,PERISAVESD);}
+                if(*periDetNb>MAXDET){periCheck(periCur,"perT");periInitVar();periSave(periCur,PERISAVESD);}
 
                 tableBeg(buf,jsbuf,0);
                       //strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   
@@ -645,7 +640,7 @@ void periLineHtml(EthernetClient* cli,int i)                // i=periCur
                 for(uint8_t k=0;k<*periDetNb;k++){
                   char oi[2]={'O','I'};
                   dLibState[k*DIGITSIZLIB]=oi[(*periDetVal>>(k*2))&DETBITLH_VB];
-                  dLibState[i*DIGITSIZLIB+1]='_';}
+                  dLibState[periCur*DIGITSIZLIB+1]='_';}
                 if(*periDetNb>0){
                   subCbdet(buf,jsbuf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,optNam0,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo,&lb);
                 }
@@ -678,15 +673,15 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           scrDspNum(buf,jsbuf,'d',&periCur,0,0,lctl);
           scrDspText(buf,jsbuf,periNamer,0,STRING);
           scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
-          vv=*periThmin_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,BRYES);
-          vv=*periThmax_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,TDEND);
+          vv=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
+          vv=(float)(*periThmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);
           scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);          
-          vv=*periVmin_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,BRYES);
-          vv=*periVmax_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,TDEND);               
+          vv=(float)(*periVmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
+          vv=(float)(*periVmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);               
 // pertemp/pitch/offset 
           scrDspNum(buf,jsbuf,'d',periPerTemp,0,0,STRING|TDBEG|BRYES);
-          vv=*periPitch_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,STRING|BRYES);
-          vv=*periThOffset_/100;scrDspNum(buf,jsbuf,'f',&vv,2,0,STRING|TDEND);
+          vv=(float)(*periPitch_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,STRING|BRYES);
+          vv=(float)(*periThOffset_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,STRING|TDEND);          
       
           char oi[2]={'O','I'};
           if(*periProg==0){lctl=STRING|TDEND;}
