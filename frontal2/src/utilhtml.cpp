@@ -284,11 +284,9 @@ void concatns(char* buf,char* jsbuf,long val,bool sep)
   s=sprintf(bb,"%lu",val);
   if(s>LSPR){ledblink(BCODESYSERR);}
   bb[s]='\0';
- #ifndef NOJSBUF 
   if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
     strcat(jsbuf,bb);if(sep){strcat(jsbuf,JSSEP);}
   }
- #endif 
   if(buf!=nullptr){strcat(buf,bb);}
 }
 

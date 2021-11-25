@@ -208,7 +208,7 @@ void dumpHisto(EthernetClient* cli)
 
   scrDspText(buf,jsbuf,"histoSD ",0,0);
   if(sdOpen(file,&fhisto)==SDKO){scrDspText(buf,jsbuf,"KO",0,0);return;}
-  fhsize=fhisto.size();
+  fhsize=fhisto.size();Serial.print(fhsize);
 
   if(histoDh[0]=='2'){
     shDateHist(histoDh,&pos);
@@ -307,7 +307,7 @@ void shDicDateHist(char* dhasc,long* but)
     }
   }
     
-  Serial.print("--- fin recherche ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
+  Serial.print("--- fin recherche dic ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
 }
 
 
@@ -488,6 +488,7 @@ void mailCfg(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0
 
     affSpace(buf,jsbuf);                    
     scrGetButSub(buf,jsbuf,"Maj",0);
+    scrDspText(buf,jsbuf," si perif mail absent plantage...",0,0);
     formEnd(buf,jsbuf,TITLE,0,0);
     strcat(buf,"\n"); 
   }

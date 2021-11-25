@@ -324,7 +324,7 @@ bufLenShow(buf,jsbuf,lb,begTPage);
 
 void periTableHtml(EthernetClient* cli)
 {
-  Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.println();
+  Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.print(" fhsize=");Serial.println(fhsize);
 
   char jsbuf[12000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF4000;
@@ -348,9 +348,7 @@ void periTableHtml(EthernetClient* cli)
 
           fontBeg(buf,jsbuf,2,0);
           scrGetNum(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0,0);
-          
           scrDspText(buf,jsbuf,"(",0,0);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,0);scrDspText(buf,jsbuf,")",0,0);
-          //strcat(buf,"(");concatn(buf,fhsize);strcat(buf,") ");
           
           scrGetNum(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0,0);
           scrGetText(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);    
@@ -665,6 +663,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           uint8_t lctl=STRING|TRBEG|TDBE;
 
           scrDspNum(buf,jsbuf,'d',&periCur,0,0,lctl);
+          
           scrDspText(buf,jsbuf,periNamer,0,STRING);
           scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
           vv=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);

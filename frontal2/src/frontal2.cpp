@@ -546,7 +546,7 @@ memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAE",6);*serverPort=1786;*remotePort=1788;*serv
   trigwd();
 
   Serial.print("Mail START ");
-  //mail("START","");
+  mail("START","");
 
   Serial.println(">>>>>>>>> fin setup\n");
 }
