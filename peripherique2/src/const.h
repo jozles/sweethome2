@@ -66,7 +66,7 @@
  * 1.S création buildData() pour isoler la construction du message de dataRead/Save et permettre la réponse à set dans ordreExt()
  * 1.u ordreExt rebranché ledblink corrigé ; talkServer revu ;
  * 1.v les paramètres de réseau et de wifi sont chargés depuis le serveur en série ; tout est stocké en EEPROM quelque soit le mode
- * 1.w capacitives touch
+ * 1.w capacitives touch / TO_ORDREXT 10mS
  *  
 Modifier : 
 
@@ -177,7 +177,7 @@ Modifier :
 */
 /* macros accès aux pins d'entrées */
 
-#define CAPATOUCH
+//#define CAPATOUCH
 
 #ifndef CAPATOUCH
 #define PINCHK

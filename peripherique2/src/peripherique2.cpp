@@ -184,7 +184,27 @@ delay(1);
 
 /* >>>>>> pins Init <<<<<< */
 
-  Serial.begin(115200);
+  Serial.begin(115200);delay(1000);Serial.println();
+
+/*
+char* dcrc1={"82.64.32.56:1796/sw0__OFF__=0005_"};    // 88
+int ldcrc1=strlen(dcrc1);
+//Serial.println(calcCrc(dcrc1,ldcrc1),HEX);
+Serial.println(calcCrc("0005_",5),HEX);   // 5A
+
+char* dcrc2={"82.64.32.56:1796/sw0__ON___=0005_"};    // ED
+int ldcrc2=strlen(dcrc2);
+Serial.println(calcCrc(dcrc2,ldcrc2),HEX);
+
+char* dcrc3={"82.64.32.56:1796/sw1__OFF__=0005_"};    // A4
+int ldcrc3=strlen(dcrc3);
+Serial.println(calcCrc(dcrc3,ldcrc3),HEX);
+
+char* dcrc4={"82.64.32.56:1796/sw1__ON___=0005_"};    // C1
+int ldcrc4=strlen(dcrc4);
+Serial.println(calcCrc(dcrc4,ldcrc4),HEX);
+*/
+
 
 #if POWER_MODE==PO_MODE
 Serial.println("+");
@@ -364,12 +384,12 @@ delay(1);
   yield();
   
 #ifdef  _SERVER_MODE
-  clkFastStep=1;talkReq();              // forçage com pour acquisition port perif server
+  clkFastStep=1;talkReq();                  // forçage com pour acquisition port perif server
   
-  ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;        // setup wifi pour ordreExt()
+  ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;    // setup wifi pour ordreExt()
   if(!wifiConnexion(ssid,ssidPwd)){
     ssid=cstRec.ssid2;ssidPwd=cstRec.pwd2;
-    wifiConnexion(ssid,ssidPwd);       // tentative sur ssid bis si existe
+    wifiConnexion(ssid,ssidPwd);            // tentative sur ssid bis si existe
   }
 #endif // def_SERVER_MODE
 
@@ -911,9 +931,9 @@ void ordreExt()
       char c;
       Serial.print("\nCliext ");
       while (cliext.connected()) {
-#define TO_ORDREXT 2
+#define TO_ORDREXT 10
         if(trx==0){trx=millis();}
-        if((millis()-(unsigned long)trx)>TO_ORDREXT){break;}
+        if((millis()-(unsigned long)trx)>TO_ORDREXT){Serial.print("TO_available");break;}
         if (cliext.available()) {
           c = cliext.read();
           //Serial.print(c);
@@ -925,7 +945,7 @@ void ordreExt()
           if(hm<LHTTPMESS){hm++;nl++;}
           trx=0;
         }
-      }
+      } // while connected
       // format message "GET /FFFFFFFFFF=nnnn....CC" FFFFFFFFFF instruction (ETAT___, SET____ etc)
       //                                             nnnn nombre de car décimal zéros à gauche 
       //                                             .... éventuels arguments de la fonction
@@ -951,10 +971,10 @@ void ordreExt()
               case 2: answer("etat______");talkReq();break;     // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
               case 3: break;                                            // sleep (future use)
               case 4: break;                                            // reset (future use)
-              case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);break;     // test on  A        http://192.168.0.6:80/sw0__ON___=0005_5A
+              case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);break;     // test on  A        http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A
               case 6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);break;    // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
-              case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);break;     // test on  B        http://192.168.0.6:80/sw1__ON___=0005_5A
-              case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);break;    // test off B        http://192.168.0.6:80/sw0__OFF__=0005_5A
+              case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);break;     // test on  B        http://82.64.32.56:1796/sw1__ON___=0005_5A
+              case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);break;    // test off B        adresse/port indifférent crc=5A
               case 9: 
               #ifdef MAIL_SENDER                      
                       if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
