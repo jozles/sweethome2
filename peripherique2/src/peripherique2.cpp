@@ -174,6 +174,11 @@ void tmarker()
 
 void setup() 
 { 
+
+/* >>>>>> pins Init <<<<<< */
+
+  checkVoltage();                   // power off au plus vite si tension insuffisante (no serial)
+
 /*   stop modem
 #if POWER_MODE!=NO_MODE
 WiFi.disconnect();
@@ -182,9 +187,8 @@ delay(1);
 #endif // PM!=NO_MODE
 */
 
-/* >>>>>> pins Init <<<<<< */
-
-  Serial.begin(115200);delay(1000);Serial.println();
+  Serial.begin(115200);delay(10);
+  //while(1){delay(1);}
 
 /*
 char* dcrc1={"82.64.32.56:1796/sw0__OFF__=0005_"};    // 88
@@ -207,14 +211,12 @@ Serial.println(calcCrc(dcrc4,ldcrc4),HEX);
 
 
 #if POWER_MODE==PO_MODE
-Serial.println("+");
+Serial.println("\n+");
 delay(1);
 
   digitalWrite(PINPOFF,LOW);
   pinMode(PINPOFF,OUTPUT);
 #endif // PM==PO_MODE
-
-  checkVoltage();                   // power off au plus vite si tension insuffisante (no serial)
 
 #if POWER_MODE==NO_MODE
   diags=false;
