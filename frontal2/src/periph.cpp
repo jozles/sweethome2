@@ -791,6 +791,7 @@ if(num<=0 || num>NBPERIF){Serial.print(" ");Serial.println(num);delay(5);ledblin
 int periSave(uint16_t num,bool sd)            // si sd==PERISAVELOCAL copie periRec dans cache seul
                                               // sinon                copie sur SD aussi
 {
+  //Serial.print("\nperiSave ");Serial.print(sd);Serial.print(" ");Serial.println(num);
   int sta=SDOK;
   
   for(int i=0;i<PERIRECLEN;i++){periCache[(num-1)*PERIRECLEN+i]=periRec[i];}    // chargement perif courant dans cache[num]

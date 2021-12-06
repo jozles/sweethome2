@@ -219,7 +219,7 @@
 
 #define CACHEISFILE 1
 #define FORCE true
-
+#define PERILOAD true
 
 #define LENREMNAM 16    // remote name length
 #define NBREMOTE 16     // remote entrys

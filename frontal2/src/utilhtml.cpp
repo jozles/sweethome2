@@ -615,7 +615,7 @@ void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char
           if(locfonc!=nullptr){
             char fonc[LENNOM+1];*fonc=0x00;
             memcpy(fonc,locfonc,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
-            strcat(buf,"<input type=\"text\" name=\"");strcat(buf,fonc);strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCVAL+periCur));strcat(buf,"\">");
+            strcat(buf,"<input type=\"text\" name=\"");strcat(buf,fonc);strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCHAR+periCur));strcat(buf,"\">");
           }
           strcat(buf,"</p>\n");
     }
