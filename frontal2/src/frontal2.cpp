@@ -324,6 +324,8 @@ char   memosTable[LMEMO*NBMEMOS];
  *  
 */
 
+bool oneIcon=false;
+
 char inch=' ';
 char strdate[LDATEB];       // buffer date
 char strd3[4]={0};
@@ -1198,7 +1200,7 @@ void getPC(bool load)
 {
   if(periCur<=0){Serial.print("\n!!!!<periCur=");Serial.print(periCur);Serial.println(valf);periCur=NBPERIF;}
   if(periCur>NBPERIF){Serial.print("\n!!!!>periCur=");Serial.print(periCur);Serial.println(valf);periCur=NBPERIF;}
-  if(load){periInitVar();periLoad(periCur);}
+  if(load){periLoad(periCur);}
 }
 
 void getPeriCurLibf(bool load)
@@ -1437,7 +1439,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 6:  what=2;perrefr=0;conv_atob(valf,&perrefr);                                   // (en tête peritable) periode refresh browser
                        break;                                                                               
               case 7:  *periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) Th Offset
-              case 8:  getPeriCurLibf(PERILOAD);                                                    // bouton switchs___ (periLine)
+              case 8:  getPeriCurLibf(PERILOAD);                                                    // bouton switchs___ (periLine/showline)
                                                                                                     // + bouton refresh  (switchs)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                // + bouton erase    (switchs)
                        else{
@@ -1467,7 +1469,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         //Serial.print("=========== periCur=");Serial.print(periCur);Serial.print(" k=");Serial.print(k);Serial.print(" a=");Serial.print(a);Serial.print(" swLev=");Serial.print(periSwLev(a));Serial.print(" peritst=");Serial.println(fptst);
                         periLineHtml(cli);                        
                        }break;                                                                       
-              case 15: what=5;getPeriCurValf(false);                                                // (formIntro) - peri_cur__ maj periCur et periLoad
+              case 15: what=5;getPeriCurValf(PERILOAD);                                             // (periLine) - peri_cur__ bouton submit
                        *periProg=0;
                        break;                                                                        
               case 16: *periPerRefr=0;conv_atobl(valf,periPerRefr);break;                           // (periLine) - peri_refr_ periode maxi accès serveur
@@ -1764,7 +1766,7 @@ Serial.print(*(libfonctions+2*i+1));Serial.print(" ");
                        if(nb>=16){nb-=16;}
                        alphaTfr(&libDetServ[nb][0],LENLIBDETSERV,valf,nvalf[i+1]-nvalf[i]);
                        }break;                          
-              case 68: getPeriCurLibf(PERILOAD);                                                        // bouton periph periline__                                        
+              case 68: getPeriCurLibf(PERILOAD);                                                        // (showline) bouton periph
                        periLineHtml(cli);
                        break;                                                                                                    
               case 69: break;                                                                           // done         
@@ -1781,7 +1783,7 @@ Serial.print(*(libfonctions+2*i+1));Serial.print(" ");
               case 73: {uint8_t nf=*(libfonctions+2*i+1)-PMFNCHAR;                                      // bouton submit rul_init__                                                                                                        
                                                                                                         // n° de la fonction qui utilise rul_init__
                        periCur=0;conv_atob(valf,&periCur);                                              // (0-n, 0=analog input rules ; 1=digital)                                                                                                
-                       if(periCur>NBPERIF){periCur=NBPERIF;}periInitVar();periLoad(periCur); 
+                       if(periCur>NBPERIF){periCur=NBPERIF;}periLoad(periCur); 
                        //Serial.print(" fonct 73======");periPrint(periCur);
                        uint8_t* cb=periAnalCb;
                        int8_t* memo=periAnalMemo;                                                       // effacement check box et memos précédents

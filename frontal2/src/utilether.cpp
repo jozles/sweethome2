@@ -61,7 +61,7 @@ extern EthernetClient cliext;
 
 int writeEth0(EthernetClient* cli,char* buf, uint16_t len)
 {
-  #define ETHTO 1000
+  #define ETHTO 2000
   unsigned long beg=millis();
   bool sta=0;
 
@@ -71,10 +71,12 @@ int writeEth0(EthernetClient* cli,char* buf, uint16_t len)
   return sta;
 }
 
-int ethWrite(EthernetClient* cli,char* buf,uint16_t* lb)
+int ethWrite(EthernetClient* cli,char* buf,uint16_t* lb,long len)
 {
   unsigned long ethbeg=millis();
-  long i=0,j=strlen(buf);
+  long i=0;
+  long j=strlen(buf);
+  if(len!=0){j=len;}
   bool sta=1;
 
   if(lb!=nullptr){*lb+=strlen(buf);}
@@ -92,8 +94,19 @@ int ethWrite(EthernetClient* cli,char* buf,uint16_t* lb)
 
 int ethWrite(EthernetClient* cli,char* buf)
 {
-  return ethWrite(cli,buf,nullptr);
+  return ethWrite(cli,buf,nullptr,strlen(buf));
 }
+
+int ethWrite(EthernetClient* cli,char* buf,long len)
+{
+  return ethWrite(cli,buf,nullptr,len);
+}
+
+int ethWrite(EthernetClient* cli,char* buf,uint16_t* lb)
+{
+  return ethWrite(cli,buf,lb,strlen(buf));
+}
+
 
 void mail(const char* a, const char* mm)
 {

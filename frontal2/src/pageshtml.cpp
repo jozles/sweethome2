@@ -9,6 +9,8 @@
 #include "pageshtml.h"
 #include "utiljs.h"
 
+extern bool oneIcon;
+
 extern Ds3231 ds3231;
 
 extern char*      serverName;
@@ -122,18 +124,22 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
         if(sdOpen(fimgname,&fimg)==SDKO){return SDKO;}
         else {
           long fimgSiz=fimg.size();
-          Serial.print(" size=");Serial.print(fimgSiz);
+          Serial.print(" size=");Serial.println(fimgSiz);
           #define ICONLENGTH 1000
           if(fimgSiz>=ICONLENGTH){Serial.println(" fichier icon trop grand *********");}
           else {
-            char icon[ICONLENGTH+JPGINTROLEN];*icon=0x00;
+            char icon[ICONLENGTH+JPGINTROLEN];icon[0]='\0';
             jpgIntro0(icon);
-            for(int i=strlen(icon);i<fimgSiz+JPGINTROLEN;i++){icon[i]=fimg.read();}
-            icon[fimgSiz]='\0';
-            Serial.print(" ms_rd=");Serial.print(millis()-begIC);
+            Serial.print(' ');Serial.print(icon);Serial.print(' ');
+            for(int i=strlen(icon);i<(fimgSiz+JPGINTROLEN);i++){icon[i]=fimg.read();
+              //Serial.print(i);Serial.print(' ');Serial.println(icon[i],HEX);
+              icon[i+1]='\0';}
+            //icon[fimgSiz]='\0';
+            Serial.print(" ms_rd=");Serial.print(millis()-begIC);Serial.print(" len=");Serial.print(strlen(icon));
             //cli->write(icon);
             
-            ethWrite(cli,icon);
+            //cli->write(icon,fimgSiz+JPGINTROLEN);
+            ethWrite(cli,icon,fimgSiz+JPGINTROLEN);
             //dumpstr(icon,512);
           }
           fimg.close();        
@@ -147,7 +153,10 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
 
 void htmlFavicon(EthernetClient* cli)
 {
-  htmlImg(cli,"sweeth.png");
+  if(!oneIcon){
+    htmlImg(cli,"sweeth.png");
+    oneIcon=true;
+  }
 }
 
 void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long histoPos,uint16_t lb0,uint16_t* lb)   // liste le fichier histo depuis une adresse

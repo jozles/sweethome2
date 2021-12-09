@@ -982,8 +982,8 @@ void yscrGetRadiobut(char* buf,char* jsbuf,byte valeur,const char* nomfonct,uint
 void jpgIntro0(char* dm)
 {
   char* dm0=dm;
-  strcat(dm,"HTTP/1.1 200 OK");
-  strcat(dm,"CONTENT-Type: image/jpg\n");
+  strcat(dm,"HTTP/1.1 200 OK\n");
+  strcat(dm,"CONTENT-Type: image/png\n");
   if(strlen(dm0)>JPGINTROLEN){ledblink(BCODEPERIRECLEN);}
 }
 
