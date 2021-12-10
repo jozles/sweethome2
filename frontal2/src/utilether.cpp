@@ -61,7 +61,7 @@ extern EthernetClient cliext;
 
 int writeEth0(EthernetClient* cli,char* buf, uint16_t len)
 {
-  #define ETHTO 2000
+  #define ETHTO 1000
   unsigned long beg=millis();
   bool sta=0;
 
