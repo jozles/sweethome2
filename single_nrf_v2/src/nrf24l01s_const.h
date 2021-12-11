@@ -1,7 +1,7 @@
 #ifndef _NRF_CONST_INCLUDED
 #define _NRF_CONST_INCLUDED
 
-#define VERSION "1.9 "
+#define VERSION "1.a "
 #define LENVERSION 4
 
 /*
@@ -51,7 +51,8 @@ v1.9  configs concentrateurs et périfs nrf chargées via Serial1 depuis le serv
       (l'adresse RX1 par défaut des concentrateurs est le param CC_NRF_ADDR (4 caractères) + le numéro d'entrée dans la table du serveur ;)
       concNb indique le numéro de concentrateur pour la config série des concentrateurs et périphériques concentrés.
       Les paramètres des périfs sont chargés ou non dans la config du serveur selon keep/new.
-      La totalité des paramètres de toutes les machines sont définis dans la config du serveur. v1.57 finale de frontal2 
+      La totalité des paramètres de toutes les machines sont définis dans la config du serveur. v1.57 finale de frontal2
+v1.a        
 */
 
 /************* config ****************/

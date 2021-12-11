@@ -79,7 +79,6 @@ bool readConstant()
 
 #if CONSTANT==EEPROMSAVED
   cstRec.cstlen=EEPROM.read((int)(CONSTANTADDR))+EEPROM.read((int)(CONSTANTADDR+1))*256;     // charge la longueur telle qu'enregistrée
-  Serial.print(" len=");Serial.println(cstRec.cstlen);delay(1);
   if(cstRec.cstlen>512){cstRec.cstlen=0;}
   for(int temp=0;temp<cstRec.cstlen;temp++){        
     yield();*(cstRecA+temp)=EEPROM.read((int)(temp+CONSTANTADDR));

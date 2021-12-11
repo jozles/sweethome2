@@ -1,7 +1,4 @@
 
-#define _MODE_DEVT    
-/* Mode développement */
-
 #include <ESP8266WiFi.h>
 #include <shconst2.h>
 #include <shutil2.h>
@@ -102,6 +99,8 @@ bool serverStarted=false;
   unsigned long  debConv=millis();        // pour attendre la fin du délai de conversion
   int            tconversion=0;
   unsigned long  detTime[MAXDET]={millis(),millis(),millis(),millis()};    // temps pour debounce
+  uint32_t       locmem=0;                  // local mem rules bits
+
 
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
@@ -222,7 +221,10 @@ delay(1);
   diags=false;
   delay(1000);
   //Serial.print("\nSerial buffer size =");Serial.println(Serial.getRxBufferSize());
-  Serial.print("\nstart setup v");Serial.print(VERSION);Serial.print(" ; une touche pour diags ");
+  Serial.print("\nstart setup ");Serial.print(VERSION);
+  Serial.print(" power_mode=");Serial.print(POWER_MODE);
+  Serial.print(" carte=");Serial.print(CARTE);
+  Serial.print(" ; une touche pour diags ");
   while((millis()-t_on)<6000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
   Serial.println();
 #endif // PM==NO_MODE  
@@ -281,14 +283,6 @@ delay(1);
 
 /* >>>>>> debut <<<<<< */
 
-  Serial.print(" Slave 8266 ");
-#ifdef _MODE_DEVT
-  Serial.print("MODE_DEVT ");
-#endif //_MODE_DEVT
-
-  Serial.print(VERSION);Serial.print(" power_mode=");Serial.print(POWER_MODE);
-  Serial.print(" carte=");Serial.print(CARTE);
-
   if(diags){
 #if CARTE != THESP01
 #if CARTE != THESP02    
@@ -338,9 +332,13 @@ delay(1);
 /* >>>>>> gestion variables permanentes <<<<<< */
 
 #if CONSTANT==EEPROMSAVED
-  Serial.print(" EEPROM ");
+  Serial.print("EEPROM ");
   EEPROM.begin(512);
 #endif
+#if CONSTANT==RTCSAVED
+  Serial.print("RTC ");
+#endif
+
 
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et sauver */
 
@@ -352,7 +350,6 @@ delay(1);
     while(1){blink(1);delay(1000);}} // blocage param faux, le programme a changé
   }
 
-  Serial.print("CONSTANT=");Serial.print(CONSTANT);Serial.print(" time=");Serial.print(millis()-debTime);Serial.println(" ready !");
   printConstant();
 
   // Ip au format texte pour MessToServer
@@ -361,7 +358,9 @@ delay(1);
   for(uint8_t i=0;i<4;i++){
     sprintf(buf+strlen(buf),"%d",cstRec.serverIp[i]);if(i<3){strcat(buf,".");}}
   memcpy(textServerIp,buf,LSRVTEXTIP);
-  Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);Serial.print(" textServerIp ");Serial.println(textServerIp);
+  Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);//Serial.print(" textServerIp ");Serial.println(textServerIp);
+
+  Serial.print(" time=");Serial.println(millis()-debTime);
 
   #define FRDLY 5  // sec
 #if CARTE != THESP01
@@ -373,19 +372,19 @@ delay(1);
   }
 #endif    
   Serial.println();
-
+  Serial.print("locmem=");Serial.println(locmem,HEX);
 
 #if POWER_MODE==NO_MODE
-
   cstRec.talkStep=0;
   cstRec.serverTime=cstRec.serverPer+1;
   talkReq(); 
 
   memdetinit();pulsesinit();
-  Serial.print(" ssid=");Serial.print(cstRec.ssid1);Serial.print(" - ");Serial.println(cstRec.ssid2);
+  Serial.print("ssid=");Serial.print(cstRec.ssid1);Serial.print(" - ");Serial.println(cstRec.ssid2);
   yield();
   
 #ifdef  _SERVER_MODE
+  Serial.print("_SERVER_MODE ");
   clkFastStep=1;talkReq();                  // forçage com pour acquisition port perif server
   
   ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;    // setup wifi pour ordreExt()
@@ -395,8 +394,8 @@ delay(1);
   }
 #endif // def_SERVER_MODE
 
-  //Serial.print(cstRec.talkStep,HEX);
   Serial.println(">>>> fin setup\n");
+  actionsDebug();
   }    // fin setup NO_MODE
 
   void loop(){  //=== NO_MODE =================================      

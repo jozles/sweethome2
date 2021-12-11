@@ -7,12 +7,16 @@
 #include "util.h"
 #include "peripherique2.h"
 
+//#define DEBUG_ACTIONS
+
 #ifdef CAPATOUCH
 #include <capaTouch.h>
 extern Capat capaKeys;
 #endif // CAPATOUCH
 
 #if POWER_MODE==NO_MODE
+
+extern uint32_t locmem;        // mémoire = valeurs locales pour partiels
 
 extern constantValues cstRec;
 
@@ -33,6 +37,10 @@ extern  int*    int0;
 extern uint32_t  mDSmaskbit[];
 
 extern uint8_t openSw[],cloSw[],valSw[];
+
+byte oldCstCde; // memo swCde pour debug
+
+
 
 /* ------------------ généralités -------------------- 
 
@@ -120,6 +128,26 @@ void setPulseChg(int npu,char timeOT)     // traitement fin de temps
   Serial.print(" sec=");Serial.print(millis()/1000);Serial.println();
 }
 
+void actionsDebug()
+{
+#ifdef DEBUG_ACTIONS
+  Serial.println("(n rules start,locmem");
+  Serial.println("-01. next enabled rule,locmem if 0, if 1");
+  Serial.println("[#] valid static rule");
+  Serial.println("[*] valid edge rule");
+  Serial.println("[!] invalid rule");
+  Serial.println("a action nb");
+  Serial.println("< OR action start");
+  Serial.println("{ XOR action start");
+  Serial.println("abcd detecState,srce,dest,curvalue ");
+  Serial.println("> OR action end");
+  Serial.println("} XOR action end");
+  Serial.println("cl curvalue,locmem");
+  Serial.println(") rules end");
+
+#endif //DEBUG_ACTIONS
+
+}
 
 void actionSysErr(uint8_t action)
 {
@@ -138,22 +166,37 @@ void actions()          // pour chaque input, test enable,
   uint8_t ndest;            // n° destination
   byte    tdest;            // type destination
   uint8_t curValue=0;       // valeur en cours pour l'évaluation des règles (0==OFF ; 1==ON)
-
-  uint32_t locmem=0;        // mémoire = valeurs locales pour partiels
+  uint32_t lmbit0;          // valeur locmem modifiée par 0
+  uint32_t lmbit1;          // valeur locmem modifiée par 1  
 
   /* pour actions OR/NOR/AND/NAND */
   uint8_t curSw[MAXSW];memset(curSw,0x00,MAXSW);     // valeur courante des SW pendant la lecture des règles (0 au départ)
   uint8_t usdSw[MAXSW];memset(usdSw,0x00,MAXSW);     // devient 1 si le SW est modifié par une règle
 
+#ifdef DEBUG_ACTIONS
+  Serial.print('(');Serial.print(locmem);
+#endif //DEBUG_ACTIONS
+
+
   for(int inp=0;inp<NBPERINPUT;inp++){
 
     curinp=&cstRec.perInput[inp*PERINPLEN];                       // règle courante
     if(((*(curinp+2))&PERINPEN_VB)!=0){                           // enable
+#ifdef DEBUG_ACTIONS
+  Serial.print('-');
+#endif //DEBUG_ACTIONS
       
       nsrce=(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);              // numéro source
       ndest=(((*(curinp+3))&PERINPV_MS)>>PERINPNVLS_PB);          // numéro destination
       tdest=(byte)((*(curinp+3))&PERINPNT_MS);                    // type destination
-    
+      
+      lmbit0=locmem & ~(mDSmaskbit[ndest]);                      // locmem result 0
+      lmbit1=locmem | mDSmaskbit[ndest];                         // locmem result 1    
+#ifdef DEBUG_ACTIONS
+  Serial.print(lmbit0);Serial.print(lmbit1);Serial.print('.');
+#endif //DEBUG_ACTIONS
+
+
       /* évaluation source -> detecState (detecFound==1 if detecstate valid */
       switch((*curinp)&PERINPNT_MS){                              // type source
         case DETYEXT:detecState=(cstRec.extDetec>>nsrce)&0x01;    // valeur détecteur externe 
@@ -162,7 +205,7 @@ void actions()          // pour chaque input, test enable,
              detecFound=1;break;
         case DETYPHY:detecState=(byte)(cstRec.memDetec[nsrce]>>DETBITLH_PB)&0x01;     // valeur détecteur physique
              detecFound=1;break;
-        case DETYMEM:detecState=(locmem>>nsrce)&0x01;             // valeur intermédiaire
+        case DETYMEM:detecState=(locmem>>nsrce)&0x01;detecFound=1;break;              // valeur loc mem
         case DETYPUL:switch(staPulse[nsrce]){                     // pulse                
                  case PM_RUN1: detecState=0;detecFound=1;break;   // pulse run1=L
                  case PM_RUN2: detecState=1;detecFound=1;break;   // pulse run2=H
@@ -175,29 +218,70 @@ void actions()          // pour chaque input, test enable,
                  default: break;
              }break;
         default:break;
-      }                                                         
+      }
 
       if(detecFound!=0){                                                          // if detecState valid (0==OFF ; 1==ON)
 
         if( (((*(curinp+2))&PERINPDETES_VB)!=0)                  
             &&((((*(curinp+2))>>(PERINPVALID_PB) )&0x01)==1)
-           ){detecState^=0x01;}                                                   // static && 1 -> invert          
+           ){detecState^=0x01;}                                                   // static && inv -> invert          
 
-        if(                                                                       // if source ok
+        if(                                                                       // if( 
+            (((*(curinp+2))&PERINPDETES_VB)==0)                                   // edge  
+          )
+          {
+#ifdef DEBUG_ACTIONS
+  Serial.print('[');Serial.print(((*(curinp+2))>>(PERINPOLDLEV_PB))&0x01);Serial.print(((*(curinp+2))>>(PERINPVALID_PB))&0x01);
+  Serial.print(']');Serial.print(locmem,HEX);
+#endif // DEBUG_ACTIONS
+            if(                                                                   // if(
+                (detecState!=(((*(curinp+2))>>(PERINPOLDLEV_PB))&0x01))           // level chge (curr!=old)
+              )
+              {
+                *(curinp+2) &= ~PERINPOLDLEV_VB;                                  // raz bit oldlev
+                *(curinp+2) |= (detecState << PERINPOLDLEV_PB);                   // màj bit oldlev
+
+                if(                                                               // if(
+                  (detecState==(((*(curinp+2))>>(PERINPVALID_PB) )&0x01))         // curr==active level  
+                  )
+                  {detecState=1;}                                                 // active edge detected 
+                else 
+                  {detecState=0;}                                                 // wrong edge
+              }
+            else
+                  {detecState=0;}                                                 // no chge            
+
+          }                                                                       // no edge
+
+
+#ifdef DEBUG_ACTIONS
+        if(                                                                       // if( 
             (
-              (((*(curinp+2))&PERINPDETES_VB)==0)                                 
-            &&(detecState!=(((*(curinp+2))>>(PERINPOLDLEV_PB))&0x01))               
-            &&(detecState==(((*(curinp+2))>>(PERINPVALID_PB) )&0x01))               
-            )                                                                     // edge && curr!=old && curr==active level
+              (((*(curinp+2))&PERINPDETES_VB)==0)                                 // edge  
+              &&(detecState==1)                                                   // valid
+            )                                                                     
+          ){Serial.print("*");}
+        if(
+            (((*(curinp+2))&PERINPDETES_VB)!=0)                                   // static
+          ){Serial.print("#");}
+#endif // DEBUG_ACTIONS
+
+        if(                                                                       // if source ok (static or active edge)
+            (
+              (((*(curinp+2))&PERINPDETES_VB)==0)                                 // edge  
+              &&(detecState==1)                                                   // valid
+            )                                                                     
             ||                                                                    // or
             (
-              (((*(curinp+2))&PERINPDETES_VB)!=0)                  
-            )                                                                     // static
-          ){ 
-            uint32_t lmbit0=locmem &= ~(mDSmaskbit[ndest]);                         // locmem result 0
-            uint32_t lmbit1=locmem |= mDSmaskbit[ndest];                            // locmem result 1
+              (((*(curinp+2))&PERINPDETES_VB)!=0)                                 // static
+            )                                                                     
+          ){
             byte action=(*(curinp+2))>>PERINPACTLS_PB;
-            uint8_t openClose[]={openSw[ndest],cloSw[ndest]};                       // open/close value for ndest switch
+            uint8_t openClose[]={openSw[ndest],cloSw[ndest]};                     // open/close value for ndest switch
+            
+#ifdef DEBUG_ACTIONS
+  Serial.print(action,HEX);Serial.print(locmem,HEX);
+#endif // DEBUG_ACTIONS
             
             switch(action){                                                         // action (compute curValue then store it depending of dest)
               case PMDCA_0:
@@ -225,6 +309,9 @@ void actions()          // pour chaque input, test enable,
                             }
                             break;
               case PMDCA_LOR:
+#ifdef DEBUG_ACTIONS
+  Serial.print('<');Serial.print(detecState);Serial.print(nsrce);Serial.print(ndest);Serial.print(curValue);Serial.print('>');
+#endif // DEBUG_ACTIONS
                             curValue |= detecState;
                             switch(tdest){                                          // type dest
                               case DETYEXT: break;                                  // transfert vers detServ à développer    
@@ -251,11 +338,14 @@ void actions()          // pour chaque input, test enable,
                             }
                             break;                             
               case PMDCA_LXOR:
+#ifdef DEBUG_ACTIONS
+  Serial.print('{');Serial.print(detecState);Serial.print(nsrce);Serial.print(ndest);Serial.print(curValue);Serial.print('}');
+#endif // DEBUG_ACTIONS
                             curValue ^= detecState;
                             switch(tdest){                                          // type dest
                               case DETYEXT: break;                                  // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1){locmem=lmbit1;}         // locmem=0
-                                            else locmem=lmbit0;                     // locmem=1
+                              case DETYMEM: if(curValue==1){locmem=lmbit1;}         // curValue to locmem tfr
+                                            else locmem=lmbit0;                     
                                             break;
                               case DETYSW:  curSw[ndest]=openClose[curValue];       // curValue -> curSw
                                             usdSw[ndest]=1;   
@@ -264,6 +354,9 @@ void actions()          // pour chaque input, test enable,
                             }
                             break;
               case PMDCA_LAND:
+#ifdef DEBUG_ACTIONS
+  Serial.print('|');Serial.print(detecState);Serial.print(nsrce);Serial.print(ndest);Serial.print(curValue);Serial.print('|');
+#endif // DEBUG_ACTIONS
                             curValue &= detecState;
                             switch(tdest){                                          // type dest
                               case DETYEXT:break;                                   // transfert vers detServ à développer    
@@ -271,7 +364,7 @@ void actions()          // pour chaque input, test enable,
                                             else locmem=lmbit0;                     // locmem=0
                                             break;
                               case DETYSW:  curSw[ndest]=openClose[curValue];       // curValue -> curSw
-                                            usdSw[ndest]=1;   
+                                            usdSw[ndest]=1; 
                                             break;
                               default:break;
                             }
@@ -347,22 +440,30 @@ void actions()          // pour chaque input, test enable,
                default:actionSysErr(action);
                     if(tdest==DETYPUL){staPulse[ndest]=PM_DISABLE;}
                     break;
-          }
-      } else{} // si condition non validée pas d'action : configurer explicitement pour l'inverse si nécessaire
-      
-      *(curinp+2) &= ~PERINPOLDLEV_VB;                                          // raz bit oldlev
-      *(curinp+2) |= (detecState << PERINPOLDLEV_PB);                           // màj bit oldlev
+          }     // switch(action)       
+        }       // (valid static or active edge) curValue updated
+        else{   // si condition non validée pas d'action : configurer explicitement pour l'inverse si nécessaire
+#ifdef DEBUG_ACTIONS
+  Serial.print('!');
+#endif //DEBUG_ACTIONS        
+        }
 
       }   // detecFound    
+#ifdef DEBUG_ACTIONS
+  Serial.print(curValue);Serial.print(locmem,HEX);
+#endif //DEBUG_ACTIONS
     }     // enable
   }       // next input
-
+#ifdef DEBUG_ACTIONS
+  Serial.print(')');
+#endif //DEBUG_ACTIONS
   /* SW update */
   uint8_t mskSw[] = {0xfe,0xfb,0xef,0xbf};                           
   for(uint8_t i=0;i<NBSW;i++){                                    // 1 byte 4sw + 4disjoncteurs (voir const.h du frontal)
     if(usdSw[i]==1){
       cstRec.swCde &= mskSw[i];                                   // clear switch bit
       cstRec.swCde |= curSw[i]<<(2*i);                            // bit switchs (bits 7,5,3,1 pour switchs 3,2,1,0)  
+      if(cstRec.swCde!=oldCstCde){Serial.print("\n");Serial.print(millis());Serial.print("--->");Serial.print(oldCstCde,HEX);Serial.print(" ");Serial.println(cstRec.swCde,HEX);oldCstCde=cstRec.swCde;}
     }  
   }
 }
@@ -434,14 +535,15 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
       detTime[det]=millis();                                          // arme debounce
       talkReq();                                                      // talkServer
       cstRec.serverTime=0;
-      Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.println(lev);//Serial.print(" - ");
+      delay(1);Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.println(lev);//Serial.print(" - ");
+      delay(1);
   }
 }
 
 void polAllDet()                                        // maj de memDetec (via polDx) pour tous les détecteurs locaux
 {                                                       // la tempo de debouce masque polDx
   PINCHK;
-  for(uint8_t det=0;det<(MAXDET);det++){if(detTime[det]==0){polDx(det);}}    // pas de debounce en cours  
+  for(uint8_t det=0;det<(NBDET);det++){if(detTime[det]==0){polDx(det);}}    // pas de debounce en cours  
 }
  
 

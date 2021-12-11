@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.v_"
+#define VERSION "1.w_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -280,7 +280,7 @@ Modifier :
 #define PINSWD 2        // pin sortie switch D
 #define CLOSD  CLOSB    
 #define OPEND  OPENB
-#define NBDET  4
+#define NBDET  3        // !!! 3 det et non 4
 #define PINDTA 12       // pin entrée détect bit 0 
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
@@ -312,12 +312,12 @@ Modifier :
 #define CLOSD  CLOSB    
 #define OPEND  OPENB
 #ifndef  CAPATOUCH
-#define NBDET  4
+#define NBDET  3        //  3 det et non 4
 #endif
 #define PINDTA 12       // pin entrée détect bit 0 
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
-#define PINDTD PINXDT   // pin entrée détect bit 3  sur la même entrée.
+#define PINDTD PINXDT   // pin entrée détect bit 3  sur la même entrée. --> génère un bug dans le traitement des règles (2 det changent au lieu d'un)
 //#define PININTA 12      // in interupt
 //#define PININTB 14      // in interupt
 //#define PININTC PINXDT  // in interupt
@@ -376,7 +376,7 @@ Modifier :
 #define PINSWD 2        // pin sortie switch D
 #define CLOSD  0        // valeur pour fermer (ouvert=!CLOSB)
 #define OPEND  1
-#define NBDET  4
+#define NBDET  3        // 3 det et non 4 !!!
 #define PINDTA 12       // pin entrée détect bit 0 
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC 13       // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
@@ -404,7 +404,7 @@ Modifier :
 #define CLOSD  1        // valeur pour fermer (ouvert=!CLOSB)
 #define OPEND  0
 #ifndef CAPATOUCH
-#define NBDET  4
+#define NBDET  3        // 3 det et non 4 !!!
 #endif
 #define PINDTA 12       // pin entrée détect bit 0 
 #define PINDTB 14       // pin entrée détect bit 1 

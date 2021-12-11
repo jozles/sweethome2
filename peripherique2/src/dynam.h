@@ -40,6 +40,7 @@ void swDebounce();
 void memdetinit();
 void pulsesinit();
 void actions();
+void actionsDebug();
 
 #endif // NO_MODE
 
