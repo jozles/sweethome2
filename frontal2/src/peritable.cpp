@@ -260,7 +260,10 @@ void swCtlTableHtml(EthernetClient* cli)
     ethWrite(cli,buf,&lb);
 
 /* affichage/saisie règles */
-  scrDspText(buf,jsbuf,"Règles en=enable, rf=(rise/fall if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
+  scrDspText(buf,jsbuf,"la fonction utilise la valeur courante et la source pour produire la destination et la nlle valeur courante",0,BRYES);
+  scrDspText(buf,jsbuf,"Règles en=enable, rf=(fall/rise if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
+  scrDspText(buf,jsbuf,";'static' retourne la valeur de la source ; 'edge' retourne 1 sur le flanc actif sinon 0",0,BRYES);
+   
   tableBeg(buf,jsbuf,0);
   scrDspText(buf,jsbuf,"|e...r...p...e~n...f...r...s| source | destin.| action",0,TDBE|TRBE);
   ethWrite(cli,buf,&lb);
