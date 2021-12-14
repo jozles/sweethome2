@@ -1,7 +1,9 @@
 
-#include "nrf_user_conc.h"
 #include <SPI.h>
 #include "nrf24l01s.h"
+
+#include "nrf24l01s_const.h"
+#include "nrf_user_conc.h"
 
 /* AP NFR24L01+ node single */
 

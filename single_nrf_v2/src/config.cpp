@@ -6,9 +6,12 @@
 #include "config.h"
 #include "nrf24l01s_const.h"
 
+#define CONFMESSLEN 70
+
 extern Eepr eeprom;
 
 byte  configRec[CONFIGRECLEN];
+byte*     configVers;
 
 #if NRF_MODE == 'C'
 
@@ -147,8 +150,8 @@ uint16_t getServerConfig()
     temp=0;conv_atob(b,&temp);b+=4;*concChannel=temp;                            // Channel
     temp=0;conv_atob(b,&temp);b+=2;*concRfSpeed=temp;                            // Speed
     *concNb=(uint8_t)(*b-PMFNCVAL);                                              
-  }
-  return rcvl;
+    
+    return rcvl;
 }
 #endif // NRF_MODE == 'C'
 
@@ -156,7 +159,6 @@ uint16_t getServerConfig()
 
 extern byte message[];
 
-byte*     configVers;
 float*    thFactor;
 float*    thOffset;
 float*    vFactor;
@@ -241,7 +243,7 @@ uint16_t getServerConfig()
 
     char pv=';';
     char spf[]={"%04d"};
-#define CONFMESSLEN 70
+
     char message[CONFMESSLEN];
     message[0]=0x00;strcat((char*)message,"1234;");
     

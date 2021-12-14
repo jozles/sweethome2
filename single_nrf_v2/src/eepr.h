@@ -1,7 +1,7 @@
 #ifndef _EEPR_H_
 #define _EEPR_H_
 
-#include "Arduino.h"
+#include <Arduino.h>
 
 #define EEPRCRCLENGTH 4
 #define EEPRCRC    0

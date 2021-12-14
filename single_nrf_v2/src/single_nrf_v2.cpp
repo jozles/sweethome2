@@ -9,10 +9,8 @@
 #include "nrf_user_peri.h"
 #include "nrf_user_conc.h"
 
-//#if NRF_MODE == 'P'
 #include "eepr.h"
 Eepr eeprom;
-//#endif // NRF_MODE == 'P'
 
  /* single signifie 1 seul concentrateur avec une seule adresse de réception
  *  l'option P ou C dans const.h définit si compilation du code pour concentrateur ou périphérique
@@ -21,7 +19,7 @@ Eepr eeprom;
  */
  
 #ifdef DUE
-//#include <MemoryFree.h>
+#include <MemoryFree.h>
 #endif // def DUE 
 
 #ifdef DS18X20
@@ -93,6 +91,7 @@ bool    echoOn=false;                     // fonction echo en cours (sur l'entr�
  
 uint8_t channel;
 uint8_t speed=RF_SPD_1MB;
+extern byte*  configVers;
 
 #if NRF_MODE == 'C'
 
@@ -136,7 +135,6 @@ char    diagMessR[LDIAGMESS];             // buffer texte diag Tx
 
 const char*  chexa="0123456789ABCDEFabcdef\0";
 
-extern byte*     configVers;
 extern float*    thFactor;
 extern float*    thOffset;
 extern float*    vFactor;
@@ -310,8 +308,9 @@ void setup() {
   delay(100);
   Serial.begin(115200);Serial1.begin(115200);
 
-  Serial.println();Serial.print("start setup v");Serial.print(VERSION);Serial.print(" PP=");Serial.print(PP);Serial.print(" ");
-  Serial.print(TXRX_MODE);Serial.print(" ");
+  Serial.println();Serial.print("start setup v");Serial.print(VERSION);
+  //Serial.print(" PP=");Serial.print(PP);
+  Serial.print(" ");Serial.print(TXRX_MODE);Serial.print(" ");
 
   pinMode(LED,OUTPUT);
 #ifdef REDV1
@@ -354,7 +353,7 @@ void setup() {
  // radio start
   channel=*concChannel;
   if(memcmp(configVers,"01",2)==0){*concNb=1;}
-  speed=*concSpeed;
+  speed=*concRfSpeed;
   radio.locAddr=concRx;                 // première init à faire !!
   radio.tableCInit();
   memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH+1);     // pour broadcast & test
@@ -926,8 +925,11 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
   messageIn[pldLength]=0x00;
   time_end=micros();
 
-  if(diags){
   #if NRF_MODE=='C'
+  if(diags){
+  #define LBUFCV 7
+    char    bufCv[LBUFCV];                    // buffer conversion sprintf
+
     memset(bufCv,0x00,LBUFCV);
     memcpy(diagMessR,message,pldLength);
     diagMessR[pldLength]='\0';

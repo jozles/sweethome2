@@ -4,6 +4,8 @@
 #define VERSION "1.a "
 #define LENVERSION 4
 
+#include <shconst2.h>
+
 /*
 Le serveur contient la config des concentrateurs ; (mac,ip pour forçage éventuel,adresse NRF,RF channel, RF speed) ;
 MAXCONC concentrateurs.
@@ -59,7 +61,7 @@ v1.a
 
 //#define NOCONFSER
   
-  #define NRF_MODE 'P'            //  P périphérique
+  #define NRF_MODE 'C'            //  P périphérique
   //#define NRF_MODE 'C'            //  C concentrateur  
 /* !!!!!! changer de platformio.ini selon le NRF_MODE ('C'=due ou stm32 ; 'P' =328 !!!!! */
 
@@ -80,11 +82,12 @@ v1.a
   #define ARC_VALUE  4          // (0-15) repetitions
 
 #if NRF_MODE == 'C'
-  #define DUE                   // DUE OU STM32...
+  //#define DUE                   // DUE OU STM32... provient de platformio.ini
   #define LED        PINLED     // 3 sur proto          
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
   #define PORT_PP    7          // pin pour pulse de debug analyseur logique (macro PP4)
+  //#define REDV1                 // modèle carte red
 #endif // NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'             /* voltage and temp acquisition params */
