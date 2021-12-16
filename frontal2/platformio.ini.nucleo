@@ -13,7 +13,7 @@ platform = ststm32
 board = nucleo_l476rg
 
 framework = arduino
-monitor_port = COM5
+monitor_port = COM6
 ;monitor_port = COM14
 monitor_speed = 115200
 

@@ -1138,12 +1138,6 @@ void pageLineOne(char* buf,char* jsbuf)
   ds3231.readTemp(&th);
   
   strcat(dm0,VERSION);strcat(dm0," ");
-  #ifdef _MODE_DEVT
-  strcat(dm0,"MODE_DEVT ");
-  #endif // _MODE_DEVT
-  #ifdef _MODE_DEVT2
-  strcat(dm0,"MODE_DEVT2 ");
-  #endif // _MODE_DEVT2
 
   scrDspText(buf,jsbuf,serverName,0,0);
   affSpace(buf,jsbuf);

@@ -73,7 +73,7 @@ extern uint32_t* periSwPulseCurrTwo;            // ptr ds buffer : temps courant
 extern byte*     periSwPulseCtl;                // ptr ds buffer : mode pulses 
 extern byte*     periSwPulseSta;                // ptr ds buffer : état clock pulses
 extern uint8_t*  periSondeNb;                   // ptr ds buffer : nbre sonde
-extern boolean*  periProg;                      // ptr ds buffer : flag "programmable" 
+extern bool*  periProg;                      // ptr ds buffer : flag "programmable" 
 extern byte*     periDetNb;                     // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                    // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
 extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température

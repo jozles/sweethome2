@@ -158,7 +158,7 @@
 */
 
 
-#define _MODE_DEVT    // change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
+#define _MODE_DEVT    // force et change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
 // valeurs pour factoryReset
 

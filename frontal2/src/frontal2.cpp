@@ -226,7 +226,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
   byte*     periSwPulseCtl;                 // ptr ds buffer : mode pulses
   byte*     periSwPulseSta;                 // ptr ds buffer : état clock pulses
   uint8_t*  periSondeNb;                    // ptr ds buffer : nbre sonde
-  boolean*  periProg;                       // ptr ds buffer : flag "programmable" (périphériques serveurs)
+  bool*  periProg;                       // ptr ds buffer : flag "programmable" (périphériques serveurs)
   byte*     periDetNb;                      // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
   byte*     periDetVal;                     // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
   int16_t*  periThOffset_;                  // ptr ds buffer : offset correctif sur mesure température
@@ -404,7 +404,7 @@ void setup() {                          // ====================================
   initLed();
   wdEnable=true;trigwd(10000);
 
-  Serial1.begin (115200);               // export config periphériques
+  SERIALX.begin (115200);               // export config periphériques
 
   Serial.begin (115200);
   
@@ -431,9 +431,8 @@ void setup() {                          // ====================================
   Serial.println();Serial.print(VERSION);Serial.print(" ");
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" FreeStack: ");Serial.println(FreeStack());
 
-#ifdef REDV0
+#ifndef REDV1
   Serial.print("carte red v0 ");
-  Wire.begin();
 #endif // REDV0
 #ifdef REDV1
   Serial.print("carte red v1");
@@ -443,9 +442,9 @@ void setup() {                          // ====================================
 #ifndef AP2112
   Serial.println(".1 (LD1117)");
 #endif // AP2112  
-
-  Wire1.begin();
 #endif // REDV1
+
+  WIRE.begin();
 
   uint32_t        amj2,hms2;
   byte            js2;
@@ -500,8 +499,12 @@ periSave(3,PERISAVESD);
   Serial.println();
 
 /* >>>>>> ethernet start <<<<<< */
-//memcpy(mac,"\x54\x55\x55\x55\x55\x55",6);*serverPort=1790;*remotePort=1792; // config server test home
-memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAE",6);*serverPort=1786;*remotePort=1788;*serverUdpPort=8886; // config server service home
+//  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAE",6);*serverPort=1786;*remotePort=1788;*serverUdpPort=8886; // server service
+//  memcpy(mac,"\x54\x55\x55\x55\x55\x55",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8886; // server test
+#ifdef _MODE_DEVT
+  memcpy(mac,"\x54\x55\x55\x55\x55\x55",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8888; // config server devt home
+#endif // _MODE_DEVT  
+  
   Serial.print(MODE_EXEC);
   Serial.print(" mac=");serialPrintMac(mac,0);
   Serial.print(" serverPort=");Serial.print(*serverPort);
@@ -972,7 +975,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr)
 {                                             // prochain car = premier du premier nom
                                               // les caractères de ctle du flux sont encodés %HH par le navigateur
                                               // '%' encodé '%25' ; '@' '%40' etc... 
-  boolean nom=VRAI,val=FAUX,termine=FAUX;
+  bool nom=VRAI,val=FAUX,termine=FAUX;
   int i=0,j=0;
   char c,cpc='\0';                            // cpc pour convertir les séquences %hh 
   char noms[LENNOM+1]={0},nomsc[LENNOM-1];noms[LENNOM]='\0';nomsc[LENNOM-2]='\0';
@@ -2004,8 +2007,8 @@ void serialServer()
       Serial.println("peri ");//dumpstr(bec,300);      
     }
     
-    for(uint8_t i=0;i<TSCNB+1;i++){Serial1.print(RCVSYNCHAR);}
-    for(uint16_t lb=0;lb<strlen(bec);lb++){Serial1.print(*(bec+lb));delay(1);}
+    for(uint8_t i=0;i<TSCNB+1;i++){SERIALX.print(RCVSYNCHAR);}
+    for(uint16_t lb=0;lb<strlen(bec);lb++){SERIALX.print(*(bec+lb));delay(1);}
     Serial.println(bec);
   }
 }

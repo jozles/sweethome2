@@ -96,7 +96,7 @@ extern uint32_t*  periSwPulseCurrTwo;           // ptr ds buffer : temps courant
 extern byte*      periSwPulseCtl;               // ptr ds buffer : mode pulses
 extern byte*      periSwPulseSta;               // ptr ds buffer : état clock pulses
 extern uint8_t*   periSondeNb;                  // ptr ds buffer : nbre sonde
-extern boolean*   periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
+extern bool*   periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
 extern byte*      periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*      periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
 extern int16_t*   periThOffset_;                // ptr ds buffer : offset correctif sur mesure température
@@ -965,8 +965,8 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=NBPULSE*sizeof(byte);
   periSondeNb=(uint8_t*)temp;
   temp +=sizeof(uint8_t);
-  periProg=(boolean*)temp;
-  temp +=sizeof(boolean);
+  periProg=(bool*)temp;
+  temp +=sizeof(bool);
   periDetNb=(byte*)temp;
   temp +=sizeof(byte);
   periDetVal=(byte*)temp;
@@ -1193,7 +1193,7 @@ void periModif()
   byte*     IperiSwPulseCtl;             // ptr ds buffer : mode pulses
   byte*     IperiSwPulseTrig;             // ptr ds buffer : durée trig 
   uint8_t*  IperiSondeNb;                  // ptr ds buffer : nbre sonde
-  boolean*  IperiProg;                     // ptr ds buffer : flag "programmable"
+  bool*  IperiProg;                     // ptr ds buffer : flag "programmable"
   byte*     IperiDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
   byte*     IperiDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
   
@@ -1248,12 +1248,12 @@ void periModif()
   temp +=MAXSW*sizeof(byte);      
   IperiSondeNb=(uint8_t*)temp;
   temp +=sizeof(uint8_t);
-  IperiProg=(boolean*)temp;
-  temp +=sizeof(boolean);
+  IperiProg=(bool*)temp;
+  temp +=sizeof(bool);
   IperiDetNb=(byte*)temp;
   temp +=sizeof(byte);
   IperiDetVal=(byte*)temp;
-  temp +=sizeof(boolean);
+  temp +=sizeof(bool);
 
   temp ++;
 
