@@ -73,7 +73,7 @@ extern uint32_t* periSwPulseCurrTwo;            // ptr ds buffer : temps courant
 extern byte*     periSwPulseCtl;                // ptr ds buffer : mode pulses 
 extern byte*     periSwPulseSta;                // ptr ds buffer : état clock pulses
 extern uint8_t*  periSondeNb;                   // ptr ds buffer : nbre sonde
-extern bool*  periProg;                      // ptr ds buffer : flag "programmable" 
+extern bool*     periProg;                      // ptr ds buffer : flag "programmable" 
 extern byte*     periDetNb;                     // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                    // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
 extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
@@ -654,6 +654,7 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
 
 void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate,uint16_t* lb)
 {
+Serial.print("showLine ");Serial.print(numline);
   float vv=0;
       periLoad(numline);
       periCur=numline;
@@ -664,11 +665,13 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           formIntro(buf,jsbuf,0,TRBEG);
 /* pericur - nom - th - volts */
           uint8_t lctl=STRING|TRBEG|TDBE;
-
           scrDspNum(buf,jsbuf,'d',&periCur,0,0,lctl);
-          
+//Serial.println('<');delay(10);          
           scrDspText(buf,jsbuf,periNamer,0,STRING);
+//Serial.println('<');delay(10);           
+          //scrDspText(buf,jsbuf,"0.",0,TDBEG);scrDspNum(buf,jsbuf,'d',periLastVal_,0,0,BRYES);
           scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
+//Serial.println('<');delay(10);  
           vv=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
           vv=(float)(*periThmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);
           scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);          

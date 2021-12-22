@@ -345,10 +345,13 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br,bool sep)
 void concatDate(char* buf,char* jsbuf,char* periDate)
 {
   char dateascii[LDATEASCII+2];
-  //int j;
 
-  unpackDate(dateascii+1,periDate);memcpy(dateascii,dateascii+1,6);
-  *(dateascii+6)=' ';*(dateascii+LDATEASCII+1)=0x00;
+  unpackDate(dateascii+1,periDate); // 6 car peridate -> 12 car dateascii+1
+  for(uint8_t i=0;i<6;i++){dateascii[i]=dateascii[i+1];}  // décalage date
+  // memcpy(dateascii,dateascii+1,6); remplacé par for/next pour supprimer warning nucleo
+  *(dateascii+6)=' ';*(dateascii+LDATEASCII+1)=0x00;      // insertion espace 
+  
+  //unpackDate(dateascii,periDate);dateascii[6]=' '
   strcat(buf,dateascii);
   //for(j=0;j<LDATEASCII;j++){concat1a(buf,dateascii[j]);if(j==5){strcat(buf," ");}}
 #ifndef NOJSBUF
@@ -569,7 +572,7 @@ void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* 
   fnHtmlIntro(buf,0,ctl,nullptr);
   
   concatnf(buf,jsbuf,((float)*valfonct)/100);  
-    
+
   fnHtmlEnd(buf,0,ctl);
   setColourE(buf,jsbuf);
 }
@@ -1133,11 +1136,23 @@ void htmlBeg(char* buf,char* jsbuf,char* titre) //,EthernetClient* cli)
 void pageLineOne(char* buf,char* jsbuf)         
 { 
   float th;                                  // pour temp DS3231
-  char dm0[100];*dm0=0x00;
+  char dm0[120];*dm0=0x00;
   
   ds3231.readTemp(&th);
   
-  strcat(dm0,VERSION);strcat(dm0," ");
+  strcat(dm0,VERSION);
+  #ifdef DUE
+  strcat(dm0,"D ");
+  #endif // DUE
+  #ifndef DUE
+  strcat(dm0,"N ");
+  #endif // DUE
+  #ifdef _MODE_DEVT
+  strcat(dm0," DEV ");
+  #endif // DEVT
+  #ifndef _MODE_DEVT
+  strcat(dm0," RUN ");
+  #endif // DEVT
 
   scrDspText(buf,jsbuf,serverName,0,0);
   affSpace(buf,jsbuf);

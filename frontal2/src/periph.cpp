@@ -194,7 +194,8 @@ extern  int   nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fp
 void factoryResetConfig()
 {
   memset(serverName,0x00,LNSERV);
-  memcpy(serverName,DEFNOMSERV,LNSERV);
+  uint8_t srvnl=strlen(DEFNOMSERV);if(srvnl>LNSERV){srvnl=LNSERV;}
+  memcpy(serverName,DEFNOMSERV,srvnl);
   memcpy(mac,DEFMACADDR,MACADDRLENGTH);
   *serverPort=DEFSERVERPORT;
   *remotePort=DEFSERVERPORT+1;
@@ -212,7 +213,7 @@ void factoryResetConfig()
   memcpy(concMac,concMacTable,MACADDRLENGTH*MAXCONC);
   memset(concIp,0x00,4*MAXCONC);
   for(uint8_t i=0;i<MAXCONC;i++){
-    memcpy(concRx+i*RADIO_ADDR_LENGTH,CC_NRF_ADDR,(MAXCONC-1)*(RADIO_ADDR_LENGTH-1));
+    memcpy(concRx+i*RADIO_ADDR_LENGTH,CC_NRF_ADDR,RADIO_ADDR_LENGTH); //(MAXCONC-1)*(RADIO_ADDR_LENGTH-1));
     *(concRx+i*RADIO_ADDR_LENGTH+RADIO_ADDR_LENGTH-1)=PMFNCVAL+i;
     concPort[i]=portTable[i];
     concChannel[i]=channelTable[i];
@@ -513,7 +514,8 @@ void subcprint(char* str1,void* strv,uint8_t nbl,uint8_t len1,int len2,unsigned 
 
 void subConcPrint()
 {
-  Serial.println("concentrateurs");
+  Serial.println("concentrateurs :");
+
   for(uint8_t i=0;i<MAXCONC;i++){
     Serial.print(i+1);Serial.print(" ");
     serialPrintMac(concMac+i*MACADDRLENGTH,0);Serial.print(" ");
@@ -524,10 +526,16 @@ void subConcPrint()
     Serial.print(*(concRfSpeed+i));Serial.print(" ");
     Serial.println();
   }
+ 
   Serial.print("N° concentrateur pour perif ");Serial.println(*concNb);
   Serial.print("0-keep/1-new ");Serial.print(*concPeriParams);Serial.print("     periRxAddr ");Serial.println((char*)periRxAddr);
-  Serial.print("vFactor ");Serial.print(*vFactor*10000);Serial.print(" vOffset ");Serial.print(*vOffset);
-  Serial.print(" thFactor ");Serial.print(*thFactor*10000);Serial.print(" thOffset ");Serial.println(*thOffset);
+  Serial.print("vFactor ");delay(10);
+  //float fact=0.0765;float ff=10000;float fact0=fact*ff;
+  *vFactor=0;*vFactor*=10000;
+  Serial.print(*vFactor);//*10000);
+  Serial.print(" vOffset ");Serial.print(*vOffset);
+  Serial.print(" thFactor ");Serial.print(*thFactor);//*10000);
+  Serial.print(" thOffset ");Serial.println(*thOffset);
   Serial.println();
 }
 
@@ -556,6 +564,7 @@ int configLoad()
   if(sdOpen(configFile,&fconfig)==SDKO){return SDKO;}
   for(i=0;i<CONFIGRECLEN;i++){configRec[i]=fconfig.read();}
   fconfig.close();
+  *vFactor=0;*thFactor=0;*vOffset=0;*thOffset=0;       // crash avoid if ATSAM float data 
   return SDOK;
 }
 

@@ -138,7 +138,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
   const char*   cdes="GET   POST  \0";       // commandes traitées par le serveur
   char          strHisto[RECCHAR]={0};       // buffer enregistrement histo SD
   const char*   strHistoEnd="<br>\r\n\0";
-  char          buf[6];
+  char          buf[12];
   long          fhsize;                      // remplissage fhisto
 
   char bufServer[LBUFSERVER];          // buffer entrée/sortie dataread/save
@@ -156,7 +156,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
 #define TCPWD   "T"                    // TCP watchdog event
 #define UDPWD   "U"                    // UDP watchdog event
 #define HALTREQ "H"                    // Halt request record
-#define TEMP    "T"                    // Temp record
+#define TEMP    "M"                    // Temp record
 #define RESET   "R"                    // Reset record
 #define BOOT    "B"                    // Boot record
 #define UBOOT   "u"                    // User Request Boot record
@@ -399,7 +399,7 @@ void setup() {                          // ====================================
 
 /* >>>>>>     hardware setup     <<<<<< */
 
-  //delay(2000);  // éponge le délai entre la fin de l'upload et le reset du Jlink
+  delay(3000);  // éponge le délai entre la fin de l'upload et le reset du Jlink
   
   initLed();
   wdEnable=true;trigwd(10000);
@@ -408,34 +408,29 @@ void setup() {                          // ====================================
 
   Serial.begin (115200);
   
-  Serial.print("+");
   delay(1000);
+  Serial.print("+");
 
   /* void* stackPtr = alloca(4); // This returns a pointer to the current bottom of the stack
   printf("StackPtr %d\n", stackPtr); */
 
   pinMode(STOPREQ,INPUT_PULLUP);        // push button "HALT REQ"
-#ifdef REDV1
-  pinMode(POWCD,OUTPUT);
-  digitalWrite(POWCD,POWON);
-  trigwd(1000000);                      // uS
-#endif // REDV1
-
-#ifdef REDV0  // alimentation DS3231
-  digitalWrite(PINGNDDS,LOW);pinMode(PINGNDDS,OUTPUT);  
-  digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT); 
-#endif // REDV0
 
 /* >>>>>>     config     <<<<<< */  
 
   Serial.println();Serial.print(VERSION);Serial.print(" ");
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" FreeStack: ");Serial.println(FreeStack());
 
-#ifndef REDV1
+#ifdef REDV0
   Serial.print("carte red v0 ");
+  digitalWrite(PINGNDDS,LOW);pinMode(PINGNDDS,OUTPUT);  // alim DS3231
+  digitalWrite(PINVCCDS,HIGH);pinMode(PINVCCDS,OUTPUT); 
 #endif // REDV0
 #ifdef REDV1
   Serial.print("carte red v1");
+  pinMode(POWCD,OUTPUT);                // ext card power on
+  digitalWrite(POWCD,POWON);
+  trigwd(1000000);                      // uS
 #ifdef AP2112
   Serial.println(".2 (AP2112)");
 #endif // AP2112  
@@ -459,12 +454,11 @@ void setup() {                          // ====================================
   sdInit();
 
   configInit();configLoad();configPrint();
-
-//for(int z=0;z<nbfonct;z++){Serial.print(z);Serial.print(" ");for(int w=0;w<10;w++){Serial.print(fonctions[z*10+w]);}Serial.println();}
     
 /* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
 
   blink(4);
+  
   //unsigned long beg=millis();
   //#define FRDLY 5  // sec
   if(digitalRead(STOPREQ)==LOW){
@@ -500,9 +494,9 @@ periSave(3,PERISAVESD);
 
 /* >>>>>> ethernet start <<<<<< */
 //  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAE",6);*serverPort=1786;*remotePort=1788;*serverUdpPort=8886; // server service
-//  memcpy(mac,"\x54\x55\x55\x55\x55\x55",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8886; // server test
+//  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAC",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8890; // server test
 #ifdef _MODE_DEVT
-  memcpy(mac,"\x54\x55\x55\x55\x55\x55",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8888; // config server devt home
+  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAC",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8890; // config server devt home
 #endif // _MODE_DEVT  
   
   Serial.print(MODE_EXEC);

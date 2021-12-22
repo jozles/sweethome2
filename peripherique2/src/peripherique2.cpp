@@ -341,7 +341,7 @@ delay(1);
 
 
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et sauver */
-
+initConstant();
   if(!readConstant()){   
     Serial.println("KO -> init ");
     initConstant();
