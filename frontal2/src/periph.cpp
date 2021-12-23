@@ -37,9 +37,17 @@ extern uint8_t*   concNb;
 
 extern uint8_t*   concPeriParams; 
 extern float*     thFactor;
+float*            thFactor0;        // voir les commentaires de configRecordUpdate()
+float             thF;
 extern float*     thOffset;
+float*            thOffset0;        // voir les commentaires de configRecordUpdate()
+float             thO;
 extern float*     vFactor;
+float*            vFactor0;         // voir les commentaires de configRecordUpdate()
+float             vF;
 extern float*     vOffset;
+float*            vOffset0;         // voir les commentaires de configRecordUpdate()
+float             vO;
 extern byte*      periRxAddr;
 
 extern char*      usrnames;  
@@ -96,7 +104,7 @@ extern uint32_t*  periSwPulseCurrTwo;           // ptr ds buffer : temps courant
 extern byte*      periSwPulseCtl;               // ptr ds buffer : mode pulses
 extern byte*      periSwPulseSta;               // ptr ds buffer : état clock pulses
 extern uint8_t*   periSondeNb;                  // ptr ds buffer : nbre sonde
-extern bool*   periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
+extern bool*      periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
 extern byte*      periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*      periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
 extern int16_t*   periThOffset_;                // ptr ds buffer : offset correctif sur mesure température
@@ -259,6 +267,32 @@ memset(usrpretime,0x00,NBUSR*sizeof(long));
 *maxCxWu=0;
 }
 
+/* le compilateur du stm32 semble nécessiter des variables float alignées
+   les champs float sont recopiés dans des variables du tas lors du configLoad
+   et dans l'enregistrement lors du configSave 
+    
+   C'est la modif la plus légère imaginée ppour résoudre le pb :
+   4 champs pour la config et 2 pour les périphériques 
+   
+   Ultérieurement, ils pourront être transformés en uint32_t 
+   si ce type n'a pas de contraintes d'alignement.
+   Il est possible aussi d'aligner la totazlité de l'enregistrement */
+
+void configRecordUpdate()               // local fields (float) -> record
+{
+  memcpy(thFactor0,thFactor,sizeof(float));
+  memcpy(thOffset0,thOffset,sizeof(float));
+  memcpy(vFactor0,vFactor,sizeof(float));
+  memcpy(vOffset0,vOffset,sizeof(float));
+}
+
+void configLocalUpdate()                // record fields (float) -> local
+{
+  memcpy(thFactor,thFactor0,sizeof(float));
+  memcpy(thOffset,thOffset0,sizeof(float));
+  memcpy(vFactor,vFactor0,sizeof(float));
+  memcpy(vOffset,vOffset0,sizeof(float));
+}
 
 void configInit()
 {
@@ -306,13 +340,13 @@ byte* temp=(byte*)configRec;
   temp+=RADIO_ADDR_LENGTH*MAXCONC;
   concPeriParams=(uint8_t*)temp;
   temp+=sizeof(uint8_t*);
-  thFactor=(float*)temp;
+  thFactor0=(float*)temp;thFactor=&thF;
   temp+=sizeof(float*);
-  thOffset=(float*)temp;
+  thOffset0=(float*)temp;thOffset=&thO;
   temp+=sizeof(float*);
-  vFactor=(float*)temp;
+  vFactor0=(float*)temp;vFactor=&vF;
   temp+=sizeof(float*);
-  vOffset=(float*)temp;
+  vOffset0=(float*)temp;vOffset=&vO;
   temp+=sizeof(float*);
   periRxAddr=(byte*)temp;
   temp+=RADIO_ADDR_LENGTH+1;
@@ -529,12 +563,9 @@ void subConcPrint()
  
   Serial.print("N° concentrateur pour perif ");Serial.println(*concNb);
   Serial.print("0-keep/1-new ");Serial.print(*concPeriParams);Serial.print("     periRxAddr ");Serial.println((char*)periRxAddr);
-  Serial.print("vFactor ");delay(10);
-  //float fact=0.0765;float ff=10000;float fact0=fact*ff;
-  *vFactor=0;*vFactor*=10000;
-  Serial.print(*vFactor);//*10000);
+  Serial.print("vFactor ");delay(10);Serial.print(*vFactor*10000);
   Serial.print(" vOffset ");Serial.print(*vOffset);
-  Serial.print(" thFactor ");Serial.print(*thFactor);//*10000);
+  Serial.print(" thFactor ");Serial.print(*thFactor*10000);
   Serial.print(" thOffset ");Serial.println(*thOffset);
   Serial.println();
 }
@@ -564,7 +595,7 @@ int configLoad()
   if(sdOpen(configFile,&fconfig)==SDKO){return SDKO;}
   for(i=0;i<CONFIGRECLEN;i++){configRec[i]=fconfig.read();}
   fconfig.close();
-  *vFactor=0;*thFactor=0;*vOffset=0;*thOffset=0;       // crash avoid if ATSAM float data 
+  configLocalUpdate();
   return SDOK;
 }
 
@@ -575,6 +606,8 @@ int configSave()
   int cl=CONFIGRECLEN;
   char configFile[]="srvconf\0";
   
+  configRecordUpdate();
+
   if(sdOpen(configFile,&fconfig)!=SDKO){
     sta=SDOK;
     fconfig.seek(0);

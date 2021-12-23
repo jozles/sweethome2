@@ -430,7 +430,7 @@ void setup() {                          // ====================================
   Serial.print("carte red v1");
   pinMode(POWCD,OUTPUT);                // ext card power on
   digitalWrite(POWCD,POWON);
-  trigwd(1000000);                      // uS
+  trigwd(100000);                       // uS
 #ifdef AP2112
   Serial.println(".2 (AP2112)");
 #endif // AP2112  
@@ -473,6 +473,7 @@ void setup() {                          // ====================================
 
   periTableLoad();                  // le premier (après config) pour permettre les mails
 
+#ifdef _MODE_DEVT
 // perif3 dev et mails
 periLoad(3);                
 char mm[]={0x84,0xF3,0xEB,0xFB,0xF9,0x05};
@@ -480,8 +481,8 @@ memcpy(periMacr,mm,6);
 char ii[]={192,168,0,202};
 memcpy(periIpAddr,ii,4);
 periSave(3,PERISAVESD);
+#endif
 
-  mailEnable=VRAI;
   memDetLoad();                     // le second pour Sync 
   //remoteNPlus(8);while(1){};
   remoteLoad();periSwSync();
@@ -544,6 +545,7 @@ periSave(3,PERISAVESD);
 
   trigwd();
 
+  mailEnable=VRAI;
   Serial.print("Mail START ");
   mail("START","");
 
@@ -1797,7 +1799,8 @@ Serial.print(*(libfonctions+2*i+1));Serial.print(" ");
                           }
                         }
                        }break;                                                                                                        
-              case 74: what=0;htmlFavicon(cli);break;
+              case 74: what=0;//htmlFavicon(cli);
+                       break;
               
               /* fin des fonctions */
               default:break;

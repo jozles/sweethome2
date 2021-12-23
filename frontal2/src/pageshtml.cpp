@@ -417,6 +417,8 @@ void subcfgtable(char* buf,char* jsbuf,const char* titre,int nbl,const char* nom
 
 void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0)
 {
+  Serial.println(" concPerParams");            
+  
   if(buf!=nullptr && lb0!=0){
 
     formIntro(buf,jsbuf,nullptr,0,"peripheriques concentrés",0,0);
@@ -459,16 +461,14 @@ void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16
   
     scrDspText(buf,jsbuf,"Radio_Peri_Addr : ",0,0);
     periFn[LENNOM-1]='c';scrGetText(buf,jsbuf,(char*)periRxAddr,periFn,11,RADIO_ADDR_LENGTH,0,BRYES);
-
     scrDspText(buf,jsbuf,"Volts factor : ",0,0);float factor=*vFactor*10000;
-    periFn[LENNOM-1]='y';scrGetNum(buf,jsbuf,'f',&factor,periFn,4,7,2,0,0);
+    periFn[LENNOM-1]='y';scrGetNum(buf,jsbuf,'f',&factor,periFn,4,7,2,0,0);            
     scrDspText(buf,jsbuf," Offset : ",0,0);
     periFn[LENNOM-1]='v';scrGetNum(buf,jsbuf,'f',vOffset,periFn,5,5,2,0,0);
     scrDspText(buf,jsbuf,"  Th Factor : ",0,0);factor=*thFactor*10000;
     periFn[LENNOM-1]='b';scrGetNum(buf,jsbuf,'f',&factor,periFn,4,7,2,0,0);
     scrDspText(buf,jsbuf," Offset : ",0,0);
     periFn[LENNOM-1]='e';scrGetNum(buf,jsbuf,'f',thOffset,periFn,5,5,2,0,0);
-
     affSpace(buf,jsbuf);
     scrGetButSub(buf,jsbuf,"Maj",0);
 
@@ -477,6 +477,7 @@ void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16
           
     ethWrite(cli,buf,lb);        
   }
+  Serial.println(" concPerParams end");              
 }
 
 void mailCfg(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0)

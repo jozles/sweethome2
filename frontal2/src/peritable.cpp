@@ -654,7 +654,7 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
 
 void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate,uint16_t* lb)
 {
-Serial.print("showLine ");Serial.print(numline);
+//Serial.print("showLine ");Serial.print(numline);
   float vv=0;
       periLoad(numline);
       periCur=numline;
@@ -666,12 +666,9 @@ Serial.print("showLine ");Serial.print(numline);
 /* pericur - nom - th - volts */
           uint8_t lctl=STRING|TRBEG|TDBE;
           scrDspNum(buf,jsbuf,'d',&periCur,0,0,lctl);
-//Serial.println('<');delay(10);          
           scrDspText(buf,jsbuf,periNamer,0,STRING);
-//Serial.println('<');delay(10);           
           //scrDspText(buf,jsbuf,"0.",0,TDBEG);scrDspNum(buf,jsbuf,'d',periLastVal_,0,0,BRYES);
           scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
-//Serial.println('<');delay(10);  
           vv=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
           vv=(float)(*periThmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);
           scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);          

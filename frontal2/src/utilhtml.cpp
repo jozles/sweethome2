@@ -279,7 +279,7 @@ void concatn(char* buf,unsigned long val)           // !!!!!!!!!!!!! ne fonction
 void concatns(char* buf,char* jsbuf,long val,bool sep)
 {
   uint16_t s;
-  #define LSPR 20
+  #define LSPR 22
   char bb[LSPR];
   s=sprintf(bb,"%lu",val);
   if(s>LSPR){ledblink(BCODESYSERR);}
@@ -299,6 +299,10 @@ void concatns(char* buf,char* jsbuf,long val)
 {
   concatns(buf,jsbuf,val,SEPNO);
 }
+
+
+#pragma GCC push_options
+#pragma GCC optimize ("-O0")
 
 void concatnf(char* buf,float val)
 {
@@ -327,20 +331,39 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br)
 
 void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br,bool sep)
 {
-  uint16_t s;
-  #define LSPR 20
-  char bb[LSPR];
-  char d[]="%.2f";
-  d[2]=(char)(dec+0x30);
-  s=sprintf(bb,d,val);
-  if(s>LSPR){ledblink(BCODESYSERR);}
-  bb[s]='\0';
+  #define LSPR 22
+  char bb[LSPR];memset(bb,0x00,LSPR);
+  float pdix[]={1,10,100,1000,10000,100000,1000000,10000000,100000000,1000000000};
 
+if(int(val)>pdix[9] || dec>9){        // 19+'-'+'.'=21
+  Serial.print("concatnf ovf ");Serial.print(val);Serial.print(" ");Serial.println(dec);
+  ledblink(BCODESYSERR);
+}
+
+//Serial.print(val);Serial.print(" ");Serial.print(dec);
+  convIntToString(bb,int(val));
+//Serial.print(" ");Serial.print(bb);  
+  if(dec!=0){
+    bb[strlen(bb)]='.';
+    convIntToString(bb+strlen(bb),int((val-int(val))*pdix[dec]),dec);}
+//Serial.print(" ");Serial.println(bb);  
+/*
+  s=sprintf(bb,d,val);
+
+  if(s<0 || s>=LSPR){
+    Serial.print(s);Serial.print(" ");Serial.print(d);Serial.print(" ");Serial.print(val);Serial.println(" ");Serial.println(bb);
+    //ledblink(BCODESYSERR);
+    s=LSPR;
+    }
+  bb[s]='\0';
+*/
   if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
     strcat(jsbuf,bb);if(sep){strcat(jsbuf,JSSEP);}
   }
   if(buf!=nullptr){strcat(buf,bb);if(br){strcat(buf,"<br>");}}
 }
+
+#pragma GCC pop_options
 
 void concatDate(char* buf,char* jsbuf,char* periDate)
 {
@@ -535,7 +558,7 @@ void concNum(char* buf,char* jsbuf,char type,uint8_t dec,void* value,bool sep)
 void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl)
 // mode STRING :  ne fonctionne que dans une ligne de table
 //                le premier appel comporte TDBEG pour forcer le nom de la commande et BRYES (ignoré dans ctl) ou TDEND 
-//                TDEND est forcé dans le ctl la commande
+//                TDEND est forcé dans le ctl de la commande
 //                les suivants BRYES ou TDEND
 //                le dernier rien : TDEND est déjà dans le ctl de la commande
 {
@@ -571,8 +594,9 @@ void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* 
 
   fnHtmlIntro(buf,0,ctl,nullptr);
   
-  concatnf(buf,jsbuf,((float)*valfonct)/100);  
-
+  float vf=*valfonct/100;  
+  //concatnf(buf,jsbuf,vf);//((float)*valfonct)/100);    
+  concatnf(buf,jsbuf,vf,2,NOBR,SEPNO);
   fnHtmlEnd(buf,0,ctl);
   setColourE(buf,jsbuf);
 }
@@ -1135,6 +1159,7 @@ void htmlBeg(char* buf,char* jsbuf,char* titre) //,EthernetClient* cli)
 
 void pageLineOne(char* buf,char* jsbuf)         
 { 
+  Serial.println("pageLineOne ");
   float th;                                  // pour temp DS3231
   char dm0[120];*dm0=0x00;
   
@@ -1164,7 +1189,7 @@ void pageLineOne(char* buf,char* jsbuf)
   uint32_t bufIp=Ethernet.localIP();
   strcat(dm0," ; local IP ");
   charIp((byte*)&bufIp,dm0,nullptr);strcat(dm0," ");
-  concatnf(dm0,nullptr,th);strcat(dm0,"°C ");
+  concatnf(dm0,nullptr,th,2,NOBR,SEPNO);strcat(dm0,"°C ");
   scrDspText(buf,jsbuf,dm0,2,BRYES);
 }
 
