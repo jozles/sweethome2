@@ -417,7 +417,7 @@ void subcfgtable(char* buf,char* jsbuf,const char* titre,int nbl,const char* nom
 
 void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0)
 {
-  Serial.println(" concPerParams");            
+//  Serial.println(" concPerParams");            
   
   if(buf!=nullptr && lb0!=0){
 
@@ -477,7 +477,6 @@ void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16
           
     ethWrite(cli,buf,lb);        
   }
-  Serial.println(" concPerParams end");              
 }
 
 void mailCfg(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0)
@@ -642,6 +641,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
 /* table remotes */
 
+              strcat(buf,"\n");
               tableBeg(buf,jsbuf,0);
               scrDspText(buf,jsbuf,"   |      Nom      | on/off | en ",0,TDBE|TRBE);
 
@@ -649,7 +649,7 @@ void cfgRemoteHtml(EthernetClient* cli)
                 uint8_t nb1=nb+1;
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);                                   // n° remote
                 memcpy(nf,"remotecfn_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
-                scrGetText(buf,jsbuf,remoteN[nb].nam,nf,LENREMNAM+1,0,TDBE);
+                scrGetText(buf,jsbuf,remoteN[nb].nam,nf,14,LENREMNAM+1,0,TDBE);
                 //strcat(buf,"<td><input type=\"text\" name=\"remotecfn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
                 //        strcat(buf,remoteN[nb].nam);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENREMNAM-1);strcat(buf,"\" ></td>");
 
@@ -663,7 +663,7 @@ void cfgRemoteHtml(EthernetClient* cli)
                 
                 scrGetRadiobut(buf,jsbuf,val,nf,3,0,TDBE|TREND);
                 strcat(buf,"\n");
-
+ 
                 if(nb-nb/5*5==0){ethWrite(cli,buf);}
               }
             tableEnd(buf,jsbuf,0);
@@ -676,6 +676,7 @@ void cfgRemoteHtml(EthernetClient* cli)
             borderparam=NOBORDER;
             tableBeg(buf,jsbuf,0);
             scrDspText(buf,jsbuf,"  |remote |detec on/off|detec en|peri|switch",0,TRBE|TDBE);
+            strcat(buf,"\n");
               
             for(uint8_t nb=0;nb<MAXREMLI;nb++){
                 

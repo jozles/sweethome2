@@ -1,8 +1,17 @@
 #ifndef _CONST_H_
 #define _CONST_H_
 
+#define _MODE_DEVT  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
-#define VERSION "A.58"
+#define NVERS ".59"
+#ifdef _MODE_DEVT
+#define PV "A"
+#endif 
+#ifdef _MODE_RUN
+#define PV "1"
+#endif 
+#define VERSION PV NVERS
+
 /* 1.1 ajout voltage dans données data_read_ ; modif unpackMac
    1.1a ajout volts et version dans table
    1.1b suppression dht ; ajout periDetVal et periSwVal avec affichage/saisie dans la table ; gestion serveur dev
@@ -95,6 +104,7 @@
    1.57 toutes config séries ok (?) v.19 de single_nrf_v2
    1.58 ajout mode forçage pour periTableSave() / param FORCE ; sortie sur accueil.html si getnv rend 0 params ;
         corrections gestion cache périfs ;
+   1.59 compatibilité Nucleo ; réception/affichage der n° ssid utilisé
 
    BUGS :
 
@@ -158,8 +168,6 @@
 */
 
 
-#define _MODE_DEVT    // force et change l'adresse Mac de la carte IP, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
-
 // valeurs pour factoryReset
 
 #define DEFMACADDR "\x54\x55\x55\x55\x55\x55"   // def server mac addr
@@ -168,19 +176,21 @@
 
 #ifdef _MODE_DEVT
 #define MODE_EXEC "DEVT"
-//#define LOCALSERVERIP {192,168,0,35}                   //adresse IP    ---- 34 service, 35 devt
-//#define PORTSERVER 1790                       // 1790
-//#define PORTPILOT  1792                       // 1792
-//#define PORTUDP    8890                       // 8890
+#define REDMAC "\x90\xA2\xDA\x0F\xDF\xAC"
+#define LOCALSERVERIP {192,168,0,35}          //adresse IP    ---- 36 service, 35 devt
+#define PORTSERVER 1790                       // 1790
+#define PORTREMOTE 1792                       // 1792
+#define PORTUDP    8890                       // 8890
 #define DEFNOMSERV "sweet_hdev\0"
 #endif // _MODE_DEVT
 
 #ifdef _MODE_RUN
 #define MODE_EXEC "RUN"
-//#define LOCALSERVERIP {192,168,0,36}                   //adresse IP    ---- 34 service, 35 devt
-//#define PORTSERVER 1786                       // 1786
-//#define PORTPILOT  1788                       // 1788
-//#define PORTUDP    8886                       // 8886
+#define REDMAC "\x90\xA2\xDA\x0F\xDF\xAE"
+#define LOCALSERVERIP {192,168,0,36}          //adresse IP    ---- 36 service, 35 devt
+#define PORTSERVER 1786                       // 1786
+#define PORTREMOTE 1788                       // 1788
+#define PORTUDP    8886                       // 8886
 #define DEFNOMSERV "sweet_home\0"
 #endif // _MODE_RUN
 

@@ -69,7 +69,7 @@ extern uint16_t* periAnalHigh;                 // ptr ds buffer : high analog va
 extern uint16_t* periAnalOffset1;              // ptr ds buffer : offset on adc value
 extern float*    periAnalFactor;               // ptr ds buffer : factor to float for analog value
 extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
-
+extern byte*     periSsidNb;                   // ptr ds buffer : 
       
 extern byte*     periBegOfRecord;
 extern byte*     periEndOfRecord;
@@ -318,6 +318,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   char* k;
   int perizer=0;
   int messLen=strlen(valf)-2;   // longueur hors crc
+  int oriMessLen=messLen;
 //Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" valf=");Serial.println((char*)valf);
   periCur=0;
                         // check len,crc
@@ -399,9 +400,13 @@ Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(
 #endif //    
     
   }
-  if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                                         // last access protocol type
-  memcpy(periIpAddr,remote_IP_cur,4);                                                                            // Ip addr
-  if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}                                               // port
+  if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                // last access protocol type
+  *periSsidNb='?';
+  if(*(valf+oriMessLen-8)=='*'){*periSsidNb=*(valf+oriMessLen-7);}
+//Serial.println(valf+oriMessLen-8);  
+
+  memcpy(periIpAddr,remote_IP_cur,4);                                                   // Ip addr
+  if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}              // port
   periSave(periCur,PERISAVELOCAL);
   checkdate(6);
 }

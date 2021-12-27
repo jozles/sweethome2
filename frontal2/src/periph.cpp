@@ -128,6 +128,7 @@ extern uint8_t*   periDigitCb;                  // ptr ds buffer : 5 x 4 bits po
 extern uint8_t*   periDigitDestDet;             // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*   periDigitRefDet;              // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
 extern int8_t*    periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
+extern byte*      periSsidNb;                     // ptr ds buffer : n° dernier ssid utilisé
       
 extern byte*      periBegOfRecord;
 extern byte*      periEndOfRecord;
@@ -1059,6 +1060,7 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=MAXDET*sizeof(uint8_t);
   periDigitMemo=(int8_t*)temp;
   temp +=MAXDET*sizeof(int8_t);  
+  periSsidNb=(byte*)temp;
   temp +=1*sizeof(byte);
   periEndOfRecord=(byte*)temp;      // doit être le dernier !!!
   temp ++;
@@ -1514,6 +1516,14 @@ void remoteLoad()
 
 void remoteSave()
 {
+  for(uint8_t nb=0;nb<NBREMOTE;nb++){
+    if(remoteN[nb].nam[0]=='\0'){
+      remoteN[nb].onoff=0;
+      remoteN[nb].newonoff=0;
+      remoteN[nb].enable=0;
+      remoteN[nb].newenable=0;
+    }
+  }
   remSave(REMOTETFNAME,remoteTlen,remoteTA);
   remSave(REMOTENFNAME,remoteNlen,remoteNA);
   //remotePrint();

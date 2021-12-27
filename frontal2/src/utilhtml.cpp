@@ -335,28 +335,26 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br,bool sep)
   char bb[LSPR];memset(bb,0x00,LSPR);
   float pdix[]={1,10,100,1000,10000,100000,1000000,10000000,100000000,1000000000};
 
-if(int(val)>pdix[9] || dec>9){        // 19+'-'+'.'=21
-  Serial.print("concatnf ovf ");Serial.print(val);Serial.print(" ");Serial.println(dec);
-  ledblink(BCODESYSERR);
-}
+  if(int(val)>pdix[9] || dec>9){        // 19+'-'+'.'=21
+    Serial.print("concatnf ovf ");Serial.print(val);Serial.print(" ");Serial.println(dec);
+    ledblink(BCODESYSERR);
+  } 
 
-//Serial.print(val);Serial.print(" ");Serial.print(dec);
+/*
   convIntToString(bb,int(val));
-//Serial.print(" ");Serial.print(bb);  
   if(dec!=0){
     bb[strlen(bb)]='.';
     convIntToString(bb+strlen(bb),int((val-int(val))*pdix[dec]),dec);}
-//Serial.print(" ");Serial.println(bb);  
-/*
-  s=sprintf(bb,d,val);
-
-  if(s<0 || s>=LSPR){
-    Serial.print(s);Serial.print(" ");Serial.print(d);Serial.print(" ");Serial.print(val);Serial.println(" ");Serial.println(bb);
-    //ledblink(BCODESYSERR);
-    s=LSPR;
-    }
-  bb[s]='\0';
 */
+
+  char d[]="%.2f";d[2]=(char)(dec+0x30);
+  int s=sprintf(bb,d,val);
+  if(s<0 || s>LSPR){
+    Serial.print("concatnf ovf ");Serial.print(val);Serial.print(" ");Serial.println(dec);
+    ledblink(BCODESYSERR);
+  } 
+  bb[s]='\0';
+
   if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
     strcat(jsbuf,bb);if(sep){strcat(jsbuf,JSSEP);}
   }
@@ -1167,10 +1165,10 @@ void pageLineOne(char* buf,char* jsbuf)
   
   strcat(dm0,VERSION);
   #ifdef DUE
-  strcat(dm0,"D ");
+  strcat(dm0,"DUE ");
   #endif // DUE
   #ifndef DUE
-  strcat(dm0,"N ");
+  strcat(dm0,"NUC ");
   #endif // DUE
   #ifdef _MODE_DEVT
   strcat(dm0," DEV ");

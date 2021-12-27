@@ -67,7 +67,7 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   byte*     localIp;          // ip  adresse server
   uint16_t* serverPort;       // port server
   uint16_t* remotePort;       // port remote
-  uint16_t* serverUdpPort;          // port udp
+  uint16_t* serverUdpPort;    // port udp
   char*     serverName;       // nom server
   char*     peripass;         // mot de passe périphériques
   char*     ssid;             // liste des ssid pour peripherique2
@@ -226,7 +226,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
   byte*     periSwPulseCtl;                 // ptr ds buffer : mode pulses
   byte*     periSwPulseSta;                 // ptr ds buffer : état clock pulses
   uint8_t*  periSondeNb;                    // ptr ds buffer : nbre sonde
-  bool*  periProg;                       // ptr ds buffer : flag "programmable" (périphériques serveurs)
+  bool*     periProg;                       // ptr ds buffer : flag "programmable" (périphériques serveurs)
   byte*     periDetNb;                      // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
   byte*     periDetVal;                     // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
   int16_t*  periThOffset_;                  // ptr ds buffer : offset correctif sur mesure température
@@ -250,7 +250,8 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
   uint8_t*  periDigitDestDet;               // ptr ds buffer : 4 x n° détect serveur
   uint8_t*  periDigitRefDet;                // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
   int8_t*   periDigitMemo;                  // ptr ds buffer : 5 x n° mémo dans table mémos
-    
+  byte*     periSsidNb;                     // ptr ds buffer : n° dernier ssid utilisé
+
   int8_t    periMess;                       // code diag réception message (voir MESSxxx shconst.h)
   byte      periMacBuf[6]; 
 
@@ -418,7 +419,14 @@ void setup() {                          // ====================================
 
 /* >>>>>>     config     <<<<<< */  
 
-  Serial.println();Serial.print(VERSION);Serial.print(" ");
+  Serial.println();Serial.print(VERSION);
+  #ifdef DUE
+  Serial.print(" DUE ");
+  #endif
+  #ifndef DUE
+  Serial.print(" NUCLEO ");
+  #endif
+
   Serial.print(MODE_EXEC);Serial.print(" free=");Serial.print(freeMemory(), DEC);Serial.print(" FreeStack: ");Serial.println(FreeStack());
 
 #ifdef REDV0
@@ -496,10 +504,10 @@ periSave(3,PERISAVESD);
 /* >>>>>> ethernet start <<<<<< */
 //  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAE",6);*serverPort=1786;*remotePort=1788;*serverUdpPort=8886; // server service
 //  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAC",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8890; // server test
-#ifdef _MODE_DEVT
-  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAC",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8890; // config server devt home
-#endif // _MODE_DEVT  
-  
+
+  memcpy(mac,REDMAC,6);*serverPort=PORTSERVER;*remotePort=PORTREMOTE;*serverUdpPort=PORTUDP; // config server from const.h
+  // else config server from config record
+
   Serial.print(MODE_EXEC);
   Serial.print(" mac=");serialPrintMac(mac,0);
   Serial.print(" serverPort=");Serial.print(*serverPort);
@@ -510,7 +518,7 @@ periSave(3,PERISAVESD);
 
   if(Ethernet.begin(mac) == 0)
     {
-    Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();
+    Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();  // config record IP
     Ethernet.begin (mac, localIp); 
     }
   Serial.print(" localIP=");

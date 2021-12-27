@@ -97,7 +97,7 @@ extern uint8_t*  periDigitCb;                   // ptr ds buffer : 5 x 4 bits po
 extern uint8_t*  periDigitDestDet;              // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*  periDigitRefDet;               // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
 extern int8_t*   periDigitMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
-
+extern byte*     periSsidNb;                    // ptr ds buffer : n° dernier ssid utilisé
 
 extern int8_t    periMess;                      // code diag réception message (voir MESSxxx shconst.h)
 extern byte      periMacBuf[6]; 
@@ -377,7 +377,7 @@ void periTableHtml(EthernetClient* cli)
           
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
           tableBeg(buf,jsbuf,"Courier, sans-serif\"",BORDER,TRBEG|TDBEG);
-          scrDspText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|vers. prot~last out~last in|",0,TREND|TDEND);
+          scrDspText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|ver ssid prot~last out~last in|",0,TREND|TDEND);
           
           strcat(buf,"\n\n");
 
@@ -729,11 +729,16 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             if(j<3){w[s]='.';s++;}
           }
           scrDspText(buf,jsbuf,w,0,STRING|TDEND);
-// version protocol
-          char vers[LENVERSION+1];memcpy(vers,periVers,LENVERSION);vers[LENVERSION]='\0';
+// version ssid protocol
+          char vers[LENVERSION+3];memcpy(vers,periVers,LENVERSION);
+          vers[LENVERSION]=' ';
+          char t=*periSsidNb;
+          if(!((t>='0' && t<='9') || t=='?')){t=' ';}
+          vers[LENVERSION+1]=t;
+          vers[LENVERSION+2]='\0';
           scrDspText(buf,jsbuf,vers,0,STRING|CONCAT);scrDspText(buf,jsbuf," ",0,STRING|CONCAT);
           long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}
-          char* a=protocStr+LENPROSTR*p;scrDspText(buf,jsbuf,a,0,STRING|CONCAT|BRYES);                
+          char* a=protocStr+LENPROSTR*p;scrDspText(buf,jsbuf,a,0,STRING|CONCAT|BRYES);
 // date_heures
           showDates(buf,jsbuf);
           strcat(buf,"\n");
