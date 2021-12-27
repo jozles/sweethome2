@@ -40,6 +40,7 @@ Ds1820 ds1820;
 
   const char* ssid;                       // current ssid
   const char* ssidPwd;                    // current ssid pwd 
+  char ssidNb;                            // numéro ssid courant
 #define DEVOLO  
 #ifdef DEVOLO
   const char* ssid2; //= "pinks";
@@ -219,7 +220,7 @@ delay(1);
 
 #if POWER_MODE==NO_MODE
   diags=false;
-  delay(1000);
+  delay(2000);
   //Serial.print("\nSerial buffer size =");Serial.println(Serial.getRxBufferSize());
   Serial.print("\nstart setup ");Serial.print(VERSION);
   Serial.print(" power_mode=");Serial.print(POWER_MODE);
@@ -650,9 +651,9 @@ int buildData(const char* nomfonction,const char* data)             // assemble 
       sb=strlen(message);
       sprintf(message+sb,"%1.2f",voltage);                            // alim                        - 5
       memcpy(message+sb+4,"_\0",2);
-      memcpy(message+sb+5,VERSION,LENVERSION);                       // VERSION contient le "_"     - 3
+      memcpy(message+sb+5,VERSION,LENVERSION);                        // VERSION contient le "_"     - 3
       char ds='B';if(ds1820.dsmodel==MODEL_S){ds='S';}
-      memcpy(message+sb+5+LENVERSION-1,&ds,1);                       // modele DS18x20              - 2
+      memcpy(message+sb+5+LENVERSION-1,&ds,1);                        // modele DS18x20              - 2
       memcpy(message+sb+5+LENVERSION,"_\0",2);
       
       sb+=5+LENVERSION+1;
@@ -698,7 +699,9 @@ int buildData(const char* nomfonction,const char* data)             // assemble 
         }
         sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
       } 
-      strcpy(message+sb-1,"_\0");
+      *(message+sb-1)='*';                    // identifie le car suivant comme SsidNb pour periDataRead dans frontal2.cpp
+      *(message+sb)=(char)(ssidNb+0x30);
+      memcpy(message+sb+1,"_\0",2);
 
   if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
   
@@ -816,7 +819,7 @@ switch(cstRec.talkStep&=TALKCNTBIT){
   
   case TALKWIFI2:
       ssid=cstRec.ssid2;ssidPwd=cstRec.pwd2; // tentative sur ssid bis
-      if(wifiConnexion(ssid,ssidPwd)){talkSet(TALKDATA);}
+      if(wifiConnexion(ssid,ssidPwd)){talkSet(TALKDATA);ssidNb=2;}
       else {talkWifiKo();}
       break;
   
@@ -824,7 +827,7 @@ switch(cstRec.talkStep&=TALKCNTBIT){
       ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;
       //Serial.print("+");
       if(!wifiConnexion(ssid,ssidPwd)){talkSet(TALKWIFI2);break;}
-      if((millis()-dateOn)>1){talkSet(TALKDATA);break;}
+      if((millis()-dateOn)>1){talkSet(TALKDATA);ssidNb=1;break;}
 
   case TALKDATA:        // connecté au wifi
                         // si le numéro de périphérique est 00 ---> récup (dataread), ctle réponse et maj params
@@ -902,7 +905,7 @@ void talkClient(char* etat) // réponse à une requête
 
 void answer(const char* what)
 {
-  Serial.print(" ");Serial.println(what);
+  Serial.print(" echo:");Serial.println(what);
   bufServer[0]='\0';
   #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
   if(memcmp(what,"data_save_",LENNOM)==0){buildData("data_save_",tempStr());}
@@ -912,6 +915,19 @@ void answer(const char* what)
   }
   talkClient(bufServer);
   ledblink(4);                        // connexion réussie 
+}
+
+void swSet(uint8_t swNb,uint8_t swSt)
+{
+  switch(swNb*2+swSt){
+    case 0:cstRec.swCde &=0xfd;break;
+    case 1:cstRec.swCde |=0x02;break;
+    case 2:cstRec.swCde &=0xf7;break;
+    case 3:cstRec.swCde |=0x08;break;
+    default:break;
+  }
+  if(cstRec.swCde<16){Serial.print('0');};Serial.println(cstRec.swCde,HEX);
+  delay(1000);
 }
 
 void ordreExt()
@@ -961,9 +977,11 @@ void ordreExt()
       if(vx>=0){v0=vx-httpMess;}
       if(v0>=0){                            // si commande GET trouvée contrôles et décodage nom fonction 
         int jj=4,ii=convStrToNum(httpMess+v0+5+10+1,&jj);   // recup eventuelle longueur
-        httpMess[v0+5+10+1+ii+2]=0x00;      // place une fin ; si long invalide check sera invalide
-
-        if(checkHttpData(&httpMess[v0+5],&fonction)==MESSOK){
+        if(v0+5+10+1+ii+2<LHTTPMESS){
+          httpMess[v0+5+10+1+ii+2]=0x00;      // place une fin ; si long invalide check sera invalide
+        }
+        int checkMess=checkHttpData(&httpMess[v0+5],&fonction);
+        if(checkMess==MESSOK){
           Serial.print("reçu message fonct=");Serial.print(fonction);
           switch(fonction){
               case 0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat 
@@ -972,10 +990,10 @@ void ordreExt()
               case 2: answer("etat______");talkReq();break;     // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
               case 3: break;                                            // sleep (future use)
               case 4: break;                                            // reset (future use)
-              case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);break;     // test on  A        http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A
-              case 6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);break;    // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
-              case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);break;     // test on  B        http://82.64.32.56:1796/sw1__ON___=0005_5A
-              case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);break;    // test off B        adresse/port indifférent crc=5A
+              case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);break;swSet(0,1);break;    // test on  A        http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A
+              case 6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);break;swSet(0,0);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
+              case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);break;swSet(1,1);break;    // test on  B        http://82.64.32.56:1796/sw1__ON___=0005_5A
+              case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);break;swSet(1,0);break;   // test off B        adresse/port indifférent crc=5A
               case 9: 
               #ifdef MAIL_SENDER                      
                       if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
@@ -1002,7 +1020,7 @@ void ordreExt()
           }          
           Serial.println();
         }
-        else {Serial.print("reçu ko :");Serial.println(httpMess);}
+        else {Serial.print("reçu ko :");Serial.print(checkMess);Serial.print(" ");Serial.println(httpMess);}
         //if(strstr(httpMess,"favicon")>0){htmlImg(&cliext,favicon,favLen);}
         cntreq++;
       }                   // une éventuelle connexion a été traitée si controles ko elle est ignorée
@@ -1011,8 +1029,6 @@ void ordreExt()
     }   // if(cliext
   }     // if(server!=nullptr){
 }       // ordreExt()
-
-
 
 #endif // _SERVER_MODE
 
