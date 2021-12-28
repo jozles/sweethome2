@@ -2,8 +2,9 @@
 #define _CONST_H_
 
 #define _MODE_DEVT  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
+//#define _MODE_RUN  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
-#define NVERS ".59"
+#define NVERS ",59"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -116,6 +117,10 @@
      
 
    à faire :
+
+      modifier la gestion des remotes : le .enable devrait servir à bloquer le swCde dans son état courant lorsque ni Forçage ni Disjoncteur actifs
+      (éventuellement dépendant d'un detserv ?)
+      Etudier comment banaliser des disjoncteurs "communs" (utilisables par plusieurs switchs) ; actuellement il faut utiliser des memDet
 
       passer à 32 (64?) périfs et 64 (128?) memDet
    

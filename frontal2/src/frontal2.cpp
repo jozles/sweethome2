@@ -250,7 +250,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
   uint8_t*  periDigitDestDet;               // ptr ds buffer : 4 x n° détect serveur
   uint8_t*  periDigitRefDet;                // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
   int8_t*   periDigitMemo;                  // ptr ds buffer : 5 x n° mémo dans table mémos
-  byte*     periSsidNb;                     // ptr ds buffer : n° dernier ssid utilisé
+  char*     periSsidNb;                     // ptr ds buffer : n° dernier ssid utilisé
 
   int8_t    periMess;                       // code diag réception message (voir MESSxxx shconst.h)
   byte      periMacBuf[6]; 
@@ -1931,8 +1931,10 @@ void tcpPeriServer()
 {
   ab='a';
   
-  for(int t=0;t<MAXTPS;t++){                    // effectue les .stop() pour libérer les clients
-    if(tPSStop[t]!=0 && (millis()-tPSStop[t])>600){
+  for(int t=0;t<MAXTPS;t++){                    // effectue les .stop() éventuels pour libérer les instances
+                                                // qui ont eu le temps d'effectuer leur dernier .write
+    if(tPSStop[t]!=0 && (millis()-tPSStop[t])>600){     // tPSStop heure de la fin d'utilisation de l'instance
+                                                        // (dernier .write en principe) si 0 inutilisée
       tPSStop[t]=0;
       cli_a[t].stop();
      }
@@ -1941,20 +1943,24 @@ void tcpPeriServer()
   uint8_t preTPS=tPS+1;                         // attribue l'instance suivante
   if(preTPS>=MAXTPS){preTPS=0;}
 
-  unsigned long tStop=millis();
-  cli_a[preTPS].stop();                         // confirme la libération de l'instance
-  if(millis()-tStop>1){
-    Serial.print(loopCnt);Serial.print(" tStop=");Serial.println(millis()-tStop);
+  if(tPSStop[preTPS]==0){                       // si instance utilisée -> libération
+    unsigned long tStop=millis();               // tStop heure du stop de l'instance   
+    cli_a[preTPS].stop();                       // confirme la libération de l'instance
+    if(millis()-tStop>1){
+      Serial.print(loopCnt);Serial.print(" tStop=");Serial.println(millis()-tStop); // libération d'instance avec attente
+                                                                                    // ne devrait se produire que rarement
+    }
   }
-
-  if(cli_a[preTPS] = periserv->available())      // attente d'un client
+  
+  
+  if(cli_a[preTPS] = periserv->available())     // attente d'un client (perif ou browser sur port server)
   {
     getremote_IP(&cli_a[preTPS],remote_IP,remote_MAC);      
     //serialPrintIp(remote_IP);Serial.println(" connecté");
     if (cli_a[preTPS].connected()){
       lastcxt=millis();                         // trig soft watchdog
       tPS=preTPS;                               // valide l'instance
-      commonserver(&cli_a[tPS],nullptr,0);
+      commonserver(&cli_a[tPS],nullptr,0);      
     }
   }
 }
@@ -1964,7 +1970,7 @@ void pilotServer()
   ab='b';
 
   cli_b.stop();
-  if(cli_b = pilotserv->available())      // attente d'un client
+  if(cli_b = pilotserv->available())      // attente d'un client browser sur port remote
   {
     getremote_IP(&cli_b,remote_IP,remote_MAC);      
     //serialPrintIp(remote_IP);Serial.println(" connecté");

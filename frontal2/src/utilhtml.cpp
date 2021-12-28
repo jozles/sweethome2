@@ -300,10 +300,6 @@ void concatns(char* buf,char* jsbuf,long val)
   concatns(buf,jsbuf,val,SEPNO);
 }
 
-
-#pragma GCC push_options
-#pragma GCC optimize ("-O0")
-
 void concatnf(char* buf,float val)
 {
   concatnf(buf,nullptr,val,2,NOBR);
@@ -360,8 +356,6 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br,bool sep)
   }
   if(buf!=nullptr){strcat(buf,bb);if(br){strcat(buf,"<br>");}}
 }
-
-#pragma GCC pop_options
 
 void concatDate(char* buf,char* jsbuf,char* periDate)
 {

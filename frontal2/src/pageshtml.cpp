@@ -599,7 +599,7 @@ Serial.print("-> config detServ ");
     uint8_t decal=0;if(nb>=16){decal=16;}
     scrDspNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
     char nf[LENNOM+2]="libdsrv__ ";nf[LENNOM]=(nb+decal+PMFNCHAR);nf[LENNOM+1]=0x00;
-    scrGetText(buf,jsbuf,&libDetServ[nb][0],nf,LENLIBDETSERV-1,0,TDBE|TREND);
+    scrGetText(buf,jsbuf,&libDetServ[nb][0],nf,14,LENLIBDETSERV-1,0,TDBE|TREND);
     //strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td><td><input type=\"text\" name=\"libdsrv__");concat1a(buf,(char)(nb+decal+PMFNCHAR));
     //            strcat(buf,"\" value=\"");strcat(buf,(char*)&libDetServ[nb][0]);strcat(buf,"\" size=\"12\" maxlength=\"");concatns(buf,(LENLIBDETSERV-1));
     //            strcat(buf,"\" ></td></tr>\n");
