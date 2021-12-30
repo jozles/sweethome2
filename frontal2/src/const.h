@@ -1,10 +1,10 @@
 #ifndef _CONST_H_
 #define _CONST_H_
 
-#define _MODE_DEVT  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
-//#define _MODE_RUN  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
+//#define _MODE_DEVT  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
+#define _MODE_RUN  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
-#define NVERS ",59"
+#define NVERS ".5a"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -105,7 +105,9 @@
    1.57 toutes config séries ok (?) v.19 de single_nrf_v2
    1.58 ajout mode forçage pour periTableSave() / param FORCE ; sortie sur accueil.html si getnv rend 0 params ;
         corrections gestion cache périfs ;
-   1.59 compatibilité Nucleo ; réception/affichage der n° ssid utilisé
+   1.59 compatibilité Nucleo sprintf ; correction alignement vFactor, vOffset, thFactor, thOffset via bricolage pour Nucleo ; 
+        réception/affichage der n° ssid utilisé ; mode DEV/RUN révisés
+   1.5a 
 
    BUGS :
 

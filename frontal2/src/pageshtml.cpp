@@ -765,6 +765,7 @@ void remoteHtml(EthernetClient* cli)
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               ni++;
               if(remoteN[nb].nam[0]!='\0'){
+                bool remHere=false;
                 uint8_t nb1=nb+1;
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);                                         
 
@@ -775,8 +776,8 @@ void remoteHtml(EthernetClient* cli)
                 for(uint8_t td=0;td<MAXREMLI;td++){
                   if(remoteT[td].num==nb+1){ 
                     if(remoteT[td].peri!=0){           // même remote et présence périphérique
+                      remHere=true;
                       periCur=remoteT[td].peri;periLoad(periCur);
-                    
                       if(periSwLev(remoteT[td].sw)==1){                         // switch ON
                         scrDspText(buf,jsbuf," ON ",0,TDBEG|BRYES);
                         affRondJaune(buf,jsbuf,TDEND);
@@ -787,6 +788,7 @@ void remoteHtml(EthernetClient* cli)
                     else {scrDspText(buf,jsbuf,".",0,TDBE);}
                   }
                 }
+                if(remHere==false){scrDspText(buf,jsbuf," --- ",0,TDBE);} // comble la colonne ON/OFF
                 scrDspText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
                 // slider on/off
                 // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
@@ -822,10 +824,8 @@ void remoteHtml(EthernetClient* cli)
 
 int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd derniers jours
 {
-  
 /* --- calcul date début --- */
-
-
+ 
   unsigned long t0=millis();
   
   int   ldate=LDATEA;

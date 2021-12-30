@@ -478,18 +478,7 @@ void setup() {                          // ====================================
       //}
   }
 
-
   periTableLoad();                  // le premier (après config) pour permettre les mails
-
-#ifdef _MODE_DEVT
-// perif3 dev et mails
-periLoad(3);                
-char mm[]={0x84,0xF3,0xEB,0xFB,0xF9,0x05};
-memcpy(periMacr,mm,6);
-char ii[]={192,168,0,202};
-memcpy(periIpAddr,ii,4);
-periSave(3,PERISAVESD);
-#endif
 
   memDetLoad();                     // le second pour Sync 
   //remoteNPlus(8);while(1){};
