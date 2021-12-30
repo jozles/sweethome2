@@ -40,20 +40,8 @@ Ds1820 ds1820;
 
   const char* ssid;                       // current ssid
   const char* ssidPwd;                    // current ssid pwd 
-  char ssidNb;                            // numéro ssid courant
-#define DEVOLO  
-#ifdef DEVOLO
-  const char* ssid2; //= "pinks";
-  const char* password2; //= "cain ne dormant pas songeait au pied des monts";
-  const char* ssid1; //= "devolo-5d3";
-  const char* password1; //= "JNCJTRONJMGZEEQL";
-#endif // DEVOLO
-#ifndef DEVOLO
-  const char* ssid1= "pinks";
-  const char* password1 = "cain ne dormant pas songeait au pied des monts";
-  const char* ssid2= "devolo-5d3";
-  const char* password2= "JNCJTRONJMGZEEQL";
-#endif // DEVOLO
+  char ssidNb=1;                          // numéro ssid courant
+
 //*/
 //  const IPaddr* host//="192.168.0.35";  //= HOSTIPADDR2;         // HOSTIPADDRx est une chaine de car donc de la forme "192.168.0.xxx"
 //  const int   port=1786;  //= PORTPERISERVER2; 
@@ -144,6 +132,7 @@ char* cstRecA=(char*)&cstRec.cstlen;
 
    /* prototypes */
 
+bool wifiAssign();
 void talkServer();
 void talkClient(char* etat);
 
@@ -342,7 +331,7 @@ delay(1);
 
 
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et sauver */
-initConstant();
+//initConstant();
   if(!readConstant()){   
     Serial.println("KO -> init ");
     initConstant();
@@ -387,12 +376,10 @@ initConstant();
 #ifdef  _SERVER_MODE
   Serial.print("_SERVER_MODE ");
   clkFastStep=1;talkReq();                  // forçage com pour acquisition port perif server
+    
+  while(!wifiAssign()){                     // setup ssid,ssidPwd par défaut
+    delay(2000);blink(3);}
   
-  ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;    // setup wifi pour ordreExt()
-  if(!wifiConnexion(ssid,ssidPwd)){
-    ssid=cstRec.ssid2;ssidPwd=cstRec.pwd2;
-    wifiConnexion(ssid,ssidPwd);            // tentative sur ssid bis si existe
-  }
 #endif // def_SERVER_MODE
 
   Serial.println(">>>> fin setup\n");
@@ -553,6 +540,8 @@ wifiConnexion()
 readAnalog() (pour NO_MODE seul : les autres modes utilisent l'ADC pour lire l'alim)
 
 readTemp() gestion communications cycliques (déclenche talkServer)
+
+wifiAssign() positionne le wifi par défaut
 
 */
 
@@ -817,16 +806,20 @@ if((cstRec.talkStep&TALKREQBIT)!=0 && (cstRec.talkStep&TALKCNTBIT)==0){cstRec.ta
 switch(cstRec.talkStep&=TALKCNTBIT){
   case 0:break;
   
+  /*
   case TALKWIFI2:
       ssid=cstRec.ssid2;ssidPwd=cstRec.pwd2; // tentative sur ssid bis
       if(wifiConnexion(ssid,ssidPwd)){talkSet(TALKDATA);ssidNb=2;}
       else {talkWifiKo();}
       break;
-  
+  */
   case TALKWIFI1:
+      /*
       ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;
       //Serial.print("+");
       if(!wifiConnexion(ssid,ssidPwd)){talkSet(TALKWIFI2);break;}
+      */
+      if(!wifiAssign()){talkWifiKo();}
       if((millis()-dateOn)>1){talkSet(TALKDATA);ssidNb=1;break;}
 
   case TALKDATA:        // connecté au wifi
@@ -1141,6 +1134,28 @@ void getTemp()
 #endif // PM!=DS_MODE
 
       checkVoltage();
+}
+
+bool wifiAssign()
+{
+  bool ret=true;
+
+  if(ssidNb==1){ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;}
+  else {ssid=cstRec.ssid2;ssidPwd=cstRec.pwd2;}
+
+  if(!wifiConnexion(ssid,ssidPwd)){
+    if(ssidNb==1){
+      if(wifiConnexion(cstRec.ssid2,cstRec.pwd2)){
+        ssidNb=2;ssid=cstRec.ssid2;ssidPwd=cstRec.pwd2;}
+      else ret=false;
+    }
+    else {
+      if(wifiConnexion(cstRec.ssid1,cstRec.pwd1)){
+        ssidNb=1;ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;}
+      else ret=false;
+    }
+  }
+  return ret;
 }
 
 uint16_t getServerConfig()

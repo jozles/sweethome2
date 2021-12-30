@@ -212,7 +212,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRR             // <------------- modèle carte
+#define CARTE VRDEV             // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation 
 //#define PININT_MODE             // <------------- avec/sans pin d'interruption
 
@@ -252,6 +252,22 @@ Modifier :
   #define CONSTANT EEPROMSAVED  
   #define CONSTANTADDR 64     // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
 #endif // PM==DS_MODE
+
+// SSID
+
+//#define DEVOLO  
+//#ifdef DEVOLO
+//  const char* ssid2= "pinks";
+//  const char* pwd2= "cain ne dormant pas songeait au pied des monts";
+//  const char* ssid1= "devolo-5d3";
+//  const char* pwd1= "JNCJTRONJMGZEEQL";
+//#endif // DEVOLO
+//#ifndef DEVOLO
+//  const char* ssid1= "pinks";
+//  const char* password1 = "cain ne dormant pas songeait au pied des monts";
+//  const char* ssid2= "devolo-5d3";
+//  const char* password2= "JNCJTRONJMGZEEQL";
+//#endif // DEVOLO
 
 // matériel
 

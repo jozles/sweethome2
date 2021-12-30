@@ -168,10 +168,10 @@ void initConstant()  // inits mise sous tension
   memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
 
   memcpy(cstRec.peripass,"17515A",LPWD+1);
-  strcat(cstRec.ssid2,"pinks");
-  strcat(cstRec.pwd2,"cain ne dormant pas songeait au pied des monts");
-  strcat(cstRec.ssid1,"devolo-5d3");
-  strcat(cstRec.pwd1,"JNCJTRONJMGZEEQL");
+  strcat(cstRec.ssid2,SSID2); //"pinks");
+  strcat(cstRec.pwd2,PWDSSID2);   //"cain ne dormant pas songeait au pied des monts");
+  strcat(cstRec.ssid1,SSID1); //"devolo-5d3");
+  strcat(cstRec.pwd1,PWDSSID1);   //"JNCJTRONJMGZEEQL");
 
   Serial.println("Init Constant done");
   writeConstant();
