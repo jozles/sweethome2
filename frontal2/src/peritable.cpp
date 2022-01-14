@@ -161,7 +161,7 @@ void subModePulseTime(char* buf,char* jsbuf,uint8_t npu,uint32_t* pulse,uint32_t
   fonc1[LENNOM-1]=onetwo;
   scrGetCheckbox(buf,jsbuf,&val,fonc1,NO_STATE,"",2,ctl&TDBEG);               // bit enable pulse
   if(*(pulse+npu)<0){*(pulse+npu)=0;}  
-  scrGetNum(buf,jsbuf,'l',(pulse+npu),fonc2,8,0,0,BRYES);                             // durée pulse   
+  scrGetNum(buf,jsbuf,'l',(pulse+npu),fonc2,8,0,0,BRYES);                     // durée pulse   
 //char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
 //strcat(buf,"<br>(");concatn(buf,*(dur+npu));strcat(buf,")</font>");
   scrDspText(buf,jsbuf,"(",0,0);
@@ -230,7 +230,7 @@ void swCtlTableHtml(EthernetClient* cli)
 
       char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
       char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
-      char rfonc[]="peri_otfbv__\0";          // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
+      char rfonc[]="peri_otf__\0";            // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
 
       scrDspText(buf,jsbuf,"",0,TRBEG);
 
@@ -260,6 +260,7 @@ void swCtlTableHtml(EthernetClient* cli)
     ethWrite(cli,buf,&lb);
 
 /* affichage/saisie règles */
+        
   scrDspText(buf,jsbuf,"la fonction utilise la valeur courante et la source pour produire la destination et la nlle valeur courante",0,BRYES);
   scrDspText(buf,jsbuf,"Règles en=enable, rf=(fall/rise if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
   scrDspText(buf,jsbuf,";'static' retourne la valeur de la source ; 'edge' retourne 1 sur le flanc actif sinon 0",0,BRYES);

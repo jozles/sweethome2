@@ -447,7 +447,7 @@ delay(1);
                       case 7:   readAnalog();break;
                       case 8:   pulseClkisr();break;
                       case 9:   readTemp();
-                                Serial.print("!");Serial.print(digitalRead(PINDTC));
+//Serial.print("!");Serial.print(digitalRead(PINDTC));
                                 break;
                       case 10:  pulseClkisr();
                                 clkSlowStep=0;

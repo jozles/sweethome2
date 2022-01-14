@@ -813,6 +813,16 @@ int periCacheSave(uint16_t num)                                     // sauve les
         fperi.close();
         periCacheStatus[num]=CACHEISFILE;                           // le fichier est à l'image du cache
         for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
+/*    Serial.print("periCacheSave ");Serial.print(periFile);Serial.print("  ");
+    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB))&0x01);sp("-",0);         // fr bit
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB))&0x01);sp(" ",0);       // time one en
+    Serial.print(*(uint32_t*)(periSwPulseOne));sp("/",0);                          // time one
+    Serial.print(*(uint32_t*)(periSwPulseCurrOne));sp(" ",0);                      // curr one    
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB)&0x01));sp(" ",0);       // time two en
+    Serial.print(*(uint32_t*)(periSwPulseTwo));sp("/",0);                          // time two
+    Serial.print(*(uint32_t*)(periSwPulseCurrTwo));                                // curr two 
+    Serial.println();
+*/
       }
       else{Serial.print(periFile);Serial.println(" ko");sta=SDKO;}
     }

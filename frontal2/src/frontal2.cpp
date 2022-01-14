@@ -1499,13 +1499,24 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);            // (pulses swCtlTableHtml) peri_otf__ bits généraux (FOT)
                        uint16_t sh=0;
                         switch (b){
-                           case 'F':sh=PMFRO_VB;break;
-                           case 'O':sh=PMTOE_VB;break;
-                           case 'T':sh=PMTTE_VB;break;
+                           case 'F':sh=PMFRO_VB;break;      // Free run
+                           case 'O':sh=PMTOE_VB;break;      // pulse One enable
+                           case 'T':sh=PMTTE_VB;break;      // pulse Two enable
                            default:break;
                         }
                         sh=sh<<pu*PCTLBIT;
                         *(uint16_t*)periSwPulseCtl|=sh;
+/*                        
+    Serial.print("peri_otf__ ");Serial.print(valf);Serial.print(" ");Serial.print(periCur);Serial.print(":");Serial.print(pu);Serial.print(":");Serial.println((char)b);
+    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB))&0x01);sp("-",0);         // fr bit
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB))&0x01);sp(" ",0);       // time one en
+    Serial.print(*(uint32_t*)(periSwPulseOne));sp("/",0);                          // time one
+    Serial.print(*(uint32_t*)(periSwPulseCurrOne));sp(" ",0);                      // curr one    
+    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB)&0x01));sp(" ",0);       // time two en
+    Serial.print(*(uint32_t*)(periSwPulseTwo));sp("/",0);                          // time two
+    Serial.print(*(uint32_t*)(periSwPulseCurrTwo));                                // curr two 
+    Serial.println();
+*/    
                        }break;       
               case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;   // (regles switchs) p_inp1__  
                         uint8_t offs=nuinp*PERINPLEN;                                                     // (enable/type/num detec/action)
@@ -1595,10 +1606,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        }break;                                      
               case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__ // submit depuis cfgServervHtml                              
               case 51: what=6;                                                                          // (config) ethcfg___
-                       {//uint8_t nC=*(libfonctions+2*i)-PMFNCVAL;                                        // num concentrateur             
-                        //int rr=0;uint16_t aa=0;  
-Serial.print(*(libfonctions+2*i+1));Serial.print(" ");
-                          switch(*(libfonctions+2*i+1)){                                            
+                       {  switch(*(libfonctions+2*i+1)){                                            
                             case 'i': memset(localIp,0x00,4);                                           // (config) localIp
                                       textIp((byte*)valf,localIp);break;   
                             case 'p': *serverPort=0;conv_atob(valf,serverPort);break;                   // (config) serverPort
@@ -1607,28 +1615,10 @@ Serial.print(*(libfonctions+2*i+1));Serial.print(" ");
                             case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;              // (config) mac
                             case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                        // (config) TO sans TCP
                             case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                        // (config) TO sans UDP
-                            case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);
-                            Serial.println(serverName);Serial.print("===");Serial.print(valf);
-                            break;       // (config) nom serveur
+                            case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;       // (config) nom serveur
                             case 'W': *ssid1=0;*ssid1=*valf-PMFNCVAL;break;                             // (config) ssid1
                             case 'w': *ssid2=0;*ssid2=*valf-PMFNCVAL;break;                             // (config) ssid2
-/*
-                            case 'c': for(j=0;j<6;j++){conv_atoh(valf+j*2,(periRxAddr+j));}break;       // (config) periRxAddr
-                            case 'y': *vFactor=0;*vFactor=convStrToNum(valf,&rr);break;                 // (config) voltsFactor
-                            case 'v': *vOffset=0;*vOffset=convStrToNum(valf,&rr);break;                 // (config) voltsOffset
-                            case 'b': *thFactor=0;*thFactor=convStrToNum(valf,&rr);break;               // (config) tempFactor
-                            case 'e': *thOffset=0;*thOffset=convStrToNum(valf,&rr);break;               // (config) voltsOffset
 
-                            case 'I': memset((concIp+4*nC*sizeof(byte)),0x00,4);                        // (config) concIp
-                                      textIp((byte*)valf,concIp+4*nC*sizeof(uint8_t));break;
-                            case 'P': *(concPort+nC)=0;conv_atob(valf,(concPort+nC));break;             // (config) concPort
-                            case 'M': for(j=0;j<6;j++){conv_atoh(valf+j*2,(concMac+MACADDRLENGTH*nC+j));}break;          // (config) concMac
-                            case 'R': alphaTfr((char*)(concRx+nC*RADIO_ADDR_LENGTH),RADIO_ADDR_LENGTH,valf,nvalf[i+1]-nvalf[i],0);break;  // (config) Radio RX Addr
-                            case 'C': *(concChannel+nC)=0;conv_atob(valf,(concChannel+nC));break;       // (config) concchannel
-                            case 'S': *(concRfSpeed+nC)=0;conv_atob(valf,(concRfSpeed+nC));break;       // (config) concRfSpeed
-                            case 'N': *concNb=0;conv_atob(valf,&aa);if(aa>MAXCONC){aa=0;}*concNb=(uint8_t)aa;                                      
-                                      Serial.print(" ");Serial.println(*concNb);break;  // (config) N° conc pour périf
-*/
                             default: break;
                           }
                        }break;

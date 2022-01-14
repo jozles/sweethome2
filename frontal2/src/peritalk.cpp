@@ -131,16 +131,16 @@ void assySet(char* message,int periCur,const char* diag,char* date14)
                 v1+=MAXSW+1;
                 //dumpstr((char*)periAnalLow,2);
                 //dumpstr((char*)periAnalHigh,2);
-                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalLow+k));}   // analog Low  (2+1) bytes
+                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalLow+k));}   // analog Low  2 bytes
                 v1+=4;
-                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalHigh+k));}  // analog High (2+1) bytes
+                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalHigh+k));}  // analog High 2 bytes
                 v1+=4;
-                memcpy(message+v1,"_\0",2);
+                memcpy(message+v1,"_\0",2);         
                 v1+=1;
           
 if(*periProg!=0){
 
-                for(int k=0;k<NBPULSE*2;k++){                      // 4*2 compteurs (8*(8+1)bytes)
+                for(int k=0;k<NBPULSE*2;k++){                      // 2 fois 4 compteurs (8*(8+1)bytes)
                     sprintf(message+v1+k*(LENVALPULSE+1),"%08lu",*(periSwPulseOne+k));
                     memcpy(message+v1+(k+1)*LENVALPULSE+k,"_\0",2);
                 }
@@ -315,7 +315,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
                                 //        periMess autres valeurs retour de checkData
 {
   int i=0;
-  char* k;
+  char* k;                      // pointeur dans message reçu (valf)
   int perizer=0;
   int messLen=strlen(valf)-2;   // longueur hors crc
   int oriMessLen=messLen;
@@ -383,14 +383,17 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
     }
     /* les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être mis à 0 */
     messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){
-      k+=MAXDET+1;for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
+      k+=MAXDET+1;
+      for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
     }
     messLen-=(NBPULSE+1);if(messLen>0){
-      k+=NBPULSE+1;for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                              // model
+      k+=NBPULSE+1;
+      for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                               // model
     }
     messLen-=(LENMODEL+1);if(messLen>0){
       k+=LENMODEL+1;
-      for(uint16_t i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}                     // valeur courante pulses
+      for(uint16_t i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}   // valeur courante pulses
+      if(*periSwPulseCurrOne>100000){dumpstr((char*)periSwPulseCurrOne,16);}
     }
 /*    messLen-=(2*i+1);if(messLen>0){
 Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);      
