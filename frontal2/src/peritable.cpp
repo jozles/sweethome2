@@ -491,7 +491,7 @@ void showDates(char* buf,char* jsbuf)
 
 void periLineHtml(EthernetClient* cli)              // periCur ok
 {
-/* >>>>>>>>>>>>>>>>>>>>>>> modèle de page <<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+/* ------------- modèle de page  ------------- */
 
   char jsbuf[LBUF4000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF2000;

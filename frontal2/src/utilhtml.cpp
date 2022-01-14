@@ -587,8 +587,6 @@ void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* 
   fnHtmlIntro(buf,0,ctl,nullptr);
   
   float vf=((float)*valfonct)/100; 
-  Serial.print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");Serial.print(*valfonct);Serial.print(" ");Serial.println(vf); 
-  //concatnf(buf,jsbuf,vf);//((float)*valfonct)/100);    
   concatnf(buf,jsbuf,vf,2,NOBR,SEPNO);
   fnHtmlEnd(buf,0,ctl);
   setColourE(buf,jsbuf);

@@ -57,7 +57,7 @@ char ab;                            // protocole et type de la connexion en cour
     
   extern EthernetUDP Udp;
 
-/* >>>> config server <<<<<< */
+/* ---------- config server ---------- */
 
 char configRec[CONFIGRECLEN];       // enregistrement de config  
 
@@ -398,7 +398,7 @@ void factoryReset()
 
 void setup() {                          // ====================================
 
-/* >>>>>>     hardware setup     <<<<<< */
+/* ---------- hardware setup ---------- */
 
   delay(3000);  // éponge le délai entre la fin de l'upload et le reset du Jlink
   
@@ -417,7 +417,7 @@ void setup() {                          // ====================================
 
   pinMode(STOPREQ,INPUT_PULLUP);        // push button "HALT REQ"
 
-/* >>>>>>     config     <<<<<< */  
+/* ---------- config ---------- */  
 
   Serial.println();Serial.print(VERSION);
   #ifdef DUE
@@ -463,7 +463,8 @@ void setup() {                          // ====================================
 
   configInit();configLoad();configPrint();
     
-/* >>>>>> load variables du systeme : périphériques, table et noms remotes, timers, détecteurs serveur <<<<<< */
+/* ---------- load variables du systeme : périphériques, table et noms remotes, 
+              timers, détecteurs serveur ---------- */
 
   blink(4);
   
@@ -490,7 +491,7 @@ void setup() {                          // ====================================
   memosLoad(-1);
   Serial.println();
 
-/* >>>>>> ethernet start <<<<<< */
+/* ---------- ethernet start ---------- */
 //  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAE",6);*serverPort=1786;*remotePort=1788;*serverUdpPort=8886; // server service
 //  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAC",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8890; // server test
 
@@ -527,7 +528,7 @@ void setup() {                          // ====================================
   pilotserv=new EthernetServer(*remotePort);
   pilotserv->begin();Serial.print(" pilotserv.begin(");Serial.print(*remotePort);Serial.println(")");  //  remote serveur
 
-/* >>>>>> RTC ON, check date/heure et maj éventuelle par NTP  <<<<<< */
+/* ---------- RTC ON, check date/heure et maj éventuelle par NTP ---------- */
 /* ethernet doit être branché pour l'udp */
 
   Serial.println();

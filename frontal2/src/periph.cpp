@@ -9,7 +9,7 @@
 #include "periph.h"
 
 
-/* >>>>>>>> config <<<<<<< */
+/* ---------- config ---------- */
 
 File32 fconfig;     // fichier config
 
@@ -68,7 +68,7 @@ extern uint16_t*  periMail2;
 extern byte*      configBegOfRecord;
 extern byte*      configEndOfRecord;
 
-/* >>>>>>> périphériques <<<<<<<  */
+/* ---------- périphériques ---------- */
 
 File32 fperi;       // fichiers perif
 
@@ -142,7 +142,7 @@ extern char inptyps[];                        // libellés types sources regles 
 extern char inptypd[];                        // libellés types destinations regles switchs
 extern char inpact[];                         // libellés actions
 
-/* >>>>>>> remotes <<<<<<<  */
+/* ---------- remotes ----------  */
 
 File32 fremote;     // fichier remotes
 
@@ -153,7 +153,7 @@ extern struct Remote remoteN[NBREMOTE];
 extern char*  remoteNA;
 extern long   remoteNlen;
 
-/* >>>>>>> Timers <<<<<<<  */
+/* ---------- Timers ---------- */
 
 File32 ftimers;     // fichier timers
 
@@ -161,7 +161,7 @@ extern struct Timers timersN[NBTIMERS];
 extern char*  timersNA;
 extern long   timersNlen;
 
-/* >>>>>>> Thermos <<<<<<<  */
+/* ---------- Thermos ---------- */
 
 File32 fthermos;    // fichier thermos
 
@@ -169,7 +169,7 @@ extern struct Thermo thermos[NBTHERMOS];
 extern char*  thermosA;
 extern long   thermoslen;
 
-/* >>>>>>> détecteurs serveur <<<<<<<  */
+/* ---------- détecteurs serveur ---------- */
 
 File32 fmemdet;     // fichier détecteurs serveur
 
@@ -179,7 +179,7 @@ extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
 
 extern uint32_t  mDSmaskbit[];
 
-/* >>>>>>> Memos <<<<<<<  */
+/* ---------- Memos ---------- */
 
 File32 fmemos;      // fichier memos
 extern char   memosTable[LMEMO*NBMEMOS];
@@ -198,7 +198,7 @@ extern char temp[3],temp0[3],humid[3];
 extern  char* fonctions;
 extern  int   nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fperitst,ffavicon;
 
-/* >>>>>>>>> configuration <<<<<<<<<< */
+/* ---------- configuration ---------- */
 
 void factoryResetConfig()
 {
@@ -631,7 +631,7 @@ int configSave()
   return sta;
 }
 
-/* >>>>>>>>> périphériques <<<<<<<<<< */
+/* ---------- périphériques ---------- */
 
 void periCheck(uint16_t num,const char* text){periSave(NBPERIF+1,PERISAVESD);periLoad(num);Serial.print(" ");Serial.print(text);Serial.print(" perinum(");Serial.print(num);Serial.print(") sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.println(*periDetNb);periLoad(NBPERIF+1);}
 
@@ -813,7 +813,6 @@ int periCacheSave(uint16_t num)                                     // sauve les
         fperi.close();
         periCacheStatus[num]=CACHEISFILE;                           // le fichier est à l'image du cache
         for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
-        //Serial.print(">>>>>>>>>>>>>>>>>>>>>save cache ");Serial.println(num);
       }
       else{Serial.print(periFile);Serial.println(" ko");sta=SDKO;}
     }
@@ -1367,7 +1366,7 @@ Serial.print(" save ");
 
 
 
-/* >>>>>>  maintenance fichiers peri  <<<<<< */
+/* ---------- maintenance fichiers peri ---------- */
 
 void periMaintenance()
 {
