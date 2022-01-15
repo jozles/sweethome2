@@ -5,6 +5,7 @@
 
 
 
+void setPulseChg(uint8_t npu,char timeOT);
 void pulseClkisr();             // interrupt ou poling clk @10Hz
 
 

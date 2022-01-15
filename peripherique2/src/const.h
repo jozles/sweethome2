@@ -476,7 +476,7 @@ union {
       uint32_t  cntPulseOne[NBPULSE]; // 16   temps debut pulse 1
       uint32_t  cntPulseTwo[NBPULSE]; // 16   temps debut pulse 2
     };
-    uint32_t  cntPulse[NBPULSE*2]; // 32   temps debut pulse 2
+    uint32_t  cntPulse[NBPULSE*2]; // 32   temps restant après STOP pour START
   };
   byte      pulseMode[PCTLLEN];   //  2   ctle pulse   
   byte      perInput[NBPERINPUT*PERINPLEN]; // 96  configuration (24*4)

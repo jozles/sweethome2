@@ -46,10 +46,10 @@ byte oldCstCde; // memo swCde pour debug
 
   switchs :
 
-  les switchs sont actionnés par polling de la table des inputs (ou règles) via actions()
+  les switchs sont actionnés par polling de la table des règles via actions()
   pinSw[] est la table les pins associés aux switchs
 
-  dans la limite du nombre d'inputs disponibles (24) une règle peut comporter autant d'actions que désiré
+  dans la limite du nombre disponibles (24) une règle peut comporter autant d'actions que désiré
   elles sont exécutées dans l'ordre ce qui a un effet sur le résultat !
   via la source/destination "mémoire" le résultat d'une action peut être la source d'une autre
   les positions de "mémoire" sont le résultat des opérations logiques effectuées par les actions
@@ -80,7 +80,7 @@ byte oldCstCde; // memo swCde pour debug
   actions :
       (pulses)
       - start         active le cnt!=0 ou cnt1 si tout==0 ; stapulse devient run1 ou run2 
-      - stop          
+      - stop          suspend le comptage ; stapulse idle
       - raz           les 2 compteurs=0 ; stapulse idle
       - reset         les 2 compteurs et les 2 durées =0 ; stapulse idle
       - fin           compteur courant au max puis avance compteur ; si bloqué -> stapulse end1 ou 2 sinon suite normale
@@ -96,42 +96,25 @@ byte oldCstCde; // memo swCde pour debug
       - -0-           force la valeur "en cours" à 0
       - -1-           force la valeur "en cours" à 1      
   
-  Les pulses sont commandés par les actions (donc au rythme du polling des inputs)
-  et animés lors de l'appel de pulseClkisr()
-  
-  staPulse est l'état des générateurs de pulses
-    en mode débranché (DISABLE) en cas d'erreur système (action invalide d'un détecteur)
-    en mode suspendu  (IDLE) suite à une action STOP ou en fin de oneshot
-    en mode comptage  (RUN)  suite à une action START
-    en mode fin       (END)  lorsque le comptage d'une phase est terminé et que la phase suivante est débranchée 
-  staPulse est mis à jour par isrPulse()
+  variables des pulses et mécanismes :
+
+  Chaque pulse est constitué d'un couple de compteurs (1 par phase), de bits de mode de fonctionnement et d'un état courant
+  Les pulses sont déclenchés/arrêtés de façon asynchrone par les actions lues dans les règles (donc au rythme du polling des règles)
+  Les pulses changent d'état lors des fins de comptage détectées par pulseClkisr() 
+
+  cstRec.durPulseOne[NBPULSE] / cstRec.durPulseTwo[NBPULSE] consignes de durée issues du serveur (0 au reset)
+  cstRec.pulseMode (NBPULSE fois 3 bits) (F=free run / One enable / Two enable) consignes de mode de fonctionnement issues du serveur
+  cstRec.cntPulseOne[NBPULSE] / cstRec.cntPulseTwo[NBPULSE] mémorise millis() du start ; 0 si inactif (0 au reset)
+  staPulse[NBPULSE] est l'état des couples de compteurs (IDLE au reset)
+    débranché (DISABLE) en cas d'erreur système (action invalide d'un détecteur)
+    suspendu  (IDLE) suite à une action STOP ou en fin de oneshot
+    comptage  (RUN)  suite à une action START, RUN1 si compteur 1 en cours, RUN2 si compteur 2
+    fin       (END)  lorsque le comptage d'une phase est terminé et que la phase suivante est débranchée 
+  staPulse est mis à jour par isrPulse() et est modifiable par les actions
+
+
 
 */
-
-void setPulseChg(int npu,char timeOT)     // traitement fin de temps 
-                                          // timeOT ='O' fin timeOne ; ='T' fin timeTwo                                          
-{
-  uint16_t ctl;memcpy(&ctl,cstRec.pulseMode,PCTLLEN);ctl=ctl>>(npu*PCTLBIT);
-  //Serial.print(" npu=");Serial.print(npu);Serial.print(" ctl=");dumpfield((char*)&ctl,2);
-  if(timeOT=='O'){
-        if((ctl&(uint16_t)PMTTE_VB)!=0){                                                           // cnt2 enable -> run2
-          cstRec.cntPulseOne[npu]=0;cstRec.cntPulseTwo[npu]=millis();staPulse[npu]=PM_RUN2;//Serial.print(" PM_RUN2 ");
-          }
-        else {staPulse[npu]=PM_END1;//Serial.print(" PM_END1 ");
-        }                                             // sinon fin1
-  }
-  else {                                                                                          // fin run2
-        if((ctl&(uint16_t)PMFRO_VB)==0){                                                          // oneshot -> idle
-          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=0;staPulse[npu]=PM_IDLE;//Serial.print(" PM_IDLE ");
-          }
-        else if((ctl&(uint16_t)PMTOE_VB)!=0){                                                     // free run && one enable -> run1
-          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=millis();staPulse[npu]=PM_RUN1;//Serial.print(" PM_RUN1 ");
-          }
-        else {staPulse[npu]=PM_END2;//Serial.print(" PM_END2 ");
-        }                                   // free run bloqué -> fin2
-  }
-  //Serial.print(" sec=");Serial.print(millis()/1000);Serial.println();
-}
 
 void actionsDebug()
 {
@@ -391,9 +374,9 @@ void actions()          // pour chaque input, test enable,
                //Serial.print(" stop(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if(staPulse[ndest]==PM_RUN1){
-                      cstRec.cntPulseOne[ndest]=millis()-cstRec.cntPulseOne[ndest];} // temps déjà écoulé pour repartir si un (re)start a lieu
+                      cstRec.cntPulse[ndest*2]=millis()-cstRec.cntPulseOne[ndest];} // temps déjà écoulé pour repartir si un (re)start a lieu
                     if(staPulse[ndest]==PM_RUN2){
-                      cstRec.cntPulseTwo[ndest]=millis()-cstRec.cntPulseTwo[ndest];} // temps déjà écoulé pour repartir si un (re)start a lieu
+                      cstRec.cntPulse[ndest*2+1]=millis()-cstRec.cntPulseTwo[ndest];} // temps déjà écoulé pour repartir si un (re)start a lieu
                     staPulse[ndest]=PM_IDLE;
                     impDetTime[ndest]=0;
                     break;
@@ -401,10 +384,10 @@ void actions()          // pour chaque input, test enable,
                //Serial.print(" start (");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(") ");dumpfield((char*)curinp,4);Serial.print(detecState,HEX);Serial.print(" ");
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if(cstRec.cntPulseOne[ndest]!=0){
-                      cstRec.cntPulseOne[ndest]=millis()-cstRec.cntPulseOne[ndest]; // (re)start - temps déjà écoulé lors du stop
+                      cstRec.cntPulseOne[ndest]=millis()-cstRec.cntPulse[ndest*2]; // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN1;}                   
                     else if(cstRec.cntPulseTwo[ndest]!=0){
-                      cstRec.cntPulseTwo[ndest]=millis()-cstRec.cntPulseTwo[ndest]; // (re)start - temps déjà écoulé lors du stop
+                      cstRec.cntPulseTwo[ndest]=millis()-cstRec.cntPulse[ndest*2+1]; // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN2;}
                     else {staPulse[ndest]=PM_RUN1;cstRec.cntPulseOne[ndest]=millis();}
                     impDetTime[ndest]=millis();
@@ -479,7 +462,35 @@ void actions()          // pour chaque input, test enable,
     }  
   }
 }
+
 /* ------------- gestion pulses ------------- */
+
+void setPulseChg(uint8_t npu,char timeOT)     // traitement fin de temps 
+                                          // timeOT ='O' fin timeOne ; ='T' fin timeTwo                                          
+{
+  uint16_t ctl;memcpy(&ctl,cstRec.pulseMode,PCTLLEN);ctl=ctl>>(npu*PCTLBIT);ctl&=0x0007;
+  //Serial.print(" npu=");Serial.print(npu);Serial.print(" ctl=");dumpfield((char*)&ctl,2);Serial.print(' ');Serial.print(cstRec.cntPulseOne[npu]);Serial.print(' ');Serial.print(cstRec.cntPulseTwo[npu]);
+  if(timeOT=='O'){
+        if((ctl&(uint16_t)PMTTE_VB)!=0){                                                           // cnt2 enable -> run2
+          cstRec.cntPulseOne[npu]=0;cstRec.cntPulseTwo[npu]=(uint32_t)millis();staPulse[npu]=PM_RUN2;
+          //Serial.print(' ');Serial.print(cstRec.cntPulseTwo[npu]);Serial.print(" PM_RUN2 ");
+          }
+        else {staPulse[npu]=PM_END1;//Serial.print(" PM_END1 ");
+          }                                             // sinon fin1
+  }
+  else {                                                                                          // fin run2
+        if((ctl&(uint16_t)PMFRO_VB)==0){                                                          // oneshot -> idle
+          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=0;staPulse[npu]=PM_IDLE;//Serial.print(" PM_IDLE ");
+          }
+        else if((ctl&(uint16_t)PMTOE_VB)!=0){                                                     // free run && one enable -> run1
+          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=(uint32_t)millis();staPulse[npu]=PM_RUN1;
+          //Serial.print(' ');Serial.print(cstRec.cntPulseOne[npu]);Serial.print(" PM_RUN1 ");
+          }
+        else {staPulse[npu]=PM_END2;//Serial.print(" PM_END2 ");
+        }                                   // free run bloqué -> fin2
+  }
+  Serial.println();
+}
 
 void pulsesinit()                         // init pulses à la mise sous tension
 {
@@ -490,27 +501,27 @@ void pulsesinit()                         // init pulses à la mise sous tension
     memset(cstRec.durPulseOne,0x00,sizeof(cstRec.durPulseOne));
     memset(cstRec.durPulseTwo,0x00,sizeof(cstRec.durPulseTwo));
     memset(staPulse,PM_IDLE,sizeof(staPulse));
+    memset(cstRec.pulseMode,0x00,PCTLLEN);
 }
 
-void pulseClkisr()                       // poling ou interruption ; horloge des pulses
-{
-  uint8_t npu;
-  
-  for(npu=0;npu<NBPULSE;npu++){
+void pulseClkisr()                       // polling ou interruption ; contrôle de décap des compteurs : horloge des pulses
+{  
+  uint32_t currt;
+  for(uint8_t npu=0;npu<NBPULSE;npu++){
     //Serial.print("pulseClkisr() npu=");Serial.print(npu);Serial.print( " staPulse=");Serial.println(staPulse[npu]);
     switch(staPulse[npu]){
       
       case PM_DISABLE: break;            // changement d'état quand le bit enable d'un compteur sera changé
       case PM_IDLE: break;               // changement d'état par une action
-      case PM_RUN1: /*cstRec.cntPulseOne[npu]++;
-                    if(cstRec.cntPulseOne[npu]>=cstRec.durPulseOne[npu]*10){*/              // (decap cnt1)
-                    if((millis()-cstRec.cntPulseOne[npu])>=cstRec.durPulseOne[npu]*1000){
+      case PM_RUN1: currt=((uint32_t)millis()-cstRec.cntPulseOne[npu])/1000;
+                    if(currt>cstRec.durPulseOne[npu]){   // (decap cnt1)
+                      //Serial.print(currt);Serial.print(" ");Serial.print(cstRec.cntPulseOne[npu]);Serial.print(" ");Serial.print(cstRec.durPulseOne[npu]);Serial.print(" ");
                       setPulseChg(npu,'O');
                     }break;
                     
-      case PM_RUN2: /*cstRec.cntPulseTwo[npu]++;
-                    if(cstRec.cntPulseTwo[npu]>=cstRec.durPulseTwo[npu]*10){*/              // (decap cnt2)
-                    if((millis()-cstRec.cntPulseTwo[npu])>=cstRec.durPulseTwo[npu]*1000){
+      case PM_RUN2: currt=((uint32_t)millis()-cstRec.cntPulseTwo[npu])/1000;
+                    if(currt>cstRec.durPulseTwo[npu]){   // (decap cnt2)
+                      //Serial.print(currt);Serial.print(" ");Serial.print(cstRec.cntPulseTwo[npu]);Serial.print(" ");Serial.print(cstRec.durPulseTwo[npu]);Serial.print(" ");
                       setPulseChg(npu,'T');
                     }break;
                     

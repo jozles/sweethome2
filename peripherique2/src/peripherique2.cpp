@@ -674,23 +674,28 @@ int buildData(const char* nomfonction,const char* data)             // assemble 
         if(staPulse[i]!=PM_DISABLE && staPulse[i]!=PM_IDLE){noZero=true;break;}
       }
       if(noZero){
-        for(int i=0;i<NBPULSE*2;i++){                                                                                           // loop compteurs (4*2)
-          uint32_t currt=0;
-          byte* pcurr=(byte*)&currt;
-          if(cstRec.cntPulse[i]!=0)
-          {
-            currt=(millis()-cstRec.cntPulseOne[i])/1000;
-          }
-          for(uint8_t j=0;j<sizeof(uint32_t);j++)
-          {
-            conv_htoa((char*)(message+sb+2*(i*sizeof(uint32_t)+j)),(byte*)(pcurr+j));
-          }       // loop bytes (4/8)
+        uint32_t currt;
+        if(diags){dumpfield((char*)cstRec.pulseMode,2);Serial.print("  ");}
+        for(int i=0;i<NBPULSE;i++){         // loop compteurs
+          if(diags){Serial.print(":");Serial.print(staPulse[i]);Serial.print(" ");}
+          currt=0;
+          if(cstRec.cntPulseOne[i]!=0){currt=((uint32_t)millis()-cstRec.cntPulseOne[i])/1000;}
+          if(diags){Serial.print(currt);if(currt>=cstRec.durPulseOne[i]){Serial.print('>');}else {Serial.print('<');}Serial.print(cstRec.durPulseOne[i]);
+          Serial.print("-");}
+          for(uint8_t j=0;j<4;j++){conv_htoa((char*)(message+sb+i*2*8+j*2),(byte*)(&currt)+j);}       // loop bytes (4/8)
+          currt=0;
+          if(cstRec.cntPulseTwo[i]!=0){currt=((uint32_t)millis()-cstRec.cntPulseTwo[i])/1000;}
+          if(diags){Serial.print(currt);if(currt>=cstRec.durPulseTwo[i]){Serial.print('>');}else {Serial.print('<');}Serial.print(cstRec.durPulseTwo[i]);
+          Serial.print("  ");}
+          for(uint8_t j=0;j<4;j++){conv_htoa((char*)(message+sb+(i*2+1)*8+j*2),(byte*)(&currt)+j);}      // loop bytes (4/8)
         }
+        if(diags){Serial.println();}
         sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
       } 
       *(message+sb-1)='*';                    // identifie le car suivant comme SsidNb pour periDataRead dans frontal2.cpp
       *(message+sb)=(char)(ssidNb+0x30);
       memcpy(message+sb+1,"_\0",2);
+      if(diags){Serial.println(message);}
 
   if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
   

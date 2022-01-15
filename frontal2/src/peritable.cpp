@@ -161,13 +161,12 @@ void subModePulseTime(char* buf,char* jsbuf,uint8_t npu,uint32_t* pulse,uint32_t
   fonc1[LENNOM-1]=onetwo;
   scrGetCheckbox(buf,jsbuf,&val,fonc1,NO_STATE,"",2,ctl&TDBEG);               // bit enable pulse
   if(*(pulse+npu)<0){*(pulse+npu)=0;}  
-  scrGetNum(buf,jsbuf,'l',(pulse+npu),fonc2,8,0,0,BRYES);                     // durée pulse   
-//char a[11];sprintf(a,"%06u",(uint32_t)*dur);a[10]='\0';              // valeur courante 32bits=4G soit 10 chiffres
-//strcat(buf,"<br>(");concatn(buf,*(dur+npu));strcat(buf,")</font>");
+  scrGetNum(buf,jsbuf,'g',(pulse+npu),fonc2,8,0,0,BRYES);                     // durée pulse   
   scrDspText(buf,jsbuf,"(",0,0);
-  uint32_t v=*(dur+npu);
-  scrDspNum(buf,jsbuf,'l',&v,0,0,0);
+  //uint32_t v=*(dur+npu);
+  scrDspNum(buf,jsbuf,'g',(dur+npu),0,0,0);
   scrDspText(buf,jsbuf,")",0,(ctl&TDEND)|(ctl&BRYES));
+  Serial.print(">>>>>>>>>>>>>>>>><");Serial.print(*(pulse+npu));Serial.print(" ");Serial.print(*(dur+npu));Serial.print(" ");Serial.println(npu);
 }
 
 void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv,uint8_t ctl)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
@@ -234,8 +233,8 @@ void swCtlTableHtml(EthernetClient* cli)
 
       scrDspText(buf,jsbuf,"",0,TRBEG);
 
-      for(int pu=0;pu<NBPULSE;pu++){          // boucle des pulses
-        scrDspNum(buf,jsbuf,'d',&pu,0,0,TDBE);
+      for(uint8_t pu=0;pu<NBPULSE;pu++){          // boucle des pulses
+        scrDspNum(buf,jsbuf,'D',&pu,0,0,TDBE);
 
         pfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         qfonc[LENNOM-2]=(char)(pu+PMFNCHAR);

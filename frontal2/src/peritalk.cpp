@@ -390,11 +390,14 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       k+=NBPULSE+1;
       for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                               // model
     }
-    messLen-=(LENMODEL+1);if(messLen>0){
+    messLen-=(LENMODEL+1);
+    if(messLen>(int)(NBPULSE*sizeof(uint32_t)*2)){
       k+=LENMODEL+1;
       for(uint16_t i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}   // valeur courante pulses
-      if(*periSwPulseCurrOne>100000){dumpstr((char*)periSwPulseCurrOne,16);}
+      if(*periSwPulseCurrOne>*periSwPulseOne){dumpstr((char*)periSwPulseCurrOne,16);}
+      if(*periSwPulseCurrTwo>*periSwPulseTwo){dumpstr((char*)periSwPulseCurrTwo,16);}
     }
+    else {memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t));memset(periSwPulseCurrTwo,0x00,NBPULSE*sizeof(uint32_t));}
 /*    messLen-=(2*i+1);if(messLen>0){
 Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);      
     }*/
