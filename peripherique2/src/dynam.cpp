@@ -105,6 +105,7 @@ byte oldCstCde; // memo swCde pour debug
   cstRec.durPulseOne[NBPULSE] / cstRec.durPulseTwo[NBPULSE] consignes de durée issues du serveur (0 au reset)
   cstRec.pulseMode (NBPULSE fois 3 bits) (F=free run / One enable / Two enable) consignes de mode de fonctionnement issues du serveur
   cstRec.cntPulseOne[NBPULSE] / cstRec.cntPulseTwo[NBPULSE] mémorise millis() du start ; 0 si inactif (0 au reset)
+  cstRec.cntPulse[NBPULSE*2]  alternativement pour one et two ; mémoire de l'état du stop pour reprendre avec le restant de temps lors d'un start
   staPulse[NBPULSE] est l'état des couples de compteurs (IDLE au reset)
     débranché (DISABLE) en cas d'erreur système (action invalide d'un détecteur)
     suspendu  (IDLE) suite à une action STOP ou en fin de oneshot
@@ -195,10 +196,10 @@ void actions()          // pour chaque input, test enable,
              detecFound=1;break;
         case DETYMEM:detecState=(locmem>>nsrce)&0x01;detecFound=1;break;              // valeur loc mem
         case DETYPUL:switch(staPulse[nsrce]){                     // pulse                
-                 case PM_RUN1: detecState=0;detecFound=1;break;   // pulse run1=L
-                 case PM_RUN2: detecState=1;detecFound=1;break;   // pulse run2=H
-                 case PM_END1: detecState=0;detecFound=1;break;   // pulse end1=L
-                 case PM_END2: detecState=1;detecFound=1;break;   // pulse run1=H
+                 case PM_RUN1: detecState=1;detecFound=1;break;   // pulse run1=H     // état sortie MCU -> relais ON
+                 case PM_RUN2: detecState=0;detecFound=1;break;   // pulse run2=L     // état sortie MCU -> relais OFF
+                 case PM_END1: detecState=0;detecFound=1;break;   // pulse end1=L     // état sortie MCU -> relais OFF
+                 case PM_END2: detecState=0;detecFound=1;break;   // pulse end2=L     // état sortie MCU -> relais OFF
                  case PM_IDLE: if((cstRec.cntPulseOne[nsrce]!=0) || ((cstRec.cntPulseOne[nsrce]+cstRec.cntPulseTwo[nsrce])==0)){
                                  detecState=0;detecFound=1;}      // pulse idle,   cnt1 !=0 -> L ou cnt1+cnt2=0 -> L
                                else {detecState=1;detecFound=1;}  //               cnt2 !=0 -> H  
@@ -373,12 +374,14 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_STOP: 
                //Serial.print(" stop(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
-                    if(staPulse[ndest]==PM_RUN1){
-                      cstRec.cntPulse[ndest*2]=millis()-cstRec.cntPulseOne[ndest];} // temps déjà écoulé pour repartir si un (re)start a lieu
-                    if(staPulse[ndest]==PM_RUN2){
-                      cstRec.cntPulse[ndest*2+1]=millis()-cstRec.cntPulseTwo[ndest];} // temps déjà écoulé pour repartir si un (re)start a lieu
-                    staPulse[ndest]=PM_IDLE;
-                    impDetTime[ndest]=0;
+                    if(staPulse[ndest]!=PM_END1 && staPulse[ndest]!=PM_END2){           // si arrêté ne rien toucher
+                      if(staPulse[ndest]==PM_RUN1){
+                        cstRec.cntPulse[ndest*2]=millis()-cstRec.cntPulseOne[ndest];}   // temps déjà écoulé pour repartir si un (re)start a lieu
+                      if(staPulse[ndest]==PM_RUN2){
+                        cstRec.cntPulse[ndest*2+1]=millis()-cstRec.cntPulseTwo[ndest];} // temps déjà écoulé pour repartir si un (re)start a lieu
+                      staPulse[ndest]=PM_IDLE;
+                      impDetTime[ndest]=0;
+                    }
                     break;
                case PMDCA_START: 
                //Serial.print(" start (");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(") ");dumpfield((char*)curinp,4);Serial.print(detecState,HEX);Serial.print(" ");
