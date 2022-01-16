@@ -384,10 +384,10 @@ void actions()          // pour chaque input, test enable,
                //Serial.print(" start (");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(") ");dumpfield((char*)curinp,4);Serial.print(detecState,HEX);Serial.print(" ");
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if(cstRec.cntPulseOne[ndest]!=0){
-                      cstRec.cntPulseOne[ndest]=millis()-cstRec.cntPulse[ndest*2]; // (re)start - temps déjà écoulé lors du stop
+                      cstRec.cntPulseOne[ndest]=millis()-cstRec.cntPulse[ndest*2];    // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN1;}                   
                     else if(cstRec.cntPulseTwo[ndest]!=0){
-                      cstRec.cntPulseTwo[ndest]=millis()-cstRec.cntPulse[ndest*2+1]; // (re)start - temps déjà écoulé lors du stop
+                      cstRec.cntPulseTwo[ndest]=millis()-cstRec.cntPulse[ndest*2+1];  // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN2;}
                     else {staPulse[ndest]=PM_RUN1;cstRec.cntPulseOne[ndest]=millis();}
                     impDetTime[ndest]=millis();
@@ -395,7 +395,8 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_SHORT: 
                //Serial.print(" short(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
-                    if(staPulse[ndest]==PM_RUN1 || cstRec.cntPulseOne[ndest]!=0){cstRec.cntPulseOne[ndest]=0;}      // cstRec.durPulseOne[ndest]*10;}
+                    if(staPulse[ndest]==PM_RUN1 || cstRec.cntPulseOne[ndest]!=0){
+                      cstRec.cntPulseOne[ndest]=0;cstRec.cntPulse[ndest*2]=0;}     // cstRec.durPulseOne[ndest]*10;}
                     else if(staPulse[ndest]==PM_RUN2 || cstRec.cntPulseTwo[ndest]!=0){cstRec.cntPulseTwo[ndest]=0;} // cstRec.durPulseTwo[ndest]*10;}
                     impDetTime[ndest]=0;
                     break;                 
@@ -406,6 +407,8 @@ void actions()          // pour chaque input, test enable,
                     cstRec.cntPulseTwo[ndest]=0;
                     staPulse[ndest]=PM_IDLE;
                     impDetTime[ndest]=0;
+                    cstRec.cntPulse[ndest*2]=0;
+                    cstRec.cntPulse[(ndest*2)+1]=0;
                     break;               
                case PMDCA_RESET: 
                //Serial.print(" reset(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
@@ -414,6 +417,8 @@ void actions()          // pour chaque input, test enable,
                     cstRec.cntPulseTwo[ndest]=0;cstRec.durPulseTwo[ndest]=0;
                     staPulse[ndest]=PM_IDLE;
                     impDetTime[ndest]=0;
+                    cstRec.cntPulse[ndest*2]=0;
+                    cstRec.cntPulse[(ndest*2)+1]=0;
                     break;                 
                case PMDCA_IMP: 
                //Serial.print(" imp");
@@ -428,8 +433,14 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_END: 
                //Serial.print(" end(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
-                    if(staPulse[ndest]==PM_RUN1 || cstRec.cntPulseOne[ndest]!=0){cstRec.cntPulseOne[ndest]=0;setPulseChg(ndest,'O');}
-                    else if(staPulse[ndest]==PM_RUN2 || cstRec.cntPulseTwo[ndest]!=0){cstRec.cntPulseTwo[ndest]=0;setPulseChg(ndest,'T');}
+                    if(staPulse[ndest]==PM_RUN1 || cstRec.cntPulseOne[ndest]!=0){
+                      cstRec.cntPulseOne[ndest]=0;
+                      cstRec.cntPulse[ndest*2]=0;
+                      setPulseChg(ndest,'O');}
+                    else if(staPulse[ndest]==PM_RUN2 || cstRec.cntPulseTwo[ndest]!=0){
+                      cstRec.cntPulseTwo[ndest]=0;
+                      cstRec.cntPulse[(ndest*2)+1]=0;
+                      setPulseChg(ndest,'T');}
                     impDetTime[ndest]=0;
                     break;
                default:actionSysErr(action);
@@ -472,24 +483,31 @@ void setPulseChg(uint8_t npu,char timeOT)     // traitement fin de temps
   //Serial.print(" npu=");Serial.print(npu);Serial.print(" ctl=");dumpfield((char*)&ctl,2);Serial.print(' ');Serial.print(cstRec.cntPulseOne[npu]);Serial.print(' ');Serial.print(cstRec.cntPulseTwo[npu]);
   if(timeOT=='O'){
         if((ctl&(uint16_t)PMTTE_VB)!=0){                                                           // cnt2 enable -> run2
-          cstRec.cntPulseOne[npu]=0;cstRec.cntPulseTwo[npu]=(uint32_t)millis();staPulse[npu]=PM_RUN2;
+          cstRec.cntPulseOne[npu]=0;cstRec.cntPulseTwo[npu]=(uint32_t)millis();
+          cstRec.cntPulse[npu*2]=0;
+          staPulse[npu]=PM_RUN2;
           //Serial.print(' ');Serial.print(cstRec.cntPulseTwo[npu]);Serial.print(" PM_RUN2 ");
           }
         else {staPulse[npu]=PM_END1;//Serial.print(" PM_END1 ");
           }                                             // sinon fin1
   }
-  else {                                                                                          // fin run2
+  else {                                                                                          // fin run2               
+        cstRec.cntPulse[(npu*2)+1]=0;                   
         if((ctl&(uint16_t)PMFRO_VB)==0){                                                          // oneshot -> idle
-          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=0;staPulse[npu]=PM_IDLE;//Serial.print(" PM_IDLE ");
+          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=0;
+          staPulse[npu]=PM_IDLE;
+          //Serial.print(" PM_IDLE ");
           }
         else if((ctl&(uint16_t)PMTOE_VB)!=0){                                                     // free run && one enable -> run1
-          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=(uint32_t)millis();staPulse[npu]=PM_RUN1;
+          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=(uint32_t)millis();
+          staPulse[npu]=PM_RUN1;
           //Serial.print(' ');Serial.print(cstRec.cntPulseOne[npu]);Serial.print(" PM_RUN1 ");
           }
-        else {staPulse[npu]=PM_END2;//Serial.print(" PM_END2 ");
+        else {staPulse[npu]=PM_END2;
+          //Serial.print(" PM_END2 ");
         }                                   // free run bloqué -> fin2
   }
-  Serial.println();
+  //Serial.println();
 }
 
 void pulsesinit()                         // init pulses à la mise sous tension
@@ -502,6 +520,7 @@ void pulsesinit()                         // init pulses à la mise sous tension
     memset(cstRec.durPulseTwo,0x00,sizeof(cstRec.durPulseTwo));
     memset(staPulse,PM_IDLE,sizeof(staPulse));
     memset(cstRec.pulseMode,0x00,PCTLLEN);
+    memset(cstRec.cntPulse,0x00,sizeof(cstRec.cntPulse));
 }
 
 void pulseClkisr()                       // polling ou interruption ; contrôle de décap des compteurs : horloge des pulses
