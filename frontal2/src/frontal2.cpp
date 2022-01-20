@@ -1506,17 +1506,6 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         }
                         sh=sh<<pu*PCTLBIT;
                         *(uint16_t*)periSwPulseCtl|=sh;
-/*                        
-    Serial.print("peri_otf__ ");Serial.print(valf);Serial.print(" ");Serial.print(periCur);Serial.print(":");Serial.print(pu);Serial.print(":");Serial.println((char)b);
-    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB))&0x01);sp("-",0);         // fr bit
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB))&0x01);sp(" ",0);       // time one en
-    Serial.print(*(uint32_t*)(periSwPulseOne));sp("/",0);                          // time one
-    Serial.print(*(uint32_t*)(periSwPulseCurrOne));sp(" ",0);                      // curr one    
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB)&0x01));sp(" ",0);       // time two en
-    Serial.print(*(uint32_t*)(periSwPulseTwo));sp("/",0);                          // time two
-    Serial.print(*(uint32_t*)(periSwPulseCurrTwo));                                // curr two 
-    Serial.println();
-*/    
                        }break;       
               case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;   // (regles switchs) p_inp1__  
                         uint8_t offs=nuinp*PERINPLEN;                                                     // (enable/type/num detec/action)
@@ -1540,6 +1529,18 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                  break;                                                                           // num detec dest                                 
                           case 8:inpsub((periInput+2+offs),PERINPACT_MS,PERINPACTLS_PB,inpact+2,LENTACT);break;   // action
                           case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;                    // active level
+                          case 10:getPeriCurValf(PERILOAD);                                                       // bouton raz
+                                 //dumpstr((char*)periInput,NBPERINPUT*PERINPLEN);
+                                 memset(periInput+offs,0x00,PERINPLEN);what=4;break; 
+                          case 11:getPeriCurValf(PERILOAD);                                                       // bouton ins
+                                 Serial.println(nuinp);
+                                 for(uint8_t i=NBPERINPUT-1;i>nuinp;i--){
+                                  //Serial.print(i);Serial.print(' ');dumpstr((char*)(periInput+(i-1)*PERINPLEN),(NBPERINPUT-i)*PERINPLEN);
+                                  memcpy(periInput+i*PERINPLEN,periInput+(i-1)*PERINPLEN,PERINPLEN);}
+                                 memset(periInput+offs,0x00,PERINPLEN);what=4;break;
+                          case 12:getPeriCurValf(PERILOAD);                                                       // bouton del
+                                 memcpy(periInput+offs,periInput+offs+PERINPLEN,PERINPLEN*(NBPERINPUT-nuinp-1)); 
+                                 memset(periInput+(NBPERINPUT-1)*PERINPLEN,0x00,PERINPLEN);what=4;break;
                           default:break;
                         }
                        }break;                                                                      

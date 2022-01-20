@@ -7,7 +7,7 @@
 #include "util.h"
 #include "peripherique2.h"
 
-//#define DEBUG_ACTIONS
+#define DEBUG_ACTIONS
 
 #ifdef CAPATOUCH
 #include <capaTouch.h>
@@ -120,18 +120,20 @@ byte oldCstCde; // memo swCde pour debug
 void actionsDebug()
 {
 #ifdef DEBUG_ACTIONS
-  Serial.println("(n rules start,locmem");
-  Serial.println("-01. next enabled rule,locmem if 0, if 1");
-  Serial.println("[#] valid static rule");
-  Serial.println("[*] valid edge rule");
-  Serial.println("[!] invalid rule");
-  Serial.println("a action nb");
-  Serial.println("< OR action start");
-  Serial.println("{ XOR action start");
-  Serial.println("abcd detecState,srce,dest,curvalue ");
-  Serial.println("> OR action end");
-  Serial.println("} XOR action end");
-  Serial.println("cl curvalue,locmem");
+  Serial.println("(n locmem");
+  Serial.print(" each enabled rule)");
+  Serial.println(" 01. lmbit0,lmbit1");
+  Serial.println("detecFound,detecState,action ('_' if invalid rule)");
+  Serial.println("=\"curvalue,locmem");
+  //Serial.println("[#] valid static rule");
+  //Serial.println("[*] valid edge rule");
+  //Serial.println("[!] invalid rule");
+  //Serial.println("a action nb");
+  //Serial.println("< OR action start");
+  //Serial.println("{ XOR action start");
+  //Serial.println("abcd detecState,srce,dest,curvalue ");
+  //Serial.println("> OR action end");
+  //Serial.println("} XOR action end");
   Serial.println(") rules end");
 
 #endif //DEBUG_ACTIONS
@@ -144,12 +146,12 @@ void actionSysErr(uint8_t action)
 }
 
 void actions()          // pour chaque input, test enable,
-{                       //      récup valeur détecteur
-                        //      comparaison avec valeur demandée (et flanc éventuel)
-                        //      maj destination selon résultat et màj oldlev
+{                       //      récup valeur source (detecState) 
+                        //      si action logique, exécution dest,cur=action(source,cur)
+                        //      si modif pulse, exécution si detecState=1
   
   byte*   curinp;           // adresse cur input
-  uint8_t detecState=0;     // valeur trouvée pour le det source (type-n°) (0==OFF ; 1==ON)
+  uint8_t detecState=0;     // valeur trouvée pour la source (type-n°) (0==OFF ; 1==ON)
   uint8_t detecFound=0;     // flag : valeur valide si !=0
   uint8_t nsrce;            // n° source
   uint8_t ndest;            // n° destination
@@ -172,25 +174,24 @@ void actions()          // pour chaque input, test enable,
     curinp=&cstRec.perInput[inp*PERINPLEN];                       // règle courante
     if(((*(curinp+2))&PERINPEN_VB)!=0){                           // enable
 #ifdef DEBUG_ACTIONS
-  Serial.print('-');
+  Serial.print(' ');  // debut regle avec enable ok
 #endif //DEBUG_ACTIONS
       
       nsrce=(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);              // numéro source
       ndest=(((*(curinp+3))&PERINPV_MS)>>PERINPNVLS_PB);          // numéro destination
       tdest=(byte)((*(curinp+3))&PERINPNT_MS);                    // type destination
       
-      lmbit0=locmem & ~(mDSmaskbit[ndest]);                      // locmem result 0
-      lmbit1=locmem | mDSmaskbit[ndest];                         // locmem result 1    
+      // précalcul locmem[ndest] (au cas où tdest = mem)
+      lmbit0=locmem & ~(mDSmaskbit[ndest]);      // locmem avec result 0 : ~(mDSmaskbit[ndest]) 11...101...11 masque du bit ndest
+      lmbit1=locmem | mDSmaskbit[ndest];         // locmem avec result 1 :   mDSmaskbit[ndest]  00...010...00 masque du bit ndest   
+
 #ifdef DEBUG_ACTIONS
   Serial.print(lmbit0);Serial.print(lmbit1);Serial.print('.');
 #endif //DEBUG_ACTIONS
 
-
       /* évaluation source -> detecState (detecFound==1 if detecstate valid */
       switch((*curinp)&PERINPNT_MS){                              // type source
         case DETYEXT:detecState=(cstRec.extDetec>>nsrce)&0x01;    // valeur détecteur externe 
-//             Serial.print("!!!!!!!!!!!!!!!!!! detecState=");Serial.print(detecState);Serial.print(" srce ");Serial.print(nsrce);
-//             Serial.print("   curinp+2=");Serial.print(*(curinp+2),HEX);Serial.print("   curinp+2>>");Serial.println((((*(curinp+2))>>(PERINPVALID_PB) )&0x01),HEX);
              detecFound=1;break;
         case DETYPHY:detecState=(byte)(cstRec.memDetec[nsrce]>>DETBITLH_PB)&0x01;     // valeur détecteur physique
              detecFound=1;break;
@@ -209,105 +210,80 @@ void actions()          // pour chaque input, test enable,
         default:break;
       }
 
-      if(detecFound!=0){                                                          // if detecState valid (0==OFF ; 1==ON)
+#ifdef DEBUG_ACTIONS
+  Serial.print(detecFound);     // devrait toujours être 1 (detecFound inutile) 
+#endif // DEBUG_ACTIONS
 
+      if(detecFound!=0){                                                          // if detecState valid
+
+        /* update detecState (edge rise/fall ; static high/low) */
         if( (((*(curinp+2))&PERINPDETES_VB)!=0)                  
             &&((((*(curinp+2))>>(PERINPVALID_PB) )&0x01)==1)
-           ){detecState^=0x01;}                                                   // static && inv -> invert          
+           ){detecState^=0x01;}                                                   // if (static && inv) -> invert
 
-        if(                                                                       // if( 
-            (((*(curinp+2))&PERINPDETES_VB)==0)                                   // edge  
-          )
+        if( (((*(curinp+2))&PERINPDETES_VB)==0))                                  // if edge
           {
-#ifdef DEBUG_ACTIONS
-  Serial.print('[');Serial.print(((*(curinp+2))>>(PERINPOLDLEV_PB))&0x01);Serial.print(((*(curinp+2))>>(PERINPVALID_PB))&0x01);
-  Serial.print(']');Serial.print(locmem,HEX);
-#endif // DEBUG_ACTIONS
-            if(                                                                   // if(
-                (detecState!=(((*(curinp+2))>>(PERINPOLDLEV_PB))&0x01))           // level chge (curr!=old)
-              )
+
+            /* if edge update detecState et curinp(oldlev) ; detecState ==1 if active edge only */
+            if( (detecState!=(((*(curinp+2))>>(PERINPOLDLEV_PB))&0x01)) )         // if level chge (curr!=old)
               {
                 *(curinp+2) &= ~PERINPOLDLEV_VB;                                  // raz bit oldlev
                 *(curinp+2) |= (detecState << PERINPOLDLEV_PB);                   // màj bit oldlev
 
-                if(                                                               // if(
-                  (detecState==(((*(curinp+2))>>(PERINPVALID_PB) )&0x01))         // curr==active level  
-                  )
+                if( (detecState==(((*(curinp+2))>>(PERINPVALID_PB) )&0x01)) )     // if curr==active level  
                   {detecState=1;}                                                 // active edge detected 
                 else 
                   {detecState=0;}                                                 // wrong edge
               }
             else
                   {detecState=0;}                                                 // no chge            
+          }                                                                       // if edge
 
-          }                                                                       // no edge
-
-
-#ifdef DEBUG_ACTIONS
-        if(                                                                       // if( 
-            (
-              (((*(curinp+2))&PERINPDETES_VB)==0)                                 // edge  
-              &&(detecState==1)                                                   // valid
-            )                                                                     
-          ){Serial.print("*");}
-        if(
-            (((*(curinp+2))&PERINPDETES_VB)!=0)                                   // static
-          ){Serial.print("#");}
-#endif // DEBUG_ACTIONS
-
-        if(                                                                       // if source ok (static or active edge)
-            (
-              (((*(curinp+2))&PERINPDETES_VB)==0)                                 // edge  
-              &&(detecState==1)                                                   // valid
-            )                                                                     
-            ||                                                                    // or
-            (
-              (((*(curinp+2))&PERINPDETES_VB)!=0)                                 // static
-            )                                                                     
-          ){
+/* si action logique, exécution action(detecState,curValue) ; si modif pulse exécution si detecState=1 et màj curval selon état du pulse */
             byte action=(*(curinp+2))>>PERINPACTLS_PB;
             uint8_t openClose[]={openSw[ndest],cloSw[ndest]};                     // open/close value for ndest switch
-            
+
 #ifdef DEBUG_ACTIONS
-  Serial.print(action,HEX);Serial.print(locmem,HEX);
+    Serial.print(detecState);Serial.print(action,HEX);
 #endif // DEBUG_ACTIONS
-            
-            switch(action){                                                         // action (compute curValue then store it depending of dest)
+
+            switch(action){                                                       // action (compute curValue then store it depending of dest)
               case PMDCA_0:
+                          if(detecState){
                             curValue = 0;
-                            switch(tdest){                                          // type dest
-                              case DETYEXT: break;                                  // transfert vers detServ à développer    
-                              case DETYMEM: locmem=lmbit0;                          // locmem=0
+                            switch(tdest){                                        // type dest
+                              case DETYEXT: break;                                // transfert vers detServ à développer    
+                              case DETYMEM: locmem=lmbit0;                        // locmem=0
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];       // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
                                             usdSw[ndest]=1;   
                                             break;                                         
                               default:break;
                             }
-                            break;
+                          }
+                          break;
               case PMDCA_1:
+                          if(detecState){
                             curValue = 1;
-                            switch(tdest){                                          // type dest
-                              case DETYEXT: break;                                  // transfert vers detServ à développer    
-                              case DETYMEM: locmem=lmbit1;                          // locmem=1
+                            switch(tdest){                                        // type dest
+                              case DETYEXT: break;                                // transfert vers detServ à développer    
+                              case DETYMEM: locmem=lmbit1;                        // locmem=1
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];       // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
                                             usdSw[ndest]=1;                                 
                                             break;                                         
                               default:break;
                             }
-                            break;
+                          }
+                          break;
               case PMDCA_LOR:
-#ifdef DEBUG_ACTIONS
-  Serial.print('<');Serial.print(detecState);Serial.print(nsrce);Serial.print(ndest);Serial.print(curValue);Serial.print('>');
-#endif // DEBUG_ACTIONS
                             curValue |= detecState;
-                            switch(tdest){                                          // type dest
-                              case DETYEXT: break;                                  // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1){locmem=lmbit1;}         // locmem=1
-                                            else locmem=lmbit0;                     // locmem=0
+                            switch(tdest){                                        // type dest
+                              case DETYEXT: break;                                // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue==1){locmem=lmbit1;}       // locmem=1
+                                            else locmem=lmbit0;                   // locmem=0
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];       // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
                                             usdSw[ndest]=1;   
                                             break;                                         
                               default:break;
@@ -315,44 +291,38 @@ void actions()          // pour chaque input, test enable,
                             break;
               case PMDCA_LNOR:
                             curValue |= detecState;
-                            switch(tdest){                                          // type dest
-                              case DETYEXT: break;                                  // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1){locmem=lmbit0;}         // locmem=0
-                                            else locmem=lmbit1;                     // locmem=1
+                            switch(tdest){                                        // type dest
+                              case DETYEXT: break;                                // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue==1){locmem=lmbit0;}       // locmem=0
+                                            else locmem=lmbit1;                   // locmem=1
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];       // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[!curValue];    // curValue -> curSw
                                             usdSw[ndest]=1;   
                                             break;                                         
                               default:break;              
                             }
                             break;                             
               case PMDCA_LXOR:
-#ifdef DEBUG_ACTIONS
-  Serial.print('{');Serial.print(detecState);Serial.print(nsrce);Serial.print(ndest);Serial.print(curValue);Serial.print('}');
-#endif // DEBUG_ACTIONS
                             curValue ^= detecState;
-                            switch(tdest){                                          // type dest
-                              case DETYEXT: break;                                  // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1){locmem=lmbit1;}         // curValue to locmem tfr
+                            switch(tdest){                                        // type dest
+                              case DETYEXT: break;                                // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue==1){locmem=lmbit1;}       // curValue to locmem tfr
                                             else locmem=lmbit0;                     
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];       // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
                                             usdSw[ndest]=1;   
                                             break;                                         
                               default:break;              
                             }
                             break;
               case PMDCA_LAND:
-#ifdef DEBUG_ACTIONS
-  Serial.print('|');Serial.print(detecState);Serial.print(nsrce);Serial.print(ndest);Serial.print(curValue);Serial.print('|');
-#endif // DEBUG_ACTIONS
                             curValue &= detecState;
-                            switch(tdest){                                          // type dest
-                              case DETYEXT:break;                                   // transfert vers detServ à développer    
+                            switch(tdest){                                        // type dest
+                              case DETYEXT:break;                                 // transfert vers detServ à développer    
                               case DETYMEM: if(curValue==1 && (locmem & mDSmaskbit[ndest])!=0){locmem=lmbit1;}   // locmem=1
-                                            else locmem=lmbit0;                     // locmem=0
+                                            else locmem=lmbit0;                   // locmem=0
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];       // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
                                             usdSw[ndest]=1; 
                                             break;
                               default:break;
@@ -360,21 +330,35 @@ void actions()          // pour chaque input, test enable,
                             break;
               case PMDCA_LNAND:
                             curValue &= detecState;
-                            switch(tdest){                                          // type dest
-                              case DETYEXT:break;                                   // transfert vers detServ à développer    
+                            switch(tdest){                                        // type dest
+                              case DETYEXT:break;                                 // transfert vers detServ à développer    
                               case DETYMEM: if(curValue==1 && (locmem & mDSmaskbit[ndest])!=0){locmem=lmbit0;}   // locmem=1
-                                            else locmem=lmbit1;                     // locmem=1
+                                            else locmem=lmbit1;                   // locmem=1
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];       // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[!curValue];    // curValue -> curSw
                                             usdSw[ndest]=1;   
                                             break;
                               default:break;
                             }
                             break;
+               case PMDCA_SET:
+                            curValue = detecState;
+                            switch(tdest){                                        // type dest
+                              case DETYEXT: break;                                // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue==1){locmem=lmbit1;}       // locmem=1
+                                            else locmem=lmbit0;                   // locmem=0
+                                            break;
+                              case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
+                                            usdSw[ndest]=1;   
+                                            break;                                         
+                              default:break;
+                            }
+                            break;
                case PMDCA_STOP: 
-               //Serial.print(" stop(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
+                  if(detecState==1)
+                  {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
-                    if(staPulse[ndest]!=PM_END1 && staPulse[ndest]!=PM_END2){           // si arrêté ne rien toucher
+                    if(staPulse[ndest]!=PM_END1 && staPulse[ndest]!=PM_END2){      // si arrêté ne rien toucher
                       if(staPulse[ndest]==PM_RUN1){
                         cstRec.cntPulse[ndest*2]=millis()-cstRec.cntPulseOne[ndest];}   // temps déjà écoulé pour repartir si un (re)start a lieu
                       if(staPulse[ndest]==PM_RUN2){
@@ -382,29 +366,35 @@ void actions()          // pour chaque input, test enable,
                       staPulse[ndest]=PM_IDLE;
                       impDetTime[ndest]=0;
                     }
-                    break;
+                  }
+                  break;
                case PMDCA_START: 
-               //Serial.print(" start (");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(") ");dumpfield((char*)curinp,4);Serial.print(detecState,HEX);Serial.print(" ");
+                  if(detecState==1)
+                  {               
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if(cstRec.cntPulseOne[ndest]!=0){
-                      cstRec.cntPulseOne[ndest]=millis()-cstRec.cntPulse[ndest*2];    // (re)start - temps déjà écoulé lors du stop
+                      cstRec.cntPulseOne[ndest]=millis()-cstRec.cntPulse[ndest*2]; // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN1;}                   
                     else if(cstRec.cntPulseTwo[ndest]!=0){
                       cstRec.cntPulseTwo[ndest]=millis()-cstRec.cntPulse[ndest*2+1];  // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN2;}
                     else {staPulse[ndest]=PM_RUN1;cstRec.cntPulseOne[ndest]=millis();}
                     impDetTime[ndest]=millis();
-                    break;
+                  }
+                  break;
                case PMDCA_SHORT: 
-               //Serial.print(" short(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
+                  if(detecState==1)
+                  {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if(staPulse[ndest]==PM_RUN1 || cstRec.cntPulseOne[ndest]!=0){
                       cstRec.cntPulseOne[ndest]=0;cstRec.cntPulse[ndest*2]=0;}     // cstRec.durPulseOne[ndest]*10;}
                     else if(staPulse[ndest]==PM_RUN2 || cstRec.cntPulseTwo[ndest]!=0){cstRec.cntPulseTwo[ndest]=0;} // cstRec.durPulseTwo[ndest]*10;}
                     impDetTime[ndest]=0;
-                    break;                 
+                  }
+                  break;                 
                case PMDCA_RAZ: 
-               //Serial.print(" raz(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
+                  if(detecState==1)
+                  {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     cstRec.cntPulseOne[ndest]=0;
                     cstRec.cntPulseTwo[ndest]=0;
@@ -412,9 +402,11 @@ void actions()          // pour chaque input, test enable,
                     impDetTime[ndest]=0;
                     cstRec.cntPulse[ndest*2]=0;
                     cstRec.cntPulse[(ndest*2)+1]=0;
-                    break;               
+                  }
+                  break;               
                case PMDCA_RESET: 
-               //Serial.print(" reset(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
+                  if(detecState==1)
+                  {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     cstRec.cntPulseOne[ndest]=0;cstRec.durPulseOne[ndest]=0;
                     cstRec.cntPulseTwo[ndest]=0;cstRec.durPulseTwo[ndest]=0;
@@ -422,9 +414,11 @@ void actions()          // pour chaque input, test enable,
                     impDetTime[ndest]=0;
                     cstRec.cntPulse[ndest*2]=0;
                     cstRec.cntPulse[(ndest*2)+1]=0;
-                    break;                 
+                  }
+                  break;                 
                case PMDCA_IMP: 
-               //Serial.print(" imp");
+                  if(detecState==1)
+                  {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if((millis()-impDetTime[ndest])<DETIMP){
                       staPulse[ndest]=PM_IDLE;
@@ -432,9 +426,11 @@ void actions()          // pour chaque input, test enable,
                       cstRec.cntPulseTwo[ndest]=0;}
                     Serial.print("Time=");Serial.print(millis()-impDetTime[ndest]);Serial.print(" ");
                     impDetTime[ndest]=0;
-                    break;
+                  }
+                  break;
                case PMDCA_END: 
-               //Serial.print(" end(");Serial.print((millis()-cstRec.cntPulseOne[ndest])/1000);Serial.print("/");Serial.print((millis()-cstRec.cntPulseTwo[ndest])/1000);Serial.print(")");
+                  if(detecState==1)
+                  {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if(staPulse[ndest]==PM_RUN1 || cstRec.cntPulseOne[ndest]!=0){
                       cstRec.cntPulseOne[ndest]=0;
@@ -445,27 +441,26 @@ void actions()          // pour chaque input, test enable,
                       cstRec.cntPulse[(ndest*2)+1]=0;
                       setPulseChg(ndest,'T');}
                     impDetTime[ndest]=0;
-                    break;
+                  }
+                  break;
                default:actionSysErr(action);
-                    if(tdest==DETYPUL){staPulse[ndest]=PM_DISABLE;}
-                    break;
+                  if(tdest==DETYPUL){staPulse[ndest]=PM_DISABLE;}
+                  break;
           }     // switch(action)       
-        }       // (valid static or active edge) curValue updated
-        else{   // si condition non validée pas d'action : configurer explicitement pour l'inverse si nécessaire
-#ifdef DEBUG_ACTIONS
-  Serial.print('!');
-#endif //DEBUG_ACTIONS        
-        }
 
       }   // detecFound    
+
 #ifdef DEBUG_ACTIONS
-  Serial.print(curValue);Serial.print(locmem,HEX);
+  Serial.print('=');Serial.print(curValue);Serial.print(locmem,HEX);
 #endif //DEBUG_ACTIONS
+
     }     // enable
   }       // next input
+
 #ifdef DEBUG_ACTIONS
-  Serial.print(')');
+  Serial.println(')');
 #endif //DEBUG_ACTIONS
+
   /* SW update */
   uint8_t mskSw[] = {0xfe,0xfb,0xef,0xbf};                           
   for(uint8_t i=0;i<NBSW;i++){                                    // 1 byte 4sw + 4disjoncteurs (voir const.h du frontal)

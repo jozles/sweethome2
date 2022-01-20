@@ -337,82 +337,84 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       if(compMac(periMacBuf,periMacr)){
         periCur=i;i=NBPERIF+1;
         //Serial.println(" DataRead/Save Mac connu");
-      }                                                                         // mac trouvé
+      }                                                           // mac trouvé
       if((memcmp("\0\0\0\0\0\0",periMacr,6)==0 || memcmp("      ",periMacr,6)==0) && perizer==0){
         perizer=i;
         //Serial.println(" DataRead/Save place libre");
       }        // place libre trouvée
     }
   }
-    
+
   if(periCur==0 && perizer!=0){                                   // si pas connu utilisation N° perif libre "perizer"
       Serial.println(" DataRead/Save Mac inconnu");
       periInitVar();periCur=perizer;periLoad(periCur);            // ???????????????????? pourquoi periLoad ???????????????????????
       periMess=MESSFULL;                                          // ???????????????????? devrait être MESSOK et MESSFULL avant le test ????????????????????
   }
 
-#define PNP 2+1+17+1                                                // (4 length +1) + 2 N° peri +1 + 17 Mac +1 message court de présence
-  k=valf+PNP;
-  if(periCur!=0){                                                   // si ni trouvé, ni place libre, periCur=0 
-    memcpy(periMacr,periMacBuf,6);
-    char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);            // maj dates
+// ====== debut transfert des données dans periRec =======
 
-    messLen-=(PNP+5);if(messLen>0){                                 // PNP + (4 length +1) longueur hors CRC si message terminé
-    *periLastVal_=(int16_t)(convStrToNum(k,&i)*100);   // température si save
-//Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);      
+#define PNP 2+1+17+1                                                // (4 length +1) + 2 N° peri +1 + 17 Mac +1 message court de présence
+    k=valf+PNP;
+    if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
+      memcpy(periMacr,periMacBuf,6);
+      char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);            // maj dates
+
+      messLen-=(PNP+5);if(messLen>0){                               // PNP + (4 length +1) longueur hors CRC si message terminé
+      *periLastVal_=(int16_t)(convStrToNum(k,&i)*100);              // température si save
+
 #if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
       cancelCompil();
 #endif //
-    }
-    messLen-=i;if(messLen>0){
-      k+=i;*periAnal=convStrToInt(k,&i);                            // analog value
-    }
-    messLen-=i;if(messLen>0){
-      k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
-    }
-    messLen-=i;if(messLen>0){    
-      k+=i;strncpy(periVers,k,LENVERSION);                          // version
-      i=strchr(k,'_')-k+1;                                          // ????? LENVERSION variable ?
-    }
-//Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);
-    messLen-=i;if(messLen>0){      
-      k+=i;
-      k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                   // periSwVal états sw
-      k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
-      k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
-    }
+      }
+      messLen-=i;if(messLen>0){
+        k+=i;*periAnal=convStrToInt(k,&i);                            // analog value
+      }
+      messLen-=i;if(messLen>0){
+        k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
+      }
+      messLen-=i;if(messLen>0){    
+        k+=i;strncpy(periVers,k,LENVERSION);                          // version
+        i=strchr(k,'_')-k+1;                                          // ????? LENVERSION variable ?
+      }
+
+      messLen-=i;if(messLen>0){      
+        k+=i;
+        k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                   // periSwVal états sw
+        k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
+        k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
+      }
     /* les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être mis à 0 */
-    messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){
-      k+=MAXDET+1;
-      for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
-    }
-    messLen-=(NBPULSE+1);if(messLen>0){
-      k+=NBPULSE+1;
-      for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                               // model
-    }
-    messLen-=(LENMODEL+1);
-    if(messLen>(int)(NBPULSE*sizeof(uint32_t)*2)){
-      k+=LENMODEL+1;
-      for(uint16_t i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}   // valeur courante pulses
-      if(*periSwPulseCurrOne>*periSwPulseOne){dumpstr((char*)periSwPulseCurrOne,16);}
-      if(*periSwPulseCurrTwo>*periSwPulseTwo){dumpstr((char*)periSwPulseCurrTwo,16);}
-    }
-    else {memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t));memset(periSwPulseCurrTwo,0x00,NBPULSE*sizeof(uint32_t));}
-/*    messLen-=(2*i+1);if(messLen>0){
-Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" k=");Serial.println((char*)k);      
-    }*/
+      messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){
+        k+=MAXDET+1;
+        for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
+      }
+      messLen-=(NBPULSE+1);if(messLen>0){
+        k+=NBPULSE+1;
+        for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                               // model
+      }
+      messLen-=(LENMODEL+1);
+      if(messLen>(int)(NBPULSE*sizeof(uint32_t)*2)){
+        k+=LENMODEL+1;
+        for(uint16_t i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}   // valeur courante pulses
+        //if(*periSwPulseCurrOne>*periSwPulseOne){dumpstr((char*)periSwPulseCurrOne,16);}
+        //if(*periSwPulseCurrTwo>*periSwPulseTwo){dumpstr((char*)periSwPulseCurrTwo,16);}
+      }
+      else {memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t));memset(periSwPulseCurrTwo,0x00,NBPULSE*sizeof(uint32_t));}
+
 #ifdef SHDIAGS    
     periPrint(periCur);Serial.print("periDataRead =");
 #endif //    
     
-  }
-  if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                // last access protocol type
-  *periSsidNb='?';
-  if(*(valf+oriMessLen-8)=='*'){*periSsidNb=*(valf+oriMessLen-7);}
-//Serial.println(valf+oriMessLen-8);  
+    }
+    if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                // last access protocol type
+    *periSsidNb='?';
+    if(*(valf+oriMessLen-8)=='*'){*periSsidNb=*(valf+oriMessLen-7);}
 
-  memcpy(periIpAddr,remote_IP_cur,4);                                                   // Ip addr
-  if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}              // port
+    memcpy(periIpAddr,remote_IP_cur,4);                                                   // Ip addr
+    if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}              // port
+
+// ====== fin transfert des données dans periRec ======
+
   periSave(periCur,PERISAVELOCAL);
   checkdate(6);
 }

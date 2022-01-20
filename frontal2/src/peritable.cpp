@@ -106,7 +106,7 @@ char inptyps[]="52meexphpu??";                  // libellés options types sourc
 char optNam1[]={'S','\0'};                      // nom de la liste d'options
 char inptypd[]="52meexswpu??";                  // libellés options types destinations regles switchs
 char optNam2[]={'T','\0'};                      // nom de la liste d'options
-char inpact[]={"@5     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-       "};    // libellés options actions
+char inpact[]={"@5     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-  SET  "};    // libellés options actions
 char optNam3[]={'U','\0'};                      // nom de la liste d'options
 char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                                          // libellés staPulse
 
@@ -166,7 +166,7 @@ void subModePulseTime(char* buf,char* jsbuf,uint8_t npu,uint32_t* pulse,uint32_t
   //uint32_t v=*(dur+npu);
   scrDspNum(buf,jsbuf,'g',(dur+npu),0,0,0);
   scrDspText(buf,jsbuf,")",0,(ctl&TDEND)|(ctl&BRYES));
-  Serial.print(">>>>>>>>>>>>>>>>><");Serial.print(*(pulse+npu));Serial.print(" ");Serial.print(*(dur+npu));Serial.print(" ");Serial.println(npu);
+  //Serial.print(">>>>>>>>>>>>>>>>><");Serial.print(*(pulse+npu));Serial.print(" ");Serial.print(*(dur+npu));Serial.print(" ");Serial.println(npu);
 }
 
 void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8_t lmax,char* ft,uint8_t nuv,uint8_t ctl)      // type='c' checkbox ; 'n' num / ft fonct transport / nuv num var
@@ -175,10 +175,18 @@ void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8
 
   ft[LENNOM-2]=(char)(nuv+PMFNCHAR);
   ft[LENNOM-1]=(char)(nuinp+PMFNCHAR);
-  
+  char pc[2]={(char)(periCur+PMFNCHAR),'\0'};
+
   switch (type){
     case 'c':if(val!=0){vv=1;};scrGetCheckbox(buf,jsbuf,&vv,ft,NO_STATE,"",0,ctl);break;
     case 'n':scrGetNum(buf,jsbuf,'d',&val,ft,lmax,0,0,ctl);break;
+    case 'b':
+      switch(val){
+        case 1:scrGetButFn(buf,jsbuf,ft,pc,"Raz",ALICNO,0,ctl);break;
+        case 2:scrGetButFn(buf,jsbuf,ft,pc,"Ins",ALICNO,0,ctl);break;
+        case 3:scrGetButFn(buf,jsbuf,ft,pc,"Del",ALICNO,0,ctl);break;
+        default: break;
+      }
     default: break;
   }
 }
@@ -265,10 +273,10 @@ void swCtlTableHtml(EthernetClient* cli)
   scrDspText(buf,jsbuf,";'static' retourne la valeur de la source ; 'edge' retourne 1 sur le flanc actif sinon 0",0,BRYES);
    
   tableBeg(buf,jsbuf,0);
-  scrDspText(buf,jsbuf,"|e...r...p...e~n...f...r...s| source | destin.| action",0,TDBE|TRBE);
+  scrDspText(buf,jsbuf,"|e...r...p...e~n...f...r...s| source | destin.| action |                        ",0,TDBE|TRBE);
   ethWrite(cli,buf,&lb);
 
-      char xfonc1[]="p_inp1____\0";
+      char xfonc1[]="p_inp1____\0";  // 1 suppl char for (raz/del/ins) periCur 
 
       uint16_t offsetInp=0;
       uint8_t ni=0;                 // nbre lignes ds buffer
@@ -308,8 +316,11 @@ void swCtlTableHtml(EthernetClient* cli)
             vv=(binp[2]&PERINPACT_MS)>>PERINPACTLS_PB;                                                  // action 
             scrGetSelect(buf,jsbuf,inpact,optNam3,xfonc1,vv,8,ninp,0,TDBE);
 
-            scrGetButSub(buf,jsbuf,"Màj",TDBE);
-                                                                                                        //strcat(buf, ajouter nom de la source si det
+            scrGetButSub(buf,jsbuf,"Màj",TDBEG);
+            perinpBfnc(buf,jsbuf,ninp,1,'b',2,xfonc1,10,0);                                         // bouton raz
+            perinpBfnc(buf,jsbuf,ninp,2,'b',2,xfonc1,11,0);                                         // bouton ins
+            perinpBfnc(buf,jsbuf,ninp,3,'b',2,xfonc1,12,TDEND);                                      // bouton del
+                                                                                                        
             formEnd(buf,jsbuf,0,TREND);
 
             lb1=strlen(buf);
