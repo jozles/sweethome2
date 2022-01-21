@@ -148,7 +148,7 @@ void actionSysErr(uint8_t action)
 void actions()          // pour chaque input, test enable,
 {                       //      récup valeur source (detecState) 
                         //      si action logique, exécution dest,cur=action(source,cur)
-                        //      si modif pulse, exécution si detecState=1
+                        //      si modif pulse ou 0/1, exécution si detecState=1
   
   byte*   curinp;           // adresse cur input
   uint8_t detecState=0;     // valeur trouvée pour la source (type-n°) (0==OFF ; 1==ON)
@@ -166,6 +166,7 @@ void actions()          // pour chaque input, test enable,
 
 #ifdef DEBUG_ACTIONS
   Serial.print('(');Serial.print(locmem);
+  //delay(1000);
 #endif //DEBUG_ACTIONS
 
 
@@ -186,7 +187,7 @@ void actions()          // pour chaque input, test enable,
       lmbit1=locmem | mDSmaskbit[ndest];         // locmem avec result 1 :   mDSmaskbit[ndest]  00...010...00 masque du bit ndest   
 
 #ifdef DEBUG_ACTIONS
-  Serial.print(lmbit0);Serial.print(lmbit1);Serial.print('.');
+  //Serial.print(lmbit0);Serial.print(lmbit1);Serial.print('.');
 #endif //DEBUG_ACTIONS
 
       /* évaluation source -> detecState (detecFound==1 if detecstate valid */
@@ -211,7 +212,8 @@ void actions()          // pour chaque input, test enable,
       }
 
 #ifdef DEBUG_ACTIONS
-  Serial.print(detecFound);     // devrait toujours être 1 (detecFound inutile) 
+  //Serial.print(detecFound);     // devrait toujours être 1 (detecFound inutile) 
+  if(*(curinp+2)<16){Serial.print('0');}Serial.print(*(curinp+2),HEX);Serial.print(detecState);Serial.print('.');
 #endif // DEBUG_ACTIONS
 
       if(detecFound!=0){                                                          // if detecState valid
@@ -230,7 +232,7 @@ void actions()          // pour chaque input, test enable,
                 *(curinp+2) &= ~PERINPOLDLEV_VB;                                  // raz bit oldlev
                 *(curinp+2) |= (detecState << PERINPOLDLEV_PB);                   // màj bit oldlev
 
-                if( (detecState==(((*(curinp+2))>>(PERINPVALID_PB) )&0x01)) )     // if curr==active level  
+                if( (detecState!=(((*(curinp+2))>>(PERINPVALID_PB) )&0x01)) )     // if active edge (active=0 => rising donc detecState=1)
                   {detecState=1;}                                                 // active edge detected 
                 else 
                   {detecState=0;}                                                 // wrong edge
@@ -451,7 +453,7 @@ void actions()          // pour chaque input, test enable,
       }   // detecFound    
 
 #ifdef DEBUG_ACTIONS
-  Serial.print('=');Serial.print(curValue);Serial.print(locmem,HEX);
+  Serial.print('=');Serial.print(detecState);Serial.print(curValue);Serial.print(locmem,HEX);
 #endif //DEBUG_ACTIONS
 
     }     // enable

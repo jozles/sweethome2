@@ -935,30 +935,26 @@ void ordreExt()
   if(server!=nullptr && talkSta()==0 && wifiConnexion(ssid,ssidPwd,NOPRINT)){     
   // server démarré, pas de com->SH en cours, wifi on    
   
-    uint16_t hm=0,nl=0;
+    
     memset(httpMess,0x00,LHTTPMESS);
   
     cliext = server->available();
 
     if (cliext) {
-
-      unsigned long trx=0;
-      char c;
       Serial.print("\nCliext ");
+      uint16_t hm=0;
+      char c;
+      unsigned long trx=millis();
+
       while (cliext.connected()) {
 #define TO_ORDREXT 10
-        if(trx==0){trx=millis();}
-        if((millis()-(unsigned long)trx)>TO_ORDREXT){Serial.print("TO_available");break;}
+        if((millis()-trx)>TO_ORDREXT){Serial.print("TO_available");break;}
         if (cliext.available()) {
-          c = cliext.read();
-          //Serial.print(c);
+          c = cliext.read();//Serial.print(c);
           httpMess[hm]=c;
-          if (c == '\n') {
-            if(nl==0){break;}                      // 2 LF fin requete => sortie boucle while
-            else nl=0;
-          }
-          if(hm<LHTTPMESS){hm++;nl++;}
-          trx=0;
+          if (c == '\n' && hm!=0 && httpMess[hm-1]==c) {break;}     // 2 LF fin requete => sortie boucle while
+          if (hm>=LHTTPMESS){Serial.print("buffer OVF");break;}
+          hm++;
         }
       } // while connected
       // format message "GET /FFFFFFFFFF=nnnn....CC" FFFFFFFFFF instruction (ETAT___, SET____ etc)
@@ -966,9 +962,9 @@ void ordreExt()
       //                                             .... éventuels arguments de la fonction
       //                                             CC crc
 
-      //Serial.println();
       if(diags){}
-        Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);
+        Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");
+        Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);
      
       int v0=-1;
       char* vx=strstr(httpMess,"GET /");

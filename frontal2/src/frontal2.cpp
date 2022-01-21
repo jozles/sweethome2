@@ -1084,13 +1084,13 @@ void test2Switchs()
   charIp(lastIpAddr,ipAddr);
   for(int x=0;x<4;x++){
 //Serial.print(x);Serial.print(" test2sw ");Serial.println(ipAddr);
-    testSwitch("GET /testb_on__=0006AB8B",ipAddr,*periPort);
+    testSwitch("GET /testb_on__=0006AB8B\n\n",ipAddr,*periPort);
     delay(2000);
-    testSwitch("GET /testa_on__=0006AB8B",ipAddr,*periPort);
+    testSwitch("GET /testa_on__=0006AB8B\n\n",ipAddr,*periPort);
     delay(2000);
-    testSwitch("GET /testboff__=0006AB8B",ipAddr,*periPort);
+    testSwitch("GET /testboff__=0006AB8B\n\n",ipAddr,*periPort);
     delay(2000);
-    testSwitch("GET /testaoff__=0006AB8B",ipAddr,*periPort);
+    testSwitch("GET /testaoff__=0006AB8B\n\n",ipAddr,*periPort);
     delay(2000);
   }
 }

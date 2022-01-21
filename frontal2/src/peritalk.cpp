@@ -193,7 +193,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                     // envoie cde GET dans bufServer via messToServer + getHttpResp         (fonction set suite à modif dans periTable)
                     //                            status retour de messToServer ou getHttpResponse ou fonct invalide (doit être done___)
                     // np=periCur à jour (0 ou n) si periCur = 0 message set réduit
-                    // format bufServer GET /message...
+                    // format bufServer GET /message... (complété ici avec "\n\n" : fin de message pour le périf)
                     // format message   nomfonction_=nnnndatas...cc                nnnn len mess ; cc crc
                     // si set ou ack :
                     //    format datas     NN_mm.mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._   NN numpériph ; mm.mm... mac
@@ -216,11 +216,12 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
 
     if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
         assySet(message,periCur,periDiag(periMess),date14);}  // assemblage datas 
-    else if(strlen(msg)<LENMESS){strcat(message,msg);}
+    else if(strlen(msg)<(LENMESS-2)){strcat(message,msg);}
 
     *bufServer='\0';
     memcpy(bufServer,"GET /\0",6);                            // commande directe de périphérique en mode serveur
-    buildMess(nfonct,message,"",NODIAGS);                     // bufServer complété   
+    buildMess(nfonct,message,"",NODIAGS);                     // bufServer complété
+    strcat(bufServer,"\n\n");                                 // fin de message pour le périf
     Serial.println(millis());
 
     if(*periProtocol=='T'){                                   // UDP à développer
