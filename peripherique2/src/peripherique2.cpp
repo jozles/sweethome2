@@ -903,7 +903,7 @@ void talkClient(char* etat) // réponse à une requête
 
 void answer(const char* what)
 {
-  Serial.print(" echo:");Serial.println(what);
+  Serial.print(" answer:");Serial.println(what);
   bufServer[0]='\0';
   #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
   if(memcmp(what,"data_save_",LENNOM)==0){buildData("data_save_",tempStr());}
@@ -976,7 +976,7 @@ void ordreExt()
         }
         int checkMess=checkHttpData(&httpMess[v0+5],&fonction);
         if(checkMess==MESSOK){
-          Serial.print("reçu message fonct=");Serial.print(fonction);
+          Serial.print("rcv mess fnct=");Serial.print(fonction);
           switch(fonction){
               case 0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat 
                       answer("data_save_");break;                       // set ---> réponse message data_save_ complet

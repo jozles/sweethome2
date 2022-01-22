@@ -7,7 +7,7 @@
 #include "util.h"
 #include "peripherique2.h"
 
-#define DEBUG_ACTIONS
+//#define DEBUG_ACTIONS
 
 #ifdef CAPATOUCH
 #include <capaTouch.h>

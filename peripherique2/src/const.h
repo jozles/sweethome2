@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.x_"
+#define VERSION "1.y_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -67,8 +67,9 @@
  * 1.u ordreExt rebranché ledblink corrigé ; talkServer revu ;
  * 1.v les paramètres de réseau et de wifi sont chargés depuis le serveur en série ; tout est stocké en EEPROM quelque soit le mode
  * 1.w capacitives touch / TO_ORDREXT 10mS
- * 1.x ajout periSsidNb à la fin de dataRead/Save
- *  
+ * 1.x ajout periSsidNb à la fin de dataRead/Save ; ordrext révisé, \n\n termine les messages reçus ;
+ *     pulses et règles revus (ajout action SET); 
+ * 1.y
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
@@ -212,7 +213,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRDEV             // <------------- modèle carte
+#define CARTE VRR             // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation 
 //#define PININT_MODE             // <------------- avec/sans pin d'interruption
 
