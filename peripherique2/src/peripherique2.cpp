@@ -348,21 +348,22 @@ delay(1);
   for(uint8_t i=0;i<4;i++){
     sprintf(buf+strlen(buf),"%d",cstRec.serverIp[i]);if(i<3){strcat(buf,".");}}
   memcpy(textServerIp,buf,LSRVTEXTIP);
-  Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);//Serial.print(" textServerIp ");Serial.println(textServerIp);
 
-  Serial.print(" time=");Serial.println(millis()-debTime);
-
+/* config via serial from server */
   #define FRDLY 5  // sec
 #if CARTE != THESP01
-  pinMode(PINDTC,INPUT);
-  if(digitalRead(PINDTC)==LOW){
+  pinMode(PINDTC,INPUT_PULLUP);
+  if(digitalRead(PINDTC)==LOW){                     
     blink(4);delay(2000);
     yield();
     if(getServerConfig()>0){writeConstant();while(1){blink(1);delay(1000);}} // getServerConfig bloque si ko
   }
 #endif    
+  Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);//Serial.print(" textServerIp ");Serial.println(textServerIp);
+  Serial.print(" time=");Serial.println(millis()-debTime);
+  Serial.print("ssid=");Serial.print(cstRec.ssid1);Serial.print(" - ");Serial.println(cstRec.ssid2);
   Serial.println();
-  Serial.print("locmem=");Serial.println(locmem,HEX);
+//  Serial.print("locmem=");Serial.println(locmem,HEX);
 
 #if POWER_MODE==NO_MODE
   cstRec.talkStep=0;
@@ -370,7 +371,6 @@ delay(1);
   talkReq(); 
 
   memdetinit();pulsesinit();
-  Serial.print("ssid=");Serial.print(cstRec.ssid1);Serial.print(" - ");Serial.println(cstRec.ssid2);
   yield();
   
 #ifdef  _SERVER_MODE
@@ -447,7 +447,6 @@ delay(1);
                       case 7:   readAnalog();break;
                       case 8:   pulseClkisr();break;
                       case 9:   readTemp();
-//Serial.print("!");Serial.print(digitalRead(PINDTC));
                                 break;
                       case 10:  pulseClkisr();
                                 clkSlowStep=0;
