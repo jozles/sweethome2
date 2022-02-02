@@ -916,7 +916,9 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
         save=false;
         if(*periThmin_>th_){*periThmin_=(int16_t)th_;save=true;}
         if(*periThmax_<th_){*periThmax_=(int16_t)th_;save=true;}
-        if(save){periSave(np_,PERISAVELOCAL);nbth++;}
+        if(save){periSave(np_,PERISAVELOCAL);nbth++;
+          Serial.print(*periThmin_);Serial.print(" - ");Serial.println(*periThmax_);
+        }
 //        Serial.println();
       }
     }
@@ -976,17 +978,9 @@ void thermoShowHtml(EthernetClient* cli)
                     float th;
 
                     scrDspNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,7,TDBE);
-                    //memcpy(li,thermos[nuth].nom,LENTHNAME);strcat(li,"|");li+=strlen(li);
-                    th=(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,7,TDBE);
-                    //sprintf(li,"%.2f",(float)(*periLastVal_+*periThOffset_)/100);li+=strlen(li);
-                    //scrDspText(buf,jsbuf,lith,7,TDBE);
-
-                    //memset(lith,0x00,LLITH);li=lith;
-                    th=(*periThmin_/100);scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
-                    //sprintf(li,"%.2f",(float)*periThmin_/100);li+=strlen(li);*li='|';li++;
-                    th=(*periThmax_/100);scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
-                    //sprintf(li,"%.2f",(float)*periThmax_/100);li+=strlen(li);
-                    //scrDspText(buf,jsbuf,lith,5,TDBE);
+                    th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,7,TDBE);
+                    th=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
+                    th=(float)(*periThmax_)/100;scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
                     
                     memset(lith,0x00,LLITH);
                     bufPrintPeriDate(lith,periLastDateIn);
