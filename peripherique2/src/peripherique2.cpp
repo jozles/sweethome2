@@ -336,12 +336,13 @@ delay(1);
     Serial.println("KO -> init ");
     initConstant();
     yield();
-    if(cstRec.cstlen!=LENCST){Serial.print(" len RTC=");Serial.print(cstRec.cstlen);Serial.print("/");Serial.print(LENCST);
-    while(1){blink(1);delay(1000);}} // blocage param faux, le programme a changé
+    if(cstRec.cstlen!=LENCST){
+      Serial.print(" len RTC=");Serial.print(cstRec.cstlen);Serial.print("/");Serial.print(LENCST);
+      while(1){blink(1);delay(1000);}} // blocage param faux, le programme a changé
   }
 
   printConstant();
-
+  
   // Ip au format texte pour MessToServer
   // charIp ne fonctionne pas avec le format IPAddress ; changer pour byte* modifie cstRec
   char buf[TEXTIPADDRLENGTH+1];memset(buf,0X00,TEXTIPADDRLENGTH+1);
@@ -870,7 +871,7 @@ void mail(char* subj,char* dest,char* msg)
 {
 unsigned long beg=millis();
 
-    //Serial.println("---mail---");
+    Serial.print("---mail--- ");
     
     wifiConnexion(ssid,ssidPwd);
 
@@ -930,7 +931,7 @@ void swSet(uint8_t swNb,uint8_t swSt)
 void ordreExt()
 {
   //uint32_t boe=millis();
-
+  
   if(server!=nullptr && talkSta()==0 && wifiConnexion(ssid,ssidPwd,NOPRINT)){     
   // server démarré, pas de com->SH en cours, wifi on    
   
@@ -1138,6 +1139,7 @@ void getTemp()
 
 bool wifiAssign()
 {
+  Serial.print("wifiAssign ");
   bool ret=true;
 
   if(ssidNb==1){ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;}

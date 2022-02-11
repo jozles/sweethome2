@@ -1439,6 +1439,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 8:  getPeriCurLibf(PERILOAD);                                                    // bouton switchs___ (periLine/showline)
                                                                                                     // + bouton refresh  (switchs)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                // + bouton erase    (switchs)
+                       else if(*(libfonctions+2*i)=='Y'){                                           // + bouton en/dis all    (switchs)
+                        for(uint8_t ninp=0;ninp<NBPERINPUT;ninp++){*(periInput+ninp*PERINPLEN+2) ^= PERINPEN_VB;}
+                        periSave(periCur,PERISAVELOCAL);
+                       }
                        else{
                          periReq(&cliext,periCur,"etat______");                                     // si pas erase demande d'état
                        }

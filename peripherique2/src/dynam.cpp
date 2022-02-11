@@ -7,7 +7,43 @@
 #include "util.h"
 #include "peripherique2.h"
 
-//#define DEBUG_ACTIONS
+#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
+#ifdef DEBUG_ACTIONS
+#define LDA 200
+extern char inptyps[]; //="52meexphpu??";
+extern char inptypd[]; //="52meexswpu??";
+extern char inpact[];  //={"@5     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-  SET  "};    // libellés options actions
+char oldDebugAction[LDA];
+char curDebugAction[LDA];
+char cdga[3];
+char typs[3];
+char typd[3];
+char* cda(uint8_t val)
+{
+  memset(cdga,0x00,3);
+  cdga[0]=val/10+0x30;cdga[1]=val-(val/10)*10+0x30;
+  return cdga;
+}
+char* cds(uint8_t val)
+{
+  memset(cdga,0x00,3);
+  cdga[0]=inptyps[val*2];cdga[1]=inptyps[val*2+1];
+  return cdga;
+}
+char* cdd(uint8_t val)
+{
+  memset(cdga,0x00,3);
+  cdga[0]=inptypd[val*2];cdga[1]=inptypd[val*2+1];
+  return cdga;
+}
+char* cdx(uint8_t val)
+{
+  memset(cdga,0x00,3);
+  cdga[0]=inpact[val*5];cdga[1]=inpact[val*5+1];
+  return cdga;
+}
+
+#endif
 
 #ifdef CAPATOUCH
 #include <capaTouch.h>
@@ -120,6 +156,7 @@ byte oldCstCde; // memo swCde pour debug
 void actionsDebug()
 {
 #ifdef DEBUG_ACTIONS
+  memset(curDebugAction,0x00,LDA);
   Serial.println("(n locmem");
   Serial.print(" each enabled rule)");
   Serial.println(" 01. lmbit0,lmbit1");
@@ -156,6 +193,7 @@ void actions()          // pour chaque input, test enable,
   uint8_t nsrce;            // n° source
   uint8_t ndest;            // n° destination
   byte    tdest;            // type destination
+  byte    tsrce;            // type source  
   uint8_t curValue=0;       // valeur en cours pour l'évaluation des règles (0==OFF ; 1==ON)
   uint32_t lmbit0;          // valeur locmem modifiée par 0
   uint32_t lmbit1;          // valeur locmem modifiée par 1  
@@ -165,7 +203,10 @@ void actions()          // pour chaque input, test enable,
   uint8_t usdSw[MAXSW];memset(usdSw,0x00,MAXSW);     // devient 1 si le SW est modifié par une règle
 
 #ifdef DEBUG_ACTIONS
-  Serial.print('(');Serial.print(locmem);
+  memset(curDebugAction,0x00,LDA);
+  char lmb[2]={(char)(0x30+locmem),0x00};
+  strcat(curDebugAction,"(");strcat(curDebugAction,lmb);
+  //Serial.print("1== ");Serial.println(curDebugAction);
   //delay(1000);
 #endif //DEBUG_ACTIONS
 
@@ -174,24 +215,37 @@ void actions()          // pour chaque input, test enable,
 
     curinp=&cstRec.perInput[inp*PERINPLEN];                       // règle courante
     if(((*(curinp+2))&PERINPEN_VB)!=0){                           // enable
-#ifdef DEBUG_ACTIONS
-  Serial.print(' ');  // debut regle avec enable ok
-#endif //DEBUG_ACTIONS
       
       nsrce=(((*curinp)&PERINPV_MS)>>PERINPNVLS_PB);              // numéro source
+      tsrce=(*curinp)&PERINPNT_MS;                                // type source
       ndest=(((*(curinp+3))&PERINPV_MS)>>PERINPNVLS_PB);          // numéro destination
       tdest=(byte)((*(curinp+3))&PERINPNT_MS);                    // type destination
+      
+      byte action=(*(curinp+2))>>PERINPACTLS_PB;      
       
       // précalcul locmem[ndest] (au cas où tdest = mem)
       lmbit0=locmem & ~(mDSmaskbit[ndest]);      // locmem avec result 0 : ~(mDSmaskbit[ndest]) 11...101...11 masque du bit ndest
       lmbit1=locmem | mDSmaskbit[ndest];         // locmem avec result 1 :   mDSmaskbit[ndest]  00...010...00 masque du bit ndest   
 
+      uint8_t openClose[]={openSw[ndest],cloSw[ndest]};           // open/close value for ndest switch
+
 #ifdef DEBUG_ACTIONS
-  //Serial.print(lmbit0);Serial.print(lmbit1);Serial.print('.');
+  strcat(curDebugAction," ");  // debut regle avec enable ok
+  strcat(curDebugAction,cds(tsrce));
+  strcat(curDebugAction,":");
+  strcat(curDebugAction,cda(nsrce));
+  strcat(curDebugAction,",");
+  strcat(curDebugAction,cdd(tdest));
+  strcat(curDebugAction,":");
+  strcat(curDebugAction,cda(ndest));
+  strcat(curDebugAction,",");
+  strcat(curDebugAction,cdx(action));
+  strcat(curDebugAction,"_");
+  //Serial.print("2== ");Serial.println(curDebugAction);
 #endif //DEBUG_ACTIONS
 
       /* évaluation source -> detecState (detecFound==1 if detecstate valid */
-      switch((*curinp)&PERINPNT_MS){                              // type source
+      switch(tsrce){                              // type source
         case DETYEXT:detecState=(cstRec.extDetec>>nsrce)&0x01;    // valeur détecteur externe 
              detecFound=1;break;
         case DETYPHY:detecState=(byte)(cstRec.memDetec[nsrce]>>DETBITLH_PB)&0x01;     // valeur détecteur physique
@@ -213,7 +267,9 @@ void actions()          // pour chaque input, test enable,
 
 #ifdef DEBUG_ACTIONS
   //Serial.print(detecFound);     // devrait toujours être 1 (detecFound inutile) 
-  if(*(curinp+2)<16){Serial.print('0');}Serial.print(*(curinp+2),HEX);Serial.print(detecState);Serial.print('.');
+  char cip[3];memset(cip,0x00,3);
+  lmb[0]=(char)(detecState+0x30);strcat(curDebugAction,lmb);
+  strcat(curDebugAction,".");
 #endif // DEBUG_ACTIONS
 
       if(detecFound!=0){                                                          // if detecState valid
@@ -241,17 +297,14 @@ void actions()          // pour chaque input, test enable,
                   {detecState=0;}                                                 // no chge            
           }                                                                       // if edge
 
-/* si action logique, exécution action(detecState,curValue) ; si modif pulse exécution si detecState=1 et màj curval selon état du pulse */
-            byte action=(*(curinp+2))>>PERINPACTLS_PB;
-            uint8_t openClose[]={openSw[ndest],cloSw[ndest]};                     // open/close value for ndest switch
-
 #ifdef DEBUG_ACTIONS
-    Serial.print(detecState);Serial.print(action,HEX);
+    lmb[0]=(char)(detecState+0x30);strcat(curDebugAction,lmb);
 #endif // DEBUG_ACTIONS
 
+/* si action logique, exécution action(detecState,curValue) ; si modif pulse exécution si detecState=1 et màj curval selon état du pulse */
             switch(action){                                                       // action (compute curValue then store it depending of dest)
               case PMDCA_0:
-                          if(detecState){
+                          //if(detecState){                                       // l'action '0' force la valeur 0 inconditionnellement
                             curValue = 0;
                             switch(tdest){                                        // type dest
                               case DETYEXT: break;                                // transfert vers detServ à développer    
@@ -262,10 +315,10 @@ void actions()          // pour chaque input, test enable,
                                             break;                                         
                               default:break;
                             }
-                          }
+                          //}
                           break;
               case PMDCA_1:
-                          if(detecState){
+                          //if(detecState){                                       // l'action '1' force la valeur 1 inconditionnellement
                             curValue = 1;
                             switch(tdest){                                        // type dest
                               case DETYEXT: break;                                // transfert vers detServ à développer    
@@ -276,7 +329,7 @@ void actions()          // pour chaque input, test enable,
                                             break;                                         
                               default:break;
                             }
-                          }
+                          //}
                           break;
               case PMDCA_LOR:
                             curValue |= detecState;
@@ -453,14 +506,18 @@ void actions()          // pour chaque input, test enable,
       }   // detecFound    
 
 #ifdef DEBUG_ACTIONS
-  Serial.print('=');Serial.print(detecState);Serial.print(curValue);Serial.print(locmem,HEX);
+  strcat(curDebugAction,"=");
+  lmb[0]=(char)(detecState+0x30);strcat(curDebugAction,lmb);
+  lmb[0]=(char)(curValue+0x30);strcat(curDebugAction,lmb);
+  lmb[0]=(char)(locmem+0x30);strcat(curDebugAction,lmb);
+  //Serial.print("5== ");Serial.println(curDebugAction);
 #endif //DEBUG_ACTIONS
 
     }     // enable
   }       // next input
 
 #ifdef DEBUG_ACTIONS
-  Serial.println(')');
+  strcat(curDebugAction,")");
 #endif //DEBUG_ACTIONS
 
   /* SW update */
@@ -472,6 +529,12 @@ void actions()          // pour chaque input, test enable,
       //if(cstRec.swCde!=oldCstCde){Serial.print("\n");Serial.print(millis());Serial.print("--->");Serial.print(oldCstCde,HEX);Serial.print(" ");Serial.println(cstRec.swCde,HEX);oldCstCde=cstRec.swCde;}
     }  
   }
+
+#ifdef DEBUG_ACTIONS  
+  if(memcmp(oldDebugAction,curDebugAction,LDA)!=0){memcpy(oldDebugAction,curDebugAction,LDA);
+    Serial.println();
+    Serial.println(curDebugAction);memset(curDebugAction,0x00,LDA);}
+#endif //DEBUG_ACTIONS
 }
 
 /* ------------- gestion pulses ------------- */

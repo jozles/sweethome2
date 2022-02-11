@@ -267,11 +267,17 @@ void swCtlTableHtml(EthernetClient* cli)
     ethWrite(cli,buf,&lb);
 
 /* affichage/saisie règles */
-        
-  scrDspText(buf,jsbuf,"la fonction utilise la valeur courante et la source pour produire la destination et la nlle valeur courante",0,BRYES);
+  
+  scrDspText(buf,jsbuf,"fonctions logiques : la valeur courante et la source produisent la destination et la nlle valeur courante",0,BRYES);
+  scrDspText(buf,jsbuf,"'0' et '1' : forçage inconditionnel pour produire la destination et la nlle valeur courante",0,BRYES);
+  scrDspText(buf,jsbuf,"'SET'      : la source produit la destination et la nlle valeur courante",0,BRYES);
+  scrDspText(buf,jsbuf,"pulses     : Si la source est 1, exécution de la fonction ; valeur courante inchangée",0,BRYES);
   scrDspText(buf,jsbuf,"Règles en=enable, rf=(fall/rise if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
   scrDspText(buf,jsbuf,";'static' retourne la valeur de la source ; 'edge' retourne 1 sur le flanc actif sinon 0",0,BRYES);
    
+  swf[LENNOM-2]='Y';
+  scrGetButFn(buf,jsbuf,swf,"","en/dis all",ALICNO,0,BRYES); // bouton all enable/disable
+
   tableBeg(buf,jsbuf,0);
   scrDspText(buf,jsbuf,"|e...r...p...e~n...f...r...s| source | destin.| action |                        ",0,TDBE|TRBE);
   ethWrite(cli,buf,&lb);
@@ -317,9 +323,9 @@ void swCtlTableHtml(EthernetClient* cli)
             scrGetSelect(buf,jsbuf,inpact,optNam3,xfonc1,vv,8,ninp,0,TDBE);
 
             scrGetButSub(buf,jsbuf,"Màj",TDBEG);
-            perinpBfnc(buf,jsbuf,ninp,1,'b',2,xfonc1,10,0);                                         // bouton raz
-            perinpBfnc(buf,jsbuf,ninp,2,'b',2,xfonc1,11,0);                                         // bouton ins
-            perinpBfnc(buf,jsbuf,ninp,3,'b',2,xfonc1,12,TDEND);                                      // bouton del
+            perinpBfnc(buf,jsbuf,ninp,1,'b',2,xfonc1,10,0);                // bouton raz
+            perinpBfnc(buf,jsbuf,ninp,2,'b',2,xfonc1,11,0);                // bouton ins
+            perinpBfnc(buf,jsbuf,ninp,3,'b',2,xfonc1,12,TDEND);            // bouton del
                                                                                                         
             formEnd(buf,jsbuf,0,TREND);
 

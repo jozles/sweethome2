@@ -53,7 +53,8 @@
  * 1.p réception ordreExt() <5mS suppression de l'attente de déco avec TO de 2mS sur cli.available()
  *     lecture valeur analogique et tfr en NO_MODE (les autres modes utilisent l'ADC pour l'alim)
  * 1.q les règles deviennent de vraies opérations logiques entre la valeur courante et la valeur source
- *     création des fonctions -0- et -1- pour forcer une valeur initiale
+ *     création des
+ *  fonctions -0- et -1- pour forcer une valeur initiale
  *     les conditions appliquées à la source sont statique/flanc, montant/descendant si flanc ou direct/inversé si statique
  *     affichage des diags optionnels pour 'NO_MODE'
  *     dataSave après chaque réception via ordrext (cstRec.talkStep=6 et cstRec.serverTime=0 sinon blocage)
