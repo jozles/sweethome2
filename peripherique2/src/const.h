@@ -70,7 +70,8 @@
  * 1.w capacitives touch / TO_ORDREXT 10mS
  * 1.x ajout periSsidNb à la fin de dataRead/Save ; ordrext révisé, \n\n termine les messages reçus ;
  *     pulses et règles revus (ajout action SET); 
- * 1.y
+ * 1.y suppresion de compMac() ; prints ; derniere version avant modif NBPERINPUT en NBPERRULES 64 (!)
+ * 1.z NBPERRULES 64
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 

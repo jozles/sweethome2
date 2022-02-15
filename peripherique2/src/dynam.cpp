@@ -7,7 +7,7 @@
 #include "util.h"
 #include "peripherique2.h"
 
-#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
+//#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
 #ifdef DEBUG_ACTIONS
 #define LDA 200
 extern char inptyps[]; //="52meexphpu??";

@@ -570,13 +570,13 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
                                         //    si ok -> tfr params
                                         // retour periMess
 {
-  int  ddata=16;                        // position du numéro de périphérique  
   byte fromServerMac[6];
   
         periMess=MESSOK;
-        packMac(fromServerMac,(char*)(data+ddata+3));
-        if(memcmp(data+ddata,"00",2)==0){periMess=MESSNUMP;}
-        else if(!compMac(mac,fromServerMac)){periMess=MESSMAC;}
+        packMac(fromServerMac,(char*)(data+MPOSMAC));
+        if(memcmp(data+MPOSNUMPER,"00",2)==0){periMess=MESSNUMP;}
+        //else if(!compMac(mac,fromServerMac)){periMess=MESSMAC;}
+        else if(memcmp(mac,fromServerMac,6)!=0){periMess=MESSMAC;}
         else {
                              // si ok transfert des données
 if(diags){Serial.println(" dataTransfer() ");}                              
@@ -589,7 +589,7 @@ if(diags){Serial.println(" dataTransfer() ");}
             conv_atoh(data+MPOSANALH,(byte*)&cstRec.analLow);conv_atoh(data+MPOSANALH+2,(byte*)&cstRec.analLow+1);      // analogLow
             conv_atoh(data+MPOSANALH+4,(byte*)&cstRec.analHigh);conv_atoh(data+MPOSANALH+6,(byte*)&cstRec.analHigh+1);  // analogHigh
             
-            uint8_t mskSw[] = {0xfd,0xf7,0xdf,0x7f};
+            uint8_t mskSw[] = {0xfd,0xf7,0xdf,0x7f};                            
             for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
               cstRec.swCde &= mskSw[i];
               cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
@@ -702,17 +702,18 @@ int buildData(const char* nomfonction,const char* data)             // assemble 
   return buildMess(nomfonction,message,"",diags);        // concatène et complète dans bufserver
 }
 
-int buildReadSave(const char* nomfonction,const char* data)   // construit et envoie une commande GET complète
+int buildReadSave(const char* nomFonction,const char* data)   // construit et envoie une commande GET complète
                                                   //   avec fonction peri_pass_ + dataRead ou dataSave
                                                   //   peri_pass_=nnnnpppppp..cc?
                                                   //   data_rs.._=nnnnppmm.mm.mm.mm.mm.mm_[-xx.xx_aaaaaaa_v.vv]_r.r_siiii_diiii_ffff_cc
                                                   //   (sortie MESSCX connexion échouée)                                                  
 {
+  Serial.print(nomFonction);Serial.print(' ');
   strcpy(bufServer,"GET /cx?\0");
   if(!buildMess("peri_pass_",cstRec.peripass,"?",diags)==MESSOK){
     if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(cstRec.peripass);return MESSDEC;};}
 
-  buildData(nomfonction,data);
+  buildData(nomFonction,data);
 
   return messToServer(&cli,textServerIp,cstRec.serverPort,bufServer); 
 }
@@ -1139,7 +1140,6 @@ void getTemp()
 
 bool wifiAssign()
 {
-  Serial.print("wifiAssign ");
   bool ret=true;
 
   if(ssidNb==1){ssid=cstRec.ssid1;ssidPwd=cstRec.pwd1;}
