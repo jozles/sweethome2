@@ -4,7 +4,7 @@
 #define _MODE_DEVT  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 //#define _MODE_RUN  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
-#define NVERS ".5a"
+#define NVERS ".6 "
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -107,7 +107,8 @@
         corrections gestion cache périfs ;
    1.59 compatibilité Nucleo sprintf ; correction alignement vFactor, vOffset, thFactor, thOffset via bricolage pour Nucleo ; 
         réception/affichage der n° ssid utilisé ; mode DEV/RUN révisés
-   1.5a 
+   1.5a dernière version avec NBPERINPUT
+   1.6  NBPERINPUT devient NBPERRULES 48 : maxi possible pour les 512 octets de l'EEPROM des 8266
 
    BUGS :
 
@@ -207,7 +208,7 @@
 
 #define NBPERIF 28
 #define PERINAMLEN 16+1                      // longueur nom perif
-#define PERIRECLEN 310 // V1.4k              // longueur record périph
+#define PERIRECLEN 406 // V1.6               // longueur record périph
 
 #define CONFIGRECLEN 993                     // longueur record config 
 

@@ -150,14 +150,14 @@ if(*periProg!=0){
                 memcpy(message+v1+2*PCTLLEN,"_\0",2);  
 
                 v1+=2*PCTLLEN+1;
-                for(int k=0;k<NBPERINPUT*PERINPLEN;k++){           // 24*4=96+1 
+                for(int k=0;k<NBPERRULES*PERINPLEN;k++){           // 24*4=96+1 
                     *(message+v1+2*k)=chexa[*(periInput+k)>>4];
                     *(message+v1+2*k+1)=chexa[*(periInput+k)&0x0F];
                 }
-                memcpy((message+v1+2*NBPERINPUT*PERINPLEN),"_\0",2);
+                memcpy((message+v1+2*NBPERRULES*PERINPLEN),"_\0",2);
 
 
-                v1+=2*NBPERINPUT*PERINPLEN+1;
+                v1+=2*NBPERRULES*PERINPLEN+1;
                 byte byt;
                 for(int mds=MDSLEN-1;mds>=0;mds--){               // 32 bits memDetServ -> 8 car hexa
                     byt=(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
@@ -335,7 +335,8 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   if(periCur==0){                                                 // si periCur=0 recherche si mac connu   
     for(i=1;i<=NBPERIF;i++){                                      // et, au cas où, une place libre
       periLoad(i);
-      if(compMac(periMacBuf,periMacr)){
+      //if(compMac(periMacBuf,periMacr)){
+      if(memcmp(periMacBuf,periMacr,6)==0){
         periCur=i;i=NBPERIF+1;
         //Serial.println(" DataRead/Save Mac connu");
       }                                                           // mac trouvé

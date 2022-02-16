@@ -479,6 +479,7 @@ void setup() {                          // ====================================
       //}
   }
 
+  //periModification();
   periTableLoad();                  // le premier (après config) pour permettre les mails
 
   memDetLoad();                     // le second pour Sync 
@@ -733,7 +734,7 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,const char* nf)  // recherc
     periLoad(np);
     if(*periSwNb!=0){                                                 // peripherique avec switchs ?
             
-      for(ninp=0;ninp<NBPERINPUT;ninp++){                             // boucle regles          
+      for(ninp=0;ninp<NBPERRULES;ninp++){                             // boucle regles          
         offs=ninp*PERINPLEN;
         eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);      // enable          
         if(eni!=0 && model==*(byte*)(periInput+offs)){                // trouvé usage du détecteur dans periInput 
@@ -1440,7 +1441,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                                                                                     // + bouton refresh  (switchs)
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                // + bouton erase    (switchs)
                        else if(*(libfonctions+2*i)=='Y'){                                           // + bouton en/dis all    (switchs)
-                        for(uint8_t ninp=0;ninp<NBPERINPUT;ninp++){*(periInput+ninp*PERINPLEN+2) ^= PERINPEN_VB;}
+                        for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){*(periInput+ninp*PERINPLEN+2) ^= PERINPEN_VB;}
                         periSave(periCur,PERISAVELOCAL);
                        }
                        else{
@@ -1534,17 +1535,17 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           case 8:inpsub((periInput+2+offs),PERINPACT_MS,PERINPACTLS_PB,inpact+2,LENTACT);break;   // action
                           case 9:*(uint8_t*)(periInput+offs+2)|=(uint8_t)PERINPVALID_VB;break;                    // active level
                           case 10:getPeriCurValf(PERILOAD);                                                       // bouton raz
-                                 //dumpstr((char*)periInput,NBPERINPUT*PERINPLEN);
+                                 //dumpstr((char*)periInput,NBPERRULES*PERINPLEN);
                                  memset(periInput+offs,0x00,PERINPLEN);what=4;break; 
                           case 11:getPeriCurValf(PERILOAD);                                                       // bouton ins
                                  Serial.println(nuinp);
-                                 for(uint8_t i=NBPERINPUT-1;i>nuinp;i--){
-                                  //Serial.print(i);Serial.print(' ');dumpstr((char*)(periInput+(i-1)*PERINPLEN),(NBPERINPUT-i)*PERINPLEN);
+                                 for(uint8_t i=NBPERRULES-1;i>nuinp;i--){
+                                  //Serial.print(i);Serial.print(' ');dumpstr((char*)(periInput+(i-1)*PERINPLEN),(NBPERRULES-i)*PERINPLEN);
                                   memcpy(periInput+i*PERINPLEN,periInput+(i-1)*PERINPLEN,PERINPLEN);}
                                  memset(periInput+offs,0x00,PERINPLEN);what=4;break;
                           case 12:getPeriCurValf(PERILOAD);                                                       // bouton del
-                                 memcpy(periInput+offs,periInput+offs+PERINPLEN,PERINPLEN*(NBPERINPUT-nuinp-1)); 
-                                 memset(periInput+(NBPERINPUT-1)*PERINPLEN,0x00,PERINPLEN);what=4;break;
+                                 memcpy(periInput+offs,periInput+offs+PERINPLEN,PERINPLEN*(NBPERRULES-nuinp-1)); 
+                                 memset(periInput+(NBPERRULES-1)*PERINPLEN,0x00,PERINPLEN);what=4;break;
                           default:break;
                         }
                        }break;                                                                      

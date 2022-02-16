@@ -32,6 +32,7 @@ void  periTableLoad();
 void  periTableSave();
 void  periTableSave(bool force);
 void  periMaintenance();
+void periModification();
 
 void  configInit();
 int   configLoad();

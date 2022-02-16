@@ -652,7 +652,7 @@ void periInputPrint(byte* input)
   byte a;
   char ed[]="de",es[]="es";  
   
-  for(int ninp=0;ninp<NBPERINPUT;ninp++){  
+  for(int ninp=0;ninp<NBPERRULES;ninp++){  
 
       memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
       binput[0]=ed[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)];                         // en input
@@ -917,9 +917,80 @@ int periRaz(uint16_t num)
   return SDOK;
 }
 
+int periLoadDirect(uint16_t num)
+{
+  int ret;
+  char periFile[7];periFname(num,periFile);
+  Serial.print(periFile);
+  if(sdOpen(periFile,&fperi)==SDOK){
+    for(int i=0;i<PERIRECLEN;i++){periRec[i]=fperi.read();}              
+    ret=SDOK;
+  }
+  else {ret=SDKO;}
+  fperi.close();
+  return ret;
+}
 
 
-void periConvert()        
+void periModification()        
+/* Pour redimensionner une variable : 
+ *  ajouter periModification() avant periTableLoad() dans frontal.ino
+ *  NE PAS changer PERIRECLEN
+ *  compiler, charger et laisser démarrer le serveur
+ *  le programme stoppe avant d'effecuer les modifs des fichiers périphériques pour permettre de changer la carte SD
+ *  la led clignote rapidement ; appuyer le bouton HALT pour démarrer 
+ *  à la fin la led clignote lentement
+ *  corriger les paramètres modifiés (shconst2.h/const.h)
+ *  corriger PERIRECLEN dans const.h
+ *  enlever periModification() dans frontal.ino
+ *  compiler, charger
+ */
+{
+  Serial.println("modification en cours...");
+
+  unsigned long t=millis();
+  while(digitalRead(STOPREQ)!=LOW){
+    t=millis();digitalWrite(PINLED,HIGH);while((millis()-t)<1500){if(digitalRead(STOPREQ)==LOW){break;}}
+    Serial.print('*');
+    t=millis();digitalWrite(PINLED,LOW);while((millis()-t)<1500){if(digitalRead(STOPREQ)==LOW){break;}}
+  }
+  
+  periInit();
+  periInitVar();
+  for(uint16_t i=1;i<=NBPERIF;i++){
+  //for(uint16_t i=3;i<=3;i++){    
+    if(periLoadDirect(i)!=SDOK){Serial.println(" load KO");}
+    else{
+      Serial.println(" load OK");
+      #define ADDED 24
+      #define PERIRECLEN_NEW PERIRECLEN+ADDED*PERINPLEN // 24+24=48
+      char periRec_New[PERIRECLEN_NEW];memset(periRec_New,0x00,PERIRECLEN_NEW);
+      
+      unsigned long pos=(byte*)periInput-(byte*)periRec;
+      unsigned long len=(unsigned long)PERIRECLEN-(unsigned long)(pos+NBPERRULES*PERINPLEN);
+      Serial.print(PERIRECLEN);Serial.print(' ');Serial.print(PERIRECLEN_NEW);Serial.print(' ');Serial.print(pos);Serial.print(' ');Serial.println(len);
+      memcpy(periRec_New,periRec,pos+NBPERRULES*PERINPLEN);
+      memcpy(periRec_New+pos+64*PERINPLEN,periInput+NBPERRULES*PERINPLEN,len);
+      //dumpstr(periRec,PERIRECLEN);Serial.println();dumpstr(periRec_New,PERIRECLEN_NEW);
+      
+      char periFile[7];periFname(i,periFile);
+      fperi.remove();
+      if (!fperi.open(periFile, O_RDWR | O_CREAT | O_TRUNC)) {
+        Serial.print(periFile);Serial.println(" create failed");}
+      else {
+        fperi.seek(0);
+        for(int i=0;i<PERIRECLEN_NEW;i++){fperi.write(periRec_New[i]);}
+        fperi.close();
+        Serial.print(periFile);Serial.println(" create ok");
+      }
+    }
+    Serial.println();
+  }
+  Serial.println("terminé");
+  while(1){digitalWrite(PINLED,HIGH);delay(200);digitalWrite(PINLED,LOW);delay(200);}
+}
+
+void periConvert()        // !!!!!!!!!!!!!!!!!!!!!!!!! periLoad ne fonctionne plus avec le cache ; corriger avant d'utiliser !!!!!!!!!!!!!!!!
 /* Pour ajouter une variable : 
  *  ajouter en fin de liste son descripteur dans frontal.ino, periInit() et periIinitVar()
  *  ajouter periconvert() devant periMaintenance() dans frontal.ino
@@ -1002,7 +1073,7 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   periSwVal=(byte*)temp;
   temp +=sizeof(byte);
   periInput=(byte*)temp;
-  temp +=NBPERINPUT*PERINPLEN*sizeof(byte);
+  temp +=NBPERRULES*PERINPLEN*sizeof(byte);
   periSwPulseOne=(uint32_t*)temp;
   temp +=NBPULSE*sizeof(uint32_t);
   periSwPulseTwo=(uint32_t*)temp;
@@ -1081,8 +1152,8 @@ void periInitVar0()                  // pour bouton erase
 {   // attention : perInitVar ne concerne que les variables de l'enregistrement de périphérique
     // lorsque periLoad est effectué periInitVar n'est oas utile
 //Serial.println("erase pulses & inputs");
-   memset(periInput,0x00,NBPERINPUT*PERINPLEN*sizeof(byte));
-   //if(*periProg==FAUX){memset(periInput,0x01000802,NBPERINPUT*sizeof(uint32_t));}
+   memset(periInput,0x00,NBPERRULES*PERINPLEN*sizeof(byte));
+   //if(*periProg==FAUX){memset(periInput,0x01000802,NBPERRULES*sizeof(uint32_t));}
    memset(periSwPulseOne,0x00,NBPULSE*sizeof(uint32_t));
    memset(periSwPulseTwo,0x00,NBPULSE*sizeof(uint32_t)); 
    memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t)); 

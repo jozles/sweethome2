@@ -269,7 +269,8 @@ void swCtlTableHtml(EthernetClient* cli)
 /* affichage/saisie règles */
   
   scrDspText(buf,jsbuf,"fonctions logiques : la valeur courante et la source produisent la destination et la nlle valeur courante",0,BRYES);
-  scrDspText(buf,jsbuf,"'0' et '1' : forçage inconditionnel pour produire la destination et la nlle valeur courante",0,BRYES);
+  scrDspText(buf,jsbuf,"'0' et '1' : forçage destination et valeur courante si source=1 sinon nop",0,BRYES);
+  scrDspText(buf,jsbuf,"      (si static/high et srce/dest ident : 0 force 0 ; si static/low et srce/dest ident : 1 force 1)",0,BRYES);
   scrDspText(buf,jsbuf,"'SET'      : la source produit la destination et la nlle valeur courante",0,BRYES);
   scrDspText(buf,jsbuf,"pulses     : Si la source est 1, exécution de la fonction ; valeur courante inchangée",0,BRYES);
   scrDspText(buf,jsbuf,"Règles en=enable, rf=(fall/rise if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
@@ -287,7 +288,7 @@ void swCtlTableHtml(EthernetClient* cli)
       uint16_t offsetInp=0;
       uint8_t ni=0;                 // nbre lignes ds buffer
       
-      for(uint8_t ninp=0;ninp<NBPERINPUT;ninp++){     // boucle des regles
+      for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){     // boucle des regles
 
             ni++;
             

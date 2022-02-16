@@ -911,7 +911,8 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
       periLoad(np_);
 //    Serial.print(np_);Serial.print(" ");Serial.print(*periThmin_);Serial.print(" ");Serial.println(*periThmax_);
       packMac(periMacBuf,pc+HISTOPOSMAC);                       
-      if(compMac(periMacBuf,periMacr) && th_<9900 && th_>-9900){                                  // contrôle mac
+      //if(compMac(periMacBuf,periMacr) && th_<9900 && th_>-9900){                                  // contrôle mac
+      if(memcmp(periMacBuf,periMacr,6)==0 && th_<9900 && th_>-9900){                                  // contrôle mac
 //        Serial.println(buf);Serial.print(" per=");Serial.print(np_);Serial.print(" th=");Serial.print(th_);Serial.print(" thmin=");Serial.print(*periThmin_);Serial.print(" thmax=");Serial.print(*periThmax_);Serial.print(" - ");
         save=false;
         if(*periThmin_>th_){*periThmin_=(int16_t)th_;save=true;}
