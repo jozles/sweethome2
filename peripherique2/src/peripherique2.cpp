@@ -53,7 +53,7 @@ WiFiClient cliext;                        // instance du serveur local
 WiFiServer* server=nullptr;
 bool serverStarted=false;
 
-  #define LHTTPMESS 500
+  #define LHTTPMESS 600
   char   httpMess[LHTTPMESS];             // buffer d'entrée en mode serveur
 #endif // _SERVER
 
@@ -594,10 +594,10 @@ if(diags){Serial.println(" dataTransfer() ");}
               cstRec.swCde &= mskSw[i];
               cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
 
-            uint8_t i1=NBPERINPUT*PERINPLEN;                                    // size inputs
+            uint16_t i1=NBPERRULES*PERINPLEN;                                    // size inputs
             byte bufoldlev[i1];
-            for(uint8_t k=0;k<i1;k++){                                          // inputs !!! ne pas écraser les bits oldlevel !!!
-              conv_atoh((data+MPOSPERINPUT+2*k),&bufoldlev[k]);
+            for(uint16_t k=0;k<i1;k++){                                          // inputs !!! ne pas écraser les bits oldlevel !!!
+              conv_atoh((data+MPOSPERRULES+2*k),&bufoldlev[k]);
               if((k%4)==2){bufoldlev[k]&=~PERINPOLDLEV_VB;bufoldlev[k]|=cstRec.perInput[k]&PERINPOLDLEV_VB;}
             }
             memcpy(&cstRec.perInput,bufoldlev,i1);

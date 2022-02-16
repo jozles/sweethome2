@@ -152,7 +152,7 @@ void initConstant()  // inits mise sous tension
   memset(cstRec.memDetec,detDis,MAXDET);
   memcpy(cstRec.cstVers,VERSION,LENVERSION);
   memcpy(cstRec.cstModel,model,LENMODEL);
-  memset(cstRec.perInput,0x00,NBPERINPUT*PERINPLEN);
+  memset(cstRec.perInput,0x00,NBPERRULES*PERINPLEN);
   cstRec.extDetec=0;
   cstRec.analVal=0;
   cstRec.IpLocal=IPAddress(0,0,0,0);  
@@ -165,7 +165,7 @@ void initConstant()  // inits mise sous tension
   memset(cstRec.ssid2,'\0',LENSSID);
   memset(cstRec.pwd1,'\0',LPWSSID);
   memset(cstRec.pwd2,'\0',LPWSSID);
-  memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
+  //memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
 
   memcpy(cstRec.peripass,"17515A",LPWD+1);
   strcat(cstRec.ssid2,SSID2); //"pinks");
@@ -185,7 +185,7 @@ void periInputPrint(byte* input)
   byte a;
   char ed[]="de",es[]="es";  
   
-  for(int ninp=0;ninp<NBPERINPUT;ninp++){  
+  for(int ninp=0;ninp<NBPERRULES;ninp++){  
 
       memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
       binput[0]=ed[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)];                         // en input

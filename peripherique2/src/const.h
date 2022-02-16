@@ -1,7 +1,7 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.y_"
+#define VERSION "1.z_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -238,9 +238,9 @@ Modifier :
 #if POWER_MODE==NO_MODE
   #define _SERVER_MODE          /* Mode server */
   #define TBITS T12BITS       // résolution DSX20
-//  #define CONSTANT RTCSAVED
+//  #define CONSTANT RTCSAVED // !!!!!!!!!!!!!!!!!!!!!!!!!!! ne fonctionne plus i la RTC fait moins de 512
   #define CONSTANT EEPROMSAVED
-  #define CONSTANTADDR 64     // adresse des constantes dans la mémoire RTC (mots 4 octets = 256)
+  #define CONSTANTADDR 0      // adresse des constantes dans la mémoire des constantes (mots 4 octets)
 #endif // PM==NO_MODE
 
 #if POWER_MODE==PO_MODE
@@ -482,7 +482,7 @@ union {
     uint32_t  cntPulse[NBPULSE*2]; // 32   temps restant après STOP pour START
   };
   byte      pulseMode[PCTLLEN];   //  2   ctle pulse   
-  byte      perInput[NBPERINPUT*PERINPLEN]; // 96  configuration (24*4)
+  byte      perInput[NBPERRULES*PERINPLEN]; // 192 configuration (48*4) !! 
   byte      memDetec[MAXDET];     //  4   image mem des détecteurs physiques (1 byte par détecteur)   
   uint32_t  extDetec;             //  4   1 bit par detecteur externe
   IPAddress IpLocal;              //  8
@@ -498,15 +498,15 @@ union {
   char      pwd2[64];             // 64   pwd2 
   char      peripass[LPWD+1];     //  8+1   server passwd       
 
-#define LENFILLERCST 22
-  byte      filler[LENFILLERCST]; 
+#define LENFILLERCST 0
+  //byte      filler[LENFILLERCST]; 
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer la longueur
-             // total 238 = 60 mots ; 256 maxi pour RTC
+             // total 494 ; 256*4 maxi pour RTC
 } constantValues;
 
 #define STEPDATASAVE 6            // code pour talkstep de dataSave()
 
-#define LENCST 420 // 250+164+?
+#define LENCST 494 // v1.z
 
 
 
