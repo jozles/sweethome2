@@ -97,7 +97,8 @@ extern struct Thermo thermos[NBTHERMOS];
 extern int        fdatasave;
 
 extern char       mdsSrc[];
-extern uint32_t   memDetServ;                   // image mémoire NBDSRV détecteurs
+extern uint8_t    memDetServ[];                // image mémoire NBDSRV détecteurs
+extern uint8_t    mDSmaskbit[];
 extern char       libDetServ[NBDSRV][LENLIBDETSERV];
 extern uint16_t   sourceDetServ[NBDSRV];
 
@@ -356,6 +357,13 @@ void accueilHtml(EthernetClient* cli)
             
             bufLenShow(buf,jsbuf,lb,begTPage);
 }          
+
+void mDSconc(char* concbuf,uint8_t num)
+{
+  char mdsbit='0';
+  for(uint8_t i=0;i<MDSLEN;i++){if(((memDetServ[i]) & (mDSmaskbit[num*MDSLEN+i])) != 0){mdsbit='1';break;}}
+  concat1a(concbuf,mdsbit);
+}
 
 void sscb(char* buf,char* jsbuf,bool val,const char* nomfonct,int nuf,int etat,uint8_t ctl,uint8_t nb)
 {                                                                               // saisie checkbox ; 
@@ -696,7 +704,8 @@ void cfgRemoteHtml(EthernetClient* cli)
               char dm[DML];memset(dm,0x00,DML);
               if(remoteT[nb].num!=0){
                 strcat(dm,(char*)(&libDetServ[remoteT[nb].detec][0]));strcat(dm," ");
-                concat1a(dm,(char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}
+                mDSconc(dm,remoteT[nb].detec);}
+                //concat1a(dm,(char)(((memDetServ>>remoteT[nb].detec)&0x01)+48));}
               scrDspText(buf,jsbuf,dm,0,TDEND);
               strcat(buf,"\n");
 
@@ -705,7 +714,8 @@ void cfgRemoteHtml(EthernetClient* cli)
               memset(dm,0x00,DML);
               if(remoteT[nb].num!=0){
                 strcat(dm,(char*)(&libDetServ[remoteT[nb].deten][0]));strcat(dm," ");
-                concat1a(dm,(char)(((memDetServ>>remoteT[nb].deten)&0x01)+48));}
+                mDSconc(dm,remoteT[nb].deten);}
+                //concat1a(dm,(char)(((memDetServ>>remoteT[nb].deten)&0x01)+48));}
               scrDspText(buf,jsbuf,dm,0,TDEND);
               strcat(buf,"\n");
 
@@ -1000,7 +1010,10 @@ void thermoShowHtml(EthernetClient* cli)
         
         //strcat(buf,"</p><br>");
         memset(lith,0x00,LLITH);
-        for(int d=0;d<NBDSRV;d++){concat1a(lith,(char)(((memDetServ>>d)&0x01)+48));strcat(lith," ");}
+        for(int d=0;d<NBDSRV;d++){
+          mDSconc(lith,d);
+          //concat1a(lith,(char)(((memDetServ>>d)&0x01)+48));
+          strcat(lith," ");}
         scrDspText(buf,jsbuf,lith,0,BRYES);
         htmlEnd(buf,jsbuf);
         strcat(buf,"\n");
@@ -1030,7 +1043,8 @@ void subthc(char* buf,char* jsbuf,uint8_t vv)
     if(vv!=0){scrDspText(buf,jsbuf,(char*)(&libDetServ[vv][0]),2,STRING|TDBEG);
       scrDspText(buf,jsbuf,":",2,STRING|CONCAT);
       char oi[]={'0',0x00,'1',0x00};
-      scrDspText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],2,STRING|CONCAT);}
+      scrDspText(buf,jsbuf,&oi[mDSval(vv)*2],2,STRING|CONCAT);}
+      //scrDspText(buf,jsbuf,&oi[((memDetServ>>vv)&0x01)*2],2,STRING|CONCAT);}
     else scrDspText(buf,jsbuf," ",0,TDBE);
 }
 
@@ -1148,7 +1162,7 @@ Serial.print(" config timers ");
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 
 
-  detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);
+  detServHtml(cli,buf,jsbuf,&lb,lb0,memDetServ,&libDetServ[0][0]);
 
   tableBeg(buf,jsbuf,0);
   scrDspText(buf,jsbuf,"|nom|det|h_beg|h_end|OI det|e_p_c_|7_d_ l_m_m_ j_v_s|dh_beg_cycle|dh_end_cycle",0,TRBE|TDBE);
@@ -1169,7 +1183,8 @@ Serial.print(" config timers ");
     char oi[]="OI";  
     
     oo[1]=oi[timersN[nt].curstate];
-    oo[4]=(PMFNCVAL)+((memDetServ>>timersN[nt].detec)&0x01);                     
+    oo[4]=(PMFNCVAL)+mDSval(timersN[nt].detec);                     
+    //oo[4]=(PMFNCVAL)+((memDetServ>>timersN[nt].detec)&0x01);                     
     scrDspText(buf,jsbuf,oo,0,TDBE);
     nucb=0;sscb(buf,jsbuf,timersN[nt].enable,"tim_chkb__",nucb,NO_STATE,TDBEG,nt);affSpace(buf,jsbuf);
     nucb++;sscb(buf,jsbuf,timersN[nt].perm,"tim_chkb__",nucb,NO_STATE,0,nt);affSpace(buf,jsbuf);
@@ -1205,7 +1220,7 @@ bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 
-void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0,uint32_t* mds,char* lib)
+void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0,uint8_t* mds,char* lib)
 {
   if(buf!=nullptr && lb0!=0){
 
@@ -1224,7 +1239,7 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
             ni++;
             char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
             if(libb[0]=='\0'){convIntToString(libb,k);}
-            subDSnB(buf,jsbuf,"mem_dsrv__\0",*mds,k,libb);
+            subDSnBm(buf,jsbuf,"mem_dsrv__\0",mds,k,libb);
 
             fontBeg(buf,jsbuf,1,0);
             scrDspText(buf,jsbuf,"(",0,0);
@@ -1245,7 +1260,7 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
   }
 }
 
-void detServHtml(EthernetClient* cli,uint32_t* mds,char* lib)
+void detServHtml(EthernetClient* cli,uint8_t* mds,char* lib)
 {
   detServHtml(cli,nullptr,nullptr,0,0,mds,lib);
 }

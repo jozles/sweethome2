@@ -57,8 +57,10 @@ void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char
 void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void formEnd(char* buf,char* jsbuf,bool title,uint8_t pol,uint8_t ctl);
 
-void subDSnB(char* buf,char* jsbuf,const char* fnc,uint32_t val,uint8_t num,char* lib);
+void subDSnBm(char* buf,char* jsbuf,const char* fnc,uint8_t* val,uint8_t num,char* lib);
 #define NO_STATE 9         // etat
+
+uint8_t mDSval(uint8_t num);
 
 void scrGetSelect(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl);
 void scrGetSelect(char* buf,char* jsbuf,char* val,char* name,char* ft,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl);

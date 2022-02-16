@@ -21,7 +21,7 @@ extern long      histoPos;
 extern char      histoDh[LDATEA];
 extern long      fhsize;      // remplissage fhisto
 extern char*     serverName;
-extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
+extern uint8_t   memDetServ[];  // image mémoire NBDSRV détecteurs
 extern char      libDetServ[NBDSRV][LENLIBDETSERV];
 extern uint16_t  sourceDetServ();
 
@@ -263,7 +263,7 @@ void swCtlTableHtml(EthernetClient* cli)
       ethWrite(cli,buf,&lb);
 
 /* détecteurs */    
-    detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);
+    detServHtml(cli,buf,jsbuf,&lb,lb0,memDetServ,&libDetServ[0][0]);
     ethWrite(cli,buf,&lb);
 
 /* affichage/saisie règles */
@@ -391,7 +391,7 @@ void periTableHtml(EthernetClient* cli)
           formEnd(buf,jsbuf,0,0);
           strcat(buf,"\n");
 
-          detServHtml(cli,buf,jsbuf,&lb,lb0,&memDetServ,&libDetServ[0][0]);  // détecteurs serveur
+          detServHtml(cli,buf,jsbuf,&lb,lb0,memDetServ,&libDetServ[0][0]);  // détecteurs serveur
           
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
           tableBeg(buf,jsbuf,"Courier, sans-serif\"",BORDER,TRBEG|TDBEG);

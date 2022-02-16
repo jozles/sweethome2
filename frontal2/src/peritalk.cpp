@@ -78,7 +78,7 @@ extern byte      periMacBuf[6];
 
 extern byte      lastIpAddr[4];
 
-extern uint32_t  memDetServ;
+extern uint8_t   memDetServ[];
 
 extern int8_t    periMess;                     // code diag réception message (voir MESSxxx shconst.h)
 
@@ -160,7 +160,7 @@ if(*periProg!=0){
                 v1+=2*NBPERRULES*PERINPLEN+1;
                 byte byt;
                 for(int mds=MDSLEN-1;mds>=0;mds--){               // 32 bits memDetServ -> 8 car hexa
-                    byt=(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
+                    byt=memDetServ[mds]; //(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
                     //Serial.print(" memDetServ shifté(");Serial.print(mds);Serial.print(")");Serial.print((uint32_t)(memDetServ>>(mds*8)),HEX);
                     conv_htoa(message+v1+2*(MDSLEN-mds-1),(byte*)&byt);}//Serial.println();
                 memcpy(message+v1+2*MDSLEN,"_\0",2);

@@ -176,13 +176,15 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
   int   stime=0;int mtime=0;int htime=0;
   unsigned long  curdate=0;
 
-/* iùage mémoire détecteurs du serveur */
+/* image mémoire détecteurs du serveur */
 
-  uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
+  uint8_t   memDetServ[MDSLEN]; //=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
   char      libDetServ[NBDSRV][LENLIBDETSERV];
   char      mdsSrc[]=" PRHT";
   uint16_t  sourceDetServ[NBDSRV];   // actionneurs (sssnnnnnnnn ss type 000, P 001 perif, R 010 remote, H 011 thermos, T 100 timers / nnnnnnnn n°)
-  uint32_t  mDSmaskbit[]={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
+  uint8_t   mDSmaskbit[NBDSRV*MDSLEN];
+  /*
+  ={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
                        0x00000100,0x00000200,0x00000400,0x00000800,0x00001000,0x00002000,0x00004000,0x00008000,
                        0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
                        0x01000000,0x02000000,0x04000000,0x08000000,0x10000000,0x20000000,0x40000000,0x80000000};
@@ -190,7 +192,30 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
                        0xfffffeff,0xfffffdff,0xfffffbff,0xfffff7ff,0xffffefff,0xffffdfff,0xffffbfff,0xffff7fff,
                        0xfffeffff,0xfffdffff,0xfffbffff,0xfff7ffff,0xffefffff,0xffdfffff,0xffbfffff,0xff7fffff,
                        0xfeffffff,0xfdffffff,0xfbffffff,0xf7ffffff,0xefffffff,0xdfffffff,0xbfffffff,0x7fffffff};
-  uint32_t  bakDetServ;
+  */
+  uint8_t  bakDetServ[MDSLEN];
+
+void iniDetServ()
+{
+  memset(memDetServ,0x00,MDSLEN);
+  memset(mDSmaskbit,0x00,NBDSRV*MDSLEN);
+
+  byte curMask[MDSLEN];memset(curMask,0x00,MDSLEN);curMask[0]=0x01;
+  for(uint8_t i=0;i<NBDSRV;i++){
+    for(uint8_t j=0;j<MDSLEN;j++){
+      mDSmaskbit[i*MDSLEN+j]=curMask[j];
+    }
+    for(uint8_t j=0;j<MDSLEN;j++){
+      if(curMask[j]==0x80){
+        if(j<(MDSLEN-1)){curMask[j+1]=0x01;}
+        break;}
+      else curMask[j]<<=1;
+    }
+  }
+  dumpstr((char*)mDSmaskbit,NBDSRV);
+}
+
+
 /*  enregistrement de table des périphériques ; un fichier par entrée
     (voir periInit() pour l'ordre physique des champs + periSave et periLoad=
 */
@@ -482,11 +507,11 @@ void setup() {                          // ====================================
   //periModification();
   periTableLoad();                  // le premier (après config) pour permettre les mails
 
-  memDetLoad();                     // le second pour Sync 
+  iniDetServ();memDetLoad();        // le second pour Sync 
   //remoteNPlus(8);while(1){};
   remoteLoad();periSwSync();
   timersLoad();
-  //thermosInit();thermosSave();     // si NBPERIF change
+  //thermosInit();thermosSave();    // si NBPERIF change
   thermosLoad();
   //memosInit();memosSave(-1);  
   memosLoad(-1);
@@ -665,7 +690,7 @@ void scanThermos()                                                        // pos
   if((millis()-thermosTime)>perThermos*1000){
     
   thermosTime=millis();
-  bakDetServ=memDetServ;
+  memcpy(bakDetServ,memDetServ,MDSLEN);
   memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
 
   uint8_t th,det,mds;
@@ -711,10 +736,12 @@ void scanThermos()                                                        // pos
       if(detLst[det]!=0){
         if(detSta[det]!=0){detSta[det]=1;}
         mds=0;
-        if((memDetServ & mDSmaskbit[det])!=0){mds=1;}
+        for(uint8_t i=0;i<MDSLEN;i++){if((memDetServ[i]&mDSmaskbit[det*MDSLEN+i]) !=0){mds=1;break;}}
+        //if((memDetServ & mDSmaskbit[det])!=0){mds=1;}
         if((detSta[det] ^ mds)!=0){                                                   // change ?
           poolperif(tablePerToSend,det,&onoff[detSta[det]*2]);              
-          memDetServ = memDetServ ^ mDSmaskbit[det];
+          for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] = memDetServ[i] ^ mDSmaskbit[det*MDSLEN+i] ;}
+          //memDetServ = memDetServ ^ mDSmaskbit[det];
         }
       }
     }
@@ -765,7 +792,8 @@ void scanTimers()                                             //   recherche tim
                                                               //      màj tablePerToSend
     if((millis()-timerstime)>pertimers*1000){
 
-      bakDetServ=memDetServ;
+      memcpy(bakDetServ,memDetServ,MDSLEN);
+      //bakDetServ=memDetServ;
       timerstime=millis();
       memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
       char now[LNOW];
@@ -786,13 +814,17 @@ void scanTimers()                                             //   recherche tim
           && (timersN[nt].dw & maskbit[1+now[14]*2])!=0 )           // jour semaine
           {                                                         // si timer déclenché
           if(timersN[nt].curstate!=1){                              // et état précédent 0, chgt->1
-            timersN[nt].curstate=1;memDetServ |= mDSmaskbit[timersN[nt].detec]; // maj détecteur
-            //poolperif(tablePerToSend,timersN[nt].detec,"on");     // recherche periphérique et mise à jour tablePerToSend
+            timersN[nt].curstate=1;
+            for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
+            //memDetServ |= mDSmaskbit[timersN[nt].detec];
+            //poolperif(tablePerToSend,timersN[nt].detec,"on");     // recherche inutile periphérique et mise à jour tablePerToSend
           }
         }
         else {                                                      // si timer pas déclenché
           if(timersN[nt].curstate!=0){                              // et état précédent 1, chgt->0
-            timersN[nt].curstate=0;memDetServ &= ~mDSmaskbit[timersN[nt].detec];     // maj détecteur
+            timersN[nt].curstate=0;
+            for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
+            //memDetServ &= ~mDSmaskbit[timersN[nt].detec];     // maj détecteur
             if(timersN[nt].perm==0 && timersN[nt].cyclic==0){timersN[nt].enable=0;}; // si pas permanent et pas cyclique disable en fin
             //poolperif(tablePerToSend,timersN[nt].detec,"off");                     // recherche periphérique et mise à jour tablePerToSend
           }     
@@ -806,12 +838,22 @@ void scanTimers()                                             //   recherche tim
 void sser(uint8_t det,uint8_t valnou)                                       // si un det a changé (!= old) -> inscription perif éventuel dans tablePerToSend
 {
   char newval[]={'0','\0'};
-  uint32_t msk=mDSmaskbit[det];                                                                        
-  uint32_t mem=memDetServ & msk;                                            // current detec value
-  if(valnou!=0){memDetServ |= msk;newval[0]='1';}                                         // set bit (1)
-  else {memDetServ &= mDSmaskneg[det];}                                     // clr bit (0)
-  if((memDetServ & msk) != mem){                                            // memDet chge => poolperif
-    poolperif(tablePerToSend,det,newval);}                                  // si le memDet est utilisé dans un périf, ajout du périf dans tablePerRoSend
+  //uint32_t msk=mDSmaskbit[det];                                                                        
+  uint8_t msk[MDSLEN];
+  uint8_t mskneg[MDSLEN];
+  for(uint8_t i=0;i<MDSLEN;i++){msk[i]=mDSmaskbit[det*MDSLEN+i];mskneg[i]=~msk[i];}
+  //uint32_t mem=memDetServ & msk;                                            
+  uint8_t mem[MDSLEN];
+  memcpy(mem,memDetServ,MDSLEN);                                              // current detec value)
+  if(valnou!=0){
+    //memDetServ |= msk;
+    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= msk[i];}                   // set bit (1)
+    newval[0]='1';}                       
+  else {for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i]&=mskneg[i];}}             // clr bit (0)
+    //memDetServ &= mDSmaskneg[det];}        
+  for(uint8_t i=0;i<MDSLEN;i++){if((memDetServ[i] & msk[i]) != mem[i]){       // memDet chge => poolperif
+  //if((memDetServ & msk) != mem){                                            
+    poolperif(tablePerToSend,det,newval);break;}}                             // si le memDet est utilisé dans un périf, ajout du périf dans tablePerRoSend
 }
 
 void periRemoteUpdate()                        // recherche remote ayant changé d'état (onoff!=newonoff ou enable!=newenable)
@@ -871,9 +913,14 @@ void periDetecUpdate()                          // update fichier périfs, remot
   memset(tablePerToSend,0x00,NBPERIF);          // périphériques !=0 => periReq à faire via pertoSend()
   
   for(uint8_t ds=0;ds<NBDSRV;ds++){                                                
-    if((memDetServ&mDSmaskbit[ds]) != (bakDetServ&mDSmaskbit[ds])){   // si le détecteur ds a changé
-      
-      st=0;of=3;if((memDetServ&mDSmaskbit[ds])!=0){of=0;st=1;}
+    //if((memDetServ&mDSmaskbit[ds]) != (bakDetServ&mDSmaskbit[ds])){   // si le détecteur ds a changé
+    uint8_t mds1[MDSLEN],mds2[MDSLEN];
+    for(uint8_t i=0;i<MDSLEN;i++){mds1[i]=memDetServ[i]&mDSmaskbit[MDSLEN*ds+i];mds2[i]=bakDetServ[i]&mDSmaskbit[MDSLEN*ds+i];}
+    if(memcmp(mds1,mds2,MDSLEN)!=0){
+
+      st=0;of=3;
+      //if((memDetServ&mDSmaskbit[ds])!=0){of=0;st=1;}
+      for(uint8_t i=0;i<MDSLEN;i++){if(mds1[i]!=0){of=0;st=1;break;}}
       poolperif(tablePerToSend,ds,&onoff[of]);                        // et si utilisé dans un périf, ajout du périf dans tablePerRoSend
       for(uint8_t nbr=0;nbr<MAXREMLI;nbr++){                          // recherche dans remotes et maj
         if(remoteT[nbr].num!=0){
@@ -1563,11 +1610,15 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 38: *periThmax_=0;*periThmax_=(int16_t)convStrToInt(valf,&j);break;                  // (periLine) Th max
               case 39: *periVmin_=0;*periVmin_=(int16_t)convStrToInt(valf,&j);break;                    // (periLine) V min
               case 40: *periVmax_=0;*periVmax_=(int16_t)convStrToInt(valf,&j);break;                    // (periLine) V max
-              case 41: what=10;bakDetServ=memDetServ;memDetServ=0;                                      // (dsrv_init_) bouton submit detecteurs serveur ; effct cb
+              case 41: what=10;memcpy(bakDetServ,memDetServ,MDSLEN);
+                       //bakDetServ=memDetServ;
+                       memset(memDetServ,0x00,MDSLEN);                  // (dsrv_init_) bouton submit detecteurs serveur ; effct cb
+                       //memDetServ=0;                
                        break;
               case 42: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (mem_dsrv__) set det bit
                        if(nb>=16){nb-=16;}
-                       memDetServ |= mDSmaskbit[nb];
+                       for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[MDSLEN*nb+i];}
+                         //memDetServ |= mDSmaskbit[nb];
                        }break;
               case 43: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) ssid[libf+1]
                        alphaTfr(ssid+nb*(LENSSID+1),LENSSID,valf,nvalf[i+1]-nvalf[i]);

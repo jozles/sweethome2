@@ -7,6 +7,7 @@
 #include <shmess2.h>
 #include "utilether.h"
 #include "periph.h"
+#include "utilhtml.h"
 
 
 /* ---------- config ---------- */
@@ -173,11 +174,11 @@ extern long   thermoslen;
 
 File32 fmemdet;     // fichier détecteurs serveur
 
-extern char      libDetServ[NBDSRV][LENLIBDETSERV];
-extern uint16_t  sourceDetServ[NBDSRV];   // actionneurs (ssnnnnnn ss type 00, 01 perif, 10 remote, 11 timer / nnnnnn n°)
-extern uint32_t  memDetServ;  // image mémoire NBDSRV détecteurs
+extern char       libDetServ[NBDSRV][LENLIBDETSERV];
+extern uint16_t   sourceDetServ[];       // actionneurs (ssnnnnnn ss type 00, 01 perif, 10 remote, 11 timer / nnnnnn n°)
+extern uint8_t    memDetServ[];          // image mémoire NBDSRV détecteurs
 
-extern uint32_t  mDSmaskbit[];
+extern uint8_t    mDSmaskbit[];
 
 /* ---------- Memos ---------- */
 
@@ -688,10 +689,10 @@ void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo,uin
   }Serial.println();
 }
 
-void periDetServPrint(uint32_t* detserv)
+void periDetServPrint(uint8_t* detserv)
 {
   Serial.print(" detserv=");
-  for(int d=NBDSRV-1;d>=0;d--){Serial.print((char)(((*detserv>>d)&0x01)+48));} 
+  for(int d=NBDSRV-1;d>=0;d--){Serial.print(mDSval(d)+48);} 
 }  
 
 
@@ -703,7 +704,7 @@ void  periPrint(uint16_t num)
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
   Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(") ");
   for(int s=MAXSW;s>=1;s--){Serial.print(periSwCde(s));}
-  periDetServPrint(&memDetServ);Serial.print(" millis=");Serial.println(millis());
+  periDetServPrint(memDetServ);Serial.print(" millis=");Serial.println(millis());
   periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo,periSwPulseCurrOne,periSwPulseCurrTwo);
   periInputPrint(periInput);
 /*  Serial.print("Anal=");Serial.print(*periAnal);Serial.print(" low=");Serial.print(*periAnalLow);Serial.print(" high=");Serial.print(*periAnalHigh);
@@ -740,25 +741,30 @@ void memDetPrint(uint32_t ds)
 }
 
    
-void periDSU(uint32_t* mds,uint8_t dd,byte cb,uint8_t res)
+void periDSU(uint8_t* mds,uint8_t dd,byte cb,uint8_t res)
 {    
     //memDetPrint(*mds);Serial.print(" cb=");Serial.print(cb,HEX);
     //Serial.print(" destDet=");Serial.print(dd);Serial.print(" res=");Serial.print(res);
     
-    uint8_t ds=0;if((*mds & mDSmaskbit[dd]) !=0){ds=1;};      // ds état du detServ
+    uint8_t ds=0;
+    for(uint8_t i=0;i<MDSLEN;i++){if((mds[i] & mDSmaskbit[dd*MDSLEN+i]) !=0){ds=1;break;}}  // ds état du detServ
     //Serial.print(" ds=");Serial.println(ds);
         switch(cb>>4){
           case 0: break;
-          case 1: if(res==1){*mds &= ~mDSmaskbit[dd];}break;
-          case 2: if(res==1){*mds |= mDSmaskbit[dd];}break;
-          case 3: if(ds+res!=0){*mds |= mDSmaskbit[dd];}
-                  else {*mds &= ~mDSmaskbit[dd];}break;
-          case 4: if(ds+res==2){*mds |= mDSmaskbit[dd];}
-                  else {*mds &= ~mDSmaskbit[dd];}break;
-          case 5: if((ds+res!=0)&&(ds+res!=2)){*mds |= mDSmaskbit[dd];}
-                  else {*mds &= ~mDSmaskbit[dd];}break;
-          case 6: if(res==1){*mds |= mDSmaskbit[dd];}
-                  else {*mds &= ~mDSmaskbit[dd];}break;
+          case 1: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}break;
+          case 2: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}break;
+          case 3: if(ds+res!=0){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}
+                  else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
+                  break;
+          case 4: if(ds+res==2){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}
+                  else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
+                  break;
+          case 5: if((ds+res!=0)&&(ds+res!=2)){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}
+                  else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
+                  break;
+          case 6: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}
+                  else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
+                  break;
           default: break;
         }
 }
@@ -781,7 +787,7 @@ void periDetServUpdate()
         case 4: if((*periAnal<*periAnalLow && r==1) || (*periAnal>=*periAnalLow && r==0) ){result=1;}break;
         default: break;
       }
-      periDSU(&memDetServ,periAnalDestDet[i],c,result);        
+      periDSU(memDetServ,periAnalDestDet[i],c,result);        
     }
     //Serial.println();
   }
@@ -794,7 +800,7 @@ void periDetServUpdate()
     if((c&0x08)!=0){             // enable ?
       uint8_t val=(*periDetVal>>(i*2))&DETBITLH_VB;
       uint8_t result=0;if(((periDigitCb[i]&0x04)>>2)==val){result=1;}     // 1 direct, 2 inverse
-      periDSU(&memDetServ,periDigitDestDet[i],c,result);        
+      periDSU(memDetServ,periDigitDestDet[i],c,result);        
     }
     //Serial.println();
   }
@@ -1242,14 +1248,17 @@ byte periSwLev(uint8_t sw)                      // lev de sw courant
 void remMemDetUpdate(uint8_t rem,uint8_t endet)               // maj memDetServ suite à chgt état remote
 {
   if(endet==REM_ENABLE){
-    memDetServ&=~mDSmaskbit[remoteT[rem].deten];                                              // raz memDetServ disj
-    memDetServ&=~mDSmaskbit[remoteT[rem].deten+1];                                            // raz memDetServ forcage
-    if(remoteN[remoteT[rem].num-1].enable!=0){memDetServ|=mDSmaskbit[remoteT[rem].deten];}    // set memDetServ disj
-    if(remoteN[remoteT[rem].num-1].enable>1){memDetServ|=mDSmaskbit[remoteT[rem].deten+1];}   // set memDetServ forçage
+    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[remoteT[rem].deten*MDSLEN+i];}           // raz memDetServ disj
+    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+i];}       // raz memDetServ forcage
+    if(remoteN[remoteT[rem].num-1].enable!=0){
+      for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[remoteT[rem].deten*MDSLEN+i];}}         // set memDetServ disj
+    if(remoteN[remoteT[rem].num-1].enable>1){
+      for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+i];}}    // set memDetServ forçage
   }
   if(endet==REM_DETEC){
-    memDetServ&=~mDSmaskbit[remoteT[rem].detec];              // update memDetServ on/off
-    if(remoteN[remoteT[rem].num-1].onoff!=0){memDetServ|=mDSmaskbit[remoteT[rem].detec];}
+    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[remoteT[rem].detec*MDSLEN+i];}              // update memDetServ on/off
+    if(remoteN[remoteT[rem].num-1].onoff!=0){
+      for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[remoteT[rem].detec*MDSLEN+i];}}
   }
 }
 
@@ -1761,7 +1770,7 @@ int memDetLoad()
     if(sdOpen(MEMDETFNAME,&fmemdet)==SDKO){Serial.println(" KO");return SDKO;}
     fmemdet.seek(0);
     
-    for(uint8_t i=0;i<MDSLEN;i++){*(((byte*)&memDetServ)+i)=fmemdet.read();}    
+    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i]=fmemdet.read();}    
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){libDetServ[i][j]=fmemdet.read();}
     }
@@ -1777,7 +1786,7 @@ int memDetSave()
     if(sdOpen(MEMDETFNAME,&fmemdet)==SDKO){Serial.println(" KO");return SDKO;}
     
     fmemdet.seek(0);
-    for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(*(((byte*)&memDetServ)+i));}
+    for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(memDetServ[i]);}
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){fmemdet.write(libDetServ[i][j]);}}
     for(uint8_t i=0;i<NBDSRV;i++){fmemdet.write(sourceDetServ[i]);}
@@ -1794,10 +1803,10 @@ void memDetInit()
 
 void memDetPrint()
 {
-    dumpfield((char*)&memDetServ,4);Serial.println(" ");
+    dumpfield((char*)memDetServ,MDSLEN);Serial.println(" ");
     for(uint8_t i=0;i<NBDSRV;i++){
       Serial.print(i);if(i<10){Serial.print(" ");}Serial.print("  ");
-      Serial.print((memDetServ>>i)&0x01);Serial.print("  ");
+      Serial.print(mDSval(i));Serial.print("  ");
       for(uint8_t j=0;j<LENLIBDETSERV;j++){Serial.print(libDetServ[i][j]);}Serial.print(" ");
       if(sourceDetServ[i]<16){Serial.print('0');};Serial.println(sourceDetServ[i],HEX);
     }
