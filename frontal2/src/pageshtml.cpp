@@ -361,7 +361,8 @@ void accueilHtml(EthernetClient* cli)
 void mDSconc(char* concbuf,uint8_t num)
 {
   char mdsbit='0';
-  for(uint8_t i=0;i<MDSLEN;i++){if(((memDetServ[i]) & (mDSmaskbit[num*MDSLEN+i])) != 0){mdsbit='1';break;}}
+  //for(uint8_t i=0;i<MDSLEN;i++){if(((memDetServ[i]) & (mDSmaskbit[num*MDSLEN+i])) != 0){mdsbit='1';break;}}
+  uint8_t mi=num>>3;if(((memDetServ[mi]) & (mDSmaskbit[num*MDSLEN+mi])) != 0){mdsbit='1';}
   concat1a(concbuf,mdsbit);
 }
 
@@ -1224,7 +1225,7 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
 {
   if(buf!=nullptr && lb0!=0){
 
-    Serial.println("detServHtml ");
+    Serial.print("detServHtml ");for(uint8_t i=0;i<MDSLEN;i++){Serial.print(memDetServ[i]);Serial.print(' ');}Serial.println();
 
     formIntro(buf,jsbuf,"dsrv_init_",0,0);         // params pour retours navigateur (n° usr + time usr + pericur + locfonc pour inits)
                                     // à charger au moins une fois par page ; pour les autres formulaires 

@@ -747,22 +747,23 @@ void periDSU(uint8_t* mds,uint8_t dd,byte cb,uint8_t res)
     //Serial.print(" destDet=");Serial.print(dd);Serial.print(" res=");Serial.print(res);
     
     uint8_t ds=0;
-    for(uint8_t i=0;i<MDSLEN;i++){if((mds[i] & mDSmaskbit[dd*MDSLEN+i]) !=0){ds=1;break;}}  // ds état du detServ
+    //for(uint8_t i=0;i<MDSLEN;i++){if((mds[i] & mDSmaskbit[dd*MDSLEN+i]) !=0){ds=1;break;}}  // ds état du detServ
+    uint8_t mi=dd>>3;if((mds[mi] & mDSmaskbit[dd*MDSLEN+mi]) !=0){ds=1;}  // ds état du detServ
     //Serial.print(" ds=");Serial.println(ds);
         switch(cb>>4){
           case 0: break;
           case 1: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}break;
-          case 2: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}break;
-          case 3: if(ds+res!=0){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}
+          case 2: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}break;
+          case 3: if(ds+res!=0){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
                   else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
                   break;
-          case 4: if(ds+res==2){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}
+          case 4: if(ds+res==2){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
                   else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
                   break;
-          case 5: if((ds+res!=0)&&(ds+res!=2)){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}
+          case 5: if((ds+res!=0)&&(ds+res!=2)){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
                   else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
                   break;
-          case 6: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= ~mDSmaskbit[dd*MDSLEN+i];}}
+          case 6: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
                   else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
                   break;
           default: break;
@@ -1770,7 +1771,7 @@ int memDetLoad()
     if(sdOpen(MEMDETFNAME,&fmemdet)==SDKO){Serial.println(" KO");return SDKO;}
     fmemdet.seek(0);
     
-    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i]=fmemdet.read();}    
+    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i]=fmemdet.read();Serial.print(' ');if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);}    
     for(uint8_t i=0;i<NBDSRV;i++){
       for(uint8_t j=0;j<LENLIBDETSERV;j++){libDetServ[i][j]=fmemdet.read();}
     }
