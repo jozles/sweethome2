@@ -1756,9 +1756,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         } 
                         break;
               case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;char nf=*(libfonctions+2*i);      // submit depuis thparams__ (thermosCfg())
-                        Serial.print("cfgTh lf+1/lf=");Serial.print(nb);Serial.print(" lf=");Serial.println(nf);
+                        //Serial.print("cfgTh lf+1/lf=");Serial.print(nb);Serial.print(" lf=");Serial.println(nf);
                         switch (nf){
                           case 'n':alphaTfr((char*)&thermos[nb].nom,LENTHNAME,valf,nvalf[i+1]-nvalf[i]);
+                                   thermos[nb].lowenable=0;                                                               // effacement cb
+                                   thermos[nb].highenable=0;
+                                   thermos[nb].lowstate=0;
+                                   thermos[nb].highstate=0;
                                    break;
                           case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToInt(valf,&j);
                                    if((thermos[nb].peri)>NBPERIF){(thermos[nb].peri)=NBPERIF;}

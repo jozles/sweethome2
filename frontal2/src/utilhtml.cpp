@@ -1265,8 +1265,8 @@ void subDSnBm(char* buf,char* jsbuf,const char* fnc,uint8_t* val,uint8_t num,cha
   memcpy(fonc,fnc,LENNOM+1);
   uint8_t numbyte=num>>3;
   uint8_t val0=(*(val+numbyte)>>(num-(numbyte<<3)))&0x01; // mDSval(num); //(val>>num)&0x01;
-  Serial.print(">>>>> subDSnBm ctl ");//dumpstr((char*)(val-4),MDSLEN);
-  Serial.print(num);Serial.print(":");Serial.print((*((uint32_t*)val)>>num)&0x01);Serial.print('/');Serial.println(val0);
+  //Serial.print(">>>>> subDSnBm ctl ");//dumpstr((char*)(val-4),MDSLEN);
+  //Serial.print(num);Serial.print(":");Serial.print((*((uint32_t*)val)>>num)&0x01);Serial.print('/');Serial.println(val0);
   if(num>=16){num+=16;}
   fonc[LENNOM-1]=(char)(PMFNCHAR+num);
   scrGetCheckbox(buf,jsbuf,&val0,fonc,NO_STATE,lib,0,0);

@@ -93,6 +93,7 @@ extern int       nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur
 void assySet(char* message,int periCur,const char* diag,char* date14)     
 // assemblage datas pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
 {
+  Serial.print(" assySet ");
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
 
@@ -156,13 +157,13 @@ if(*periProg!=0){
                 }
                 memcpy((message+v1+2*NBPERRULES*PERINPLEN),"_\0",2);
 
-
+Serial.println(" memDetServ ");delay(2);                
                 v1+=2*NBPERRULES*PERINPLEN+1;
                 byte byt;
-                for(int mds=MDSLEN-1;mds>=0;mds--){               // 32 bits memDetServ -> 8 car hexa
-                    byt=memDetServ[mds]; //(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
+                for(uint8_t mds=MDSLEN;mds>0;mds--){               // 32 bits memDetServ -> 8 car hexa
+                    byt=memDetServ[mds-1]; //(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
                     //Serial.print(" memDetServ shifté(");Serial.print(mds);Serial.print(")");Serial.print((uint32_t)(memDetServ>>(mds*8)),HEX);
-                    conv_htoa(message+v1+2*(MDSLEN-mds-1),(byte*)&byt);}//Serial.println();
+                    conv_htoa(message+v1+2*(MDSLEN-mds),(byte*)&byt);}//Serial.println();
                 memcpy(message+v1+2*MDSLEN,"_\0",2);
 
                 v1+=MDSLEN*2+1;
