@@ -1,6 +1,6 @@
 #include <Arduino.h>
-#include <SPI.h>      //bibliothèqe SPI pour W5100
-#include <Ethernet.h> //bibliothèque W5100 Ethernet
+#include <SPI.h>
+#include <Ethernet.h>
 #include <EthernetUdp.h>
 #include "ds3231.h"
 #include "const.h"
@@ -21,55 +21,55 @@ extern char ab;
 
 /* >>>>>>> fichier périphériques <<<<<<<  */
 
-extern char      periRec[PERIRECLEN];          // 1er buffer de l'enregistrement de périphérique
-extern char      periCache[PERIRECLEN*NBPERIF];   // cache des périphériques
-extern bool      periCacheStatus[NBPERIF];     // indicateur de validité du cache d'un périph
+extern char      periRec[PERIRECLEN];           // 1er buffer de l'enregistrement de périphérique
+extern char      periCache[PERIRECLEN*NBPERIF]; // cache des périphériques
+extern bool      periCacheStatus[NBPERIF];      // indicateur de validité du cache d'un périph
   
-extern uint16_t  periCur;                      // Numéro du périphérique courant
+extern uint16_t  periCur;                       // Numéro du périphérique courant
 
-extern uint16_t* periNum;                      // ptr ds buffer : Numéro du périphérique courant
-extern int32_t*  periPerRefr;                  // ptr ds buffer : période datasave minimale
-extern uint16_t* periPerTemp;                  // ptr ds buffer : période de lecture tempèrature
+extern uint16_t* periNum;                       // ptr ds buffer : Numéro du périphérique courant
+extern int32_t*  periPerRefr;                   // ptr ds buffer : période datasave minimale
+extern uint16_t* periPerTemp;                   // ptr ds buffer : période de lecture tempèrature
 extern int16_t*  periPitch_;                    // ptr ds buffer : variation minimale de température pour datasave
 extern int16_t*  periLastVal_;                  // ptr ds buffer : dernière valeur de température  
 extern int16_t*  periAlim_;                     // ptr ds buffer : dernière tension d'alimentation
-extern char*     periLastDateIn;               // ptr ds buffer : date/heure de dernière réception
-extern char*     periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
-extern char*     periLastDateErr;              // ptr ds buffer : date/heure de derniere anomalie com
-extern int8_t*   periErr;                      // ptr ds buffer : code diag anomalie com (voir MESSxxx shconst.h)
-extern char*     periNamer;                    // ptr ds buffer : description périphérique
-extern char*     periVers;                     // ptr ds buffer : version logiciel du périphérique
-extern char*     periModel;                    // ptr ds buffer : model du périphérique
-extern byte*     periMacr;                     // ptr ds buffer : mac address 
-extern byte*     periIpAddr;                   // ptr ds buffer : Ip address
-extern uint16_t* periPort;                     // ptr ds buffer : port periph server
-extern byte*     periSwNb;                     // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
-extern byte*     periSwVal;                    // ptr ds buffer : état/cde des inter  
-extern byte*     periInput;                    // ptr ds buffer : Mode fonctionnement inters (1 par switch)           
-extern uint32_t* periSwPulseOne;               // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
-extern uint32_t* periSwPulseTwo;               // ptr ds buffer : durée pulses sec OFF(mode astable)
-extern uint32_t* periSwPulseCurrOne;           // ptr ds buffer : temps courant pulses ON
-extern uint32_t* periSwPulseCurrTwo;           // ptr ds buffer : temps courant pulses OFF
-extern byte*     periSwPulseCtl;               // ptr ds buffer : mode pulses
-extern byte*     periSwPulseSta;               // ptr ds buffer : état clock pulses
-extern uint8_t*  periSondeNb;                  // ptr ds buffer : nbre sonde
-extern bool*  periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
-extern byte*     periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
-extern byte*     periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
+extern char*     periLastDateIn;                // ptr ds buffer : date/heure de dernière réception
+extern char*     periLastDateOut;               // ptr ds buffer : date/heure de dernier envoi  
+extern char*     periLastDateErr;               // ptr ds buffer : date/heure de derniere anomalie com
+extern int8_t*   periErr;                       // ptr ds buffer : code diag anomalie com (voir MESSxxx shconst.h)
+extern char*     periNamer;                     // ptr ds buffer : description périphérique
+extern char*     periVers;                      // ptr ds buffer : version logiciel du périphérique
+extern char*     periModel;                     // ptr ds buffer : model du périphérique
+extern byte*     periMacr;                      // ptr ds buffer : mac address 
+extern byte*     periIpAddr;                    // ptr ds buffer : Ip address
+extern uint16_t* periPort;                      // ptr ds buffer : port periph server
+extern byte*     periSwNb;                      // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
+extern byte*     periSwVal;                     // ptr ds buffer : état/cde des inter  
+extern byte*     periInput;                     // ptr ds buffer : Mode fonctionnement inters (1 par switch)           
+extern uint32_t* periSwPulseOne;                // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
+extern uint32_t* periSwPulseTwo;                // ptr ds buffer : durée pulses sec OFF(mode astable)
+extern uint32_t* periSwPulseCurrOne;            // ptr ds buffer : temps courant pulses ON
+extern uint32_t* periSwPulseCurrTwo;            // ptr ds buffer : temps courant pulses OFF
+extern byte*     periSwPulseCtl;                // ptr ds buffer : mode pulses
+extern byte*     periSwPulseSta;                // ptr ds buffer : état clock pulses
+extern uint8_t*  periSondeNb;                   // ptr ds buffer : nbre sonde
+extern bool*     periProg;                      // ptr ds buffer : flag "programmable" (périphériques serveurs)
+extern byte*     periDetNb;                     // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
+extern byte*     periDetVal;                    // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
 extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
 extern int16_t*  periThmin_;                    // ptr ds buffer : alarme mini th
 extern int16_t*  periThmax_;                    // ptr ds buffer : alarme maxi th
 extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini volts
 extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
-extern byte*     periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
-extern byte*     periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
-extern uint16_t* periAnal;                     // ptr ds buffer : analog value
-extern uint16_t* periAnalLow;                  // ptr ds buffer : low analog value 
-extern uint16_t* periAnalHigh;                 // ptr ds buffer : high analog value 
-extern uint16_t* periAnalOffset1;              // ptr ds buffer : offset on adc value
-extern float*    periAnalFactor;               // ptr ds buffer : factor to float for analog value
-extern float*    periAnalOffset2;              // ptr ds buffer : offset on float value
-extern byte*     periSsidNb;                   // ptr ds buffer : 
+extern byte*     periDetServEn;                 // ptr ds buffer : 1 byte 8*enable detecteurs serveur
+extern byte*     periProtocol;                  // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern uint16_t* periAnal;                      // ptr ds buffer : analog value
+extern uint16_t* periAnalLow;                   // ptr ds buffer : low analog value 
+extern uint16_t* periAnalHigh;                  // ptr ds buffer : high analog value 
+extern uint16_t* periAnalOffset1;               // ptr ds buffer : offset on adc value
+extern float*    periAnalFactor;                // ptr ds buffer : factor to float for analog value
+extern float*    periAnalOffset2;               // ptr ds buffer : offset on float value
+extern byte*     periSsidNb;                    // ptr ds buffer : 
       
 extern byte*     periBegOfRecord;
 extern byte*     periEndOfRecord;
@@ -97,11 +97,11 @@ void assySet(char* message,int periCur,const char* diag,char* date14)
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
 
-            if(periCur>0){                                          // si periCur >0 macaddr ok -> set
+            if(periCur>0){                                        // si periCur >0 macaddr ok -> set
                 unpackMac(message+strlen(message),periMacr);}
 
             else if(periCur<=0){
-                  unpackMac(message+strlen(message),periMacBuf);    // si periCur<=0 plus de place -> ack
+                  unpackMac(message+strlen(message),periMacBuf);  // si periCur<=0 plus de place -> ack
                   strcat(message,periDiag(periMess));}
 
             strcat(message,"_");
@@ -111,20 +111,20 @@ void assySet(char* message,int periCur,const char* diag,char* date14)
             strcat(message,"_");
 
             unsigned int v1,v2=0;
-            if(periCur>0){                                          // periCur>0 tfr params
+            if(periCur>0){                                        // periCur>0 tfr params
                 v2=*periPerRefr;
-                sprintf((message+strlen(message)),"%05d",v2);       // periPerRefr
+                sprintf((message+strlen(message)),"%05d",v2);     // periPerRefr
                 strcat(message,"_");
 
                 v2=*periPerTemp;
-                sprintf((message+strlen(message)),"%05d",v2);       // periPerTemp
+                sprintf((message+strlen(message)),"%05d",v2);     // periPerTemp
                 strcat(message,"_");
 
                 v2=*periPitch_;
-                sprintf((message+strlen(message)),"%04d",v2);       // periPitch (100x)
+                sprintf((message+strlen(message)),"%04d",v2);     // periPitch (100x)
                 strcat(message,"_");
 
-                v1=strlen(message);                                 // 4 bits disjoncteurs switchs (8,6,4,2)
+                v1=strlen(message);                               // 4 bits disjoncteurs switchs (8,6,4,2)
                 for(int k=MAXSW;k>0;k--){
                     message[v1+MAXSW-k]=(char)(PMFNCVAL + periSwCde(k-1));}
                 memcpy(message+v1+MAXSW,"_\0",2);
@@ -141,29 +141,27 @@ void assySet(char* message,int periCur,const char* diag,char* date14)
           
 if(*periProg!=0){
 
-                for(int k=0;k<NBPULSE*2;k++){                      // 2 fois 4 compteurs (8*(8+1)bytes)
+                for(int k=0;k<NBPULSE*2;k++){                     // 2 fois 4 compteurs (8*(8+1)bytes)
                     sprintf(message+v1+k*(LENVALPULSE+1),"%08lu",*(periSwPulseOne+k));
                     memcpy(message+v1+(k+1)*LENVALPULSE+k,"_\0",2);
                 }
 
-                v1+=NBPULSE*2*(8+1);                               // bits OTF * 4 = 2*2+1 bytes
+                v1+=NBPULSE*2*(8+1);                              // bits OTF * 4 = 2*2+1 bytes
                 for(int k=0;k<PCTLLEN;k++){conv_htoa(message+v1+k*2,(byte*)(periSwPulseCtl+k));}
                 memcpy(message+v1+2*PCTLLEN,"_\0",2);  
 
                 v1+=2*PCTLLEN+1;
-                for(int k=0;k<NBPERRULES*PERINPLEN;k++){           // 24*4=96+1 
+                for(int k=0;k<NBPERRULES*PERINPLEN;k++){          // 24*4=96+1 
                     *(message+v1+2*k)=chexa[*(periInput+k)>>4];
                     *(message+v1+2*k+1)=chexa[*(periInput+k)&0x0F];
                 }
                 memcpy((message+v1+2*NBPERRULES*PERINPLEN),"_\0",2);
 
-Serial.println(" memDetServ ");delay(2);                
                 v1+=2*NBPERRULES*PERINPLEN+1;
                 byte byt;
-                for(uint8_t mds=MDSLEN;mds>0;mds--){               // 32 bits memDetServ -> 8 car hexa
+                for(uint8_t mds=MDSLEN;mds>0;mds--){              // 32 bits memDetServ -> 8 car hexa
                     byt=memDetServ[mds-1]; //(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
-                    //Serial.print(" memDetServ shifté(");Serial.print(mds);Serial.print(")");Serial.print((uint32_t)(memDetServ>>(mds*8)),HEX);
-                    conv_htoa(message+v1+2*(MDSLEN-mds),(byte*)&byt);}//Serial.println();
+                    conv_htoa(message+v1+2*(MDSLEN-mds),(byte*)&byt);}
                 memcpy(message+v1+2*MDSLEN,"_\0",2);
 
                 v1+=MDSLEN*2+1;

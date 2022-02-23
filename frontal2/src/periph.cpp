@@ -752,19 +752,29 @@ void periDSU(uint8_t* mds,uint8_t dd,byte cb,uint8_t res)
     //Serial.print(" ds=");Serial.println(ds);
         switch(cb>>4){
           case 0: break;
-          case 1: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}break;
-          case 2: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}break;
-          case 3: if(ds+res!=0){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
-                  else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
+          case 1: if(res==1){mds[mi] &= ~mDSmaskbit[dd*MDSLEN+mi];}break;
+                  //for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}break;
+          case 2: if(res==1){mds[mi] |= mDSmaskbit[dd*MDSLEN+mi];}break;
+                  //for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}break;
+          case 3: if(ds+res!=0){mds[mi] |= mDSmaskbit[dd*MDSLEN+mi];}
+                  //for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
+                  else {mds[mi] &= ~mDSmaskbit[dd*MDSLEN+mi];}
+                  //for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
                   break;
-          case 4: if(ds+res==2){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
-                  else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
+          case 4: if(ds+res==2){mds[mi] |= mDSmaskbit[dd*MDSLEN+mi];}
+                  //for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
+                  else {mds[mi] &= ~mDSmaskbit[dd*MDSLEN+mi];}
+                    //for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
                   break;
-          case 5: if((ds+res!=0)&&(ds+res!=2)){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
-                  else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
+          case 5: if((ds+res!=0)&&(ds+res!=2)){mds[mi] |= mDSmaskbit[dd*MDSLEN+mi];}
+                  //for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
+                  else {mds[mi] &= ~mDSmaskbit[dd*MDSLEN+mi];}
+                    //for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
                   break;
-          case 6: if(res==1){for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
-                  else {for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
+          case 6: if(res==1){mds[mi] |= mDSmaskbit[dd*MDSLEN+mi];}
+                  //for(uint8_t i=0;i<MDSLEN;i++){mds[i] |= mDSmaskbit[dd*MDSLEN+i];}}
+                  else {mds[mi] &= ~mDSmaskbit[dd*MDSLEN+mi];}
+                    //for(uint8_t i=0;i<MDSLEN;i++){mds[i] &= ~mDSmaskbit[dd*MDSLEN+i];}}
                   break;
           default: break;
         }
@@ -1249,17 +1259,26 @@ byte periSwLev(uint8_t sw)                      // lev de sw courant
 void remMemDetUpdate(uint8_t rem,uint8_t endet)               // maj memDetServ suite à chgt état remote
 {
   if(endet==REM_ENABLE){
-    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[remoteT[rem].deten*MDSLEN+i];}           // raz memDetServ disj
-    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+i];}       // raz memDetServ forcage
+    uint8_t mi=remoteT[rem].deten>>3;
+    uint8_t mi1=(remoteT[rem].deten+1)>>3;
+    memDetServ[mi] &= ~mDSmaskbit[remoteT[rem].deten*MDSLEN+mi];                                        // raz memDetServ disj
+    //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[remoteT[rem].deten*MDSLEN+i];}           // raz memDetServ disj
+    memDetServ[mi1] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+mi1];                                  // raz memDetServ forcage
+    //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+i];}       // raz memDetServ forcage
     if(remoteN[remoteT[rem].num-1].enable!=0){
-      for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[remoteT[rem].deten*MDSLEN+i];}}         // set memDetServ disj
+      memDetServ[mi] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+mi];}                                 // set memDetServ disj
+      //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[remoteT[rem].deten*MDSLEN+i];}}         // set memDetServ disj
     if(remoteN[remoteT[rem].num-1].enable>1){
-      for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+i];}}    // set memDetServ forçage
+      memDetServ[mi1] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+mi1];}                               // set memDetServ forcage
+      //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+i];}}    // set memDetServ forçage
   }
   if(endet==REM_DETEC){
-    for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[remoteT[rem].detec*MDSLEN+i];}              // update memDetServ on/off
+    uint8_t mi=remoteT[rem].detec>>3;
+    memDetServ[mi] &= ~mDSmaskbit[remoteT[rem].detec*MDSLEN+mi];                                          // update memDetServ on/off
+    //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[remoteT[rem].detec*MDSLEN+i];}              // update memDetServ on/off
     if(remoteN[remoteT[rem].num-1].onoff!=0){
-      for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[remoteT[rem].detec*MDSLEN+i];}}
+      memDetServ[mi] |= mDSmaskbit[remoteT[rem].detec*MDSLEN+mi];}
+      //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[remoteT[rem].detec*MDSLEN+i];}}
   }
 }
 

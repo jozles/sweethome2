@@ -751,7 +751,8 @@ void scanThermos()                                                        // pos
         //if((memDetServ & mDSmaskbit[det])!=0){mds=1;}
         if((detSta[det] ^ mds)!=0){                                                   // change ?
           poolperif(tablePerToSend,det,&onoff[detSta[det]*3],"scanth");              
-          for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] = memDetServ[i] ^ mDSmaskbit[det*MDSLEN+i] ;}
+          uint8_t mi=det>>3;memDetServ[mi] ^= mDSmaskbit[det*MDSLEN+mi];
+          //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] = memDetServ[i] ^ mDSmaskbit[det*MDSLEN+i] ;}
           //memDetServ = memDetServ ^ mDSmaskbit[det];
         }
       }
@@ -831,7 +832,8 @@ void scanTimers()                                             //   recherche tim
           {                                                         // si timer déclenché
           if(timersN[nt].curstate!=1){                              // et état précédent 0, chgt->1
             timersN[nt].curstate=1;
-            for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
+            uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] |= mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
+            //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
             //memDetServ |= mDSmaskbit[timersN[nt].detec];
             //poolperif(tablePerToSend,timersN[nt].detec,"on");     // recherche inutile periphérique et mise à jour tablePerToSend
           }
@@ -839,7 +841,8 @@ void scanTimers()                                             //   recherche tim
         else {                                                      // si timer pas déclenché
           if(timersN[nt].curstate!=0){                              // et état précédent 1, chgt->0
             timersN[nt].curstate=0;
-            for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
+            uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
+            //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
             //memDetServ &= ~mDSmaskbit[timersN[nt].detec];     // maj détecteur
             if(timersN[nt].perm==0 && timersN[nt].cyclic==0){timersN[nt].enable=0;}; // si pas permanent et pas cyclique disable en fin
             //poolperif(tablePerToSend,timersN[nt].detec,"off");                     // recherche periphérique et mise à jour tablePerToSend
@@ -1639,8 +1642,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        break;
               case 42: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (mem_dsrv__) set det bit
                        if(nb>=16){nb-=16;}
-                       for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[MDSLEN*nb+i];}
-                         //memDetServ |= mDSmaskbit[nb];
+                       uint8_t mi=nb>>3;memDetServ[mi] |= mDSmaskbit[MDSLEN*nb+mi];
+                       //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[MDSLEN*nb+i];}
+                       //memDetServ |= mDSmaskbit[nb];
                        }break;
               case 43: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) ssid[libf+1]
                        alphaTfr(ssid+nb*(LENSSID+1),LENSSID,valf,nvalf[i+1]-nvalf[i]);
