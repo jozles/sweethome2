@@ -71,7 +71,7 @@
  * 1.x ajout periSsidNb à la fin de dataRead/Save ; ordrext révisé, \n\n termine les messages reçus ;
  *     pulses et règles revus (ajout action SET); 
  * 1.y suppresion de compMac() ; prints ; derniere version avant modif NBPERINPUT en NBPERRULES 64 (!)
- * 1.z NBPERRULES 64
+ * 1.z NBPERRULES 64 ; longueur memDetServ paramétrée par MDSLEN (format 32 bits supporté)
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
@@ -473,6 +473,7 @@ typedef struct {
   uint8_t   talkStep;             //  1   pointeur pour l'automate talkServer()
   uint32_t  durPulseOne[NBPULSE]; // 16   durée pulse 1
   uint32_t  durPulseTwo[NBPULSE]; // 16   durée pulse 2
+/*
 union {
     struct
     {
@@ -481,10 +482,11 @@ union {
     };
     uint32_t  cntPulse[NBPULSE*2]; // 32   temps restant après STOP pour START
   };
+*/  
   byte      pulseMode[PCTLLEN];   //  2   ctle pulse   
   byte      perInput[NBPERRULES*PERINPLEN]; // 192 configuration (48*4) !! 
   byte      memDetec[MAXDET];     //  4   image mem des détecteurs physiques (1 byte par détecteur)   
-  uint32_t  extDetec;             //  4   1 bit par detecteur externe
+  uint8_t   extDetec[MDSLEN];     //  8   1 bit par detecteur externe
   IPAddress IpLocal;              //  8
   uint16_t  analVal;              //  2   dernière valeur analogique lue
   uint16_t  analLow;              //  2   seuil analogique low
@@ -498,15 +500,15 @@ union {
   char      pwd2[64];             // 64   pwd2 
   char      peripass[LPWD+1];     //  8+1   server passwd       
 
-#define LENFILLERCST 0
-  //byte      filler[LENFILLERCST]; 
+#define LENFILLERCST 46
+  byte      filler[LENFILLERCST]; 
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer la longueur
-             // total 494 ; 256*4 maxi pour RTC
+             // 256*4 maxi pour RTC
 } constantValues;
 
 #define STEPDATASAVE 6            // code pour talkstep de dataSave()
 
-#define LENCST 494 // v1.z
+#define LENCST 512 // v1.z
 
 
 

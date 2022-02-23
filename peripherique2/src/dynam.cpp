@@ -61,6 +61,10 @@ extern constantValues cstRec;
 
 extern  uint8_t pinSw[MAXSW];                                  // les switchs
 extern  byte    staPulse[NBPULSE];                             // état clock pulses
+uint32_t  cntPulseOne[NBPULSE]; // 16   temps debut pulse 1
+uint32_t  cntPulseTwo[NBPULSE]; // 16   temps debut pulse 2
+uint32_t  cntPulse[NBPULSE*2]; // 32   temps restant après STOP pour START
+  
 extern  uint8_t pinDet[MAXDET];
 
 extern  unsigned long    detTime[MAXDET];                      // debounce détecteurs physiques
@@ -73,7 +77,7 @@ extern  byte    mask[];
 //extern  unsigned long    timedebug[]={0,0,0,0};
 extern  int*    int0;
 
-extern uint32_t  mDSmaskbit[];
+extern uint32_t  locMaskbit[];
 
 extern uint8_t openSw[],cloSw[],valSw[];
 
@@ -143,8 +147,8 @@ byte oldCstCde; // memo swCde pour debug
 
   cstRec.durPulseOne[NBPULSE] / cstRec.durPulseTwo[NBPULSE] consignes de durée issues du serveur (0 au reset)
   cstRec.pulseMode (NBPULSE fois 3 bits) (F=free run / One enable / Two enable) consignes de mode de fonctionnement issues du serveur
-  cstRec.cntPulseOne[NBPULSE] / cstRec.cntPulseTwo[NBPULSE] mémorise millis() du start ; 0 si inactif (0 au reset)
-  cstRec.cntPulse[NBPULSE*2]  alternativement pour one et two ; mémoire de l'état du stop pour reprendre avec le restant de temps lors d'un start
+  cntPulseOne[NBPULSE] / cntPulseTwo[NBPULSE] mémorise millis() du start ; 0 si inactif (0 au reset)
+  cntPulse[NBPULSE*2]  alternativement pour one et two ; mémoire de l'état du stop pour reprendre avec le restant de temps lors d'un start
   staPulse[NBPULSE] est l'état des couples de compteurs (IDLE au reset)
     débranché (DISABLE) en cas d'erreur système (action invalide d'un détecteur)
     suspendu  (IDLE) suite à une action STOP ou en fin de oneshot
@@ -213,8 +217,8 @@ void actions()          // pour chaque input, test enable,
       byte action=(*(curinp+2))>>PERINPACTLS_PB;      
       
       // précalcul locmem[ndest] (au cas où tdest = mem)
-      lmbit0=locmem & ~(mDSmaskbit[ndest]);      // locmem avec result 0 : ~(mDSmaskbit[ndest]) 11...101...11 masque du bit ndest
-      lmbit1=locmem | mDSmaskbit[ndest];         // locmem avec result 1 :   mDSmaskbit[ndest]  00...010...00 masque du bit ndest   
+      lmbit0=locmem & ~(locMaskbit[ndest]);      // locmem avec result 0 : ~(locMaskbit[ndest]) 11...101...11 masque du bit ndest
+      lmbit1=locmem | locMaskbit[ndest];         // locmem avec result 1 :   locMaskbit[ndest]  00...010...00 masque du bit ndest   
 
       uint8_t openClose[]={openSw[ndest],cloSw[ndest]};           // open/close value for ndest switch
 
@@ -236,8 +240,12 @@ void actions()          // pour chaque input, test enable,
 
       /* évaluation source -> detecState (detecFound==1 if detecstate valid */
       switch(tsrce){                              // type source
-        case DETYEXT:detecState=(cstRec.extDetec>>nsrce)&0x01;    // valeur détecteur externe 
-             detecFound=1;break;
+        case DETYEXT:{
+             uint8_t numbyte=nsrce>>3;
+             uint8_t numbit=nsrce&0x07;
+             detecState=(cstRec.extDetec[numbyte]>>numbit)&0x01;    // valeur détecteur externe 
+             //detecState=(cstRec.extDetec>>nsrce)&0x01;    // valeur détecteur externe 
+             detecFound=1;}break;
         case DETYPHY:detecState=(byte)(cstRec.memDetec[nsrce]>>DETBITLH_PB)&0x01;     // valeur détecteur physique
              detecFound=1;break;
         case DETYMEM:detecState=(locmem>>nsrce)&0x01;detecFound=1;break;              // valeur loc mem
@@ -246,7 +254,7 @@ void actions()          // pour chaque input, test enable,
                  case PM_RUN2: detecState=0;detecFound=1;break;   // pulse run2=L     // état sortie MCU -> relais OFF
                  case PM_END1: detecState=0;detecFound=1;break;   // pulse end1=L     // état sortie MCU -> relais OFF
                  case PM_END2: detecState=0;detecFound=1;break;   // pulse end2=L     // état sortie MCU -> relais OFF
-                 case PM_IDLE: if((cstRec.cntPulseOne[nsrce]!=0) || ((cstRec.cntPulseOne[nsrce]+cstRec.cntPulseTwo[nsrce])==0)){
+                 case PM_IDLE: if((cntPulseOne[nsrce]!=0) || ((cntPulseOne[nsrce]+cntPulseTwo[nsrce])==0)){
                                  detecState=0;detecFound=1;}      // pulse idle,   cnt1 !=0 -> L ou cnt1+cnt2=0 -> L
                                else {detecState=1;detecFound=1;}  //               cnt2 !=0 -> H  
                                break;
@@ -364,7 +372,7 @@ void actions()          // pour chaque input, test enable,
                             curValue &= detecState;
                             switch(tdest){                                        // type dest
                               case DETYEXT:break;                                 // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1 && (locmem & mDSmaskbit[ndest])!=0){locmem=lmbit1;}   // locmem=1
+                              case DETYMEM: if(curValue==1 && (locmem & locMaskbit[ndest])!=0){locmem=lmbit1;}   // locmem=1
                                             else locmem=lmbit0;                   // locmem=0
                                             break;
                               case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
@@ -377,7 +385,7 @@ void actions()          // pour chaque input, test enable,
                             curValue &= detecState;
                             switch(tdest){                                        // type dest
                               case DETYEXT:break;                                 // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1 && (locmem & mDSmaskbit[ndest])!=0){locmem=lmbit0;}   // locmem=1
+                              case DETYMEM: if(curValue==1 && (locmem & locMaskbit[ndest])!=0){locmem=lmbit0;}   // locmem=1
                                             else locmem=lmbit1;                   // locmem=1
                                             break;
                               case DETYSW:  curSw[ndest]=openClose[!curValue];    // curValue -> curSw
@@ -405,9 +413,9 @@ void actions()          // pour chaque input, test enable,
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if(staPulse[ndest]!=PM_END1 && staPulse[ndest]!=PM_END2){      // si arrêté ne rien toucher
                       if(staPulse[ndest]==PM_RUN1){
-                        cstRec.cntPulse[ndest*2]=millis()-cstRec.cntPulseOne[ndest];}   // temps déjà écoulé pour repartir si un (re)start a lieu
+                        cntPulse[ndest*2]=millis()-cntPulseOne[ndest];}   // temps déjà écoulé pour repartir si un (re)start a lieu
                       if(staPulse[ndest]==PM_RUN2){
-                        cstRec.cntPulse[ndest*2+1]=millis()-cstRec.cntPulseTwo[ndest];} // temps déjà écoulé pour repartir si un (re)start a lieu
+                        cntPulse[ndest*2+1]=millis()-cntPulseTwo[ndest];} // temps déjà écoulé pour repartir si un (re)start a lieu
                       staPulse[ndest]=PM_IDLE;
                       impDetTime[ndest]=0;
                     }
@@ -417,13 +425,13 @@ void actions()          // pour chaque input, test enable,
                   if(detecState==1)
                   {               
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
-                    if(cstRec.cntPulseOne[ndest]!=0){
-                      cstRec.cntPulseOne[ndest]=millis()-cstRec.cntPulse[ndest*2]; // (re)start - temps déjà écoulé lors du stop
+                    if(cntPulseOne[ndest]!=0){
+                      cntPulseOne[ndest]=millis()-cntPulse[ndest*2]; // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN1;}                   
-                    else if(cstRec.cntPulseTwo[ndest]!=0){
-                      cstRec.cntPulseTwo[ndest]=millis()-cstRec.cntPulse[ndest*2+1];  // (re)start - temps déjà écoulé lors du stop
+                    else if(cntPulseTwo[ndest]!=0){
+                      cntPulseTwo[ndest]=millis()-cntPulse[ndest*2+1];  // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN2;}
-                    else {staPulse[ndest]=PM_RUN1;cstRec.cntPulseOne[ndest]=millis();}
+                    else {staPulse[ndest]=PM_RUN1;cntPulseOne[ndest]=millis();}
                     impDetTime[ndest]=millis();
                   }
                   break;
@@ -431,9 +439,9 @@ void actions()          // pour chaque input, test enable,
                   if(detecState==1)
                   {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
-                    if(staPulse[ndest]==PM_RUN1 || cstRec.cntPulseOne[ndest]!=0){
-                      cstRec.cntPulseOne[ndest]=0;cstRec.cntPulse[ndest*2]=0;}     // cstRec.durPulseOne[ndest]*10;}
-                    else if(staPulse[ndest]==PM_RUN2 || cstRec.cntPulseTwo[ndest]!=0){cstRec.cntPulseTwo[ndest]=0;} // cstRec.durPulseTwo[ndest]*10;}
+                    if(staPulse[ndest]==PM_RUN1 || cntPulseOne[ndest]!=0){
+                      cntPulseOne[ndest]=0;cntPulse[ndest*2]=0;}     // cstRec.durPulseOne[ndest]*10;}
+                    else if(staPulse[ndest]==PM_RUN2 || cntPulseTwo[ndest]!=0){cntPulseTwo[ndest]=0;} // cstRec.durPulseTwo[ndest]*10;}
                     impDetTime[ndest]=0;
                   }
                   break;                 
@@ -441,24 +449,24 @@ void actions()          // pour chaque input, test enable,
                   if(detecState==1)
                   {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
-                    cstRec.cntPulseOne[ndest]=0;
-                    cstRec.cntPulseTwo[ndest]=0;
+                    cntPulseOne[ndest]=0;
+                    cntPulseTwo[ndest]=0;
                     staPulse[ndest]=PM_IDLE;
                     impDetTime[ndest]=0;
-                    cstRec.cntPulse[ndest*2]=0;
-                    cstRec.cntPulse[(ndest*2)+1]=0;
+                    cntPulse[ndest*2]=0;
+                    cntPulse[(ndest*2)+1]=0;
                   }
                   break;               
                case PMDCA_RESET: 
                   if(detecState==1)
                   {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
-                    cstRec.cntPulseOne[ndest]=0;cstRec.durPulseOne[ndest]=0;
-                    cstRec.cntPulseTwo[ndest]=0;cstRec.durPulseTwo[ndest]=0;
+                    cntPulseOne[ndest]=0;cstRec.durPulseOne[ndest]=0;
+                    cntPulseTwo[ndest]=0;cstRec.durPulseTwo[ndest]=0;
                     staPulse[ndest]=PM_IDLE;
                     impDetTime[ndest]=0;
-                    cstRec.cntPulse[ndest*2]=0;
-                    cstRec.cntPulse[(ndest*2)+1]=0;
+                    cntPulse[ndest*2]=0;
+                    cntPulse[(ndest*2)+1]=0;
                   }
                   break;                 
                case PMDCA_IMP: 
@@ -467,8 +475,8 @@ void actions()          // pour chaque input, test enable,
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
                     if((millis()-impDetTime[ndest])<DETIMP){
                       staPulse[ndest]=PM_IDLE;
-                      cstRec.cntPulseOne[ndest]=0;
-                      cstRec.cntPulseTwo[ndest]=0;}
+                      cntPulseOne[ndest]=0;
+                      cntPulseTwo[ndest]=0;}
                     Serial.print("Time=");Serial.print(millis()-impDetTime[ndest]);Serial.print(" ");
                     impDetTime[ndest]=0;
                   }
@@ -477,13 +485,13 @@ void actions()          // pour chaque input, test enable,
                   if(detecState==1)
                   {
                     if(tdest!=DETYPUL){actionSysErr(action);break;}
-                    if(staPulse[ndest]==PM_RUN1 || cstRec.cntPulseOne[ndest]!=0){
-                      cstRec.cntPulseOne[ndest]=0;
-                      cstRec.cntPulse[ndest*2]=0;
+                    if(staPulse[ndest]==PM_RUN1 || cntPulseOne[ndest]!=0){
+                      cntPulseOne[ndest]=0;
+                      cntPulse[ndest*2]=0;
                       setPulseChg(ndest,'O');}
-                    else if(staPulse[ndest]==PM_RUN2 || cstRec.cntPulseTwo[ndest]!=0){
-                      cstRec.cntPulseTwo[ndest]=0;
-                      cstRec.cntPulse[(ndest*2)+1]=0;
+                    else if(staPulse[ndest]==PM_RUN2 || cntPulseTwo[ndest]!=0){
+                      cntPulseTwo[ndest]=0;
+                      cntPulse[(ndest*2)+1]=0;
                       setPulseChg(ndest,'T');}
                     impDetTime[ndest]=0;
                   }
@@ -538,11 +546,11 @@ void setPulseChg(uint8_t npu,char timeOT)     // traitement fin de temps
                                           // timeOT ='O' fin timeOne ; ='T' fin timeTwo                                          
 {
   uint16_t ctl;memcpy(&ctl,cstRec.pulseMode,PCTLLEN);ctl=ctl>>(npu*PCTLBIT);ctl&=0x0007;
-  //Serial.print(" npu=");Serial.print(npu);Serial.print(" ctl=");dumpfield((char*)&ctl,2);Serial.print(' ');Serial.print(cstRec.cntPulseOne[npu]);Serial.print(' ');Serial.print(cstRec.cntPulseTwo[npu]);
+  //Serial.print(" npu=");Serial.print(npu);Serial.print(" ctl=");dumpfield((char*)&ctl,2);Serial.print(' ');Serial.print(cntPulseOne[npu]);Serial.print(' ');Serial.print(cstRec.cntPulseTwo[npu]);
   if(timeOT=='O'){
         if((ctl&(uint16_t)PMTTE_VB)!=0){                                                           // cnt2 enable -> run2
-          cstRec.cntPulseOne[npu]=0;cstRec.cntPulseTwo[npu]=(uint32_t)millis();
-          cstRec.cntPulse[npu*2]=0;
+          cntPulseOne[npu]=0;cntPulseTwo[npu]=(uint32_t)millis();
+          cntPulse[npu*2]=0;
           staPulse[npu]=PM_RUN2;
           //Serial.print(' ');Serial.print(cstRec.cntPulseTwo[npu]);Serial.print(" PM_RUN2 ");
           }
@@ -550,16 +558,16 @@ void setPulseChg(uint8_t npu,char timeOT)     // traitement fin de temps
           }                                             // sinon fin1
   }
   else {                                                                                          // fin run2               
-        cstRec.cntPulse[(npu*2)+1]=0;                   
+        cntPulse[(npu*2)+1]=0;                   
         if((ctl&(uint16_t)PMFRO_VB)==0){                                                          // oneshot -> idle
-          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=0;
+          cntPulseTwo[npu]=0;cntPulseOne[npu]=0;
           staPulse[npu]=PM_IDLE;
           //Serial.print(" PM_IDLE ");
           }
         else if((ctl&(uint16_t)PMTOE_VB)!=0){                                                     // free run && one enable -> run1
-          cstRec.cntPulseTwo[npu]=0;cstRec.cntPulseOne[npu]=(uint32_t)millis();
+          cntPulseTwo[npu]=0;cntPulseOne[npu]=(uint32_t)millis();
           staPulse[npu]=PM_RUN1;
-          //Serial.print(' ');Serial.print(cstRec.cntPulseOne[npu]);Serial.print(" PM_RUN1 ");
+          //Serial.print(' ');Serial.print(cntPulseOne[npu]);Serial.print(" PM_RUN1 ");
           }
         else {staPulse[npu]=PM_END2;
           //Serial.print(" PM_END2 ");
@@ -572,13 +580,13 @@ void pulsesinit()                         // init pulses à la mise sous tension
 {
   Serial.println("init pulses");
   
-    memset(cstRec.cntPulseOne,0x00,sizeof(cstRec.cntPulseOne));
-    memset(cstRec.cntPulseTwo,0x00,sizeof(cstRec.cntPulseTwo)); 
+    memset(cntPulseOne,0x00,sizeof(cntPulseOne));
+    memset(cntPulseTwo,0x00,sizeof(cntPulseTwo)); 
     memset(cstRec.durPulseOne,0x00,sizeof(cstRec.durPulseOne));
     memset(cstRec.durPulseTwo,0x00,sizeof(cstRec.durPulseTwo));
     memset(staPulse,PM_IDLE,sizeof(staPulse));
     memset(cstRec.pulseMode,0x00,PCTLLEN);
-    memset(cstRec.cntPulse,0x00,sizeof(cstRec.cntPulse));
+    memset(cntPulse,0x00,sizeof(cntPulse));
 }
 
 void pulseClkisr()                       // polling ou interruption ; contrôle de décap des compteurs : horloge des pulses
@@ -590,20 +598,20 @@ void pulseClkisr()                       // polling ou interruption ; contrôle 
       
       case PM_DISABLE: break;            // changement d'état quand le bit enable d'un compteur sera changé
       case PM_IDLE: break;               // changement d'état par une action
-      case PM_RUN1: currt=((uint32_t)millis()-cstRec.cntPulseOne[npu])/1000;
+      case PM_RUN1: currt=((uint32_t)millis()-cntPulseOne[npu])/1000;
                     if(currt>cstRec.durPulseOne[npu]){   // (decap cnt1)
-                      //Serial.print(currt);Serial.print(" ");Serial.print(cstRec.cntPulseOne[npu]);Serial.print(" ");Serial.print(cstRec.durPulseOne[npu]);Serial.print(" ");
+                      //Serial.print(currt);Serial.print(" ");Serial.print(cntPulseOne[npu]);Serial.print(" ");Serial.print(cstRec.durPulseOne[npu]);Serial.print(" ");
                       setPulseChg(npu,'O');
                     }break;
                     
-      case PM_RUN2: currt=((uint32_t)millis()-cstRec.cntPulseTwo[npu])/1000;
+      case PM_RUN2: currt=((uint32_t)millis()-cntPulseTwo[npu])/1000;
                     if(currt>cstRec.durPulseTwo[npu]){   // (decap cnt2)
                       //Serial.print(currt);Serial.print(" ");Serial.print(cstRec.cntPulseTwo[npu]);Serial.print(" ");Serial.print(cstRec.durPulseTwo[npu]);Serial.print(" ");
                       setPulseChg(npu,'T');
                     }break;
                     
-      case PM_END1: cstRec.cntPulseOne[npu]=0;break;  // changt d'état quand bit enable compteur 2 sera changé
-      case PM_END2: cstRec.cntPulseTwo[npu]=0;break;  // changt d'état quand bit enable compteur 1 sera changé ou changt freerun->oneshot
+      case PM_END1: cntPulseOne[npu]=0;break;  // changt d'état quand bit enable compteur 2 sera changé
+      case PM_END2: cntPulseTwo[npu]=0;break;  // changt d'état quand bit enable compteur 1 sera changé ou changt freerun->oneshot
       default:break;
     }
   }

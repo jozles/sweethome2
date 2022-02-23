@@ -6,6 +6,7 @@ bool readConstant();
 void writeConstant();
 void initConstant();
 void printConstant();
+void periDetServPrint(uint8_t* detserv);
 
 void checkVoltage();
 

@@ -26,6 +26,10 @@ extern char bufServer[LBUFSERVER];
 
 extern byte     mac[6];
 extern byte     staPulse[MAXSW];            // état clock pulses
+extern uint32_t  cntPulseOne[NBPULSE];      // temps debut pulse 1
+extern uint32_t  cntPulseTwo[NBPULSE];      // temps debut pulse 2
+extern uint32_t  cntPulse[NBPULSE*2];       // temps restant après STOP pour START
+
 extern uint8_t  pinSw[MAXSW];
 extern uint8_t  pinDet[MAXDET];
 extern unsigned long     detTime[MAXDET];
@@ -146,20 +150,20 @@ void initConstant()  // inits mise sous tension
   for(int i=0;i<NBPULSE;i++){
     cstRec.durPulseOne[i]=0;
     cstRec.durPulseTwo[i]=0;
-    cstRec.cntPulseOne[i]=0;
-    cstRec.cntPulseTwo[i]=0;}
+    cntPulseOne[i]=0;
+    cntPulseTwo[i]=0;}
   char detDis=DETDIS<<DETBITST_PB;
   memset(cstRec.memDetec,detDis,MAXDET);
   memcpy(cstRec.cstVers,VERSION,LENVERSION);
   memcpy(cstRec.cstModel,model,LENMODEL);
   memset(cstRec.perInput,0x00,NBPERRULES*PERINPLEN);
-  cstRec.extDetec=0;
+  //for(uint8_t i=0;i<MDSLEN;i++){cstRec.extDetec[i]=0;}
+  memset(cstRec.extDetec,0x00,MDSLEN);
   cstRec.analVal=0;
   cstRec.IpLocal=IPAddress(0,0,0,0);  
   cstRec.periPort=9999;
   cstRec.serverIp=IPAddress(0,0,0,0);
-  cstRec.serverIp=IPAddress(192,168,0,35);
-  cstRec.serverPort=1790;
+  cstRec.serverPort=9998;
   memset(cstRec.peripass,0x00,LPWD+1);
   memset(cstRec.ssid1,'\0',LENSSID);
   memset(cstRec.ssid2,'\0',LENSSID);
@@ -172,6 +176,8 @@ void initConstant()  // inits mise sous tension
   strcat(cstRec.pwd2,PWDSSID2);   //"cain ne dormant pas songeait au pied des monts");
   strcat(cstRec.ssid1,SSID1); //"devolo-5d3");
   strcat(cstRec.pwd1,PWDSSID1);   //"JNCJTRONJMGZEEQL");
+  cstRec.serverIp=IPAddress(192,168,0,35);      // server DEVT
+  cstRec.serverPort=1790;                       // server DEVT
 
   Serial.println("Init Constant done");
   writeConstant();
@@ -229,11 +235,15 @@ void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo,uin
   }Serial.println();
 }
 
-void periDetServPrint(uint32_t* detserv)
+void periDetServPrint(uint8_t* detserv)
 {
   Serial.print("det serv=");
-  for(int d=NBDSRV-1;d>=0;d--){Serial.print((char)(((*detserv>>d)&0x01)+48));Serial.print(" ");} 
-  Serial.println();
+  //for(int d=NBDSRV-1;d>=0;d--){Serial.print((char)(((*detserv>>d)&0x01)+48));Serial.print(" ");} 
+ 
+  for(int d=NBDSRV-1;d>=0;d--){
+    Serial.print((char)((((detserv[d>>3])>>(d&0x07))&0x01)+48));
+  }    
+    Serial.println();
 }  
 
 void printConstant()
@@ -263,8 +273,8 @@ if(diags){
   Serial.print("switchs (pins)  = ");for(int s=MAXSW-1;s>=0;s--){Serial.print(digitalRead(pinSw[s]));Serial.print("   -   ");}
   Serial.println();  
 #if POWER_MODE==NO_MODE
-  periDetServPrint(&cstRec.extDetec);  
-  periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo,(uint32_t*)&cstRec.cntPulseOne,(uint32_t*)&cstRec.cntPulseTwo);
+  periDetServPrint(cstRec.extDetec);  
+  periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo,(uint32_t*)&cntPulseOne,(uint32_t*)&cntPulseTwo);
   periInputPrint((byte*)&cstRec.perInput);
 #endif // NO_MODE  
 } // diags

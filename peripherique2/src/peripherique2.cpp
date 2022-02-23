@@ -89,6 +89,10 @@ bool serverStarted=false;
   int            tconversion=0;
   unsigned long  detTime[MAXDET]={millis(),millis(),millis(),millis()};    // temps pour debounce
   uint32_t       locmem=0;                  // local mem rules bits
+  uint32_t       locMaskbit[]={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
+                       0x00000100,0x00000200,0x00000400,0x00000800,0x00001000,0x00002000,0x00004000,0x00008000,
+                       0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
+                       0x01000000,0x02000000,0x04000000,0x08000000,0x10000000,0x20000000,0x40000000,0x80000000};
 
 
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
@@ -97,6 +101,10 @@ bool serverStarted=false;
   uint8_t cloSw[MAXSW]={CLOSA,CLOSB,CLOSC,CLOSD};           // close value for every switchs (relay/triac etc ON)
   uint8_t openSw[MAXSW]={OPENA,OPENB,OPENC,OPEND};          // open value for every switchs (relay/triac etc OFF)
   byte    staPulse[NBPULSE];                                // état clock pulses
+  extern uint32_t  cntPulseOne[NBPULSE];      // temps debut pulse 1
+  extern uint32_t  cntPulseTwo[NBPULSE];      // temps debut pulse 2
+  extern uint32_t  cntPulse[NBPULSE*2];       // temps restant après STOP pour START
+
   unsigned long    impDetTime[NBPULSE];                     // timer pour gestion commandes impulsionnelles     
   uint8_t pinDet[MAXDET]={PINDTA,PINDTB,PINDTC,PINDTD};     // les détecteurs
 
@@ -120,12 +128,8 @@ char* cstRecA=(char*)&cstRec.cstlen;
 
   const char*     chexa="0123456789ABCDEFabcdef\0";
   //const byte      mask[]={0x00,0x01,0x03,0x07,0x0F};
-  uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
-  uint32_t  mDSmaskbit[]={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
-                       0x00000100,0x00000200,0x00000400,0x00000800,0x00001000,0x00002000,0x00004000,0x00008000,
-                       0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
-                       0x01000000,0x02000000,0x04000000,0x08000000,0x10000000,0x20000000,0x40000000,0x80000000};
-
+  //uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
+  
   bool diags=true;
   unsigned long t_on=millis();
 
@@ -329,9 +333,8 @@ delay(1);
   Serial.print("RTC ");
 #endif
 
-
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et sauver */
-//initConstant();
+initConstant();
   if(!readConstant()){   
     Serial.println("KO -> init ");
     initConstant();
@@ -377,12 +380,11 @@ delay(1);
 #ifdef  _SERVER_MODE
   Serial.print("_SERVER_MODE ");
   clkFastStep=1;talkReq();                  // forçage com pour acquisition port perif server
-    
+
   while(!wifiAssign()){                     // setup ssid,ssidPwd par défaut
     delay(2000);blink(3);}
   
 #endif // def_SERVER_MODE
-
   Serial.println(">>>> fin setup\n");
   actionsDebug();
   }    // fin setup NO_MODE
@@ -579,7 +581,7 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
         else if(memcmp(mac,fromServerMac,6)!=0){periMess=MESSMAC;}
         else {
                              // si ok transfert des données
-if(diags){Serial.println(" dataTransfer() ");}                              
+if(diags){Serial.println(" dataTransfer() ");}       
             memcpy(cstRec.numPeriph,data+MPOSNUMPER,2);                         // num périph
 
             int sizeRead;
@@ -609,14 +611,17 @@ if(diags){Serial.println(" dataTransfer() ");}
             for(int ctl=PCTLLEN-1;ctl>=0;ctl--){                                // pulses control
               conv_atoh((data+MPOSPULSCTL+ctl*2),&cstRec.pulseMode[ctl]);}
    
-            for(int k=0;k<MDSLEN;k++){                                          // détecteurs externes
-              conv_atoh((data+MPOSMDETSRV+k*2),((byte*)&cstRec.extDetec)+MDSLEN-1-k);
-              }   
+            int mdsl=MDSLEN;
+            if(*(data+MPOSMDETSRV+8)=='_'){mdsl=4;}
+            for(int k=0;k<mdsl;k++){                                            // détecteurs externes
+              conv_atoh((data+MPOSMDETSRV+k*2),(byte*)(cstRec.extDetec+mdsl-1-k));
+            }   
+            periDetServPrint(cstRec.extDetec);
 
-            cstRec.periPort=(uint16_t)convStrToNum(data+MPOSPORTSRV,&sizeRead);    // port server
-            //printConstant();
+            cstRec.periPort=(uint16_t)convStrToNum(data+MPOSMDETSRV+mdsl*2+1,&sizeRead);  // port server
+            Serial.println((char*)(data+MPOSMDETSRV+mdsl*2+1));
           #ifdef _SERVER_MODE
-            if(server==nullptr){server=new WiFiServer(cstRec.periPort);}
+            if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);}
           #endif
         }
         if(periMess!=MESSOK){
@@ -625,8 +630,8 @@ if(diags){Serial.println(" dataTransfer() ");}
 }
 
 
-int buildData(const char* nomfonction,const char* data)             // assemble une fonction data_read_ ou data_save_
-{                                                   // et concatène dans bufServer - retour longueur totale
+int buildData(const char* nomfonction,const char* data)               // assemble une fonction data_read_ ou data_save_
+{                                                                     // et concatène dans bufServer - retour longueur totale
   char message[LENVAL];
   int sb=0,i=0;
   
@@ -679,12 +684,12 @@ int buildData(const char* nomfonction,const char* data)             // assemble 
         for(int i=0;i<NBPULSE;i++){         // loop compteurs
           if(diags){Serial.print(":");Serial.print(staPulse[i]);Serial.print(" ");}
           currt=0;
-          if(cstRec.cntPulseOne[i]!=0){currt=((uint32_t)millis()-cstRec.cntPulseOne[i])/1000;}
+          if(cntPulseOne[i]!=0){currt=((uint32_t)millis()-cntPulseOne[i])/1000;}
           if(diags){Serial.print(currt);if(currt>=cstRec.durPulseOne[i]){Serial.print('>');}else {Serial.print('<');}Serial.print(cstRec.durPulseOne[i]);
           Serial.print("-");}
           for(uint8_t j=0;j<4;j++){conv_htoa((char*)(message+sb+i*2*8+j*2),(byte*)(&currt)+j);}       // loop bytes (4/8)
           currt=0;
-          if(cstRec.cntPulseTwo[i]!=0){currt=((uint32_t)millis()-cstRec.cntPulseTwo[i])/1000;}
+          if(cntPulseTwo[i]!=0){currt=((uint32_t)millis()-cntPulseTwo[i])/1000;}
           if(diags){Serial.print(currt);if(currt>=cstRec.durPulseTwo[i]){Serial.print('>');}else {Serial.print('<');}Serial.print(cstRec.durPulseTwo[i]);
           Serial.print("  ");}
           for(uint8_t j=0;j<4;j++){conv_htoa((char*)(message+sb+(i*2+1)*8+j*2),(byte*)(&currt)+j);}      // loop bytes (4/8)
