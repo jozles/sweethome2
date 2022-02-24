@@ -1046,7 +1046,7 @@ void periConvert()        // !!!!!!!!!!!!!!!!!!!!!!!!! periLoad ne fonctionne pl
     Serial.println();
   }
   Serial.println("terminé");
-  while(1){};
+  while(1){blink(1);};
 }
 
 void periInit()                 // pointeurs de l'enregistrement de table courant
@@ -1817,8 +1817,27 @@ int memDetSave()
 
 void memDetInit()
 {
-    memcpy(&libDetServ[31][0],"hcreuses",LENLIBDETSERV);
-    memcpy(&libDetServ[30][0],"chauffe ",LENLIBDETSERV);
+    memset(&libDetServ,0x00,LENLIBDETSERV*NBDSRV);
+
+    memcpy(&libDetServ[31][0],"HC      ",LENLIBDETSERV-1);
+    memcpy(&libDetServ[30][0],"HCfin   ",LENLIBDETSERV-1);
+    memcpy(&libDetServ[29][0],"nuit    ",LENLIBDETSERV-1);
+    memcpy(&libDetServ[28][0],"eau     ",LENLIBDETSERV-1);
+    memcpy(&libDetServ[27][0],"chauffe ",LENLIBDETSERV-1);
+    memcpy(&libDetServ[26][0],"chauffeF",LENLIBDETSERV-1);    
+    memcpy(&libDetServ[25][0],"chauffeD",LENLIBDETSERV-1);
+    memcpy(&libDetServ[24][0],"LL      ",LENLIBDETSERV-1);    
+    memcpy(&libDetServ[23][0],"LL_F    ",LENLIBDETSERV-1);    
+    memcpy(&libDetServ[22][0],"LL_D    ",LENLIBDETSERV-1);
+    memcpy(&libDetServ[21][0],"eauW    ",LENLIBDETSERV-1);              
+    memcpy(&libDetServ[20][0],"eauW_F  ",LENLIBDETSERV-1);                  
+    memcpy(&libDetServ[19][0],"eauW_D  ",LENLIBDETSERV-1);              
+    memcpy(&libDetServ[21][0],"ctserv  ",LENLIBDETSERV-1);              
+    memcpy(&libDetServ[20][0],"ctserv_F",LENLIBDETSERV-1);                  
+    memcpy(&libDetServ[19][0],"ctserv_D",LENLIBDETSERV-1);              
+    memcpy(&libDetServ[21][0],"eauE    ",LENLIBDETSERV-1);              
+    memcpy(&libDetServ[20][0],"eauE_F  ",LENLIBDETSERV-1);                  
+    memcpy(&libDetServ[19][0],"eauE_D  ",LENLIBDETSERV-1);                          
 }
 
 void memDetPrint()
@@ -1832,6 +1851,41 @@ void memDetPrint()
     }
     Serial.println();
 }
+
+int memDetConvert()
+{
+
+//int memDetLoad()
+
+    int mdsl=4;     // longueur ancienne 
+    int nbdsrv=32;  // nombre ancien    
+
+    Serial.println("convert detServ ");
+
+    Serial.print("Load detServ  ");
+    if(sdOpen(MEMDETFNAME,&fmemdet)==SDKO){Serial.println(" KO");return SDKO;}
+    fmemdet.seek(0);
+    
+    for(uint8_t i=0;i<mdsl;i++){memDetServ[i]=fmemdet.read();Serial.print(' ');if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);}    
+    for(uint8_t i=0;i<nbdsrv;i++){
+      for(uint8_t j=0;j<LENLIBDETSERV;j++){libDetServ[i][j]=fmemdet.read();}
+    }
+
+    for(uint8_t i=0;i<nbdsrv;i++){sourceDetServ[i]=fmemdet.read();}
+    fmemdet.close();Serial.println(" OK");
+
+    fmemdet.remove();    
+
+    if (!fmemdet.open(MEMDETFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
+        Serial.print(MEMDETFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO);}
+    else {fmemdet.close();Serial.println(" create OK");}
+
+    memDetSave();
+
+    Serial.println("terminé");
+    while(1){blink(1);};
+}
+
 
 /************** memos **************/
 

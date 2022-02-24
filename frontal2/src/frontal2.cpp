@@ -181,7 +181,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
   uint8_t   memDetServ[MDSLEN]; //=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
   char      libDetServ[NBDSRV][LENLIBDETSERV];
   char      mdsSrc[]=" PRHT";
-  uint16_t  sourceDetServ[NBDSRV];   // actionneurs (sssnnnnnnnn ss type 000, P 001 perif, R 010 remote, H 011 thermos, T 100 timers / nnnnnnnn n°)
+  uint16_t  sourceDetServ[NBDSRV];   // qui actionne le detServ (sssnnnnnnnn ss type 000, P 001 perif, R 010 remote, H 011 thermos, T 100 timers / nnnnnnnn n°)
   uint8_t   mDSmaskbit[NBDSRV*MDSLEN];
   /*
   ={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
@@ -200,6 +200,8 @@ void iniDetServ()
   if(MDSLEN*8 != NBDSRV){Serial.print("MDSLEN invalide");while(1){ledblink(BCODESYSERR);}}
   memset(memDetServ,0x00,MDSLEN);
   memset(mDSmaskbit,0x00,NBDSRV*MDSLEN);
+  memset(libDetServ,0x00,LENLIBDETSERV*NBDSRV);
+  memset(sourceDetServ,0x00,NBDSRV*sizeof(uint16_t));
 
   byte curMask[MDSLEN];memset(curMask,0x00,MDSLEN);curMask[0]=0x01;
   for(uint8_t i=0;i<NBDSRV;i++){
@@ -518,7 +520,8 @@ void setup() {                          // ====================================
   //periModification();
   periTableLoad();                  // le premier (après config) pour permettre les mails
 
-  iniDetServ();memDetLoad();        // le second pour Sync 
+  iniDetServ();//memDetConvert();
+  memDetLoad();        // le second pour Sync 
   //remoteNPlus(8);while(1){};
   remoteLoad();periSwSync();
   timersLoad();
@@ -1640,8 +1643,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        memset(memDetServ,0x00,MDSLEN);                  // (dsrv_init_) bouton submit detecteurs serveur ; effct cb
                        //memDetServ=0;                
                        break;
-              case 42: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (mem_dsrv__) set det bit
-                       if(nb>=16){nb-=16;}
+              case 42: {int nb=*(libfonctions+2*i+1)-PMFNCVAL;                                          // (mem_dsrv__) set det bit
+                       //if(nb>=16){nb-=16;}
                        uint8_t mi=nb>>3;memDetServ[mi] |= mDSmaskbit[MDSLEN*nb+mi];
                        //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[MDSLEN*nb+i];}
                        //memDetServ |= mDSmaskbit[nb];

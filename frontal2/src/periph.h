@@ -70,6 +70,7 @@ void  memDetPrint();
 void  memDetInit();
 int   memDetLoad();
 int   memDetSave();
+int   memDetConvert();
 
 int   memosLoad(int m);
 int   memosSave(int m);
