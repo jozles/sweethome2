@@ -60,6 +60,7 @@ void  timersPrint();
 void  timersInit();
 int   timersLoad();
 int   timersSave();
+int   timersConvert();
 
 void  thermosPrint();
 void  thermosInit();

@@ -517,13 +517,15 @@ void setup() {                          // ====================================
       //}
   }
 
-  //periModification();
+  //periModification();             // chgt de structure de l'enregistrement perif (periRec)
   periTableLoad();                  // le premier (après config) pour permettre les mails
 
-  iniDetServ();//memDetConvert();
-  memDetLoad();        // le second pour Sync 
+  iniDetServ();
+  //memDetConvert();                // chgt du nombre de detServ
+  memDetLoad();                     // le second pour Sync 
   //remoteNPlus(8);while(1){};
   remoteLoad();periSwSync();
+  //timersConvert();                // chgt du nombre de timers
   timersLoad();
   //thermosInit();thermosSave();    // si NBPERIF change
   thermosLoad();

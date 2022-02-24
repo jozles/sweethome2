@@ -1723,6 +1723,31 @@ int timersSave()
     return SDOK;
 }
 
+int timersConvert()
+{
+    timersInit();
+    Serial.println("convert timers ");
+    
+    Serial.print("Load timers   ");
+    if(sdOpen(TIMERSNFNAME,&ftimers)==SDKO){Serial.println(" KO");return SDKO;}
+    ftimers.seek(0);
+    for(uint16_t i=0;i<(sizeof(Timers)*8);i++){*(timersNA+i)=ftimers.read();}             
+    ftimers.close();Serial.println(" OK");
+
+    ftimers.remove();    
+
+    if (!ftimers.open(TIMERSNFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
+        Serial.print(TIMERSNFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO);}
+    else {ftimers.close();Serial.println(" create OK");}
+
+    timersSave();
+
+    Serial.println("terminé");
+    while(1){blink(1);}
+
+}
+
+
 /**************** thermometres ******************/
 
 void subchp(bool enable,uint16_t state,uint16_t value,uint16_t offset,uint8_t det)
@@ -1883,7 +1908,7 @@ int memDetConvert()
     memDetSave();
 
     Serial.println("terminé");
-    while(1){blink(1);};
+    while(1){blink(1);}
 }
 
 

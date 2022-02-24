@@ -4,7 +4,7 @@
 #define _MODE_DEVT  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 //#define _MODE_RUN  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
-#define NVERS ".7 "
+#define NVERS ".71"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -274,7 +274,7 @@ struct Remote             // liste des remotes
 
 };
 
-#define NBTIMERS     8
+#define NBTIMERS     16
 #define LENTIMNAM    16
 #define TIMERSNFNAME "NOMS_TIM"
 #define NBCBTIM      4   // nbre check box (hors dw)   
