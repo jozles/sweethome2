@@ -176,9 +176,14 @@ void initConstant()  // inits mise sous tension
   strcat(cstRec.pwd2,PWDSSID2);   //"cain ne dormant pas songeait au pied des monts");
   strcat(cstRec.ssid1,SSID1); //"devolo-5d3");
   strcat(cstRec.pwd1,PWDSSID1);   //"JNCJTRONJMGZEEQL");
+#ifdef DEVT  
   cstRec.serverIp=IPAddress(192,168,0,35);      // server DEVT
   cstRec.serverPort=1790;                       // server DEVT
-
+#endif // DEVT
+#ifndef DEVT
+  cstRec.serverIp=IPAddress(192,168,0,36);      // server RUN
+  cstRec.serverPort=1786;                       // server RUN
+#endif
   Serial.println("Init Constant done");
   writeConstant();
 }

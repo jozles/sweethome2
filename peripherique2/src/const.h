@@ -1,7 +1,9 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define VERSION "1.z_"
+//#define DEVT                // pour initConstant sur serveur dev
+
+#define VERSION "1.y_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -71,7 +73,7 @@
  * 1.x ajout periSsidNb à la fin de dataRead/Save ; ordrext révisé, \n\n termine les messages reçus ;
  *     pulses et règles revus (ajout action SET); 
  * 1.y suppresion de compMac() ; prints ; derniere version avant modif NBPERINPUT en NBPERRULES 64 (!)
- * 1.z NBPERRULES 64 ; longueur memDetServ paramétrée par MDSLEN (format 32 bits supporté)
+ * 1.z NBPERRULES 64 ; longueur memDetServ paramétrée par MDSLEN (format 32 bits supporté) 
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
@@ -500,7 +502,9 @@ union {
   char      pwd2[64];             // 64   pwd2 
   char      peripass[LPWD+1];     //  8+1   server passwd       
 
-#define LENFILLERCST 46
+//#define LENFILLERCST 46
+#define LENFILLERCST 142  // VERSION "1.y_"
+
   byte      filler[LENFILLERCST]; 
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer la longueur
              // 256*4 maxi pour RTC

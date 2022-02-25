@@ -109,7 +109,8 @@
         réception/affichage der n° ssid utilisé ; mode DEV/RUN révisés
    1.5a dernière version avec NBPERINPUT
    1.6  NBPERINPUT devient NBPERRULES 48 : maxi possible pour les 512 octets de l'EEPROM des 8266
-   1.7  passage à NBDSRV détecteurs serveur
+   1.7  passage à NBDSRV détecteurs serveur (compatible 32)
+   1.71 16 timers
 
    BUGS :
 

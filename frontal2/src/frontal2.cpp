@@ -1841,8 +1841,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        }break;
               case 65: Serial.println("timersHtml()");timersHtml(cli);break;                            // timershtml
               case 66: Serial.println("cfgDetServHtml()");cfgDetServHtml(cli);break;                    // cfgdetservhtml              
-              case 67: what=11;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // lib detserv
-                       if(nb>=16){nb-=16;}
+              case 67: what=11;{int nb=*(libfonctions+2*i+1)-PMFNCVAL;                                  // lib detserv
+                       //if(nb>=16){nb-=16;}
                        alphaTfr(&libDetServ[nb][0],LENLIBDETSERV,valf,nvalf[i+1]-nvalf[i]);
                        }break;                          
               case 68: getPeriCurLibf(PERILOAD);                                                        // (showline) bouton periph

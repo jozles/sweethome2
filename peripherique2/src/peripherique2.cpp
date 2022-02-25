@@ -611,15 +611,16 @@ if(diags){Serial.println(" dataTransfer() ");}
             for(int ctl=PCTLLEN-1;ctl>=0;ctl--){                                // pulses control
               conv_atoh((data+MPOSPULSCTL+ctl*2),&cstRec.pulseMode[ctl]);}
    
+            //Serial.println("data");Serial.println((char*)data+MPOSPERRULES);
             int mdsl=MDSLEN;
             if(*(data+MPOSMDETSRV+8)=='_'){mdsl=4;}
             for(int k=0;k<mdsl;k++){                                            // détecteurs externes
               conv_atoh((data+MPOSMDETSRV+k*2),(byte*)(cstRec.extDetec+mdsl-1-k));
             }   
-            periDetServPrint(cstRec.extDetec);
+            //periDetServPrint(cstRec.extDetec);
 
             cstRec.periPort=(uint16_t)convStrToNum(data+MPOSMDETSRV+mdsl*2+1,&sizeRead);  // port server
-            Serial.println((char*)(data+MPOSMDETSRV+mdsl*2+1));
+            //Serial.println((char*)(data+MPOSMDETSRV+mdsl*2+1));
           #ifdef _SERVER_MODE
             if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);}
           #endif
