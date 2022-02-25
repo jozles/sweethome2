@@ -716,7 +716,7 @@ int buildReadSave(const char* nomFonction,const char* data)   // construit et en
 {
   Serial.print(nomFonction);Serial.print(' ');
   strcpy(bufServer,"GET /cx?\0");
-  if(!buildMess("peri_pass_",cstRec.peripass,"?",diags)==MESSOK){
+  if(!buildMess("peri_pass_",cstRec.peripass,"?",diags,true)==MESSOK){
     if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(cstRec.peripass);return MESSDEC;};}
 
   buildData(nomFonction,data);

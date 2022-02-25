@@ -127,7 +127,7 @@
       (éventuellement dépendant d'un detserv ?)
       Etudier comment banaliser des disjoncteurs "communs" (utilisables par plusieurs switchs) ; actuellement il faut utiliser des memDet
 
-      passer à 32 (64?) périfs et 64 (128?) memDet
+      passer à 32 (64?) périfs
    
       gérer le periLoad KO dans periTableLoad
       remplacer date14 par date unix sur 8 digits dans les messages ACK et SET
@@ -139,7 +139,7 @@
       timers : ajouter option "1 jour sur n" : dhdebcycle=1ère date... calculer si date courante ok (récupérer un bool inutile - cyclic? )
       pulses : option entrée clock depuis input
 
-      dans fenetre switchs ; table rules avec pour chaque ligne boutons poubelle/validation, + (nouv ligne), xmit(pertosend)
+      dans fenetre switchs ; xmit(pertosend)
                              ajouter visu diag/état des rules(?)
 
       ajouter crc sur fichiers config,periphériques,remotes,timers,etc
