@@ -1132,7 +1132,7 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
         switch(ncde){
           case 1:           // GET
             if(strstr(bufli,"favicon")>0){
-              numfonct[0]=ffavicon;purgeServer(cli,true);}
+              numfonct[0]=ffavicon;purgeCli(cli,true);}
             else if(bufli[0]=='?' || strstr(bufli,"page.html?")>0 || strstr(bufli,"cx?")>0){return analyse(cli,data,dataLen,&ptr);}
             //else Serial.println(bufli);
             break;
@@ -1187,7 +1187,7 @@ void testSwitch(const char* command,char* perihost,int periport)
               periMess=getHttpResponse(&cliext,bufServer,LBUFSERVER,&fonct);
               Serial.println(periMess);
             }
-            purgeServer(&cliext);
+            purgeCli(&cliext);
             cliext.stop();        // en principe iniutile (purge fait stop)
             delay(1);
 }
@@ -1426,7 +1426,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
     Sécurité à développer : pour assurer que le mot de passe n'est pas dérobable et que sans mot de passe on ne peut avoir de réponse du serveur,
     le mot de passe doit être crypté dans une chaine qui change de valeur à chaque transmission ; donc crypter mdp+heure. 
     Le serveur accepte une durée de validité (10sec?) au message et refuse le ré-emploi de la même heure.
-    Ajouter du java pour crypter ce qui sort du navigateur ? (les 64 premiers caractères de GET / : username,password,heure/user_ref,heure)
+    Ajouter du javascript pour crypter ce qui sort du navigateur ? (les 64 premiers caractères de GET / : username,password,heure/user_ref,heure)
     
 */     
 
@@ -1879,7 +1879,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           }
                         }
                        }break;                                                                                                        
-              case 74: what=0;//htmlFavicon(cli);
+              case 74: what=0;htmlFavicon(cli);
                        break;
               
               /* fin des fonctions */
@@ -1942,9 +1942,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         else {accueilHtml(cli);} // rien dans getnv
 
         valeurs[0]='\0';
+          /* ---- purgeServer enchainait la purge de cli et cli.stop() ; 
+                  la gestion circulaire des instances client gère le stop (il n'est plus nécessaire ici)
+                  la purge semble inutile...
           //purgeServer(cli);
           //cli->stop();                           // en principe inutile (purge fait stop)
           //Serial.print(" st=");Serial.println(millis());
+          */
         cliext.stop();                           // en principe rapide : la dernière action est une entrée
         
         if(ab=='a'){
@@ -2008,6 +2012,7 @@ void tcpPeriServer()
     if(tPSStop[t]!=0 && (millis()-tPSStop[t])>600){     // tPSStop heure de la fin d'utilisation de l'instance
                                                         // (dernier .write en principe) si 0 inutilisée
       tPSStop[t]=0;
+      //purgeCli(&cli_a[t]);
       cli_a[t].stop();
      }
   }

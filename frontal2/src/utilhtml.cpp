@@ -66,6 +66,9 @@ const char* introHttp=
 "CONTENT-Type: text/html; charset=UTF-8\n"
 "Connection: close\n\n"
 "<!DOCTYPE HTML ><html>\n";
+//"<link rel=\"icon\" href=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAVCAYAAACpF6WWAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOxAAADsQBlSsOGwAAATZJREFUOE+1lEtuwkAMhj3hIR67gGBDN4hK7KuuegWkHqTn6UHYcQcugASsqBBqU8SqqkpIOnZmAiE2GQn4JMvGM/7HnlFQsQZujGf8TXEW3T48mqgYJ1Er6CpcKHou5CSMDyXx3RuQ6Zc8WqmU5C4girKCJ3ZJmB3fjuh/LMhLiFdhxFOog1ot11V/PGI75zrWK0ekIhTsTl6dhdMvCkc5H3fbG8Dz+xAiHeM9WT99mwGEa/A3P/pXAu71V3OK2TuNqg3ovHQzgoj1mG89tQHKDZPJkoriKXgamvoM4Ot3R3n2VGS9gTgI0hrbJZKpwQU01awD/O1NViAMaZ+tOYVvJDyYoABhnzjdNciiniKnKl7OCLPOwYrii8MyGS3eRzkj9LqJcoj//ErJnViEUln0Gu7wUAD/NhVhzcOHSTAAAAAASUVORK5CYII\"/>";
+//"<link rel=\"icon\" href=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAMFBMVEU0OkArMjhobHEoPUPFEBIuO0L+AAC2FBZ2JyuNICOfGx7xAwTjCAlCNTvVDA1aLzQ3COjMAAAAVUlEQVQI12NgwAaCDSA0888GCItjn0szWGBJTVoGSCjWs8TleQCQYV95evdxkFT8Kpe0PLDi5WfKd4LUsN5zS1sKFolt8bwAZrCaGqNYJAgFDEpQAAAzmxafI4vZWwAAAABJRU5ErkJggg==\"/>";
+//"<link rel=\"shortcut icon\" href=\"data:\" />";
 
 /* ---- Html Intro end ---- */
 

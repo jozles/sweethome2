@@ -116,6 +116,16 @@ extern const char* introHtmlE;
 extern const char* generalSt;
 extern const char* remoteSt;
 
+void htmlBegPng(char* dm)
+{
+  strcat(dm,introHttp);
+  strcat(dm,"<link rel=\"icon\" href=\"data:image/png;base64,");
+}
+
+void htmlEndPng(char* dm)
+{
+  strcat(dm,"\"/></html>");
+}
 
 int htmlImg(EthernetClient* cli,const char* fimgname)   
 {
@@ -124,24 +134,26 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
         File32 fimg;                              // = SD.open(fimgname,FILE_READ);
         if(sdOpen(fimgname,&fimg)==SDKO){return SDKO;}
         else {
-          long fimgSiz=fimg.size();
-          Serial.print(" size=");Serial.println(fimgSiz);
+          uint32_t fimgSiz=fimg.size();
+          Serial.print(" size=");Serial.print(fimgSiz);
           #define ICONLENGTH 1000
           if(fimgSiz>=ICONLENGTH){Serial.println(" fichier icon trop grand *********");}
           else {
-            char icon[ICONLENGTH+JPGINTROLEN];icon[0]='\0';
-            jpgIntro0(icon);
-            Serial.print(' ');Serial.print(icon);Serial.print(' ');
-            for(int i=strlen(icon);i<(fimgSiz+JPGINTROLEN);i++){icon[i]=fimg.read();
-              //Serial.print(i);Serial.print(' ');Serial.println(icon[i],HEX);
-              icon[i+1]='\0';}
-            //icon[fimgSiz]='\0';
-            Serial.print(" ms_rd=");Serial.print(millis()-begIC);Serial.print(" len=");Serial.print(strlen(icon));
-            //cli->write(icon);
+            uint32_t iconSiz=ICONLENGTH+ICONLENGTH/3+2+JPGINTROLEN+HTMLENDPNGLEN;
+            char icon[iconSiz];memset(icon,'\0',iconSiz);
+            htmlBegPng(icon);//Serial.print(icon);
+            char img[ICONLENGTH];
+            for(uint32_t limg=0;limg<fimgSiz;limg++){img[limg]=fimg.read();}
             
-            //cli->write(icon,fimgSiz+JPGINTROLEN);
-            ethWrite(cli,icon,fimgSiz+JPGINTROLEN);
-            //dumpstr(icon,512);
+            uint32_t licon=strlen(icon);
+            to64(img,icon+licon,fimgSiz);
+            htmlEndPng(icon);
+            licon=strlen(icon);
+
+            //Serial.print("ms_rd=");Serial.print(millis()-begIC);Serial.print(" len=");Serial.println(licon);
+            //Serial.println(icon);
+            
+            ethWrite(cli,icon,licon);
           }
           fimg.close();        
         }
@@ -156,7 +168,7 @@ void htmlFavicon(EthernetClient* cli)
 {
   if(!oneIcon){
     htmlImg(cli,"sweeth.png");
-    oneIcon=true;
+    //oneIcon=true;
   }
 }
 
@@ -1226,7 +1238,7 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
 {
   if(buf!=nullptr && lb0!=0){
 
-    Serial.print("detServHtml ");for(uint8_t i=0;i<MDSLEN;i++){Serial.print(memDetServ[i]);Serial.print(' ');}Serial.println();
+    Serial.print("detServHtml ");for(uint8_t i=0;i<MDSLEN;i++){if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);Serial.print(' ');}Serial.println();
 
     formIntro(buf,jsbuf,"dsrv_init_",0,0);         // params pour retours navigateur (n° usr + time usr + pericur + locfonc pour inits)
                                     // à charger au moins une fois par page ; pour les autres formulaires 

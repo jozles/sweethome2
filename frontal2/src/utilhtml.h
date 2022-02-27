@@ -4,6 +4,7 @@
 #include <Ethernet.h>
 
 #define JPGINTROLEN 50
+#define HTMLENDPNGLEN 20
 
 #define BORDER (bool)true
 #define NOBORDER (bool)false

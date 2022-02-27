@@ -241,7 +241,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                 }
                 char ff[LENNOM+1];ff[LENNOM]='\0';memcpy(ff,bufServer,LENNOM);//Serial.print(ff);
               }
-              purgeServer(cli,NODIAGS);
+              purgeCli(cli,NODIAGS);
           }
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=periMess;
