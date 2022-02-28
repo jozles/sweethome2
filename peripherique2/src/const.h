@@ -2,8 +2,9 @@
 #define CONST_H_INCLUDED
 
 #define DEVT                // pour initConstant sur serveur dev
+#define ANALYZE
 
-#define VERSION "1.z_"
+#define VERSION "2.0_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -74,7 +75,8 @@
  *     pulses et règles revus (ajout action SET); 
  * 1.y suppresion de compMac() ; prints ; derniere version avant modif NBPERINPUT en NBPERRULES 64 (!)
  * 1.z NBPERRULES 48 (max pour 512 bytes EEPROM ESP12); longueur memDetServ paramétrée par MDSLEN (format 32 bits supporté)
- *  
+ * 2.0 install timing analyzer (sur carte VRR de test pins 13/16/10 - débranche pollAllDet pour pin 13)
+ * 
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
@@ -355,6 +357,11 @@ Modifier :
 #define KEYNB   2     
 #define SAMPLES 5     
 #endif // CAPATOUCH
+#ifdef ANALYZE
+#define PIN0 13
+#define PIN1 16
+#define PIN2 10
+#endif // ANALYZE
 #endif // CARTE==VRR
 
 #if CARTE==THESP01
