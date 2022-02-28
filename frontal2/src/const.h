@@ -4,7 +4,7 @@
 #define _MODE_DEVT  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 //#define _MODE_RUN  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
 
-#define NVERS ".71"
+#define NVERS ".72"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -110,7 +110,7 @@
    1.5a dernière version avec NBPERINPUT
    1.6  NBPERINPUT devient NBPERRULES 48 : maxi possible pour les 512 octets de l'EEPROM des 8266
    1.7  passage à NBDSRV détecteurs serveur (compatible 32)
-   1.71 16 timers
+   1.71 16 timers ; debug htmlImg ; nettoyage purgeServer devenu purgeCli ;
 
    BUGS :
 
