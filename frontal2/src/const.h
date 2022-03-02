@@ -111,6 +111,7 @@
    1.6  NBPERINPUT devient NBPERRULES 48 : maxi possible pour les 512 octets de l'EEPROM des 8266
    1.7  passage à NBDSRV détecteurs serveur (compatible 32)
    1.71 16 timers ; debug htmlImg ; nettoyage purgeServer devenu purgeCli ;
+   1.72 install timing analyzer (sur pins A7,A6,A5)
 
    BUGS :
 
@@ -328,6 +329,10 @@ struct Thermo
 #define LMEMO 16
 #define NBMEMOS 16
 #define MEMOSFNAME "MEMOS___"
+
+
+/* analyzer */
+//#define ANALYZE // placer le flag dans platformio pour shmess2 etc...
 
 
 /*  PRINCIPES DE FONCTIONNEMENT

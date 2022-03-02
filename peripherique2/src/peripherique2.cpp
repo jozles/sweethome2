@@ -31,16 +31,21 @@ Capat capaKeys;
 #endif
 
 #ifdef ANALYZE
-#define ONOFF PIN0 
-#define AN1 PIN1
-#define AN2 PIN2
-#define SRVAV1 HIGH
-#define SRVAV2 LOW
-#define FORDX1 LOW
-#define FORDX2 HIGH
-#define ANSW1 HIGH
-#define ANSW2 HIGH
-#endif
+#define AN0 ANPIN0  // 13
+#define AN1 ANPIN1  // 16
+#define AN2 ANPIN2  // 10
+// toujours un LOW en premier ppour eviter les glitchs à 1 sur la sortie de la porte 
+#define SRVAV   digitalWrite(AN2,LOW);digitalWrite(AN1,HIGH);digitalWrite(AN0,HIGH);  // 110 ordrext server.available
+#define RCVEND  digitalWrite(AN0,LOW);digitalWrite(AN1,HIGH);digitalWrite(AN2,HIGH);  // 011 ordrext receive end
+//#define MESTOS  digitalWrite(AN0,LOW);digitalWrite(AN1,LOW;digitalWrite(AN2,HIGH);    // 001 messToServer     ! DEFINI dans shconst
+//#define GHTTPR  digitalWrite(AN0,LOW);digitalWrite(AN1,LOW);digitalWrite(AN2,LOW);    // 000 getHttpResponse  ! DEFINI dans shconst
+#define FORCV   digitalWrite(AN1,LOW);digitalWrite(AN0,HIGH);digitalWrite(AN2,HIGH);  // 101 ordrext checks end ; start rec fonct managing
+#define ANSW    digitalWrite(AN2,LOW);digitalWrite(AN1,LOW);digitalWrite(AN0,HIGH);   // 100 ordrext answer
+#define ANSWE   digitalWrite(AN2,LOW);digitalWrite(AN1,HIGH);digitalWrite(AN0,LOW);   // 010 ordrext answer end
+#define STOPALL digitalWrite(AN0,HIGH);digitalWrite(AN1,HIGH);digitalWrite(AN2,HIGH); // end
+
+#endif // ANALYZE
+
 
 Ds1820 ds1820;
 //extern byte dsmodel;
@@ -371,14 +376,12 @@ initConstant();
 /* config via serial from server */
   #define FRDLY 5  // sec
 #if CARTE != THESP01
-#ifndef ANALYZE
   pinMode(PINDTC,INPUT_PULLUP);
   if(digitalRead(PINDTC)==LOW){                     
     blink(4);delay(2000);
     yield();
     if(getServerConfig()>0){writeConstant();while(1){blink(1);delay(1000);}} // getServerConfig bloque si ko
   }
-#endif // ANALYZE
 #endif // != THESP01
   Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);//Serial.print(" textServerIp ");Serial.println(textServerIp);
   Serial.print(" time=");Serial.println(millis()-debTime);
@@ -405,10 +408,10 @@ initConstant();
   Serial.println(">>>> fin setup\n");
   actionsDebug();
 #ifdef ANALYZE
-  pinMode(PIN0,OUTPUT);digitalWrite(ONOFF,LOW);
-  pinMode(PIN1,OUTPUT);digitalWrite(PIN1,LOW);
-  pinMode(PIN2,OUTPUT);digitalWrite(PIN2,LOW);
-
+  STOPALL
+  pinMode(ANPIN0,OUTPUT);
+  pinMode(ANPIN1,OUTPUT);
+  pinMode(ANPIN2,OUTPUT);
 #endif // ANALYZE  
   }    // fin setup NO_MODE
 
@@ -937,8 +940,7 @@ void talkClient(char* etat) // réponse à une requête
 void answer(const char* what)
 {
 #ifdef ANALYZE
-  digitalWrite(AN1,ANSW1);
-  digitalWrite(AN2,ANSW2);
+  ANSW
 #endif // ANALYZE  
   Serial.print(" answer:");Serial.println(what);
   bufServer[0]='\0';
@@ -950,6 +952,9 @@ void answer(const char* what)
   }
   talkClient(bufServer);
   ledblink(4);                        // connexion réussie 
+#ifdef ANALYZE
+  ANSWE
+#endif // ANALYZE  
 }
 
 void swSet(uint8_t swNb,uint8_t swSt)
@@ -966,6 +971,14 @@ void swSet(uint8_t swNb,uint8_t swSt)
 }
 
 void ordreExt()
+/* timings cde set_______ answer datasave__ from server.available()
+            4,9mS rcv
+            1,0mS chk
+            0,6mS tfr+actions vides
+            2,7mS answer (write)
+            4,2mS cli.stop() (variable)
+    total  13,4mS  
+*/
 {
   if(server!=nullptr && talkSta()==0 && wifiConnexion(ssid,ssidPwd,NOPRINT)){     
   // server démarré, pas de com->SH en cours, wifi on    
@@ -975,7 +988,7 @@ void ordreExt()
     if (cliext) {
 
 #ifdef ANALYZE
-    digitalWrite(ONOFF,ON);digitalWrite(AN1,SRVAV1);digitalWrite(AN2,SRVAV2); // 0/0mS
+  SRVAV // 0mS
 #endif // ANALYZE
 
       Serial.print("\nCliext ");
@@ -1000,7 +1013,7 @@ void ordreExt()
       //                                             .... éventuels arguments de la fonction
       //                                             CC crc
 #ifdef ANALYZE
-  digitalWrite(AN1,LOW);digitalWrite(AN2,LOW);  // 4.5mS
+  RCVEND  // 4,9mS
 #endif
       if(diags){
         Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");
@@ -1018,11 +1031,10 @@ void ordreExt()
         if(checkMess==MESSOK){
           Serial.print("rcv mess fnct=");Serial.print(fonction);
 #ifdef ANALYZE
-  digitalWrite(AN1,FORDX1);   // 47.5mS
-  digitalWrite(AN2,FORDX2);
+  FORCV   // 5,9mS
 #endif // ANALYZE          
           switch(fonction){
-              case 0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 48.5mS
+              case 0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
                       answer("data_save_");break;                       // set ---> réponse message data_save_ complet
               case 1: answer("ack_______");break;                       // ack ne devrait pas se produire (page html seulement)
               case 2: answer("etat______");talkReq();break;     // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
@@ -1067,9 +1079,7 @@ void ordreExt()
     }   // if(cliext (server.available)
   }     // if(server!=nullptr){
 #ifdef ANALYZE
-  digitalWrite(ONOFF,OFF);  // 57mS (set+dataSave)
-  digitalWrite(AN1,LOW);
-  digitalWrite(AN2,LOW);
+  STOPALL         // 16,7mS/14,8 (set+dataSave)
 #endif // ANALYZE
 }       // ordreExt()
 

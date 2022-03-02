@@ -458,6 +458,10 @@ void setup() {                          // ====================================
 /* ---------- config ---------- */  
 
   Serial.println();Serial.print(VERSION);
+  
+  #ifdef ANALYZE
+  Serial.print(" ANALYZE ");
+  #endif // ANALYZE
   #ifdef DUE
   Serial.print(" DUE ");
   #endif
@@ -588,6 +592,13 @@ void setup() {                          // ====================================
   mailEnable=VRAI;
   Serial.print("Mail START ");
   mail("START","");
+
+#ifdef ANALYZE
+  STOPALL
+  pinMode(ANPIN0,OUTPUT);
+  pinMode(ANPIN1,OUTPUT);
+  pinMode(ANPIN2,OUTPUT);
+#endif // ANALYZE
 
   Serial.println(">>>>>>>>> fin setup\n");
 }

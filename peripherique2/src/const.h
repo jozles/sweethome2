@@ -2,7 +2,7 @@
 #define CONST_H_INCLUDED
 
 #define DEVT                // pour initConstant sur serveur dev
-#define ANALYZE
+//#define ANALYZE -> flag dans platformio.ini
 
 #define VERSION "2.0_"
 /* 1.1 allumage/extinction modem
@@ -357,11 +357,6 @@ Modifier :
 #define KEYNB   2     
 #define SAMPLES 5     
 #endif // CAPATOUCH
-#ifdef ANALYZE
-#define PIN0 13
-#define PIN1 16
-#define PIN2 10
-#endif // ANALYZE
 #endif // CARTE==VRR
 
 #if CARTE==THESP01

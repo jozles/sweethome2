@@ -159,7 +159,7 @@ if(*periProg!=0){
 
                 v1+=2*NBPERRULES*PERINPLEN+1;
                 byte byt;
-                for(uint8_t mds=MDSLEN;mds>0;mds--){              // 32 bits memDetServ -> 8 car hexa
+                for(uint8_t mds=MDSLEN;mds>0;mds--){              // NBDSRV bits memDetServ -> MDSLEN car hexa
                     byt=memDetServ[mds-1]; //(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
                     conv_htoa(message+v1+2*(MDSLEN-mds),(byte*)&byt);}
                 memcpy(message+v1+2*MDSLEN,"_\0",2);
@@ -196,7 +196,19 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                     // format message   nomfonction_=nnnndatas...cc                nnnn len mess ; cc crc
                     // si set ou ack :
                     //    format datas     NN_mm.mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._   NN numpériph ; mm.mm... mac
-{                   // sinon chaine libre issue de msg
+                    // sinon chaine libre issue de msg
+                    //
+                    // timings :
+                    //        début periReq à messToServer   5m.0S
+                    //        messToServer                 <170.0mS (connexion ok + cli.write())
+                    //        server.available() sur perif   4.5mS (période boucle de test 5mS...)
+                    //        réception waitRefCli           7.5mS 
+                    //        réception dataSave+traitt      1.8mS
+                    //    total                             89.0mS    
+{
+#ifdef ANALYZE
+  PERIQ
+#endif // ANALYZE
 
   unsigned long dur=millis();
   char message[LENMESS]={'\0'};
@@ -205,6 +217,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
 
   //periPrint(periCur);
 
+  int ret=MESSCX; // pas de port pas de connexion
   if(*periProg!=0 && *periPort!=0){
     charIp(periIpAddr,host);
   
@@ -250,9 +263,13 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     cli->stop();                              // cliext
     periSave(periCur,PERISAVELOCAL);          // màj cache ... toujours OK
     Serial.print(" pM(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
-    return periMess;
+    ret=periMess;
   }
-  return MESSCX; // pas de port pas de connexion
+#ifdef ANALYZE
+  STOPALL
+#endif
+
+  return ret;
 }
 
 int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphérique cli ... ou udp(remote_IP,remote_Port_Udp)

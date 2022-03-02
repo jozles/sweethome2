@@ -1156,7 +1156,7 @@ void htmlBeg(char* buf,char* jsbuf,char* titre) //,EthernetClient* cli)
 
 void pageLineOne(char* buf,char* jsbuf)         
 { 
-  Serial.println("pageLineOne ");
+  //Serial.println("pageLineOne ");
   float th;                                  // pour temp DS3231
   char dm0[120];*dm0=0x00;
   
