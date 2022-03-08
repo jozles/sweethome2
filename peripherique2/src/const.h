@@ -1,7 +1,6 @@
 #ifndef CONST_H_INCLUDED
 #define CONST_H_INCLUDED
 
-#define DEVT                // pour initConstant sur serveur dev
 //#define ANALYZE -> flag dans platformio.ini
 
 #define VERSION "2.0_"
@@ -76,6 +75,8 @@
  * 1.y suppresion de compMac() ; prints ; derniere version avant modif NBPERINPUT en NBPERRULES 64 (!)
  * 1.z NBPERRULES 48 (max pour 512 bytes EEPROM ESP12); longueur memDetServ paramétrée par MDSLEN (format 32 bits supporté)
  * 2.0 install timing analyzer (sur carte VRR de test pins 13/16/10 - débranche pollAllDet pour pin 13)
+ *     messToServer devient interruptible si une demande de connexion arrive au périphérique utilisé en mode server 
+ *     ordreExt directement intégré à la boucle d'attente (temps : 36 to peri ; 3 rcv+&nswer ; 4,5 to frontal)
  * 
 Modifier : 
 

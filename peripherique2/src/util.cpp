@@ -171,19 +171,20 @@ void initConstant()  // inits mise sous tension
   memset(cstRec.pwd2,'\0',LPWSSID);
   //memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
 
+// **************** à supprimer en production ; doit être chargé depuis le frontal ***************
+
   memcpy(cstRec.peripass,"17515A",LPWD+1);
-  strcat(cstRec.ssid2,SSID2); //"pinks");
+  strcat(cstRec.ssid2,SSID2);     //"pinks");
   strcat(cstRec.pwd2,PWDSSID2);   //"cain ne dormant pas songeait au pied des monts");
-  strcat(cstRec.ssid1,SSID1); //"devolo-5d3");
+  strcat(cstRec.ssid1,SSID1);     //"devolo-5d3");
   strcat(cstRec.pwd1,PWDSSID1);   //"JNCJTRONJMGZEEQL");
-#ifdef DEVT  
-  cstRec.serverIp=IPAddress(192,168,0,35);      // server DEVT
-  cstRec.serverPort=1790;                       // server DEVT
-#endif // DEVT
-#ifndef DEVT
-  cstRec.serverIp=IPAddress(192,168,0,36);      // server RUN
-  cstRec.serverPort=1786;                       // server RUN
-#endif
+
+  cstRec.serverIp=IP_FRONTAL;     // à supprimer en production
+  cstRec.serverPort=PORT_FRONTAL; // à supprimer en production
+
+// *****************
+
+
   Serial.println("Init Constant done");
   writeConstant();
 }

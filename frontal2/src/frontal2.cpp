@@ -237,7 +237,8 @@ void iniDetServ()
   bool      periCacheStatus[(NBPERIF+1)];       // indicateur de validité du cache d'un périph  (vaut CACHEISFILE si cache==fichier)
   
   uint16_t  periCur=0;                      // Numéro du périphérique courant
-  
+  uint16_t  periSrc=0;                      // Numéro du périphérique source pour copy rules
+
   uint16_t* periNum;                        // ptr ds buffer : Numéro du périphérique courant
   uint32_t* periPerRefr;                    // ptr ds buffer : période maximale d'accès au serveur
   uint16_t* periPerTemp;                    // ptr ds buffer : période de lecture tempèrature
@@ -541,7 +542,7 @@ void setup() {                          // ====================================
 //  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAE",6);*serverPort=1786;*remotePort=1788;*serverUdpPort=8886; // server service
 //  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAC",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8890; // server test
 
-  memcpy(mac,REDMAC,6);*serverPort=PORTSERVER;*remotePort=PORTREMOTE;*serverUdpPort=PORTUDP; // config server from const.h
+  memcpy(mac,REDMAC,6);*serverPort=PORT_FRONTAL;*remotePort=PORT_REMOTE;*serverUdpPort=PORTUDP; // config server from const.h
   // else config server from config record
 
   Serial.print(MODE_EXEC);
@@ -773,7 +774,7 @@ void scanThermos()                                                        // pos
         }
       }
     }
-    periDetecUpdate("pDUth");                        // mise à jour remotes, fichier perif et tablePerToSend
+    periDetecUpdate("pDUth");                 // mise à jour remotes, fichier perif et tablePerToSend
     perToSend(tablePerToSend,thermosTime);    // mise à jour périphériques de tablePerToSend
   }
 }
@@ -812,7 +813,7 @@ int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)       // maj des
       
       for(uint16_t np=1;np<=NBPERIF;np++){
         if(tablePerToSend[np-1]!=0){
-          cliext.stop();                                              // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! et si cliext est en cours d'utilisation ?
+          cliext.stop();                                              // !!!!!!! et si cliext est en cours d'utilisation ? ... devrait pas
           periMess=periReq(&cliext,np,"set_______");} 
       }
       memset(tablePerToSend,0x00,NBPERIF);
@@ -865,8 +866,8 @@ void scanTimers()                                             //   recherche tim
           }     
         }
       }
-      periDetecUpdate("pDUti");                        // mise à jour remotes, fichier perif et tablePerToSend
-      perToSend(tablePerToSend,timerstime);     // mise à jour périphériques de tablePerToSend
+      periDetecUpdate("pDUti");                         // mise à jour remotes, fichier perif et tablePerToSend
+      perToSend(tablePerToSend,timerstime);             // mise à jour périphériques de tablePerToSend
     }
 }
 
@@ -1143,7 +1144,9 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
         switch(ncde){
           case 1:           // GET
             if(strstr(bufli,"favicon")>0){
-              numfonct[0]=ffavicon;purgeCli(cli,true);}
+              numfonct[0]=ffavicon;
+              //purgeCli(cli,true);
+              }
             else if(bufli[0]=='?' || strstr(bufli,"page.html?")>0 || strstr(bufli,"cx?")>0){return analyse(cli,data,dataLen,&ptr);}
             //else Serial.println(bufli);
             break;
@@ -1198,7 +1201,7 @@ void testSwitch(const char* command,char* perihost,int periport)
               periMess=getHttpResponse(&cliext,bufServer,LBUFSERVER,&fonct);
               Serial.println(periMess);
             }
-            purgeCli(&cliext);
+            //purgeCli(&cliext);
             cliext.stop();        // en principe iniutile (purge fait stop)
             delay(1);
 }
@@ -1526,7 +1529,19 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        break;                                                                               
               case 7:  *periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) Th Offset
               case 8:  getPeriCurLibf(PERILOAD);                                                    // bouton switchs___ (periLine/showline)
-                                                                                                    // + bouton refresh  (switchs)
+                       switch (*(libfonctions+2*i)){
+                         case 'X':periInitVar0();break;                                             // + bouton erase    (switchs)
+                         case 'Y':for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){*(periInput+ninp*PERINPLEN+2) ^= PERINPEN_VB;}
+                                  periSave(periCur,PERISAVELOCAL);break;                            // + bouton en/dis all    (switchs)
+                         case 'W':cliext.stop();periReq(&cliext,periCur,"etat______");break;        // + bouton refresh  (switchs)
+                         case 'V':periSrc=0;conv_atob(valf,&periSrc);break;                         // + bouton copy from (switchs)
+                         case 'U':if(periSrc!=0){
+                                    memcpy(periInput,periCache+(periSrc-1)*PERIRECLEN+(periInput-periBegOfRecord),PERINPLEN*NBPERRULES);
+                                    periSave(periCur,PERISAVESD);periSrc=0;}
+                                  break;
+                         default:break;
+                       }
+                       /*  
                        if(*(libfonctions+2*i)=='X'){periInitVar0();}                                // + bouton erase    (switchs)
                        else if(*(libfonctions+2*i)=='Y'){                                           // + bouton en/dis all    (switchs)
                         for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){*(periInput+ninp*PERINPLEN+2) ^= PERINPEN_VB;}
@@ -1535,6 +1550,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        else{
                          periReq(&cliext,periCur,"etat______");                                     // si pas erase demande d'état
                        }
+                       */
                        swCtlTableHtml(cli);break;                                                                               
               case 9:  what=99;{byte a=*(libfonctions+2*i+1);
                         if(a=='B'){usrReboot();}
@@ -1555,7 +1571,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         if(a=='m'){a=2;k=0;strcat(msg,"TEST==");strcat(msg,mailToAddr1);strcat(msg,"==test peri ");concatn(msg,periCur);strcat(msg," ");strcat(msg,alphaDate());}
                         else {a-=PMFNCVAL;k=periSwLev(a);}
                         memcpy(fptst,swcd+LENNOM*(a*2+k),LENNOM);
-                        periReq(&cliext,periCur,fptst,msg);
+                        cliext.stop();periReq(&cliext,periCur,fptst,msg);
                         //Serial.print("=========== periCur=");Serial.print(periCur);Serial.print(" k=");Serial.print(k);Serial.print(" a=");Serial.print(a);Serial.print(" swLev=");Serial.print(periSwLev(a));Serial.print(" peritst=");Serial.println(fptst);
                         periLineHtml(cli);                        
                        }break;                                                                       
@@ -1923,13 +1939,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
             case 3: periMess=periAns(cli,"set_______");break;            // data_read
             case 4: periMess=periSave(periCur,PERISAVESD);               // switchs
                     swCtlTableHtml(cli);
-                    cliext.stop();
-                    periMess=periReq(&cliext,periCur,"set_______");break;
+                    cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;
             case 5: periMess=periSave(periCur,PERISAVESD);               // (periLine) modif ligne de peritable
                     //periPrint(periCur);
                     periTableHtml(cli); 
-                    cliext.stop();
-                    periMess=periReq(&cliext,periCur,"set_______");break;
+                    cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;
             case 6: configPrint();configSave();cfgServerHtml(cli);break; // config serveur
             case 7: timersSave();timersHtml(cli);break;                  // timers
             case 8: remoteSave();cfgRemoteHtml(cli);break;               // bouton remotecfg puis submit

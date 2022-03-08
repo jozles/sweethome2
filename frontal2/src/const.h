@@ -1,8 +1,7 @@
 #ifndef _CONST_H_
 #define _CONST_H_
 
-#define _MODE_DEVT  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
-//#define _MODE_RUN  // _MODE_RUN _MODE_DEVT // force et change l'adresse Mac de la carte red, l'adresse IP (via DHCP de la box) et le port (en accord avec redir de port de la box)
+#include <shconst2.h>
 
 #define NVERS ".72"
 #ifdef _MODE_DEVT
@@ -111,7 +110,8 @@
    1.6  NBPERINPUT devient NBPERRULES 48 : maxi possible pour les 512 octets de l'EEPROM des 8266
    1.7  passage à NBDSRV détecteurs serveur (compatible 32)
    1.71 16 timers ; debug htmlImg ; nettoyage purgeServer devenu purgeCli ;
-   1.72 install timing analyzer (sur pins A7,A6,A5)
+   1.72 install timing analyzer (sur pins A7,A6,A5) ; PORTSERVER devient PORT_FRONTAL défini dans shconst2 ; 
+        ajout "copy from" pour duplication des règles dans 'switchs'
 
    BUGS :
 
@@ -152,10 +152,13 @@
 /* mac,adressage,port
   
   (jusqu'à v1.55 PORTSERVER et PORTPILOT sont les port des serveurs (proviennent de shconst.h) ; "portserver" du fichier config est inutilisé.)
-  
+
   Depuis v1.56 !!! MODIF structure fichier config !!!
   les variables du fichier config mac,serverName, serverPort, remotePort, serverUdpPort sont utilisées. 
   
+  Depuis 1.72 shconst2 contient PORT_FRONTAL et IP_FRONTAL en fonction de _MODE_DEVT et _MODE_RUN
+  PORT_REMOTE est défini PORT_FRONTAL+2
+
   La carte W5500 recoit l'adresse mac du fichier config.
   Pour permettre la redirection de port et l'accès au serveur depuis les périphériques ou les navigateurs,
   l'adresse IP locale du serveur doit être fixe. 
@@ -188,20 +191,20 @@
 #ifdef _MODE_DEVT
 #define MODE_EXEC "DEVT"
 #define REDMAC "\x90\xA2\xDA\x0F\xDF\xAC"
-#define LOCALSERVERIP {192,168,0,35}          //adresse IP    ---- 36 service, 35 devt
-#define PORTSERVER 1790                       // 1790
-#define PORTREMOTE 1792                       // 1792
-#define PORTUDP    8890                       // 8890
+//#define LOCALSERVERIP {192,168,0,35}          //adresse IP    ---- 36 service, 35 devt
+//#define PORTSERVER 1790                       // 1790
+#define PORT_REMOTE PORT_FRONTAL+2              // 1792
+#define PORTUDP    8890                         // 8890
 #define DEFNOMSERV "sweet_hdev\0"
 #endif // _MODE_DEVT
 
 #ifdef _MODE_RUN
 #define MODE_EXEC "RUN"
 #define REDMAC "\x90\xA2\xDA\x0F\xDF\xAE"
-#define LOCALSERVERIP {192,168,0,36}          //adresse IP    ---- 36 service, 35 devt
-#define PORTSERVER 1786                       // 1786
-#define PORTREMOTE 1788                       // 1788
-#define PORTUDP    8886                       // 8886
+//#define LOCALSERVERIP {192,168,0,36}          //adresse IP    ---- 36 service, 35 devt
+//#define PORTSERVER 1786                       // 1786
+#define PORT_REMOTE PORT_FRONTAL+2              // 1788
+#define PORTUDP    8886                         // 8886
 #define DEFNOMSERV "sweet_home\0"
 #endif // _MODE_RUN
 

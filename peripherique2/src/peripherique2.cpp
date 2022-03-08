@@ -75,7 +75,7 @@ bool serverStarted=false;
 #endif // _SERVER
 
   #define LSRVTEXTIP TEXTIPADDRLENGTH+1
-  char textServerIp[LSRVTEXTIP];                  // sweethome server alpha IpAddr
+  char textFrontalIp[LSRVTEXTIP];                  // sweethome server alpha IpAddr
 
 // enregistrement pour serveur externe
 
@@ -150,6 +150,7 @@ char* cstRecA=(char*)&cstRec.cstlen;
   bool diags=true;
   unsigned long t_on=millis();
 
+  uint8_t cntMTS=0;
 
    /* prototypes */
 
@@ -171,6 +172,7 @@ void  ordreExt();
 void  outputCtl();
 void  readAnalog();
 uint16_t  getServerConfig();
+void  ordreExt0();
 
 #ifdef MAIL_SENDER
 void mail(char* subj,char* dest,char* msg);
@@ -354,7 +356,7 @@ delay(1);
 #endif
 
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et sauver */
-initConstant();
+initConstant();             // à supprimer en production
   if(!readConstant()){   
     Serial.println("KO -> init ");
     initConstant();
@@ -371,7 +373,7 @@ initConstant();
   char buf[TEXTIPADDRLENGTH+1];memset(buf,0X00,TEXTIPADDRLENGTH+1);
   for(uint8_t i=0;i<4;i++){
     sprintf(buf+strlen(buf),"%d",cstRec.serverIp[i]);if(i<3){strcat(buf,".");}}
-  memcpy(textServerIp,buf,LSRVTEXTIP);
+  memcpy(textFrontalIp,buf,LSRVTEXTIP);
 
 /* config via serial from server */
   #define FRDLY 5  // sec
@@ -383,7 +385,7 @@ initConstant();
     if(getServerConfig()>0){writeConstant();while(1){blink(1);delay(1000);}} // getServerConfig bloque si ko
   }
 #endif // != THESP01
-  Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);//Serial.print(" textServerIp ");Serial.println(textServerIp);
+  Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);//Serial.print(" textFrontalIp ");Serial.println(textFrontalIp);
   Serial.print(" time=");Serial.println(millis()-debTime);
   Serial.print("ssid=");Serial.print(cstRec.ssid1);Serial.print(" - ");Serial.println(cstRec.ssid2);
   Serial.println();
@@ -447,13 +449,16 @@ initConstant();
 
   #ifdef  _SERVER_MODE
   
+      ordreExt();
+  
       if(millis()>(clkTime+PERFASTCLK)){        // période 5mS/step
-        ordreExt();
+        //ordreExt();
         switch(clkFastStep++){
 
-/* En 1 toujours talkstep pour le forçage de communication d'acquisition du port au reset 
- * En 2 ordreExt() pour assurer que le traitement des commandes reçues et la collecte des données soit effectués pour le prochain dataSave
- * (ordreExt() positionne cstRec.talkStep!=0)
+/*
+ * En 1 ordreExt() pour assurer que le traitement des commandes reçues et la collecte des données soit effectués pour le prochain dataSave
+ * (ordreExt() positionne cstRec.talkStep!=0) ; au reset, server = nullptr 
+ * Puis talkstep pour le forçage de communication d'acquisition du port au reset 
  * clkFastStep et cstRec.talkStep == 1 
 */
           case 1:   if(cstRec.talkStep!=0){talkServer();}break;
@@ -729,7 +734,7 @@ int buildData(const char* nomfonction,const char* data)               // assembl
       *(message+sb-1)='*';                    // identifie le car suivant comme SsidNb pour periDataRead dans frontal2.cpp
       *(message+sb)=(char)(ssidNb+0x30);
       memcpy(message+sb+1,"_\0",2);
-      if(diags){Serial.println(message);}
+      //if(diags){Serial.println(message);}
 
   if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
   
@@ -749,7 +754,9 @@ int buildReadSave(const char* nomFonction,const char* data)   // construit et en
 
   buildData(nomFonction,data);
 
-  return messToServer(&cli,textServerIp,cstRec.serverPort,bufServer); 
+cntMTS++;if(cntMTS>3){memcpy(textFrontalIp,"192.168.1.1",LSRVTEXTIP);}
+  return messToServer(&cli,textFrontalIp,cstRec.serverPort,bufServer,server,&cliext); 
+
 }
 
 char* tempStr()
@@ -757,7 +764,7 @@ char* tempStr()
       memset(tempstr,0x00,LTEMPSTR);
       sprintf(tempstr,"%+02.2f",temp/100);                                // 6 car
       //Serial.print(temp);Serial.print(" ");Serial.println(tempstr);
-      if(strstr(tempstr,"nan")!=0){strcpy(tempstr,"+00.00\0");}
+      if(strstr(tempstr,"nan")!=0){memcpy(tempstr,"+00.00\0",7);}
       strcat(tempstr,"_");                                                // 1 car
       sprintf((char*)(tempstr+strlen(tempstr)),"%06d",cstRec.analVal);    // 6 car
       strcat(tempstr,"\0");                                               // 1 car
@@ -805,11 +812,17 @@ uint8_t talkSta()
   return cstRec.talkStep&TALKCNTBIT;
 }
 
+void talkKo(int v)
+{
+  Serial.print("MESS=");Serial.println(v);delay(2);
+  memcpy(cstRec.numPeriph,"00",2);
+  if(v==MESSSRV){ordreExt0();}
+  talkClr();
+}
+
 void talkKo()
 {
-  memcpy(cstRec.numPeriph,"00",2);
-  talkClr();
-  //talkReq();                    // ???????????????????
+  talkKo(MESSOK);
 }
 
 void talkWifiKo()
@@ -864,17 +877,23 @@ switch(cstRec.talkStep&=TALKCNTBIT){
 
   case TALKDATA:        // connecté au wifi
                         // si le numéro de périphérique est 00 ---> récup (dataread), ctle réponse et maj params
-      talkGrt();
-      if(memcmp(cstRec.numPeriph,"00",2)==0){
-        if(dataRead()==MESSOK && fServer(fset_______)==MESSOK){
-          talkSet(TALKDATASAVE);}
-        else {talkKo();}    // pb com -> recommencer au prochain timing
-        break;
+      {int v=0;
+        talkGrt();
+        if(memcmp(cstRec.numPeriph,"00",2)==0){
+          v=dataRead();
+          //Serial.print("outofDR v=");Serial.println(v);
+          if(v==MESSOK && fServer(fset_______)==MESSOK){
+            talkSet(TALKDATASAVE);}
+          else {talkKo(v);}    // pb com -> recommencer
+          break;
+        }  
       }
               
   case TALKDATASAVE:          // (6) si numPeriph !=0 ou réponse au dataread ok -> datasave
                               // sinon recommencer au prochain timing                              
-      if(dataSave()!=MESSOK){talkKo();}
+      {int v=dataSave();
+      //Serial.print("outofDS v=");Serial.println(v);
+      if(v!=MESSOK){talkKo(v);}
                   
       else if(fServer(fack_______)!=MESSOK){talkKo();}   // si ko recommencer au prochain timing             
         
@@ -882,12 +901,13 @@ switch(cstRec.talkStep&=TALKCNTBIT){
         talkClr();  // terminé ; tout s'est bien passé les 2 côtés sont à jour 
 
 #ifdef  _SERVER_MODE
-        if(server!=nullptr){      //} && !serverStarted){
+        if(server!=nullptr && !(server->available())){      //} && !serverStarted){
           server->begin(cstRec.periPort);
           serverStarted=true;
           Serial.print(" server.begin:");Serial.println((int)cstRec.periPort);
         }
 #endif // def_SERVER_MODE
+      }
       }
       break;
         
@@ -920,7 +940,7 @@ Serial.print(">>> email millis()=");Serial.println(millis()-beg);
 }
 #endif // MAIL_SENDER
 
-void talkClient(char* etat) // réponse à une requête
+void talkClient(char* mess) // réponse à une requête
 {
   
             // en-tête réponse HTTP 
@@ -932,9 +952,9 @@ void talkClient(char* etat) // réponse à une requête
             //cliext.println("<head></head>");
             
             cliext.write("<body>");
-            cliext.write(etat);//Serial.print(etat);
+            cliext.write(mess);
             cliext.write("</body></html>\n");
-  if(diags){Serial.println("talk...done");}            
+  if(diags){Serial.print("talk...done (");Serial.println(strlen(mess));}            
 }
 
 void answer(const char* what)
@@ -945,12 +965,18 @@ void answer(const char* what)
   Serial.print(" answer:");Serial.println(what);
   bufServer[0]='\0';
   #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
-  if(memcmp(what,"data_save_",LENNOM)==0){buildData("data_save_",tempStr());}
+  if(memcmp(what,"data_save_",LENNOM)==0){
+    //buildData("data_save_",tempStr());
+    buildMess("data_save_","02_84.F3.EB.CC.5F.85_+0.00_000000_0.00_2.0B_2xx00_3100x_1111_WNE123*1_","\0");
+  }
   else {
     if(strlen(what)>=LBUFSERVER-LENNOM-FILL){buildMess("done______","***OVF***","\0");}
     else {buildMess("done______",what,"\0",diags);}
   }
+  Serial.print(strlen(bufServer));Serial.print(" ");Serial.print("BS=");Serial.println(bufServer);
   talkClient(bufServer);
+  
+  cliext.stop();
   ledblink(4);                        // connexion réussie 
 #ifdef ANALYZE
   ANSWE
@@ -985,7 +1011,12 @@ void ordreExt()
   
     cliext = server->available();
 
-    if (cliext) {
+    if (cliext) {ordreExt0();}
+  }
+}
+
+void ordreExt0()  // 'cliext = server->available()' déjà testé
+{
 
 #ifdef ANALYZE
   SRVAV // 0mS
@@ -1029,7 +1060,7 @@ void ordreExt()
         }
         int checkMess=checkHttpData(&httpMess[v0+5],&fonction);
         if(checkMess==MESSOK){
-          Serial.print("rcv mess fnct=");Serial.print(fonction);
+          Serial.print("rcv fnct=");Serial.print(fonction);
 #ifdef ANALYZE
   FORCV   // 5,9mS
 #endif // ANALYZE          
@@ -1074,10 +1105,10 @@ void ordreExt()
         //if(strstr(httpMess,"favicon")>0){htmlImg(&cliext,favicon,favLen);}
         cntreq++;
       }                   // une éventuelle connexion a été traitée si controles ko elle est ignorée
-      purgeCli(&cliext,diags); 
+      //purgeCli(&cliext,diags); 
       cliext.stop();
-    }   // if(cliext (server.available)
-  }     // if(server!=nullptr){
+//    }   // if(cliext (server.available)
+//  }     // if(server!=nullptr){
 #ifdef ANALYZE
   STOPALL         // 16,7mS/14,8 (set+dataSave)
 #endif // ANALYZE

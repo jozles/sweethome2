@@ -848,7 +848,7 @@ int periCacheSave(uint16_t num)                                     // sauve les
 
 int periLoad(uint16_t num)                                          // charge le cache dans les variables (periRec)
 {
-if(num<=0 || num>NBPERIF){Serial.print(" ");Serial.println(num);delay(5);ledblink(BCODENUMPER);} 
+if(num<=0 || num>NBPERIF){Serial.print(" periLoad ");Serial.println(num);delay(5);ledblink(BCODENUMPER);} 
   int i=0;
   int sta=SDOK;
   

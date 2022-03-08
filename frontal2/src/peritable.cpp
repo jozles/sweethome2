@@ -46,6 +46,7 @@ extern uint8_t   remote_IP[4],remote_IP_cur[4];
 extern char      periRec[PERIRECLEN];        // 1er buffer de l'enregistrement de périphérique
   
 extern uint16_t  periCur;                    // Numéro du périphérique courant
+extern uint16_t  periSrc;                    // Numéro périphérique source pour copy rules   
 
 extern uint16_t* periNum;                       // ptr ds buffer : Numéro du périphérique courant
 extern long*     periPerRefr;                   // ptr ds buffer : période maximale accés au serveur
@@ -223,6 +224,7 @@ void swCtlTableHtml(EthernetClient* cli)
     scrGetButSub(buf,jsbuf," MàJ ",0);
 
     char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
+    swf[LENNOM-2]='W';
     scrGetButFn(buf,jsbuf,swf,"","refresh",ALICNO,0,0);
     affSpace(buf,jsbuf);
     swf[LENNOM-2]='X';
@@ -274,10 +276,17 @@ void swCtlTableHtml(EthernetClient* cli)
   scrDspText(buf,jsbuf,"'SET'      : la source produit la destination et la nlle valeur courante",0,BRYES);
   scrDspText(buf,jsbuf,"pulses     : Si la source est 1, exécution de la fonction ; valeur courante inchangée",0,BRYES);
   scrDspText(buf,jsbuf,"Règles en=enable, rf=(fall/rise if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
-  scrDspText(buf,jsbuf,";'static' retourne la valeur de la source ; 'edge' retourne 1 sur le flanc actif sinon 0",0,BRYES);
+  scrDspText(buf,jsbuf,";'static' retourne la valeur de la source ; 'edge' retourne 1 sur le flanc actif sinon 0\n",0,BRYES);
    
   swf[LENNOM-2]='Y';
-  scrGetButFn(buf,jsbuf,swf,"","en/dis all",ALICNO,0,BRYES); // bouton all enable/disable
+  scrGetButFn(buf,jsbuf,swf,"","en/dis all",ALICNO,0,0);    // bouton all enable/disable
+
+  swf[LENNOM-2]='V';
+  scrGetNum(buf,jsbuf,'d',&periSrc,swf,9,0,0,0);            //  N° périphérique source pour copie 
+  swf[LENNOM-2]='U';
+  scrGetButFn(buf,jsbuf,swf,"","copy from",ALICNO,0,BRYES); // bouton copy from
+
+
 
   tableBeg(buf,jsbuf,0);
   scrDspText(buf,jsbuf,"|e...r...p...e~n...f...r...s| source | destin.| action |                        ",0,TDBE|TRBE);
