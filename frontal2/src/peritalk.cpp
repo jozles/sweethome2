@@ -171,6 +171,7 @@ if(*periProg!=0){
 
             }  // periprog != 0
             strcat(message,diag);                                 // periMess length=LPERIMESS
+
   }  // pericur != 0            
 }
 
@@ -227,16 +228,17 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     Serial.print(" port=");Serial.print(*periPort);Serial.print(") ");
 
     if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
-        assySet(message,periCur,periDiag(periMess),date14);}  // assemblage datas 
+        assySet(message,periCur,periDiag(periMess),date14);}      // assemblage datas ; ci-après buildMess controle l'ovf
     else if(strlen(msg)<(LENMESS-2)){strcat(message,msg);}
 
     *bufServer='\0';
-    memcpy(bufServer,"GET /\0",6);                            // commande directe de périphérique en mode serveur
-    buildMess(nfonct,message,"",NODIAGS);                     // bufServer complété
-    strcat(bufServer,"\n\n");                                 // fin de message pour le périf
+    memcpy(bufServer,"GET /\0",6);                                // commande directe de périphérique en mode serveur
+    int lbs=buildMess(nfonct,message,"",NODIAGS);
+    if(lbs==0 || (lbs+2)>LBUFSERVER){ledblink(BCODEPERIRECLEN);}  // bufServer complété
+    strcat(bufServer,"\n\n");                                     // fin de message pour le périf
     Serial.println(millis());
 
-    if(*periProtocol=='T'){                                   // UDP à développer
+    if(*periProtocol=='T'){                                       // UDP à développer
           periMess=messToServer(cli,host,*periPort,bufServer);
           //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(messToServer)=");Serial.println(periMess);
           Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
@@ -249,10 +251,10 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                 if(fonct>=nbfonct){fonct=nbfonct;periMess=MESSFON;}
                 else {
                   //Serial.println(bufServer);
-                  Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
+                  //Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
                   if(fonct==fdatasave){periDataRead(bufServer+LENNOM+1);}
                 }
-                char ff[LENNOM+1];ff[LENNOM]='\0';memcpy(ff,bufServer,LENNOM);//Serial.print(ff);
+                //char ff[LENNOM+1];ff[LENNOM]='\0';memcpy(ff,bufServer,LENNOM);Serial.print(ff);
               }
               //purgeCli(cli,NODIAGS);
           }
@@ -336,7 +338,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   int perizer=0;
   int messLen=strlen(valf)-2;   // longueur hors crc
   int oriMessLen=messLen;
-  Serial.print(" pdr ");Serial.print(periCur);
+  Serial.print(" pdr ");Serial.println(periCur);
 //Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" valf=");Serial.println((char*)valf);
   periCur=0;
                         // check len,crc

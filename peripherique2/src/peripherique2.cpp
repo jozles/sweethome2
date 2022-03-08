@@ -954,7 +954,7 @@ void talkClient(char* mess) // réponse à une requête
             cliext.write("<body>");
             cliext.write(mess);
             cliext.write("</body></html>\n");
-  if(diags){Serial.print("talk...done (");Serial.println(strlen(mess));}            
+  if(diags){Serial.print("talk...done (");Serial.print(strlen(mess));Serial.println(')');}            
 }
 
 void answer(const char* what)
@@ -967,7 +967,8 @@ void answer(const char* what)
   #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
   if(memcmp(what,"data_save_",LENNOM)==0){
     //buildData("data_save_",tempStr());
-    buildMess("data_save_","02_84.F3.EB.CC.5F.85_+0.00_000000_0.00_2.0B_2xx00_3100x_1111_WNE123*1_","\0");
+    //buildMess("data_save_","02_84.F3.EB.CC.5F.85_+0.00_000000_0.00_2.0B_2xx00_3100x_1111_WNE123*1_","\0");
+    buildMess("done______","02_84.F3.EB.CC.5F.85_+0.00_000000_0.00_2.0B_2xx00_3100x_1111_WNE123*1_","\0");
   }
   else {
     if(strlen(what)>=LBUFSERVER-LENNOM-FILL){buildMess("done______","***OVF***","\0");}
