@@ -966,17 +966,17 @@ void answer(const char* what)
   bufServer[0]='\0';
   #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
   if(memcmp(what,"data_save_",LENNOM)==0){
-    //buildData("data_save_",tempStr());
+    buildData("data_save_",tempStr());
     //buildMess("data_save_","02_84.F3.EB.CC.5F.85_+0.00_000000_0.00_2.0B_2xx00_3100x_1111_WNE123*1_","\0");
-    buildMess("done______","02_84.F3.EB.CC.5F.85_+0.00_000000_0.00_2.0B_2xx00_3100x_1111_WNE123*1_","\0");
+    //buildMess("done______","02_84.F3.EB.CC.5F.85_+0.00_000000_0.00_2.0B_2xx00_3100x_1111_WNE123*1_","\0");
   }
   else {
     if(strlen(what)>=LBUFSERVER-LENNOM-FILL){buildMess("done______","***OVF***","\0");}
     else {buildMess("done______",what,"\0",diags);}
   }
-  Serial.print(strlen(bufServer));Serial.print(" ");Serial.print("BS=");Serial.println(bufServer);
-  talkClient(bufServer);
+  Serial.print(" ");Serial.print("BS=");Serial.println(bufServer);
   
+  talkClient(bufServer);
   cliext.stop();
   ledblink(4);                        // connexion réussie 
 #ifdef ANALYZE

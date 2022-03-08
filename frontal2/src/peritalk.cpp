@@ -252,18 +252,20 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                 else {
                   //Serial.println(bufServer);
                   //Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
-                  if(fonct==fdatasave){periDataRead(bufServer+LENNOM+1);}
+                  if(fonct==fdatasave){  
+                    periDataRead(bufServer+LENNOM+1);
+                    periSave(periCur,PERISAVELOCAL);    // màj cache ... toujours OK
+                  }
                 }
                 //char ff[LENNOM+1];ff[LENNOM]='\0';memcpy(ff,bufServer,LENNOM);Serial.print(ff);
-              }
+              } // getHttpResponse==MESSOK
               //purgeCli(cli,NODIAGS);
-          }
+          } // messToServer==MESSOK
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=periMess;
-    }
+    }   // periProtocole=='T'
     Serial.print(millis());
     cli->stop();                              // cliext
-    periSave(periCur,PERISAVELOCAL);          // màj cache ... toujours OK
     Serial.print(" pM(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
     ret=periMess;
   }
@@ -338,43 +340,51 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   int perizer=0;
   int messLen=strlen(valf)-2;   // longueur hors crc
   int oriMessLen=messLen;
-  Serial.print(" pdr ");Serial.println(periCur);
-//Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" valf=");Serial.println((char*)valf);
-  periCur=0;
-                        // check len,crc
-  periMess=checkData(valf);if(periMess!=MESSOK){periInitVar();return;}         
   
-                        // len,crc OK
-  valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
+  Serial.print(millis());Serial.print(" pDR:");
 
-  if(periCur!=0){                                                 // si le périph a un numéro, ctle de l'adr mac
-    periLoad(periCur);
-    if(memcmp(periMacBuf,periMacr,6)!=0){periCur=0;}}
+//Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" valf=");Serial.println((char*)valf);
+
+  periMess=checkData(valf);     // controle len,crc
+  if(periMess==MESSOK){
+
+    periCur=0;valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
+  
+    Serial.println(periCur);
+  
+    if(periCur!=0){                                                 // si le périph a un numéro, ctle de l'adr mac
+      periLoad(periCur);
+      if(memcmp(periMacBuf,periMacr,6)!=0){periCur=0;}}
     
-  if(periCur==0){                                                 // si periCur=0 recherche si mac connu   
-    for(i=1;i<=NBPERIF;i++){                                      // et, au cas où, une place libre
-      periLoad(i);
-      //if(compMac(periMacBuf,periMacr)){
-      if(memcmp(periMacBuf,periMacr,6)==0){
-        periCur=i;i=NBPERIF+1;
-        //Serial.println(" DataRead/Save Mac connu");
-      }                                                           // mac trouvé
-      if((memcmp("\0\0\0\0\0\0",periMacr,6)==0 || memcmp("      ",periMacr,6)==0) && perizer==0){
-        perizer=i;
-        //Serial.println(" DataRead/Save place libre");
-      }        // place libre trouvée
+    if(periCur==0){                                                 // si periCur=0 recherche si mac connu   
+      for(i=1;i<=NBPERIF;i++){                                      // et, au cas où, une place libre
+        periLoad(i);
+        //if(compMac(periMacBuf,periMacr)){
+        if(memcmp(periMacBuf,periMacr,6)==0){
+          periCur=i;i=NBPERIF+1;
+          //Serial.println(" DataRead/Save Mac connu");
+        }                                                           // mac trouvé
+        if((memcmp("\0\0\0\0\0\0",periMacr,6)==0 || memcmp("      ",periMacr,6)==0) && perizer==0){
+          perizer=i;
+          //Serial.println(" DataRead/Save place libre");
+        }        // place libre trouvée
+      }
     }
-  }
 
-  if(periCur==0 && perizer!=0){                                   // si pas connu utilisation N° perif libre "perizer"
-      Serial.println(" DataRead/Save Mac inconnu");
-      periInitVar();periCur=perizer;periLoad(periCur);            // ???????????????????? pourquoi periLoad ???????????????????????
-      periMess=MESSFULL;                                          // ???????????????????? devrait être MESSOK et MESSFULL avant le test ????????????????????
-  }
+    if(periCur==0 && perizer!=0){                                   // si pas connu utilisation N° perif libre "perizer"
+      periInitVar();periCur=perizer;
+      Serial.print(" DataRead/Save nouveau périphérique :");Serial.println(perizer);
+    }  
+    else if(periCur==0 && perizer==0){
+      Serial.println(" DataRead/Save Mac inconnu periTable saturée ");
+      periMess=MESSFULL; 
+    }
 
 // ====== debut transfert des données dans periRec =======
-
-#define PNP 2+1+17+1                                                // (4 length +1) + 2 N° peri +1 + 17 Mac +1 message court de présence
+/*
+  
+    #define PNP 2+1+17+1                                            // (4 length +1) + 2 N° peri +1 + 17 Mac +1 message court de présence
+    
     k=valf+PNP;
     if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
       memcpy(periMacr,periMacBuf,6);
@@ -383,9 +393,9 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       messLen-=(PNP+5);if(messLen>0){                               // PNP + (4 length +1) longueur hors CRC si message terminé
       *periLastVal_=(int16_t)(convStrToNum(k,&i)*100);              // température si save
 
-#if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
+    #if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
       cancelCompil();
-#endif //
+    #endif //
       }
       messLen-=i;if(messLen>0){
         k+=i;*periAnal=convStrToInt(k,&i);                            // analog value
@@ -404,7 +414,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
         k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
         k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
       }
-    /* les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être mis à 0 */
+      // les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être initialisé à 0 
       messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){
         k+=MAXDET+1;
         for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
@@ -422,20 +432,23 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       }
       else {memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t));memset(periSwPulseCurrTwo,0x00,NBPULSE*sizeof(uint32_t));}
 
-#ifdef SHDIAGS    
-    periPrint(periCur);Serial.print("periDataRead =");
-#endif //    
+    #ifdef SHDIAGS    
+      periPrint(periCur);Serial.print("periDataRead =");
+    #endif //    
     
+      if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                              // last access protocol type
+      *periSsidNb='?';                                                                
+      if(*(valf+oriMessLen-8)=='*'){*periSsidNb=*(valf+oriMessLen-7);}
+
+      memcpy(periIpAddr,remote_IP_cur,4);                                                   // Ip addr
+      if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}              // port
+
+      periSave(periCur,PERISAVELOCAL);
     }
-    if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                                // last access protocol type
-    *periSsidNb='?';
-    if(*(valf+oriMessLen-8)=='*'){*periSsidNb=*(valf+oriMessLen-7);}
 
-    memcpy(periIpAddr,remote_IP_cur,4);                                                   // Ip addr
-    if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}              // port
-
+*/    
 // ====== fin transfert des données dans periRec ======
 
-  periSave(periCur,PERISAVELOCAL);
-  checkdate(6);
+  //checkdate(6);
+  }
 }
