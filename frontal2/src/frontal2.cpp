@@ -663,8 +663,8 @@ void stoprequest()
 
 void watchdog()
 {
-  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("TCP cx lost ",*maxCxWt);}
-  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("UDP cx lost ",*maxCxWu);}
+  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot(">>>>>>>>>>>>>>> TCP cx lost ",*maxCxWt);}
+  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot(">>>>>>>>>>>>>>> UDP cx lost ",*maxCxWu);}
 }
 
 void usrReboot()

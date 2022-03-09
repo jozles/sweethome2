@@ -238,7 +238,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     strcat(bufServer,"\n\n");                                     // fin de message pour le périf
     Serial.println(millis());
 
-    if(*periProtocol=='T'){                                       // UDP à développer
+    if(*periProtocol=='T'){                                       // UDP à développer (sortie ret=MESSCX)
           periMess=messToServer(cli,host,*periPort,bufServer);
           //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(messToServer)=");Serial.println(periMess);
           Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
@@ -248,22 +248,21 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
               periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct,DIAGS);
               //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(gHttpR)=");Serial.println(periMess);
               if(periMess==MESSOK){
-                if(fonct>=nbfonct){fonct=nbfonct;periMess=MESSFON;}
-                else {
+                //if(fonct>=nbfonct){fonct=nbfonct;periMess=MESSFON;} // déjà testé dans getHttpResponse/chkHttpData
+                //else {
                   //Serial.println(bufServer);
                   //Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
                   if(fonct==fdatasave){  
                     periDataRead(bufServer+LENNOM+1);
-                    periSave(periCur,PERISAVELOCAL);    // màj cache ... toujours OK
+                    periSave(periCur,PERISAVELOCAL);    // màj cache ... toujours OK (periCur from periDataRead)
                   }
-                }
-                //char ff[LENNOM+1];ff[LENNOM]='\0';memcpy(ff,bufServer,LENNOM);Serial.print(ff);
               } // getHttpResponse==MESSOK
-              //purgeCli(cli,NODIAGS);
-          } // messToServer==MESSOK
+          } // messToServer==MESSOK 
+          //purgeCli(cli,NODIAGS);
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=periMess;
-    }   // periProtocole=='T'
+    } // periProtocole=='T'
+      
     Serial.print(millis());
     cli->stop();                              // cliext
     Serial.print(" pM(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
@@ -336,10 +335,8 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
                                 //        periMess autres valeurs retour de checkData
 {
   int i=0;
-  char* k;                      // pointeur dans message reçu (valf)
   int perizer=0;
   int messLen=strlen(valf)-2;   // longueur hors crc
-  int oriMessLen=messLen;
   
   Serial.print(millis());Serial.print(" pDR:");
 
@@ -347,6 +344,8 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
 
   periMess=checkData(valf);     // controle len,crc
   if(periMess==MESSOK){
+
+// ======   debut gestion periCur    =======
 
     periCur=0;valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
   
@@ -380,11 +379,16 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       periMess=MESSFULL; 
     }
 
+// ======   fin gestion periCur    =======
+
 // ====== debut transfert des données dans periRec =======
-/*
+
   
     #define PNP 2+1+17+1                                            // (4 length +1) + 2 N° peri +1 + 17 Mac +1 message court de présence
     
+    int oriMessLen=messLen;
+    char* k;                                                        // pointeur dans message reçu (valf)
+
     k=valf+PNP;
     if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
       memcpy(periMacr,periMacBuf,6);
@@ -446,7 +450,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       periSave(periCur,PERISAVELOCAL);
     }
 
-*/    
+    
 // ====== fin transfert des données dans periRec ======
 
   //checkdate(6);

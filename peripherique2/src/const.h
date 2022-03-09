@@ -2,6 +2,10 @@
 #define CONST_H_INCLUDED
 
 //#define ANALYZE -> flag dans platformio.ini
+// le pin GPIO13 est utilisé comme entrée pour passer en mode config au reset -> pas de conflit avec l'analyseur
+// en fonctionnement normal GPIO13 est une entrée et son usage en sortie pour l'analyseur ne crée pas de conflit
+// !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
+
 
 #define VERSION "2.0_"
 /* 1.1 allumage/extinction modem
@@ -76,7 +80,7 @@
  * 1.z NBPERRULES 48 (max pour 512 bytes EEPROM ESP12); longueur memDetServ paramétrée par MDSLEN (format 32 bits supporté)
  * 2.0 install timing analyzer (sur carte VRR de test pins 13/16/10 - débranche pollAllDet pour pin 13)
  *     messToServer devient interruptible si une demande de connexion arrive au périphérique utilisé en mode server 
- *     ordreExt directement intégré à la boucle d'attente (temps : 36 to peri ; 3 rcv+&nswer ; 4,5 to frontal)
+ *     ordreExt directement intégré à la boucle d'attente (temps : 36 to peri ; 3 rcv+answer ; 4,5 to frontal)
  * 
 Modifier : 
 

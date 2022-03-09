@@ -150,7 +150,7 @@ char* cstRecA=(char*)&cstRec.cstlen;
   bool diags=true;
   unsigned long t_on=millis();
 
-  uint8_t cntMTS=0;
+  uint8_t cntMTS=0;  // compteur pour blocage de l'IP de frontal... outil de debug
 
    /* prototypes */
 
@@ -754,7 +754,8 @@ int buildReadSave(const char* nomFonction,const char* data)   // construit et en
 
   buildData(nomFonction,data);
 
-cntMTS++;if(cntMTS>3){memcpy(textFrontalIp,"192.168.1.1",LSRVTEXTIP);}
+//cntMTS++;if(cntMTS>3){memcpy(textFrontalIp,"192.168.1.1",LSRVTEXTIP);} 
+// frontal devient inaccessible ce qui permet de tester l'interruption de messToServer par un ordreExt()
   return messToServer(&cli,textFrontalIp,cstRec.serverPort,bufServer,server,&cliext); 
 
 }
