@@ -443,8 +443,6 @@ void concPerParams(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16
   if(buf!=nullptr && lb0!=0){
 
     formIntro(buf,jsbuf,nullptr,0,"peripheriques concentrés",0,0);
-    //formIntro(buf,jsbuf,"dsrv_init_",0,0);
-    //scrDspText(buf,jsbuf,"<fieldset><legend>peripheriques concentrés</legend>",0,0);
 
     char periFn[]="percocfg__";       // same fonc
     char concFn[]="percocfg__";       // same fonc
@@ -615,16 +613,14 @@ Serial.print("-> config detServ ");
   tableBeg(buf,jsbuf,0);
   scrDspText(buf,jsbuf,"   |      Nom      |",0,TRBEG|TDBEG|TREND);
 
+  char nf[]={"libdsrv___\0"};
   for(uint8_t nb=0;nb<NBDSRV;nb++){
     ni++;               
-    //uint8_t decal=0;if(nb>=16){decal=16;}
     scrDspNum(buf,jsbuf,'s',&nb,0,0,TRBEG|TDBE);
-    //char nf[LENNOM+2]="libdsrv__ ";nf[LENNOM]=(nb+decal+PMFNCVAL);nf[LENNOM+1]=0x00;
-    char nf[LENNOM+2]="libdsrv__ ";nf[LENNOM]=(nb+PMFNCVAL);nf[LENNOM+1]=0x00;
+    nf[LENNOM-1]=(char)(nb+PMFNCVAL);
+
     scrGetText(buf,jsbuf,&libDetServ[nb][0],nf,14,LENLIBDETSERV-1,0,TDBE|TREND);
-    //strcat(buf,"<tr><td>");concatns(buf,nb);strcat(buf,"</td><td><input type=\"text\" name=\"libdsrv__");concat1a(buf,(char)(nb+decal+PMFNCHAR));
-    //            strcat(buf,"\" value=\"");strcat(buf,(char*)&libDetServ[nb][0]);strcat(buf,"\" size=\"12\" maxlength=\"");concatns(buf,(LENLIBDETSERV-1));
-    //            strcat(buf,"\" ></td></tr>\n");
+    strcat(buf,"\n");
     lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
   }
   tableEnd(buf,jsbuf,BRYES);
@@ -635,7 +631,6 @@ Serial.print("-> config detServ ");
 
   bufLenShow(buf,jsbuf,lb,begTPage);
 }
-
 
 void cfgRemoteHtml(EthernetClient* cli)
 {
@@ -697,14 +692,14 @@ void cfgRemoteHtml(EthernetClient* cli)
 
             borderparam=NOBORDER;
             tableBeg(buf,jsbuf,0);
-            scrDspText(buf,jsbuf,"  |remote |detec on/off|detec en|peri|switch",0,TRBE|TDBE);
+            scrDspText(buf,jsbuf,"  |remote |detec on/off|detec en|peri|switch|slid/push",0,TRBE|TDBE);
             strcat(buf,"\n");
               
             for(uint8_t nb=0;nb<MAXREMLI;nb++){
                 
               formIntro(buf,jsbuf,nullptr,0,nullptr,0,TRBEG);
               uint8_t nb1=nb+1;
-              scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);                                          // n° ligne de table
+              scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);                                       // n° ligne de table
 
               memcpy(nf,"remotecfu_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° remote
               scrGetNum(buf,jsbuf,'b',&remoteT[nb].num,nf,2,0,0,TDBEG);
@@ -743,6 +738,10 @@ void cfgRemoteHtml(EthernetClient* cli)
 
               memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° switch
               scrGetNum(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,2,TDBE);
+              strcat(buf,"\n");
+
+              memcpy(nf,"remotecfq_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // modèle bouton
+              scrGetRadiobut(buf,jsbuf,remoteT[nb].butModel,nf,2,0,TDBE);
               strcat(buf,"\n");
 
               scrGetButSub(buf,jsbuf,"MàJ",TDBE|TREND);
@@ -823,8 +822,14 @@ void remoteHtml(EthernetClient* cli)
                 // pour la maj via PerToSend des périphériques concernés
                 char fn[]="remote_cn_\0";fn[LENNOM-1]=(char)(nb+PMFNCHAR);
                 scrGetHidden(buf,jsbuf,"",fn,0,0);
-                sliderBHtml(buf,jsbuf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,1);     // slider
-
+                
+                if(remoteT[nb].butModel==0){
+                  sliderBHtml(buf,jsbuf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,TDBEG);     // slider
+                }
+                else{
+                  char fn[]={"remotepb__"};fn[LENNOM-1]=(char)(nb+PMFNCHAR);
+                  scrGetButFn(buf,jsbuf,fn,"","",ALICNO,0,0);
+                }
                 scrDspText(buf,jsbuf,"- - - - -",0,TDBE);                                // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
                 bool vert=FAUX;                                                       // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
                 yscrGetRadiobut(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);     // renvoie 0,1,2 selon OFF,ON,FOR
@@ -1244,12 +1249,12 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
   
-          scrDspText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>",0,0);
+    scrDspText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>",0,0);
 
-          uint8_t ni=0;
-          uint16_t lb1=0;
+    uint8_t ni=0;
+    uint16_t lb1=0;
 
-          for(int k=NBDSRV-1;k>=0;k--){
+        for(int k=NBDSRV-1;k>=0;k--){
             ni++;
             char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
             if(libb[0]=='\0'){convIntToString(libb,k);}
@@ -1263,14 +1268,15 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
               scrDspText(buf,jsbuf,") ",0,0);}
             else{scrDspText(buf,jsbuf,"--) ",0,0);}
             fontEnd(buf,jsbuf,0);
+            strcat(buf,"\n");
             lb1=strlen(buf);if(lb0-lb1<(lb1/ni+100)){ethWrite(cli,buf);ni=0;}
-          }
-          scrGetButSub(buf,jsbuf,"Per Update",0);
+        }
+    scrGetButSub(buf,jsbuf,"Per Update",0);
           
-          formEnd(buf,jsbuf,TITLE,0,0);
-          strcat(buf,"\n"); 
+    formEnd(buf,jsbuf,TITLE,0,0);
+    strcat(buf,"\n"); 
           
-          ethWrite(cli,buf,lb);        
+    ethWrite(cli,buf,lb);        
   }
 }
 

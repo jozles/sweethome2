@@ -172,9 +172,9 @@ void actionsDebug()
 
 }
 
-void actionSysErr(uint8_t action)
+void actionSysErr(uint8_t action,int inp)
 {
-  Serial.print(" syserr=");Serial.print(action,HEX);Serial.print(" ");
+  Serial.print(" syserr=");Serial.print(action,HEX);Serial.print("/");Serial.print(inp);
 }
 
 void actions()          // pour chaque input, test enable,
@@ -301,6 +301,7 @@ void actions()          // pour chaque input, test enable,
 
 /* si action logique, exécution action(detecState,curValue) ; si modif pulse exécution si detecState=1 et màj curval selon état du pulse */
             switch(action){                                                       // action (compute curValue then store it depending of dest)
+              case PMDCA_VIDE:break;
               case PMDCA_0:
                           if(detecState){
                             curValue = 0;
@@ -410,7 +411,7 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_STOP: 
                   if(detecState==1)
                   {
-                    if(tdest!=DETYPUL){actionSysErr(action);break;}
+                    if(tdest!=DETYPUL){actionSysErr(action,inp);break;}
                     if(staPulse[ndest]!=PM_END1 && staPulse[ndest]!=PM_END2){      // si arrêté ne rien toucher
                       if(staPulse[ndest]==PM_RUN1){
                         cntPulse[ndest*2]=millis()-cntPulseOne[ndest];}   // temps déjà écoulé pour repartir si un (re)start a lieu
@@ -424,7 +425,7 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_START: 
                   if(detecState==1)
                   {               
-                    if(tdest!=DETYPUL){actionSysErr(action);break;}
+                    if(tdest!=DETYPUL){actionSysErr(action,inp);break;}
                     if(cntPulseOne[ndest]!=0){
                       cntPulseOne[ndest]=millis()-cntPulse[ndest*2]; // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN1;}                   
@@ -438,7 +439,7 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_SHORT: 
                   if(detecState==1)
                   {
-                    if(tdest!=DETYPUL){actionSysErr(action);break;}
+                    if(tdest!=DETYPUL){actionSysErr(action,inp);break;}
                     if(staPulse[ndest]==PM_RUN1 || cntPulseOne[ndest]!=0){
                       cntPulseOne[ndest]=0;cntPulse[ndest*2]=0;}     // cstRec.durPulseOne[ndest]*10;}
                     else if(staPulse[ndest]==PM_RUN2 || cntPulseTwo[ndest]!=0){cntPulseTwo[ndest]=0;} // cstRec.durPulseTwo[ndest]*10;}
@@ -448,7 +449,7 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_RAZ: 
                   if(detecState==1)
                   {
-                    if(tdest!=DETYPUL){actionSysErr(action);break;}
+                    if(tdest!=DETYPUL){actionSysErr(action,inp);break;}
                     cntPulseOne[ndest]=0;
                     cntPulseTwo[ndest]=0;
                     staPulse[ndest]=PM_IDLE;
@@ -460,7 +461,7 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_RESET: 
                   if(detecState==1)
                   {
-                    if(tdest!=DETYPUL){actionSysErr(action);break;}
+                    if(tdest!=DETYPUL){actionSysErr(action,inp);break;}
                     cntPulseOne[ndest]=0;cstRec.durPulseOne[ndest]=0;
                     cntPulseTwo[ndest]=0;cstRec.durPulseTwo[ndest]=0;
                     staPulse[ndest]=PM_IDLE;
@@ -472,7 +473,7 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_IMP: 
                   if(detecState==1)
                   {
-                    if(tdest!=DETYPUL){actionSysErr(action);break;}
+                    if(tdest!=DETYPUL){actionSysErr(action,inp);break;}
                     if((millis()-impDetTime[ndest])<DETIMP){
                       staPulse[ndest]=PM_IDLE;
                       cntPulseOne[ndest]=0;
@@ -484,7 +485,7 @@ void actions()          // pour chaque input, test enable,
                case PMDCA_END: 
                   if(detecState==1)
                   {
-                    if(tdest!=DETYPUL){actionSysErr(action);break;}
+                    if(tdest!=DETYPUL){actionSysErr(action,inp);break;}
                     if(staPulse[ndest]==PM_RUN1 || cntPulseOne[ndest]!=0){
                       cntPulseOne[ndest]=0;
                       cntPulse[ndest*2]=0;
@@ -496,7 +497,7 @@ void actions()          // pour chaque input, test enable,
                     impDetTime[ndest]=0;
                   }
                   break;
-               default:actionSysErr(action);
+               default:actionSysErr(action,inp);
                   if(tdest==DETYPUL){staPulse[ndest]=PM_DISABLE;}
                   break;
           }     // switch(action)       

@@ -112,7 +112,7 @@
    1.71 16 timers ; debug htmlImg ; nettoyage purgeServer devenu purgeCli ;
    1.72 install timing analyzer (sur pins A7,A6,A5) ; PORTSERVER devient PORT_FRONTAL défini dans shconst2 ; 
         ajout "copy from" pour duplication des règles dans 'switchs'
-   1.73 nombreuses corrections locales 
+   1.73 nombreuses corrections locales ; ajout butModel dans remotes (slider/pushButton) ; 
 
    BUGS :
 
@@ -268,6 +268,7 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
   bool     enable;        // remote enable
   uint8_t  peri;          // périphérique dont un disjoncteur est sous controle de enable (0 pas de périphérique)
   uint8_t  sw;            // sw concerné du périphérique 
+  uint8_t  butModel;      // modèle bouton (slider/pushButton)
 };
 
 struct Remote             // liste des remotes
@@ -277,7 +278,6 @@ struct Remote             // liste des remotes
   uint8_t newonoff;       // buffer pour reception et traitement cb par GET /
   uint8_t enable;         // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
   uint8_t newenable;      // buffer pour reception et traitement cb par GET /
-
 };
 
 #define NBTIMERS     16

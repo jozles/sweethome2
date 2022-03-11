@@ -1667,6 +1667,46 @@ unsigned long   remoteNlenNew=(sizeof(Remote))*(NBREMOTE+plus);
   remSave(REMOTENFNAME,remoteNlenNew,remoteNANew);
 }
 
+void remoteConvert()
+{
+  // ajout/modif champs dans la structure
+  // faire une copie de la carte SD
+  // créer la nouvelle structure dans const.h (newSwRemote dans l'exemple)
+  // (dupliquer la structure et ajouter les nouvelles variables)
+  // dans la boucle de recopie des lignes initialiser les nouvelles variables
+  // faire tourner frontal2 avec la ligne remoteConvert décommentée
+  // la recommenter
+  // mettre à jour la structure "normale" dans const.h et supprimer la nouvelle
+/*
+  struct NewSwRemote newRemoteT[NBREMOTE];
+  char*  newRemoteTA=(char*)&newRemoteT;
+  unsigned long   newRemoteTlen=(sizeof(NewSwRemote))*MAXREMLI;
+
+  remLoad(REMOTETFNAME,remoteTlen,remoteTA);
+
+  for(uint8_t i=0;i<MAXREMLI;i++){
+    newRemoteT[i].num=remoteT[i].num ;
+    newRemoteT[i].detec=remoteT[i].detec ;
+    newRemoteT[i].deten=remoteT[i].deten ;
+    newRemoteT[i].enable=remoteT[i].enable ;
+    newRemoteT[i].peri=remoteT[i].peri ;
+    newRemoteT[i].sw=remoteT[i].sw ;
+    newRemoteT[i].butModel=0 ;
+  }
+
+  fremote.remove();
+
+  if (!fremote.open(REMOTETFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
+    Serial.println(" create failed");
+    return;
+  }
+
+  fremote.close();
+  remSave(REMOTETFNAME,newRemoteTlen,newRemoteTA);
+*/
+  Serial.println("conversion terminée");
+}
+
 /*********** timers ************/
 
 void timersPrint()

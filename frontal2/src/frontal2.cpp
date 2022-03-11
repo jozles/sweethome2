@@ -122,7 +122,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___dispo_____percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___mailcfg___thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_pto__peri_ptt__peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___remotepb__percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___mailcfg___thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
@@ -529,6 +529,7 @@ void setup() {                          // ====================================
   //memDetConvert();                // chgt du nombre de detServ
   memDetLoad();                     // le second pour Sync 
   //remoteNPlus(8);while(1){};
+  //remoteConvert();while(1){};
   remoteLoad();periSwSync();
   //timersConvert();                // chgt du nombre de timers
   timersLoad();
@@ -1061,17 +1062,17 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr)
                                               // '%' encodé '%25' ; '@' '%40' etc... 
   bool nom=VRAI,val=FAUX,termine=FAUX;
   int i=0,j=0;
-  char c,cpc='\0';                            // cpc pour convertir les séquences %hh 
+  uint8_t c,cpc=0x00;                            // cpc pour convertir les séquences %hh 
   char noms[LENNOM+1]={0},nomsc[LENNOM-1];noms[LENNOM]='\0';nomsc[LENNOM-2]='\0';
   memset(libfonctions,0x00,sizeof(libfonctions));
 
       nvalf[0]=0;
-      memset(valeurs,0,LENVALEURS);                   // effacement critique (password etc...)
+      memset(valeurs,0,LENVALEURS);                     // effacement critique (password etc...)
       memset(noms,' ',LENNOM);
       numfonct[0]=-1;                                   // aucune fonction trouvée
-     
+
       while (cliAv(cli,dataLen,ptr)){
-        c=cliRead(cli,data,dataLen,ptr);
+        c=(uint8_t)cliRead(cli,data,dataLen,ptr);
 
         if(c=='%'){cpc=c;}                              // %
         else {
@@ -1079,12 +1080,19 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr)
           if(cpc=='%'){cpc=(c&0x0f)<<4;}                // % reçu ; traitement 1er car
           else {
         
-            if(cpc!='\0'){c=cpc|(c&0x0f);cpc='\0';}     // traitement second                 
-            Serial.print(c);trigwd();
+            if(cpc!=0x00){
+              if(c>0x39){c-=0x37;}else {c&=0x0F;}
+              c=cpc+c;
+              cpc=0x00;}     // traitement second                 
+            
+            Serial.print((char)c);trigwd();
             if (!termine){
           
               if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,' ',LENNOM);if(i<NBVAL){i++;};Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
-              if (nom==VRAI && (c==':' || c=='=')){                                    
+              if (nom==VRAI && j>=LENNOM && (c==':' || c=='=')){
+
+                Serial.print("\n");Serial.print(noms);
+
                 nom=FAUX;val=VRAI;
                 nvalf[i+1]=nvalf[i]+1;
                 if(i==0){nvalf[1]=0;}                                       // permet de stocker le tout premier car dans valeurs[0]
@@ -1101,14 +1109,19 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr)
                   else {numfonct[i]=numfonc;}
                 }
                 else {numfonct[i]=numfonc;}
+              
+                Serial.print(" ");Serial.println(numfonc);
               }
-              if (nom==VRAI && c!='?' && c!=':' && c!='&' && c>' '){noms[j]=c;if(j<LENNOM-1){j++;}}     // acquisition nom
+
+              if (nom==VRAI && j<LENNOM && c>' '){noms[j]=c;j++;}           // acquisition nom
+               // && c!='?' && c!=':' && c!='&' 
               if (val==VRAI && c!='&' && c!=':' && c!='=' && c>' '){
+                
                 valeurs[nvalf[i+1]]=c;if(nvalf[i+1]<LENVALEURS-2){nvalf[i+1]++;}}                       // contrôle decap !
               if (val==VRAI && (c=='&' || c<=' ')){
                 nom=VRAI;val=FAUX;j=0;
                 if(c<=' '){termine=VRAI;}
-              Serial.println(); 
+                Serial.println(); 
               }                                                                                         // ' ' interdit dans valeur : indique fin données                                 
             }//Serial.println(libfonctions+2*(i-1));
           }                                                                                             // acquisition valeur terminée (données aussi si c=' ')
@@ -1250,7 +1263,7 @@ byte inpsub(byte* ptr,byte mask,byte lshift,char* libel,uint8_t len)    // entre
 
 void rulesfonc(uint8_t* cb,uint8_t* det,uint8_t* rdet,int8_t* memo)            // traitement des fonctions 'rules' de périf
 {                                                                 //  (4*cb 1*det 1*memo)
-  uint8_t li=*(libfonctions+2*i+1)-PMFNCHAR;                      // row
+  uint8_t li=*(libfonctions+2*i+1)-PMFNCVAL;                      // row
   uint8_t co=*(libfonctions+2*i)-PMFNCHAR;                        // column 
     
   if(co<4){cb[li]|=maskbit[(3-co)*2+1];
@@ -1587,10 +1600,14 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 21: *periProg=*valf-48;break;                                                    // (periLine) peri prog
               case 22: *periSondeNb=*valf-48;if(*periSondeNb>MAXSDE){*periSondeNb=MAXSDE;}break;    // (periLine) peri sonde
               case 23: *periPitch_=0;*periPitch_=(int16_t)(convStrToNum(valf,&j)*100);break;        // (periLine) peri pitch
-              case 24: what=4;                                                                      // (lignes-regles) submit peri_inp__ set periCur raz cb
+              case 24: {what=4;                                                                     // (lignes-regles) submit peri_inp__ set periCur raz cb
                        getPeriCurValf(PERILOAD);                                                    // periCur à jour via formIntro/peri_cur__
-                       *(byte*)(periInput+((uint8_t)(*(libfonctions+2*i+1))-PMFNCHAR)*PERINPLEN+2)&=PERINPACT_MS;  // effacement cb (oldlev/active/edge/en)
-                       break;                                                                      
+                       uint8_t nuinp=*(libfonctions+2*i+1)-PMFNCVAL;
+                       uint16_t offs=nuinp*PERINPLEN;
+                       *(uint8_t*)(periInput+2+offs)&=(uint8_t)PERINPACT_MS;
+                       //*(byte*)(periInput+((uint8_t)(*(libfonctions+2*i+1))-PMFNCVAL)*PERINPLEN+2)&=PERINPACT_MS;  // effacement cb (oldlev/active/edge/en)
+                       Serial.print(nuinp);Serial.print("=====");Serial.print(offs);Serial.print(" ");Serial.println((char)*(periInput+2+offs),HEX);
+                       }break;                                                                      
               case 25: *periDetNb=*valf-48;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;          // (periLine) peri det Nb  
               case 26: *periSwNb=*valf-48;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;               // (periLine) peri sw Nb                       
               case 27: *periPerTemp=0;conv_atob(valf,periPerTemp);break;                            // periode check température
@@ -1616,8 +1633,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         sh=sh<<pu*PCTLBIT;
                         *(uint16_t*)periSwPulseCtl|=sh;
                        }break;       
-              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCHAR;   // (regles switchs) p_inp1__  
-                        uint8_t offs=nuinp*PERINPLEN;                                                     // (enable/type/num detec/action)
+              case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (regles switchs) p_inp1__  
+                        uint16_t offs=nuinp*PERINPLEN;                                                     // (enable/type/num detec/action)
                         uint16_t vl=0;
                         // pericur est à jour via peri_inp_
                         switch (nfct){
@@ -1652,6 +1669,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                  memset(periInput+(NBPERRULES-1)*PERINPLEN,0x00,PERINPLEN);what=4;break;
                           default:break;
                         }
+                        Serial.print(nuinp);Serial.print("=====");Serial.print(nfct);Serial.print(" ");Serial.println((char)*(periInput+2+offs),HEX);
                        }break;                                                                      
               case 34: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL; // (règles switchs) p_inp2__  8 bits inutilisés
                         uint8_t offs=nuinp*PERINPLEN;
@@ -1693,9 +1711,14 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        }break;                       
               case 47: if(memcmp((usrnames+usernum*LENUSRNAME),"admin",5)==0){cfgServerHtml(cli);}      // bouton config cfg_serv__
                        break;                                                        
-/*
-              case 48: rien
-*/              
+              case 48: what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (remoteHtml) remotepb__ push button
+                       uint8_t mi=remoteT[nb].detec>>3;
+                       uint8_t ptmi=remoteT[nb].detec*MDSLEN+mi;
+                       memDetServ[mi] |= mDSmaskbit[ptmi];
+                       periMess=periReq(&cliext,remoteT[nb].peri,"set_______");
+                       memDetServ[mi] &= ~mDSmaskbit[ptmi];
+                       remoteHtml(cli);
+                       }break;                                                                           
               case 49: what=6;                                                                         
                        {uint8_t nC=*(libfonctions+2*i)-PMFNCVAL;                                        // num concentrateur             
                         int rr=0;uint16_t aa=0;  
@@ -1762,6 +1785,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                         if(remoteT[nb].sw < *periSwNb){break;}                          // ok
                                       }
                                       remoteT[nb].peri=0;remoteT[nb].sw=0;break;                        // ko
+                            case 'q': remoteT[nb].butModel=*valf-PMFNCVAL;break;                        // (remotecf) modèle bouton
                             default:break;
                           }
                        }break;
@@ -1869,7 +1893,6 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 65: Serial.println("timersHtml()");timersHtml(cli);break;                            // timershtml
               case 66: Serial.println("cfgDetServHtml()");cfgDetServHtml(cli);break;                    // cfgdetservhtml              
               case 67: what=11;{int nb=*(libfonctions+2*i+1)-PMFNCVAL;                                  // lib detserv
-                       //if(nb>=16){nb-=16;}
                        alphaTfr(&libDetServ[nb][0],LENLIBDETSERV,valf,nvalf[i+1]-nvalf[i]);
                        }break;                          
               case 68: getPeriCurLibf(PERILOAD);                                                        // (showline) bouton periph
@@ -1941,7 +1964,6 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                     swCtlTableHtml(cli);
                     cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;
             case 5: periMess=periSave(periCur,PERISAVESD);               // (periLine) modif ligne de peritable
-                    //periPrint(periCur);
                     periTableHtml(cli); 
                     cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;
             case 6: configPrint();configSave();cfgServerHtml(cli);break; // config serveur

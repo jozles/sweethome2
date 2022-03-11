@@ -638,7 +638,7 @@ void formIntro(char* buf,char* jsbuf,const char* locfonc,uint8_t ninp,const char
  
           if(locfonc!=nullptr){
             char fonc[LENNOM+1];*fonc=0x00;
-            memcpy(fonc,locfonc,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCHAR);fonc[LENNOM]='\0';
+            memcpy(fonc,locfonc,LENNOM);fonc[LENNOM-1]=(char)(ninp+PMFNCVAL);fonc[LENNOM]='\0';
             strcat(buf,"<input type=\"text\" name=\"");strcat(buf,fonc);strcat(buf,"\" value=\"");concat1a(buf,(char)(PMFNCHAR+periCur));strcat(buf,"\">");
           }
           strcat(buf,"</p>\n");
@@ -831,7 +831,7 @@ void scrGetSelect(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,uint
   int i,j;
 
   ft[LENNOM-2]=(char)(nuv+PMFNCHAR);   
-  ft[LENNOM-1]=(char)(ninp+PMFNCHAR);   
+  ft[LENNOM-1]=(char)(ninp+PMFNCVAL);   
   
   fnHtmlIntro(buf,0,ctl);
   
@@ -854,6 +854,13 @@ void scrGetSelect(char* buf,char* jsbuf,char* val,char* ft,int nbre,int len,uint
 #endif // NOJSBUF
 }
 
+void scrGetSelect(char* buf,char* jsbuf,char* val,char* name,char* ft,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl)
+{
+  int nbre=*val-PMFNCVAL,len=*(val+1)-PMFNCVAL;
+  scrGetSelect(buf,jsbuf,val+2,ft,nbre,len,sel,nuv,ninp,pol,ctl);
+  jscat(jsbuf,name);
+}
+
 void optSelHtml(char* jsbuf,char* val,char* name)
 {
 #ifndef NOJSBUF  
@@ -862,14 +869,6 @@ void optSelHtml(char* jsbuf,char* val,char* name)
   jscat(jsbuf,val);
 #endif // NOJSBUF
 }
-
-void scrGetSelect(char* buf,char* jsbuf,char* val,char* name,char* ft,uint8_t sel,uint8_t nuv,uint8_t ninp,uint8_t pol,uint8_t ctl)
-{
-  int nbre=*val-PMFNCVAL,len=*(val+1)-PMFNCVAL;
-  scrGetSelect(buf,jsbuf,val+2,ft,nbre,len,sel,nuv,ninp,pol,ctl);
-  jscat(jsbuf,name);
-}
-
 
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 /* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
@@ -1256,7 +1255,7 @@ uint8_t mDSval(uint8_t num)
   uint8_t ret=0;
   //for(uint8_t i=0;i<MDSLEN;i++){if(((memDetServ[i]) & (mDSmaskbit[num*MDSLEN+i])) !=0){ret=1;break;}}
   uint8_t mi=num>>3;if(((memDetServ[mi]) & (mDSmaskbit[num*MDSLEN+mi])) !=0){ret=1;}
-  Serial.print(">>>>> ctl mDSval ");dumpstr((char*)(memDetServ-4),9);
+  //Serial.print(">>>>> ctl mDSval ");dumpstr((char*)(memDetServ-4),9);
   return ret;
 }
 

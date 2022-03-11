@@ -175,7 +175,7 @@ void perinpBfnc(char* buf,char* jsbuf,uint8_t nuinp,uint16_t val,char type,uint8
   uint8_t vv=0;
 
   ft[LENNOM-2]=(char)(nuv+PMFNCHAR);
-  ft[LENNOM-1]=(char)(nuinp+PMFNCHAR);
+  ft[LENNOM-1]=(char)(nuinp+PMFNCVAL);
   char pc[2]={(char)(periCur+PMFNCHAR),'\0'};
 
   switch (type){
@@ -301,7 +301,8 @@ void swCtlTableHtml(EthernetClient* cli)
 
             ni++;
             
-            char fnc[LENNOM+1];memcpy(fnc,"peri_inp__",LENNOM);fnc[LENNOM-1]=(char)(ninp+PMFNCHAR);fnc[LENNOM]='\0';
+            char fnc[LENNOM+1];memcpy(fnc,"peri_inp__",LENNOM);//fnc[LENNOM-1]=(char)(ninp+PMFNCHAR);
+            fnc[LENNOM]='\0';
             formIntro(buf,jsbuf,fnc,ninp,0,0);
 
             uint8_t vv;
