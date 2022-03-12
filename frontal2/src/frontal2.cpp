@@ -1088,10 +1088,10 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr)
             Serial.print((char)c);trigwd();
             if (!termine){
           
-              if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,' ',LENNOM);if(i<NBVAL){i++;};Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
+              if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,0x00,LENNOM);if(i<NBVAL){i++;};Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
               if (nom==VRAI && j>=LENNOM && (c==':' || c=='=')){
 
-                Serial.print("\n");Serial.print(noms);
+                //Serial.print("\n");Serial.print(noms);
 
                 nom=FAUX;val=VRAI;
                 nvalf[i+1]=nvalf[i]+1;
@@ -1101,20 +1101,29 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr)
                 long numfonc=(strstr(fonctions,noms)-fonctions)/LENNOM;     // acquisition nom terminée récup N° fonction
                 memcpy(libfonctions+2*i,noms+LENNOM-2,2);                   // les 2 derniers car du nom de fonction si nom court
 
+                //Serial.print(" ");Serial.print(numfonc);
+
                 if(numfonc<0 || numfonc>=nbfonct){
-                  memcpy(nomsc,noms,LENNOM-2);
+                  memcpy(nomsc,noms,LENNOM-2);nomsc[LENNOM-2]=0x00;
                   numfonc=(strstr(fonctions,nomsc)-fonctions)/LENNOM;       // si nom long pas trouvé, recherche nom court (complété par nn)
+
+                  //Serial.print(" ");Serial.print(nomsc);Serial.print(" ");Serial.print(numfonc);
 
                   if(numfonc<0 || numfonc>=nbfonct){numfonc=faccueil;}
                   else {numfonct[i]=numfonc;}
                 }
                 else {numfonct[i]=numfonc;}
               
-                Serial.print(" ");Serial.println(numfonc);
+                //Serial.print(" ");Serial.print(numfonc);Serial.println(" ");                  // une fonction est reçue avec = ou :
               }
 
-              if (nom==VRAI && j<LENNOM && c>' '){noms[j]=c;j++;}           // acquisition nom
-               // && c!='?' && c!=':' && c!='&' 
+              if (nom==VRAI && j>=LENNOM-2 && c>' '){noms[j]=c;j++;}                                    // les 2 derniers car codent avec PMFNCVAL et PMFNCHAR
+                                                                                                        // ils peuvent prendre toutes les valeurs 
+              if (nom==VRAI && j<LENNOM-2 && c>' ' && c!='?' && c!=':' && c!='&'){noms[j]=c;j++;}       // acquisition nom avec filtrage caractères spéciaux
+                                                                                                        // la commande est de la forme :
+                                                                                                        // GET /?ffffffffff=aaaa..aaa&ffff... etc
+                                                                                                        // Si '?' n'est pas ignoré, le calage sur le 1er car de la fonction ne se fait pas
+               
               if (val==VRAI && c!='&' && c!=':' && c!='=' && c>' '){
                 
                 valeurs[nvalf[i+1]]=c;if(nvalf[i+1]<LENVALEURS-2){nvalf[i+1]++;}}                       // contrôle decap !

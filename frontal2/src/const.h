@@ -113,6 +113,7 @@
    1.72 install timing analyzer (sur pins A7,A6,A5) ; PORTSERVER devient PORT_FRONTAL défini dans shconst2 ; 
         ajout "copy from" pour duplication des règles dans 'switchs'
    1.73 nombreuses corrections locales ; ajout butModel dans remotes (slider/pushButton) ; 
+        révision 'analyse' 
 
    BUGS :
 

@@ -896,6 +896,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     strcat(buf,"<input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"");
     
     if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"");}
+    if(sizfnt==4){strcat(buf," style=\"height:100px;width:250px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\"");}
     if(aligncenter){strcat(buf,"></p></a>");}
     else{strcat(buf,"></a>");}
     

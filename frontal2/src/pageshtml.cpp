@@ -828,10 +828,10 @@ void remoteHtml(EthernetClient* cli)
                 }
                 else{
                   char fn[]={"remotepb__"};fn[LENNOM-1]=(char)(nb+PMFNCHAR);
-                  scrGetButFn(buf,jsbuf,fn,"","",ALICNO,0,0);
+                  scrGetButFn(buf,jsbuf,fn,"","",ALICNO,4,TDBEG);
                 }
-                scrDspText(buf,jsbuf,"- - - - -",0,TDBE);                                // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
-                bool vert=FAUX;                                                       // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
+                scrDspText(buf,jsbuf,"- - - - -",0,TDBE);                                           // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
+                bool vert=FAUX;                                                                     // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
                 yscrGetRadiobut(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);     // renvoie 0,1,2 selon OFF,ON,FOR
                 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
