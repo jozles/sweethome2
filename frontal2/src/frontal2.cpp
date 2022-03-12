@@ -1550,16 +1550,19 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 6:  what=2;perrefr=0;conv_atob(valf,&perrefr);                                   // (en tête peritable) periode refresh browser
                        break;                                                                               
               case 7:  *periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) Th Offset
-              case 8:  getPeriCurLibf(PERILOAD);                                                    // bouton switchs___ (periLine/showline)
+              case 8:  getPeriCurLibf(PERILOAD);                                                    // bouton switchs___ (periLine/showLine/switchs)
                        switch (*(libfonctions+2*i)){
-                         case 'X':periInitVar0();break;                                             // + bouton erase    (switchs)
+                         case 'X':periInitVar0();
+                                  swCtlTableHtml(cli);break;                                        // + bouton erase    (switchs)
                          case 'Y':for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){*(periInput+ninp*PERINPLEN+2) ^= PERINPEN_VB;}
-                                  periSave(periCur,PERISAVELOCAL);break;                            // + bouton en/dis all    (switchs)
-                         case 'W':cliext.stop();periReq(&cliext,periCur,"etat______");break;        // + bouton refresh  (switchs)
-                         case 'V':periSrc=0;conv_atob(valf,&periSrc);break;                         // + bouton copy from (switchs)
+                                  periSave(periCur,PERISAVELOCAL);
+                                  swCtlTableHtml(cli);break;                                        // + bouton en/dis all    (switchs)
+                         case 'W':cliext.stop();periReq(&cliext,periCur,"etat______");
+                                  swCtlTableHtml(cli);break;                                        // + bouton refresh switchs/showLine/periLine
+                         case 'V':periSrc=0;conv_atob(valf,&periSrc);break;                         // + bouton copy from (switchs) (what=4)
                          case 'U':if(periSrc!=0){
                                     memcpy(periInput,periCache+(periSrc-1)*PERIRECLEN+(periInput-periBegOfRecord),PERINPLEN*NBPERRULES);
-                                    periSave(periCur,PERISAVESD);periSrc=0;}
+                                    periSave(periCur,PERISAVESD);periSrc=0;swCtlTableHtml(cli);}
                                   break;
                          default:break;
                        }
@@ -1573,7 +1576,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                          periReq(&cliext,periCur,"etat______");                                     // si pas erase demande d'état
                        }
                        */
-                       swCtlTableHtml(cli);break;                                                                               
+                       break;                                                                               
               case 9:  what=99;{byte a=*(libfonctions+2*i+1);
                         if(a=='B'){usrReboot();}
                        }break;                                                                      // si pas 'R' déco donc -> accueil                                             
@@ -1630,9 +1633,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 31: what=4;                                                                      // (pulses swCtlTableHtml/en-tête) peri_t_sw_ 
                        getPeriCurValf(PERILOAD);                                                    // periCur à jour via formIntro/peri_cur__
                        memset(periSwPulseCtl,0x00,PCTLLEN);                                         // effact bits cb otf enable pulses et free run 
+                       Serial.print("periCur=");Serial.println(periCur);
                        break;  
               case 32: {uint8_t pu=*(libfonctions+2*i)-PMFNCHAR,b=*(libfonctions+2*i+1);            // (pulses swCtlTableHtml) peri_otf__ bits généraux (FOT)
-                       uint16_t sh=0;
+                        uint16_t sh=0;
                         switch (b){
                            case 'F':sh=PMFRO_VB;break;      // Free run
                            case 'O':sh=PMTOE_VB;break;      // pulse One enable
@@ -1643,7 +1647,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         *(uint16_t*)periSwPulseCtl|=sh;
                        }break;       
               case 33: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL;   // (regles switchs) p_inp1__  
-                        uint16_t offs=nuinp*PERINPLEN;                                                     // (enable/type/num detec/action)
+                        uint16_t offs=nuinp*PERINPLEN;                                                    // (enable/type/num detec/action)
                         uint16_t vl=0;
                         // pericur est à jour via peri_inp_
                         switch (nfct){
@@ -1684,12 +1688,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         uint8_t offs=nuinp*PERINPLEN;
                         // pericur est à jour via peri_inp_
                         *(uint8_t*)(periInput+offs+1)|=(uint8_t)PERINPRULESLS_VB<<nfct;}break;
-              case 35: {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri Pulse one (pto)
+              case 35: {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri_pto__ Pulse one (pto) 
                         *(periSwPulseOne+pu)=0;*(periSwPulseOne+pu)=(uint32_t)convStrToInt(valf,&j);                              
+                       Serial.print("pto=");Serial.print(*(libfonctions+2*i));Serial.print(" ");Serial.print(*(libfonctions+2*i)-PMFNCHAR);Serial.print(" ");Serial.println(*(periSwPulseOne+pu));
                        }break;                                                                      
-              case 36: {int pu=*(libfonctions+2*i)-PMFNCHAR;
+              case 36: {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri_ptt__ Pulse two (ptt)
                         *(periSwPulseTwo+pu)=0;*(periSwPulseTwo+pu)=(uint32_t)convStrToInt(valf,&j); 
-                       }break;                                                                          // (pulses) peri Pulse two (ptt)
+                       }break;                                                                          
               case 37: *periThmin_=0;*periThmin_=(int16_t)convStrToInt(valf,&j);break;                  // (periLine) Th min
               case 38: *periThmax_=0;*periThmax_=(int16_t)convStrToInt(valf,&j);break;                  // (periLine) Th max
               case 39: *periVmin_=0;*periVmin_=(int16_t)convStrToInt(valf,&j);break;                    // (periLine) V min
@@ -1969,7 +1974,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
             case 2: if(ab=='a'){periTableHtml(cli);}                     // peritable ou remote suite à login
                     if(ab=='b'){remoteHtml(cli);} break;     
             case 3: periMess=periAns(cli,"set_______");break;            // data_read
-            case 4: periMess=periSave(periCur,PERISAVESD);               // switchs
+            case 4: Serial.print("pericur=");Serial.print(periCur);Serial.print(" pulse 0=");Serial.print(*(periSwPulseOne));
+                    periMess=periSave(periCur,PERISAVESD);               // switchs
+                    Serial.print(" periMess periSave=");Serial.println(periMess);
                     swCtlTableHtml(cli);
                     cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;
             case 5: periMess=periSave(periCur,PERISAVESD);               // (periLine) modif ligne de peritable

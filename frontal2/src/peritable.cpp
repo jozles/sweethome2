@@ -773,7 +773,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
 // boutons
           char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';                      
           scrGetButFn(buf,jsbuf,line,"","Periph",ALICNO,0,TDBEG|BRYES);                         // bouton periph
-          if(*periSwNb!=0){char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
+          if(*periSwNb!=0){char swf[]="switchs_W_";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
             scrGetButFn(buf,jsbuf,swf,"","Switchs",ALICNO,0,TDEND);}                            // bouton switchs
           strcat(buf,"\n");                                    
 // fin

@@ -1070,7 +1070,7 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
               case 0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
                       answer("data_save_");break;                       // set ---> réponse message data_save_ complet
               case 1: answer("ack_______");break;                       // ack ne devrait pas se produire (page html seulement)
-              case 2: answer("etat______");talkReq();break;     // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
+              case 2: answer("data_save_");break;                       // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
               case 3: break;                                            // sleep (future use)
               case 4: break;                                            // reset (future use)
               case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);break;swSet(0,1);break;    // test on  A        http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A
