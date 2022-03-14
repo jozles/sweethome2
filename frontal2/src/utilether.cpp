@@ -116,7 +116,7 @@ void mail(const char* a, const char* mm)
       char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
 
       uint32_t bufIp=Ethernet.localIP();
-      charIp((byte*)&bufIp,ms,nullptr);
+      charIp(ms,(char*)&bufIp,nullptr);
       strcat(ms,"/");
       concatn(ms,*serverPort);
       strcat(ms," ");

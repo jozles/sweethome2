@@ -1073,10 +1073,10 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
               case 2: answer("data_save_");break;                       // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
               case 3: break;                                            // sleep (future use)
               case 4: break;                                            // reset (future use)
-              case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);break;swSet(0,1);break;    // test on  A        http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A
-              case 6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);break;swSet(0,0);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
-              case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);break;swSet(1,1);break;    // test on  B        http://82.64.32.56:1796/sw1__ON___=0005_5A
-              case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);break;swSet(1,0);break;   // test off B        adresse/port indifférent crc=5A
+              case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);digitalWrite(pinSw[0],openSw[0]);break;swSet(0,1);break;    // test on  A        http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A
+              case 6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);digitalWrite(pinSw[0],cloSw[0]);break;swSet(0,0);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
+              case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);digitalWrite(pinSw[1],openSw[1]);break;swSet(1,1);break;    // test on  B        http://82.64.32.56:1796/sw1__ON___=0005_5A
+              case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);digitalWrite(pinSw[1],cloSw[1]);break;swSet(1,0);break;   // test off B        adresse/port indifférent crc=5A
               case 9: 
               #ifdef MAIL_SENDER                      
                       if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}

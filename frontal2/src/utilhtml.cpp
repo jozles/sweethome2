@@ -15,8 +15,6 @@ extern Ds3231 ds3231;
 
 extern char*     chexa;
 
-extern uint8_t   remote_IP[4],remote_IP_cur[4];
-
 extern char      periRec[PERIRECLEN];        // 1er buffer de l'enregistrement de périphérique
   
 extern uint16_t  periCur;                    // Numéro du périphérique courant
@@ -1185,7 +1183,7 @@ void pageLineOne(char* buf,char* jsbuf)
   *dm0=0x00;
   uint32_t bufIp=Ethernet.localIP();
   strcat(dm0," ; local IP ");
-  charIp((byte*)&bufIp,dm0,nullptr);strcat(dm0," ");
+  charIp(dm0,(char*)&bufIp,nullptr);strcat(dm0," ");
   concatnf(dm0,nullptr,th,2,NOBR,SEPNO);strcat(dm0,"°C ");
   scrDspText(buf,jsbuf,dm0,2,BRYES);
 }

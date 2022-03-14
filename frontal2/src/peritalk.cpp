@@ -76,7 +76,7 @@ extern byte*     periEndOfRecord;
 
 extern byte      periMacBuf[6]; 
 
-extern byte      lastIpAddr[4];
+//extern byte      lastIpAddr[4];
 
 extern uint8_t   memDetServ[];
 
@@ -220,7 +220,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
 
   int ret=MESSCX; // pas de port pas de connexion
   if(*periProg!=0 && *periPort!=0){
-    charIp(periIpAddr,host);
+    charIp(host,(char*)periIpAddr);
   
     Serial.print(millis());Serial.print(" periReq(");Serial.print((char)*periProtocol);
     Serial.print(" peri=");Serial.print(periCur);
@@ -252,7 +252,8 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                 //else {
                   //Serial.println(bufServer);
                   //Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
-                  if(fonct==fdatasave){  
+                  if(fonct==fdatasave){
+                    memcpy(remote_IP_cur,periIpAddr,4); // remote_IP_cur n'est pas valide ici 
                     periDataRead(bufServer+LENNOM+1);
                     periSave(periCur,PERISAVELOCAL);    // màj cache ... toujours OK (periCur from periDataRead)
                   }
@@ -445,6 +446,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       if(*(valf+oriMessLen-8)=='*'){*periSsidNb=*(valf+oriMessLen-7);}
 
       memcpy(periIpAddr,remote_IP_cur,4);                                                   // Ip addr
+      
       if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}              // port
 
       periSave(periCur,PERISAVELOCAL);

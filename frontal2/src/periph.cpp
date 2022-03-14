@@ -137,7 +137,7 @@ extern byte*      periEndOfRecord;
 extern int8_t     periMess;                    // code diag réception message (voir MESSxxx shconst.h)
 extern byte       periMacBuf[6]; 
 
-extern byte       lastIpAddr[4];
+//extern byte       lastIpAddr[4];
 
 extern char inptyps[];                        // libellés types sources regles switchs
 extern char inptypd[];                        // libellés types destinations regles switchs
@@ -676,7 +676,7 @@ void periInputPrint(byte* input)
 
 void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo,uint32_t* currOne,uint32_t* currTwo)
 {
-  Serial.print("pulses(f-e 1 e 2)  ");
+  Serial.print("pulses(f-e1 t1/cur1 e2 t2/cur2) ");
   for(int pu=0;pu<NBPULSE;pu++){
     Serial.print((*(uint16_t*)pulseCtl>>(PMFRO_VB+pu*PCTLBIT))&0x01);sp("-",0);         // fr bit
     Serial.print(((*(uint16_t*)pulseCtl)>>(PMTOE_VB+pu*PCTLBIT))&0x01);sp(" ",0);       // time one en
@@ -692,7 +692,7 @@ void periPulsePrint(uint16_t* pulseCtl,uint32_t* pulseOne,uint32_t* pulseTwo,uin
 void periDetServPrint(uint8_t* detserv)
 {
   Serial.print(" detserv=");
-  for(int d=NBDSRV-1;d>=0;d--){Serial.print(mDSval(d)+48);} 
+  for(int d=NBDSRV-1;d>=0;d--){Serial.print(mDSval(d));} 
 }  
 
 
@@ -704,7 +704,7 @@ void  periPrint(uint16_t num)
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
   Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(") ");
   for(int s=MAXSW;s>=1;s--){Serial.print(periSwCde(s));}
-  periDetServPrint(memDetServ);Serial.print(" millis=");Serial.println(millis());
+  periDetServPrint(memDetServ);Serial.println(millis());
   periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo,periSwPulseCurrOne,periSwPulseCurrTwo);
   periInputPrint(periInput);
 /*  Serial.print("Anal=");Serial.print(*periAnal);Serial.print(" low=");Serial.print(*periAnalLow);Serial.print(" high=");Serial.print(*periAnalHigh);
@@ -829,17 +829,7 @@ int periCacheSave(uint16_t num)                                     // sauve les
         for(int i=0;i<PERIRECLEN;i++){fperi.write(periCache[(num-1)*PERIRECLEN+i]);}
         fperi.close();
         periCacheStatus[num]=CACHEISFILE;                           // le fichier est à l'image du cache
-        for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
-/*    Serial.print("periCacheSave ");Serial.print(periFile);Serial.print("  ");
-    Serial.print((*(uint16_t*)periSwPulseCtl>>(PMFRO_VB))&0x01);sp("-",0);         // fr bit
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTOE_VB))&0x01);sp(" ",0);       // time one en
-    Serial.print(*(uint32_t*)(periSwPulseOne));sp("/",0);                          // time one
-    Serial.print(*(uint32_t*)(periSwPulseCurrOne));sp(" ",0);                      // curr one    
-    Serial.print(((*(uint16_t*)periSwPulseCtl)>>(PMTTE_VB)&0x01));sp(" ",0);       // time two en
-    Serial.print(*(uint32_t*)(periSwPulseTwo));sp("/",0);                          // time two
-    Serial.print(*(uint32_t*)(periSwPulseCurrTwo));                                // curr two 
-    Serial.println();
-*/
+        //for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
       }
       else{Serial.print(periFile);Serial.println(" ko");sta=SDKO;}
     }

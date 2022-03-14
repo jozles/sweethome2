@@ -41,8 +41,6 @@ extern uint16_t* toPassword;
 extern unsigned long      cxtime;
 extern char*     chexa;
 
-extern uint8_t   remote_IP[4],remote_IP_cur[4];
-
 extern char      periRec[PERIRECLEN];        // 1er buffer de l'enregistrement de périphérique
   
 extern uint16_t  periCur;                    // Numéro du périphérique courant
@@ -160,6 +158,7 @@ void subModePulseTime(char* buf,char* jsbuf,uint8_t npu,uint32_t* pulse,uint32_t
   uint8_t val=(((*(uint16_t*)periSwPulseCtl)>>pbit)&0x01)+PMFNCVAL;                                        
   //strcat(buf,"<font size=\"2\">");
   fonc1[LENNOM-1]=onetwo;
+  fonc2[LENNOM-1]=onetwo;
   scrGetCheckbox(buf,jsbuf,&val,fonc1,NO_STATE,"",2,ctl&TDBEG);               // bit enable pulse
   if(*(pulse+npu)<0){*(pulse+npu)=0;}  
   scrGetNum(buf,jsbuf,'g',(pulse+npu),fonc2,8,0,0,BRYES);                     // durée pulse   
@@ -237,8 +236,7 @@ void swCtlTableHtml(EthernetClient* cli)
     tableBeg(buf,jsbuf,TRBEG|TDBEG);
     scrDspText(buf,jsbuf," |time One~time Two|free~run",0,TDEND|TREND);
 
-      char pfonc[]="peri_pto__\0";            // transporte la valeur pulse time One
-      char qfonc[]="peri_ptt__\0";            // transporte la valeur pulse time Two
+      char pfonc[]="peri_sw___\0";            // transporte les valeurs pulses time One/two, le n° de périf source pour copie des rules
       char rfonc[]="peri_otf__\0";            // transporte les bits freerun et enable pulse de periPulseMode (LENNOM-1= ,'F','O','T')
 
       scrDspText(buf,jsbuf,"",0,TRBEG);
@@ -247,11 +245,10 @@ void swCtlTableHtml(EthernetClient* cli)
         scrDspNum(buf,jsbuf,'D',&pu,0,0,TDBE);
 
         pfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
-        qfonc[LENNOM-2]=(char)(pu+PMFNCHAR);
         rfonc[LENNOM-2]=(char)(pu+PMFNCHAR);        
       
         subModePulseTime(buf,jsbuf,pu,periSwPulseOne,periSwPulseCurrOne,rfonc,pfonc,'O',TDBEG|BRYES);     // bit et valeur time one
-        subModePulseTime(buf,jsbuf,pu,periSwPulseTwo,periSwPulseCurrTwo,rfonc,qfonc,'T',TDEND);           // bit et valeur time two
+        subModePulseTime(buf,jsbuf,pu,periSwPulseTwo,periSwPulseCurrTwo,rfonc,pfonc,'T',TDEND);           // bit et valeur time two
         uint8_t val=(*(uint16_t*)periSwPulseCtl>>(PCTLBIT*pu+PMFRO_PB))&0x01;rfonc[LENNOM-1]='F';         // bit freerun
         scrGetCheckbox(buf,jsbuf,&val,rfonc,NO_STATE,"",0,TDBEG|BRYES);                  
         char ttsp[LENTSP+1];memcpy(ttsp,&(psps[periSwPulseSta[pu]*LENTSP]),LENTSP);ttsp[LENTSP]='\0';
@@ -281,8 +278,8 @@ void swCtlTableHtml(EthernetClient* cli)
   swf[LENNOM-2]='Y';
   scrGetButFn(buf,jsbuf,swf,"","en/dis all",ALICNO,0,0);    // bouton all enable/disable
 
-  swf[LENNOM-2]='V';
-  scrGetNum(buf,jsbuf,'d',&periSrc,swf,9,0,0,0);            //  N° périphérique source pour copie 
+  pfonc[LENNOM-2]='V';
+  scrGetNum(buf,jsbuf,'d',&periSrc,pfonc,9,0,0,0);          //  N° périphérique source pour copie 
   swf[LENNOM-2]='U';
   scrGetButFn(buf,jsbuf,swf,"","copy from",ALICNO,0,BRYES); // bouton copy from
 
@@ -355,7 +352,7 @@ bufLenShow(buf,jsbuf,lb,begTPage);
 
 void periTableHtml(EthernetClient* cli)
 {
-  Serial.print("peritable ; remote_IP ");serialPrintIp(remote_IP_cur);Serial.print(" fhsize=");Serial.println(fhsize);
+  Serial.println("peritable ");
 
   char jsbuf[12000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
   uint16_t lb=0,lb0=LBUF4000;
