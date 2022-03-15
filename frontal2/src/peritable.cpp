@@ -289,17 +289,16 @@ void swCtlTableHtml(EthernetClient* cli)
   scrDspText(buf,jsbuf,"|e...r...p...e~n...f...r...s| source | destin.| action |                        ",0,TDBE|TRBE);
   ethWrite(cli,buf,&lb);
 
-      char xfonc1[]="p_inp1____\0";  // 1 suppl char for (raz/del/ins) periCur 
+      char xfonc1[]="p_inp1____\0";                   // code les params de la ligne de règles
 
       uint16_t offsetInp=0;
-      uint8_t ni=0;                 // nbre lignes ds buffer
+      uint8_t ni=0;                                   // nbre lignes ds buffer
       
-      for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){     // boucle des regles
+      for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){     // boucle des règles
 
             ni++;
             
-            char fnc[LENNOM+1];memcpy(fnc,"peri_inp__",LENNOM);//fnc[LENNOM-1]=(char)(ninp+PMFNCHAR);
-            fnc[LENNOM]='\0';
+            char fnc[]="peri_inp1__\0";               // intro formulaire ligne de règle (raz cb etc) (passage de 6 bits du byte 1 des règles ?)
             formIntro(buf,jsbuf,fnc,ninp,0,0);
 
             uint8_t vv;

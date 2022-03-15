@@ -82,8 +82,8 @@ bool serverStarted=false;
   char  bufServer[LBUFSERVER];            // buffer des envois/réceptions de messages
   int   periMess;                         // diag de réception de message
 
-  const char* fonctions={"set_______ack_______etat______reset_____sleep_____sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______last_fonc_"};
-  uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__,fmail______;
+  const char* fonctions={"set_______ack_______etat______reset_____sleep_____sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______mds_______last_fonc_"};
+  uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__,fmail______,fmds_______;
   int     nbfonct;
   uint8_t fonction;                       // la dernière fonction reçue
 
@@ -291,11 +291,12 @@ delay(1);
   fetat______=(strstr(fonctions,"etat______")-fonctions)/LENNOM;
   freset_____=(strstr(fonctions,"reset_____")-fonctions)/LENNOM;
   fsleep_____=(strstr(fonctions,"sleep_____")-fonctions)/LENNOM;  
-  ftestaoff__=(strstr(fonctions,"testaoff__")-fonctions)/LENNOM;
-  ftesta_on__=(strstr(fonctions,"testa_on__")-fonctions)/LENNOM;
-  ftestboff__=(strstr(fonctions,"testboff__")-fonctions)/LENNOM;  
-  ftestb_on__=(strstr(fonctions,"testb_on__")-fonctions)/LENNOM;
+  ftestaoff__=(strstr(fonctions,"sw0__OFF__")-fonctions)/LENNOM;
+  ftesta_on__=(strstr(fonctions,"sw0__ON___")-fonctions)/LENNOM;
+  ftestboff__=(strstr(fonctions,"sw1__OFF__")-fonctions)/LENNOM;  
+  ftestb_on__=(strstr(fonctions,"sw1__ON___")-fonctions)/LENNOM;
   fmail______=(strstr(fonctions,"mail______")-fonctions)/LENNOM;
+  fmds_______=(strstr(fonctions,"mds_______")-fonctions)/LENNOM;
 
 /* >>>>>> debut <<<<<< */
 
@@ -598,7 +599,7 @@ int fServer(uint8_t fwaited)          // réception du message réponse du serve
         return periMess;
 }
 
-void dataTransfer(char* data)           // transfert contenu de set ou ack dans variables locales selon contrôles
+void dataTransfer(char* data)   // transfert contenu de set ou ack dans variables locales selon contrôles
                                         // data sur fonction
                                         //    contrôle mac addr et numPeriph ;
                                         //    si pb -> numPeriph="00" et ipAddr=0
@@ -615,54 +616,57 @@ void dataTransfer(char* data)           // transfert contenu de set ou ack dans 
         else {
                              // si ok transfert des données
 if(diags){Serial.println(" dataTransfer() ");}       
-            memcpy(cstRec.numPeriph,data+MPOSNUMPER,2);                         // num périph
+          memcpy(cstRec.numPeriph,data+MPOSNUMPER,2);                         // num périph
 
-            int sizeRead;
-            cstRec.serverPer=(long)convStrToNum(data+MPOSPERREFR,&sizeRead);    // per refresh server
-            cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
-            cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure (100x)
-            conv_atoh(data+MPOSANALH,(byte*)&cstRec.analLow);conv_atoh(data+MPOSANALH+2,(byte*)&cstRec.analLow+1);      // analogLow
-            conv_atoh(data+MPOSANALH+4,(byte*)&cstRec.analHigh);conv_atoh(data+MPOSANALH+6,(byte*)&cstRec.analHigh+1);  // analogHigh
+          int sizeRead;
+          cstRec.serverPer=(long)convStrToNum(data+MPOSPERREFR,&sizeRead);    // per refresh server
+          cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
+          cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure (100x)
             
-            uint8_t mskSw[] = {0xfd,0xf7,0xdf,0x7f};                            
-            for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
-              cstRec.swCde &= mskSw[i];
-              cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
+          uint8_t mskSw[] = {0xfd,0xf7,0xdf,0x7f};                            
+          for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
+            cstRec.swCde &= mskSw[i];
+            cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
 
-            uint16_t i1=NBPERRULES*PERINPLEN;                                    // size inputs
+          conv_atoh(data+MPOSANALH,(byte*)&cstRec.analLow);conv_atoh(data+MPOSANALH+2,(byte*)&cstRec.analLow+1);      // analogLow
+          conv_atoh(data+MPOSANALH+4,(byte*)&cstRec.analHigh);conv_atoh(data+MPOSANALH+6,(byte*)&cstRec.analHigh+1);  // analogHigh
+
+          uint16_t posMds=MPOSPULSONE;
+          if(memcmp(data,"mds_______",LENNOM)!=0){                                   // pas de pulses ni de rules si mds_______
+            posMds=MPOSMDETSRV;
+
+            for(int i=0;i<NBPULSE;i++){                                       // pulses values NBPULSE*ONE+NBPULSE*TWO
+              cstRec.durPulseOne[i]=(long)convStrToNum(data+MPOSPULSONE+i*(LENVALPULSE+1),&sizeRead);
+              cstRec.durPulseTwo[i]=(long)convStrToNum(data+MPOSPULSTWO+i*(LENVALPULSE+1),&sizeRead);}
+
+            for(int ctl=PCTLLEN-1;ctl>=0;ctl--){                              // pulses control
+              conv_atoh((data+MPOSPULSCTL+ctl*2),&cstRec.pulseMode[ctl]);}
+
+            uint16_t i1=NBPERRULES*PERINPLEN;                                 // size inputs
             byte bufoldlev[i1];
-            for(uint16_t k=0;k<i1;k++){                                          // inputs !!! ne pas écraser les bits oldlevel !!!
+            for(uint16_t k=0;k<i1;k++){                                         // inputs !!! ne pas écraser les bits oldlevel !!!
               conv_atoh((data+MPOSPERRULES+2*k),&bufoldlev[k]);
               if((k%4)==2){bufoldlev[k]&=~PERINPOLDLEV_VB;bufoldlev[k]|=cstRec.perInput[k]&PERINPOLDLEV_VB;}
             }
             memcpy(&cstRec.perInput,bufoldlev,i1);
-            
-            for(int i=0;i<NBPULSE;i++){                                         // pulses values NBPULSE*ONE+NBPULSE*TWO
-              cstRec.durPulseOne[i]=(long)convStrToNum(data+MPOSPULSONE+i*(LENVALPULSE+1),&sizeRead);
-              cstRec.durPulseTwo[i]=(long)convStrToNum(data+MPOSPULSTWO+i*(LENVALPULSE+1),&sizeRead);}
+          } // !mds
 
-            for(int ctl=PCTLLEN-1;ctl>=0;ctl--){                                // pulses control
-              conv_atoh((data+MPOSPULSCTL+ctl*2),&cstRec.pulseMode[ctl]);}
-   
-            //Serial.println("data");Serial.println((char*)data+MPOSPERRULES);
-            int mdsl=MDSLEN;
-            if(*(data+MPOSMDETSRV+8)=='_'){mdsl=4;}
-            for(int k=0;k<mdsl;k++){                                            // détecteurs externes
-              conv_atoh((data+MPOSMDETSRV+k*2),(byte*)(cstRec.extDetec+mdsl-1-k));
-            }   
-            //periDetServPrint(cstRec.extDetec);
+          int mdsl=MDSLEN;
+          if(*(data+posMds+8)=='_'){mdsl=4;}
+          for(int k=0;k<mdsl;k++){                                            // détecteurs externes
+            conv_atoh((data+posMds+k*2),(byte*)(cstRec.extDetec+mdsl-1-k));
+          }   
 
-            cstRec.periPort=(uint16_t)convStrToNum(data+MPOSMDETSRV+mdsl*2+1,&sizeRead);  // port server
-            //Serial.println((char*)(data+MPOSMDETSRV+mdsl*2+1));
+          cstRec.periPort=(uint16_t)convStrToNum(data+posMds+mdsl*2+1,&sizeRead);  // port server
+          
           #ifdef _SERVER_MODE
             if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);}
           #endif
-        }
+        } // periMess==MESSOK
         if(periMess!=MESSOK){
           memcpy(cstRec.numPeriph,"00",2);cstRec.IpLocal=IPAddress(0,0,0,0);
         }
 }
-
 
 int buildData(const char* nomfonction,const char* data)               // assemble une fonction data_read_ ou data_save_
 {                                                                     // et concatène dans bufServer - retour longueur totale
@@ -707,10 +711,11 @@ int buildData(const char* nomfonction,const char* data)               // assembl
 
       strcpy(message+sb+LENMODEL,"_\0");                                                      //      - 7
       sb+=LENMODEL+1;
-      bool noZero=false;
+      bool noZero=false;            // si aucun compteur n'est utilisé ET qu'ils sont tous à 0, pas de transmission
       for(i=0;i<NBPULSE;i++){
         //Serial.print("=======================staPulse[");Serial.print(i);Serial.print(")=");Serial.println(staPulse[i]);
-        if(staPulse[i]!=PM_DISABLE && staPulse[i]!=PM_IDLE){noZero=true;break;}
+        if(staPulse[i]!=PM_DISABLE && staPulse[i]!=PM_IDLE && staPulse[i]!=0x00){noZero=true;break;}
+        if(cntPulseOne[i]!=0 || cntPulseTwo[i]!=0){noZero=true;break;}
       }
       if(noZero){
         uint32_t currt;
@@ -726,7 +731,7 @@ int buildData(const char* nomfonction,const char* data)               // assembl
           if(cntPulseTwo[i]!=0){currt=((uint32_t)millis()-cntPulseTwo[i])/1000;}
           if(diags){Serial.print(currt);if(currt>=cstRec.durPulseTwo[i]){Serial.print('>');}else {Serial.print('<');}Serial.print(cstRec.durPulseTwo[i]);
           Serial.print("  ");}
-          for(uint8_t j=0;j<4;j++){conv_htoa((char*)(message+sb+(i*2+1)*8+j*2),(byte*)(&currt)+j);}      // loop bytes (4/8)
+          for(uint8_t j=0;j<4;j++){conv_htoa((char*)(message+sb+(i*2+1)*8+j*2),(byte*)(&currt)+j);}   // loop bytes (4/8)
         }
         if(diags){Serial.println();}
         sb+=NBPULSE*2*sizeof(uint32_t)*2+1;
@@ -1065,19 +1070,22 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
           Serial.print("rcv fnct=");Serial.print(fonction);
 #ifdef ANALYZE
   FORCV   // 5,9mS
-#endif // ANALYZE          
+#endif // ANALYZE        
+
           switch(fonction){
-              case 0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
-                      answer("data_save_");break;                       // set ---> réponse message data_save_ complet
-              case 1: answer("ack_______");break;                       // ack ne devrait pas se produire (page html seulement)
-              case 2: answer("data_save_");break;                       // etat -> dataread/save   http://192.168.0.6:80/etat______=0006xxx
-              case 3: break;                                            // sleep (future use)
-              case 4: break;                                            // reset (future use)
-              case 5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);digitalWrite(pinSw[0],openSw[0]);break;swSet(0,1);break;    // test on  A        http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A
-              case 6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);digitalWrite(pinSw[0],cloSw[0]);break;swSet(0,0);break;   // test off A        http://192.168.0.6:80/sw0__OFF__=0005_5A
-              case 7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);digitalWrite(pinSw[1],openSw[1]);break;swSet(1,1);break;    // test on  B        http://82.64.32.56:1796/sw1__ON___=0005_5A
-              case 8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);digitalWrite(pinSw[1],cloSw[1]);break;swSet(1,0);break;   // test off B        adresse/port indifférent crc=5A
-              case 9: 
+            case  0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
+                      answer("data_save_");break;                       // réponse message data_save_
+            case  1: answer("ack_______");break;               // ack ne devrait pas se produire (page html seulement)
+            case  2: answer("data_save_");break;               // dataread/save   http://192.168.0.6:80/etat______=0006xxx
+            case 10: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
+                      answer("data_save_");break;                       // réponse message data_save_                       
+            case  3: break;                                    // reset (future use)
+            case  4: break;                                    // sleep (future use)
+            case  5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);digitalWrite(pinSw[0],openSw[0]);break;   // test on  A  1sec  http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A
+            case  6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);digitalWrite(pinSw[0],cloSw[0]);break;   // test off A  1sec  http://192.168.0.6:80/sw0__OFF__=0005_5A
+            case  7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);digitalWrite(pinSw[1],openSw[1]);break;   // test on  B  1sec  http://82.64.32.56:1796/sw1__ON___=0005_5A
+            case  8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);digitalWrite(pinSw[1],cloSw[1]);break;   // test off B  1sec  adresse/port indifférent crc=5A
+            case  9: 
               #ifdef MAIL_SENDER                      
                       if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
                       v0+=21;
@@ -1098,8 +1106,9 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
               #ifndef MAIL_SENDER
                       if(diags){Serial.println("no mail on this board");}
               #endif // MAIL_SENDER
-                      break;                 
-              default:break;
+                      break;                
+
+            default:break;
           }          
           Serial.println();
         }

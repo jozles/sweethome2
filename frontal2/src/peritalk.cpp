@@ -90,28 +90,27 @@ extern  char*    fonctions;
 extern int       nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
 
 
-void assySet(char* message,int periCur,const char* diag,char* date14)     
+void assySet(char* message,int periCur,const char* diag,char* date14,char* fonct)     
 // assemblage datas pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
 {
   Serial.print(" assySet ");
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
 
-            if(periCur>0){                                        // si periCur >0 macaddr ok -> set
-                unpackMac(message+strlen(message),periMacr);}
+  if(periCur>0){                                        // si periCur >0 macaddr ok -> set
+    unpackMac(message+strlen(message),periMacr);}
 
-            else if(periCur<=0){
-                  unpackMac(message+strlen(message),periMacBuf);  // si periCur<=0 plus de place -> ack
-                  strcat(message,periDiag(periMess));}
+  else if(periCur<=0){
+    unpackMac(message+strlen(message),periMacBuf);  // si periCur<=0 plus de place -> ack
+    strcat(message,periDiag(periMess));}
 
-            strcat(message,"_");
+    strcat(message,"_");
 
-            memcpy(message+strlen(message),date14,14);
-            //Serial.println(date14);
-            strcat(message,"_");
+    memcpy(message+strlen(message),date14,14);
+    strcat(message,"_");
 
-            unsigned int v1,v2=0;
-            if(periCur>0){                                        // periCur>0 tfr params
+    unsigned int v1,v2=0;
+    if(periCur>0){                                        // periCur>0 tfr params
                 v2=*periPerRefr;
                 sprintf((message+strlen(message)),"%05d",v2);     // periPerRefr
                 strcat(message,"_");
@@ -138,29 +137,34 @@ void assySet(char* message,int periCur,const char* diag,char* date14)
                 v1+=4;
                 memcpy(message+v1,"_\0",2);         
                 v1+=1;
-          
-if(*periProg!=0){
 
-                for(int k=0;k<NBPULSE*2;k++){                     // 2 fois 4 compteurs (8*(8+1)bytes)
+      if(*periProg!=0){
+
+          if(fonct==nullptr || memcmp(fonct,"swi_______",LENNOM)!=0)
+          {
+          
+                for(int k=0;k<NBPULSE*2;k++){                     // 2 fois 4 compteurs (8*(8+1)bytes) =72
                     sprintf(message+v1+k*(LENVALPULSE+1),"%08lu",*(periSwPulseOne+k));
                     memcpy(message+v1+(k+1)*LENVALPULSE+k,"_\0",2);
                 }
 
-                v1+=NBPULSE*2*(8+1);                              // bits OTF * 4 = 2*2+1 bytes
+                v1+=NBPULSE*2*(8+1);                              // bits OTF * 4 = 2*2+1 bytes =5
                 for(int k=0;k<PCTLLEN;k++){conv_htoa(message+v1+k*2,(byte*)(periSwPulseCtl+k));}
                 memcpy(message+v1+2*PCTLLEN,"_\0",2);  
 
                 v1+=2*PCTLLEN+1;
-                for(int k=0;k<NBPERRULES*PERINPLEN;k++){          // 24*4=96+1 
+                for(int k=0;k<NBPERRULES*PERINPLEN;k++){          // 48*4=192+1 =193
                     *(message+v1+2*k)=chexa[*(periInput+k)>>4];
                     *(message+v1+2*k+1)=chexa[*(periInput+k)&0x0F];
                 }
                 memcpy((message+v1+2*NBPERRULES*PERINPLEN),"_\0",2);
 
                 v1+=2*NBPERRULES*PERINPLEN+1;
+          } // pas swi_______
+          
                 byte byt;
                 for(uint8_t mds=MDSLEN;mds>0;mds--){              // NBDSRV bits memDetServ -> MDSLEN car hexa
-                    byt=memDetServ[mds-1]; //(uint8_t)((uint32_t)(memDetServ>>(mds*8)));
+                    byt=memDetServ[mds-1];
                     conv_htoa(message+v1+2*(MDSLEN-mds),(byte*)&byt);}
                 memcpy(message+v1+2*MDSLEN,"_\0",2);
 
@@ -169,13 +173,16 @@ if(*periProg!=0){
                 sprintf((message+v1),"%04d",v2);                  // periPort
                 memcpy(message+v1+4,"_\0",2);
 
-            }  // periprog != 0
-            strcat(message,diag);                                 // periMess length=LPERIMESS
+      }  // periprog != 0
+      strcat(message,diag);                                 // periMess length=LPERIMESS
 
-  }  // pericur != 0            
+    }  // pericur != 0            
 }
 
-
+void assySet(char* message,int periCur,const char* diag,char* date14)
+{
+  assySet(message,periCur,diag,date14,nullptr);
+}
 
 int  periReq(EthernetClient* cli,uint16_t np,const char* nfonct)
 {
@@ -227,7 +234,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     Serial.print(" Ip=");serialPrintIp(periIpAddr);
     Serial.print(" port=");Serial.print(*periPort);Serial.print(") ");
 
-    if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
+    if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0 || memcmp(nfonct,"swi_______",LENNOM)==0 ){
         assySet(message,periCur,periDiag(periMess),date14);}      // assemblage datas ; ci-après buildMess controle l'ovf
     else if(strlen(msg)<(LENMESS-2)){strcat(message,msg);}
 

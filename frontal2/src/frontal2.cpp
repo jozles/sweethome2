@@ -2012,6 +2012,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           //cli->stop();                           // en principe inutile (purge fait stop)
           //Serial.print(" st=");Serial.println(millis());
           */
+        cli->stop();    // ********************************************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                        // sinon server.available() crée des fantômes .... 
+                        // la gestion d'instances multiples ne fonctionne pas avec le navigateur
+
         cliext.stop();                           // en principe rapide : la dernière action est une entrée
         
         if(ab=='a'){
