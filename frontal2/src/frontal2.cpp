@@ -122,7 +122,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_refr_peri_nom__peri_mac__accueil___peri_tableperi_prog_peri_sondeperi_pitchperi_inp__peri_detnbperi_intnbperi_rtempremote____testhtml__peri_vsw__peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____peri_thminperi_thmaxperi_vmin_peri_vmax_dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___remotepb__percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlperi_raz___mailcfg___thparams__thermoshowthermoscfgperi_port_tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_perHrefr__periHtofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__periHmac__accueil___peri_tabledispo_____dispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__dispo_____peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___remotepb__percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmldispo_____mailcfg___thparams__thermoshowthermoscfgdispo_____tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
@@ -264,7 +264,7 @@ void iniDetServ()
   uint32_t* periSwPulseCurrTwo;             // ptr ds buffer : temps courant pulses OFF
   byte*     periSwPulseCtl;                 // ptr ds buffer : mode pulses
   byte*     periSwPulseSta;                 // ptr ds buffer : état clock pulses
-  uint8_t*  periSondeNb;                    // ptr ds buffer : nbre sonde
+  //uint8_t*  dispo;                        // ptr ds buffer : dispo
   bool*     periProg;                       // ptr ds buffer : flag "programmable" (périphériques serveurs)
   byte*     periDetNb;                      // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
   byte*     periDetVal;                     // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
@@ -1549,7 +1549,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 5:  *toPassword=TO_PASSWORD;conv_atob(valf,toPassword);break;                    // to_passwd_
               case 6:  what=2;perrefr=0;conv_atob(valf,&perrefr);                                   // (en tête peritable) periode refresh browser
                        break;                                                                               
-              case 7:  *periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) Th Offset
+              case 7:  break; //*periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) Th Offset
               case 8:  getPeriCurLibf(PERILOAD);                                                    // bouton switchs___ (periLine/showLine/switchs)
                        switch (*(libfonctions+2*i)){
                          case 'X':periInitVar0();
@@ -1564,8 +1564,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                     periSave(periCur,PERISAVESD);periSrc=0;swCtlTableHtml(cli);}
                                   break;
                          default:break;
-                       }
-                       break;                                                                               
+                       }break;                                                                               
               case 9:  what=99;{byte a=*(libfonctions+2*i+1);
                         if(a=='B'){usrReboot();}
                        }break;                                                                      // si pas 'R' déco donc -> accueil                                             
@@ -1586,39 +1585,58 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         else {a-=PMFNCVAL;k=periSwLev(a);}
                         memcpy(fptst,swcd+LENNOM*(a*2+k),LENNOM);
                         cliext.stop();periReq(&cliext,periCur,fptst,msg);
-                        //Serial.print("=========== periCur=");Serial.print(periCur);Serial.print(" k=");Serial.print(k);Serial.print(" a=");Serial.print(a);Serial.print(" swLev=");Serial.print(periSwLev(a));Serial.print(" peritst=");Serial.println(fptst);
                         periLineHtml(cli);                        
                        }break;                                                                       
-              case 15: what=5;getPeriCurValf(PERILOAD);                                             // (periLine) - peri_cur__ bouton submit
+              case 15: what=5;getPeriCurValf(PERILOAD);                                                   // (periLine) - peri_cur__ bouton submit
                        *periProg=0;
                        break;                                                                        
-              case 16: *periPerRefr=0;conv_atobl(valf,periPerRefr);break;                           // (periLine) - peri_refr_ periode maxi accès serveur
-              case 17: alphaTfr(periNamer,PERINAMLEN,valf,nvalf[i+1]-nvalf[i]);                     // (periLine) - peri_nom__
-                       break;                                                 
-              case 18: for(j=0;j<6;j++){conv_atoh(valf+j*2,(periMacr+j));}break;                    // (periLine) Mac periph courant
+              case 16: what=5;getPeriCurLibf(false);                                                      // (periLine) peri_raz___
+                       periInitVar();
+                       break;
+              case 17: {char pLFonc=*(libfonctions+2*i);                                                  // (periLine) sauf boutons et anal/dig
+                        switch (pLFonc){
+                          case 'N':alphaTfr(periNamer,PERINAMLEN,valf,nvalf[i+1]-nvalf[i]);break;         // (periLine) - peri_lf_N_ nom
+                          case 'M':for(j=0;j<6;j++){conv_atoh(valf+j*2,(periMacr+j));}break;              // (periLine) - peri_lf_M_ mac
+                          case 'v':*periVmin_=0;*periVmin_=(int16_t)convStrToInt(valf,&j);break;          // (periLine) - peri_lf_v_ Vmin
+                          case 'V':*periVmax_=0;*periVmax_=(int16_t)convStrToInt(valf,&j);break;          // (periLine) - peri_lf_V_ Vmax
+                          case 'h':*periThmin_=0;*periThmin_=(int16_t)convStrToInt(valf,&j);break;        // (periLine) - peri_lf_h_ th min inutilisé?            
+                          case 'H':*periThmax_=0;*periThmax_=(int16_t)convStrToInt(valf,&j);break;        // (periLine) - peri_lf_H_ th max inutilisé?
+                          case 't':*periPerTemp=0;conv_atob(valf,periPerTemp);break;                      // (periLine) - peri_lf_t_ per temp      
+                          case 'p':*periPitch_=0;*periPitch_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) - peri_lf_p_ pitch
+                          case 'o':*periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break; // (periLine) - peri_lf_o_ th offset 
+                          case 'r':*periPerRefr=0;conv_atobl(valf,periPerRefr);break;                     // (periLine) - peri_lf_r_ per refr
+                          case 'P':*periProg=*valf-48;break;                                              // (periLine) - peri_lf_P_ prog
+                          case 'i':*periSwNb=*valf-48;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;         // (periLine) - peri_lf_i_ sw nb
+                          case 'd':*periDetNb=*valf-48;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;    // (periLine) - peri_lf_d_ det nb
+                          case 'x':*periPort=0;conv_atob(valf,periPort);break;                            // (periLine) - peri_lf_x_ port
+                          case 'W':{uint8_t sw=*(libfonctions+2*i+1)-PMFNCHAR;                            // (periLine) - peri_lf_W_ sw Val 
+                                   uint8_t cd=*valf-PMFNCVAL;
+                                   periSwCdUpdate(sw,cd);                 // maj periSwVal (periCur ok, periLoad effectué)
+                                   remoteUpdate(periCur,sw,cd,PERILINE);  // maj remotes concernées
+                                   }break;
+                          default :break;
+                        }
+                       }break;
+              case 18: break;                                                                       // dispo  
               case 19: accueilHtml(cli);break;                                                      // accueil
               case 20: periTableHtml(cli);break;                                                    // peri table
-              case 21: *periProg=*valf-48;break;                                                    // (periLine) peri prog
-              case 22: *periSondeNb=*valf-48;if(*periSondeNb>MAXSDE){*periSondeNb=MAXSDE;}break;    // (periLine) peri sonde
-              case 23: *periPitch_=0;*periPitch_=(int16_t)(convStrToNum(valf,&j)*100);break;        // (periLine) peri pitch
+              case 21: break;                                                                       // dispo  
+              case 22: break;                                                                       // dispo  
+              case 23: break;                                                                       // dispo  
               case 24: {what=4;                                                                     // (lignes-regles) submit peri_inp__ set periCur raz cb
                        getPeriCurValf(PERILOAD);                                                    // periCur à jour via formIntro/peri_cur__
                        uint8_t nuinp=*(libfonctions+2*i+1)-PMFNCVAL;
                        uint16_t offs=nuinp*PERINPLEN;
                        *(uint8_t*)(periInput+2+offs)&=(uint8_t)PERINPACT_MS;
                        //*(byte*)(periInput+((uint8_t)(*(libfonctions+2*i+1))-PMFNCVAL)*PERINPLEN+2)&=PERINPACT_MS;  // effacement cb (oldlev/active/edge/en)
-                       Serial.print(nuinp);Serial.print("=====");Serial.print(offs);Serial.print(" ");Serial.println((char)*(periInput+2+offs),HEX);
+                       //Serial.print(nuinp);Serial.print("=====");Serial.print(offs);Serial.print(" ");Serial.println((char)*(periInput+2+offs),HEX);
                        }break;                                                                      
-              case 25: *periDetNb=*valf-48;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;          // (periLine) peri det Nb  
-              case 26: *periSwNb=*valf-48;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;               // (periLine) peri sw Nb                       
-              case 27: *periPerTemp=0;conv_atob(valf,periPerTemp);break;                            // periode check température
+              case 25: break;                                                                       // dispo  
+              case 26: break;                                                                       // dispo  
+              case 27: break;                                                                       // dispo  
               case 28: cfgRemoteHtml(cli);remotePrint();break;                                      // bouton remotecfg_
               case 29: testHtml(cli);break;                                                         // bouton testhtml
-              case 30: {uint8_t sw=*(libfonctions+2*i+1)-PMFNCHAR;                                  // (periLine) peri Sw Val 
-                       uint8_t cd=*valf-PMFNCVAL;
-                       periSwCdUpdate(sw,cd);                                                       // maj periSwVal (periCur ok, periLoad effectué)
-                       remoteUpdate(periCur,sw,cd,PERILINE);                                        // maj remotes concernées
-                       }break;
+              case 30: break;                                                                       // dispo  
               case 31: what=4;                                                                      // (pulses swCtlTableHtml/en-tête) peri_t_sw_ 
                        getPeriCurValf(PERILOAD);                                                    // periCur à jour via formIntro/peri_cur__
                        memset(periSwPulseCtl,0x00,PCTLLEN);                                         // effact bits cb otf enable pulses et free run 
@@ -1672,55 +1690,45 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                  memset(periInput+(NBPERRULES-1)*PERINPLEN,0x00,PERINPLEN);what=4;break;
                           default:break;
                         }
-                        Serial.print(nuinp);Serial.print("=====");Serial.print(nfct);Serial.print(" ");Serial.println((char)*(periInput+2+offs),HEX);
+                        //Serial.print(nuinp);Serial.print("=====");Serial.print(nfct);Serial.print(" ");Serial.println((char)*(periInput+2+offs),HEX);
                        }break;                                                                      
-              case 34: {uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL; // (règles switchs) p_inp2__  8 bits inutilisés
+              case 34: Serial.println("\n£££££££££££££££££££££££££££££££££££££ne devrait pas se produire£££££££££££££££££££££££££££££££££\n");break;
+                        // règles switchs fonction inutilisée
+                        /*{uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL; // (règles switchs) p_inp2__  8 bits inutilisés
                         uint8_t offs=nuinp*PERINPLEN;
                         // pericur est à jour via peri_inp_
-                        *(uint8_t*)(periInput+offs+1)|=(uint8_t)PERINPRULESLS_VB<<nfct;}break;
+                        *(uint8_t*)(periInput+offs+1)|=(uint8_t)PERINPRULESLS_VB<<nfct;}break;*/
               case 35: {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri_sw_nx Pulse one/two
                         char puNb=*(libfonctions+2*i+1);  // 'O'ou 'T'
                         uint32_t* pulseNb=periSwPulseOne;                                          
                         switch(puNb){
                           case 'O': pulseNb=periSwPulseOne;*(pulseNb+pu)=0;*(pulseNb+pu)=(uint32_t)convStrToInt(valf,&j);break;
                           case 'T': pulseNb=periSwPulseTwo;*(pulseNb+pu)=0;*(pulseNb+pu)=(uint32_t)convStrToInt(valf,&j);break;
-                          case 'V': periSrc=0;conv_atob(valf,&periSrc);break;                           // srce periph for copy
+                          case 'V': periSrc=0;conv_atob(valf,&periSrc);
+                          Serial.print("******* ");Serial.println(periSrc);
+                          break;                           // srce periph for copy
                           default : break;
                         }
-                        
-                        //Serial.print(valf);                              
-                        //Serial.print(" pt");Serial.print(puNb);Serial.println(pu);
-                        //Serial.print('=');Serial.print(*periSwPulseOne+pu);Serial.print(' ');Serial.print(*periSwPulseTwo+pu);Serial.print(' ');Serial.println(*(pulseNb+pu));
-                        //for(uint8_t i=0;i<NBPULSE;i++){Serial.print(*(periSwPulseOne+i));Serial.print(' ');Serial.println(*(periSwPulseTwo+i));}
-                        //if(pu==3){periPrint(periCur);}
                        }break;                                                                      
-              case 36: break; // dispo
-              
-              
-              {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri_ptt__ Pulse two (ptt)
+              case 36: break;                                                                           // dispo
+              {int pu=*(libfonctions+2*i)-PMFNCHAR;                                                     // (pulses) peri_ptt__ Pulse two (ptt)
                         *(periSwPulseTwo+pu)=0;*(periSwPulseTwo+pu)=(uint32_t)convStrToInt(valf,&j); 
                        }break;                                                                          
-              case 37: *periThmin_=0;*periThmin_=(int16_t)convStrToInt(valf,&j);break;                  // (periLine) Th min
-              case 38: *periThmax_=0;*periThmax_=(int16_t)convStrToInt(valf,&j);break;                  // (periLine) Th max
-              case 39: *periVmin_=0;*periVmin_=(int16_t)convStrToInt(valf,&j);break;                    // (periLine) V min
-              case 40: *periVmax_=0;*periVmax_=(int16_t)convStrToInt(valf,&j);break;                    // (periLine) V max
+              case 37: break;                                                                           // dispo
+              case 38: break;                                                                           // dispo
+              case 39: break;                                                                           // dispo
+              case 40: break;                                                                           // dispo
               case 41: what=10;memcpy(bakDetServ,memDetServ,MDSLEN);
-                       //bakDetServ=memDetServ;
                        memset(memDetServ,0x00,MDSLEN);                  // (dsrv_init_) bouton submit detecteurs serveur ; effct cb
-                       //memDetServ=0;                
                        break;
               case 42: {int nb=*(libfonctions+2*i+1)-PMFNCVAL;                                          // (mem_dsrv__) set det bit
-                       //if(nb>=16){nb-=16;}
                        uint8_t mi=nb>>3;memDetServ[mi] |= mDSmaskbit[MDSLEN*nb+mi];
-                       //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[MDSLEN*nb+i];}
-                       //memDetServ |= mDSmaskbit[nb];
                        }break;
               case 43: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) ssid[libf+1]
                        alphaTfr(ssid+nb*(LENSSID+1),LENSSID,valf,nvalf[i+1]-nvalf[i]);
                        }break;
               case 44: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) passssid[libf+1]
                        alphaTfr(passssid+nb*(LPWSSID+1),LPWSSID,valf,nvalf[i+1]-nvalf[i]);
-                       //Serial.print(nb);Serial.print(';');Serial.print(nvalf[i+1]-nvalf[i]);Serial.print(';');Serial.println(valf);
                        }break;
               case 45: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) usrname[libf+1]
                        alphaTfr(usrnames+nb*(LENUSRNAME+1),LENUSRNAME,valf,nvalf[i+1]-nvalf[i]);
@@ -1761,9 +1769,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             default: break;
                           }
                        }break;                                      
-              case 50: memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;      // (config) peripcfg__ // submit depuis cfgServervHtml                              
-              case 51: what=6;                                                                          // (config) ethcfg___
-                       {  switch(*(libfonctions+2*i+1)){                                            
+              case 50:  memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;     // (config) peripcfg__ // submit depuis cfgServervHtml                              
+              case 51:  what=6;{                                                                        // (config) ethcfg___
+                          switch(*(libfonctions+2*i+1)){                                            
                             case 'i': memset(localIp,0x00,4);                                           // (config) localIp
                                       textIp((byte*)valf,localIp);break;   
                             case 'p': *serverPort=0;conv_atob(valf,serverPort);break;                   // (config) serverPort
@@ -1778,7 +1786,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 
                             default: break;
                           }
-                       }break;
+                        }break;
               case 52: what=8;                                                                          // submit depuis cfgRemotehtml
                        {int nb=*(libfonctions+2*i+1)-PMFNCHAR;
                         uint16_t v1=0;
@@ -1808,19 +1816,17 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             default:break;
                           }
                        }break;
-              case 53: what=9;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // submit depuis remoteHtml (cdes on/off)
-                        switch(*(libfonctions+2*i)){                                               
+              case 53:  what=9;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteHtml (cdes on/off)
+                          switch(*(libfonctions+2*i)){                                               
                             case 'n': remoteN[nb].newonoff=0;break;                                     // (remote_cn) effacement cb on/off
                             case 't': remoteN[nb].newonoff=1;break;                                     // (remote_ct) check cb on/off
                             case 'm': remoteN[nb].newenable=0;break;                                    // (remote_cm) effacement cb enable
                             case 's': remoteN[nb].newenable=*valf-48;break;                             // (remote_cs) check cb enable (0,1,2 OFF/ON/FOR)
                             default:break;
                           }
-                       }break;                                                                       
-              case 54: remoteHtml(cli);break;                                                           // remotehtml
-              case 55: what=5;getPeriCurLibf(false);                                                    // peri_raz___
-                        periInitVar();
-                        break;
+                        }break;                                                                       
+              case 54:  remoteHtml(cli);break;                                                           // remotehtml
+              case 55:  break;                                                                           // dispo
               case 56:  what=6;
                         switch (*(libfonctions+2*i+1)){                                                 // mailcfg___
                           case 'f':alphaTfr(mailFromAddr,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;      // (config) mailFrom
@@ -1834,122 +1840,122 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           default:break;
                         } 
                         break;
-              case 57: what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;char nf=*(libfonctions+2*i);      // submit depuis thparams__ (thermosCfg())
+              case 57:  what=12;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;char nf=*(libfonctions+2*i);      // submit depuis thparams__ (thermosCfg())
                         //Serial.print("cfgTh lf+1/lf=");Serial.print(nb);Serial.print(" lf=");Serial.println(nf);
-                        switch (nf){
-                          case 'n':alphaTfr((char*)&thermos[nb].nom,LENTHNAME,valf,nvalf[i+1]-nvalf[i]);
+                          switch (nf){
+                            case 'n':alphaTfr((char*)&thermos[nb].nom,LENTHNAME,valf,nvalf[i+1]-nvalf[i]);
                                    thermos[nb].lowenable=0;                                                               // effacement cb
                                    thermos[nb].highenable=0;
                                    thermos[nb].lowstate=0;
                                    thermos[nb].highstate=0;
                                    break;
-                          case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToInt(valf,&j);
+                            case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToInt(valf,&j);
                                    if((thermos[nb].peri)>NBPERIF){(thermos[nb].peri)=NBPERIF;}
                                    break;
-                          case 'e':thermos[nb].lowenable=*valf-48;break;                                                  // enable low
-                          case 'E':thermos[nb].highenable=*valf-48;break;                                                 // enable high
-                          case 's':thermos[nb].lowstate=*valf-48;break;                                                   // state  low
-                          case 'S':thermos[nb].highstate=*valf-48;break;                                                  // state  high
-                          case 'v':thermos[nb].lowvalue=0;thermos[nb].lowvalue=(int16_t)convStrToInt(valf,&j);break;      // value low
-                          case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=(int16_t)convStrToInt(valf,&j);break;    // value high
-                          case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=(int16_t)convStrToInt(valf,&j);break;    // offset low
-                          case 'O':thermos[nb].highoffset=0;thermos[nb].highoffset=(int16_t)convStrToInt(valf,&j);break;  // offset high
-                          case 'd':sourceDetServ[remoteT[nb].detec]=0;                                                    // det low
+                            case 'e':thermos[nb].lowenable=*valf-48;break;                                                  // enable low
+                            case 'E':thermos[nb].highenable=*valf-48;break;                                                 // enable high
+                            case 's':thermos[nb].lowstate=*valf-48;break;                                                   // state  low
+                            case 'S':thermos[nb].highstate=*valf-48;break;                                                  // state  high
+                            case 'v':thermos[nb].lowvalue=0;thermos[nb].lowvalue=(int16_t)convStrToInt(valf,&j);break;      // value low
+                            case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=(int16_t)convStrToInt(valf,&j);break;    // value high
+                            case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=(int16_t)convStrToInt(valf,&j);break;    // offset low
+                            case 'O':thermos[nb].highoffset=0;thermos[nb].highoffset=(int16_t)convStrToInt(valf,&j);break;  // offset high
+                            case 'd':sourceDetServ[remoteT[nb].detec]=0;                                                    // det low
                                    thermos[nb].lowdetec=0;thermos[nb].lowdetec=convStrToInt(valf,&j);
                                    if(thermos[nb].lowdetec>NBDSRV){thermos[nb].lowdetec=NBDSRV;}
                                    if(thermos[nb].lowdetec!=0){setSourceDet(thermos[nb].lowdetec,MDSTHE,nb+1);}
                                    break;                                                                                 
-                          case 'D':thermos[nb].highdetec=0;thermos[nb].highdetec=convStrToInt(valf,&j);                   // det high
+                            case 'D':thermos[nb].highdetec=0;thermos[nb].highdetec=convStrToInt(valf,&j);                   // det high
                                    if(thermos[nb].highdetec>NBDSRV){thermos[nb].highdetec=NBDSRV;}
                                    if(thermos[nb].highdetec!=0){setSourceDet(thermos[nb].highdetec,MDSTHE,nb+1);}
                                    break;                                                                                                           
-                          default:break;
-                        } 
-                       }break;
-              case 58: thermoShowHtml(cli);break;                                                       // thermoshow
-              case 59: thermoCfgHtml(cli);break;                                                        // thermos___ (bouton thermo_cfg)
-              case 60: *periPort=0;conv_atob(valf,periPort);break;                                      // (periLine) peri_port_
-              case 61: what=7;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (timers) tim_name__
-                       textfonc(timersN[nb].nom,LENTIMNAM);
+                            default:break;
+                          } 
+                        }break;
+              case 58:  thermoShowHtml(cli);break;                                                       // thermoshow
+              case 59:  thermoCfgHtml(cli);break;                                                        // thermos___ (bouton thermo_cfg)
+              case 60:  break;                                                                           // dispo
+              case 61:  what=7;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (timers) tim_name__
+                        textfonc(timersN[nb].nom,LENTIMNAM);
                        //Serial.print("efface cb timers ");Serial.print(nb);Serial.print(" ");Serial.print(timersN[nb].nom);
-                       timersN[nb].enable=0;                                                            // (timers) effacement cb     
-                       timersN[nb].perm=0;
-                       timersN[nb].cyclic=0;
-                       timersN[nb].curstate=0;
-                       timersN[nb].forceonoff=0;
-                       timersN[nb].dw=0;
-                       }break;
-              case 62: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_det___      
-                       sourceDetServ[timersN[nb].detec]=0;                            
-                       timersN[nb].detec=convStrToInt(valf,&j);
-                       if(timersN[nb].detec>NBDSRV){timersN[nb].detec=NBDSRV;}
-                       setSourceDet(timersN[nb].detec,MDSTIM,nb+1);
-                       }break;
-              case 63: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_hdf___
-                        switch (*(libfonctions+2*i)){         
-                          case 'd':textfonc(timersN[nb].hdeb,6);break;
-                          case 'f':textfonc(timersN[nb].hfin,6);break;
-                          case 'b':textfonc(timersN[nb].dhdebcycle,14);break;
-                          case 'e':textfonc(timersN[nb].dhfincycle,14);break;
-                          default:break;
-                        } 
-                       }break;
-              case 64: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_chkb__
+                        timersN[nb].enable=0;                                                            // (timers) effacement cb     
+                        timersN[nb].perm=0;
+                        timersN[nb].cyclic=0;
+                        timersN[nb].curstate=0;
+                        timersN[nb].forceonoff=0;
+                        timersN[nb].dw=0;
+                        }break;
+              case 62:  {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_det___      
+                        sourceDetServ[timersN[nb].detec]=0;                            
+                        timersN[nb].detec=convStrToInt(valf,&j);
+                        if(timersN[nb].detec>NBDSRV){timersN[nb].detec=NBDSRV;}
+                        setSourceDet(timersN[nb].detec,MDSTIM,nb+1);
+                        }break;
+              case 63:  {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_hdf___
+                          switch (*(libfonctions+2*i)){         
+                            case 'd':textfonc(timersN[nb].hdeb,6);break;
+                            case 'f':textfonc(timersN[nb].hfin,6);break;
+                            case 'b':textfonc(timersN[nb].dhdebcycle,14);break;
+                            case 'e':textfonc(timersN[nb].dhfincycle,14);break;
+                            default:break;
+                          } 
+                        }break;
+              case 64:  {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (timers) tim_chkb__
                         int nv=*(libfonctions+2*i)-PMFNCHAR;
-                        /* e_p_c_f */
-                        switch (nv){         
-                          case 0:timersN[nb].enable=*valf-48;break;
-                          case 1:timersN[nb].perm=*valf-48;break;
-                          case 2:timersN[nb].cyclic=*valf-48;break;
-                          default:break;
-                        }
-                        /* dw */
-                        if(nv==NBCBTIM){timersN[nb].dw=0xFF;}
-                        if(nv>NBCBTIM){
-                          timersN[nb].dw|=maskbit[1+2*(7-nv+NBCBTIM)];                          
-                        }                         
-                       }break;
-              case 65: Serial.println("timersHtml()");timersHtml(cli);break;                            // timershtml
-              case 66: Serial.println("cfgDetServHtml()");cfgDetServHtml(cli);break;                    // cfgdetservhtml              
-              case 67: what=11;{int nb=*(libfonctions+2*i+1)-PMFNCVAL;                                  // lib detserv
-                       alphaTfr(&libDetServ[nb][0],LENLIBDETSERV,valf,nvalf[i+1]-nvalf[i]);
-                       }break;                          
-              case 68: getPeriCurLibf(PERILOAD);                                                        // (showline) bouton periph
-                       periLineHtml(cli);
-                       break;                                                                                                    
-              case 69: break;                                                                           // done         
-              case 70: switch(*(libfonctions+2*i)){                                                     // analog_
+                          /* e_p_c_f */
+                          switch (nv){         
+                            case 0:timersN[nb].enable=*valf-48;break;
+                            case 1:timersN[nb].perm=*valf-48;break;
+                            case 2:timersN[nb].cyclic=*valf-48;break;
+                            default:break;
+                          }
+                          /* dw */
+                          if(nv==NBCBTIM){timersN[nb].dw=0xFF;}
+                          if(nv>NBCBTIM){
+                            timersN[nb].dw|=maskbit[1+2*(7-nv+NBCBTIM)];                          
+                          }                         
+                        }break;
+              case 65:  Serial.println("timersHtml()");timersHtml(cli);break;                            // timershtml
+              case 66:  Serial.println("cfgDetServHtml()");cfgDetServHtml(cli);break;                    // cfgdetservhtml              
+              case 67:  what=11;{int nb=*(libfonctions+2*i+1)-PMFNCVAL;                                  // lib detserv
+                        alphaTfr(&libDetServ[nb][0],LENLIBDETSERV,valf,nvalf[i+1]-nvalf[i]);
+                        }break;                          
+              case 68:  getPeriCurLibf(PERILOAD);                                                        // (showline) bouton periph
+                        periLineHtml(cli);
+                        break;                                                                                                    
+              case 69:  break;                                                                           // done         
+              case 70:  switch(*(libfonctions+2*i)){                                                     // analog_
                           case '@': *periAnalLow=0;conv_atob(valf,periAnalLow);break;
                           case 'A': *periAnalHigh=0;conv_atob(valf,periAnalHigh);break;
                           case 'B': *periAnalOffset1=0;conv_atob(valf,periAnalOffset1);break;
                           case 'C': *periAnalFactor=0;*periAnalFactor=convStrToNum(valf,&j);break;
                           case 'D': *periAnalOffset2=0;*periAnalOffset2=convStrToNum(valf,&j);break;
                           default: break;
-                       }break;
-              case 71: what=13;rulesfonc(periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo);break;         // anrul___ analog input rules
-              case 72: what=13;rulesfonc(periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);break;     // dgrul___ digital input_rules
-              case 73: {uint8_t nf=*(libfonctions+2*i+1)-PMFNCHAR;                                      // bouton submit rul_init__                                                                                                        
-                                                                                                        // n° de la fonction qui utilise rul_init__
-                       periCur=0;conv_atob(valf,&periCur);                                              // (0-n, 0=analog input rules ; 1=digital)                                                                                                
-                       if(periCur>NBPERIF){periCur=NBPERIF;}periLoad(periCur); 
+                        }break;
+              case 71:  what=13;rulesfonc(periAnalCb,periAnalDestDet,periAnalRefDet,periAnalMemo);break;       // anrul___ analog input rules
+              case 72:  what=13;rulesfonc(periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);break;   // dgrul___ digital input_rules
+              case 73:  {uint8_t nf=*(libfonctions+2*i+1)-PMFNCHAR;                                      // bouton submit rul_init__                                                                                                        
+                                                                                                         // n° de la fonction qui utilise rul_init__
+                          periCur=0;conv_atob(valf,&periCur);                                            // (0-n, 0=analog input rules ; 1=digital)                                                                                                
+                          if(periCur>NBPERIF){periCur=NBPERIF;}periLoad(periCur); 
                        //Serial.print(" fonct 73======");periPrint(periCur);
-                       uint8_t* cb=periAnalCb;
-                       int8_t* memo=periAnalMemo;                                                       // effacement check box et memos précédents
-                       uint8_t ncb=0;
-                       switch(nf){
-                         case 0: cb=periAnalCb;ncb=5;memo=periAnalMemo;break;
-                         case 1: cb=periDigitCb;ncb=4;memo=periDigitMemo;break;
-                         default: break;
-                       }
-                       if(nf<2){
-                          memset(cb,0x00,ncb);                                                          // cb
-                          for(uint8_t nm=0;nm<ncb;nm++){                                                // memos
-                            if(memo[nm]<NBMEMOS && memo[nm]>=0){memset(memosTable+memo[nm]*LMEMO,0x00,LMEMO);memo[nm]=-1;}
+                          uint8_t* cb=periAnalCb;
+                          int8_t* memo=periAnalMemo;                                                     // effacement check box et memos précédents
+                          uint8_t ncb=0;
+                          switch(nf){
+                            case 0: cb=periAnalCb;ncb=5;memo=periAnalMemo;break;
+                            case 1: cb=periDigitCb;ncb=4;memo=periDigitMemo;break;
+                            default: break;
                           }
-                        }
-                       }break;                                                                                                        
-              case 74: what=0;htmlFavicon(cli);
-                       break;
+                          if(nf<2){
+                            memset(cb,0x00,ncb);                                                         // cb
+                            for(uint8_t nm=0;nm<ncb;nm++){                                               // memos
+                              if(memo[nm]<NBMEMOS && memo[nm]>=0){memset(memosTable+memo[nm]*LMEMO,0x00,LMEMO);memo[nm]=-1;}
+                            }
+                          }
+                        }break;                                                                                                        
+              case 74:  what=0;htmlFavicon(cli);
+                        break;
               
               /* fin des fonctions */
               default:break;
@@ -1960,6 +1966,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           }       // fin boucle nbre params
           Serial.print((unsigned long)millis());
           Serial.print(" what=");Serial.print(what);
+          Serial.print(" periSrc=");Serial.print(periSrc);
           Serial.print(" periCur=");Serial.println(periCur);
 #ifdef SHDIAGS            
           Serial.print(" strHisto=");Serial.print(strHisto);

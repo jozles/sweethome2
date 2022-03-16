@@ -104,7 +104,7 @@ extern uint32_t*  periSwPulseCurrOne;           // ptr ds buffer : temps courant
 extern uint32_t*  periSwPulseCurrTwo;           // ptr ds buffer : temps courant pulses OFF
 extern byte*      periSwPulseCtl;               // ptr ds buffer : mode pulses
 extern byte*      periSwPulseSta;               // ptr ds buffer : état clock pulses
-extern uint8_t*   periSondeNb;                  // ptr ds buffer : nbre sonde
+extern uint8_t*   dispo;                        // ptr ds buffer : dispo
 extern bool*      periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
 extern byte*      periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*      periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
@@ -1093,7 +1093,7 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=PCTLLEN*sizeof(byte);  
   periSwPulseSta=(byte*)temp;
   temp +=NBPULSE*sizeof(byte);
-  periSondeNb=(uint8_t*)temp;
+  //dispo=(uint8_t*)temp;
   temp +=sizeof(uint8_t);
   periProg=(bool*)temp;
   temp +=sizeof(bool);
@@ -1157,10 +1157,8 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
 
 void periInitVar0()                  // pour bouton erase
 {   // attention : perInitVar ne concerne que les variables de l'enregistrement de périphérique
-    // lorsque periLoad est effectué periInitVar n'est oas utile
-//Serial.println("erase pulses & inputs");
+    // lorsque periLoad est effectué periInitVar n'est pas utile
    memset(periInput,0x00,NBPERRULES*PERINPLEN*sizeof(byte));
-   //if(*periProg==FAUX){memset(periInput,0x01000802,NBPERRULES*sizeof(uint32_t));}
    memset(periSwPulseOne,0x00,NBPULSE*sizeof(uint32_t));
    memset(periSwPulseTwo,0x00,NBPULSE*sizeof(uint32_t)); 
    memset(periSwPulseCurrOne,0x00,NBPULSE*sizeof(uint32_t)); 
@@ -1189,7 +1187,6 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   memset(periIpAddr,0x00,4);
   *periSwNb=0;
   *periSwVal=0;
-  *periSondeNb=0;
   *periProg=FAUX;
   if(*periProg==FAUX){*periPort=0;}
   *periDetNb=0;
@@ -1333,12 +1330,12 @@ void periModif()
   byte*     IperiSwMode;                  // ptr ds buffer : Mode fonctionnement inters            
   uint16_t* IperiSwPulse;                 // ptr ds buffer : durée pulses sec si interrupteur (0=stable, pas de pulse)
   uint16_t* IperiSwPulseCurr;             // ptr ds buffer : temps courant pulses
-  byte*     IperiSwPulseCtl;             // ptr ds buffer : mode pulses
+  byte*     IperiSwPulseCtl;              // ptr ds buffer : mode pulses
   byte*     IperiSwPulseTrig;             // ptr ds buffer : durée trig 
-  uint8_t*  IperiSondeNb;                  // ptr ds buffer : nbre sonde
-  bool*  IperiProg;                     // ptr ds buffer : flag "programmable"
-  byte*     IperiDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
-  byte*     IperiDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
+  uint8_t*  Idispo;                       // ptr ds buffer : nbre sonde
+  bool*     IperiProg;                    // ptr ds buffer : flag "programmable"
+  byte*     IperiDetNb;                   // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
+  byte*     IperiDetVal;                  // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
   
 
   
@@ -1389,7 +1386,7 @@ void periModif()
   temp +=MAXSW*sizeof(byte);
   IperiSwPulseTrig=(byte*)temp;
   temp +=MAXSW*sizeof(byte);      
-  IperiSondeNb=(uint8_t*)temp;
+  //dispo=(uint8_t*)temp;
   temp +=sizeof(uint8_t);
   IperiProg=(bool*)temp;
   temp +=sizeof(bool);
@@ -1442,7 +1439,7 @@ for(int k=0;k<MAXSW;k++){
   IperiSwPulseCtl[k]= 0;
   IperiSwPulseTrig[k]= 0;
 }
-  *IperiSondeNb=      1;
+  *Idispo=            1;
   *IperiProg=         0;
   *IperiDetNb=        *periDetNb;
   *IperiDetVal=       0;

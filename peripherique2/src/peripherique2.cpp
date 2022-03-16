@@ -1074,11 +1074,11 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
 
           switch(fonction){
             case  0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
-                      answer("data_save_");break;                       // réponse message data_save_
+                      answer("data_save_");break;                       
             case  1: answer("ack_______");break;               // ack ne devrait pas se produire (page html seulement)
             case  2: answer("data_save_");break;               // dataread/save   http://192.168.0.6:80/etat______=0006xxx
             case 10: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
-                      answer("data_save_");break;                       // réponse message data_save_                       
+                      answer("data_save_");break;                       
             case  3: break;                                    // reset (future use)
             case  4: break;                                    // sleep (future use)
             case  5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);digitalWrite(pinSw[0],openSw[0]);break;   // test on  A  1sec  http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A

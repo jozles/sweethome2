@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".72"
+#define NVERS ".73"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -113,19 +113,18 @@
    1.72 install timing analyzer (sur pins A7,A6,A5) ; PORTSERVER devient PORT_FRONTAL défini dans shconst2 ; 
         ajout "copy from" pour duplication des règles dans 'switchs'
    1.73 nombreuses corrections locales ; ajout butModel dans remotes (slider/pushButton) ; 
-        révision 'analyse' 
+        révision 'analyse' ; révision 'ordreExt'
+        nouvelle fonction de transfert periReq 'mds_______' qui ne passe pas la page switchs (maj des mds)
+        révision codage fonctions de periLine. 
 
    BUGS :
 
-        periReq : cx qui rate ou périf qui ne reçoit rien comme si cli.write() n'envoyait pas ou que le contenu se perd.
-        La connexion ratée sort avec le socket stat "CLOSED" ce qui indique que la tentative du W5500 a échoué ;
-        Lorsque le périf est en attente de réponse à un dataRead ou dataSave, il n'écoute pas jusqu'au TO (TOFINCHCLI dans waitRefCli)
-        C'est un cas de non-réponse "normal" ; soit attendre soit recommencer plus tard.
-        Essai de long TO infructueux... le taux de ratage semble augmenter quand il y a plusieurs periReq dans la meme minute ;
-     
+        Ratage de connexions via remote ; l'attente de messToServer du périphérique étant interruptible, étudier ce qui cloche
 
    à faire :
 
+      Créer une version de dataSave : dataUpd sans réponse du serveur (juste pour le mettre à jour)
+      Ajouter une check box dans la ligne des rules pour faire envoyer dataUpd au serveur quand la condition est validée
       modifier la gestion des remotes : le .enable devrait servir à bloquer le swCde dans son état courant lorsque ni Forçage ni Disjoncteur actifs
       (éventuellement dépendant d'un detserv ?)
       Etudier comment banaliser des disjoncteurs "communs" (utilisables par plusieurs switchs) ; actuellement il faut utiliser des memDet
