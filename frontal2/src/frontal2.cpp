@@ -1554,7 +1554,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        switch (*(libfonctions+2*i)){
                          case 'X':periInitVar0();
                                   swCtlTableHtml(cli);break;                                        // + bouton erase    (switchs)
-                         case 'Y':for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){*(periInput+ninp*PERINPLEN+2) ^= PERINPEN_VB;}
+                         case 'Y':for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){
+                                    if((*(periInput+ninp*PERINPLEN+2)&PERINPACT_MS)!=PMDCA_VIDE){   // seules les lignes avec action sont modifiées
+                                      *(periInput+ninp*PERINPLEN+2) ^= PERINPEN_VB;}}
                                   periSave(periCur,PERISAVELOCAL);
                                   swCtlTableHtml(cli);break;                                        // + bouton en/dis all    (switchs)
                          case 'W':cliext.stop();periReq(&cliext,periCur,"etat______");
@@ -2019,7 +2021,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           //cli->stop();                           // en principe inutile (purge fait stop)
           //Serial.print(" st=");Serial.println(millis());
           */
-        cli->stop();    // ********************************************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if(what!=1 && what!=3){       // gestion "normale" si dataread/save  
+          cli->stop();} // ********************************************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                         // sinon server.available() crée des fantômes .... 
                         // la gestion d'instances multiples ne fonctionne pas avec le navigateur
 
@@ -2107,7 +2110,6 @@ void tcpPeriServer()
   if(cli_a[preTPS] = periserv->available())     // attente d'un client (perif ou browser sur port server)
   {
     getremote_IP(&cli_a[preTPS],remote_IP,remote_MAC);  // récupère les coordonnées du serveur DNS ????
-    Serial.print("preTPS ");Serial.print(preTPS);Serial.print(" remoteIp ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);      
     if (cli_a[preTPS].connected()){
       lastcxt=millis();                         // trig soft watchdog
       tPS=preTPS;                               // valide l'instance

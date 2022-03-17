@@ -464,7 +464,7 @@ Modifier :
 #define WIFI_TO_CONNEXION 8000    // msec
 #define WIFINBRETRY          2    // wifiConnexion
 #define TSERIALBEGIN       100
-#define TDEBOUNCE           50    // msec
+#define TDEBOUNCE          100    // msec
 #define PERFASTCLK           5    // millis période automate rapide (ordreExt, talkServer, debounce, etc) 
 #define DETIMP            1000    // millis trig cde impulsionnelle
 

@@ -465,32 +465,30 @@ initConstant();             // à supprimer en production
           case 1:   if(cstRec.talkStep!=0){talkServer();}break;
           case 2:   break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
-          case 4:   break;
+          case 4:   pulseClk();break;
           case 5:   actions();break;
           case 6:   outputCtl();break;
           case 7:   ledblink(-1);break;
 #ifndef ANALYZE
           case 8:   swDebounce();break;         // doit être avant polDx
           case 9:   polAllDet();break;          // polDx doit être après swDebounce                            
-#endif // ANALYZE
-          case 10:  clkFastStep=0;              // période 50mS/step
+#endif // ANALYZE          
+          case 10:  clkFastStep=0;              // période 50mS/step                         
                     switch(clkSlowStep++){
                       case 1:   break;
-                      case 2:   pulseClkisr();break;
+                      case 2:   break;
                       case 3:   break;
-                      case 4:   pulseClkisr();break;
+                      case 4:   break;
                       case 5:   break;
-                      case 6:   pulseClkisr();break;
+                      case 6:   break;
                       case 7:   readAnalog();break;
-                      case 8:   pulseClkisr();break;
-                      case 9:   readTemp();
-                                break;
-                      case 10:  pulseClkisr();
-                                clkSlowStep=0;
-                                break;
+                      case 8:   break;
+                      case 9:   readTemp();break;
+                      case 10:  clkSlowStep=0;break;
                       default:  break;
                     }
                     break;
+                   
           default:  //if(clkFastStep==0){Serial.print(" cFS0 ");}
           break;
         }

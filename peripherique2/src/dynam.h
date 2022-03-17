@@ -6,7 +6,7 @@
 
 
 void setPulseChg(uint8_t npu,char timeOT);
-void pulseClkisr();             // interrupt ou poling clk @10Hz
+void pulseClk();             // interrupt ou poling clk @10Hz
 
 
 
@@ -20,7 +20,7 @@ void pulseClkisr();             // interrupt ou poling clk @10Hz
 //void initPolPin(uint8_t det);
 
 /*
-      pulseClkisr     coup d'horloge des pulses
+      pulseClk     coup d'horloge des pulses
  
       polAllDet fait le polling des détecteurs avec filtrage des débounce en cours et appelle polDx pour chaque détecteur
       polDx     si le détecteur a changé, maj memDetec + isrPul

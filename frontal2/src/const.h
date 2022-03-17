@@ -115,7 +115,7 @@
    1.73 nombreuses corrections locales ; ajout butModel dans remotes (slider/pushButton) ; 
         révision 'analyse' ; révision 'ordreExt'
         nouvelle fonction de transfert periReq 'mds_______' qui ne passe pas la page switchs (maj des mds)
-        révision codage fonctions de periLine. 
+        révision codage fonctions de periLine. cli.stop() pour les connexions navigateur.
 
    BUGS :
 

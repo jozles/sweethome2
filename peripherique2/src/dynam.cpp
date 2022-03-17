@@ -143,7 +143,7 @@ byte oldCstCde; // memo swCde pour debug
 
   Chaque pulse est constitué d'un couple de compteurs (1 par phase), de bits de mode de fonctionnement et d'un état courant
   Les pulses sont déclenchés/arrêtés de façon asynchrone par les actions lues dans les règles (donc au rythme du polling des règles)
-  Les pulses changent d'état lors des fins de comptage détectées par pulseClkisr() 
+  Les pulses changent d'état lors des fins de comptage détectées par pulseClk() 
 
   cstRec.durPulseOne[NBPULSE] / cstRec.durPulseTwo[NBPULSE] consignes de durée issues du serveur (0 au reset)
   cstRec.pulseMode (NBPULSE fois 3 bits) (F=free run / One enable / Two enable) consignes de mode de fonctionnement issues du serveur
@@ -395,7 +395,7 @@ void actions()          // pour chaque input, test enable,
                               default:break;
                             }
                             break;
-               case PMDCA_SET:
+               case PMDCA_FORCE:
                             curValue = detecState;
                             switch(tdest){                                        // type dest
                               case DETYEXT: break;                                // transfert vers detServ à développer    
@@ -590,11 +590,11 @@ void pulsesinit()                         // init pulses à la mise sous tension
     memset(cntPulse,0x00,sizeof(cntPulse));
 }
 
-void pulseClkisr()                       // polling ou interruption ; contrôle de décap des compteurs : horloge des pulses
+void pulseClk()                       // polling ou interruption ; contrôle de décap des compteurs : horloge des pulses
 {  
   uint32_t currt;
   for(uint8_t npu=0;npu<NBPULSE;npu++){
-    //Serial.print("pulseClkisr() npu=");Serial.print(npu);Serial.print( " staPulse=");Serial.println(staPulse[npu]);
+    //Serial.print("pulseClk() npu=");Serial.print(npu);Serial.print( " staPulse=");Serial.println(staPulse[npu]);
     switch(staPulse[npu]){
       
       case PM_DISABLE: break;            // changement d'état quand le bit enable d'un compteur sera changé
@@ -644,7 +644,7 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
       detTime[det]=millis();                                          // arme debounce
       talkReq();                                                      // talkServer
       cstRec.serverTime=0;
-      delay(1);Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.println(lev);//Serial.print(" - ");
+      delay(1);Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.println(lev);
       delay(1);
   }
 }
