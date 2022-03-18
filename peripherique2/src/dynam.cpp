@@ -9,14 +9,15 @@
 
 extern const char* chexa;
 
-//#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
+#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
 #ifdef DEBUG_ACTIONS
-#define LDA 600
+#define LDA 1000
 extern char inptyps[]; //="52meexphpu??";
 extern char inptypd[]; //="52meexswpu??";
 extern char inpact[];  //={"@5     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-  SET  "};    // libellés options actions
 char oldDebugAction[LDA];
 char curDebugAction[LDA];
+uint8_t cntDBA=0;
 char cdga[3];
 char typs[3];
 char typd[3];
@@ -509,7 +510,6 @@ void actions()          // pour chaque input, test enable,
   lmb[0]=(char)(detecState+0x30);strcat(curDebugAction,lmb);
   lmb[0]=(char)(curValue+0x30);strcat(curDebugAction,lmb);
   lmb[0]=(char)(locmem+0x30);strcat(curDebugAction,lmb);
-  //Serial.print("5== ");Serial.println(curDebugAction);
 #endif //DEBUG_ACTIONS
 
     }     // enable
@@ -530,14 +530,13 @@ void actions()          // pour chaque input, test enable,
   }
 
 #ifdef DEBUG_ACTIONS  
-//if(dba<100){
   if(memcmp(oldDebugAction,curDebugAction,LDA)!=0){
-    //dumpstr(oldDebugAction,LDA);Serial.println();dumpstr(curDebugAction,LDA);
+    //dumpstr(curDebugAction,64);dumpstr(oldDebugAction,64);
     Serial.println();Serial.println(curDebugAction);
     memcpy(oldDebugAction,curDebugAction,LDA);
-    memset(curDebugAction,0x00,LDA);}
-  //dba++;
-//}    
+    memset(curDebugAction,0x00,LDA);
+    cntDBA++;if(cntDBA>10){while(1){yield();}}
+  }
 #endif //DEBUG_ACTIONS
 }
 

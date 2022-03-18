@@ -31,9 +31,10 @@ Capat capaKeys;
 #endif
 
 #ifdef ANALYZE
-#define AN0 ANPIN0  // 13
-#define AN1 ANPIN1  // 16
-#define AN2 ANPIN2  // 10
+// !!!!!!!!!! vérifier que les GPIOS utilisés pour l'analyseur sont disponibles !!!!!!!!!!
+#define AN0 ANPIN0  // 13 si VRR !!!!!!!!!!!!!!!!!!!! vérifier sa disponibilité !!!!!!!!!!
+#define AN1 ANPIN1  // 16 si VRR
+#define AN2 ANPIN2  // 10 si VRR
 // toujours un LOW en premier ppour eviter les glitchs à 1 sur la sortie de la porte 
 #define SRVAV   digitalWrite(AN2,LOW);digitalWrite(AN1,HIGH);digitalWrite(AN0,HIGH);  // 110 ordrext server.available
 #define RCVEND  digitalWrite(AN0,LOW);digitalWrite(AN1,HIGH);digitalWrite(AN2,HIGH);  // 011 ordrext receive end
@@ -43,9 +44,9 @@ Capat capaKeys;
 #define ANSW    digitalWrite(AN2,LOW);digitalWrite(AN1,LOW);digitalWrite(AN0,HIGH);   // 100 ordrext answer
 #define ANSWE   digitalWrite(AN2,LOW);digitalWrite(AN1,HIGH);digitalWrite(AN0,LOW);   // 010 ordrext answer end
 #define STOPALL digitalWrite(AN0,HIGH);digitalWrite(AN1,HIGH);digitalWrite(AN2,HIGH); // end
-
 #endif // ANALYZE
 
+uint8_t answerCnt=0;
 
 Ds1820 ds1820;
 //extern byte dsmodel;
@@ -173,6 +174,7 @@ void  outputCtl();
 void  readAnalog();
 uint16_t  getServerConfig();
 void  ordreExt0();
+void  showBS(char* buf);
 
 #ifdef MAIL_SENDER
 void mail(char* subj,char* dest,char* msg);
@@ -453,7 +455,6 @@ initConstant();             // à supprimer en production
       ordreExt();
   
       if(millis()>(clkTime+PERFASTCLK)){        // période 5mS/step
-        //ordreExt();
         switch(clkFastStep++){
 
 /*
@@ -466,13 +467,11 @@ initConstant();             // à supprimer en production
           case 2:   break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
           case 4:   pulseClk();break;
-          case 5:   actions();break;
-          case 6:   outputCtl();break;
-          case 7:   ledblink(-1);break;
-#ifndef ANALYZE
-          case 8:   swDebounce();break;         // doit être avant polDx
-          case 9:   polAllDet();break;          // polDx doit être après swDebounce                            
-#endif // ANALYZE          
+          case 5:   swDebounce();break;         // doit être avant polDx              
+          case 6:   polAllDet();break;          // polDx doit être après swDebounce                                     
+          case 7:   actions();break;
+          case 8:   outputCtl();break;          // quand toutes les opérations sont terminées
+          case 9:   ledblink(-1);break;
           case 10:  clkFastStep=0;              // période 50mS/step                         
                     switch(clkSlowStep++){
                       case 1:   break;
@@ -711,9 +710,9 @@ int buildData(const char* nomfonction,const char* data)               // assembl
       sb+=LENMODEL+1;
       bool noZero=false;            // si aucun compteur n'est utilisé ET qu'ils sont tous à 0, pas de transmission
       for(i=0;i<NBPULSE;i++){
-        //Serial.print("=======================staPulse[");Serial.print(i);Serial.print(")=");Serial.println(staPulse[i]);
-        if(staPulse[i]!=PM_DISABLE && staPulse[i]!=PM_IDLE && staPulse[i]!=0x00){noZero=true;break;}
-        if(cntPulseOne[i]!=0 || cntPulseTwo[i]!=0){noZero=true;break;}
+        if(cntPulseOne[i]!=0 || cntPulseTwo[i]!=0){ //noZero=true;break;}
+          if(staPulse[i]!=PM_DISABLE && staPulse[i]!=PM_IDLE && staPulse[i]!=0x00){noZero=true;break;}
+        }
       }
       if(noZero){
         uint32_t currt;
@@ -756,6 +755,8 @@ int buildReadSave(const char* nomFonction,const char* data)   // construit et en
     if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(cstRec.peripass);return MESSDEC;};}
 
   buildData(nomFonction,data);
+  
+  showBS(bufServer);
 
 //cntMTS++;if(cntMTS>3){memcpy(textFrontalIp,"192.168.1.1",LSRVTEXTIP);} 
 // frontal devient inaccessible ce qui permet de tester l'interruption de messToServer par un ordreExt()
@@ -961,6 +962,11 @@ void talkClient(char* mess) // réponse à une requête
   if(diags){Serial.print("talk...done (");Serial.print(strlen(mess));Serial.println(')');}            
 }
 
+void showBS(char* buf)
+{
+  Serial.print("BS=");Serial.println(buf);delay(10);
+}
+
 void answer(const char* what)
 {
 #ifdef ANALYZE
@@ -978,27 +984,23 @@ void answer(const char* what)
     if(strlen(what)>=LBUFSERVER-LENNOM-FILL){buildMess("done______","***OVF***","\0");}
     else {buildMess("done______",what,"\0",diags);}
   }
-  Serial.print(" ");Serial.print("BS=");Serial.println(bufServer);
   
+  showBS(bufServer);
   talkClient(bufServer);
   cliext.stop();
   ledblink(4);                        // connexion réussie 
 #ifdef ANALYZE
   ANSWE
 #endif // ANALYZE  
+  answerCnt++;dumpstr((char*)&locmem,4);dumpstr((char*)cstRec.extDetec,8);
+  clkFastStep=0;delay(1);   
 }
 
-void swSet(uint8_t swNb,uint8_t swSt)
+void rcvOrdreExt(char* data)
 {
-  switch(swNb*2+swSt){
-    case 0:cstRec.swCde &=0xfd;break;
-    case 1:cstRec.swCde |=0x02;break;
-    case 2:cstRec.swCde &=0xf7;break;
-    case 3:cstRec.swCde |=0x08;break;
-    default:break;
-  }
-  if(cstRec.swCde<16){Serial.print('0');};Serial.println(cstRec.swCde,HEX);
-  delay(1000);
+  dataTransfer(data);
+  pulseClk();actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
+  answer("data_save_");
 }
 
 void ordreExt()
@@ -1006,7 +1008,7 @@ void ordreExt()
             4,9mS rcv
             1,0mS chk
             0,6mS tfr+actions vides
-            2,7mS answer (write)
+            2,7mS answer (write)  + delay Serial.print
             4,2mS cli.stop() (variable)
     total  13,4mS  
 */
@@ -1027,7 +1029,7 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
   SRVAV // 0mS
 #endif // ANALYZE
 
-      Serial.print("\nCliext ");
+      Serial.print(millis());Serial.print(" Cliext ");
       memset(httpMess,0x00,LHTTPMESS);
       uint16_t hm=0;
       char c;
@@ -1071,14 +1073,12 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
 #endif // ANALYZE        
 
           switch(fonction){
-            case  0: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
-                      answer("data_save_");break;                       
-            case  1: answer("ack_______");break;               // ack ne devrait pas se produire (page html seulement)
-            case  2: answer("data_save_");break;               // dataread/save   http://192.168.0.6:80/etat______=0006xxx
-            case 10: dataTransfer(&httpMess[v0+5]);actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
-                      answer("data_save_");break;                       
-            case  3: break;                                    // reset (future use)
-            case  4: break;                                    // sleep (future use)
+            case  0: rcvOrdreExt(&httpMess[v0+5]);break;        // tfr data , pulseClk , action , outputCtl , answer 
+            case  1: answer("ack_______");break;                // ack ne devrait pas se produire (page html seulement)
+            case  2: answer("data_save_");break;                // dataread/save   http://192.168.0.6:80/etat______=0006xxx
+            case 10: rcvOrdreExt(&httpMess[v0+5]);break;
+            case  3: break;                                     // reset (future use)
+            case  4: break;                                     // sleep (future use)
             case  5: digitalWrite(pinSw[0],cloSw[0]);answer("0_ON______");delay(1000);digitalWrite(pinSw[0],openSw[0]);break;   // test on  A  1sec  http://xxx.xxx.xxx.xxx:nnnn/sw0__ON___=0005_5A
             case  6: digitalWrite(pinSw[0],openSw[0]);answer("0_OFF_____");delay(1000);digitalWrite(pinSw[0],cloSw[0]);break;   // test off A  1sec  http://192.168.0.6:80/sw0__OFF__=0005_5A
             case  7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);digitalWrite(pinSw[1],openSw[1]);break;   // test on  B  1sec  http://82.64.32.56:1796/sw1__ON___=0005_5A
@@ -1137,17 +1137,17 @@ void readAnalog()
 
 void outputCtl()            // cstRec.swCde contient 4 paires de bits (gauche disjoncteur 1=ON, droite résultat règles encodé selon la carte openSW/cloSw)
 {
-  //if(diags){Serial.print("cstRec.swCde = ");if(cstRec.swCde<16){Serial.print("0");}Serial.print(cstRec.swCde,HEX);Serial.print(" ");}
   for(uint8_t sw=0;sw<NBSW;sw++){
-    if(((cstRec.swCde>>(sw*2+1))&0x01)==0x01){                                              // disjoncteur ON
-        digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                              // value (encodé dans le traitement des regles)
-        //if(diags){Serial.print((cstRec.swCde>>(sw*2))&0x01,HEX);Serial.print("x ");}   
+    if(((cstRec.swCde>>(sw*2+1))&0x01)==0x01){                                            // disjoncteur ON
+        if(answerCnt!=0){
+          Serial.print(micros());Serial.print(" ");Serial.print(sw);Serial.print(" ");Serial.println((cstRec.swCde>>(sw*2))&0x01);
+          answerCnt++;if(answerCnt>6){answerCnt=0;}
+        }
+        //digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                              // value (encodé dans le traitement des regles)
         }
     else {digitalWrite(pinSw[sw],openSw[sw]);                                             // disjoncté donc open value
-        //if(diags){Serial.print(openSw[sw],HEX);Serial.print("o ");}
         }
   }
-  //if(diags){Serial.println();}
 }
 
 /* Read temp ------------------------- */

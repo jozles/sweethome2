@@ -105,7 +105,7 @@ char inptyps[]="52meexphpu??";                  // libellés options types sourc
 char optNam1[]={'S','\0'};                      // nom de la liste d'options
 char inptypd[]="52meexswpu??";                  // libellés options types destinations regles switchs
 char optNam2[]={'T','\0'};                      // nom de la liste d'options
-char inpact[]={"@5     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-  SET  "};    // libellés options actions
+char inpact[]={"@5     RAZ  STOP STARTSHORTEND  IMP  RESETXOR  OR   AND  NOR  NAND -0-  -1-  FORCE"};    // libellés options actions
 char optNam3[]={'U','\0'};                      // nom de la liste d'options
 char psps[]=  {"____IDLEEND1END2RUN1RUN2DISA"};                                                          // libellés staPulse
 
