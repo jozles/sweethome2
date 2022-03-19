@@ -8,8 +8,9 @@
 #include "peripherique2.h"
 
 extern const char* chexa;
+extern uint8_t bitMsk[];
 
-#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
+//#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
 #ifdef DEBUG_ACTIONS
 #define LDA 1000
 extern char inptyps[]; //="52meexphpu??";
@@ -165,10 +166,10 @@ void actionsDebug()
 {
 #ifdef DEBUG_ACTIONS
   memset(curDebugAction,0x00,LDA);
-  Serial.println("(L ");
+  Serial.println("(SS LL  S switchs ; L locmem ");
   Serial.println(" for each enabled rule h-ss:nn,dd:nn,AC_1.2=DcL");
-  Serial.println(" h=curinp+2 hexa ; ss srce ; dd dest ; AC action ; 1 detec1 ; 2 detec2 ; D detec3 ; c curValue ; L locmem");
-  Serial.println(") rules end");
+  Serial.println(" h=curinp+2 hexa ; ss srce ; dd dest ; AC action ; 1 detec1 ; 2 detec2 ; D detec3 ; c curValue ; LL locmem ");
+  Serial.println(" SS) rules end");
 #endif //DEBUG_ACTIONS
 
 }
@@ -202,6 +203,10 @@ void actions()          // pour chaque input, test enable,
   memset(curDebugAction,0x00,LDA);
   char lmb[2]={0x00,0x00};
   strcat(curDebugAction,"(");
+  lmb[0]=chexa[cstRec.swCde>>4];strcat(curDebugAction,lmb);
+  lmb[0]=chexa[cstRec.swCde&0x0F];strcat(curDebugAction,lmb);
+  strcat(curDebugAction," ");
+  lmb[0]=chexa[(locmem>>4)&0x0F];strcat(curDebugAction,lmb);
   lmb[0]=chexa[locmem&0x0F];strcat(curDebugAction,lmb);
 #endif // DEBUG_ACTIONS
 
@@ -304,13 +309,15 @@ void actions()          // pour chaque input, test enable,
             switch(action){                                                       // action (compute curValue then store it depending of dest)
               case PMDCA_VIDE:break;
               case PMDCA_0:
-                          if(detecState){
-                            curValue = 0;
+                          if(detecState!=0){
+                            curValue = 0;                           
                             switch(tdest){                                        // type dest
-                              case DETYEXT: break;                                // transfert vers detServ à développer    
+                              case DETYEXT: {uint8_t numbyte=nsrce>>3,numbit=nsrce&0x07;
+                                            cstRec.extDetec[numbyte]&=~bitMsk[numbit];
+                                            }break;                               // transfert vers detServ à développer    
                               case DETYMEM: locmem=lmbit0;                        // locmem=0
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[0];            // 0 -> curSw
                                             usdSw[ndest]=1;   
                                             break;                                         
                               default:break;
@@ -318,13 +325,15 @@ void actions()          // pour chaque input, test enable,
                           }
                           break;
               case PMDCA_1:
-                          if(detecState){
-                            curValue = 1;
+                          if(detecState!=0){
+                            curValue=1;
                             switch(tdest){                                        // type dest
-                              case DETYEXT: break;                                // transfert vers detServ à développer    
+                              case DETYEXT: {uint8_t numbyte=nsrce>>3,numbit=nsrce&0x07;
+                                            cstRec.extDetec[numbyte]|=bitMsk[numbit];
+                                            }break;                               // transfert vers detServ à développer    
                               case DETYMEM: locmem=lmbit1;                        // locmem=1
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[1];            // 1 -> curSw
                                             usdSw[ndest]=1;                                 
                                             break;                                         
                               default:break;
@@ -332,78 +341,121 @@ void actions()          // pour chaque input, test enable,
                           }
                           break;
               case PMDCA_LOR:
-                            curValue |= detecState;
+                          if(detecState!=0){
                             switch(tdest){                                        // type dest
-                              case DETYEXT: break;                                // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1){locmem=lmbit1;}       // locmem=1
-                                            else locmem=lmbit0;                   // locmem=0
-                                            break;
+                              case DETYEXT: {uint8_t numbyte=nsrce>>3,numbit=nsrce&0x07;
+                                            if((curValue!=0) || (cstRec.extDetec[numbyte]&bitMsk[numbit])!=0){
+                                              cstRec.extDetec[numbyte]|=bitMsk[numbit];
+                                              curValue=1;}
+                                            else {cstRec.extDetec[numbyte]&=~bitMsk[numbit];
+                                              curValue=0;}
+                                            }break;                               // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue!=0 || (locmem&locMaskbit[ndest])!=0){
+                                              locmem=lmbit1;curValue=1;}          // locmem=1
+                                            else {locmem=lmbit0;curValue=0;}      // locmem=0
+                                            break;              
                               case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
-                                            usdSw[ndest]=1;   
+                                            usdSw[ndest]=1;
                                             break;                                         
                               default:break;
                             }
-                            break;
+                          }
+                          break;
               case PMDCA_LNOR:
-                            curValue |= detecState;
+                          if(detecState!=0){
                             switch(tdest){                                        // type dest
-                              case DETYEXT: break;                                // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1){locmem=lmbit0;}       // locmem=0
-                                            else locmem=lmbit1;                   // locmem=1
-                                            break;
+                              case DETYEXT: {uint8_t numbyte=nsrce>>3,numbit=nsrce&0x07;
+                                            if((curValue!=0) || (cstRec.extDetec[numbyte]&bitMsk[numbit])!=0){
+                                              cstRec.extDetec[numbyte]&=~bitMsk[numbit];
+                                              curValue=0;}
+                                            else {cstRec.extDetec[numbyte]|=bitMsk[numbit];
+                                              curValue=0;}
+                                            }break;                               // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue!=0 || (locmem&locMaskbit[ndest])!=0){
+                                              locmem=lmbit0;curValue=0;}          // locmem=0
+                                            else {locmem=lmbit1;curValue=1;}      // locmem=1
+                                            break;              
                               case DETYSW:  curSw[ndest]=openClose[!curValue];    // curValue -> curSw
                                             usdSw[ndest]=1;   
                                             break;                                         
                               default:break;              
                             }
-                            break;                             
+                          }
+                          break;          
               case PMDCA_LXOR:
-                            curValue ^= detecState;
+                          if(detecState!=0){
                             switch(tdest){                                        // type dest
-                              case DETYEXT: break;                                // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1){locmem=lmbit1;}       // curValue to locmem tfr
-                                            else locmem=lmbit0;                     
-                                            break;
+                              case DETYEXT: {uint8_t numbyte=nsrce>>3,numbit=nsrce&0x07;
+                                            if(((curValue!=0) && (cstRec.extDetec[numbyte]&bitMsk[numbit])==0) ||
+                                            ((curValue==0) && (cstRec.extDetec[numbyte]&bitMsk[numbit])!=0)){
+                                              cstRec.extDetec[numbyte]|=bitMsk[numbit];
+                                              curValue=1;}
+                                            else {cstRec.extDetec[numbyte]&=~bitMsk[numbit];
+                                              curValue=0;}
+                                            }break;                               // transfert vers detServ à développer    
+                              case DETYMEM: if((curValue!=0 && (locmem&locMaskbit[ndest])==0) || 
+                                            (curValue==0 && (locmem&locMaskbit[ndest])!=0)){
+                                              locmem=lmbit1;curValue=1;}          // locmem=1
+                                            else {locmem=lmbit0;curValue=0;}      // locmem=0
+                                            break;              
                               case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
                                             usdSw[ndest]=1;   
                                             break;                                         
                               default:break;              
                             }
-                            break;
+                          }
+                          break;
               case PMDCA_LAND:
-                            curValue &= detecState;
+                          if(detecState!=0){
                             switch(tdest){                                        // type dest
-                              case DETYEXT:break;                                 // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1 && (locmem & locMaskbit[ndest])!=0){locmem=lmbit1;}   // locmem=1
-                                            else locmem=lmbit0;                   // locmem=0
+                              case DETYEXT: {uint8_t numbyte=nsrce>>3,numbit=nsrce&0x07;
+                                            if((curValue!=0) && (cstRec.extDetec[numbyte]&bitMsk[numbit])!=0){
+                                              cstRec.extDetec[numbyte]|=bitMsk[numbit];
+                                              curValue=1;}
+                                            else {cstRec.extDetec[numbyte]&=~bitMsk[numbit];curValue=0;}
+                                            }break;                               // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue!=0 && (locmem & locMaskbit[ndest])!=0){
+                                              locmem=lmbit1;curValue=1;}          // locmem=1
+                                            else {locmem=lmbit0;curValue=0;}      // locmem=0
                                             break;
                               case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
                                             usdSw[ndest]=1; 
                                             break;
                               default:break;
                             }
-                            break;
+                          }
+                          break;                          
               case PMDCA_LNAND:
-                            curValue &= detecState;
+                          if(detecState!=0){
                             switch(tdest){                                        // type dest
-                              case DETYEXT:break;                                 // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1 && (locmem & locMaskbit[ndest])!=0){locmem=lmbit0;}   // locmem=1
-                                            else locmem=lmbit1;                   // locmem=1
+                              case DETYEXT: {uint8_t numbyte=nsrce>>3,numbit=nsrce&0x07;
+                                            if((curValue!=0) && (cstRec.extDetec[numbyte]&bitMsk[numbit])!=0){
+                                              cstRec.extDetec[numbyte]&=~bitMsk[numbit];
+                                              curValue=0;}
+                                            else {cstRec.extDetec[numbyte]|=bitMsk[numbit];curValue=1;}
+                                            }break;                               // transfert vers detServ à développer    
+                              case DETYMEM: if(curValue!=0 && (locmem & locMaskbit[ndest])!=0){
+                                              locmem=lmbit0;curValue=0;}          // locmem=0
+                                            else {locmem=lmbit1;curValue=1;}      // locmem=1
                                             break;
                               case DETYSW:  curSw[ndest]=openClose[!curValue];    // curValue -> curSw
                                             usdSw[ndest]=1;   
                                             break;
                               default:break;
                             }
-                            break;
-               case PMDCA_FORCE:
-                            curValue = detecState;
+                          }
+                          break;
+               case PMDCA_FORCE:     
+                            curValue=detecState;
                             switch(tdest){                                        // type dest
-                              case DETYEXT: break;                                // transfert vers detServ à développer    
-                              case DETYMEM: if(curValue==1){locmem=lmbit1;}       // locmem=1
+                              case DETYEXT: {uint8_t numbyte=nsrce>>3,numbit=nsrce&0x07;
+                                            if(detecState!=0 ){cstRec.extDetec[numbyte]|=bitMsk[numbit];}
+                                            else cstRec.extDetec[numbyte]&=~bitMsk[numbit];
+                                            }break;                               // transfert vers detServ à développer    
+                              case DETYMEM: if(detecState!=0){locmem=lmbit1;}     // locmem=1
                                             else locmem=lmbit0;                   // locmem=0
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[curValue];     // curValue -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[detecState];   // detecState -> curSw
                                             usdSw[ndest]=1;   
                                             break;                                         
                               default:break;
@@ -500,24 +552,20 @@ void actions()          // pour chaque input, test enable,
                   break;
                default:actionSysErr(action,inp);
                   if(tdest==DETYPUL){staPulse[ndest]=PM_DISABLE;}
-                  break;
-          }     // switch(action)       
-
+                  break;                  
+          }     // switch(action)                
       }   // detecFound    
 
 #ifdef DEBUG_ACTIONS
   strcat(curDebugAction,"=");
   lmb[0]=(char)(detecState+0x30);strcat(curDebugAction,lmb);
   lmb[0]=(char)(curValue+0x30);strcat(curDebugAction,lmb);
-  lmb[0]=(char)(locmem+0x30);strcat(curDebugAction,lmb);
+  lmb[0]=chexa[(locmem>>4)&0x0F];strcat(curDebugAction,lmb);
+  lmb[0]=chexa[locmem&0x0F];strcat(curDebugAction,lmb);
 #endif //DEBUG_ACTIONS
 
     }     // enable
-  }       // next input
-
-#ifdef DEBUG_ACTIONS
-  strcat(curDebugAction,")");
-#endif //DEBUG_ACTIONS
+  }       // next rule
 
   /* SW update */
   uint8_t mskSw[] = {0xfe,0xfb,0xef,0xbf};                           
@@ -530,12 +578,15 @@ void actions()          // pour chaque input, test enable,
   }
 
 #ifdef DEBUG_ACTIONS  
+  strcat(curDebugAction," ");
+  lmb[0]=chexa[cstRec.swCde>>4];strcat(curDebugAction,lmb);
+  lmb[0]=chexa[cstRec.swCde&0x0F];strcat(curDebugAction,lmb);
+  strcat(curDebugAction,")");
   if(memcmp(oldDebugAction,curDebugAction,LDA)!=0){
-    //dumpstr(curDebugAction,64);dumpstr(oldDebugAction,64);
     Serial.println();Serial.println(curDebugAction);
     memcpy(oldDebugAction,curDebugAction,LDA);
     memset(curDebugAction,0x00,LDA);
-    cntDBA++;if(cntDBA>10){while(1){yield();}}
+    //cntDBA++;if(cntDBA>10){while(1){yield();}}
   }
 #endif //DEBUG_ACTIONS
 }

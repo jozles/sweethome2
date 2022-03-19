@@ -145,6 +145,7 @@ char* cstRecA=(char*)&cstRec.cstlen;
 #endif
 
   const char*     chexa="0123456789ABCDEFabcdef\0";
+  uint8_t      bitMsk[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
   //const byte      mask[]={0x00,0x01,0x03,0x07,0x0F};
   //uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
   
@@ -992,12 +993,14 @@ void answer(const char* what)
 #ifdef ANALYZE
   ANSWE
 #endif // ANALYZE  
-  answerCnt++;dumpstr((char*)&locmem,4);dumpstr((char*)cstRec.extDetec,8);
+  answerCnt++;
+  dumpstr((char*)&locmem,4,false);Serial.print("  ");dumpstr((char*)cstRec.extDetec,8);
   clkFastStep=0;delay(1);   
 }
 
 void rcvOrdreExt(char* data)
 {
+  //Serial.println(data);
   dataTransfer(data);
   pulseClk();actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
   answer("data_save_");
@@ -1067,7 +1070,8 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
         }
         int checkMess=checkHttpData(&httpMess[v0+5],&fonction);
         if(checkMess==MESSOK){
-          Serial.print("rcv fnct=");Serial.print(fonction);
+          Serial.print("rcv fnct=");Serial.print(fonction);Serial.print("  ");
+          dumpstr((char*)&locmem,4,false);Serial.print("  ");dumpstr((char*)cstRec.extDetec,8);
 #ifdef ANALYZE
   FORCV   // 5,9mS
 #endif // ANALYZE        
@@ -1143,7 +1147,7 @@ void outputCtl()            // cstRec.swCde contient 4 paires de bits (gauche di
           Serial.print(micros());Serial.print(" ");Serial.print(sw);Serial.print(" ");Serial.println((cstRec.swCde>>(sw*2))&0x01);
           answerCnt++;if(answerCnt>6){answerCnt=0;}
         }
-        //digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                              // value (encodé dans le traitement des regles)
+        digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                              // value (encodé dans le traitement des regles)
         }
     else {digitalWrite(pinSw[sw],openSw[sw]);                                             // disjoncté donc open value
         }
