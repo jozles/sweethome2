@@ -529,7 +529,9 @@ void setup() {                          // ====================================
   //memDetConvert();                // chgt du nombre de detServ
   memDetLoad();                     // le second pour Sync 
   //remoteNPlus(8);while(1){};
-  //remoteConvert();while(1){};
+  //remoteTConvert();
+  //remoteNConvert();
+  //while(1){};
   remoteLoad();periSwSync();
   //timersConvert();                // chgt du nombre de timers
   timersLoad();
@@ -1553,6 +1555,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 8:  getPeriCurLibf(PERILOAD);                                                    // bouton switchs___ (periLine/showLine/switchs)
                        switch (*(libfonctions+2*i)){
                          case 'X':periInitVar0();
+                                  periSave(periCur,PERISAVELOCAL);
                                   swCtlTableHtml(cli);break;                                        // + bouton erase    (switchs)
                          case 'Y':for(uint8_t ninp=0;ninp<NBPERRULES;ninp++){
                                     if((*(periInput+ninp*PERINPLEN+2)&PERINPACT_MS)!=PMDCA_VIDE){   // seules les lignes avec action sont modifiées
@@ -1742,7 +1745,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        break;                                                        
               case 48: what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (remoteHtml) remotepb__ push button
                        uint8_t mi=remoteT[nb].detec>>3;
-                       uint8_t ptmi=remoteT[nb].detec*MDSLEN+mi;
+                       uint16_t ptmi=remoteT[nb].detec*MDSLEN+mi;
+                       Serial.print("mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);
+                       Serial.print(" detec=");Serial.print(remoteT[nb].detec);
+                       Serial.print(" mask=");if(mDSmaskbit[ptmi]<16){Serial.print('0');}Serial.print(mDSmaskbit[ptmi],HEX);
+                       Serial.println();
                        memDetServ[mi] |= mDSmaskbit[ptmi];
                        periMess=periReq(&cliext,remoteT[nb].peri,"set_______");
                        memDetServ[mi] &= ~mDSmaskbit[ptmi];
@@ -1795,10 +1802,18 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         char a=*(libfonctions+2*i);
                         switch(a){                                               
                             case 'n': alphaTfr(remoteN[nb].nam,LENREMNAM,valf,nvalf[i+1]-nvalf[i]);     // (remotecf) nom remote courante              
-                                      remoteN[nb].enable=0;remoteN[nb].onoff=0;break;                   // (remotecf) effacement cb 
+                                      remoteN[nb].enable=0;remoteN[nb].onoff=0;                         // (remotecf) effacement cb 
+                                      remoteN[nb].multRem=0;remoteN[nb].detec=0;
+                                      remoteN[nb].deten=0;break;
                             case 'e': remoteN[nb].enable=*valf-PMFNCVAL;break;                          // (remotecf) en enable remote courante
                             case 'o': remoteN[nb].onoff=*valf-PMFNCVAL;break;                           // (remotecf) on on/off remote courante
-                            case 'u': remoteT[nb].num=convStrToInt(valf,&j);                            // (remotecf) un N° remote table sw
+                            case 'g': remoteN[nb].multRem=*valf-PMFNCVAL;break;                         // (remotecf) multiple table noms
+                            case 'h': remoteN[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off table noms
+                                      if(remoteT[nb].detec>NBDSRV){remoteN[nb].detec=NBDSRV;}break;     
+                            case 'j': remoteN[nb].deten=convStrToInt(valf,&j);                          // (remotecf) n° detecteur enable table noms
+                                      if(remoteN[nb].deten>NBDSRV){remoteN[nb].deten=NBDSRV;}break;     
+                            case 'k': remoteN[nb].butModel=*valf-PMFNCVAL;break;                        // (remotecf) modèle bouton
+                            case 'u': remoteT[nb].num=convStrToInt(valf,&j);                            // (remotecf) N° remote table sw
                                       remoteT[nb].enable=0;break;                                       // (remotecf) effacement cb
                             case 'd': sourceDetServ[remoteT[nb].detec]=0;                 
                                       remoteT[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off

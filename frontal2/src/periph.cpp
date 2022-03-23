@@ -1654,7 +1654,7 @@ unsigned long   remoteNlenNew=(sizeof(Remote))*(NBREMOTE+plus);
   remSave(REMOTENFNAME,remoteNlenNew,remoteNANew);
 }
 
-void remoteConvert()
+void remoteTConvert()
 {
   // ajout/modif champs dans la structure
   // faire une copie de la carte SD
@@ -1665,11 +1665,11 @@ void remoteConvert()
   // la recommenter
   // mettre à jour la structure "normale" dans const.h et supprimer la nouvelle
 /*
-  struct NewSwRemote newRemoteT[NBREMOTE];
+  struct NewSwRemote newRemoteT[MAXREMLI];
   char*  newRemoteTA=(char*)&newRemoteT;
   unsigned long   newRemoteTlen=(sizeof(NewSwRemote))*MAXREMLI;
 
-  remLoad(REMOTETFNAME,remoteTlen,remoteTA);
+  if(remLoad(REMOTETFNAME,remoteTlen,remoteTA)!=SDOK){while(1){yield();}}
 
   for(uint8_t i=0;i<MAXREMLI;i++){
     newRemoteT[i].num=remoteT[i].num ;
@@ -1679,6 +1679,7 @@ void remoteConvert()
     newRemoteT[i].peri=remoteT[i].peri ;
     newRemoteT[i].sw=remoteT[i].sw ;
     newRemoteT[i].butModel=0 ;
+    newRemoteT[i].multRem=0 ;
   }
 
   fremote.remove();
@@ -1689,9 +1690,51 @@ void remoteConvert()
   }
 
   fremote.close();
-  remSave(REMOTETFNAME,newRemoteTlen,newRemoteTA);
+  if(remSave(REMOTETFNAME,newRemoteTlen,newRemoteTA)!=SDOK){while(1){yield();}}
 */
-  Serial.println("conversion terminée");
+  Serial.println("conversion remoteT terminée");
+}
+
+void remoteNConvert()
+{
+  // ajout/modif champs dans la structure
+  // faire une copie de la carte SD
+  // créer la nouvelle structure dans const.h (newRemote dans l'exemple)
+  // (dupliquer la structure et ajouter les nouvelles variables)
+  // dans la boucle de recopie des lignes initialiser les nouvelles variables
+  // faire tourner frontal2 avec la ligne remoteConvert décommentée
+  // la recommenter
+  // mettre à jour la structure "normale" dans const.h et supprimer la nouvelle
+/*
+  struct NewRemote newRemoteN[NBREMOTE];
+  char*  newRemoteNA=(char*)&newRemoteN;
+  unsigned long   newRemoteNlen=(sizeof(NewRemote))*NBREMOTE;
+
+  if(remLoad(REMOTENFNAME,newRemoteNlen,newRemoteNA)!=SDOK){while(1){yield();}}
+
+  for(uint8_t i=0;i<NBREMOTE;i++){
+    memcpy(&newRemoteN[i].nam,&remoteN[i].nam,LENREMNAM) ;
+    newRemoteN[i].onoff=remoteN[i].onoff ;
+    newRemoteN[i].newonoff=remoteN[i].newonoff ;
+    newRemoteN[i].enable=remoteN[i].enable ;
+    newRemoteN[i].newenable=remoteN[i].newenable ;
+    newRemoteN[i].multRem=0 ;
+    newRemoteN[i].detec=0 ;
+    newRemoteN[i].deten=0 ;
+    newRemoteN[i].butModel=0 ;
+  }
+
+  fremote.remove();
+
+  if (!fremote.open(REMOTENFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
+    Serial.println(" create failed");
+    return;
+  }
+
+  fremote.close();
+  if(remSave(REMOTENFNAME,newRemoteNlen,newRemoteNA)!=SDOK){while(1){yield();}}
+*/
+  Serial.println("conversion remoteN terminée");
 }
 
 /*********** timers ************/

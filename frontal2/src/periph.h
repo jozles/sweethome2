@@ -55,7 +55,8 @@ void  remoteLoad();
 void  remoteSave();
 void  remMemDetUpdate(uint8_t rem,uint8_t endet);
 void  remoteNPlus(int plus);
-void  remoteConvert();
+void  remoteNConvert();
+void  remoteTConvert();
 
 void  timersPrint();
 void  timersInit();

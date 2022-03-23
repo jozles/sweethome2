@@ -116,6 +116,7 @@
         révision 'analyse' ; révision 'ordreExt'
         nouvelle fonction de transfert periReq 'mds_______' qui ne passe pas la page switchs (maj des mds)
         révision codage fonctions de periLine. cli.stop() pour les connexions navigateur.
+        ajouts variables dans structures remote pour remotes multiples
 
    BUGS :
 
@@ -256,7 +257,7 @@
 #define REM_ENABLE  1     // une modif de remote a eu lieu sur enable -> maj memDet correspondant
 #define REM_DETEC   2     // une modif de remote a eu lieu sur detec  -> maj memDet correspondant
 
-
+/*
 struct SwRemote           // liste des détecteurs modifiables par les remotes
 {                         // une remote peut agir sur plusieurs détecteurs on/off ou enable 
                           // elle peut donc exister plusieurs fois dans la table
@@ -271,6 +272,25 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
   uint8_t  butModel;      // modèle bouton (slider/pushButton)
 };
 
+struct NewSwRemote           // liste des détecteurs modifiables par les remotes
+*/
+struct SwRemote           // liste des détecteurs modifiables par les remotes
+{                         // une remote peut agir sur plusieurs détecteurs on/off ou enable 
+                          // elle peut donc exister plusieurs fois dans la table
+                          // le détecteur 0 sert "d'élément neutre" et est donc inutilisable comme détecteur
+                          
+  uint8_t  num;           // remote number (numéro dans table des noms)
+  uint8_t  multNum;       // multiple remote number
+  uint8_t  detec;         // detecteur on/off
+  uint8_t  deten;         // detecteur enable
+  bool     enable;        // remote enable
+  uint8_t  peri;          // périphérique dont un disjoncteur est sous controle de enable (0 pas de périphérique)
+  uint8_t  sw;            // sw concerné du périphérique 
+  uint8_t  butModel;      // modèle bouton (slider/pushButton)
+  bool     multRem;       // multiple remote nb if not 0
+};
+
+/*
 struct Remote             // liste des remotes
 {
   char    nam[LENREMNAM]; // remote name
@@ -279,6 +299,23 @@ struct Remote             // liste des remotes
   uint8_t enable;         // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
   uint8_t newenable;      // buffer pour reception et traitement cb par GET /
 };
+
+struct NewRemote             // liste des remotes
+*/
+struct Remote             // liste des remotes
+{
+  char     nam[LENREMNAM]; // remote name
+  uint8_t  onoff;         // état on/off
+  uint8_t  newonoff;      // buffer pour reception et traitement cb par GET /
+  uint8_t  enable;        // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
+  uint8_t  newenable;     // buffer pour reception et traitement cb par GET /
+  bool     multRem;       // multiple Remote flag
+  uint8_t  detec;         // detecteur on/off
+  uint8_t  deten;         // detecteur enable
+  uint8_t  butModel;      // modèle bouton (slider/pushButton)
+};
+
+
 
 #define NBTIMERS     16
 #define LENTIMNAM    16

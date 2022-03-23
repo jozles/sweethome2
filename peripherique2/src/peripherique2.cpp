@@ -750,7 +750,7 @@ int buildReadSave(const char* nomFonction,const char* data)   // construit et en
                                                   //   data_rs.._=nnnnppmm.mm.mm.mm.mm.mm_[-xx.xx_aaaaaaa_v.vv]_r.r_siiii_diiii_ffff_cc
                                                   //   (sortie MESSCX connexion échouée)                                                  
 {
-  Serial.print(nomFonction);Serial.print(' ');
+  //Serial.print(nomFonction);Serial.print(' ');
   strcpy(bufServer,"GET /cx?\0");
   if(!buildMess("peri_pass_",cstRec.peripass,"?",diags,true)==MESSOK){
     if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(cstRec.peripass);return MESSDEC;};}
@@ -963,6 +963,20 @@ void talkClient(char* mess) // réponse à une requête
   if(diags){Serial.print("talk...done (");Serial.print(strlen(mess));Serial.println(')');}            
 }
 
+void showMD()
+{
+  for(uint8_t i=0;i<4;i++){
+    if(*(char*)(&locmem+3-i)<16){Serial.print('0');}Serial.print(*(char*)(&locmem+3-i),HEX);
+    Serial.print(' ');
+  }
+  Serial.print("   ");
+  for(uint8_t i=0;i<8;i++){
+    if(cstRec.extDetec[8-i]<16){Serial.print('0');}Serial.print(cstRec.extDetec[8-i],HEX);
+    Serial.print(' ');
+  }
+  Serial.println();
+}
+
 void showBS(char* buf)
 {
   Serial.print("BS=");Serial.println(buf);delay(10);
@@ -994,7 +1008,7 @@ void answer(const char* what)
   ANSWE
 #endif // ANALYZE  
   answerCnt++;
-  dumpstr((char*)&locmem,4,false);Serial.print("  ");dumpstr((char*)cstRec.extDetec,8);
+  showMD();
   clkFastStep=0;delay(1);   
 }
 
@@ -1039,7 +1053,7 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
       unsigned long trx=millis();
 
       while (cliext.connected()) {
-#define TO_ORDREXT 10
+#define TO_ORDREXT 50
         if((millis()-trx)>TO_ORDREXT){Serial.print("TO_available");break;}
         if (cliext.available()) {
           c = cliext.read();//Serial.print(c);
@@ -1071,7 +1085,7 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
         int checkMess=checkHttpData(&httpMess[v0+5],&fonction);
         if(checkMess==MESSOK){
           Serial.print("rcv fnct=");Serial.print(fonction);Serial.print("  ");
-          dumpstr((char*)&locmem,4,false);Serial.print("  ");dumpstr((char*)cstRec.extDetec,8);
+          showMD();
 #ifdef ANALYZE
   FORCV   // 5,9mS
 #endif // ANALYZE        
@@ -1144,7 +1158,7 @@ void outputCtl()            // cstRec.swCde contient 4 paires de bits (gauche di
   for(uint8_t sw=0;sw<NBSW;sw++){
     if(((cstRec.swCde>>(sw*2+1))&0x01)==0x01){                                            // disjoncteur ON
         if(answerCnt!=0){
-          Serial.print(micros());Serial.print(" ");Serial.print(sw);Serial.print(" ");Serial.println((cstRec.swCde>>(sw*2))&0x01);
+          //Serial.print(micros());Serial.print(" ");Serial.print(sw);Serial.print(" ");Serial.println((cstRec.swCde>>(sw*2))&0x01);
           answerCnt++;if(answerCnt>6){answerCnt=0;}
         }
         digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                              // value (encodé dans le traitement des regles)
