@@ -823,6 +823,11 @@ int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)       // maj des
       return periMess;
 }
 
+int8_t perToSend(uint8_t* tablePerToSend)
+{
+  return perToSend(tablePerToSend,millis());
+}
+
 void scanTimers()                                             //   recherche timer ayant changé d'état 
 {                                                             //      si (en.perm.dh.js) (ON) et état OFF -> état ON, det ON, poolperif
                                                               //      sinon              (OFF) et état ON -> état OFF, det OFF, poolperif
@@ -1840,27 +1845,36 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           }
                        }break;
               case 53:  what=9;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteHtml (cdes on/off)
-                        if(!remoteN[nb].multRem){
                           switch(*(libfonctions+2*i)){                                               
                             case 'n': remoteN[nb].newonoff=0;break;                                     // (remote_cn) effacement cb on/off
                             case 't': remoteN[nb].newonoff=1;break;                                     // (remote_ct) slider check cb on/off
                             case 'm': remoteN[nb].newenable=0;break;                                    // (remote_cm) effacement cb enable
                             case 's': remoteN[nb].newenable=*valf-48;break;                             // (remote_cs) check cb enable (0,1,2 OFF/ON/FOR)
-                            case 'u': what=0;                                                           // (remote_cu) push button
-                                      {uint8_t mi=remoteT[nb].detec>>3;                                 
-                                      uint16_t ptmi=remoteT[nb].detec*MDSLEN+mi;
-Serial.print("mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);
-Serial.print(" detec=");Serial.print(remoteT[nb].detec);
-Serial.print(" mask=");if(mDSmaskbit[ptmi]<16){Serial.print('0');}Serial.print(mDSmaskbit[ptmi],HEX);
-Serial.println();
-                                      memDetServ[mi] |= mDSmaskbit[ptmi];
-                                      periMess=periReq(&cliext,remoteT[nb].peri,"set_______");
-                                      memDetServ[mi] &= ~mDSmaskbit[ptmi];
+                            case 'u': what=0;{                                                           // (remote_cu) push button
+                                      if(!remoteN[nb].multRem){
+                                        uint8_t mi=remoteT[nb].detec>>3;uint16_t ptmi=remoteT[nb].detec*MDSLEN+mi;
+/*            Serial.print("mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);
+            Serial.print(" detec=");Serial.print(remoteT[nb].detec);
+            Serial.print(" mask=");if(mDSmaskbit[ptmi]<16){Serial.print('0');}Serial.print(mDSmaskbit[ptmi],HEX);Serial.println();*/
+                                        memDetServ[mi] |= mDSmaskbit[ptmi];
+                                        periReq(&cliext,remoteT[nb].peri,"set_______");
+                                        memDetServ[mi] &= ~mDSmaskbit[ptmi];}
+                                      else {
+                                        memset(tablePerToSend,0x00,NBPERIF);
+                                        for(uint8_t i=0;i<MAXREMLI;i++){
+                                          if(remoteT[i].multRem==nb+1){tablePerToSend[remoteT[i].peri]=1;}//updateMDS(remoteN[nb].detec,remoteT[nb].peri,PTS);}
+                                        }
+                                        uint8_t mi=remoteN[nb].detec>>3;uint16_t ptmi=remoteN[nb].detec*MDSLEN+mi;
+                                        memDetServ[mi] |= mDSmaskbit[ptmi];
+                                        for(uint16_t i=0;i<NBPERIF;i++){
+                                          if(tablePerToSend[i]!=0){periReq(&cliext,i,"set_______");}
+                                        }
+                                        memDetServ[mi] &= ~mDSmaskbit[ptmi];
+                                      }
                                       remoteHtml(cli); 
                                       }break;                         
                             default:break;
                           }
-                        }
                         }break;                                                                       
               case 54:  remoteHtml(cli);break;                                                           // remotehtml
               case 55:  break;                                                                           // dispo
