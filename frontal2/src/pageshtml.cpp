@@ -788,7 +788,6 @@ void cfgRemoteHtml(EthernetClient* cli)
             bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
-
 void remoteHtml(EthernetClient* cli)
 {              
             Serial.print(millis());Serial.print(" remoteHtml() ");
@@ -816,61 +815,68 @@ void remoteHtml(EthernetClient* cli)
 
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               ni++;
+              bool remHere=false;
+              uint8_t nb1=nb+1;
+              uint8_t butModel=remoteN[nb].butModel;                  
+              char fn[LENNOM+1];
               if(remoteN[nb].nam[0]!='\0'){
-                bool remHere=false;
-                uint8_t nb1=nb+1;
-                scrDspNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);                                         
-
-                // affichage état d'un éventuel switch
-                // boucle des détecteurs pour trouver un switch 
-                // (voir le commentaire des disjoncteurs, c'est idem)               
-                for(uint8_t td=0;td<MAXREMLI;td++){
-                  if(remoteT[td].num==nb+1){                     
-                    remHere=true;
-                    if(remoteT[td].peri!=0){           // même remote et présence périphérique
-                      periCur=remoteT[td].peri;periLoad(periCur);
-                      if(periSwLev(remoteT[td].sw)!=0){                         // switch ON
-                        scrDspText(buf,jsbuf," ON ",0,TDBEG|BRYES);
-                        affRondJaune(buf,jsbuf,TDEND);
+                scrDspNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);
+                if(!remoteN[nb].multRem){                                   // remote simple
+                  // affichage état d'un éventuel switch
+                  // boucle des détecteurs pour trouver un switch 
+                  // (voir le commentaire des disjoncteurs, c'est idem)               
+                  for(uint8_t td=0;td<MAXREMLI;td++){
+                    if(remoteT[td].num==nb+1){                              // même remote           
+                      remHere=true;
+                      butModel=remoteT[td].butModel;
+                      if(remoteT[td].peri!=0){                              // périphérique présent
+                        periCur=remoteT[td].peri;periLoad(periCur);
+                        if(periSwLev(remoteT[td].sw)!=0){                   // switch ON
+                          scrDspText(buf,jsbuf," ON ",0,TDBEG|BRYES);
+                          affRondJaune(buf,jsbuf,TDEND);
+                        }
+                        else {
+                          scrDspText(buf,jsbuf," OFF ",0,TDBE);}  
                       }
-                      else {
-                        scrDspText(buf,jsbuf," OFF ",0,TDBE);}  //strcat(buf," OFF ");}
+                      else {scrDspText(buf,jsbuf,".",0,TDBE);}
                     }
-                    else {scrDspText(buf,jsbuf,".",0,TDBE);}
                   }
                 }
-                if(remHere==false){scrDspText(buf,jsbuf," --- ",0,TDBE);} // comble la colonne ON/OFF
+                if(remHere==false){scrDspText(buf,jsbuf," --- ",0,TDBE);}   // comble la colonne ON/OFF
                 scrDspText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
-                // slider on/off
-                // chaque ligne de slider envoie 2 commandes : remote_cnx et remote_ctx (x n° de ligne)
-                // l'input hidden remote_cnx assure la présence d'une fonction dans 'GET /' pour assurer l'effacement des cb
-                // l'input remote_ctx renseigne le passage à "1" éventuel après l'effacement. La variable newonoff stocke le résultat
-                // et la comparaison avec onoff permet de connaitre la transition (ou non transition)
-                // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
-                // pour la maj via PerToSend des périphériques concernés
-                char fn[]="remote_cn_\0";fn[LENNOM-1]=(char)(nb+PMFNCHAR);
-                scrGetHidden(buf,jsbuf,"",fn,0,0);
-                
-                strcat(buf,"\n");
-                if(remoteT[nb].butModel==0){
-                  sliderBHtml(buf,jsbuf,(uint8_t*)(&remoteN[nb].onoff),"remote_ct",nb,0,TDBEG);     // slider
+
+                if(butModel==0){                                            // slider
+                  // slider on/off
+                  // chaque ligne de slider envoie 2 fonctions : remote_cnx et remote_ctx (x n° de ligne)
+                  // la fonction hidden remote_cnx efface la variable de la cb du slider (.newonoff)
+                  // remote_ctx si passage à "1" 
+                  // La comparaison avec .onoff permet de connaitre la transition (ou non transition)
+                  // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
+                  // pour la maj via PerToSend des périphériques concernés                      
+                  memcpy(fn,"remote_cn_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
+                  scrGetHidden(buf,jsbuf,"",fn,0,0);
+                  strcat(buf,"\n");
+                  memcpy(fn,"remote_ct_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
+                  sliderBHtml(buf,jsbuf,(uint8_t*)(&remoteN[nb].onoff),fn,0,TDBEG);
                 }
-                else{
-                  char fn[]={"remotepb__"};fn[LENNOM-1]=(char)(nb+PMFNCHAR);
+                else{                                                       // push button
+                  memcpy(fn,"remote_cu_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
                   scrGetButFn(buf,jsbuf,fn,"","",ALICNO,4,TDBEG);
                 }
-                scrDspText(buf,jsbuf,"- - - - -",0,TDBE);                                           // ne devrait pas afficher le disjoncteur si une ligne précédente l'a déjà affiché
-                bool vert=FAUX;                                                                     // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
+                
+                scrDspText(buf,jsbuf,"- - - - -",0,TDBE);                   // espace
+                bool vert=FAUX;                                             // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
                 strcat(buf,"\n");
-                yscrGetRadiobut(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);     // renvoie 0,1,2 selon OFF,ON,FOR
+                
+                yscrGetRadiobut(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);   // renvoie 0,1,2 selon OFF,ON,FOR
                 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
-             }
+              }
             }
             if(buf[0]!='\0'){ethWrite(cli,buf);}
             tableEnd(buf,jsbuf,0);
             
-            scrGetButSub(buf,jsbuf,"MàJ",ALICNO,7,BRYES); //<input type=\"submit\" value=\"MàJ\" style=\"height:120px;width:400px;background-color:LightYellow;font-size:60px;font-family:Courier,sans-serif;\"><br>\n");
+            scrGetButSub(buf,jsbuf,"MàJ",ALICNO,7,BRYES);
             scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,7,0);
             scrGetButFn(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,0);
             

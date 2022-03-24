@@ -287,7 +287,7 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
   uint8_t  peri;          // périphérique dont un disjoncteur est sous controle de enable (0 pas de périphérique)
   uint8_t  sw;            // sw concerné du périphérique 
   uint8_t  butModel;      // modèle bouton (slider/pushButton)
-  bool     multRem;       // multiple remote nb if not 0
+  uint8_t  multRem;       // multiple remote nb if not 0
 };
 
 /*

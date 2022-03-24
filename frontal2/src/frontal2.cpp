@@ -122,7 +122,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_perHrefr__periHtofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__periHmac__accueil___peri_tabledispo_____dispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__dispo_____peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___remotepb__percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmldispo_____mailcfg___thparams__thermoshowthermoscfgdispo_____tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_perHrefr__periHtofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__periHmac__accueil___peri_tabledispo_____dispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__dispo_____peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___dispo_____percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmldispo_____mailcfg___thparams__thermoshowthermoscfgdispo_____tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
@@ -1743,7 +1743,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        }break;                       
               case 47: if(memcmp((usrnames+usernum*LENUSRNAME),"admin",5)==0){cfgServerHtml(cli);}      // bouton config cfg_serv__
                        break;                                                        
-              case 48: what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (remoteHtml) remotepb__ push button
+              case 48: break;                                                                           // dispo
+                       /*
+                       what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (remoteHtml) remotepb__ push button
                        uint8_t mi=remoteT[nb].detec>>3;
                        uint16_t ptmi=remoteT[nb].detec*MDSLEN+mi;
                        Serial.print("mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);
@@ -1755,6 +1757,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        memDetServ[mi] &= ~mDSmaskbit[ptmi];
                        remoteHtml(cli);
                        }break;                                                                           
+                       */
               case 49: what=6;                                                                         
                        {uint8_t nC=*(libfonctions+2*i)-PMFNCVAL;                                        // num concentrateur             
                         int rr=0;uint16_t aa=0;  
@@ -1807,7 +1810,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       remoteN[nb].deten=0;break;
                             case 'e': remoteN[nb].enable=*valf-PMFNCVAL;break;                          // (remotecf) en enable remote courante
                             case 'o': remoteN[nb].onoff=*valf-PMFNCVAL;break;                           // (remotecf) on on/off remote courante
-                            case 'g': remoteN[nb].multRem=*valf-PMFNCVAL;break;                         // (remotecf) multiple table noms
+                            case 'g': remoteN[nb].multRem=*valf-PMFNCHAR;break;                         // (remotecf) multiple table noms
                             case 'h': remoteN[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off table noms
                                       if(remoteT[nb].detec>NBDSRV){remoteN[nb].detec=NBDSRV;}break;     
                             case 'j': remoteN[nb].deten=convStrToInt(valf,&j);                          // (remotecf) n° detecteur enable table noms
@@ -1830,17 +1833,34 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       }
                                       remoteT[nb].peri=0;remoteT[nb].sw=0;break;                        // ko
                             case 'q': remoteT[nb].butModel=*valf-PMFNCVAL;break;                        // (remotecf) modèle bouton
+                            case 'v': conv_atob(valf,&v1);if(v1!=0 && remoteN[v1-1].multRem){           // (remotecf) n° remote multiple
+                                      remoteT[nb].multRem=(uint8_t)v1;}
+                                      break;
                             default:break;
                           }
                        }break;
               case 53:  what=9;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteHtml (cdes on/off)
+                        if(!remoteN[nb].multRem){
                           switch(*(libfonctions+2*i)){                                               
                             case 'n': remoteN[nb].newonoff=0;break;                                     // (remote_cn) effacement cb on/off
-                            case 't': remoteN[nb].newonoff=1;break;                                     // (remote_ct) check cb on/off
+                            case 't': remoteN[nb].newonoff=1;break;                                     // (remote_ct) slider check cb on/off
                             case 'm': remoteN[nb].newenable=0;break;                                    // (remote_cm) effacement cb enable
                             case 's': remoteN[nb].newenable=*valf-48;break;                             // (remote_cs) check cb enable (0,1,2 OFF/ON/FOR)
+                            case 'u': what=0;                                                           // (remote_cu) push button
+                                      {uint8_t mi=remoteT[nb].detec>>3;                                 
+                                      uint16_t ptmi=remoteT[nb].detec*MDSLEN+mi;
+Serial.print("mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);
+Serial.print(" detec=");Serial.print(remoteT[nb].detec);
+Serial.print(" mask=");if(mDSmaskbit[ptmi]<16){Serial.print('0');}Serial.print(mDSmaskbit[ptmi],HEX);
+Serial.println();
+                                      memDetServ[mi] |= mDSmaskbit[ptmi];
+                                      periMess=periReq(&cliext,remoteT[nb].peri,"set_______");
+                                      memDetServ[mi] &= ~mDSmaskbit[ptmi];
+                                      remoteHtml(cli); 
+                                      }break;                         
                             default:break;
                           }
+                        }
                         }break;                                                                       
               case 54:  remoteHtml(cli);break;                                                           // remotehtml
               case 55:  break;                                                                           // dispo

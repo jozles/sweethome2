@@ -70,7 +70,7 @@ void optSelHtml(char* jsbuf,char* val,char* name);
 void scrGetCheckbox(char* buf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
 void scrGetCheckbox(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,uint8_t td,const char* lib);
 void scrGetCheckbox(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl);
-void sliderBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint8_t ctl);
+void sliderBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nf,int sqr,uint8_t ctl);
 
 void fontBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
 void fontEnd(char* buf,char* jsbuf,uint8_t ctl);

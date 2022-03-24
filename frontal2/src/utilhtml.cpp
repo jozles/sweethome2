@@ -1228,10 +1228,10 @@ void scrGetCheckbox(char* buf,uint8_t* val,const char* nomfonct,int etat,uint8_t
   scrGetCheckbox(buf,nullptr,val,nomfonct,etat,td,lib);
 }
 
-void sliderBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int nb,int sqr,uint8_t ctl)
+void sliderBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nf,int sqr,uint8_t ctl)
 {
-  char nf[LENNOM+1];nf[LENNOM]='\0';
-  memcpy(nf,nomfonct,LENNOM);if(nb>=0){nf[LENNOM-1]=(char)(nb+PMFNCHAR);}
+  //char nf[LENNOM+1];nf[LENNOM]='\0';
+  //memcpy(nf,nomfonct,LENNOM);if(nb>=0){nf[LENNOM-1]=(char)(nb+PMFNCHAR);}
 
 #ifndef NOJSBUF
   fnJsIntro(jsbuf,JSSLD,0,ctl);
