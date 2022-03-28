@@ -869,7 +869,7 @@ void remoteHtml(EthernetClient* cli)
                 strcat(buf,"\n");
                 
                 yscrGetRadiobut(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);   // renvoie 0,1,2 selon OFF,ON,FOR
-                
+
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
               }
             }
