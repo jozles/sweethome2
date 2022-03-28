@@ -1272,18 +1272,20 @@ void remMemDetUpdate(uint8_t rem,uint8_t endet)               // maj memDetServ 
 void periSwSync()                               // sychronisation periSwVal et memdetserv sur remotes au démarrage
 {
   /*   remoteN[k].onoff   etat du bit k memDetServ remoteT[k].detec
-   *   remoteN[k].enable  etat du bit k memDetServ remoteT[k].deten (dijoncteur)
+   *   remoteN[k].enable  etat du bit k memDetServ remoteT[k].deten (dijoncteur) 
    */
   uint8_t nbsync=0;
   for(uint8_t k=0;k<MAXREMLI;k++){
     if(remoteT[k].peri!=0 && remoteT[k].peri<=NBPERIF && remoteT[k].sw<MAXSW){
-      periCur=remoteT[k].peri;periLoad(periCur);
-      periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);             // update disjoncteur perif
-      remMemDetUpdate(k,REM_ENABLE);                                              // update memDetServ disj et forçage
-      remMemDetUpdate(k,REM_DETEC);                                               // update memDetServ on/off
       
-      periSave(periCur,PERISAVELOCAL);
-      nbsync++;
+        periCur=remoteT[k].peri;periLoad(periCur);
+        periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);             // update disjoncteur perif
+        remMemDetUpdate(k,REM_ENABLE);                                              // update memDetServ disj et forçage
+        remMemDetUpdate(k,REM_DETEC);                                               // update memDetServ on/off
+      
+        periSave(periCur,PERISAVELOCAL);
+        nbsync++;
+      
     }
   }
   Serial.print("sync ");Serial.print(nbsync);Serial.println(" switchs");
