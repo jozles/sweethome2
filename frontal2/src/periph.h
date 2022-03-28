@@ -21,8 +21,8 @@ void  periConvert();
 void  periInit();
 void  periInitVar();  // le contenu de periRec seul
 void  periInitVar0(); // pulses et inputs 
-byte  periSwLev(uint8_t sw);                    // Lev Sw bit value
-byte  periSwCde(uint8_t sw);                    // Cd  Sw bit value
+//byte  periSwLev(uint8_t sw);                    // Lev Sw bit value
+byte  periSwRead(uint8_t sw);                    // Cd  Sw bit value
 void  periSwCdUpdate(uint8_t sw,uint8_t stat);  // update Cd Sw bit
 void  periSwLevUpdate(uint8_t sw,uint8_t stat); // update Lev Sw bit
 void  periSwSync();                             // synchro disjoncteurs switchs sur remotes au démarrage

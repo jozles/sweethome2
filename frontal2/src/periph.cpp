@@ -96,7 +96,7 @@ extern byte*      periMacr;                     // ptr ds buffer : mac address
 extern byte*      periIpAddr;                   // ptr ds buffer : Ip address
 extern uint16_t*  periPort;                     // ptr ds buffer : port periph server
 extern byte*      periSwNb;                     // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
-extern byte*      periSwVal;                    // ptr ds buffer : état/cde des inter  
+extern byte*      periSwCde;                    // ptr ds buffer : état/cde des switchs
 extern byte*      periInput;                    // ptr ds buffer : Mode fonctionnement inters (1 par switch)           
 extern uint32_t*  periSwPulseOne;               // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
 extern uint32_t*  periSwPulseTwo;               // ptr ds buffer : durée pulses sec OFF(mode astable)
@@ -104,7 +104,7 @@ extern uint32_t*  periSwPulseCurrOne;           // ptr ds buffer : temps courant
 extern uint32_t*  periSwPulseCurrTwo;           // ptr ds buffer : temps courant pulses OFF
 extern byte*      periSwPulseCtl;               // ptr ds buffer : mode pulses
 extern byte*      periSwPulseSta;               // ptr ds buffer : état clock pulses
-extern uint8_t*   dispo;                        // ptr ds buffer : dispo
+extern uint8_t*   periSwSta;                    // ptr ds buffer : dispo
 extern bool*      periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
 extern byte*      periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*      periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
@@ -702,8 +702,8 @@ void  periPrint(uint16_t num)
   serialPrintMac(periMacr,0);Serial.print(" ");serialPrintIp(periIpAddr);Serial.print(" port=");Serial.print(*periPort);
   Serial.print(" sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.print(*periDetNb);Serial.print(" ");
   for(int ver=0;ver<LENVERSION;ver++){Serial.print(periVers[ver]);}Serial.println();
-  Serial.print("SWcde=(");if((*periSwVal&0xF0)==0){Serial.print("0");}Serial.print(*periSwVal,HEX);Serial.print(") ");
-  for(int s=MAXSW;s>=1;s--){Serial.print(periSwCde(s));}
+  Serial.print("SWcde=(");if((*periSwCde&0xF0)==0){Serial.print("0");}Serial.print(*periSwCde,HEX);Serial.print(") ");
+  for(int s=MAXSW;s>=1;s--){Serial.print(periSwRead(s));}
   periDetServPrint(memDetServ);Serial.println(millis());
   periPulsePrint((uint16_t*)periSwPulseCtl,periSwPulseOne,periSwPulseTwo,periSwPulseCurrOne,periSwPulseCurrTwo);
   periInputPrint(periInput);
@@ -1077,7 +1077,7 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=4;
   periSwNb=(byte*)temp;
   temp +=sizeof(byte);
-  periSwVal=(byte*)temp;
+  periSwCde=(byte*)temp;
   temp +=sizeof(byte);
   periInput=(byte*)temp;
   temp +=NBPERRULES*PERINPLEN*sizeof(byte);
@@ -1093,7 +1093,7 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=PCTLLEN*sizeof(byte);  
   periSwPulseSta=(byte*)temp;
   temp +=NBPULSE*sizeof(byte);
-  //dispo=(uint8_t*)temp;
+  periSwSta=(uint8_t*)temp;
   temp +=sizeof(uint8_t);
   periProg=(bool*)temp;
   temp +=sizeof(bool);
@@ -1186,7 +1186,7 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   memset(periMacr,0x00,6);
   memset(periIpAddr,0x00,4);
   *periSwNb=0;
-  *periSwVal=0;
+  *periSwCde=0;
   *periProg=FAUX;
   if(*periProg==FAUX){*periPort=0;}
   *periDetNb=0;
@@ -1221,27 +1221,36 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
 
 void periSwCdUpdate(uint8_t sw,uint8_t stat)    // maj sw courant selon stat
 {
-  byte msk=(byte)0x01<<(sw*2+1);                // 02 08 20 80 disjoncteurs
-  *periSwVal &= ~msk;
-  if(stat!=0){*periSwVal |= msk;}               // stat peut être 0,1,2,3 !! (remoteN[].enable)
+  byte msk=(byte)0x03<<(sw*2);                  // 03 0C 30 C0 disjoncteurs
+  *periSwCde  &= ~msk;
+  if(stat!=0){*periSwCde |= msk;}               
+
+  /*byte msk=(byte)0x01<<(sw*2+1);                // 02 08 20 80 disjoncteurs
+  *periSwCde  &= ~msk;
+  if(stat!=0){*periSwCde |= msk;}               // stat peut être 0,1,2,3 !! (remoteN[].enable)
+*/
 }
 
-byte periSwCde(uint8_t sw)                      // etat sw courant
+byte periSwRead(uint8_t sw)                      // etat sw courant
 {
-  return (*periSwVal>>(sw*2+1))&0x01;
+  return (*periSwCde>>(sw*2))&0x03;
 }
 
 void periSwLevUpdate(uint8_t sw,uint8_t stat)   // maj lev(sw) selon stat
 {
-  byte msk=(byte)0x01<<(sw*2);                  // 01 04 10 40 levels
-  *periSwVal &= ~msk;
-  if(stat==1){*periSwVal |= msk;}  
+  byte msk=(byte)0x01<<(sw);                  // 01 02 04 08 10 20 40 80 levels
+  *periSwSta &= msk;
+  if(stat==1){*periSwSta |= msk;}
+
+  /*byte msk=(byte)0x01<<(sw*2);                  // 01 04 10 40 levels
+  *periSwCde &= ~msk;
+  if(stat==1){*periSwCde |= msk;}  */
 }
 
-byte periSwLev(uint8_t sw)                      // lev de sw courant
+/*byte periSwLev(uint8_t sw)                      // lev de sw courant
 {
-  return (*periSwVal>>(sw*2))&0x01;
-}
+  return (*periSwCde>>(sw*2))&0x03;
+}*/
 
 void remMemDetUpdate(uint8_t rem,uint8_t endet)               // maj memDetServ suite à chgt état remote
 {
@@ -1269,7 +1278,7 @@ void remMemDetUpdate(uint8_t rem,uint8_t endet)               // maj memDetServ 
   }
 }
 
-void periSwSync()                               // sychronisation periSwVal et memdetserv sur remotes au démarrage
+void periSwSync()                               // synchro memdetserv sur remotes au démarrage (sychronisation periSwCde obsolete)
 {
   /*   remoteN[k].onoff   etat du bit k memDetServ remoteT[k].detec
    *   remoteN[k].enable  etat du bit k memDetServ remoteT[k].deten (dijoncteur) 
@@ -1279,7 +1288,7 @@ void periSwSync()                               // sychronisation periSwVal et m
     if(remoteT[k].peri!=0 && remoteT[k].peri<=NBPERIF && remoteT[k].sw<MAXSW){
       
         periCur=remoteT[k].peri;periLoad(periCur);
-        periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);             // update disjoncteur perif
+        //periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);             // update disjoncteur perif
         remMemDetUpdate(k,REM_ENABLE);                                              // update memDetServ disj et forçage
         remMemDetUpdate(k,REM_DETEC);                                               // update memDetServ on/off
       
@@ -1376,7 +1385,7 @@ void periModif()
   temp +=4;
   IperiSwNb=(byte*)temp;
   temp +=sizeof(byte);
-  IperiSwVal=(byte*)temp;
+  IperiSwCde=(byte*)temp;
   temp +=sizeof(byte);
   IperiSwMode=(byte*)temp;
   temp +=MAXSW*sizeof(byte);
@@ -1433,7 +1442,7 @@ Serial.print(" transfert enregistrement ");
   memcpy(IperiMacr,periMacr,6);
   memcpy(IperiIpAddr,periIpAddr,4);
   *IperiSwNb=        *periSwNb;
-  *IperiSwVal=       *periSwVal;
+  *IperiSwCde=       *periSwCde;
   memset(IperiSwMode,0x00,4);
 for(int k=0;k<MAXSW;k++){
   IperiSwPulse[k]=  periSwPulse[k];

@@ -46,8 +46,9 @@ extern char*      periLastDateIn;               // ptr ds buffer : date/heure de
 extern char*      periLastDateOut;              // ptr ds buffer : date/heure de dernier envoi  
 extern char*      periVers;                     // ptr ds buffer : version logiciel du périphérique
 extern char*      periModel;                    // ptr ds buffer : model du périphérique
-extern byte*      periSwVal;                    // ptr ds buffer peri : état/cde des inter 
+extern byte*      periSwCde;                    // ptr ds buffer : cde des switchs
 extern char*      periNamer;                    // ptr ds buffer : description périphérique
+extern uint8_t*   periSwSta;                    // ptr ds buffer : état des switchs 
 
 extern byte       periMacBuf[MACADDRLENGTH]; 
 
@@ -660,7 +661,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
               strcat(buf,"\n");
               tableBeg(buf,jsbuf,0);
-              scrDspText(buf,jsbuf,"   |      Nom      | on/off | en | mult | detec on/off | detec en |slid/push",0,TDBE|TRBE);
+              scrDspText(buf,jsbuf,"   |      Nom      | mult | detec on/off | disj |slid/push",0,TDBE|TRBE);
 
               for(int nb=0;nb<NBREMOTE;nb++){
                 uint8_t nb1=nb+1;
@@ -669,7 +670,7 @@ void cfgRemoteHtml(EthernetClient* cli)
                 scrGetText(buf,jsbuf,remoteN[nb].nam,nf,14,LENREMNAM+1,0,TDBE);              // nom remote
                 //strcat(buf,"<td><input type=\"text\" name=\"remotecfn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
                 //        strcat(buf,remoteN[nb].nam);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENREMNAM-1);strcat(buf,"\" ></td>");
-
+/*
                 memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // état on/off
                 val=(uint8_t)remoteN[nb].onoff;
                 scrGetCheckbox(buf,jsbuf,&val,nf,NO_STATE,"",0,TDBE);
@@ -678,12 +679,12 @@ void cfgRemoteHtml(EthernetClient* cli)
                 val=(uint8_t)remoteN[nb].enable;  
                 scrGetRadiobut(buf,jsbuf,val,nf,3,0,TDBE);
                 strcat(buf,"\n");
-
+*/
                 memcpy(nf,"remotecfg_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // flag remote multiple 
                 val=(uint8_t)remoteN[nb].multRem;
                 scrGetCheckbox(buf,jsbuf,&val,nf,NO_STATE,"",0,TDBE);
 
-                memcpy(nf,"remotecfh_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // n° detec on/off si multiple
+                memcpy(nf,"remotecfh_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // n° detec on/off
                 scrGetNum(buf,jsbuf,'b',&remoteN[nb].detec,nf,2,0,0,TDBEG);
                 #define DNL 2+LENLIBDETSERV+1
                 char dn[DNL];memset(dn,0x00,DNL);
@@ -693,16 +694,21 @@ void cfgRemoteHtml(EthernetClient* cli)
                 scrDspText(buf,jsbuf,dn,0,TDEND);
                 strcat(buf,"\n");
 
-                memcpy(nf,"remotecfj_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // n° detec enable si multiple
-                scrGetNum(buf,jsbuf,'b',&remoteN[nb].deten,nf,2,0,0,TDBEG);
-                memset(dn,0x00,DNL);
+                if(remoteN[nb].multRem){
+                  memcpy(nf,"remotecfj_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // valeur disjoncteur si multiple
+                  scrGetNum(buf,jsbuf,'b',&remoteN[nb].deten,nf,2,0,0,TDBEG);
+                  memset(dn,0x00,DNL);
+                }
+                else scrDspText(buf,jsbuf," ",0,TDBEG);
+                /*
                 if(remoteN[nb].deten!=0){
                   strcat(dn,(char*)(&libDetServ[remoteN[nb].deten][0]));strcat(dn," ");
                   mDSconc(dn,remoteN[nb].deten);}
+                */
                 scrDspText(buf,jsbuf,dn,0,TDEND);
                 strcat(buf,"\n");
 
-                memcpy(nf,"remotecfk_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // modèle bouton si multiple
+                memcpy(nf,"remotecfk_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // modèle bouton
                 scrGetRadiobut(buf,jsbuf,remoteN[nb].butModel,nf,2,0,TDBE|TREND);
                 strcat(buf,"\n");
 
@@ -717,7 +723,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
             borderparam=NOBORDER;
             tableBeg(buf,jsbuf,0);
-            scrDspText(buf,jsbuf,"  |remote | mult |detec on/off|detec en|peri|switch|slid/push",0,TRBE|TDBE);
+            scrDspText(buf,jsbuf,"  |remote | mult |peri|switch|slid/push",0,TRBE|TDBE);
             strcat(buf,"\n");
               
             for(uint8_t nb=0;nb<MAXREMLI;nb++){
@@ -738,10 +744,11 @@ void cfgRemoteHtml(EthernetClient* cli)
               tt=remoteN[remoteT[nb].multRem-1].nam;if(remoteT[nb].multRem==0){tt=ttsp;}
               scrDspText(buf,jsbuf,tt,0,TDEND);
 
-              memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec on/off
-              scrGetNum(buf,jsbuf,'b',&remoteT[nb].detec,nf,2,0,0,TDBEG);
               #define DML PERINAMLEN+LENLIBDETSERV+1
               char dm[DML];memset(dm,0x00,DML);
+/*
+              memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec on/off
+              scrGetNum(buf,jsbuf,'b',&remoteT[nb].detec,nf,2,0,0,TDBEG);
               if(remoteT[nb].num!=0){
                 strcat(dm,(char*)(&libDetServ[remoteT[nb].detec][0]));strcat(dm," ");
                 mDSconc(dm,remoteT[nb].detec);}
@@ -756,7 +763,7 @@ void cfgRemoteHtml(EthernetClient* cli)
                 mDSconc(dm,remoteT[nb].deten);}
               scrDspText(buf,jsbuf,dm,0,TDEND);
               strcat(buf,"\n");
-
+*/
               memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° périphérique
               scrGetNum(buf,jsbuf,'b',&remoteT[nb].peri,nf,2,0,2,TDBEG);
               memset(dm,0x00,DML);
@@ -768,11 +775,11 @@ void cfgRemoteHtml(EthernetClient* cli)
               memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° switch
               scrGetNum(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,2,TDBE);
               strcat(buf,"\n");
-
+/*
               memcpy(nf,"remotecfq_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // modèle bouton
               scrGetRadiobut(buf,jsbuf,remoteT[nb].butModel,nf,2,0,TDBE);
               strcat(buf,"\n");
-
+*/
               scrGetButSub(buf,jsbuf,"MàJ",TDBE|TREND);
               formEnd(buf,jsbuf,0,0);
               strcat(buf,"\n");
@@ -809,29 +816,34 @@ void remoteHtml(EthernetClient* cli)
 // ------------------------------------------------------------- header end
 
 /* table remotes */
+
            
             tableBeg(buf,jsbuf,courier,true,0); 
             strcat(buf,"\n");            
 
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               ni++;
-              bool remHere=false;
+              uint16_t periCur=0;
+              uint8_t disjVal=0;
+              char remTVal[]={'\0','\0'};   // MAXREMLI ou pointeur valide dans remoteT
               uint8_t nb1=nb+1;
               uint8_t butModel=remoteN[nb].butModel;                  
               char fn[LENNOM+1];
               if(remoteN[nb].nam[0]!='\0'){
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);
-                if(!remoteN[nb].multRem){                                   // remote simple
+                if(!remoteN[nb].multRem){                                     // remote simple
                   // affichage état d'un éventuel switch
                   // boucle des détecteurs pour trouver un switch 
                   // (voir le commentaire des disjoncteurs, c'est idem)               
-                  for(uint8_t td=0;td<MAXREMLI;td++){
-                    if(remoteT[td].num==nb+1){                              // même remote           
-                      remHere=true;
-                      butModel=remoteT[td].butModel;
-                      if(remoteT[td].peri!=0){                              // périphérique présent
-                        periCur=remoteT[td].peri;periLoad(periCur);
-                        if(periSwLev(remoteT[td].sw)!=0){                   // switch ON
+                  uint8_t td=0;
+                  for(td=0;td<MAXREMLI;td++){
+                    if(remoteT[td].num==nb+1){                                // même remote           
+                      //butModel=remoteT[td].butModel;
+                      if(remoteT[td].peri!=0){                                // périphérique présent
+                        periCur=remoteT[td].peri;
+                        periLoad(periCur);
+                        disjVal=periSwRead(remoteT[td].sw);
+                        if(((*periSwSta>>remoteT[td].sw)&0x01)!=0){              // switch ON
                           scrDspText(buf,jsbuf," ON ",0,TDBEG|BRYES);
                           affRondJaune(buf,jsbuf,TDEND);
                         }
@@ -839,44 +851,59 @@ void remoteHtml(EthernetClient* cli)
                           scrDspText(buf,jsbuf," OFF ",0,TDBE);}  
                       }
                       else {scrDspText(buf,jsbuf,".",0,TDBE);}
+                      break;                                                  // périf trouvé remote simple, td numéro remoteT 
                     }
                   }
+                  remTVal[0]=td+PMFNCHAR;
                 }
-                if(remHere==false){scrDspText(buf,jsbuf," --- ",0,TDBE);}   // comble la colonne ON/OFF
+                if(periCur==0){scrDspText(buf,jsbuf," --- ",0,TDBE);}         // comble la colonne ON/OFF-rond jaune
+                
                 scrDspText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
+// remote simple, pericur à jour (0 ou n), disjVal à jour si periCur !=0 (0,1,2)
 
-                if(butModel==0){                                            // slider
-                  // slider on/off
-                  // chaque ligne de slider envoie 2 fonctions : remote_cnx et remote_ctx (x n° de ligne)
-                  // la fonction hidden remote_cnx efface la variable de la cb du slider (.newonoff)
-                  // remote_ctx si passage à "1" 
-                  // La comparaison avec .onoff permet de connaitre la transition (ou non transition)
-                  // periRemoteUpdate détecte les transitions, positionne les détecteurs et déclenche poolperif si nécessaire 
-                  // pour la maj via PerToSend des périphériques concernés                      
-                  memcpy(fn,"remote_cn_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
+                if(remoteN[nb].detec!=0){                                     // push ou slider
+                  memcpy(fn,"remote_cn_\0",LENNOM+1);fn[LENNOM-1]=(char)(periCur+PMFNCHAR); // transmet periCur (valide si !=0)
                   scrGetHidden(buf,jsbuf,"",fn,0,0);
                   strcat(buf,"\n");
-                  memcpy(fn,"remote_ct_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
-                  sliderBHtml(buf,jsbuf,(uint8_t*)(&remoteN[nb].onoff),fn,0,TDBEG);
-                }
-                else{                                                       // push button
+
+                  char val[]={'1','\0'};
                   memcpy(fn,"remote_cu_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
-                  scrGetButFn(buf,jsbuf,fn,"","",ALICNO,4,TDBEG);
+                  if(butModel==SLIDER){                                       // slider
+                    uint8_t mi=remoteN[nb].detec>>3;uint8_t ptmi=remoteN[nb].detec*MDSLEN+mi;
+                    uint8_t color=3;
+                    if((memDetServ[mi]&mDSmaskbit[ptmi])==0){color=2;}
+                    else val[0]='0';                                          
+                    scrGetButFn(buf,jsbuf,fn,val,"SLIDER",ALICNO,4,color,TDBEG);
+                  }
+                  else{                                                       // push button
+                    scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,TDBEG);          // envoie toujours '1'
+                  }
                 }
-                
-                scrDspText(buf,jsbuf,"- - - - -",0,TDBE);                   // espace
-                bool vert=FAUX;                                             // pour ce perif/sw (créer une table fugitive des disj déjà affichés ?)
+                else {scrDspText(buf,jsbuf,"- - - - -",0,TDBE);}              // slider/push absent
+
+                scrDspText(buf,jsbuf,"- -",0,TDBE);                     // espace
+                //bool vert=FAUX;      
                 strcat(buf,"\n");
                 
-                yscrGetRadiobut(buf,jsbuf,remoteN[nb].enable,"remote_cs",2,vert,nb,TDBE|TREND);   // renvoie 0,1,2 selon OFF,ON,FOR
+                if(remoteN[nb].multRem){disjVal=remoteN[nb].deten;}      
+                scrDspText(buf,jsbuf,"",0,TDBEG);
+                memcpy(fn,"remote_c__\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);                   
+
+                uint8_t color=3; // 3 bleu on ; 4 vert disj ; 5 rouge forcé
+                fn[LENNOM-2]='a';
+                if(disjVal==0){color=4;}else {color=2;}scrGetButFn(buf,jsbuf,fn,remTVal,"",ALICNO,4,color,0);
+                fn[LENNOM-2]='b';
+                if(disjVal==1){color=3;}else {color=2;}scrGetButFn(buf,jsbuf,fn,remTVal,"",ALICNO,4,color,0);
+                fn[LENNOM-2]='c';
+                if(disjVal==2){color=5;}else {color=2;}scrGetButFn(buf,jsbuf,fn,remTVal,"",ALICNO,4,color,0);                    
+                scrDspText(buf,jsbuf," ",0,TDEND|TREND|BRYES);                 
 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
               }
             }
             if(buf[0]!='\0'){ethWrite(cli,buf);}
-            tableEnd(buf,jsbuf,0);
+            tableEnd(buf,jsbuf,BRYES);
             
-            scrGetButSub(buf,jsbuf,"MàJ",ALICNO,7,BRYES);
             scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,7,0);
             scrGetButFn(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,0);
             

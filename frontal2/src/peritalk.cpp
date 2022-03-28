@@ -44,7 +44,7 @@ extern byte*     periMacr;                      // ptr ds buffer : mac address
 extern byte*     periIpAddr;                    // ptr ds buffer : Ip address
 extern uint16_t* periPort;                      // ptr ds buffer : port periph server
 extern byte*     periSwNb;                      // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
-extern byte*     periSwVal;                     // ptr ds buffer : état/cde des inter  
+extern byte*     periSwCde;                     // ptr ds buffer : état/cde des switchs  
 extern byte*     periInput;                     // ptr ds buffer : Mode fonctionnement inters (1 par switch)           
 extern uint32_t* periSwPulseOne;                // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
 extern uint32_t* periSwPulseTwo;                // ptr ds buffer : durée pulses sec OFF(mode astable)
@@ -52,7 +52,7 @@ extern uint32_t* periSwPulseCurrOne;            // ptr ds buffer : temps courant
 extern uint32_t* periSwPulseCurrTwo;            // ptr ds buffer : temps courant pulses OFF
 extern byte*     periSwPulseCtl;                // ptr ds buffer : mode pulses
 extern byte*     periSwPulseSta;                // ptr ds buffer : état clock pulses
-//extern uint8_t*  dispo;                       // ptr ds buffer : dispo
+extern uint8_t*  periSwSta;                     // ptr ds buffer : état des switchs
 extern bool*     periProg;                      // ptr ds buffer : flag "programmable" (périphériques serveurs)
 extern byte*     periDetNb;                     // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                    // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
@@ -125,7 +125,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,char* fonct
 
                 v1=strlen(message);                               // 4 bits disjoncteurs switchs (8,6,4,2)
                 for(int k=MAXSW;k>0;k--){
-                    message[v1+MAXSW-k]=(char)(PMFNCVAL + periSwCde(k-1));}
+                    message[v1+MAXSW-k]=(char)(PMFNCVAL + periSwRead(k-1));}
                 memcpy(message+v1+MAXSW,"_\0",2);
 
                 v1+=MAXSW+1;
@@ -422,7 +422,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
 
       messLen-=i;if(messLen>0){      
         k+=i;
-        k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                   // periSwVal états sw
+        k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                   
         k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
         k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
       }

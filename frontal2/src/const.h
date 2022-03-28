@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".73"
+#define NVERS ".74"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -117,6 +117,10 @@
         nouvelle fonction de transfert periReq 'mds_______' qui ne passe pas la page switchs (maj des mds)
         révision codage fonctions de periLine. cli.stop() pour les connexions navigateur.
         ajouts variables dans structures remote pour remotes multiples
+        periSwCde() devient periSwRead() (réutilisation periSwCde pour remplacer periSwVal dans version 1.74)
+   1.74 periSwVal devient periSwCde : 2 bits par switch codent 0,1,2 disjoncté,on,forçé
+        ajout periSwSta qui reçoit l'état de la sortie des switchs (anciennement dans periSwVal)
+        tous les boutons de remotes deviennent des fonctions
 
    BUGS :
 
@@ -302,6 +306,10 @@ struct Remote             // liste des remotes
 
 struct NewRemote             // liste des remotes
 */
+
+#define SLIDER false
+#define PUSH   true
+
 struct Remote             // liste des remotes
 {
   char     nam[LENREMNAM]; // remote name

@@ -63,7 +63,7 @@ extern byte*     periMacr;                      // ptr ds buffer : mac address
 extern byte*     periIpAddr;                    // ptr ds buffer : Ip address
 extern uint16_t* periPort;                      // ptr ds buffer : port periph server
 extern byte*     periSwNb;                      // ptr ds buffer : Nbre d'interrupteurs (0 aucun ; maxi 4(MAXSW)            
-extern byte*     periSwVal;                     // ptr ds buffer : état/cde des inter  
+extern byte*     periSwCde;                     // ptr ds buffer : état/cde des switchs  
 extern byte*     periInput;                     // ptr ds buffer : Mode fonctionnement inters (4 bytes par switch)           
 extern uint32_t* periSwPulseOne;                // ptr ds buffer : durée pulses sec ON (0 pas de pulse)
 extern uint32_t* periSwPulseTwo;                // ptr ds buffer : durée pulses sec OFF(mode astable)
@@ -71,7 +71,7 @@ extern uint32_t* periSwPulseCurrOne;            // ptr ds buffer : temps courant
 extern uint32_t* periSwPulseCurrTwo;            // ptr ds buffer : temps courant pulses OFF
 extern byte*     periSwPulseCtl;                // ptr ds buffer : mode pulses 
 extern byte*     periSwPulseSta;                // ptr ds buffer : état clock pulses
-//extern uint8_t*  dispo;                       // ptr ds buffer : dispo
+extern uint8_t*  periSwSta;                     // ptr ds buffer : état switchs
 extern bool*     periProg;                      // ptr ds buffer : flag "programmable" 
 extern byte*     periDetNb;                     // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                    // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
@@ -603,11 +603,13 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                       pLFonc[LENNOM-2]='W';
                       char oi[]={"OI"};
                       uint8_t lctl=TDBEG;
+                      
+// réviser                      
                       for(int k=0;k<*periSwNb;k++){
                         pLFonc[LENNOM-1]=PMFNCHAR+k;
-                        scrGetRadiobut(buf,jsbuf,periSwCde(k),pLFonc,2,0,lctl);
+                        scrGetRadiobut(buf,jsbuf,periSwRead(k),pLFonc,2,0,lctl);
                         lctl=0;if(k<*periSwNb-1){lctl=BRYES;}
-                        char tt[2]={oi[periSwLev(k)],0x00};
+                        char tt[2]={oi[periSwRead(k)],0x00};
                         scrDspText(buf,jsbuf,tt,0,lctl|STRING|CONCAT);
                         lctl=0;}
                       strcat(buf,"\n");
@@ -705,7 +707,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           vv=(float)(*periPitch_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,STRING|BRYES);
           vv=(float)(*periThOffset_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,STRING|TDEND);          
       
-          char oi[2]={'O','I'};
+          
           if(*periProg==0){lctl=STRING|TDEND;}
           else {lctl=STRING|BRYES;}
           scrDspNum(buf,jsbuf,'d',(uint16_t*)periPerRefr,0,0,lctl);
@@ -713,10 +715,12 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             
           scrDspNum(buf,jsbuf,'s',(uint8_t*)periSwNb,0,0,STRING|BRYES);
           scrDspNum(buf,jsbuf,'s',(uint8_t*)periDetNb,0,0,STRING|TDEND);                                                 
-          
+
+// réviser
+          char oi[3]={'O','I','F'};          
           char tt[4];tt[3]=0x00;
           for(uint8_t k=0;k<*periSwNb;k++){
-                      tt[0]=oi[periSwCde(k)];tt[1]='_';tt[2]=oi[periSwLev(k)];
+                      tt[0]=oi[periSwRead(k)];tt[1]='_';tt[2]=oi[(*periSwSta>>k)&0x01];
                       if(k<*periSwNb-1){lctl=STRING|BRYES;}
                       else {lctl=STRING|TDEND;}
                       scrDspText(buf,jsbuf,tt,0,lctl);
