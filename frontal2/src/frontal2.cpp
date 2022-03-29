@@ -1642,11 +1642,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         getPeriCurLibf(PERILOAD);                                                   // a cde (N°sw/mail) ; k etat à sortir 
                         char fptst[LENNOM+1];                                                        
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
-                        uint8_t k=0;
                         char msg[64];msg[0]='\0';
-                        if(a=='m'){a=2;k=0;strcat(msg,"TEST==");strcat(msg,mailToAddr1);strcat(msg,"==test peri ");concatn(msg,periCur);strcat(msg," ");strcat(msg,alphaDate());}
-                        else {a-=PMFNCVAL;k=periSwRead(a);}
-                        memcpy(fptst,swcd+LENNOM*(a*2+k),LENNOM);
+                        if(a=='m'){a=2;strcat(msg,"TEST==");strcat(msg,mailToAddr1);strcat(msg,"==test peri ");concatn(msg,periCur);strcat(msg," ");strcat(msg,alphaDate());}
+                        else {a-=PMFNCVAL;}
+                        memcpy(fptst,swcd+LENNOM*a*2,LENNOM);
                         cliext.stop();periReq(&cliext,periCur,fptst,msg);
                         periLineHtml(cli);                        
                        }break;                                                                       
