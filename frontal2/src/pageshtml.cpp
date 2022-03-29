@@ -836,6 +836,7 @@ void remoteHtml(EthernetClient* cli)
                   // boucle des détecteurs pour trouver un switch 
                   // (voir le commentaire des disjoncteurs, c'est idem)               
                   uint8_t td=0;
+                  periCur=0;
                   for(td=0;td<MAXREMLI;td++){
                     if(remoteT[td].num==nb+1){                                // même remote           
                       //butModel=remoteT[td].butModel;
@@ -862,26 +863,28 @@ void remoteHtml(EthernetClient* cli)
 // remote simple, pericur à jour (0 ou n), disjVal à jour si periCur !=0 (0,1,2)
 
                 if(remoteN[nb].detec!=0){                                     // push ou slider
-                  memcpy(fn,"remote_cn_\0",LENNOM+1);fn[LENNOM-1]=(char)(periCur+PMFNCHAR); // transmet periCur (valide si !=0)
+                  /*memcpy(fn,"remote_cn_\0",LENNOM+1);fn[LENNOM-1]=(char)(periCur+PMFNCHAR); // transmet periCur (valide si !=0)
                   scrGetHidden(buf,jsbuf,"",fn,0,0);
-                  strcat(buf,"\n");
+                  strcat(buf,"\n");*/
 
-                  char val[]={'1','\0'};
+                  char val[]={'1',' ','\0'};val[1]=(char)(periCur+PMFNCHAR);
                   memcpy(fn,"remote_cu_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
                   if(butModel==SLIDER){                                       // slider
-                    uint8_t mi=remoteN[nb].detec>>3;uint8_t ptmi=remoteN[nb].detec*MDSLEN+mi;
+                    uint8_t mi=remoteN[nb].detec>>3;uint16_t ptmi=(remoteN[nb].detec*MDSLEN)+mi;
                     uint8_t color=3;
+                    
                     if((memDetServ[mi]&mDSmaskbit[ptmi])==0){color=2;}
-                    else val[0]='0';                                          
+                    else {val[0]='0';}                                          
+                    Serial.print("det=");Serial.print(remoteN[nb].detec);Serial.print(" mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);Serial.print(" val=");Serial.print(val);Serial.print(" mds=");Serial.print(memDetServ[mi]&mDSmaskbit[ptmi],HEX);Serial.print(' ');Serial.println(memDetServ[mi]&mDSmaskbit[ptmi],HEX);
                     scrGetButFn(buf,jsbuf,fn,val,"SLIDER",ALICNO,4,color,RND,TDBEG);
                   }
                   else{                                                       // push button
-                    scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,TDBEG);          // envoie toujours '1'
+                    scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,TDBEG);      // envoie toujours '1'
                   }
                 }
                 else {scrDspText(buf,jsbuf,"- - - - -",0,TDBE);}              // slider/push absent
 
-                scrDspText(buf,jsbuf,"- -",0,TDBE);                     // espace
+                scrDspText(buf,jsbuf,"- -",0,TDBE);                           // espace
                 //bool vert=FAUX;      
                 strcat(buf,"\n");
                 

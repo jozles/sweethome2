@@ -1327,17 +1327,18 @@ void getPeriCurValf(bool load)
   getPC(load);
 }
 
-void pushSliderRemote(EthernetClient* cli,uint8_t rem,uint16_t peri)
+void pushSliderRemote(EthernetClient* cli,uint8_t rem)
 {
                             uint8_t mi=remoteN[rem].detec>>3;uint16_t ptmi=remoteN[rem].detec*MDSLEN+mi; 
-                            
+                            Serial.print("det=");Serial.print(remoteN[rem].detec);Serial.print(' ');
                             if(!remoteN[rem].multRem){                                        // remote simple
                             
                               uint8_t val=*valf-PMFNCVAL;
+                              uint16_t peri=*(valf+1)-PMFNCHAR;
                               Serial.print("val=");Serial.print(val);
                               if(val!=0){memDetServ[mi] |= mDSmaskbit[ptmi];Serial.println(" 1");}                 // push envoie toujours 1
                               else {memDetServ[mi] &= ~mDSmaskbit[ptmi];Serial.println(" 0");}
-                              for(uint8_t i=0;i<(NBDSRV>>3);i++){if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);}Serial.println();
+                              for(int8_t i=(NBDSRV>>3)-1;i>0;i--){if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);}Serial.println();
 /*            Serial.print("mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);
             Serial.print(" detec=");Serial.print(remoteT[nb].detec);
             Serial.print(" mask=");if(mDSmaskbit[ptmi]<16){Serial.print('0');}Serial.print(mDSmaskbit[ptmi],HEX);Serial.println();*/
@@ -1883,6 +1884,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           }
                        }break;
               case 53:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteHtml (disjoncteurs/push/slider)
+                                                                                                        // si nb= n° remoteN faire +1 (remoteN[1->n])
                           
                           switch(*(libfonctions+2*i)){                                               
 /*
@@ -1892,11 +1894,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 's': remoteN[nb].newenable=*valf-48;break;                             // (remote_cs) check cb enable (0,1,2 OFF/ON/FOR)
 */
 
-                            case 'a': disjValue(0,nb);break;                                            // (remote_ca) 1ère position disjoncteur (disjoncté)
-                            case 'b': disjValue(1,nb);break;                                            // (remote_cb) 2nde position disjoncteur (on)
-                            case 'c': disjValue(2,nb);break;                                            // (remote_cc) 2nde position disjoncteur (forcé)
-                            case 'n': periCur=nb;break;                                                 // passage periCur pour push/slider
-                            case 'u': pushSliderRemote(cli,nb,periCur);break;                           // (remote_cu) push/slider
+                            case 'a': disjValue(0,nb+1);break;                                          // (remote_ca) 1ère position disjoncteur (disjoncté)
+                            case 'b': disjValue(1,nb+1);break;                                          // (remote_cb) 2nde position disjoncteur (on)
+                            case 'c': disjValue(2,nb+1);break;                                          // (remote_cc) 2nde position disjoncteur (forcé)
+
+                            case 'u': pushSliderRemote(cli,nb+1);break;                         // (remote_cu) push/slider
                             default:break;
                           }
                           remoteHtml(cli);
