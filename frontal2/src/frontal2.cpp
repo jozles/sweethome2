@@ -525,8 +525,6 @@ void setup() {                          // ====================================
   //periModification();             // chgt de structure de l'enregistrement perif (periRec)
   periTableLoad();                  // le premier (après config) pour permettre les mails
 
-  for(uint8_t i=1;i<5;i++){periLoad(i);Serial.print(*periSwCde,HEX);Serial.print(" ");}Serial.println();
-
   iniDetServ();
   //memDetConvert();                // chgt du nombre de detServ
   memDetLoad();                     // le second pour Sync 
@@ -1335,12 +1333,15 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem,uint16_t peri)
                             
                             if(!remoteN[rem].multRem){                                        // remote simple
                             
-                              uint8_t val=*valf-PMFNCHAR;
-                              if(val!=0){memDetServ[mi] |= mDSmaskbit[ptmi];}                 // push envoie toujours 1
-                              else memDetServ[mi] &= ~mDSmaskbit[ptmi];
+                              uint8_t val=*valf-PMFNCVAL;
+                              Serial.print("val=");Serial.print(val);
+                              if(val!=0){memDetServ[mi] |= mDSmaskbit[ptmi];Serial.println(" 1");}                 // push envoie toujours 1
+                              else {memDetServ[mi] &= ~mDSmaskbit[ptmi];Serial.println(" 0");}
+                              for(uint8_t i=0;i<(NBDSRV>>3);i++){if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);}Serial.println();
 /*            Serial.print("mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);
             Serial.print(" detec=");Serial.print(remoteT[nb].detec);
             Serial.print(" mask=");if(mDSmaskbit[ptmi]<16){Serial.print('0');}Serial.print(mDSmaskbit[ptmi],HEX);Serial.println();*/
+                              memDetSave();
                               periReq(&cliext,peri,"set_______");
                             }
                             else {                                                            // remote multiple
@@ -1891,9 +1892,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 's': remoteN[nb].newenable=*valf-48;break;                             // (remote_cs) check cb enable (0,1,2 OFF/ON/FOR)
 */
 
-                            case 'a': disjValue(0,nb);break;                                            // (remote_c1) 1ère position disjoncteur (disjoncté)
-                            case 'b': disjValue(1,nb);break;                                            // (remote_c1) 2nde position disjoncteur (on)
-                            case 'c': disjValue(2,nb);break;                                            // (remote_c1) 2nde position disjoncteur (forcé)
+                            case 'a': disjValue(0,nb);break;                                            // (remote_ca) 1ère position disjoncteur (disjoncté)
+                            case 'b': disjValue(1,nb);break;                                            // (remote_cb) 2nde position disjoncteur (on)
+                            case 'c': disjValue(2,nb);break;                                            // (remote_cc) 2nde position disjoncteur (forcé)
                             case 'n': periCur=nb;break;                                                 // passage periCur pour push/slider
                             case 'u': pushSliderRemote(cli,nb,periCur);break;                           // (remote_cu) push/slider
                             default:break;

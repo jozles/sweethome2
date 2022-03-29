@@ -115,6 +115,8 @@ bool serverStarted=false;
 
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
+  uint8_t outSw=0; // image mémoire des switchs (1 bit par switch)
+
   uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};       // switchs pins
   uint8_t cloSw[MAXSW]={CLOSA,CLOSB,CLOSC,CLOSD};           // close value for every switchs (relay/triac etc ON)
   uint8_t openSw[MAXSW]={OPENA,OPENB,OPENC,OPEND};          // open value for every switchs (relay/triac etc OFF)
@@ -621,10 +623,16 @@ if(diags){Serial.println(" dataTransfer() ");}
           cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
           cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure (100x)
             
-          uint8_t mskSw[] = {0xfd,0xf7,0xdf,0x7f};                            
+          /*uint8_t mskSw[] = {0xfd,0xf7,0xdf,0x7f};                            
           for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
             cstRec.swCde &= mskSw[i];
             cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
+          */
+
+          uint8_t mskSw[] = {0xfc,0xf3,0xcf,0x3f};                            
+          for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte disjoncteurs : 2 bits / switch (voir const.h du frontal)
+            cstRec.swCde &= mskSw[i];
+            cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((MAXSW-i)-1);}         // 4 fois valeur disjoncteur (0,1,2)
 
           conv_atoh(data+MPOSANALH,(byte*)&cstRec.analLow);conv_atoh(data+MPOSANALH+2,(byte*)&cstRec.analLow+1);      // analogLow
           conv_atoh(data+MPOSANALH+4,(byte*)&cstRec.analHigh);conv_atoh(data+MPOSANALH+6,(byte*)&cstRec.analHigh+1);  // analogHigh
@@ -1153,15 +1161,16 @@ void readAnalog()
 
 /* Output control -------------------- */
 
-void outputCtl()            // cstRec.swCde contient 4 paires de bits (gauche disjoncteur 1=ON, droite résultat règles encodé selon la carte openSW/cloSw)
+void outputCtl()            // cstRec.swCde contient 4 paires de bits disjoncteurs 0=DISJ ; 1=ON ; 2 FORCE
+                            // le résultat des règles dans outSw encodé selon la carte openSW/cloSw
 {
   for(uint8_t sw=0;sw<NBSW;sw++){
-    if(((cstRec.swCde>>(sw*2+1))&0x01)==0x01){                                            // disjoncteur ON
+    if(((cstRec.swCde>>(sw*2+1))&0x03)!=0 && ((outSw>>sw)&0x01)!=0){                      // disjoncteur ON et résultat règles ON
         if(answerCnt!=0){
-          //Serial.print(micros());Serial.print(" ");Serial.print(sw);Serial.print(" ");Serial.println((cstRec.swCde>>(sw*2))&0x01);
+          //Serial.print(micros());Serial.print(" ");Serial.print(sw);Serial.print(" ");Serial.println((cstRec.swCde>>(sw*2))&0x03);
           answerCnt++;if(answerCnt>6){answerCnt=0;}
         }
-        digitalWrite(pinSw[sw],(cstRec.swCde>>(sw*2))&0x01);                              // value (encodé dans le traitement des regles)
+        digitalWrite(pinSw[sw],cloSw[sw]); // (cstRec.swCde>>(sw*2))&0x01);               // value (encodé dans le traitement des regles)
         }
     else {digitalWrite(pinSw[sw],openSw[sw]);                                             // disjoncté donc open value
         }

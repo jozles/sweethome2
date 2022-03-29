@@ -58,6 +58,7 @@ extern Capat capaKeys;
 #if POWER_MODE==NO_MODE
 
 extern uint32_t locmem;        // mémoire = valeurs locales pour partiels
+extern uint8_t outSw;
 
 extern constantValues cstRec;
 
@@ -568,14 +569,19 @@ void actions()          // pour chaque input, test enable,
   }       // next rule
 
   /* SW update */
-  uint8_t mskSw[] = {0xfe,0xfb,0xef,0xbf};                           
+  /*uint8_t mskSw[] = {0xfe,0xfb,0xef,0xbf};                           
   for(uint8_t i=0;i<NBSW;i++){                                    // 1 byte 4sw + 4disjoncteurs (voir const.h du frontal)
     if(usdSw[i]==1){
       cstRec.swCde &= mskSw[i];                                   // clear switch bit
       cstRec.swCde |= curSw[i]<<(2*i);                            // bit switchs (bits 7,5,3,1 pour switchs 3,2,1,0)  
       //if(cstRec.swCde!=oldCstCde){Serial.print("\n");Serial.print(millis());Serial.print("--->");Serial.print(oldCstCde,HEX);Serial.print(" ");Serial.println(cstRec.swCde,HEX);oldCstCde=cstRec.swCde;}
-    }  
+    }
   }
+  */
+  uint8_t mskSw[] = {0x01,0x02,0x04,0x08}; 
+  outSw=0;
+  for(uint8_t i=0;i<NBSW;i++){if(curSw[i]!=0){outSw|=mskSw[i];}}
+ 
 
 #ifdef DEBUG_ACTIONS  
   strcat(curDebugAction," ");

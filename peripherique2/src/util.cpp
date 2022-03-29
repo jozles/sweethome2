@@ -138,13 +138,13 @@ void initConstant()  // inits mise sous tension
   cstRec.cstlen=(uint16_t)((long)&cstRec.cstcrc-(long)cstRecA)+1;
   Serial.print(" init_len=");Serial.println(cstRec.cstlen);
   memcpy(cstRec.numPeriph,"00",2);
-  cstRec.serverTime=PERSERV+1;             // forçage talkserver à l'init
+  cstRec.serverTime=PERSERV+1;                // forçage talkserver à l'init
   cstRec.serverPer=PERSERV;
   cstRec.oldtemp=0;
   cstRec.tempPer=PERTEMP;
   cstRec.tempPitch=0;
-  cstRec.talkStep=0;                       // pointeur pour l'automate talkServer()
-  cstRec.swCde='\0';                       // cdes inter (4*2bits (periIntVal) ici x0 x=état demandé par le serveur pour le switch)
+  cstRec.talkStep=0;                          // pointeur pour l'automate talkServer()
+  cstRec.swCde=0;                             // disjoncteurs switchs (4*2bits 0,1,2)
   
   memset(cstRec.pulseMode,0x00,PCTLLEN);      // ctle pulse
   for(int i=0;i<NBPULSE;i++){
@@ -261,8 +261,8 @@ if(diags){
   Serial.print("  ");Serial.println(VERSION);
   Serial.print("ssid1=");Serial.print(cstRec.ssid1);Serial.print(" pwd1=");Serial.println(cstRec.pwd1);
   Serial.print("ssid2=");Serial.print(cstRec.ssid2);Serial.print(" pwd2=");Serial.println(cstRec.pwd2);
-  Serial.print("SWcde=(");if((cstRec.swCde&0xF0)==0){Serial.print("0");}Serial.print(cstRec.swCde,HEX);Serial.print(") ");
-  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((cstRec.swCde>>(2*s-1))&0x01)+48));}
+  Serial.print("SWcde=(");if(cstRec.swCde<16){Serial.print("0");}Serial.print(cstRec.swCde,HEX);Serial.print(") ");
+  for(int s=MAXSW;s>=1;s--){Serial.print((char)(((cstRec.swCde>>(2*s-1))&0x03)+48));}
   Serial.print(" serverTime=");Serial.print(cstRec.serverTime);Serial.print(" serverPer=");Serial.print(cstRec.serverPer);
   Serial.print(" oldtemp=");Serial.print(cstRec.oldtemp);Serial.print(" tempPer=");Serial.print(cstRec.tempPer);
   Serial.print(" tempPitch=");Serial.print(cstRec.tempPitch);Serial.print("  last analog=");Serial.print(cstRec.analVal);

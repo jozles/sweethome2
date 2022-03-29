@@ -309,6 +309,8 @@ struct NewRemote             // liste des remotes
 
 #define SLIDER false
 #define PUSH   true
+#define SQR    false
+#define RND    true
 
 struct Remote             // liste des remotes
 {

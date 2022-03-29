@@ -243,7 +243,8 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     int lbs=buildMess(nfonct,message,"",NODIAGS);
     if(lbs==0 || (lbs+2)>LBUFSERVER){ledblink(BCODEPERIRECLEN);}  // bufServer complété
     strcat(bufServer,"\n\n");                                     // fin de message pour le périf
-    Serial.println(millis());
+    
+    Serial.println(millis());Serial.println(bufServer);
 
     if(*periProtocol=='T'){                                       // UDP à développer (sortie ret=MESSCX)
           periMess=messToServer(cli,host,*periPort,bufServer);

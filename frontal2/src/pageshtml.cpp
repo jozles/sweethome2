@@ -873,7 +873,7 @@ void remoteHtml(EthernetClient* cli)
                     uint8_t color=3;
                     if((memDetServ[mi]&mDSmaskbit[ptmi])==0){color=2;}
                     else val[0]='0';                                          
-                    scrGetButFn(buf,jsbuf,fn,val,"SLIDER",ALICNO,4,color,TDBEG);
+                    scrGetButFn(buf,jsbuf,fn,val,"SLIDER",ALICNO,4,color,RND,TDBEG);
                   }
                   else{                                                       // push button
                     scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,TDBEG);          // envoie toujours '1'
@@ -891,11 +891,14 @@ void remoteHtml(EthernetClient* cli)
 
                 uint8_t color=3; // 3 bleu on ; 4 vert disj ; 5 rouge forcé
                 fn[LENNOM-2]='a';
-                if(disjVal==0){color=4;}else {color=2;}scrGetButFn(buf,jsbuf,fn,remTVal,"",ALICNO,4,color,0);
+                if(disjVal==0){color=4;}else {color=2;}scrGetButFn(buf,jsbuf,fn,remTVal,"",ALICNO,1,color,SQR,0);
+                scrDspText(buf,jsbuf,"  ",0,0);
                 fn[LENNOM-2]='b';
-                if(disjVal==1){color=3;}else {color=2;}scrGetButFn(buf,jsbuf,fn,remTVal,"",ALICNO,4,color,0);
+                if(disjVal==1){color=3;}else {color=2;}scrGetButFn(buf,jsbuf,fn,remTVal,"",ALICNO,1,color,SQR,0);
+                //char dc[3];dc[0]=(char)(disjVal+PMFNCVAL);dc[1]=(char)(color+PMFNCVAL);dc[2]='\0';
+                scrDspText(buf,jsbuf," ",0,0);
                 fn[LENNOM-2]='c';
-                if(disjVal==2){color=5;}else {color=2;}scrGetButFn(buf,jsbuf,fn,remTVal,"",ALICNO,4,color,0);                    
+                if(disjVal==2){color=5;}else {color=2;}scrGetButFn(buf,jsbuf,fn,remTVal,"",ALICNO,1,color,SQR,0);                    
                 scrDspText(buf,jsbuf," ",0,TDEND|TREND|BRYES);                 
 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
