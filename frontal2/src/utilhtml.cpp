@@ -868,7 +868,7 @@ void optSelHtml(char* jsbuf,char* val,char* name)
 #endif // NOJSBUF
 }
 
-void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t color,bool round,uint8_t ctl)
+void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t bgcolor,uint8_t fntcolor,uint8_t round,uint8_t ctl)
 /* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
 {
 #ifndef NOJSBUF
@@ -894,16 +894,26 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     strcat(buf,"<input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"");
     
     if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;");}
-    if(sizfnt==1){strcat(buf," style=\"height:40px;width:70px;");}
+    if(sizfnt==1){strcat(buf," style=\"height:40px;width:80px;");}
     if(sizfnt==2){strcat(buf," style=\"height:75px;width:150px;");}
-    if(sizfnt==4){strcat(buf," style=\"height:100px;width:250px;");if(round){strcat(buf,"  border-radius: 50px;");}}
+    if(sizfnt==4){strcat(buf," style=\"height:100px;width:250px;");}
+    if(round!=0){
+      strcat(buf,"  border-radius: ");
+      if(round==1){strcat(buf,"5");}
+      if(round==2){strcat(buf,"50");}
+      strcat(buf,"px;");}
 
-    if(sizfnt!=0 && color==1){strcat(buf,"background-color:LightYellow;");}
-    if(sizfnt!=0 && color==2){strcat(buf,"background-color:LightGrey;");}
-    if(sizfnt!=0 && color==3){strcat(buf,"background-color:#2196F3;");} //#338FFF;");}
-    if(sizfnt!=0 && color==4){strcat(buf,"background-color:LawnGreen;");}
-    if(sizfnt!=0 && color==5){strcat(buf,"background-color:Red;");}
-    if(sizfnt!=0){strcat(buf,"font-size:40px;font-family:Courier,sans-serif;\"");}  // border-radius: 50px;
+    if(sizfnt!=0 && bgcolor==1){strcat(buf,"background-color:LightYellow;border-color:LightYellow;");}
+    if(sizfnt!=0 && bgcolor==2){strcat(buf,"background-color:LightGrey;border-color:LightGrey;");}
+    if(sizfnt!=0 && bgcolor==20){strcat(buf,"background-color:Grey;border-color:Grey;");}
+    if(sizfnt!=0 && bgcolor==3){strcat(buf,"background-color:#338FFF;border-color:#338FFF;");}
+    if(sizfnt!=0 && bgcolor==4){strcat(buf,"background-color:#28a745;border-color:#28a745;");}
+    if(sizfnt!=0 && bgcolor==5){strcat(buf,"background-color:#dc3545;border-color:#dc3545;");}
+    if(sizfnt!=0){
+      strcat(buf,"font-size:25px;font-family:Courier,sans-serif;");
+      if(fntcolor!=1){strcat(buf,"color:White;");}
+      strcat(buf,"\"");
+    } 
 
     if(aligncenter){strcat(buf,"></p></a>");}
     else{strcat(buf,"></a>");}
@@ -914,7 +924,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 {
   uint8_t color=0;if(sizfnt!=0){color=1;}
-  return scrGetButFn(buf,jsbuf,nomfonct,valfonct,lib,aligncenter,sizfnt,color,false,ctl);
+  return scrGetButFn(buf,jsbuf,nomfonct,valfonct,lib,aligncenter,sizfnt,color,1,0,ctl);
 }
 
 void scrGetButRet(char* buf,char* jsbuf,const char* lib,uint8_t ctl)

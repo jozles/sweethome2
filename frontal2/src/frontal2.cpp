@@ -1366,7 +1366,7 @@ void disjValue(uint8_t val,uint8_t rem)
       periCur=remoteT[remTVal].peri;
       uint8_t curSw=remoteT[remTVal].sw;
       uint8_t msk[]={0xFC,0xF3,0xCF,0x3F};
-      periLoad(periCur);*periSwCde&=msk[curSw];*periSwCde|=val<<curSw;
+      periLoad(periCur);*periSwCde&=msk[curSw];*periSwCde|=val<<(curSw*2);
       periSave(periCur,PERISAVESD);
       periReq(&cliext,periCur,"set_______");
     }
@@ -1378,7 +1378,7 @@ void disjValue(uint8_t val,uint8_t rem)
       if(remoteT[i].multRem==rem+1){
         periCur=remoteT[i].peri;
         uint8_t curSw=remoteT[i].sw;
-        periLoad(periCur);*periSwCde&=msk[curSw];*periSwCde|=val<<curSw;
+        periLoad(periCur);*periSwCde&=msk[curSw];*periSwCde|=val<<(curSw*2);
         periSave(periCur,PERISAVESD);
         periReq(&cliext,periCur,"set_______");
       }
@@ -1893,11 +1893,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 's': remoteN[nb].newenable=*valf-48;break;                             // (remote_cs) check cb enable (0,1,2 OFF/ON/FOR)
 */
 
-                            case 'a': disjValue(0,nb+1);break;                                          // (remote_ca) 1ère position disjoncteur (disjoncté)
-                            case 'b': disjValue(1,nb+1);break;                                          // (remote_cb) 2nde position disjoncteur (on)
-                            case 'c': disjValue(2,nb+1);break;                                          // (remote_cc) 2nde position disjoncteur (forcé)
-
-                            case 'u': pushSliderRemote(cli,nb+1);break;                         // (remote_cu) push/slider
+                            case 'a': disjValue(0,nb);break;                                            // (remote_ca) 1ère position disjoncteur (disjoncté)
+                            case 'b': disjValue(1,nb);break;                                            // (remote_cb) 2nde position disjoncteur (on)
+                            case 'c': disjValue(2,nb);break;                                            // (remote_cc) 2nde position disjoncteur (forcé)
+                            case 'u': pushSliderRemote(cli,nb+1);break;                                 // (remote_cu) push/slider
                             default:break;
                           }
                           remoteHtml(cli);

@@ -94,7 +94,7 @@ void scrGetHidden(char* buf,char* jsbuf,const char* valfonct,const char* nomfonc
 
 void scrGetButRet(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl);
-void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t color,bool round,uint8_t ctl);
+void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t bgcolor,uint8_t fntcolor,uint8_t round,uint8_t ctl);
 void scrGetButSub(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void scrGetButSub(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl);
 
