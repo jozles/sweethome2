@@ -818,7 +818,7 @@ void remoteHtml(EthernetClient* cli)
 /* table remotes */
 
            
-            tableBeg(buf,jsbuf,courier,true,0); 
+            tableBeg(buf,jsbuf,courier,true,0,0); 
             strcat(buf,"\n");            
 
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
@@ -830,7 +830,9 @@ void remoteHtml(EthernetClient* cli)
               uint8_t butModel=remoteN[nb].butModel;                  
               char fn[LENNOM+1];
               if(remoteN[nb].nam[0]!='\0'){
-                scrDspNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);
+                strcat(buf,"<tr height=130>");                      // patch à intégrer dans le ctl?
+                scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);
+                
                 if(!remoteN[nb].multRem){                                     // remote simple
                   // affichage état d'un éventuel switch
                   // boucle des détecteurs pour trouver un switch 
@@ -876,15 +878,15 @@ void remoteHtml(EthernetClient* cli)
                     if((memDetServ[mi]&mDSmaskbit[ptmi])==0){color=2;}
                     else {val[0]='0';}                                          
                     Serial.print("det=");Serial.print(remoteN[nb].detec);Serial.print(" mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);Serial.print(" val=");Serial.print(val);Serial.print(" mds=");Serial.print(memDetServ[mi]&mDSmaskbit[ptmi],HEX);Serial.print(' ');Serial.println(memDetServ[mi]&mDSmaskbit[ptmi],HEX);
-                    scrGetButFn(buf,jsbuf,fn,val,"SLIDER",ALICNO,4,color,0,RND,TDBEG);
+                    scrGetButFn(buf,jsbuf,fn,val,"SLIDER",ALICNO,4,color,0,1,RND,TDBEG);
                   }
                   else{                                                       // push button
-                    scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,1,1,SQR,TDBEG);// envoie toujours '1'
+                    scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,1,1,1,SQR,TDBEG);// envoie toujours '1'
                   }
                 }
                 else {scrDspText(buf,jsbuf,"- - - - -",0,TDBE);}              // slider/push absent
 
-                scrDspText(buf,jsbuf,"- -",0,TDBE);                           // espace
+                scrDspText(buf,jsbuf,"- - -",0,TDBE);                           // espace
                 //bool vert=FAUX;      
                 strcat(buf,"\n");
                 
@@ -894,13 +896,13 @@ void remoteHtml(EthernetClient* cli)
 
                 uint8_t color=3; // 3 bleu on ; 4 vert disj ; 5 rouge forcé
                 fn[LENNOM-2]='a';
-                if(disjVal==0){color=4;}else {color=20;}scrGetButFn(buf,jsbuf,fn,remTVal,"OFF",ALICNO,1,color,0,1,0);
+                if(disjVal==0){color=4;}else {color=20;}scrGetButFn(buf,jsbuf,fn,remTVal,"OFF",ALICNO,1,color,0,0,1,0);
                 scrDspText(buf,jsbuf,"  ",0,0);
                 fn[LENNOM-2]='b';
-                if(disjVal==1){color=3;}else {color=20;}scrGetButFn(buf,jsbuf,fn,remTVal,"ON",ALICNO,1,color,0,1,0);
+                if(disjVal==1){color=3;}else {color=20;}scrGetButFn(buf,jsbuf,fn,remTVal,"ON",ALICNO,1,color,0,0,1,0);
                 scrDspText(buf,jsbuf,"  ",0,0);
                 fn[LENNOM-2]='c';
-                if(disjVal==2){color=5;}else {color=20;}scrGetButFn(buf,jsbuf,fn,remTVal,"FOR",ALICNO,1,color,0,1,0);                    
+                if(disjVal==2){color=5;}else {color=20;}scrGetButFn(buf,jsbuf,fn,remTVal,"FOR",ALICNO,1,color,0,0,1,0);                    
                 scrDspText(buf,jsbuf," ",0,TDEND|TREND|BRYES);                 
 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               

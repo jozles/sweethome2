@@ -83,6 +83,7 @@ void setColourE(char* buf,char* jsbuf);
 void tableBeg(char* buf,char* jsbuf,uint8_t ctl);
 void tableBeg(char* buf,char* jsbuf,bool border,uint8_t ctl);
 void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t ctl);
+void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t height,uint8_t ctl);
 void tableEnd(char* buf,char* jsbuf,uint8_t ctl);
 
 void scrGetNum(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
@@ -94,7 +95,7 @@ void scrGetHidden(char* buf,char* jsbuf,const char* valfonct,const char* nomfonc
 
 void scrGetButRet(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl);
-void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t bgcolor,uint8_t fntcolor,uint8_t round,uint8_t ctl);
+void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t bgcolor,uint8_t fntcolor,uint8_t margin,uint8_t round,uint8_t ctl);
 void scrGetButSub(char* buf,char* jsbuf,const char* lib,uint8_t ctl);
 void scrGetButSub(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl);
 
