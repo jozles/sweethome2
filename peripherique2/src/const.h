@@ -472,7 +472,7 @@ Modifier :
 
 typedef struct {
   uint16_t  cstlen;               //  2   doit être la 1ère variable (adresse utilisée pour le calcul de longueur)
-  byte      swCde;                //  1   2 bits par sw cde/état (*periSwVal) bits 8(sw4), 6(sw3), 4(sw2), 2(sw1)
+  byte      swCde;                //  1   2 bits par sw cde val:0/1/2 (*periSwCde) 
   byte      dispo;                //  1
   char      cstVers[LENVERSION];  //  4  
   char      cstModel[LENMODEL];   //  6

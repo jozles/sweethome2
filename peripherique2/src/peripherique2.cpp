@@ -629,16 +629,16 @@ if(diags){Serial.println(" dataTransfer() ");}
             cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
           */
 
-          uint8_t mskSw[] = {0xfc,0xf3,0xcf,0x3f};                            
-          for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte disjoncteurs : 2 bits / switch (voir const.h du frontal)
-            cstRec.swCde &= mskSw[i];
-            cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((MAXSW-i)-1);}         // 4 fois valeur disjoncteur (0,1,2)
+          for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte disjoncteurs : 2 bits / switch (voir const.h du frontal) 
+            cstRec.swCde=(cstRec.swCde)<<2;
+            cstRec.swCde |= (*(data+MPOSSWCDE+i)-PMFNCVAL);
+          }                                                                   // valeurs disjoncteur (0/1/2)x4
 
           conv_atoh(data+MPOSANALH,(byte*)&cstRec.analLow);conv_atoh(data+MPOSANALH+2,(byte*)&cstRec.analLow+1);      // analogLow
           conv_atoh(data+MPOSANALH+4,(byte*)&cstRec.analHigh);conv_atoh(data+MPOSANALH+6,(byte*)&cstRec.analHigh+1);  // analogHigh
 
           uint16_t posMds=MPOSPULSONE;
-          if(memcmp(data,"mds_______",LENNOM)!=0){                                   // pas de pulses ni de rules si mds_______
+          if(memcmp(data,"mds_______",LENNOM)!=0){                            // pas de pulses ni de rules si mds_______
             posMds=MPOSMDETSRV;
 
             for(int i=0;i<NBPULSE;i++){                                       // pulses values NBPULSE*ONE+NBPULSE*TWO
