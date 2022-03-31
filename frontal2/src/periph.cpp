@@ -1224,11 +1224,6 @@ void periSwCdUpdate(uint8_t sw,uint8_t stat)    // maj sw courant selon stat
   byte msk=(byte)0x03<<(sw*2);                  // 03 0C 30 C0 disjoncteurs
   *periSwCde  &= ~msk;
   if(stat!=0){*periSwCde |= msk;}               
-
-  /*byte msk=(byte)0x01<<(sw*2+1);                // 02 08 20 80 disjoncteurs
-  *periSwCde  &= ~msk;
-  if(stat!=0){*periSwCde |= msk;}               // stat peut être 0,1,2,3 !! (remoteN[].enable)
-*/
 }
 
 byte periSwRead(uint8_t sw)                      // etat sw courant
@@ -1236,23 +1231,19 @@ byte periSwRead(uint8_t sw)                      // etat sw courant
   return (*periSwCde>>(sw*2))&0x03;
 }
 
-void periSwLevUpdate(uint8_t sw,uint8_t stat)   // maj lev(sw) selon stat
+/*void periSwLevUpdate(uint8_t sw,uint8_t stat)   // maj lev(sw) selon stat
 {
   byte msk=(byte)0x01<<(sw);                  // 01 02 04 08 10 20 40 80 levels
   *periSwSta &= msk;
   if(stat==1){*periSwSta |= msk;}
-
-  /*byte msk=(byte)0x01<<(sw*2);                  // 01 04 10 40 levels
-  *periSwCde &= ~msk;
-  if(stat==1){*periSwCde |= msk;}  */
-}
+}*/
 
 /*byte periSwLev(uint8_t sw)                      // lev de sw courant
 {
   return (*periSwCde>>(sw*2))&0x03;
 }*/
 
-void remMemDetUpdate(uint8_t rem,uint8_t endet)               // maj memDetServ suite à chgt état remote
+/*void remMemDetUpdate(uint8_t rem,uint8_t endet)               // maj memDetServ suite à chgt état remote
 {
   if(endet==REM_ENABLE){
     uint8_t mi=remoteT[rem].deten>>3;
@@ -1270,35 +1261,36 @@ void remMemDetUpdate(uint8_t rem,uint8_t endet)               // maj memDetServ 
   }
   if(endet==REM_DETEC){
     uint8_t mi=remoteT[rem].detec>>3;
-    memDetServ[mi] &= ~mDSmaskbit[remoteT[rem].detec*MDSLEN+mi];                                          // update memDetServ on/off
+    
     //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[remoteT[rem].detec*MDSLEN+i];}              // update memDetServ on/off
     if(remoteN[remoteT[rem].num-1].onoff!=0){
       memDetServ[mi] |= mDSmaskbit[remoteT[rem].detec*MDSLEN+mi];}
+    else {memDetServ[mi] &= ~mDSmaskbit[remoteT[rem].detec*MDSLEN+mi];}                                          // update memDetServ on/off
       //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[remoteT[rem].detec*MDSLEN+i];}}
   }
-}
+}*/
 
-void periSwSync()                               // synchro memdetserv sur remotes au démarrage (sychronisation periSwCde obsolete)
+/*void periSwSync()                               // synchro memdetserv sur remotes au démarrage (sychronisation periSwCde obsolete)
 {
-  /*   remoteN[k].onoff   etat du bit k memDetServ remoteT[k].detec
-   *   remoteN[k].enable  etat du bit k memDetServ remoteT[k].deten (dijoncteur) 
-   */
+   // remoteN[k].onoff   etat du bit k memDetServ remoteT[k].detec
+   // remoteN[k].enable  etat du bit k memDetServ remoteT[k].deten (dijoncteur) 
+
   uint8_t nbsync=0;
   for(uint8_t k=0;k<MAXREMLI;k++){
     if(remoteT[k].peri!=0 && remoteT[k].peri<=NBPERIF && remoteT[k].sw<MAXSW){
       
-        periCur=remoteT[k].peri;periLoad(periCur);
+        //periCur=remoteT[k].peri;periLoad(periCur);
         //periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);             // update disjoncteur perif
-        remMemDetUpdate(k,REM_ENABLE);                                              // update memDetServ disj et forçage
+        //remMemDetUpdate(k,REM_ENABLE);                                              // update memDetServ disj et forçage
         remMemDetUpdate(k,REM_DETEC);                                               // update memDetServ on/off
       
-        periSave(periCur,PERISAVELOCAL);
+        //periSave(periCur,PERISAVELOCAL);
         nbsync++;
       
     }
   }
   Serial.print("sync ");Serial.print(nbsync);Serial.println(" switchs");
-}
+}*/
 
 void periModif()
 /*    Pour modifier la structure des données 

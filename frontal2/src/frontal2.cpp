@@ -532,7 +532,7 @@ void setup() {                          // ====================================
   //remoteTConvert();
   //remoteNConvert();
   //while(1){};
-  remoteLoad();periSwSync();
+  remoteLoad();//periSwSync();
   //timersConvert();                // chgt du nombre de timers
   timersLoad();
   //thermosInit();thermosSave();    // si NBPERIF change
@@ -988,7 +988,7 @@ void periDetecUpdate(const char* src)
  * dans exploRemote le memDet n° remoteT[].deten+1 est corrigé systématiquement donc pareil dans remMemDetUpdate
  * 
  */
-void remoteUpdate(uint8_t perif,uint8_t sw,uint8_t cd,uint8_t src)    // modif de remoteN.enable et (periSwCde ou memDet) selon la provenance ;                                                                       
+/*void remoteUpdate(uint8_t perif,uint8_t sw,uint8_t cd,uint8_t src)    // modif de remoteN.enable et (periSwCde ou memDet) selon la provenance ;                                                                       
 {                                                                     // periLoad effectué !
   for(uint8_t k=0;k<MAXREMLI;k++){
     if(remoteT[k].peri==perif && remoteT[k].sw==sw){                   // recherche remote concernée
@@ -998,7 +998,7 @@ void remoteUpdate(uint8_t perif,uint8_t sw,uint8_t cd,uint8_t src)    // modif d
     }
   }
   Serial.println();
-}
+}*/
 
 /*
 void checkdate(uint8_t num)                                           // détection des dates invalides (en général défaut de format des messages)
@@ -1331,30 +1331,46 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem)
 {
                             uint8_t mi=remoteN[rem].detec>>3;uint16_t ptmi=remoteN[rem].detec*MDSLEN+mi; 
                             Serial.print("det=");Serial.print(remoteN[rem].detec);Serial.print(' ');
-                            if(!remoteN[rem].multRem){                                        // remote simple
-                            
-                              uint8_t val=*valf-PMFNCVAL;
+                            uint8_t val=*valf-PMFNCVAL;                                           // valeur à forcer
+                            Serial.print(" rem=");Serial.print(rem);Serial.print(" val=");Serial.print(val);
+
+                            if(val!=0){memDetServ[mi] |= mDSmaskbit[ptmi];Serial.print(" 1 ");}   // push envoie toujours 1
+                            else {memDetServ[mi] &= ~mDSmaskbit[ptmi];Serial.print(" 0 ");}       
+                            for(int8_t i=(NBDSRV>>3)-1;i>=0;i--){if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);}Serial.println();
+                            if(remoteN[rem].butModel!=PUSH){memDetSave();}                            
+
+                            if(!remoteN[rem].multRem){                                            // remote simple
                               uint16_t peri=*(valf+1)-PMFNCHAR;
-                              Serial.print(" rem=");Serial.print(rem);Serial.print(" val=");Serial.print(val);
-                              if(val!=0){memDetServ[mi] |= mDSmaskbit[ptmi];Serial.print(" 1 ");}   // push envoie toujours 1
-                              else {memDetServ[mi] &= ~mDSmaskbit[ptmi];Serial.print(" 0 ");}
-                              for(int8_t i=(NBDSRV>>3)-1;i>=0;i--){if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);}Serial.println();
+                              
+                              //if(val!=0){memDetServ[mi] |= mDSmaskbit[ptmi];Serial.print(" 1 ");} // push envoie toujours 1
+                              //else {memDetServ[mi] &= ~mDSmaskbit[ptmi];Serial.print(" 0 ");}
+                              //for(int8_t i=(NBDSRV>>3)-1;i>=0;i--){if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);}Serial.println();
 /*            Serial.print("mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);
             Serial.print(" detec=");Serial.print(remoteT[nb].detec);
             Serial.print(" mask=");if(mDSmaskbit[ptmi]<16){Serial.print('0');}Serial.print(mDSmaskbit[ptmi],HEX);Serial.println();*/
-                              if(remoteN[rem].butModel!=PUSH){memDetSave();}
                               periReq(&cliext,peri,"set_______");
                             }
-                            else {                                                            // remote multiple
+                            else {                                                                // remote multiple
+                                        uint8_t mimul,ptmimul,detmul;
                                         memset(tablePerToSend,0x00,NBPERIF);
                                         for(uint8_t i=0;i<MAXREMLI;i++){
-                                          if(remoteT[i].multRem==rem+1){tablePerToSend[remoteT[i].peri]=1;}  // repérage péri concernés
+                                          if(remoteT[i].multRem==rem+1){                          // repérage péris concernés
+                                            tablePerToSend[remoteT[i].peri]=1;                    // chargement tablePerTosend
+                                                                                                  // si slider modif det remotes slider liées
+                                            if((remoteN[rem].butModel!=PUSH) && (remoteN[remoteT[i].num-1].butModel) !=PUSH){   
+                                              detmul=remoteN[remoteT[i].num-1].detec;             // sinon rien (action seule)
+                                              mimul=detmul>>3;
+                                              ptmimul=detmul*MDSLEN+mimul;
+                                              if(val!=0){memDetServ[mimul] |= mDSmaskbit[ptmimul];}
+                                              else {memDetServ[mimul] &= ~mDSmaskbit[ptmimul];}
+                                            }
+                                          }
                                         }                                     
                                         for(uint16_t i=0;i<NBPERIF;i++){
                                           if(tablePerToSend[i]!=0){periReq(&cliext,i,"set_______");}
                                         }
                             }
-                            if(remoteN[rem].butModel==PUSH){memDetServ[mi] &= ~mDSmaskbit[ptmi];}
+                            if(remoteN[rem].butModel==PUSH){memDetServ[mi] &= ~mDSmaskbit[ptmi];} // push envoie toujours 1 donc raz
 }
 
 void disjValue(uint8_t val,uint8_t rem)
@@ -1674,7 +1690,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           case 'W':{uint8_t sw=*(libfonctions+2*i+1)-PMFNCHAR;                            // (periLine) - peri_lf_W_ sw Val 
                                    uint8_t cd=*valf-PMFNCVAL;
                                    periSwCdUpdate(sw,cd);                 // maj periSwCde (periCur ok, periLoad effectué)
-                                   remoteUpdate(periCur,sw,cd,PERILINE);  // maj remotes concernées
+                                   //remoteUpdate(periCur,sw,cd,PERILINE);  // maj remotes concernées
                                    }break;
                           default :break;
                         }
@@ -1884,14 +1900,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        }break;
               case 53:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteHtml (disjoncteurs/push/slider)
                                                                                                         // si nb= n° remoteN faire +1 (remoteN[1->n])
-                          
                           switch(*(libfonctions+2*i)){                                               
-/*
-                            case 'n': remoteN[nb].newonoff=0;break;                                     // (remote_cn)                             
-                            case 't': remoteN[nb].newonoff=1;break;                                     // (remote_ct) slider check cb on/off
-                            case 'm': remoteN[nb].newenable=0;break;                                    // (remote_cm) effacement cb enable
-                            case 's': remoteN[nb].newenable=*valf-48;break;                             // (remote_cs) check cb enable (0,1,2 OFF/ON/FOR)
-*/
                             case 'a': disjValue(0,nb);break;                                            // (remote_ca) 1ère position disjoncteur (disjoncté)
                             case 'b': disjValue(1,nb);break;                                            // (remote_cb) 2nde position disjoncteur (on)
                             case 'c': disjValue(2,nb);break;                                            // (remote_cc) 2nde position disjoncteur (forcé)

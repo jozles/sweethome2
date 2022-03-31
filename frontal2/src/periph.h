@@ -22,17 +22,17 @@ void  periInit();
 void  periInitVar();  // le contenu de periRec seul
 void  periInitVar0(); // pulses et inputs 
 //byte  periSwLev(uint8_t sw);                    // Lev Sw bit value
-byte  periSwRead(uint8_t sw);                    // Cd  Sw bit value
-void  periSwCdUpdate(uint8_t sw,uint8_t stat);  // update Cd Sw bit
-void  periSwLevUpdate(uint8_t sw,uint8_t stat); // update Lev Sw bit
-void  periSwSync();                             // synchro disjoncteurs switchs sur remotes au démarrage
+byte  periSwRead(uint8_t sw);                     // Cd  Sw bit value
+void  periSwCdUpdate(uint8_t sw,uint8_t stat);    // update Cd Sw bit
+//void  periSwLevUpdate(uint8_t sw,uint8_t stat); // update Lev Sw bit
+//void  periSwSync();                             // synchro disjoncteurs switchs sur remotes au démarrage
 void  periCheck(uint16_t num,const char* text);
 void  periPrint(uint16_t num);
 void  periTableLoad();
 void  periTableSave();
 void  periTableSave(bool force);
 void  periMaintenance();
-void periModification();
+void  periModification();
 
 void  configInit();
 int   configLoad();
@@ -53,7 +53,7 @@ void  remInit();
 int   remSave(char* remF,uint16_t remL,const char* remA);
 void  remoteLoad();
 void  remoteSave();
-void  remMemDetUpdate(uint8_t rem,uint8_t endet);
+//void  remMemDetUpdate(uint8_t rem,uint8_t endet);
 void  remoteNPlus(int plus);
 void  remoteNConvert();
 void  remoteTConvert();

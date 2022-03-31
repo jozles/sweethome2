@@ -423,9 +423,12 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
 
       messLen-=i;if(messLen>0){      
         k+=i;
-        k+=1;for(int i=MAXSW-1;i>=0;i--){periSwLevUpdate(i,*(k+MAXSW-i-1)-PMFNCVAL);}                                   
-        k+=MAXSW+1; *periDetNb=(uint8_t)(*k-48);                                                                        // nbre detec
-        k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){*periDetVal |= ((*(k+i)-48)&DETBITLH_VB )<< 2*(MAXDET-1-i);}   // détecteurs
+        uint8_t nbSw=*k-PMFNCVAL;
+        k+=1;*periSwSta=0;for(int i=nbSw-1;i>=0;i--){*periSwSta=(*periSwSta<<1);*periSwSta|=*(k+MAXSW-i-1)-PMFNCVAL;}
+        Serial.print(" periSwSta=");if(*periSwSta<16){Serial.print('0');}Serial.println(*periSwSta,HEX);
+        k+=MAXSW+1; *periDetNb=*k-PMFNCVAL;                                                                 // nbre detec
+        k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){                                                   // détecteurs
+        *periDetVal=(*periDetVal)<<1;*periDetVal |= (*(k+i)-PMFNCVAL);}
       }
       // les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être initialisé à 0 
       messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){

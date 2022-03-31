@@ -115,31 +115,32 @@ bool serverStarted=false;
 
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
-  uint8_t outSw=0; // image mémoire des switchs (1 bit par switch)
+  uint8_t outSw=0;                            // image mémoire des switchs (1 bit par switch)
+  #define OUTPUTDLY 500
+  unsigned long outPutDly=millis();           // delais mini entre 2 changements d'état des relais
 
   uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};       // switchs pins
   uint8_t cloSw[MAXSW]={CLOSA,CLOSB,CLOSC,CLOSD};           // close value for every switchs (relay/triac etc ON)
   uint8_t openSw[MAXSW]={OPENA,OPENB,OPENC,OPEND};          // open value for every switchs (relay/triac etc OFF)
   byte    staPulse[NBPULSE];                                // état clock pulses
-  extern uint32_t  cntPulseOne[NBPULSE];      // temps debut pulse 1
-  extern uint32_t  cntPulseTwo[NBPULSE];      // temps debut pulse 2
-  extern uint32_t  cntPulse[NBPULSE*2];       // temps restant après STOP pour START
+  extern uint32_t  cntPulseOne[NBPULSE];                    // temps debut pulse 1
+  extern uint32_t  cntPulseTwo[NBPULSE];                    // temps debut pulse 2
+  extern uint32_t  cntPulse[NBPULSE*2];                     // temps restant après STOP pour START
 
   unsigned long    impDetTime[NBPULSE];                     // timer pour gestion commandes impulsionnelles     
   uint8_t pinDet[MAXDET]={PINDTA,PINDTB,PINDTC,PINDTD};     // les détecteurs
 
   int   i=0,j=0,k=0;
-  uint8_t oldswa[]={0,0,0,0};         // 1 par switch
+  //uint8_t oldswa[]={0,0,0,0};                 // 1 par switch
 
 constantValues cstRec;
 
 char* cstRecA=(char*)&cstRec.cstlen;
 
-  float voltage=0;                    // tension alim
+  float voltage=0;                            // tension alim
   
   byte  mac[6];
-  //char  buf[3];                       //={0,0,0};
-
+  
   int   cntreq=0;
 
 #if POWER_MODE != NO_MODE
@@ -650,7 +651,7 @@ if(diags){Serial.println(" dataTransfer() ");}
 
             uint16_t i1=NBPERRULES*PERINPLEN;                                 // size inputs
             byte bufoldlev[i1];
-            for(uint16_t k=0;k<i1;k++){                                         // inputs !!! ne pas écraser les bits oldlevel !!!
+            for(uint16_t k=0;k<i1;k++){                                       // inputs !!! ne pas écraser les bits oldlevel !!!
               conv_atoh((data+MPOSPERRULES+2*k),&bufoldlev[k]);
               if((k%4)==2){bufoldlev[k]&=~PERINPOLDLEV_VB;bufoldlev[k]|=cstRec.perInput[k]&PERINPOLDLEV_VB;}
             }
@@ -663,7 +664,7 @@ if(diags){Serial.println(" dataTransfer() ");}
             conv_atoh((data+posMds+k*2),(byte*)(cstRec.extDetec+mdsl-1-k));
           }   
 
-          cstRec.periPort=(uint16_t)convStrToNum(data+posMds+mdsl*2+1,&sizeRead);  // port server
+          cstRec.periPort=(uint16_t)convStrToNum(data+posMds+mdsl*2+1,&sizeRead); // port server
           
           #ifdef _SERVER_MODE
             if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);}
@@ -695,11 +696,10 @@ int buildData(const char* nomfonction,const char* data)               // assembl
       memcpy(message+sb+5+LENVERSION,"_\0",2);
       
       sb+=5+LENVERSION+1;
-      message[sb]=(char)(NBSW+48);                                    // nombre switchs              - 1   
-//      for(i=(NBSW-1);i>=0;i--){message[sb+1+(NBSW-1)-i]=(char)(48+digitalRead(pinSw[i]));}   
+      message[sb]=(char)(NBSW+PMFNCVAL);                              // nombre switchs              - 1   
       for(i=0;i<NBSW;i++){
         uint8_t ssw=0;if(digitalRead(pinSw[i])==cloSw[i]){ssw=1;}
-        message[sb+1+(MAXSW-1)-i]=(char)(48+ssw);}                    // état                        - 5
+        message[sb+1+(MAXSW-1)-i]=(char)(PMFNCVAL+ssw);}              // état                        - 5
       if(NBSW<MAXSW){for(i=NBSW;i<MAXSW;i++){message[sb+1+(MAXSW-1)-i]='x';}}message[sb+5]='_';
 
       sb+=MAXSW+2;
@@ -979,9 +979,10 @@ void showMD()
   }
   Serial.print("   ");
   for(uint8_t i=0;i<8;i++){
-    if(cstRec.extDetec[8-i]<16){Serial.print('0');}Serial.print(cstRec.extDetec[8-i],HEX);
+    if(cstRec.extDetec[8-i-1]<16){Serial.print('0');}Serial.print(cstRec.extDetec[8-i-1],HEX);
     Serial.print(' ');
   }
+  Serial.print(" swCde=");if(cstRec.swCde<16){Serial.print('0');}Serial.print(cstRec.swCde,HEX);Serial.print(' ');
   Serial.println();
 }
 
@@ -1022,9 +1023,9 @@ void answer(const char* what)
 
 void rcvOrdreExt(char* data)
 {
-  //Serial.println(data);
+  Serial.println(data);
   dataTransfer(data);
-  Serial.print(" swCde=");if(cstRec.swCde<16){Serial.print('0');}Serial.print(cstRec.swCde,HEX);Serial.print(' ');
+  showMD();
   pulseClk();actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
   answer("data_save_");
 }
@@ -1093,8 +1094,8 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
         }
         int checkMess=checkHttpData(&httpMess[v0+5],&fonction);
         if(checkMess==MESSOK){
-          Serial.print("rcv fnct=");Serial.print(fonction);Serial.print("  ");
           showMD();
+          Serial.print("rcv fnct=");Serial.print(fonction);Serial.print("  ");
 #ifdef ANALYZE
   FORCV   // 5,9mS
 #endif // ANALYZE        
@@ -1167,16 +1168,18 @@ void readAnalog()
 void outputCtl()            // cstRec.swCde contient 4 paires de bits disjoncteurs 0=DISJ ; 1=ON ; 2 FORCE
                             // le résultat des règles dans outSw encodé selon la carte openSW/cloSw
 {
-  for(uint8_t sw=0;sw<NBSW;sw++){
-    if(((cstRec.swCde>>(sw*2+1))&0x03)!=0 && ((outSw>>sw)&0x01)!=0){                      // disjoncteur ON et résultat règles ON
-        if(answerCnt!=0){
-          //Serial.print(micros());Serial.print(" ");Serial.print(sw);Serial.print(" ");Serial.println((cstRec.swCde>>(sw*2))&0x03);
+  if(outPutDly-millis()>=OUTPUTDLY){
+    outPutDly=OUTPUTDLY;
+    for(uint8_t sw=0;sw<NBSW;sw++){
+      if(((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0){              // disjoncteur ON et résultat règles ON
+        /*if(answerCnt!=0){
+          Serial.print(micros());Serial.print(" ");Serial.print(sw);Serial.print(" ");Serial.println((cstRec.swCde>>(sw*2))&0x03);
           answerCnt++;if(answerCnt>6){answerCnt=0;}
-        }
-        digitalWrite(pinSw[sw],cloSw[sw]); // (cstRec.swCde>>(sw*2))&0x01);               // value (encodé dans le traitement des regles)
-        }
-    else {digitalWrite(pinSw[sw],openSw[sw]);                                             // disjoncté donc open value
-        }
+        }*/
+        digitalWrite(pinSw[sw],cloSw[sw]); // (cstRec.swCde>>(sw*2))&0x01);     // value (encodé dans le traitement des regles)
+      }
+      else {digitalWrite(pinSw[sw],openSw[sw]);}                                  // disjoncté donc open value
+    }
   }
 }
 
