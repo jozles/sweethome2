@@ -121,6 +121,7 @@
    1.74 periSwVal devient periSwCde : 2 bits par switch codent 0,1,2 disjoncté,on,forçé 
         ajout periSwSta qui reçoit l'état de la sortie des switchs (anciennement dans periSwVal)
         tous les boutons de remotes deviennent des fonctions
+        remoteN.deten inutilisé ; remoteN.enable = valeur disjoncteur si remote multiple
 
    BUGS :
 
@@ -285,9 +286,9 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
                           
   uint8_t  num;           // remote number (numéro dans table des noms)
   uint8_t  multNum;       // multiple remote number
-  uint8_t  detec;         // detecteur on/off
-  uint8_t  deten;         // detecteur enable
-  bool     enable;        // remote enable
+  uint8_t  olddetec;         // detecteur on/off  -- inutilisé
+  uint8_t  olddeten;         // detecteur enable  -- inutilisé
+  bool     oldenable;        // remote enable     -- inutilisé
   uint8_t  peri;          // périphérique dont un disjoncteur est sous controle de enable (0 pas de périphérique)
   uint8_t  sw;            // sw concerné du périphérique 
   uint8_t  butModel;      // modèle bouton (slider/pushButton)
@@ -315,16 +316,15 @@ struct NewRemote             // liste des remotes
 struct Remote             // liste des remotes
 {
   char     nam[LENREMNAM]; // remote name
-  uint8_t  onoff;         // état on/off
-  uint8_t  newonoff;      // buffer pour reception et traitement cb par GET /
+  uint8_t  oldonoff;         // état on/off                                          -- inutilisé
+  uint8_t  oldnewonoff;      // buffer pour reception et traitement cb par GET /     -- inutilisé
   uint8_t  enable;        // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
-  uint8_t  newenable;     // buffer pour reception et traitement cb par GET /
+  uint8_t  oldnewenable;     // buffer pour reception et traitement cb par GET /     -- inutilisé
   bool     multRem;       // multiple Remote flag
-  uint8_t  detec;         // detecteur on/off
-  uint8_t  deten;         // detecteur enable
+  uint8_t  detec;         // detecteur on/off (slider/push)
+  uint8_t  olddeten;         // detecteur enable                                     -- inutilisé
   uint8_t  butModel;      // modèle bouton (slider/pushButton)
 };
-
 
 
 #define NBTIMERS     16

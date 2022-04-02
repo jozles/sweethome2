@@ -1252,10 +1252,10 @@ byte periSwRead(uint8_t sw)                      // etat sw courant
     //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[remoteT[rem].deten*MDSLEN+i];}           // raz memDetServ disj
     memDetServ[mi1] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+mi1];                                  // raz memDetServ forcage
     //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+i];}       // raz memDetServ forcage
-    if(remoteN[remoteT[rem].num-1].enable!=0){
+    if(remoteN[remoteT[rem].num-1].oldenable!=0){
       memDetServ[mi] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+mi];}                                 // set memDetServ disj
       //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[remoteT[rem].deten*MDSLEN+i];}}         // set memDetServ disj
-    if(remoteN[remoteT[rem].num-1].enable>1){
+    if(remoteN[remoteT[rem].num-1].oldenable>1){
       memDetServ[mi1] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+mi1];}                               // set memDetServ forcage
       //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[(remoteT[rem].deten+1)*MDSLEN+i];}}    // set memDetServ forçage
   }
@@ -1273,14 +1273,14 @@ byte periSwRead(uint8_t sw)                      // etat sw courant
 /*void periSwSync()                               // synchro memdetserv sur remotes au démarrage (sychronisation periSwCde obsolete)
 {
    // remoteN[k].onoff   etat du bit k memDetServ remoteT[k].detec
-   // remoteN[k].enable  etat du bit k memDetServ remoteT[k].deten (dijoncteur) 
+   // remoteN[k].oldenable  etat du bit k memDetServ remoteT[k].deten (dijoncteur) 
 
   uint8_t nbsync=0;
   for(uint8_t k=0;k<MAXREMLI;k++){
     if(remoteT[k].peri!=0 && remoteT[k].peri<=NBPERIF && remoteT[k].sw<MAXSW){
       
         //periCur=remoteT[k].peri;periLoad(periCur);
-        //periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].enable);             // update disjoncteur perif
+        //periSwCdUpdate(remoteT[k].sw,remoteN[remoteT[k].num-1].oldenable);             // update disjoncteur perif
         //remMemDetUpdate(k,REM_ENABLE);                                              // update memDetServ disj et forçage
         remMemDetUpdate(k,REM_DETEC);                                               // update memDetServ on/off
       
@@ -1543,9 +1543,9 @@ while(1){}
 void remPrint(uint8_t num)
 {
   Serial.print("   ");Serial.print(num);Serial.print("/");Serial.print(remoteT[num].num);Serial.print(" ");
-  Serial.print(remoteT[num].detec);Serial.print(" ");
-  Serial.print(remoteT[num].deten);Serial.print(" ");
-  Serial.print(remoteT[num].enable);Serial.print(" ");
+  //Serial.print(remoteT[num].detec);Serial.print(" ");
+  //Serial.print(remoteT[num].enable);Serial.print(" ");
+  //Serial.print(remoteT[num].oldenable);Serial.print(" ");
   Serial.print(remoteT[num].peri);Serial.print(" ");
   Serial.print(remoteT[num].sw);Serial.print(" ");
 }
@@ -1555,8 +1555,8 @@ void remotePrint()
   for(uint8_t num=0;num<NBREMOTE;num++){
     Serial.print(num+1);Serial.print(" ");if(num<10){Serial.print(" ");}Serial.print(remoteN[num].nam);
     for(int nr=LENREMNAM-strlen(remoteN[num].nam);nr>=0;nr--){Serial.print(" ");}
-    Serial.print(remoteN[num].onoff);Serial.print("/");Serial.print(remoteN[num].newonoff);Serial.print(" ");
-    Serial.print(remoteN[num].enable);Serial.print("/");Serial.print(remoteN[num].newenable);Serial.print(" ");
+    //Serial.print(remoteN[num].onoff);Serial.print("/");Serial.print(remoteN[num].newonoff);Serial.print(" ");
+    //Serial.print(remoteN[num].oldenable);Serial.print("/");Serial.print(remoteN[num].newenable);Serial.print(" ");
     for(uint8_t numd=0;numd<MAXREMLI;numd++){
       if(remoteT[numd].num==num+1){
         remPrint(numd);
@@ -1590,19 +1590,22 @@ void remInit()
 {      
     for(int nb=0;nb<MAXREMLI;nb++){
       remoteT[nb].num=0;
-      remoteT[nb].detec=0;
-      remoteT[nb].deten=0;
-      remoteT[nb].enable=0;
+      //remoteT[nb].detec=0;
+      //remoteT[nb].deten=0;
+      //remoteT[nb].enable=0;
       remoteT[nb].peri=0;
       remoteT[nb].sw=0;
+      remoteT[nb].multRem=0;
     }
 
     for(int nb=0;nb<NBREMOTE;nb++){
       memset(remoteN[nb].nam,'\0',LENNOM);
       remoteN[nb].enable=0;
-      remoteN[nb].newenable=0;
-      remoteN[nb].onoff=0;
-      remoteN[nb].newonoff=0;
+      remoteN[nb].detec=0;
+      remoteN[nb].multRem=0;
+      //remoteN[nb].newenable=0;
+      //remoteN[nb].onoff=0;
+      //remoteN[nb].newonoff=0;
     }
 }
 
@@ -1617,10 +1620,12 @@ void remoteSave()
 {
   for(uint8_t nb=0;nb<NBREMOTE;nb++){
     if(remoteN[nb].nam[0]=='\0'){
-      remoteN[nb].onoff=0;
-      remoteN[nb].newonoff=0;
+      //remoteN[nb].onoff=0;
+      //remoteN[nb].newonoff=0;
       remoteN[nb].enable=0;
-      remoteN[nb].newenable=0;
+      remoteN[nb].detec=0;
+      remoteN[nb].multRem=0;
+      //remoteN[nb].newenable=0;
     }
   }
   remSave(REMOTETFNAME,remoteTlen,remoteTA);
@@ -1641,16 +1646,18 @@ unsigned long   remoteNlenNew=(sizeof(Remote))*(NBREMOTE+plus);
   for(int nb=0;nb<NBREMOTE;nb++){
       memcpy(remoteNNew[nb].nam,remoteN[nb].nam,LENNOM);
       remoteNNew[nb].enable=remoteN[nb].enable;
-      remoteNNew[nb].newenable=remoteN[nb].newenable;
-      remoteNNew[nb].onoff=remoteN[nb].onoff;
-      remoteNNew[nb].newonoff=remoteN[nb].newonoff;
+      remoteNNew[nb].detec=remoteN[nb].detec;
+      //remoteNNew[nb].newenable=remoteN[nb].newenable;
+      //remoteNNew[nb].onoff=remoteN[nb].onoff;
+      //remoteNNew[nb].newonoff=remoteN[nb].newonoff;
   }
   for(int nb=NBREMOTE;nb<NBREMOTE+plus;nb++){
       memset(remoteNNew[nb].nam,'\0',LENNOM);
       remoteNNew[nb].enable=0;
-      remoteNNew[nb].newenable=0;
-      remoteNNew[nb].onoff=0;
-      remoteNNew[nb].newonoff=0;
+      remoteNNew[nb].detec=0;
+      //remoteNNew[nb].newenable=0;
+      //remoteNNew[nb].onoff=0;
+      //remoteNNew[nb].newonoff=0;
   }
   
   sdRemove(REMOTENFNAME,&fremote);
@@ -1678,7 +1685,7 @@ void remoteTConvert()
     newRemoteT[i].num=remoteT[i].num ;
     newRemoteT[i].detec=remoteT[i].detec ;
     newRemoteT[i].deten=remoteT[i].deten ;
-    newRemoteT[i].enable=remoteT[i].enable ;
+    newRemoteT[i].oldenable=remoteT[i].oldenable ;
     newRemoteT[i].peri=remoteT[i].peri ;
     newRemoteT[i].sw=remoteT[i].sw ;
     newRemoteT[i].butModel=0 ;
@@ -1719,7 +1726,7 @@ void remoteNConvert()
     memcpy(&newRemoteN[i].nam,&remoteN[i].nam,LENREMNAM) ;
     newRemoteN[i].onoff=remoteN[i].onoff ;
     newRemoteN[i].newonoff=remoteN[i].newonoff ;
-    newRemoteN[i].enable=remoteN[i].enable ;
+    newRemoteN[i].oldenable=remoteN[i].oldenable ;
     newRemoteN[i].newenable=remoteN[i].newenable ;
     newRemoteN[i].multRem=0 ;
     newRemoteN[i].detec=0 ;

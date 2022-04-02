@@ -55,7 +55,8 @@ extern byte       periMacBuf[MACADDRLENGTH];
 extern uint16_t   perrefr;
 extern File32     fhisto;           // fichier histo sd card
 extern long       fhsize;           // remplissage fhisto
-extern long       histoPos;
+extern uint32_t   histoPos;
+extern uint32_t   histoPeri;
 extern char       histoDh[LDATEA];
 extern char       strHisto[RECCHAR];
 
@@ -173,19 +174,53 @@ void htmlFavicon(EthernetClient* cli)
   }
 }
 
-void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long histoPos,uint16_t lb0,uint16_t* lb)   // liste le fichier histo depuis une adresse
+void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,uint16_t* lb)   // liste le fichier histo depuis une adresse
 {
-  scrDspNum(buf,jsbuf,'l',&histoPos,0,0,0);scrDspText(buf,jsbuf,"/",0,STRING|CONCAT|TDBEG);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,BRYES);
+  scrDspNum(buf,jsbuf,'l',&pos,0,0,0);scrDspText(buf,jsbuf,"/",0,STRING|CONCAT|TDBEG);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,BRYES);
   strcat(buf,"\n");
 
   ethWrite(cli,buf,lb);
 
-  long ptr=histoPos;
-  long ptr0=ptr;
-  long ptra=ptr;
-  
-  fhisto.seek(histoPos);
-  
+//Serial.println("\nB");
+
+  //long ptr=pos;
+  //long ptr0=ptr;
+  //long ptra=ptr;
+  #define LBLEN 1000
+  char lineBuf[LBLEN];
+  uint32_t linePeri=0;
+  char* linePeriPtr;
+  uint16_t linePtr=0;
+  long totalRead=0;
+
+  fhisto.seek(pos);
+
+//Serial.println("\nC");
+//Serial.print(fhsize);Serial.print(' ');Serial.println(pos+totalRead);
+
+  while((pos+totalRead)<fhsize && totalRead<1000000){
+    memset(lineBuf,'\0',LBLEN);
+    while(lineBuf[linePtr-1]!='\n' && linePtr<LBLEN){
+      trigwd();
+      lineBuf[linePtr]=fhisto.read();
+      linePtr++;totalRead++;
+    }
+    
+    linePeriPtr=strstr(lineBuf,";")+9;
+    #define LINELMINI 8+1+6+1+1+1+11+7+9+11+18+2 // à améliorer pour caractériser une ligne dataxxxxxxx    
+    if(histoPeri!=0 && linePtr>(linePeriPtr-lineBuf+LINELMINI)){     
+      conv_atobl(linePeriPtr,&linePeri);
+    }
+    //char bid[17];bid[16]='\0';
+    //memcpy(bid,linePeriPtr,16);
+    //Serial.print((char*)bid);Serial.print(' ');Serial.print(linePeri);Serial.print(' ');Serial.println(histoPeri);delay(10);//while(1){yield();}
+    if(linePeri==histoPeri){
+      ethWrite(cli,lineBuf,linePtr);  
+    }
+    linePtr=0;linePeri=0;
+  }
+
+/*
   while(ptr<fhsize){
     trigwd();
     while(((ptr-ptra) < (long)lb0) && (ptr<fhsize)){           // -1 for end null char
@@ -196,7 +231,7 @@ void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long histoPos,uint16_t 
     ptra=ptr;
     if((ptr-ptr0)>1000000){break;}  // pour limiter la durée ...
   }
-  
+  */
   fhisto.close();
 }
 
@@ -237,8 +272,20 @@ void dumpHisto(EthernetClient* cli)
     shDateHist(histoDh,&pos);
     scrDspText(buf,jsbuf,histoDh,0,0);scrDspText(buf,jsbuf," - ",0,STRING|CONCAT|TDBEG);
   }
+  else {                                  //  positionnement sur début ligne si pas de sélection de date
+    fhisto.seek(pos);
+    while(pos<fhsize){
+      trigwd();
+      char a=fhisto.read();pos++;
+      if(a=='\n'){break;}
+    }
+  }
+
   ethWrite(cli,buf,&lb);
 
+//Serial.println("\nA");
+  
+  
   dumpHisto0(cli,buf,jsbuf,pos,lb0,&lb);
 
   scrGetButRet(buf,jsbuf,"retour",1);
@@ -680,7 +727,7 @@ void cfgRemoteHtml(EthernetClient* cli)
                 scrGetCheckbox(buf,jsbuf,&val,nf,NO_STATE,"",0,TDBE);
                 
                 memcpy(nf,"remotecfe_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // enable (inutilisé ?)
-                val=(uint8_t)remoteN[nb].enable;  
+                val=(uint8_t)remoteN[nb].oldenable;  
                 scrGetRadiobut(buf,jsbuf,val,nf,3,0,TDBE);
                 strcat(buf,"\n");
 */
@@ -700,14 +747,14 @@ void cfgRemoteHtml(EthernetClient* cli)
 
                 if(remoteN[nb].multRem){
                   memcpy(nf,"remotecfj_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);            // valeur disjoncteur si multiple
-                  scrGetNum(buf,jsbuf,'b',&remoteN[nb].deten,nf,2,0,0,TDBE);
+                  scrGetNum(buf,jsbuf,'b',&remoteN[nb].enable,nf,2,0,0,TDBE);
                   memset(dn,0x00,DNL);
                 }
                 else scrDspText(buf,jsbuf," ",0,TDBE);
                 /*
-                if(remoteN[nb].deten!=0){
-                  strcat(dn,(char*)(&libDetServ[remoteN[nb].deten][0]));strcat(dn," ");
-                  mDSconc(dn,remoteN[nb].deten);}
+                if(remoteN[nb].enable!=0){
+                  strcat(dn,(char*)(&libDetServ[remoteN[nb].enable][0]));strcat(dn," ");
+                  mDSconc(dn,remoteN[nb].enable);}
                 */
                 //scrDspText(buf,jsbuf,dn,0,TDEND);
                 strcat(buf,"\n");
@@ -760,11 +807,11 @@ void cfgRemoteHtml(EthernetClient* cli)
               strcat(buf,"\n");
 
               memcpy(nf,"remotecfb_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec enable
-              scrGetNum(buf,jsbuf,'b',&remoteT[nb].deten,nf,2,0,2,TDBEG);
+              scrGetNum(buf,jsbuf,'b',&remoteT[nb].enable,nf,2,0,2,TDBEG);
               memset(dm,0x00,DML);
               if(remoteT[nb].num!=0){
-                strcat(dm,(char*)(&libDetServ[remoteT[nb].deten][0]));strcat(dm," ");
-                mDSconc(dm,remoteT[nb].deten);}
+                strcat(dm,(char*)(&libDetServ[remoteT[nb].enable][0]));strcat(dm," ");
+                mDSconc(dm,remoteT[nb].enable);}
               scrDspText(buf,jsbuf,dm,0,TDEND);
               strcat(buf,"\n");
 */
@@ -828,13 +875,13 @@ void remoteHtml(EthernetClient* cli)
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               ni++;
               uint16_t periCur=0;
-              uint8_t disjVal=0;
-              char remTVal[]={'\0','\0'};                           // MAXREMLI ou pointeur valide dans remoteT 
+              uint8_t disjVal=0;                                    // valeur disjoncteur (0/1/2)
+              char remTNum[]={'\0','\0'};                           // N° switch dans table remoteT (MAXREMLI ou pointeur valide)
               uint8_t nb1=nb+1;
               uint8_t butModel=remoteN[nb].butModel;                  
               char fn[LENNOM+1];
               if(remoteN[nb].nam[0]!='\0'){
-                strcat(buf,"<tr height=130>");                      // patch à intégrer dans le ctl?
+                strcat(buf,"<tr height=130>");                      // patch à intégrer dans le ctl des fonctions d'affichage
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);
                 
                 if(!remoteN[nb].multRem){                           // remote simple
@@ -850,19 +897,21 @@ void remoteHtml(EthernetClient* cli)
                         periCur=remoteT[td].peri;
                         periLoad(periCur);
                         disjVal=periSwRead(remoteT[td].sw);
+                        strcat(buf,"<td width=45>");                    // patch à intégrer dans le ctl des fonctions d'affichage
                         if(((*periSwSta>>remoteT[td].sw)&0x01)!=0){     // switch ON
-                          scrDspText(buf,jsbuf," ON ",0,TDBEG|BRYES);
+                          scrDspText(buf,jsbuf," ON ",0,BRYES);
                           affRondJaune(buf,jsbuf,TDEND);
                         }
                         else {
-                          scrDspText(buf,jsbuf," OFF ",0,TDBE);}  
+                          scrDspText(buf,jsbuf," OFF ",0,TDEND);}  
                       }
                       else {scrDspText(buf,jsbuf,".",0,TDBE);}
-                      break;                                        // périf trouvé remote simple, td numéro remoteT 
+                      break;                                        // périf trouvé remote simple, td numéro remoteT, disjVal état disjoncteur
                     }
                   }
-                  remTVal[0]=td+PMFNCHAR;
+                  remTNum[0]=td+PMFNCHAR;
                 }
+                if(remoteN[nb].multRem){disjVal=remoteN[nb].enable;}      
                 if(periCur==0){scrDspText(buf,jsbuf," --- ",0,TDBE);} // comble la colonne ON/OFF-rond jaune
                 
                 scrDspText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
@@ -874,18 +923,21 @@ void remoteHtml(EthernetClient* cli)
                   strcat(buf,"\n");*/
 
                   char val[]={'1',' ','\0'};val[1]=(char)(periCur+PMFNCHAR);
+                  uint8_t mi=remoteN[nb].detec>>3;uint16_t ptmi=(remoteN[nb].detec*MDSLEN)+mi;  // adresse mds slider/push  
+                  
+                  uint8_t color=ONCOLOR;
+                  if(disjVal==0){color=UNSELCOLOR;}                                             // disjoncté
+                  if(((memDetServ[mi]&mDSmaskbit[ptmi])==0) && (disjVal!=0) ){color=OFFCOLOR;}  // grisé si 0 ou disjoncté
+                  else {val[0]='0';}                                                            // valeur à mettre dans le bit          
                   memcpy(fn,"remote_cu_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
                   if(butModel==SLIDER){                                       // slider
-                    uint8_t mi=remoteN[nb].detec>>3;uint16_t ptmi=(remoteN[nb].detec*MDSLEN)+mi; // adresse mds slider/push
-                    uint8_t color=3;
                     
-                    if((memDetServ[mi]&mDSmaskbit[ptmi])==0){color=2;}
-                    else {val[0]='0';}                                        // valeur à mettre dans le bit          
                     Serial.print("det=");Serial.print(remoteN[nb].detec);Serial.print(" mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);Serial.print(" val=");Serial.print(val);Serial.print(" mds=");Serial.print(memDetServ[mi]&mDSmaskbit[ptmi],HEX);Serial.print(' ');Serial.println(memDetServ[mi]&mDSmaskbit[ptmi],HEX);
                     scrGetButFn(buf,jsbuf,fn,val,"SLIDER",ALICNO,4,color,0,1,RND,TDBEG);
                   }
                   else{                                                       // push button
-                    scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,1,1,1,SQR,TDBEG);// envoie toujours '1'
+                    if(color!=UNSELCOLOR){color=PUSHCOLOR;}
+                    scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,color,1,1,SQR,TDBEG);// envoie toujours '1'
                   }
                 }
                 else {scrDspText(buf,jsbuf,"- - - - -",0,TDBE);}              // slider/push absent
@@ -894,19 +946,18 @@ void remoteHtml(EthernetClient* cli)
                 //bool vert=FAUX;      
                 strcat(buf,"\n");
                 
-                if(remoteN[nb].multRem){disjVal=remoteN[nb].deten;}      
                 scrDspText(buf,jsbuf,"",0,TDBEG);
                 memcpy(fn,"remote_c__\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);                   
 
                 uint8_t color=3; // 3 bleu on ; 4 vert disj ; 5 rouge forcé
                 fn[LENNOM-2]='a';
-                if(disjVal==0){color=4;}else {color=20;}scrGetButFn(buf,jsbuf,fn,remTVal,"OFF",ALICNO,1,color,0,0,1,0);
+                if(disjVal==0){color=OFFCOLORD;}else {color=OFFCOLOR;}scrGetButFn(buf,jsbuf,fn,remTNum,"OFF",ALICNO,1,color,0,0,1,0);
                 scrDspText(buf,jsbuf,"  ",0,0);
                 fn[LENNOM-2]='b';
-                if(disjVal==1){color=3;}else {color=20;}scrGetButFn(buf,jsbuf,fn,remTVal,"ON",ALICNO,1,color,0,0,1,0);
+                if(disjVal==1){color=ONCOLOR;}else {color=OFFCOLOR;}scrGetButFn(buf,jsbuf,fn,remTNum,"ON",ALICNO,1,color,0,0,1,0);
                 scrDspText(buf,jsbuf,"  ",0,0);
                 fn[LENNOM-2]='c';
-                if(disjVal==2){color=5;}else {color=20;}scrGetButFn(buf,jsbuf,fn,remTVal,"FOR",ALICNO,1,color,0,0,1,0);                    
+                if(disjVal==2){color=FORCEDCOLOR;}else {color=OFFCOLOR;}scrGetButFn(buf,jsbuf,fn,remTNum,"FOR",ALICNO,1,color,0,0,1,0);                    
                 scrDspText(buf,jsbuf," ",0,TDEND|TREND|BRYES);                 
 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               

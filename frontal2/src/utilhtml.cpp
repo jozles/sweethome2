@@ -913,12 +913,12 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
 
     if(margin!=0){strcat(buf," margin: 16px;");}
 
-    if(sizfnt!=0 && bgcolor==1){strcat(buf,"background-color:LightYellow;border-color:LightYellow;");}
-    if(sizfnt!=0 && bgcolor==2){strcat(buf,"background-color:LightGrey;border-color:LightGrey;");}
-    if(sizfnt!=0 && bgcolor==20){strcat(buf,"background-color:Grey;border-color:Grey;");}
-    if(sizfnt!=0 && bgcolor==3){strcat(buf,"background-color:#338FFF;border-color:#338FFF;");}
-    if(sizfnt!=0 && bgcolor==4){strcat(buf,"background-color:#28a745;border-color:#28a745;");}
-    if(sizfnt!=0 && bgcolor==5){strcat(buf,"background-color:#dc3545;border-color:#dc3545;");}
+    if(sizfnt!=0 && bgcolor==PUSHCOLOR){strcat(buf,"background-color:LightYellow;border-color:LightYellow;");}
+    if(sizfnt!=0 && bgcolor==UNSELCOLOR){strcat(buf,"background-color:LightGrey;border-color:LightGrey;");}
+    if(sizfnt!=0 && bgcolor==OFFCOLOR){strcat(buf,"background-color:Grey;border-color:Grey;");}
+    if(sizfnt!=0 && bgcolor==ONCOLOR){strcat(buf,"background-color:#338FFF;border-color:#338FFF;");}
+    if(sizfnt!=0 && bgcolor==OFFCOLORD){strcat(buf,"background-color:#28a745;border-color:#28a745;");}
+    if(sizfnt!=0 && bgcolor==FORCEDCOLOR){strcat(buf,"background-color:#dc3545;border-color:#dc3545;");}
     if(sizfnt!=0){
       strcat(buf,"font-size:25px;font-family:Courier,sans-serif;");
       if(fntcolor!=1){strcat(buf,"color:White;");}
@@ -930,6 +930,9 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     
     fnHtmlEnd(buf,0,ctl);
 }
+
+
+
 
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 {

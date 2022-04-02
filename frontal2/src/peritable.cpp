@@ -17,8 +17,9 @@
 extern Ds3231 ds3231;
 
 extern File32    fhisto;      // fichier histo sd card
-extern long      histoPos;
+extern uint32_t  histoPos;
 extern char      histoDh[LDATEA];
+extern uint32_t  histoPeri;
 extern long      fhsize;      // remplissage fhisto
 extern char*     serverName;
 extern uint8_t   memDetServ[];  // image mémoire NBDSRV détecteurs
@@ -378,7 +379,10 @@ void periTableHtml(EthernetClient* cli)
           scrDspText(buf,jsbuf,"(",0,0);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,0);scrDspText(buf,jsbuf,")",0,0);
           
           scrGetNum(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0,0);
-          scrGetText(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);    
+          scrDspText(buf,jsbuf,"date deb",0,0);
+          scrGetText(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);
+          scrDspText(buf,jsbuf,"n° périf",0,0);
+          scrGetNum(buf,jsbuf,'i',&histoPeri,"hist_sh_P_",4,0,0,0);
           scrGetButSub(buf,jsbuf,"ok",0);
       
           scrGetButFn(buf,jsbuf,"dump_his__","","histo",ALICNO,0,BRYES);
