@@ -3,12 +3,13 @@
 
 #include <Ethernet.h>
 
-#define PUSHCOLOR   1           // LightYellow
-#define UNSELCOLOR  2           // LightGrey
-#define OFFCOLOR    20          // Grey
-#define ONCOLOR     3           // bleu
-#define OFFCOLORD   4           // vert
-#define FORCEDCOLOR 5           // rouge
+#define DISJCOLOR   0           // Green
+#define ONCOLOR     1           // Blue
+#define FORCEDCOLOR 2           // Red
+#define PUSHCOLOR   3           // Yellow
+#define OFFCOLOR    4           // Grey
+#define COLNAMENB   5           
+#define LIGHTVALUE  20          // light mode (light grey, light yellow etc)
 
 #define JPGINTROLEN 50
 #define HTMLENDPNGLEN 20

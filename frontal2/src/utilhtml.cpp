@@ -913,12 +913,32 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
 
     if(margin!=0){strcat(buf," margin: 16px;");}
 
-    if(sizfnt!=0 && bgcolor==PUSHCOLOR){strcat(buf,"background-color:LightYellow;border-color:LightYellow;");}
-    if(sizfnt!=0 && bgcolor==UNSELCOLOR){strcat(buf,"background-color:LightGrey;border-color:LightGrey;");}
-    if(sizfnt!=0 && bgcolor==OFFCOLOR){strcat(buf,"background-color:Grey;border-color:Grey;");}
-    if(sizfnt!=0 && bgcolor==ONCOLOR){strcat(buf,"background-color:#338FFF;border-color:#338FFF;");}
-    if(sizfnt!=0 && bgcolor==OFFCOLORD){strcat(buf,"background-color:#28a745;border-color:#28a745;");}
-    if(sizfnt!=0 && bgcolor==FORCEDCOLOR){strcat(buf,"background-color:#dc3545;border-color:#dc3545;");}
+    const char* colNames[COLNAMENB];
+    if(bgcolor<LIGHTVALUE){
+      //colNames[0]="#28a745";      // disj
+      colNames[0]="Green";        // disj
+      //colNames[1]="#338FFF";      // on
+      colNames[1]="DodgerBlue";   // on
+      //colNames[2]="#dc3545";      // forced
+      colNames[2]="Red";          // forced
+      colNames[3]="Yellow";       // push
+      colNames[4]="Grey";         // off
+    }
+    else {
+      colNames[0]="LightGreen";   // disj
+      colNames[1]="LightBlue";    // on
+      colNames[2]="LightPink";    // forced
+      colNames[3]="LightYellow";  // push
+      colNames[4]="LightGrey";    // off
+    }
+    bgcolor%=LIGHTVALUE;
+
+    Serial.print(" bgcolor=");Serial.println(bgcolor);
+
+    if(sizfnt!=0){
+      strcat(buf,"background-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");
+      strcat(buf,"border-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");}
+
     if(sizfnt!=0){
       strcat(buf,"font-size:25px;font-family:Courier,sans-serif;");
       if(fntcolor!=1){strcat(buf,"color:White;");}
@@ -930,7 +950,6 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     
     fnHtmlEnd(buf,0,ctl);
 }
-
 
 
 

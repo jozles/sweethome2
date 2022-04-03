@@ -122,6 +122,8 @@
         ajout periSwSta qui reçoit l'état de la sortie des switchs (anciennement dans periSwVal)
         tous les boutons de remotes deviennent des fonctions
         remoteN.deten inutilisé ; remoteN.enable = valeur disjoncteur si remote multiple
+        les sliders/push sont grisés/inactifs si remote disjonctée
+        Ajout sélection périf sur dumpHisto();
 
    BUGS :
 

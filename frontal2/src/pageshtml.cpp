@@ -866,8 +866,24 @@ void remoteHtml(EthernetClient* cli)
             ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
 
-/* table remotes */
+/* Principes (voir aussi cfgRemote)
+  Chaque remote possède un bouton soit push fugitif soit slider fixe et un disjoncteur à 3 position (off/on/forced)
+  de plus un rond jaune indique l'état du switch associé
+  Les remotes sont de 2 types : multiples (plusieurs switchs) ou simples (un seul switch)
+    remotes simples   : contrôlent le disjoncteur d'un seul switch directement via les 3 boutons 
+    remotes multiples : contrôlent plusieurs switchs (donc remotes simples éventuellement) 
+                        via disjoncteur et variable remoteN[x].enable qui en stocke l'état
+  Dans les 2 cas le slider/push est l'image d'un mds associé au bouton.
+  Les slider/push sont désactivés si le disjoncteur de la même remote est OFF ou si le disjoncteur d'une remote multiple qui la controle est OFF
+  Couleurs : chaque couleur représente l'état d'un bouton : Une couleur par état ON ou OFF
+            la couleur est soit 'light' si le bouton est désactivé soit 'strong' si activé 
+  On peut modifier l'état d'un bouton désactivé, mais cet état ne sera pris en compte que lors de l'activation
 
+  Codage
+  la couleur de chaque bouton dépend de son état ON/OFF/FORCED et de son activation ou non
+  disjVal regroupe ces infos : 0/1/2 + 10 si remote multiple (mère) disjonctée Donc valeurs 0/1/2/10/11/12
+
+*/
            
             tableBeg(buf,jsbuf,courier,true,0,0); 
             strcat(buf,"\n");            
@@ -876,6 +892,7 @@ void remoteHtml(EthernetClient* cli)
               ni++;
               uint16_t periCur=0;
               uint8_t disjVal=0;                                    // valeur disjoncteur (0/1/2)
+              uint8_t color;
               char remTNum[]={'\0','\0'};                           // N° switch dans table remoteT (MAXREMLI ou pointeur valide)
               uint8_t nb1=nb+1;
               uint8_t butModel=remoteN[nb].butModel;                  
@@ -884,81 +901,84 @@ void remoteHtml(EthernetClient* cli)
                 strcat(buf,"<tr height=130>");                      // patch à intégrer dans le ctl des fonctions d'affichage
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);
                 
-                if(!remoteN[nb].multRem){                           // remote simple
-                  // affichage état d'un éventuel switch
-                  // boucle des détecteurs pour trouver un switch 
-                  // (voir le commentaire des disjoncteurs, c'est idem)               
+                if(!remoteN[nb].multRem){                               // remote simple
+
                   uint8_t td=0;
                   periCur=0;
-                  for(td=0;td<MAXREMLI;td++){
-                    if(remoteT[td].num==nb+1){                      // même remote           
+                  for(td=0;td<MAXREMLI;td++){                           // recherche du switch associé
+                    if(remoteT[td].num==nb+1){                          // même remote -> trouvé
                       //butModel=remoteT[td].butModel;
-                      if(remoteT[td].peri!=0){                      // périphérique présent
+                      if(remoteT[td].peri!=0){                          // périphérique présent
                         periCur=remoteT[td].peri;
                         periLoad(periCur);
-                        disjVal=periSwRead(remoteT[td].sw);
+                        disjVal=periSwRead(remoteT[td].sw);             // disjval est le disjoncteur de cette remote simple
+                        if(remoteT[td].multRem!=0 && remoteN[remoteT[td].multRem].enable==0){
+                          disjVal+=10;}                                 // remote 'mère' disjonctée
                         strcat(buf,"<td width=45>");                    // patch à intégrer dans le ctl des fonctions d'affichage
-                        if(((*periSwSta>>remoteT[td].sw)&0x01)!=0){     // switch ON
+                        if(((*periSwSta>>remoteT[td].sw)&0x01)!=0){     // switch 'allumé'
                           scrDspText(buf,jsbuf," ON ",0,BRYES);
                           affRondJaune(buf,jsbuf,TDEND);
                         }
                         else {
                           scrDspText(buf,jsbuf," OFF ",0,TDEND);}  
                       }
-                      else {scrDspText(buf,jsbuf,".",0,TDBE);}
-                      break;                                        // périf trouvé remote simple, td numéro remoteT, disjVal état disjoncteur
+                      else {scrDspText(buf,jsbuf,".",0,TDBE);}          // défaut de config (pas de périf)
+                      break;                                            // périf trouvé remote simple, td numéro remoteT, disjVal état disjoncteur
                     }
                   }
-                  remTNum[0]=td+PMFNCHAR;
+                  remTNum[0]=td+PMFNCHAR;                               // n° de l'entrée du switch dans la table des switchs
                 }
-                if(remoteN[nb].multRem){disjVal=remoteN[nb].enable;}      
-                if(periCur==0){scrDspText(buf,jsbuf," --- ",0,TDBE);} // comble la colonne ON/OFF-rond jaune
+                else {disjVal=remoteN[nb].enable;}                      // disjVal est le disjoncteur de cette remote multiple  
+
+                if(periCur==0){scrDspText(buf,jsbuf," --- ",0,TDBE);}   // comble la colonne ON/OFF-rond jaune
                 
                 scrDspText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
-// remote simple, pericur à jour (0 ou n), disjVal à jour si periCur !=0 (0,1,2)
 
-                if(remoteN[nb].detec!=0){                           // push ou slider
-                  /*memcpy(fn,"remote_cn_\0",LENNOM+1);fn[LENNOM-1]=(char)(periCur+PMFNCHAR); // transmet periCur (valide si !=0)
-                  scrGetHidden(buf,jsbuf,"",fn,0,0);
-                  strcat(buf,"\n");*/
+                if(remoteN[nb].detec!=0){                                                       // slider/push présent
 
-                  char val[]={'1',' ','\0'};val[1]=(char)(periCur+PMFNCHAR);
+                  char val[]={'1',' ','\0'};val[1]=(char)(periCur+PMFNCHAR);                    // 1er caractère valeur pour mds si le slider/push est modifié
+                                                                                                // 2nd car pour transmission periCur
                   uint8_t mi=remoteN[nb].detec>>3;uint16_t ptmi=(remoteN[nb].detec*MDSLEN)+mi;  // adresse mds slider/push  
-                  
-                  uint8_t color=ONCOLOR;
-                  if(disjVal==0){color=UNSELCOLOR;}                                             // disjoncté
-                  if(((memDetServ[mi]&mDSmaskbit[ptmi])==0) && (disjVal!=0) ){color=OFFCOLOR;}  // grisé si 0 ou disjoncté
+                  color=ONCOLOR;                                                                // bleu si 1
+                  if(((memDetServ[mi]&mDSmaskbit[ptmi])==0) ){color=OFFCOLOR;}                  // gris si 0                   
                   else {val[0]='0';}                                                            // valeur à mettre dans le bit          
+                  if(disjVal==0 || disjVal>=10){color+=LIGHTVALUE;}                             // disjoncté
+
                   memcpy(fn,"remote_cu_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
-                  if(butModel==SLIDER){                                       // slider
+                  if(butModel==SLIDER){                                                         // slider
                     
                     Serial.print("det=");Serial.print(remoteN[nb].detec);Serial.print(" mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);Serial.print(" val=");Serial.print(val);Serial.print(" mds=");Serial.print(memDetServ[mi]&mDSmaskbit[ptmi],HEX);Serial.print(' ');Serial.println(memDetServ[mi]&mDSmaskbit[ptmi],HEX);
+                    Serial.print(" slider color=");Serial.println(color);
                     scrGetButFn(buf,jsbuf,fn,val,"SLIDER",ALICNO,4,color,0,1,RND,TDBEG);
                   }
-                  else{                                                       // push button
-                    if(color!=UNSELCOLOR){color=PUSHCOLOR;}
-                    scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,color,1,1,SQR,TDBEG);// envoie toujours '1'
+                  else{                                                                         // push button
+                    Serial.print(" push color=");Serial.println(color);
+                    color=color/10*10+PUSHCOLOR;                                                // conserve LIGHTVALUE
+                    scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,color,1,1,SQR,TDBEG);          // envoie toujours '1'
                   }
                 }
-                else {scrDspText(buf,jsbuf,"- - - - -",0,TDBE);}              // slider/push absent
+                else {scrDspText(buf,jsbuf,"- - - - -",0,TDBE);}                                // slider/push absent
 
                 scrDspText(buf,jsbuf,"- - -",0,TDBE);               
-                //bool vert=FAUX;      
                 strcat(buf,"\n");
                 
                 scrDspText(buf,jsbuf,"",0,TDBEG);
-                memcpy(fn,"remote_c__\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);                   
-
-                uint8_t color=3; // 3 bleu on ; 4 vert disj ; 5 rouge forcé
-                fn[LENNOM-2]='a';
-                if(disjVal==0){color=OFFCOLORD;}else {color=OFFCOLOR;}scrGetButFn(buf,jsbuf,fn,remTNum,"OFF",ALICNO,1,color,0,0,1,0);
-                scrDspText(buf,jsbuf,"  ",0,0);
-                fn[LENNOM-2]='b';
-                if(disjVal==1){color=ONCOLOR;}else {color=OFFCOLOR;}scrGetButFn(buf,jsbuf,fn,remTNum,"ON",ALICNO,1,color,0,0,1,0);
-                scrDspText(buf,jsbuf,"  ",0,0);
-                fn[LENNOM-2]='c';
-                if(disjVal==2){color=FORCEDCOLOR;}else {color=OFFCOLOR;}scrGetButFn(buf,jsbuf,fn,remTNum,"FOR",ALICNO,1,color,0,0,1,0);                    
-                scrDspText(buf,jsbuf," ",0,TDEND|TREND|BRYES);                 
+                memcpy(fn,"remote_c__\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);            // transmission n° remote
+                
+                uint8_t colors[3]={DISJCOLOR,ONCOLOR,FORCEDCOLOR};
+                char codeFn[3]={'a','b','c'};
+                
+                for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons
+                  fn[LENNOM-2]=codeFn[i];
+                  if((disjVal%10)==i){color=colors[i];} else color=OFFCOLOR;
+                  if(disjVal>=10){color+=LIGHTVALUE;}
+                  const char* lib[3];lib[0]="OFF";lib[1]="ON";lib[2]="FOR";
+                  Serial.print(" disj color=");Serial.println(color);
+                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,0);
+                  uint8_t ctl=0;
+                  if(i==2){ctl=TDEND|TREND|BRYES;}
+                  scrDspText(buf,jsbuf,"  ",0,ctl);
+                }
 
                 lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}               
               }
