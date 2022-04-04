@@ -358,7 +358,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
 
     periCur=0;valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
   
-    Serial.println(periCur);
+    Serial.print(periCur);
   
     if(periCur!=0){                                                 // si le périph a un numéro, ctle de l'adr mac
       periLoad(periCur);
@@ -421,15 +421,17 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
         i=strchr(k,'_')-k+1;                                          // ????? LENVERSION variable ?
       }
 
-      messLen-=i;if(messLen>0){      
+      messLen-=i;
+      if(messLen>0){      
         k+=i;
         uint8_t nbSw=*k-PMFNCVAL;
         k+=1;*periSwSta=0;for(int i=nbSw-1;i>=0;i--){*periSwSta=(*periSwSta<<1);*periSwSta|=*(k+MAXSW-i-1)-PMFNCVAL;}
-        Serial.print(" periSwSta=");if(*periSwSta<16){Serial.print('0');}Serial.println(*periSwSta,HEX);
+        //Serial.print(" periSwSta=");if(*periSwSta<16){Serial.print('0');}Serial.print(*periSwSta,HEX);
         k+=MAXSW+1; *periDetNb=*k-PMFNCVAL;                                                                 // nbre detec
         k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){                                                   // détecteurs
         *periDetVal=(*periDetVal)<<1;*periDetVal |= (*(k+i)-PMFNCVAL);}
       }
+      Serial.println();
       // les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être initialisé à 0 
       messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){
         k+=MAXDET+1;

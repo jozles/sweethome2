@@ -1325,42 +1325,53 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem)
 {
                         uint8_t mi=remoteN[rem].detec>>3;uint16_t ptmi=remoteN[rem].detec*MDSLEN+mi; 
                         Serial.print("det=");Serial.print(remoteN[rem].detec);Serial.print(' ');
-                        uint8_t val=*valf-PMFNCVAL;                                           // valeur à forcer
+                        uint8_t val=*valf-PMFNCVAL;
+                        uint8_t disjVal=*(valf+2)-PMFNCHAR;                                       // valeur à forcer
                         Serial.print(" rem=");Serial.print(rem);Serial.print(" val=");Serial.print(val);
 
-                        if(val!=0){memDetServ[mi] |= mDSmaskbit[ptmi];Serial.print(" 1 ");}   // push envoie toujours 1
+                        if(val!=0){memDetServ[mi] |= mDSmaskbit[ptmi];Serial.print(" 1 ");}       // push envoie toujours 1
                         else {memDetServ[mi] &= ~mDSmaskbit[ptmi];Serial.print(" 0 ");}       
                         for(int8_t i=(NBDSRV>>3)-1;i>=0;i--){if(memDetServ[i]<16){Serial.print('0');}Serial.print(memDetServ[i],HEX);}Serial.println();
                         if(remoteN[rem].butModel!=PUSH){memDetSave();}                            
 
                           if(!remoteN[rem].multRem){                                              // remote simple
-                              uint16_t peri=*(valf+1)-PMFNCHAR;
+                            if(remoteN[rem].butModel!=PUSH || disjVal<10){                        // PUSH inactif si remote 'mère' disjonctée
+                              uint16_t peri=*(valf+1)-PMFNCHAR;                                   // valide pour remote simple only
                               periLoad(peri);
-                              if(periSwCde!=0){periReq(&cliext,peri,"set_______");}               // modif slider/push si switch pas disjoncté
+                              if(periSwCde!=0){
+                                periReq(&cliext,peri,"set_______");}                              // modif slider/push si switch pas disjoncté
+                            }
                           }
                           else {                                                                  // remote multiple
-                              if(remoteN[rem].enable!=0){                                          // pas disjonctée
-                                        uint8_t mimul,ptmimul,detmul;
-                                        memset(tablePerToSend,0x00,NBPERIF);
-                                        for(uint8_t i=0;i<MAXREMLI;i++){
-                                          if(remoteT[i].multRem==rem+1){                          // repérage péris concernés
-                                            tablePerToSend[remoteT[i].peri]=1;                    // chargement tablePerTosend
+                              if(remoteN[rem].enable!=0){                                         // pas disjonctée
+                                  uint8_t mimul,ptmimul,detmul;
+                                  memset(tablePerToSend,0x00,NBPERIF);
+                                  for(uint8_t i=0;i<MAXREMLI;i++){
+                                    if(remoteT[i].multRem==rem+1){                                // repérage péris concernés
+                                      if(remoteN[remoteT[i].num-1].butModel == PUSH){periLoad(remoteT[i].peri);}
+                                      if(remoteN[remoteT[i].num-1].butModel != PUSH || periSwCde!=0){     // non disjoncté (mais le périf n'exécutera pas anyway)
+                                                                                                  // économise le periReq() si PUSH disjoncté
+                                                                                                  // si slider disjoncté le disjoncteur change de valeur
+                                        tablePerToSend[remoteT[i].peri]=1;                        // chargement tablePerTosend : les periReq à effectuer
+
+                                        if((remoteN[rem].butModel!=PUSH) && (remoteN[remoteT[i].num-1].butModel) !=PUSH){   
                                                                                                   // si slider modif det remotes slider liées
-                                            if((remoteN[rem].butModel!=PUSH) && (remoteN[remoteT[i].num-1].butModel) !=PUSH){   
-                                              detmul=remoteN[remoteT[i].num-1].detec;             // sinon rien (action seule)
-                                              mimul=detmul>>3;
-                                              ptmimul=detmul*MDSLEN+mimul;
-                                              if(val!=0){memDetServ[mimul] |= mDSmaskbit[ptmimul];}
-                                              else {memDetServ[mimul] &= ~mDSmaskbit[ptmimul];}
-                                            }
-                                          }
-                                        }                                     
-                                        for(uint16_t i=0;i<NBPERIF;i++){
-                                          if(tablePerToSend[i]!=0){periReq(&cliext,i,"set_______");}
+                                                                                                  // si PUSH rien ne change (les MDS sont transmis seuls)
+                                          detmul=remoteN[remoteT[i].num-1].detec;                 
+                                          mimul=detmul>>3;
+                                          ptmimul=detmul*MDSLEN+mimul;
+                                          if(val!=0){memDetServ[mimul] |= mDSmaskbit[ptmimul];}
+                                          else {memDetServ[mimul] &= ~mDSmaskbit[ptmimul];}
                                         }
+                                      }
+                                    }
+                                  }                                     
+                                  for(uint16_t i=0;i<NBPERIF;i++){
+                                    if(tablePerToSend[i]!=0){periReq(&cliext,i,"set_______");}
+                                  }
                               }
                           }
-                        if(remoteN[rem].butModel==PUSH){memDetServ[mi] &= ~mDSmaskbit[ptmi];} // push envoie toujours 1 donc raz
+                        if(remoteN[rem].butModel==PUSH){memDetServ[mi] &= ~mDSmaskbit[ptmi];}     // push envoie toujours 1 donc raz
 }
 
 void disjValue(uint8_t val,uint8_t rem)

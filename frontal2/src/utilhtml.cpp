@@ -921,7 +921,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
       colNames[1]="DodgerBlue";   // on
       //colNames[2]="#dc3545";      // forced
       colNames[2]="Red";          // forced
-      colNames[3]="Yellow";       // push
+      colNames[3]="Gold";         // push
       colNames[4]="Grey";         // off
     }
     else {
@@ -933,7 +933,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     }
     bgcolor%=LIGHTVALUE;
 
-    Serial.print(" bgcolor=");Serial.println(bgcolor);
+    //Serial.print(" bgcolor=");Serial.println(bgcolor);
 
     if(sizfnt!=0){
       strcat(buf,"background-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");

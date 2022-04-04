@@ -891,7 +891,7 @@ void remoteHtml(EthernetClient* cli)
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               ni++;
               uint16_t periCur=0;
-              uint8_t disjVal=0;                                    // valeur disjoncteur (0/1/2)
+              uint8_t disjVal=0;                                    // valeur disjoncteur (0/1/2/10/11/12)
               uint8_t color;
               char remTNum[]={'\0','\0'};                           // N° switch dans table remoteT (MAXREMLI ou pointeur valide)
               uint8_t nb1=nb+1;
@@ -906,14 +906,17 @@ void remoteHtml(EthernetClient* cli)
                   uint8_t td=0;
                   periCur=0;
                   for(td=0;td<MAXREMLI;td++){                           // recherche du switch associé
+
                     if(remoteT[td].num==nb+1){                          // même remote -> trouvé
-                      //butModel=remoteT[td].butModel;
+
                       if(remoteT[td].peri!=0){                          // périphérique présent
+
                         periCur=remoteT[td].peri;
                         periLoad(periCur);
                         disjVal=periSwRead(remoteT[td].sw);             // disjval est le disjoncteur de cette remote simple
-                        if(remoteT[td].multRem!=0 && remoteN[remoteT[td].multRem].enable==0){
+                        if(remoteT[td].multRem!=0 && remoteN[remoteT[td].multRem-1].enable==0){
                           disjVal+=10;}                                 // remote 'mère' disjonctée
+                        //Serial.print(" rem=");Serial.print(nb);Serial.print(" switch=");Serial.print(td);Serial.print(" mRem=");Serial.print(remoteT[td].multRem);Serial.print(" disjmRem=");Serial.print(remoteN[remoteT[td].multRem].enable);Serial.print(" disjVal=");Serial.println(disjVal);
                         strcat(buf,"<td width=45>");                    // patch à intégrer dans le ctl des fonctions d'affichage
                         if(((*periSwSta>>remoteT[td].sw)&0x01)!=0){     // switch 'allumé'
                           scrDspText(buf,jsbuf," ON ",0,BRYES);
@@ -936,8 +939,11 @@ void remoteHtml(EthernetClient* cli)
 
                 if(remoteN[nb].detec!=0){                                                       // slider/push présent
 
-                  char val[]={'1',' ','\0'};val[1]=(char)(periCur+PMFNCHAR);                    // 1er caractère valeur pour mds si le slider/push est modifié
-                                                                                                // 2nd car pour transmission periCur
+                  char val[]={'1',(char)(periCur+PMFNCHAR),(char)(disjVal+PMFNCHAR),'\0'};val[1]=(char)(periCur+PMFNCHAR); 
+                                                                                                // 1er caractère valeur pour mds si le slider/push est modifié
+                                                                                                // 2nd car pour transmission periCur si remote simple
+                                                                                                // 3rd car pour transmission disjVal
+                  
                   uint8_t mi=remoteN[nb].detec>>3;uint16_t ptmi=(remoteN[nb].detec*MDSLEN)+mi;  // adresse mds slider/push  
                   color=ONCOLOR;                                                                // bleu si 1
                   if(((memDetServ[mi]&mDSmaskbit[ptmi])==0) ){color=OFFCOLOR;}                  // gris si 0                   
@@ -945,14 +951,14 @@ void remoteHtml(EthernetClient* cli)
                   if(disjVal==0 || disjVal>=10){color+=LIGHTVALUE;}                             // disjoncté
 
                   memcpy(fn,"remote_cu_\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);
-                  if(butModel==SLIDER){                                                         // slider
-                    
-                    Serial.print("det=");Serial.print(remoteN[nb].detec);Serial.print(" mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);Serial.print(" val=");Serial.print(val);Serial.print(" mds=");Serial.print(memDetServ[mi]&mDSmaskbit[ptmi],HEX);Serial.print(' ');Serial.println(memDetServ[mi]&mDSmaskbit[ptmi],HEX);
-                    Serial.print(" slider color=");Serial.println(color);
+
+                  if(butModel==SLIDER){                                                         // slider  
+                    //Serial.print("det=");Serial.print(remoteN[nb].detec);Serial.print(" mi=");Serial.print(mi);Serial.print(" ptmi=");Serial.print(ptmi);Serial.print(" val=");Serial.print(val);Serial.print(" mds=");Serial.print(memDetServ[mi]&mDSmaskbit[ptmi],HEX);Serial.print(' ');Serial.println(memDetServ[mi]&mDSmaskbit[ptmi],HEX);
+                    //Serial.print(" slider color=");Serial.println(color);
                     scrGetButFn(buf,jsbuf,fn,val,"SLIDER",ALICNO,4,color,0,1,RND,TDBEG);
                   }
                   else{                                                                         // push button
-                    Serial.print(" push color=");Serial.println(color);
+                    //Serial.print(" push color=");Serial.println(color);
                     color=color/10*10+PUSHCOLOR;                                                // conserve LIGHTVALUE
                     scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,color,1,1,SQR,TDBEG);          // envoie toujours '1'
                   }
@@ -965,15 +971,15 @@ void remoteHtml(EthernetClient* cli)
                 scrDspText(buf,jsbuf,"",0,TDBEG);
                 memcpy(fn,"remote_c__\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);            // transmission n° remote
                 
-                uint8_t colors[3]={DISJCOLOR,ONCOLOR,FORCEDCOLOR};
-                char codeFn[3]={'a','b','c'};
-                
+                char codeFn[3]={'a','b','c'};                                                   // pour disjoncteurs OFF/ON/FORCED
+                const char* lib[3];lib[0]="OFF";lib[1]="ON";lib[2]="FOR";
+                uint8_t colors[3]={DISJCOLOR,ONCOLOR,FORCEDCOLOR};                              // pour valeurs 0/1/2 du disjoncteur                
+
                 for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons
                   fn[LENNOM-2]=codeFn[i];
-                  if((disjVal%10)==i){color=colors[i];} else color=OFFCOLOR;
+                  if(disjVal%10==i){color=colors[i];} else color=OFFCOLOR;
                   if(disjVal>=10){color+=LIGHTVALUE;}
-                  const char* lib[3];lib[0]="OFF";lib[1]="ON";lib[2]="FOR";
-                  Serial.print(" disj color=");Serial.println(color);
+                  //Serial.print(" disj color=");Serial.println(color);
                   scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,0);
                   uint8_t ctl=0;
                   if(i==2){ctl=TDEND|TREND|BRYES;}
@@ -986,8 +992,8 @@ void remoteHtml(EthernetClient* cli)
             if(buf[0]!='\0'){ethWrite(cli,buf);}
             tableEnd(buf,jsbuf,BRYES);
             
-            scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,7,0);
-            scrGetButFn(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,0);
+            scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,7,PUSHCOLOR,1,0,1,0);
+            scrGetButFn(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,PUSHCOLOR,1,0,1,0);
             
             formEnd(buf,jsbuf,0,0);
             htmlEnd(buf,jsbuf);
