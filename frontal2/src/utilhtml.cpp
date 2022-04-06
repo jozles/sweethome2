@@ -926,7 +926,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     }
     else {
       colNames[0]="LightGreen";   // disj
-      colNames[1]="LightBlue";    // on
+      colNames[1]="LightCyan";    // on
       colNames[2]="LightPink";    // forced
       colNames[3]="LightYellow";  // push
       colNames[4]="LightGrey";    // off

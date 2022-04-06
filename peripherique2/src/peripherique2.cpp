@@ -116,7 +116,7 @@ bool serverStarted=false;
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
   uint8_t outSw=0;                            // image mémoire des switchs (1 bit par switch)
-  #define OUTPUTDLY 500
+  #define OUTPUTDLY 200
   unsigned long outPutDly=millis();           // delais mini entre 2 changements d'état des relais
 
   uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};       // switchs pins
@@ -1167,17 +1167,16 @@ void readAnalog()
 
 void outputCtl()            // cstRec.swCde contient 4 paires de bits disjoncteurs 0=DISJ ; 1=ON ; 2 FORCE
                             // le résultat des règles dans outSw encodé selon la carte openSW/cloSw
-{
+                            // (la valeur contenue dans swCde n'est pas forcément identique au contenu du périf dans periTable
+                            // car l'éventuelle remote mère multiple est prise en compte dans disjValue() de frontal2)
+{                           
   if(outPutDly-millis()>=OUTPUTDLY){
     outPutDly=OUTPUTDLY;
+    
     for(uint8_t sw=0;sw<NBSW;sw++){
-      if(((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0){              // disjoncteur ON et résultat règles ON
-        /*if(answerCnt!=0){
-          Serial.print(micros());Serial.print(" ");Serial.print(sw);Serial.print(" ");Serial.println((cstRec.swCde>>(sw*2))&0x03);
-          answerCnt++;if(answerCnt>6){answerCnt=0;}
-        }*/
-        digitalWrite(pinSw[sw],cloSw[sw]); // (cstRec.swCde>>(sw*2))&0x01);     // value (encodé dans le traitement des regles)
-      }
+      if(((cstRec.swCde>>(sw*2))& (0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0)){  
+        digitalWrite(pinSw[sw],cloSw[sw]);}                                       // forced ou (disjoncteur ON et résultat règles ON)
+                                                                                  
       else {digitalWrite(pinSw[sw],openSw[sw]);}                                  // disjoncté donc open value
     }
   }

@@ -580,6 +580,7 @@ void actions()          // pour chaque input, test enable,
   */
   uint8_t mskSw[] = {0x01,0x02,0x04,0x08}; 
   outSw=0;
+  // cursw résultat des actions
   for(uint8_t i=0;i<NBSW;i++){if(curSw[i]!=0){outSw|=mskSw[i];}}
  
 
