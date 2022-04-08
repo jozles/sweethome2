@@ -891,14 +891,15 @@ void remoteHtml(EthernetClient* cli)
             for(uint8_t nb=0;nb<NBREMOTE;nb++){
               ni++;
               uint16_t periCur=0;
-              uint8_t disjVal=0;                                    // valeur disjoncteur (0/1/2/10/11/12)
+              uint8_t disjVal=0;                                        // valeur disjoncteur (0/1/2/10/11/12)
               uint8_t color;
-              char remTNum[]={'\0','\0'};                           // N° switch dans table remoteT (MAXREMLI ou pointeur valide)
+              char mother[]={"- -- -"};
+              char remTNum[]={'\0','\0'};                               // N° switch dans table remoteT (MAXREMLI ou pointeur valide)
               uint8_t nb1=nb+1;
               uint8_t butModel=remoteN[nb].butModel;                  
               char fn[LENNOM+1];
               if(remoteN[nb].nam[0]!='\0'){
-                strcat(buf,"<tr height=130>");                      // patch à intégrer dans le ctl des fonctions d'affichage
+                strcat(buf,"<tr height=130>");                          // patch à intégrer dans le ctl des fonctions d'affichage
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);
                 
                 if(!remoteN[nb].multRem){                               // remote simple
@@ -914,6 +915,7 @@ void remoteHtml(EthernetClient* cli)
                         periCur=remoteT[td].peri;
                         periLoad(periCur);
                         disjVal=periSwRead(remoteT[td].sw);             // disjval est le disjoncteur de cette remote simple
+                        if(remoteT[td].multRem!=0){mother[2+convIntToString(&mother[2],(int)remoteT[td].multRem)]=' ';}
                         if(remoteT[td].multRem!=0 && remoteN[remoteT[td].multRem-1].enable==0){
                           disjVal+=10;}                                 // remote 'mère' disjonctée
                         //Serial.print(" rem=");Serial.print(nb);Serial.print(" switch=");Serial.print(td);Serial.print(" mRem=");Serial.print(remoteT[td].multRem);Serial.print(" disjmRem=");Serial.print(remoteN[remoteT[td].multRem].enable);Serial.print(" disjVal=");Serial.println(disjVal);
@@ -965,7 +967,9 @@ void remoteHtml(EthernetClient* cli)
                 }
                 else {scrDspText(buf,jsbuf,"- - - - -",0,TDBE);}                                // slider/push absent
 
-                scrDspText(buf,jsbuf,"- - -",0,TDBE);               
+                
+                
+                scrDspText(buf,jsbuf,mother,0,TDBE);               
                 strcat(buf,"\n");
                 
                 scrDspText(buf,jsbuf,"",0,TDBEG);
@@ -992,14 +996,77 @@ void remoteHtml(EthernetClient* cli)
             if(buf[0]!='\0'){ethWrite(cli,buf);}
             tableEnd(buf,jsbuf,BRYES);
             
-            scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,7,PUSHCOLOR,1,0,1,0);
-            scrGetButFn(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,PUSHCOLOR,1,0,1,0);
+            scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,7,STDBUTTON,1,0,1,0);
+            scrGetButFn(buf,jsbuf,"timersctl_","","timers",ALICNO,7,STDBUTTON,1,0,1,0);
+            scrGetButFn(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,STDBUTTON,1,0,1,0);
             
             formEnd(buf,jsbuf,0,0);
             htmlEnd(buf,jsbuf);
             ethWrite(cli,buf,&lb);
             
             bufLenShow(buf,jsbuf,lb,begTPage);
+}
+
+void timersCtlHtml(EthernetClient* cli)
+{              
+  Serial.print(millis());Serial.print(" timersCtlHtml() ");
+
+  uint16_t lb0=8000;
+  char buf[lb0];buf[0]='\0';
+  char jsbuf[LBUF4000];*jsbuf=0x00;
+            //uint8_t ni=0;                                     // nbre lignes dans buffer
+  uint16_t lb;
+  unsigned long begTPage=millis();                  // calcul durée envoi page
+ 
+  htmlBeg(buf,jsbuf,serverName,'R');
+
+  pageLineOne(buf,jsbuf);
+  formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+            //usrFormBHtml(buf,1);
+  scrGetButRet(buf,jsbuf,"retour",0);
+  ethWrite(cli,buf,&lb);
+// ------------------------------------------------------------- header end
+
+
+  tableBeg(buf,jsbuf,courier,true,0,0);
+  scrDspText(buf,jsbuf,"|nom|det|h_beg|h_end|OI det|",0,TRBE|TDBE);
+
+  for(uint8_t nt=0;nt<NBTIMERS;nt++){
+    formIntro(buf,jsbuf,0,TRBEG|TDBEG|BRYES);
+    
+    scrDspNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
+    scrDspText(buf,jsbuf,timersN[nt].nom,7,TDBE);                 
+    scrDspNum(buf,jsbuf,'D',&timersN[nt].detec,0,0,TDBE);                 
+    scrDspText(buf,jsbuf,timersN[nt].hdeb,0,0,TDBE);
+    scrDspText(buf,jsbuf,timersN[nt].hfin,0,0,TDBE);
+                    
+    char oo[7];memset(oo,'_',6);oo[6]=0x00;
+    char oi[]="OI";  
+    
+    oo[1]=oi[timersN[nt].curstate];
+    oo[4]=(PMFNCVAL)+mDSval(timersN[nt].detec);                     
+    scrDspText(buf,jsbuf,oo,0,TDBE);
+
+    char nf[]="tim_ctl___";nf[LENNOM-1]=nt+PMFNCHAR;
+    const char* lib[2];
+    lib[0]="enable";
+    lib[1]="disable";
+    uint8_t color=OFFCOLOR;
+    if(timersN[nt].enable!=0){color=ONCOLOR;}
+    scrGetButFn(buf,jsbuf,nf,"",lib[timersN[nt].enable],ALICNO,4,color,0,1,RND,TDBE|TREND);
+
+    formEnd(buf,jsbuf,0,TDEND|TREND);
+    strcat(buf,"\n");
+
+    ethWrite(cli,buf,&lb);
+  }
+
+  tableEnd(buf,jsbuf,0);
+  htmlEnd(buf,jsbuf);
+  
+  ethWrite(cli,buf,&lb);
+
+  bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd derniers jours
@@ -1327,7 +1394,8 @@ Serial.print(" config timers ");
 
   pageLineOne(buf,jsbuf);              // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
-  scrGetButFn(buf,jsbuf,"timershtml","","refresh",ALICNO,2,0);
+  scrGetButFn(buf,jsbuf,"timershtml","","refresh",0,0,BRYES);
+  //scrGetButFn(buf,jsbuf,"timershtml","","refresh",ALICNO,1,STDBUTTON,1,0,1,0);
 
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 

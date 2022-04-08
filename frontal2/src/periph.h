@@ -57,6 +57,7 @@ void  remoteSave();
 void  remoteNPlus(int plus);
 void  remoteNConvert();
 void  remoteTConvert();
+uint8_t getMotherRemoteStatus(uint16_t peri,uint8_t sw);
 
 void  timersPrint();
 void  timersInit();

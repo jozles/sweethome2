@@ -125,7 +125,9 @@ void assySet(char* message,int periCur,const char* diag,char* date14,char* fonct
 
                 v1=strlen(message);                               // 4 bits disjoncteurs switchs (8,6,4,2)
                 for(int k=MAXSW;k>0;k--){
-                    message[v1+MAXSW-k]=(char)(PMFNCVAL + periSwRead(k-1));}
+                    uint8_t swCd=periSwRead(k-1);
+                    if(getMotherRemoteStatus(periCur,k-1)==0){swCd=0;}
+                    message[v1+MAXSW-k]=(char)(PMFNCVAL + swCd);}
                 memcpy(message+v1+MAXSW,"_\0",2);
 
                 v1+=MAXSW+1;

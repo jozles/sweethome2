@@ -8,7 +8,8 @@
 #define FORCEDCOLOR 2           // Red
 #define PUSHCOLOR   3           // Yellow
 #define OFFCOLOR    4           // Grey
-#define COLNAMENB   5           
+#define STDBUTTON   9           // Silver
+#define COLNAMENB   10           
 #define LIGHTVALUE  20          // light mode (light grey, light yellow etc)
 
 #define JPGINTROLEN 50

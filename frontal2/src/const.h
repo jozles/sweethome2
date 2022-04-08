@@ -123,7 +123,9 @@
         tous les boutons de remotes deviennent des fonctions
         remoteN.deten inutilisé ; remoteN.enable = valeur disjoncteur si remote multiple
         les sliders/push sont grisés/inactifs si remote disjonctée
-        Ajout sélection périf sur dumpHisto();
+        les sliders/push et disj sont grisés/inactifs si remote mère disjonctée mais modifiables
+        Ajout sélection périf sur dumpHisto() ; ajout data_store ; sélection périf dans dumphisto
+        Ajout timersCtl
 
    BUGS :
 
@@ -133,9 +135,8 @@
 
       Créer une version de dataSave : dataUpd sans réponse du serveur (juste pour le mettre à jour)
       Ajouter une check box dans la ligne des rules pour faire envoyer dataUpd au serveur quand la condition est validée
-      modifier la gestion des remotes : le .enable devrait servir à bloquer le swCde dans son état courant lorsque ni Forçage ni Disjoncteur actifs
-      (éventuellement dépendant d'un detserv ?)
-      Etudier comment banaliser des disjoncteurs "communs" (utilisables par plusieurs switchs) ; actuellement il faut utiliser des memDet
+      Ajouter table des N° de remoteT associés aux péri/switchs (NBPER x SWMAX) pour speeder l'accès aux switchs
+      (màj au reset puis à chaque appui MàJ dans lignes switchs des remotes)
 
       passer à 32 (64?) périfs
    

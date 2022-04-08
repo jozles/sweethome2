@@ -898,8 +898,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     
     strcat(buf,"\">");
     if(aligncenter){strcat(buf,"<p align=\"center\">");}
-    strcat(buf,"<input type=\"button\" value=\"");strcat(buf,lib);strcat(buf,"\"");
-
+    strcat(buf,"<input type=\"button\"");
 
     if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;");}
     if(sizfnt==1){strcat(buf," style=\"height:40px;width:80px;");}
@@ -913,19 +912,32 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
 
     if(margin!=0){strcat(buf," margin: 16px;");}
 
+    strcat(buf,"font-size:");
+    if(sizfnt==7){strcat(buf,"35px;");}
+    else if(sizfnt==1){strcat(buf,"15px;");}
+    else if(sizfnt==2){strcat(buf,"25px;");}
+    else if(sizfnt==4){strcat(buf,"25px;");}
+    else strcat(buf,"25px;");
+    strcat(buf,"font-family:Courier,sans-serif;");
+
     const char* colNames[COLNAMENB];
     if(bgcolor<LIGHTVALUE){
-      //colNames[0]="#28a745";      // disj
-      colNames[0]="Green";        // disj
-      //colNames[1]="#338FFF";      // on
+      //colNames[0]="#28a745";    // disj
+      colNames[0]="ForestGreen";  // disj
+      //colNames[1]="#338FFF";    // on
       colNames[1]="DodgerBlue";   // on
-      //colNames[2]="#dc3545";      // forced
+      //colNames[2]="#dc3545";    // forced
       colNames[2]="Red";          // forced
       colNames[3]="Gold";         // push
       colNames[4]="Grey";         // off
+      colNames[5]="";
+      colNames[6]="";
+      colNames[7]="";
+      colNames[8]="";
+      colNames[9]="LightGrey";       // std button
     }
     else {
-      colNames[0]="LightGreen";   // disj
+      colNames[0]="PaleGreen";    // disj
       colNames[1]="LightCyan";    // on
       colNames[2]="LightPink";    // forced
       colNames[3]="LightYellow";  // push
@@ -937,13 +949,15 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
 
     if(sizfnt!=0){
       strcat(buf,"background-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");
-      strcat(buf,"border-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");}
-
+      strcat(buf,"border-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");} 
+/*
     if(sizfnt!=0){
       strcat(buf,"font-size:25px;font-family:Courier,sans-serif;");
       if(fntcolor!=1){strcat(buf,"color:White;");}
-      strcat(buf,"\"");
-    } 
+    }
+*/
+    strcat(buf,"\"");
+    strcat(buf," value=\"");strcat(buf,lib);strcat(buf,"\"");
 
     if(aligncenter){strcat(buf,"></p></a>");}
     else{strcat(buf,"></a>");}
@@ -955,7 +969,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
 
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 {
-  uint8_t color=0;if(sizfnt!=0){color=1;}
+  uint8_t color=0;if(sizfnt!=0){color=4;}
   return scrGetButFn(buf,jsbuf,nomfonct,valfonct,lib,aligncenter,sizfnt,color,1,0,0,ctl);
 }
 

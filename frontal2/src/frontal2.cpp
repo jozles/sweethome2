@@ -122,7 +122,7 @@ EthernetServer* pilotserv=nullptr;            // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__peri_mac__accueil___peri_tabledispo_____dispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__dispo_____peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___dispo_____percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmldispo_____mailcfg___thparams__thermoshowthermoscfgdispo_____tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__dispo_____accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___dispo_____percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmldispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
@@ -1374,32 +1374,39 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem)
                         if(remoteN[rem].butModel==PUSH){memDetServ[mi] &= ~mDSmaskbit[ptmi];}     // push envoie toujours 1 donc raz
 }
 
-void disjValue(uint8_t val,uint8_t rem)
+void disjValue(uint8_t val,uint8_t rem)   
 {
-  uint8_t msk[]={0xFC,0xF3,0xCF,0x3F};
-  if(!remoteN[rem].multRem){
+  //uint8_t msk[]={0xFC,0xF3,0xCF,0x3F};
+  if(!remoteN[rem].multRem){              // val disjoncteur appuyé de la remote simple ne tient pas compte 
+                                          // l'éventuelle remote remote mère multiple
     uint8_t remTNum=*valf-PMFNCHAR;       // n° switch dans table remoteT
     if(remTNum<MAXREMLI){
-      periCur=remoteT[remTNum].peri;
-      uint8_t curSw=remoteT[remTNum].sw;
-      uint8_t msk[]={0xFC,0xF3,0xCF,0x3F};
-      periLoad(periCur);*periSwCde&=msk[curSw];*periSwCde|=val<<(curSw*2);
-      periSave(periCur,PERISAVESD);
-      periReq(&cliext,periCur,"set_______");
+        periCur=remoteT[remTNum].peri;
+        uint8_t curSw=remoteT[remTNum].sw;
+        uint8_t msk[]={0xFC,0xF3,0xCF,0x3F};
+        periLoad(periCur);
+        *periSwCde&=msk[curSw];           // effacement swCde du switch
+        /*if((remoteT[remTNum].multRem==0) || ((remoteT[remTNum].multRem!=0) && (remoteN[remoteT[remTNum].multRem-1].enable!=0))){
+                                          // test présence remote mère ON
+          *periSwCde|=val<<(curSw*2);}    // copie val sinon 0=OFF */
+        *periSwCde|=val<<(curSw*2);       // copie val 
+        periSave(periCur,PERISAVESD);
+        periReq(&cliext,periCur,"set_______");
     }
   }
-  else {
+  else {                                  // val 0/1/2 du disjoncteur appuyé de la remote
     remoteN[rem].enable=val;
-    
+    /*
     for(uint8_t i=0;i<MAXREMLI;i++){
       if(remoteT[i].multRem==rem+1){
         periCur=remoteT[i].peri;
         uint8_t curSw=remoteT[i].sw;
-        periLoad(periCur);*periSwCde&=msk[curSw];*periSwCde|=val<<(curSw*2);
+        periLoad(periCur);*periSwCde&=msk[curSw];*periSwCde|=val<<(curSw*2); 
         periSave(periCur,PERISAVESD);
         periReq(&cliext,periCur,"set_______");
       }
     }
+    */
   }
 }
 
@@ -1708,7 +1715,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 18: break;                                                                       // dispo  
               case 19: accueilHtml(cli);break;                                                      // accueil
               case 20: periTableHtml(cli);break;                                                    // peri table
-              case 21: break;                                                                       // dispo  
+              case 21: what=0;break;                                                                // data_store
               case 22: break;                                                                       // dispo  
               case 23: break;                                                                       // dispo  
               case 24: {what=4;                                                                     // (lignes-regles) submit peri_inp__ set periCur raz cb
@@ -1724,7 +1731,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 27: break;                                                                       // dispo  
               case 28: cfgRemoteHtml(cli);remotePrint();break;                                      // bouton remotecfg_
               case 29: testHtml(cli);break;                                                         // bouton testhtml
-              case 30: break;                                                                       // dispo  
+              case 30: timersCtlHtml(cli);break;                                                    // timersctl_
               case 31: what=4;                                                                      // (pulses swCtlTableHtml/en-tête) peri_t_sw_ 
                        getPeriCurValf(PERILOAD);                                                    // periCur à jour via formIntro/peri_cur__
                        memset(periSwPulseCtl,0x00,PCTLLEN);                                         // effact bits cb otf enable pulses et free run 
@@ -1875,10 +1882,6 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         switch(a){                                               
                             case 'n': alphaTfr(remoteN[nb].nam,LENREMNAM,valf,nvalf[i+1]-nvalf[i]);     // (remotecf) nom remote courante              
                                       remoteN[nb].multRem=0;remoteN[nb].detec=0;break;
-                                      //remoteN[nb].oldenable=0;remoteN[nb].onoff=0;                      // (remotecf) effacement cb table noms
-                                      //remoteN[nb].deten=0;break;
-                            //case 'e': remoteN[nb].oldenable=*valf-PMFNCVAL;break;                       // (remotecf) enable remote courante
-                            //case 'o': remoteN[nb].onoff=*valf-PMFNCVAL;break;                           // (remotecf) on/off remote courante
                             case 'g': remoteN[nb].multRem=*valf-PMFNCHAR;break;                         // (remotecf) multiple table noms
                             case 'h': remoteN[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off table noms
                                       if(remoteN[nb].detec>NBDSRV){remoteN[nb].detec=NBDSRV;}break;     
@@ -1886,14 +1889,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       if(remoteN[nb].enable>2){remoteN[nb].enable=0;}break;     
                             case 'k': remoteN[nb].butModel=*valf-PMFNCVAL;break;                        // (remotecf) modèle bouton table noms
                             case 'u': remoteT[nb].num=convStrToInt(valf,&j);                            // (remotecf) N° remote table sw
-                                      break;                                                            // (remotecf) effacement cb table switch
-                            //case 'd': sourceDetServ[remoteT[nb].detec]=0;                 
-                            //          remoteT[nb].detec=convStrToInt(valf,&j);                          // (remotecf) n° detecteur on/off table switchs
-                            //          if(remoteT[nb].detec>NBDSRV){remoteT[nb].detec=NBDSRV;}
-                            //          if(remoteT[nb].detec!=0){setSourceDet(remoteT[nb].detec,MDSREM,nb+1);}
-                            //          break; 
-                            //case 'b': remoteT[nb].enable=convStrToInt(valf,&j);                          // (remotecf) n° detecteur enable table switchs
-                            //          if(remoteT[nb].enable>NBDSRV){remoteT[nb].enable=NBDSRV;}break;                                             
+                                      break;                                                            // (remotecf) effacement cb table switch                                        
                             case 'p': conv_atob(valf,&v1);remoteT[nb].peri=(uint8_t)v1;break;           // (remotecf) n° peri table switchs
                             case 's': conv_atob(valf,&v1);remoteT[nb].sw=(uint8_t)v1;                   // (remotecf) n° sw
                                       if(remoteT[nb].peri < NBPERIF && remoteT[nb].peri>0 ){            // controle validité peri/sw
@@ -1901,7 +1897,6 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                         if(remoteT[nb].sw < *periSwNb){break;}                          // ok
                                       }
                                       remoteT[nb].peri=0;remoteT[nb].sw=0;break;                        // ko
-                            //case 'q': remoteT[nb].butModel=*valf-PMFNCVAL;break;                        // (remotecf) modèle bouton table switchs
                             case 'v': conv_atob(valf,&v1);if(v1!=0 && remoteN[v1-1].multRem){           // (remotecf) n° remote multiple table switchs
                                       remoteT[nb].multRem=(uint8_t)v1;}
                                       break;
@@ -1968,7 +1963,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         }break;
               case 58:  thermoShowHtml(cli);break;                                                       // thermoshow
               case 59:  thermoCfgHtml(cli);break;                                                        // thermos___ (bouton thermo_cfg)
-              case 60:  break;                                                                           // dispo
+              case 60:  what=0;{uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;
+                          timersN[nt].enable=!timersN[nt].enable;
+                        }
+                        timersCtlHtml(cli);
+                        break;                                                                           // (timersCtl) tim_ctl___
               case 61:  what=7;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                   // (timers) tim_name__
                         textfonc(timersN[nb].nom,LENTIMNAM);
                        //Serial.print("efface cb timers ");Serial.print(nb);Serial.print(" ");Serial.print(timersN[nb].nom);

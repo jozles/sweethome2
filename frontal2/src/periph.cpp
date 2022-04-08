@@ -877,7 +877,10 @@ void periTableLoad()                            // au démarrage du systeme ; ch
   Serial.print("PERIRECLEN=");Serial.print(PERIRECLEN);Serial.print("/");Serial.print(periRecLength);
   delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
 
-  for(int h=1;h<=NBPERIF;h++){Serial.print(" ");Serial.print(h);if(periCacheLoad(h)==SDKO){Serial.println(" KO");mail("PERITABLE_LOAD_HALT","");while(1){trigwd();delay(1000);}};}Serial.println(" ALL OK");
+  for(int h=1;h<=NBPERIF;h++){
+    Serial.print(" ");Serial.print(h);
+    if(periCacheLoad(h)==SDKO){Serial.println(" KO");mail("PERITABLE_LOAD_HALT","");while(1){trigwd();delay(1000);}};}
+  Serial.println(" ALL OK");
 }  
 
 void periTableSave(bool force)                  // à l'arret du systeme ; sauve le cache (complet si FORCE sinon perifs modifiés seuls)
@@ -1229,6 +1232,16 @@ void periSwCdUpdate(uint8_t sw,uint8_t stat)    // maj sw courant selon stat
 byte periSwRead(uint8_t sw)                      // etat sw courant
 {
   return (*periSwCde>>(sw*2))&0x03;
+}
+
+uint8_t getMotherRemoteStatus(uint16_t peri,uint8_t sw)
+{
+  for(uint8_t i=0;i<MAXREMLI;i++){
+    if(remoteT[i].peri==peri && remoteT[i].sw==sw && remoteT[i].multRem!=0){
+      return remoteN[remoteT[i].multRem-1].enable;
+    }
+  }
+  return 0xff;
 }
 
 /*void periSwLevUpdate(uint8_t sw,uint8_t stat)   // maj lev(sw) selon stat
