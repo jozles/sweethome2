@@ -116,8 +116,8 @@ bool serverStarted=false;
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
   uint8_t outSw=0;                            // image mémoire des switchs (1 bit par switch)
-  #define OUTPUTDLY 200
-  unsigned long outPutDly=millis();           // delais mini entre 2 changements d'état des relais
+  #define OUTPUTDLY 500                       // délai mini pour décolage et ouverture relai fermé
+  unsigned long outPutDly=millis();           // tempo après ouverture relais avant fermeture
 
   uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};       // switchs pins
   uint8_t cloSw[MAXSW]={CLOSA,CLOSB,CLOSC,CLOSD};           // close value for every switchs (relay/triac etc ON)
@@ -1169,17 +1169,33 @@ void outputCtl()            // cstRec.swCde contient 4 paires de bits disjoncteu
                             // le résultat des règles dans outSw encodé selon la carte openSW/cloSw
                             // (la valeur contenue dans swCde n'est pas forcément identique au contenu du périf dans periTable
                             // car l'éventuelle remote mère multiple est prise en compte dans disjValue() de frontal2)
+                            // les ouvertures de switchs sont prioritaires.
+                            // après une ouverture, un délai est respecté avant les fermetures pour assurer un non recoouvrement
 {                           
-  if(outPutDly-millis()>=OUTPUTDLY){
-    outPutDly=OUTPUTDLY;
-    
+    bool isOpenSw=false;
+      for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à ouvrir
+        if(!((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){  
+          isOpenSw=true;
+          outPutDly=OUTPUTDLY;
+          digitalWrite(pinSw[sw],openSw[sw]);              
+        }
+      }
+    if(!isOpenSw && (outPutDly-millis()>=OUTPUTDLY)){       // les fermetures quand pas d'ouvertures et délai terminé
+      for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à fermer
+        if(((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){  
+          isOpenSw=true;
+          digitalWrite(pinSw[sw],cloSw[sw]);
+        }
+      }
+    }
+/*    
     for(uint8_t sw=0;sw<NBSW;sw++){
       if(((cstRec.swCde>>(sw*2))& (0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0)){  
         digitalWrite(pinSw[sw],cloSw[sw]);}                                       // forced ou (disjoncteur ON et résultat règles ON)
                                                                                   
       else {digitalWrite(pinSw[sw],openSw[sw]);}                                  // disjoncté donc open value
     }
-  }
+*/  
 }
 
 /* Read temp ------------------------- */

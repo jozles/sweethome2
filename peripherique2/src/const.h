@@ -82,7 +82,7 @@
  *     messToServer devient interruptible si une demande de connexion arrive au périphérique utilisé en mode server 
  *     ordreExt directement intégré à la boucle d'attente (temps : 36 to peri ; 3 rcv+answer ; 4,5 to frontal)
  * 2.1 swCde stocke l'état du disjoncteur pour 4 switchs et n'est plus modifié par le périphérique
- *     outSw contient ce que outputCtl doit effectuer
+ *     outSw contient ce que outputCtl doit effectuer ; outPutCtl() en 2 étapes pour ouvertures et fermetures
  *  
 Modifier : 
 
