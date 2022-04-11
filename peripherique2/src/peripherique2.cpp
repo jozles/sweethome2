@@ -1174,10 +1174,11 @@ void outputCtl()            // cstRec.swCde contient 4 paires de bits disjoncteu
 {                           
     bool isOpenSw=false;
       for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à ouvrir
-        if(!((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){  
-          isOpenSw=true;
-          outPutDly=OUTPUTDLY;
-          digitalWrite(pinSw[sw],openSw[sw]);              
+        if(!((((cstRec.swCde>>(sw*2))&0x03)==2) ||(((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){
+            if(digitalRead(pinSw[sw])==cloSw[sw]){          // évite les switchs déjà "open"
+              isOpenSw=true;
+              outPutDly=OUTPUTDLY;}
+              digitalWrite(pinSw[sw],openSw[sw]);              
         }
       }
     if(!isOpenSw && (outPutDly-millis()>=OUTPUTDLY)){       // les fermetures quand pas d'ouvertures et délai terminé

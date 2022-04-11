@@ -1376,6 +1376,7 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem)
 
 void disjValue(uint8_t val,uint8_t rem)   
 {
+  uint8_t swMsk[]={0xFC,0xF3,0xCF,0x3F};
   //uint8_t msk[]={0xFC,0xF3,0xCF,0x3F};
   if(!remoteN[rem].multRem){              // val disjoncteur appuyé de la remote simple ne tient pas compte 
                                           // l'éventuelle remote remote mère multiple
@@ -1383,30 +1384,33 @@ void disjValue(uint8_t val,uint8_t rem)
     if(remTNum<MAXREMLI){
         periCur=remoteT[remTNum].peri;
         uint8_t curSw=remoteT[remTNum].sw;
-        uint8_t msk[]={0xFC,0xF3,0xCF,0x3F};
-        periLoad(periCur);
-        *periSwCde&=msk[curSw];           // effacement swCde du switch
-        /*if((remoteT[remTNum].multRem==0) || ((remoteT[remTNum].multRem!=0) && (remoteN[remoteT[remTNum].multRem-1].enable!=0))){
-                                          // test présence remote mère ON
-          *periSwCde|=val<<(curSw*2);}    // copie val sinon 0=OFF */
-        *periSwCde|=val<<(curSw*2);       // copie val 
+        
+        periLoad(periCur);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
         periSave(periCur,PERISAVESD);
-        periReq(&cliext,periCur,"set_______");
+        periReq0(&cliext,"set_______","");                                      // update périf
     }
   }
-  else {                                  // val 0/1/2 du disjoncteur appuyé de la remote
+  else {                                      // val 0/1/2 du disjoncteur appuyé de la remote
     remoteN[rem].enable=val;
-    /*
-    for(uint8_t i=0;i<MAXREMLI;i++){
-      if(remoteT[i].multRem==rem+1){
-        periCur=remoteT[i].peri;
+    memset(tablePerToSend,0x00,NBPERIF);
+    uint16_t lastPerif=0;
+    for(uint16_t i=0;i<MAXREMLI;i++){         // recherche périfs/switchs affectés
+      if(remoteT[i].multRem==rem+1 && remoteT[i].peri!=0){
+        tablePerToSend[remoteT[i].peri-1]=1;
         uint8_t curSw=remoteT[i].sw;
-        periLoad(periCur);*periSwCde&=msk[curSw];*periSwCde|=val<<(curSw*2); 
-        periSave(periCur,PERISAVESD);
-        periReq(&cliext,periCur,"set_______");
+        periLoad(remoteT[i].peri);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
+        periSave(remoteT[i].peri,PERISAVELOCAL);
+        lastPerif=remoteT[i].peri;
       }
     }
-    */
+    if(lastPerif!=0){
+      periSave(lastPerif,PERISAVESD);         // update SD
+    }
+    for(uint16_t i=0;i<NBPERIF;i++){
+      if(tablePerToSend[i]!=0){                                                       
+        periReq(&cliext,i+1,"set_______");    // update périfs
+      }
+    }
   }
 }
 
@@ -1787,12 +1791,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         }
                         //Serial.print(nuinp);Serial.print("=====");Serial.print(nfct);Serial.print(" ");Serial.println((char)*(periInput+2+offs),HEX);
                        }break;                                                                      
-              case 34: Serial.println("\n£££££££££££££££££££££££££££££££££££££ne devrait pas se produire£££££££££££££££££££££££££££££££££\n");break;
-                        // règles switchs fonction inutilisée
-                        /*{uint8_t nfct=*(libfonctions+2*i)-PMFNCHAR,nuinp=*(libfonctions+2*i+1)-PMFNCVAL; // (règles switchs) p_inp2__  8 bits inutilisés
-                        uint8_t offs=nuinp*PERINPLEN;
-                        // pericur est à jour via peri_inp_
-                        *(uint8_t*)(periInput+offs+1)|=(uint8_t)PERINPRULESLS_VB<<nfct;}break;*/
+              case 34: Serial.println("\n£££££££ne doit pas se produire££££££££\n");mail("p_inp2_ s'est produit","");break; 
               case 35: {int pu=*(libfonctions+2*i)-PMFNCHAR;                                            // (pulses) peri_sw_nx Pulse one/two
                         char puNb=*(libfonctions+2*i+1);  // 'O'ou 'T'
                         uint32_t* pulseNb=periSwPulseOne;                                          

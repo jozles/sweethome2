@@ -873,15 +873,18 @@ void remoteHtml(EthernetClient* cli)
     remotes simples   : contrôlent le disjoncteur d'un seul switch directement via les 3 boutons 
     remotes multiples : contrôlent plusieurs switchs (donc remotes simples éventuellement) 
                         via disjoncteur et variable remoteN[x].enable qui en stocke l'état
-  Dans les 2 cas le slider/push est l'image d'un mds associé au bouton.
+  Dans les 2 cas le slider/push correspond à un mds associé au bouton.
+  Les push sont fugitifs : le mds est mis à 1 avant la transmission au périf, puis remis à 0 aussitôt après.
   Les slider/push sont désactivés si le disjoncteur de la même remote est OFF ou si le disjoncteur d'une remote multiple qui la controle est OFF
   Couleurs : chaque couleur représente l'état d'un bouton : Une couleur par état ON ou OFF
             la couleur est soit 'light' si le bouton est désactivé soit 'strong' si activé 
-  On peut modifier l'état d'un bouton désactivé, mais cet état ne sera pris en compte que lors de l'activation
+  On peut modifier l'état d'un bouton désactivé, mais cet état ne sera pris en compte (modif mds ou modif swCde) que lors de l'activation
+  A chaque modif de mds ou swCde, un message periReq est envoyé au(x) périf(s) concerné(s)
 
   Codage
   la couleur de chaque bouton dépend de son état ON/OFF/FORCED et de son activation ou non
-  disjVal regroupe ces infos : 0/1/2 + 10 si remote multiple (mère) disjonctée Donc valeurs 0/1/2/10/11/12
+  disjVal regroupe ces infos : 0/1/2 + 10 si remote multiple (mère) disjonctée 
+  Donc valeurs 0/1/2/10/11/12 pour remotes simples et 0/1/2 pour multiples
 
 */
            
