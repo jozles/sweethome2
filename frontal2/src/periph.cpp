@@ -943,6 +943,7 @@ int periLoadDirect(uint16_t num)
 
 
 void periModification()        
+// ------------- Redimensionne le nombre de règles à 64 dans les fichiers et periRec ------------------ 
 /* Pour redimensionner une variable : 
  *  ajouter periModification() avant periTableLoad() dans frontal.ino
  *  NE PAS changer PERIRECLEN
@@ -979,8 +980,8 @@ void periModification()
       unsigned long pos=(byte*)periInput-(byte*)periRec;
       unsigned long len=(unsigned long)PERIRECLEN-(unsigned long)(pos+NBPERRULES*PERINPLEN);
       Serial.print(PERIRECLEN);Serial.print(' ');Serial.print(PERIRECLEN_NEW);Serial.print(' ');Serial.print(pos);Serial.print(' ');Serial.println(len);
-      memcpy(periRec_New,periRec,pos+NBPERRULES*PERINPLEN);
-      memcpy(periRec_New+pos+64*PERINPLEN,periInput+NBPERRULES*PERINPLEN,len);
+      memcpy(periRec_New,periRec,pos+NBPERRULES*PERINPLEN);                           // jusqu'à la fin des règles anciennes
+      memcpy(periRec_New+pos+64*PERINPLEN,periInput+NBPERRULES*PERINPLEN,len);        // 64 règles dans fichier (48 utilisées : eeprom esp12 trop petite)
       //dumpstr(periRec,PERIRECLEN);Serial.println();dumpstr(periRec_New,PERIRECLEN_NEW);
       
       char periFile[7];periFname(i,periFile);
@@ -1972,8 +1973,9 @@ void memDetPrint()
 
 int memDetConvert()
 {
-
-//int memDetLoad()
+/*  Conversion nombre de mds ; le paramètres NBDSRV et MDSLEN doivent avoir les nouvelles valeurs ;
+    Les variables mdsl et mbdsrv les anciennes valeurs
+*/
 
     int mdsl=4;     // longueur ancienne 
     int nbdsrv=32;  // nombre ancien    

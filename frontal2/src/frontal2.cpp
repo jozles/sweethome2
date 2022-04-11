@@ -1896,7 +1896,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                         if(remoteT[nb].sw < *periSwNb){break;}                          // ok
                                       }
                                       remoteT[nb].peri=0;remoteT[nb].sw=0;break;                        // ko
-                            case 'v': conv_atob(valf,&v1);if(v1!=0 && remoteN[v1-1].multRem){           // (remotecf) n° remote multiple table switchs
+                            case 'v': conv_atob(valf,&v1);if(v1==0 || remoteN[v1-1].multRem){           // (remotecf) n° remote multiple table switchs
                                       remoteT[nb].multRem=(uint8_t)v1;}
                                       break;
                             default:break;

@@ -116,7 +116,7 @@ bool serverStarted=false;
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
   uint8_t outSw=0;                            // image mémoire des switchs (1 bit par switch)
-  #define OUTPUTDLY 500                       // délai mini pour décolage et ouverture relai fermé
+  #define OUTPUTDLY 250                       // délai mini pour décolage et ouverture relai fermé
   unsigned long outPutDly=millis();           // tempo après ouverture relais avant fermeture
 
   uint8_t pinSw[MAXSW]={PINSWA,PINSWB,PINSWC,PINSWD};       // switchs pins

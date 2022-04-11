@@ -719,18 +719,7 @@ void cfgRemoteHtml(EthernetClient* cli)
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TRBEG|TDBE);                                // n° remote
                 memcpy(nf,"remotecfn_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);
                 scrGetText(buf,jsbuf,remoteN[nb].nam,nf,14,LENREMNAM+1,0,TDBE);              // nom remote
-                //strcat(buf,"<td><input type=\"text\" name=\"remotecfn");concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
-                //        strcat(buf,remoteN[nb].nam);strcat(buf,"\" size=\"12\" maxlength=\"");concatn(buf,LENREMNAM-1);strcat(buf,"\" ></td>");
-/*
-                memcpy(nf,"remotecfo_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // état on/off
-                val=(uint8_t)remoteN[nb].onoff;
-                scrGetCheckbox(buf,jsbuf,&val,nf,NO_STATE,"",0,TDBE);
-                
-                memcpy(nf,"remotecfe_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // enable (inutilisé ?)
-                val=(uint8_t)remoteN[nb].oldenable;  
-                scrGetRadiobut(buf,jsbuf,val,nf,3,0,TDBE);
-                strcat(buf,"\n");
-*/
+
                 memcpy(nf,"remotecfg_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);             // flag remote multiple 
                 val=(uint8_t)remoteN[nb].multRem;
                 scrGetCheckbox(buf,jsbuf,&val,nf,NO_STATE,"",0,TDBE);
@@ -751,12 +740,7 @@ void cfgRemoteHtml(EthernetClient* cli)
                   memset(dn,0x00,DNL);
                 }
                 else scrDspText(buf,jsbuf," ",0,TDBE);
-                /*
-                if(remoteN[nb].enable!=0){
-                  strcat(dn,(char*)(&libDetServ[remoteN[nb].enable][0]));strcat(dn," ");
-                  mDSconc(dn,remoteN[nb].enable);}
-                */
-                //scrDspText(buf,jsbuf,dn,0,TDEND);
+
                 strcat(buf,"\n");
 
                 memcpy(nf,"remotecfk_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // modèle bouton
@@ -797,24 +781,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
               #define DML PERINAMLEN+LENLIBDETSERV+1
               char dm[DML];memset(dm,0x00,DML);
-/*
-              memcpy(nf,"remotecfd_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec on/off
-              scrGetNum(buf,jsbuf,'b',&remoteT[nb].detec,nf,2,0,0,TDBEG);
-              if(remoteT[nb].num!=0){
-                strcat(dm,(char*)(&libDetServ[remoteT[nb].detec][0]));strcat(dm," ");
-                mDSconc(dm,remoteT[nb].detec);}
-              scrDspText(buf,jsbuf,dm,0,TDEND);
-              strcat(buf,"\n");
 
-              memcpy(nf,"remotecfb_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° detec enable
-              scrGetNum(buf,jsbuf,'b',&remoteT[nb].enable,nf,2,0,2,TDBEG);
-              memset(dm,0x00,DML);
-              if(remoteT[nb].num!=0){
-                strcat(dm,(char*)(&libDetServ[remoteT[nb].enable][0]));strcat(dm," ");
-                mDSconc(dm,remoteT[nb].enable);}
-              scrDspText(buf,jsbuf,dm,0,TDEND);
-              strcat(buf,"\n");
-*/
               memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° périphérique
               scrGetNum(buf,jsbuf,'b',&remoteT[nb].peri,nf,2,0,2,TDBEG);
               memset(dm,0x00,DML);
@@ -826,11 +793,7 @@ void cfgRemoteHtml(EthernetClient* cli)
               memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° switch
               scrGetNum(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,2,TDBE);
               strcat(buf,"\n");
-/*
-              memcpy(nf,"remotecfq_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // modèle bouton
-              scrGetRadiobut(buf,jsbuf,remoteT[nb].butModel,nf,2,0,TDBE);
-              strcat(buf,"\n");
-*/
+
               scrGetButSub(buf,jsbuf,"MàJ",TDBE|TREND);
               formEnd(buf,jsbuf,0,0);
               strcat(buf,"\n");
