@@ -1394,18 +1394,21 @@ void disjValue(uint8_t val,uint8_t rem)
     remoteN[rem].enable=val;
     memset(tablePerToSend,0x00,NBPERIF);
     uint16_t lastPerif=0;
-    for(uint16_t i=0;i<MAXREMLI;i++){         // recherche périfs/switchs affectés
+    for(uint16_t i=0;i<MAXREMLI;i++){         // recherche périfs affectés
+                                              // les fichiers perifs ne sont pas modifiés : lors d'assyset(), la valeur
+                                              // de swCde est recalculée en fonction des remotes multiples pour la 
+                                              // valorisation du disjoncteur du périf physique
       if(remoteT[i].multRem==rem+1 && remoteT[i].peri!=0){
         tablePerToSend[remoteT[i].peri-1]=1;
-        uint8_t curSw=remoteT[i].sw;
-        periLoad(remoteT[i].peri);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
-        periSave(remoteT[i].peri,PERISAVELOCAL);
+        //uint8_t curSw=remoteT[i].sw;
+        //periLoad(remoteT[i].peri);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
+        //periSave(remoteT[i].peri,PERISAVELOCAL);
         lastPerif=remoteT[i].peri;
       }
     }
-    if(lastPerif!=0){
-      periSave(lastPerif,PERISAVESD);         // update SD
-    }
+    //if(lastPerif!=0){
+      //periSave(lastPerif,PERISAVESD);         // update SD
+    //}
     for(uint16_t i=0;i<NBPERIF;i++){
       if(tablePerToSend[i]!=0){                                                       
         periReq(&cliext,i+1,"set_______");    // update périfs
