@@ -168,7 +168,7 @@ void actionsDebug()
 #ifdef DEBUG_ACTIONS
   memset(curDebugAction,0x00,LDA);
   Serial.println("(SS LL  S switchs ; L locmem ");
-  Serial.println(" for each enabled rule h-ss:nn,dd:nn,AC_1.2=DcL");
+  Serial.println(" for each enabled rule h-ss:nn,dd:nn,AC_1.2=DcLL");
   Serial.println(" h=curinp+2 hexa ; ss srce ; dd dest ; AC action ; 1 detec1 ; 2 detec2 ; D detec3 ; c curValue ; LL locmem ");
   Serial.println(" SS) rules end");
 #endif //DEBUG_ACTIONS

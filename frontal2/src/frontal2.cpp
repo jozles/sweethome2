@@ -667,8 +667,8 @@ void stoprequest()
 
 void watchdog()
 {
-  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot(">>>>>>>>>>>>>>> TCP cx lost ",*maxCxWt);}
-  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot(">>>>>>>>>>>>>>> UDP cx lost ",*maxCxWu);}
+  if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("\n>>>>>>>>>>>>>>> TCP cx lost ",*maxCxWt);}
+  if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("\n>>>>>>>>>>>>>>> UDP cx lost ",*maxCxWu);}
 }
 
 void usrReboot()
@@ -1393,7 +1393,7 @@ void disjValue(uint8_t val,uint8_t rem)
   else {                                      // val 0/1/2 du disjoncteur appuyé de la remote
     remoteN[rem].enable=val;
     memset(tablePerToSend,0x00,NBPERIF);
-    uint16_t lastPerif=0;
+    //uint16_t lastPerif=0;
     for(uint16_t i=0;i<MAXREMLI;i++){         // recherche périfs affectés
                                               // les fichiers perifs ne sont pas modifiés : lors d'assyset(), la valeur
                                               // de swCde est recalculée en fonction des remotes multiples pour la 
@@ -1403,7 +1403,7 @@ void disjValue(uint8_t val,uint8_t rem)
         //uint8_t curSw=remoteT[i].sw;
         //periLoad(remoteT[i].peri);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
         //periSave(remoteT[i].peri,PERISAVELOCAL);
-        lastPerif=remoteT[i].peri;
+        //lastPerif=remoteT[i].peri;
       }
     }
     //if(lastPerif!=0){

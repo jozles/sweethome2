@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".74"
+#define NVERS ".75"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -125,7 +125,8 @@
         les sliders/push sont grisés/inactifs si remote disjonctée
         les sliders/push et disj sont grisés/inactifs si remote mère disjonctée mais modifiables
         Ajout sélection périf sur dumpHisto() ; ajout data_store ; sélection périf dans dumphisto
-        Ajout timersCtl
+        Ajout timersCtl ; 
+   1.75
 
    BUGS :
 
@@ -224,7 +225,7 @@
 
 #define NBPERIF 28
 #define PERINAMLEN 16+1                      // longueur nom perif
-#define PERIRECLEN 406 // V1.6               // longueur record périph
+#define PERIRECLEN 406 // V1.6               // longueur record périph (310 V1.5A)
 
 #define CONFIGRECLEN 993                     // longueur record config 
 

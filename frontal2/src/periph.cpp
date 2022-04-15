@@ -946,12 +946,12 @@ void periModification()
 // ------------- Redimensionne le nombre de règles à 64 dans les fichiers et periRec ------------------ 
 /* Pour redimensionner une variable : 
  *  ajouter periModification() avant periTableLoad() dans frontal.ino
- *  NE PAS changer PERIRECLEN
+ *  NE PAS changer PERIRECLEN ni NBPERRULES
  *  compiler, charger et laisser démarrer le serveur
  *  le programme stoppe avant d'effecuer les modifs des fichiers périphériques pour permettre de changer la carte SD
  *  la led clignote rapidement ; appuyer le bouton HALT pour démarrer 
  *  à la fin la led clignote lentement
- *  corriger les paramètres modifiés (shconst2.h/const.h)
+ *  corriger NBPERRULES et les éventuels paramètres modifiés dans shconst2.h
  *  corriger PERIRECLEN dans const.h
  *  enlever periModification() dans frontal.ino
  *  compiler, charger
@@ -972,6 +972,8 @@ void periModification()
   //for(uint16_t i=3;i<=3;i++){    
     if(periLoadDirect(i)!=SDOK){Serial.println(" load KO");}
     else{
+      Serial.print(*periNum);Serial.print(' ');
+      Serial.print(periNamer);
       Serial.println(" load OK");
       #define ADDED 24
       #define PERIRECLEN_NEW PERIRECLEN+ADDED*PERINPLEN // 24+24=48
@@ -979,20 +981,37 @@ void periModification()
       
       unsigned long pos=(byte*)periInput-(byte*)periRec;
       unsigned long len=(unsigned long)PERIRECLEN-(unsigned long)(pos+NBPERRULES*PERINPLEN);
-      Serial.print(PERIRECLEN);Serial.print(' ');Serial.print(PERIRECLEN_NEW);Serial.print(' ');Serial.print(pos);Serial.print(' ');Serial.println(len);
+      Serial.print("             ");Serial.print(PERIRECLEN);Serial.print(' ');Serial.print(PERIRECLEN_NEW);Serial.print(' ');Serial.print(pos);Serial.print(' ');Serial.print(len);
       memcpy(periRec_New,periRec,pos+NBPERRULES*PERINPLEN);                           // jusqu'à la fin des règles anciennes
-      memcpy(periRec_New+pos+64*PERINPLEN,periInput+NBPERRULES*PERINPLEN,len);        // 64 règles dans fichier (48 utilisées : eeprom esp12 trop petite)
+      memcpy(periRec_New+pos+48*PERINPLEN,periInput+NBPERRULES*PERINPLEN,len);        // 64 règles dans fichier (48 utilisées : eeprom esp12 trop petite)
+      char* new_periSwCde=(char*)periSwCde-periRec+periRec_New;
+      *new_periSwCde=0x00;
+      char* new_periSwSta=(char*)periSwSta-periRec+periRec_New;
+      *new_periSwSta=0x00;
+      
       //dumpstr(periRec,PERIRECLEN);Serial.println();dumpstr(periRec_New,PERIRECLEN_NEW);
       
+      char* new_periNamer=(char*)periNamer-periRec+periRec_New;
+      char* new_periPort=(char*)periPort-periRec+periRec_New+ADDED*PERINPLEN;
+      char* new_periProtocol=(char*)periProtocol-periRec+periRec_New+ADDED*PERINPLEN;
+      char* new_periProg=(char*)periProg-periRec+periRec_New+ADDED*PERINPLEN;
+      char* new_periDetNb=(char*)periDetNb-periRec+periRec_New+ADDED*PERINPLEN;
+      Serial.print(' ');Serial.print(new_periNamer);Serial.print(' ');Serial.print(*periPort);Serial.print('/');Serial.print(*(uint16_t*)new_periPort);Serial.print(" ");
+      Serial.print(*periProtocol);Serial.print('/');Serial.print(*(char*)new_periProtocol);Serial.print(' ');      
+      Serial.print(*periDetNb);Serial.print('/');Serial.print(*(uint8_t*)new_periDetNb);Serial.print(' ');      
+      Serial.print(*periProg);Serial.print('/');Serial.print(*(bool*)new_periProg);Serial.print(' ');      
       char periFile[7];periFname(i,periFile);
+      Serial.print(periFile);
+      //Serial.println();dumpstr(periRec_New,406);
+      
       fperi.remove();
       if (!fperi.open(periFile, O_RDWR | O_CREAT | O_TRUNC)) {
-        Serial.print(periFile);Serial.println(" create failed");}
+        Serial.println(" create failed");}
       else {
         fperi.seek(0);
         for(int i=0;i<PERIRECLEN_NEW;i++){fperi.write(periRec_New[i]);}
         fperi.close();
-        Serial.print(periFile);Serial.println(" create ok");
+        Serial.println(" create ok");
       }
     }
     Serial.println();
@@ -1688,6 +1707,8 @@ void remoteTConvert()
   // faire tourner frontal2 avec la ligne remoteConvert décommentée
   // la recommenter
   // mettre à jour la structure "normale" dans const.h et supprimer la nouvelle
+
+  // pour la migration de la carte serveur RUN, le plus simple est de copier le fichier tablerem depuis la carte DEV
 /*
   struct NewSwRemote newRemoteT[MAXREMLI];
   char*  newRemoteTA=(char*)&newRemoteT;
@@ -1729,6 +1750,8 @@ void remoteNConvert()
   // faire tourner frontal2 avec la ligne remoteConvert décommentée
   // la recommenter
   // mettre à jour la structure "normale" dans const.h et supprimer la nouvelle
+
+  // // pour la migration de la carte serveur RUN, le plus simple est de copier le fichier noms_rem depuis la carte DEV
 /*
   struct NewRemote newRemoteN[NBREMOTE];
   char*  newRemoteNA=(char*)&newRemoteN;

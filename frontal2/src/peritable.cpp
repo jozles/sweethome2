@@ -271,7 +271,7 @@ void swCtlTableHtml(EthernetClient* cli)
   scrDspText(buf,jsbuf,"fonctions logiques : la valeur courante et la source produisent la destination et la nlle valeur courante",0,BRYES);
   scrDspText(buf,jsbuf,"'0' et '1' : forçage destination et valeur courante si source=1 sinon nop",0,BRYES);
   scrDspText(buf,jsbuf,"      (si static/high et srce/dest ident : 0 force 0 ; si static/low et srce/dest ident : 1 force 1)",0,BRYES);
-  scrDspText(buf,jsbuf,"'SET'      : la source produit la destination et la nlle valeur courante",0,BRYES);
+  
   scrDspText(buf,jsbuf,"pulses     : Si la source est 1, exécution de la fonction ; valeur courante inchangée",0,BRYES);
   scrDspText(buf,jsbuf,"Règles en=enable, rf=(fall/rise if edge)(direct/inv if static) , pr=prev, es=edge/static ; follow srce 1001 -0- 1001 -1-",0,BRYES);
   scrDspText(buf,jsbuf,";'static' retourne la valeur de la source ; 'edge' retourne 1 sur le flanc actif sinon 0\n",0,BRYES);
@@ -737,11 +737,13 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             scrDspText(buf,jsbuf,tt,0,lctl);   
           }
           if(*periDetNb==0){scrDspText(buf,jsbuf," ",0,STRING|TDEND);}
-// analog 
+// analog
+/* 
           vv=(*periAnal+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;scrDspNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
           vv=(*periAnalLow+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;scrDspNum(buf,jsbuf,'f',&vv,4,0,STRING|BRYES);
           vv=(*periAnalHigh+*periAnalOffset1)*(*periAnalFactor)+*periAnalOffset2;scrDspNum(buf,jsbuf,'f',&vv,4,0,STRING|TDEND);
           strcat(buf,"\n");
+*/
 // mac                    
           lctl=TDBEG;
           char m[18];m[17]=0x00;

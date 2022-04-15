@@ -205,28 +205,7 @@ delay(1);
 #endif // PM!=NO_MODE
 */
 
-  Serial.begin(115200);delay(10);
-  //while(1){delay(1);}
-
-/*
-char* dcrc1={"82.64.32.56:1796/sw0__OFF__=0005_"};    // 88
-int ldcrc1=strlen(dcrc1);
-//Serial.println(calcCrc(dcrc1,ldcrc1),HEX);
-Serial.println(calcCrc("0005_",5),HEX);   // 5A
-
-char* dcrc2={"82.64.32.56:1796/sw0__ON___=0005_"};    // ED
-int ldcrc2=strlen(dcrc2);
-Serial.println(calcCrc(dcrc2,ldcrc2),HEX);
-
-char* dcrc3={"82.64.32.56:1796/sw1__OFF__=0005_"};    // A4
-int ldcrc3=strlen(dcrc3);
-Serial.println(calcCrc(dcrc3,ldcrc3),HEX);
-
-char* dcrc4={"82.64.32.56:1796/sw1__ON___=0005_"};    // C1
-int ldcrc4=strlen(dcrc4);
-Serial.println(calcCrc(dcrc4,ldcrc4),HEX);
-*/
-
+  Serial.begin(115200);delay(100);
 
 #if POWER_MODE==PO_MODE
 Serial.println("\n+");
@@ -238,7 +217,7 @@ delay(1);
 
 #if POWER_MODE==NO_MODE
   diags=false;
-  delay(2000);
+  delay(4000);
   //Serial.print("\nSerial buffer size =");Serial.println(Serial.getRxBufferSize());
   Serial.print("\nstart setup ");Serial.print(VERSION);
   Serial.print(" power_mode=");Serial.print(POWER_MODE);
@@ -247,7 +226,7 @@ delay(1);
   Serial.print(" ANALYZE ");
 #endif // ANALYZE
   Serial.print(" ; une touche pour diags ");
-  while((millis()-t_on)<6000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
+  uint8_t i=0;while(i<7){i++;Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
   Serial.println();
 #endif // PM==NO_MODE  
 
