@@ -126,6 +126,7 @@ void mail(const char* a, const char* mm)
         strcat(ms,mm);strcat(ms," ");}
       if(LDATEB+3<=(LMAILMESS-strlen(ms))){
         strcat(ms,alphaDate());strcat(ms," ");}
+      strcat(ms,VERSION);
       periReq(&cliext,*periMail1,"mail______",ms);  
   }
 }

@@ -818,7 +818,7 @@ int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)       // maj des
       for(uint16_t np=1;np<=NBPERIF;np++){
         if(tablePerToSend[np-1]!=0){
           cliext.stop();                                              // !!!!!!! et si cliext est en cours d'utilisation ? ... devrait pas
-          periMess=periReq(&cliext,np,"set_______");} 
+          periMess=periReq(&cliext,np,"mds_______");} 
       }
       memset(tablePerToSend,0x00,NBPERIF);
       return periMess;
@@ -1339,7 +1339,7 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem)
                               uint16_t peri=*(valf+1)-PMFNCHAR;                                   // valide pour remote simple only
                               periLoad(peri);
                               if(periSwCde!=0){
-                                periReq(&cliext,peri,"set_______");}                              // modif slider/push si switch pas disjoncté
+                                periReq(&cliext,peri,"mds_______");}                              // modif slider/push si switch pas disjoncté
                             }
                           }
                           else {                                                                  // remote multiple
@@ -1367,7 +1367,7 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem)
                                     }
                                   }                                     
                                   for(uint16_t i=0;i<NBPERIF;i++){
-                                    if(tablePerToSend[i]!=0){periReq(&cliext,i,"set_______");}
+                                    if(tablePerToSend[i]!=0){periReq(&cliext,i,"mds_______");}
                                   }
                               }
                           }
@@ -1377,9 +1377,8 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem)
 void disjValue(uint8_t val,uint8_t rem)   
 {
   uint8_t swMsk[]={0xFC,0xF3,0xCF,0x3F};
-  //uint8_t msk[]={0xFC,0xF3,0xCF,0x3F};
-  if(!remoteN[rem].multRem){              // val disjoncteur appuyé de la remote simple ne tient pas compte 
-                                          // l'éventuelle remote remote mère multiple
+  
+  if(!remoteN[rem].multRem){              // remote simple 
     uint8_t remTNum=*valf-PMFNCHAR;       // n° switch dans table remoteT
     if(remTNum<MAXREMLI){
         periCur=remoteT[remTNum].peri;
@@ -1387,31 +1386,24 @@ void disjValue(uint8_t val,uint8_t rem)
         
         periLoad(periCur);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
         periSave(periCur,PERISAVESD);
-        periReq0(&cliext,"set_______","");                                      // update périf
+        periReq0(&cliext,"mds_______","");                                      // update périf
     }
   }
   else {                                      // val 0/1/2 du disjoncteur appuyé de la remote
     remoteN[rem].enable=val;
     memset(tablePerToSend,0x00,NBPERIF);
-    //uint16_t lastPerif=0;
+  
     for(uint16_t i=0;i<MAXREMLI;i++){         // recherche périfs affectés
                                               // les fichiers perifs ne sont pas modifiés : lors d'assyset(), la valeur
                                               // de swCde est recalculée en fonction des remotes multiples pour la 
                                               // valorisation du disjoncteur du périf physique
       if(remoteT[i].multRem==rem+1 && remoteT[i].peri!=0){
         tablePerToSend[remoteT[i].peri-1]=1;
-        //uint8_t curSw=remoteT[i].sw;
-        //periLoad(remoteT[i].peri);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
-        //periSave(remoteT[i].peri,PERISAVELOCAL);
-        //lastPerif=remoteT[i].peri;
       }
     }
-    //if(lastPerif!=0){
-      //periSave(lastPerif,PERISAVESD);         // update SD
-    //}
     for(uint16_t i=0;i<NBPERIF;i++){
       if(tablePerToSend[i]!=0){                                                       
-        periReq(&cliext,i+1,"set_______");    // update périfs
+        periReq(&cliext,i+1,"mds_______");    // update périfs
       }
     }
   }

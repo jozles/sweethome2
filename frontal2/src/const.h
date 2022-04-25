@@ -126,7 +126,7 @@
         les sliders/push et disj sont grisés/inactifs si remote mère disjonctée mais modifiables
         Ajout sélection périf sur dumpHisto() ; ajout data_store ; sélection périf dans dumphisto
         Ajout timersCtl ; 
-   1.75
+   1.75 les commandes de remote (pushSliderRemote(), disjValue()) utilisent mds___ au lieu de set___ ; periReq modifié pour mds___
 
    BUGS :
 

@@ -90,10 +90,10 @@ extern  char*    fonctions;
 extern int       nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
 
 
-void assySet(char* message,int periCur,const char* diag,char* date14,char* fonct)     
+void assySet(char* message,int periCur,const char* diag,char* date14,const char* fonct)     
 // assemblage datas pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
 {
-  Serial.print(" assySet ");
+  Serial.print(" assySet ");Serial.print(fonct);Serial.print(' ');
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
 
@@ -142,7 +142,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,char* fonct
 
       if(*periProg!=0){
 
-          if(fonct==nullptr || memcmp(fonct,"swi_______",LENNOM)!=0)
+          if(fonct!=nullptr && memcmp(fonct,"swi_______",LENNOM)!=0 && memcmp(fonct,"mds_______",LENNOM)!=0)
           {
           
                 for(int k=0;k<NBPULSE*2;k++){                     // 2 fois 4 compteurs (8*(8+1)bytes) =72
@@ -162,7 +162,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,char* fonct
                 memcpy((message+v1+2*NBPERRULES*PERINPLEN),"_\0",2);
 
                 v1+=2*NBPERRULES*PERINPLEN+1;
-          } // pas swi_______
+          } // pas swi_______ ni mds_______
           
                 byte byt;
                 for(uint8_t mds=MDSLEN;mds>0;mds--){              // NBDSRV bits memDetServ -> MDSLEN car hexa
@@ -236,8 +236,8 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     Serial.print(" Ip=");serialPrintIp(periIpAddr);
     Serial.print(" port=");Serial.print(*periPort);Serial.print(") ");
 
-    if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0 || memcmp(nfonct,"swi_______",LENNOM)==0 ){
-        assySet(message,periCur,periDiag(periMess),date14);}      // assemblage datas ; ci-après buildMess controle l'ovf
+    if(memcmp(nfonct,"mds_______",LENNOM)==0 || memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0 || memcmp(nfonct,"swi_______",LENNOM)==0 ){
+        assySet(message,periCur,periDiag(periMess),date14,nfonct);}      // assemblage datas ; ci-après buildMess controle l'ovf
     else if(strlen(msg)<(LENMESS-2)){strcat(message,msg);}
 
     *bufServer='\0';
@@ -300,7 +300,7 @@ int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphéri
   Serial.print("periAns(");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
   Serial.print(" ");serialPrintIp(periIpAddr);Serial.print("/");Serial.print(*periPort);     
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
-    assySet(message,periCur,periDiag(periMess),date14);
+    assySet(message,periCur,periDiag(periMess),date14,nfonct);
     }  // assemblage datas 
 
   memcpy(bufServer,"<body>\0",7);

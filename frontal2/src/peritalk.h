@@ -3,7 +3,7 @@
 
 
 void assySet(char* message,int periCur,const char* diag,char* date14);
-void assySet(char* message,int periCur,const char* diag,char* date14,char* fonct);
+void assySet(char* message,int periCur,const char* diag,char* date14,const char* fonct);
 int  periReq0(EthernetClient* cli,const char* nfonct,const char* msg);
 int  periReq(EthernetClient* cli,uint16_t np,const char* nfonct,const char* msg);
 int  periReq(EthernetClient* cli,uint16_t np,const char* nfonct);
