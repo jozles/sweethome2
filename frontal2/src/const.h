@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".75"
+#define NVERS ".76"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -127,6 +127,7 @@
         Ajout sélection périf sur dumpHisto() ; ajout data_store ; sélection périf dans dumphisto
         Ajout timersCtl ; 
    1.75 les commandes de remote (pushSliderRemote(), disjValue()) utilisent mds___ au lieu de set___ ; periReq modifié pour mds___
+   1.76 Ajout data_na___ idem data_save_ sans réponse du serveur
 
    BUGS :
 

@@ -704,16 +704,16 @@ int buildData(const char* nomfonction,const char* data)               // assembl
       }
       if(noZero){
         uint32_t currt;
-        if(diags){dumpfield((char*)cstRec.pulseMode,2);Serial.print("  ");}
+        if(diags){Serial.print("buildData ");dumpfield((char*)cstRec.pulseMode,2);Serial.print("  ");}
         for(int i=0;i<NBPULSE;i++){         // loop compteurs
           if(diags){Serial.print(":");Serial.print(staPulse[i]);Serial.print(" ");}
           currt=0;
-          if(cntPulseOne[i]!=0){currt=((uint32_t)millis()-cntPulseOne[i])/1000;}
+          if(cntPulseOne[i]!=0){currt=1+((uint32_t)millis()-cntPulseOne[i])/1000;}
           if(diags){Serial.print(currt);if(currt>=cstRec.durPulseOne[i]){Serial.print('>');}else {Serial.print('<');}Serial.print(cstRec.durPulseOne[i]);
           Serial.print("-");}
           for(uint8_t j=0;j<4;j++){conv_htoa((char*)(message+sb+i*2*8+j*2),(byte*)(&currt)+j);}       // loop bytes (4/8)
           currt=0;
-          if(cntPulseTwo[i]!=0){currt=((uint32_t)millis()-cntPulseTwo[i])/1000;}
+          if(cntPulseTwo[i]!=0){currt=1+((uint32_t)millis()-cntPulseTwo[i])/1000;}
           if(diags){Serial.print(currt);if(currt>=cstRec.durPulseTwo[i]){Serial.print('>');}else {Serial.print('<');}Serial.print(cstRec.durPulseTwo[i]);
           Serial.print("  ");}
           for(uint8_t j=0;j<4;j++){conv_htoa((char*)(message+sb+(i*2+1)*8+j*2),(byte*)(&currt)+j);}   // loop bytes (4/8)
@@ -978,8 +978,8 @@ void answer(const char* what)
   Serial.print(" answer:");Serial.println(what);
   bufServer[0]='\0';
   #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
-  if(memcmp(what,"data_save_",LENNOM)==0){
-    buildData("data_save_",tempStr());
+  if(memcmp(what,"data_save_",LENNOM)==0 || memcmp(what,"data_na___",LENNOM)==0){
+    buildData("data_na___",tempStr());
     //buildMess("data_save_","02_84.F3.EB.CC.5F.85_+0.00_000000_0.00_2.0B_2xx00_3100x_1111_WNE123*1_","\0");
     //buildMess("done______","02_84.F3.EB.CC.5F.85_+0.00_000000_0.00_2.0B_2xx00_3100x_1111_WNE123*1_","\0");
   }
@@ -1006,7 +1006,7 @@ void rcvOrdreExt(char* data)
   dataTransfer(data);
   showMD();
   pulseClk();actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
-  answer("data_save_");
+  answer("data_na___");
 }
 
 void ordreExt()

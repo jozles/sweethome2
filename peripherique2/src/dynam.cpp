@@ -168,9 +168,11 @@ void actionsDebug()
 #ifdef DEBUG_ACTIONS
   memset(curDebugAction,0x00,LDA);
   Serial.println("(SS LL  S switchs ; L locmem ");
-  Serial.println(" for each enabled rule h-ss:nn,dd:nn,AC_1.2=DcLL");
-  Serial.println(" h=curinp+2 hexa ; ss srce ; dd dest ; AC action ; 1 detec1 ; 2 detec2 ; D detec3 ; c curValue ; LL locmem ");
-  Serial.println(" SS) rules end");
+  Serial.println(" for each enabled rule h-ss:nn,dd:nn,AC_1.2=DcLL[,pP] ");
+  Serial.println("      h=curinp+2 hexa ; ss srce ; dd dest ; AC action ; 1 detec1 ; ");
+  Serial.println("      2 detec2 ; D detecState final ; c curValue ; LL locmem ;  p pulse srce ; P pulse dest ");
+  Serial.println(" SS O)millis() ; O=outSw (req value for switchs)");
+  Serial.println(" RUN1=4 RUN2=5 END1=2 END2=3 IDLE=1");
 #endif //DEBUG_ACTIONS
 
 }
@@ -200,6 +202,7 @@ void actions()          // pour chaque input, test enable,
   uint8_t curSw[MAXSW];memset(curSw,0x00,MAXSW);     // valeur courante des SW pendant la lecture des règles (0 au départ)
   uint8_t usdSw[MAXSW];memset(usdSw,0x00,MAXSW);     // devient 1 si le SW est modifié par une règle
 
+  char puv[4]={0x00,0x00,0x00,0x00};       
 #ifdef DEBUG_ACTIONS
   memset(curDebugAction,0x00,LDA);
   char lmb[2]={0x00,0x00};
@@ -230,19 +233,15 @@ void actions()          // pour chaque input, test enable,
       uint8_t openClose[]={openSw[ndest],cloSw[ndest]};           // open/close value for ndest switch
 
 #ifdef DEBUG_ACTIONS
+  puv[0]='\0';
+  puv[1]='\0';
+  puv[2]='\0';
   strcat(curDebugAction," ");
   lmb[0]=chexa[(*(curinp+2)&0x0F)];strcat(curDebugAction,lmb);
   strcat(curDebugAction,"-");
   strcat(curDebugAction,cds(tsrce));
   strcat(curDebugAction,":");
   strcat(curDebugAction,cda(nsrce));
-  strcat(curDebugAction,",");
-  strcat(curDebugAction,cdd(tdest));
-  strcat(curDebugAction,":");
-  strcat(curDebugAction,cda(ndest));
-  strcat(curDebugAction,",");
-  strcat(curDebugAction,cdx(action));
-  strcat(curDebugAction,"_");
 #endif //DEBUG_ACTIONS
 
       /* évaluation source -> detecState (detecFound==1 if detecstate valid */
@@ -256,7 +255,13 @@ void actions()          // pour chaque input, test enable,
         case DETYPHY:detecState=(byte)(cstRec.memDetec[nsrce]>>DETBITLH_PB)&0x01;     // valeur détecteur physique
              detecFound=1;break;
         case DETYMEM:detecState=(locmem>>nsrce)&0x01;detecFound=1;break;              // valeur loc mem
-        case DETYPUL:switch(staPulse[nsrce]){                     // pulse                
+        case DETYPUL:
+#ifdef DEBUG_ACTIONS
+  strcat(curDebugAction,"/");
+  puv[0]=chexa[staPulse[nsrce]];
+  strcat(curDebugAction,puv);
+#endif //DEBUG_ACTIONS
+              switch(staPulse[nsrce]){                     // pulse                
                  case PM_RUN1: detecState=1;detecFound=1;break;   // pulse run1=H     // état sortie MCU -> relais ON
                  case PM_RUN2: detecState=0;detecFound=1;break;   // pulse run2=L     // état sortie MCU -> relais OFF
                  case PM_END1: detecState=0;detecFound=1;break;   // pulse end1=L     // état sortie MCU -> relais OFF
@@ -272,6 +277,17 @@ void actions()          // pour chaque input, test enable,
 
 #ifdef DEBUG_ACTIONS
   //Serial.print(detecFound);     // devrait toujours être 1 (detecFound inutile) 
+  strcat(curDebugAction,",");
+  strcat(curDebugAction,cdd(tdest));
+  strcat(curDebugAction,":");
+  strcat(curDebugAction,cda(ndest));
+  if(tdest==DETYPUL){
+    strcat(curDebugAction,"/");
+    puv[1]=chexa[staPulse[ndest]];
+    strcat(curDebugAction,puv+1);}
+  strcat(curDebugAction,",");
+  strcat(curDebugAction,cdx(action));
+  strcat(curDebugAction,"_");
   char cip[3];memset(cip,0x00,3);
   lmb[0]=(char)(detecState+0x30);strcat(curDebugAction,lmb);
   strcat(curDebugAction,".");
@@ -474,13 +490,14 @@ void actions()          // pour chaque input, test enable,
                       staPulse[ndest]=PM_IDLE;
                       impDetTime[ndest]=0;
                     }
+                    puv[2]=chexa[staPulse[ndest]];
                   }
                   break;
                case PMDCA_START: 
                   if(detecState==1)
                   {               
                     if(tdest!=DETYPUL){actionSysErr(action,inp);break;}
-                    if(cntPulseOne[ndest]!=0){
+                    if(cntPulseOne[ndest]!=0){                      
                       cntPulseOne[ndest]=millis()-cntPulse[ndest*2]; // (re)start - temps déjà écoulé lors du stop
                       staPulse[ndest]=PM_RUN1;}                   
                     else if(cntPulseTwo[ndest]!=0){
@@ -488,6 +505,7 @@ void actions()          // pour chaque input, test enable,
                       staPulse[ndest]=PM_RUN2;}
                     else {staPulse[ndest]=PM_RUN1;cntPulseOne[ndest]=millis();}
                     impDetTime[ndest]=millis();
+                    puv[2]=chexa[staPulse[ndest]];
                   }
                   break;
                case PMDCA_SHORT: 
@@ -498,6 +516,7 @@ void actions()          // pour chaque input, test enable,
                       cntPulseOne[ndest]=0;cntPulse[ndest*2]=0;}     // cstRec.durPulseOne[ndest]*10;}
                     else if(staPulse[ndest]==PM_RUN2 || cntPulseTwo[ndest]!=0){cntPulseTwo[ndest]=0;} // cstRec.durPulseTwo[ndest]*10;}
                     impDetTime[ndest]=0;
+                    puv[2]=chexa[staPulse[ndest]];
                   }
                   break;                 
                case PMDCA_RAZ: 
@@ -510,6 +529,7 @@ void actions()          // pour chaque input, test enable,
                     impDetTime[ndest]=0;
                     cntPulse[ndest*2]=0;
                     cntPulse[(ndest*2)+1]=0;
+                    puv[2]=chexa[staPulse[ndest]];
                   }
                   break;               
                case PMDCA_RESET: 
@@ -522,6 +542,7 @@ void actions()          // pour chaque input, test enable,
                     impDetTime[ndest]=0;
                     cntPulse[ndest*2]=0;
                     cntPulse[(ndest*2)+1]=0;
+                    puv[2]=chexa[staPulse[ndest]];
                   }
                   break;                 
                case PMDCA_IMP: 
@@ -534,6 +555,7 @@ void actions()          // pour chaque input, test enable,
                       cntPulseTwo[ndest]=0;}
                     Serial.print("Time=");Serial.print(millis()-impDetTime[ndest]);Serial.print(" ");
                     impDetTime[ndest]=0;
+                    puv[2]=chexa[staPulse[ndest]];
                   }
                   break;
                case PMDCA_END: 
@@ -549,12 +571,13 @@ void actions()          // pour chaque input, test enable,
                       cntPulse[(ndest*2)+1]=0;
                       setPulseChg(ndest,'T');}
                     impDetTime[ndest]=0;
+                    puv[2]=chexa[staPulse[ndest]];
                   }
                   break;
                default:actionSysErr(action,inp);
                   if(tdest==DETYPUL){staPulse[ndest]=PM_DISABLE;}
                   break;                  
-          }     // switch(action)                
+          }     // switch(action)
       }   // detecFound    
 
 #ifdef DEBUG_ACTIONS
@@ -562,9 +585,12 @@ void actions()          // pour chaque input, test enable,
   lmb[0]=(char)(detecState+0x30);strcat(curDebugAction,lmb);
   lmb[0]=(char)(curValue+0x30);strcat(curDebugAction,lmb);
   lmb[0]=chexa[(locmem>>4)&0x0F];strcat(curDebugAction,lmb);
-  lmb[0]=chexa[locmem&0x0F];strcat(curDebugAction,lmb);
+  lmb[0]=chexa[locmem&0x0F];strcat(curDebugAction,lmb);                
+  if(puv[0]==0){puv[0]='0';}
+  if(puv[1]==0 && puv[2]!=0){puv[1]='0';}
+  strcat(curDebugAction,",");
+  strcat(curDebugAction,puv);
 #endif //DEBUG_ACTIONS
-
     }     // enable
   }       // next rule
 
@@ -588,9 +614,11 @@ void actions()          // pour chaque input, test enable,
   strcat(curDebugAction," ");
   lmb[0]=chexa[cstRec.swCde>>4];strcat(curDebugAction,lmb);
   lmb[0]=chexa[cstRec.swCde&0x0F];strcat(curDebugAction,lmb);
+  strcat(curDebugAction," ");
+  lmb[0]=chexa[outSw&0x0f];strcat(curDebugAction,lmb);
   strcat(curDebugAction,")");
   if(memcmp(oldDebugAction,curDebugAction,LDA)!=0){
-    Serial.println();Serial.println(curDebugAction);
+    Serial.println();Serial.print(curDebugAction);Serial.println(millis());
     memcpy(oldDebugAction,curDebugAction,LDA);
     memset(curDebugAction,0x00,LDA);
     //cntDBA++;if(cntDBA>10){while(1){yield();}}

@@ -7,7 +7,7 @@
 // !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
 
 
-#define VERSION "2.1_"
+#define VERSION "2.2_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -81,8 +81,10 @@
  * 2.0 install timing analyzer (sur carte VRR de test pins 13/16/10 - débranche pollAllDet pour pin 13)
  *     messToServer devient interruptible si une demande de connexion arrive au périphérique utilisé en mode server 
  *     ordreExt directement intégré à la boucle d'attente (temps : 36 to peri ; 3 rcv+answer ; 4,5 to frontal)
+ *     ajout traitement mds_______ (version set_______ sans pulses ni rules)
  * 2.1 swCde stocke l'état du disjoncteur pour 4 switchs et n'est plus modifié par le périphérique
  *     outSw contient ce que outputCtl doit effectuer ; outPutCtl() en 2 étapes pour ouvertures et fermetures
+ * 2.2 ajout data_na___ enrichissement debug actions
  *  
 Modifier : 
 
