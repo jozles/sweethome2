@@ -18,7 +18,8 @@ extern char configRec[CONFIGRECLEN];
   
 extern byte*      mac;
 extern byte*      localIp;
-extern uint16_t*  serverPort;
+extern uint16_t*  perifPort;
+extern uint16_t*  browserPort;
 extern uint16_t*  remotePort;
 extern uint16_t*  serverUdpPort;
 extern char*      serverName;
@@ -207,9 +208,10 @@ void factoryResetConfig()
   uint8_t srvnl=strlen(DEFNOMSERV);if(srvnl>LNSERV){srvnl=LNSERV;}
   memcpy(serverName,DEFNOMSERV,srvnl);
   memcpy(mac,DEFMACADDR,MACADDRLENGTH);
-  *serverPort=DEFSERVERPORT;
-  *remotePort=DEFSERVERPORT+1;
-  *serverUdpPort=DEFSERVERPORT+2;
+  *perifPort=DEFSERVERPORT;
+  *browserPort=DEFSERVERPORT+1;
+  *remotePort=DEFSERVERPORT+2;
+  *serverUdpPort=DEFSERVERPORT+3;
   memset(usrnames,0x00,LENUSRNAME);
   memcpy(usrnames,"admin",5);
   memset(usrpass,0x00,LENUSRPASS);
@@ -239,7 +241,9 @@ void configInitVar()
 {
 memset(mac,0x00,6);
 memset(localIp,0x00,4); 
-*serverPort = 0;
+*perifPort = 0;
+*browserPort = 0;
+*remotePort = 0;
 memset(serverName,0x00,LNSERV);
 memset(peripass,0x00,LPWD+1);
 memset(ssid,0x00,MAXSSID*(LENSSID+1));
@@ -306,7 +310,7 @@ byte* temp=(byte*)configRec;
   temp+=6;
   localIp=(byte*)temp;
   temp+=4;
-  serverPort=(uint16_t*)temp;
+  perifPort=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
   remotePort=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
@@ -380,7 +384,8 @@ byte* temp=(byte*)configRec;
   temp+=sizeof(uint16_t);
   periMail2=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
-            
+  browserPort=(uint16_t*)temp;
+  temp+=sizeof(uint16_t);          
 
   configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
 
@@ -425,11 +430,13 @@ void configExport(char* bec)
     sprintf(bec+ll+pp*4,"%03u",(uint16_t)localIp[pp]);
     if(pp<3){*(bec+ll+(pp+1)*4-1)='.';}}ll+=15;
   *(bec+ll)=';';ll++;
-  sprintf(bec+ll,"%05u",(uint16_t)*serverPort);ll+=5;         // serverPort
+  sprintf(bec+ll,"%05u",(uint16_t)*perifPort);ll+=5;          // perifPort
   *(bec+ll)=';';ll++;
+  //sprintf(bec+ll,"%05u",(uint16_t)*browserPort);ll+=5;      // browser !!!!!!!!!! modifier la cible de l'export !!!!!!!!!!
+  //*(bec+ll)=';';ll++;
   sprintf(bec+ll,"%05u",(uint16_t)*remotePort);ll+=5;         // remote
   *(bec+ll)=';';ll++;
-  sprintf(bec+ll,"%05u",(uint16_t)*serverUdpPort);ll+=5;            // udp
+  sprintf(bec+ll,"%05u",(uint16_t)*serverUdpPort);ll+=5;      // udp
   *(bec+ll)=';';ll++;
   strcat(bec+ll,peripass);                                    // peripass
   strcat(bec,";");
@@ -577,7 +584,8 @@ void configPrint()
   Serial.print("serverName=");Serial.println(serverName);
   Serial.print(" Mac=");serialPrintMac(mac,0);
   Serial.print(" localIp=");serialPrintIp(localIp);
-  Serial.print("/");Serial.print(*serverPort);Serial.print("/");Serial.print(*remotePort);Serial.print("/");Serial.println(*serverUdpPort);      
+  Serial.print("/");Serial.print(*perifPort);Serial.print("/");Serial.print(*browserPort);
+  Serial.print("/");Serial.print(*remotePort);Serial.print("/");Serial.println(*serverUdpPort);      
   Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.print(" table ssid ");Serial.print(*ssid1);Serial.print("/");Serial.println(*ssid2);
   subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
@@ -601,8 +609,16 @@ int configLoad()
   return SDOK;
 }
 
-int configSave()
+int configSave(uint8_t addedLength)
 {
+// pour ajouter des variables à l'enregistrement de config :
+//        1) créer les pointeurs dans frontal et las ajouter en extern dans periph.cpp
+//        2) nnn longueur ajoutée ; ajouter configSave(nnn) dans le setup juste après configLoad()
+//        3) télécharger 
+//        4) enlever configSave(nnn), 
+//           ajouter la variable à la fin de configInit(), dans configInitVar() et configPrint() ; 
+//           modifier PERIRECLEN et télécharger
+
   int i=0;
   int sta;
   int cl=CONFIGRECLEN;
@@ -613,23 +629,33 @@ int configSave()
   if(sdOpen(configFile,&fconfig)!=SDKO){
     sta=SDOK;
     fconfig.seek(0);
-    for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
-// pour ajouter des variables à l'enregistrement de config :
-//        1) créer les pointeurs dans frontal et las ajouter en extern dans periph.cpp
-//        2) ajouter configSave() dans le setup juste après configLoad() + while(1){};
-//        3) modifier la ligne de save ci-après avec les longueurs supplémentaires et mettre en rem la ligne "normale"
-//        4) télécharger
-//        5) enlever le configSave() dans le setup (mais pas le while(1){} mettre en rem la ligne ci-aprés et rebrancher la ligne normale
-//        6) ajouter les nouvelles variables à la suite dans configInit()
-//        7) télécharger ; l'erreur donne la nouvelle valeur pour PERIRECLEN
-//        8) modifier PERIRECLEN et télécharger
-//        9) si tout est ok enlever le while(1){}
-//cl=CONFIGRECLEN+2*sizeof(unsigned long);for(i=0;i<cl;i++){fconfig.write(configRec[i]);}      // ajouter les longueurs des variables ajoutées avant de modifier PERIRECLEN
-    fconfig.close();
+  
+      if(addedLength!=0){
+        fconfig.remove();
+        if (!fconfig.open(configFile, O_RDWR | O_CREAT | O_TRUNC)) {
+          Serial.println(" create failed");}
+        else {
+          fconfig.seek(0);
+          char a=0x00;
+          for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
+          for(i=0;i<addedLength;i++){fconfig.write(a);}
+          fconfig.close();
+          Serial.println(" create ok");
+        }
+        while(1){ledblink(1);}
+      }  
+  
+  for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
+  fconfig.close();
   }
   else sta=SDKO;
   Serial.print("configSave status=");Serial.print(sta);Serial.print(" len=");Serial.println(cl);
   return sta;
+}
+
+int configSave()
+{
+  return configSave(0);
 }
 
 /* ---------- périphériques ---------- */
@@ -975,10 +1001,12 @@ void periModification()
       Serial.print(*periNum);Serial.print(' ');
       Serial.print(periNamer);
       Serial.println(" load OK");
+
       #define ADDED 24
       #define PERIRECLEN_NEW PERIRECLEN+ADDED*PERINPLEN // 24+24=48
       char periRec_New[PERIRECLEN_NEW];memset(periRec_New,0x00,PERIRECLEN_NEW);
-      
+
+      /* modif nbre rules      
       unsigned long pos=(byte*)periInput-(byte*)periRec;
       unsigned long len=(unsigned long)PERIRECLEN-(unsigned long)(pos+NBPERRULES*PERINPLEN);
       Serial.print("             ");Serial.print(PERIRECLEN);Serial.print(' ');Serial.print(PERIRECLEN_NEW);Serial.print(' ');Serial.print(pos);Serial.print(' ');Serial.print(len);
@@ -1000,6 +1028,7 @@ void periModification()
       Serial.print(*periProtocol);Serial.print('/');Serial.print(*(char*)new_periProtocol);Serial.print(' ');      
       Serial.print(*periDetNb);Serial.print('/');Serial.print(*(uint8_t*)new_periDetNb);Serial.print(' ');      
       Serial.print(*periProg);Serial.print('/');Serial.print(*(bool*)new_periProg);Serial.print(' ');      
+      */
       char periFile[7];periFname(i,periFile);
       Serial.print(periFile);
       //Serial.println();dumpstr(periRec_New,406);

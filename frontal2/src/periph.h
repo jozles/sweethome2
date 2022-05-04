@@ -37,6 +37,7 @@ void  periModification();
 void  configInit();
 int   configLoad();
 int   configSave();
+int   configSave(uint8_t addedLength);
 void  configInitVar(); 
 void  configPrint();
 void  factoryResetConfig();

@@ -16,7 +16,8 @@ extern Ds3231 ds3231;
 extern char*      serverName;
 extern byte*      mac;              // adresse server
 extern byte*      localIp;
-extern uint16_t*  serverPort;
+extern uint16_t*  perifPort;
+extern uint16_t*  browserPort;
 extern uint16_t*  remotePort;
 extern uint16_t*  serverUdpPort;
 
@@ -602,7 +603,8 @@ fontBeg(buf,jsbuf,2,0);
             scrDspText(buf,jsbuf," serverMac ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___m",11,MACADDRLENGTH*2,0,0);
             *lbuf=0x00;for(int k=0;k<4;k++){concatns(lbuf,localIp[k]);if(k!=3){strcat(lbuf,".");}}
             scrDspText(buf,jsbuf," localIp ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___i",11,LBUFL,0,BRYES);strcat(buf,"\n");
-            scrDspText(buf,jsbuf," serverPort ",0,0);scrGetNum(buf,jsbuf,'d',serverPort,"ethcfg___p",5,0,0,0);
+            scrDspText(buf,jsbuf," perifPort ",0,0);scrGetNum(buf,jsbuf,'d',perifPort,"ethcfg___p",5,0,0,0);
+            scrDspText(buf,jsbuf," browserPort ",0,0);scrGetNum(buf,jsbuf,'d',browserPort,"ethcfg___y",5,0,0,0);
             scrDspText(buf,jsbuf," remotePort ",0,0);scrGetNum(buf,jsbuf,'d',remotePort,"ethcfg___t",5,0,0,0);
             scrDspText(buf,jsbuf," serverUdpPort ",0,0);scrGetNum(buf,jsbuf,'d',serverUdpPort,"ethcfg___u",5,0,0,BRYES);strcat(buf,"\n");
             scrDspText(buf,jsbuf,"peripass ",0,0);scrGetText(buf,jsbuf,peripass,"peripcfg__",5,LPWD,0,0);

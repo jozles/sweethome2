@@ -50,7 +50,7 @@ extern char     strdate[LDATEB];
 
 extern char*    chexa;
 
-extern uint16_t*  serverPort;
+extern uint16_t*  perifPort;
 extern char*      mailToAddr1;
 extern uint16_t*  periMail1;
 
@@ -118,7 +118,7 @@ void mail(const char* a, const char* mm)
       uint32_t bufIp=Ethernet.localIP();
       charIp(ms,(char*)&bufIp,nullptr);
       strcat(ms,"/");
-      concatn(ms,*serverPort);
+      concatn(ms,*perifPort);
       strcat(ms," ");
       strcat(ms,a);strcat(ms,"==");
       strcat(ms,mailToAddr1);strcat(ms,"==");

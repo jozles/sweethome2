@@ -50,7 +50,8 @@ char ab;                            // protocole et type de la connexion en cour
 
 //  EthernetClient cli_a;             // instance serveur de periphériques et browser configuration
   EthernetClient cli_b;             // instance du serveur pilotage
-  EthernetClient cliext;            // instance client serveur externe  
+  EthernetClient cli_c;             // instance du serveur browser
+  EthernetClient cliext;            // instance client serveurs externes  
 
   char udpData[UDPBUFLEN];          // buffer paquets UDP
   uint16_t udpDataLen;              // taille paquet contenu
@@ -65,7 +66,8 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
 
   byte*     mac;              // mac adresse server
   byte*     localIp;          // ip  adresse server
-  uint16_t* serverPort;       // port server
+  uint16_t* perifPort;        // port server
+  uint16_t* browserPort;      // port browser
   uint16_t* remotePort;       // port remote
   uint16_t* serverUdpPort;    // port udp
   char*     serverName;       // nom server
@@ -113,7 +115,8 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   int     usernum=-1;       // numéro(0-n) de l'utilisateur connecté (valide durant commonserver)   
 
 EthernetServer* periserv=nullptr;             // serveur perif
-EthernetServer* pilotserv=nullptr;            // serveur remote
+EthernetServer* browserserv=nullptr;          // serveur browser
+EthernetServer* remoteserv=nullptr;            // serveur remote
   
   uint8_t   remote_IP[4]={0,0,0,0};           // periserver
   uint8_t   remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
@@ -401,7 +404,8 @@ void frecupptr(char* nomfonct,uint8_t* v,uint8_t* b,uint8_t lenpersw);
 void bitvSwCtl(byte* data,uint8_t sw,uint8_t datalen,uint8_t shift,byte msk);
 void test2Switchs();
 void tcpPeriServer();
-void pilotServer();
+void browserServer();
+void remoteServer();
 void udpPeriServer();
 int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime);
 void poolperif(uint8_t* tablePerToSend,uint8_t detec,const char* nf,const char* src);
@@ -505,7 +509,7 @@ void setup() {                          // ====================================
 
   sdInit();
 
-  configInit();configLoad();configPrint();
+  configInit();configLoad();configSave();configPrint();
     
 /* ---------- load variables du systeme : périphériques, table et noms remotes, 
               timers, détecteurs serveur ---------- */
@@ -546,12 +550,17 @@ void setup() {                          // ====================================
 //  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAE",6);*serverPort=1786;*remotePort=1788;*serverUdpPort=8886; // server service
 //  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAC",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8890; // server test
 
-  memcpy(mac,REDMAC,6);*serverPort=PORT_FRONTAL;*remotePort=PORT_REMOTE;*serverUdpPort=PORTUDP; // config server from const.h
+  memcpy(mac,REDMAC,6);
+  *perifPort=PORT_FRONTAL;
+  *browserPort=PORT_BROWSER;
+  *remotePort=PORT_REMOTE;
+  *serverUdpPort=PORTUDP; // config server from const.h
   // else config server from config record
 
   Serial.print(MODE_EXEC);
   Serial.print(" mac=");serialPrintMac(mac,0);
-  Serial.print(" serverPort=");Serial.print(*serverPort);
+  Serial.print(" perifPort=");Serial.print(*perifPort);
+  Serial.print(" browserPort=");Serial.print(*browserPort);
   Serial.print(" remotePort=");Serial.print(*remotePort);
   Serial.print(" serverUdpPort=");Serial.print(*serverUdpPort);
 
@@ -573,11 +582,14 @@ void setup() {                          // ====================================
 
   trigwd();
 
-  periserv=new EthernetServer(*serverPort);
-  periserv->begin();Serial.print(" periserv.begin(");Serial.print(*serverPort);Serial.println(")");   // serveur périphériques
+  periserv=new EthernetServer(*perifPort);
+  periserv->begin();Serial.print(" periserv.begin(");Serial.print(*perifPort);Serial.println(")");        // serveur périphériques
 
-  pilotserv=new EthernetServer(*remotePort);
-  pilotserv->begin();Serial.print(" pilotserv.begin(");Serial.print(*remotePort);Serial.println(")");  //  remote serveur
+  browserserv=new EthernetServer(*browserPort);
+  browserserv->begin();Serial.print(" browserserv.begin(");Serial.print(*browserPort);Serial.println(")");  //  browser serveur
+
+  remoteserv=new EthernetServer(*remotePort);
+  remoteserv->begin();Serial.print(" remoteserv.begin(");Serial.print(*remotePort);Serial.println(")");     //  remote serveur
 
 /* ---------- RTC ON, check date/heure et maj éventuelle par NTP ---------- */
 /* ethernet doit être branché pour l'udp */
@@ -625,8 +637,9 @@ void loop()
             tcpPeriServer();     // *** périphérique TCP ou maintenance
 //Serial.print("udp=");Serial.println(millis());
             udpPeriServer();     // *** périphérique UDP via NRF
+            browserServer();     // *** browser
 //Serial.print("pil=");Serial.println(millis());            
-            pilotServer();       // *** pilotage
+            remoteServer();      // *** remotes
 //Serial.print("led=");Serial.println(millis());
             ledblink(0);
 //Serial.print("ser=");Serial.println(millis());            
@@ -1711,7 +1724,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           default :break;
                         }
                        }break;
-              case 18: if(periPassOk==VRAI){what=0;periDataRead(valf);periPassOk=FAUX;}break;       // data_na___ pas de réponse à faire
+              case 18: if(periPassOk==VRAI){what=14;periDataRead(valf);periPassOk=FAUX;}break;      // data_na___ pas de réponse à faire
               case 19: accueilHtml(cli);break;                                                      // accueil
               case 20: periTableHtml(cli);break;                                                    // peri table
               case 21: what=0;break;                                                                // data_store
@@ -1856,9 +1869,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           switch(*(libfonctions+2*i+1)){                                            
                             case 'i': memset(localIp,0x00,4);                                           // (config) localIp
                                       textIp((byte*)valf,localIp);break;   
-                            case 'p': *serverPort=0;conv_atob(valf,serverPort);break;                   // (config) serverPort
+                            case 'p': *perifPort=0;conv_atob(valf,perifPort);break;                     // (config) perifPort
+                            case 'y': *browserPort=0;conv_atob(valf,browserPort);break;                 // (config) browserPort
                             case 't': *remotePort=0;conv_atob(valf,remotePort);break;                   // (config) remotePort
-                            case 'u': *serverUdpPort=0;conv_atob(valf,serverUdpPort);break;                         // (config) serverUdpPort
+                            case 'u': *serverUdpPort=0;conv_atob(valf,serverUdpPort);break;             // (config) serverUdpPort
                             case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;              // (config) mac
                             case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                        // (config) TO sans TCP
                             case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                        // (config) TO sans UDP
@@ -2067,8 +2081,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           switch(what){                                           
             case 0: break;                                                
             case 1: periMess=periAns(cli,"ack_______");break;            // data_save
-            case 2: if(ab=='a'){periTableHtml(cli);}                     // peritable ou remote suite à login
-                    if(ab=='b'){remoteHtml(cli);} break;     
+            case 2: if(ab=='c'){periTableHtml(cli);}                     // peritable suite à login
+                    if(ab=='b'){remoteHtml(cli);}                        // remote    suite à login
+                    break;
             case 3: periMess=periAns(cli,"set_______");break;            // data_read
             case 4: periMess=periSave(periCur,PERISAVESD);               // switchs
                     swCtlTableHtml(cli);
@@ -2092,7 +2107,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                     periSave(periCur,PERISAVESD);                        // bouton submit periLine (MàJ/analog/digital)                                             
                     periLineHtml(cli);
                     break;                                                                                                           
-
+            case 14:break;                                               // data_na___
             default:accueilHtml(cli);break;                              // what=-1
           }
         
@@ -2107,7 +2122,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           //cli->stop();                           // en principe inutile (purge fait stop)
           //Serial.print(" st=");Serial.println(millis());
           */
-        if(what!=1 && what!=3){       // gestion "normale" si dataread/save  
+        if(what!=1 && what!=3 && what!=14){       // gestion "normale" si dataread/save/na
           cli->stop();} // ********************************************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                         // sinon server.available() crée des fantômes .... 
                         // la gestion d'instances multiples ne fonctionne pas avec le navigateur
@@ -2205,12 +2220,28 @@ void tcpPeriServer()
   }
 }
 
-void pilotServer()
+void browserServer()
+{
+  ab='c';
+
+  cli_c.stop();
+  if(cli_c = browserserv->available())      // attente d'un client browser sur port remote
+  {
+    getremote_IP(&cli_c,remote_IP,remote_MAC);      
+    if (cli_c.connected()){
+      lastcxt=millis();             // trig watchdog
+      commonserver(&cli_c,nullptr,0);
+    }
+  }     
+}
+
+
+void remoteServer()
 {
   ab='b';
 
   cli_b.stop();
-  if(cli_b = pilotserv->available())      // attente d'un client browser sur port remote
+  if(cli_b = remoteserv->available())      // attente d'un client browser sur port remote
   {
     getremote_IP(&cli_b,remote_IP,remote_MAC);      
     if (cli_b.connected()){

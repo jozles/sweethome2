@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".76"
+#define NVERS ".77"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -127,16 +127,18 @@
         Ajout sélection périf sur dumpHisto() ; ajout data_store ; sélection périf dans dumphisto
         Ajout timersCtl ; 
    1.75 les commandes de remote (pushSliderRemote(), disjValue()) utilisent mds___ au lieu de set___ ; periReq modifié pour mds___
-   1.76 Ajout data_na___ idem data_save_ sans réponse du serveur
+   1.76 Ajout data_na___ idem data_save_ sans réponse du serveur ; 
+   1.77 serverPort devient perifPort ; pilot devient remote 
+        création browserPort (ajouté dans fichier config) et browserserver pour browsers ; 
 
    BUGS :
-
+        
+        1.76 déclenchement wd quotidien ?
         Ratage de connexions via remote ; l'attente de messToServer du périphérique étant interruptible, étudier ce qui cloche
 
    à faire :
 
-      Créer une version de dataSave : dataUpd sans réponse du serveur (juste pour le mettre à jour)
-      Ajouter une check box dans la ligne des rules pour faire envoyer dataUpd au serveur quand la condition est validée
+      Ajouter une check box dans la ligne des rules pour faire envoyer data_upd__ (data_na___) au serveur quand la condition est validée
       Ajouter table des N° de remoteT associés aux péri/switchs (NBPER x SWMAX) pour speeder l'accès aux switchs
       (màj au reset puis à chaque appui MàJ dans lignes switchs des remotes)
 
@@ -145,7 +147,7 @@
       gérer le periLoad KO dans periTableLoad
       remplacer date14 par date unix sur 8 digits dans les messages ACK et SET
 
-      ajouter nbre rules dans assyset
+      ajouter nbre rules dans assyset 
 
       détecter les changements à la réception des dataread/save pour effectuer un refresh de l'affichage de peritable
 
@@ -171,6 +173,9 @@
   Depuis 1.72 shconst2 contient PORT_FRONTAL et IP_FRONTAL en fonction de _MODE_DEVT et _MODE_RUN
   PORT_REMOTE est défini PORT_FRONTAL+2
 
+  Depuis 1.77 3 ports : PORT_FRONTAL (perifPort) ; PORT_BROWSER (browserPort) =PORT_FRONTAL+1 ; PORT_REMOTE (remotePort) =PORT_FRONTAL+2
+  et donc 3 serveurs : perifserv(PORT_FRONTAL) browserserv(PORT_BROWSER) remoteserv(PORT_REMOTE)
+
   La carte W5500 recoit l'adresse mac du fichier config.
   Pour permettre la redirection de port et l'accès au serveur depuis les périphériques ou les navigateurs,
   l'adresse IP locale du serveur doit être fixe. 
@@ -181,7 +186,7 @@
      sur le serveur, faire un "factory reset" qui modifie le fichier config : 
           (factory reset : appuyer RESET, appuyer HALT, relacher RESET, après environ 2 secondes
           la led jaune blink 1/0,5sec lâcher HALT : blink 2/seconde ; faire RESET)
-          efface localIP, serverPort=55550, remotePort=55551, serverUdpPort=55552, mac=54.55.55.55.55.55, admin/admin pour l'accès
+          efface localIP, serverPort=55550 (DEFSERVERPORT), browserPort=55551, remotePort=55552, serverUdpPort=55553, mac=54.55.55.55.55.55, admin/admin pour l'accès
           initialise la table des concentrateurs mac ashco\0,b,c,d ; IP 0 ; ports 55556,7,8,9 channel 120/110/100/90 RfSpeed 2 
           (si un équipement local utilise un de ces port ou cette adresse mac, l'éteindre le temps de l'installation)
      sur le routeur, dans la liste des baux actifs du routeur on trouve l'adresse MAC 55.55... associée avec l'Ip fournie par le DHCP
@@ -205,6 +210,7 @@
 #define REDMAC "\x90\xA2\xDA\x0F\xDF\xAC"
 //#define LOCALSERVERIP {192,168,0,35}          //adresse IP    ---- 36 service, 35 devt
 //#define PORTSERVER 1790                       // 1790
+#define PORT_BROWSER PORT_FRONTAL+1             // 1791
 #define PORT_REMOTE PORT_FRONTAL+2              // 1792
 #define PORTUDP    8890                         // 8890
 #define DEFNOMSERV "sweet_hdev\0"
@@ -215,6 +221,7 @@
 #define REDMAC "\x90\xA2\xDA\x0F\xDF\xAE"
 //#define LOCALSERVERIP {192,168,0,36}          //adresse IP    ---- 36 service, 35 devt
 //#define PORTSERVER 1786                       // 1786
+#define PORT_BROWSER PORT_FRONTAL+1             // 1787
 #define PORT_REMOTE PORT_FRONTAL+2              // 1788
 #define PORTUDP    8886                         // 8886
 #define DEFNOMSERV "sweet_home\0"
@@ -228,7 +235,7 @@
 #define PERINAMLEN 16+1                      // longueur nom perif
 #define PERIRECLEN 406 // V1.6               // longueur record périph (310 V1.5A)
 
-#define CONFIGRECLEN 993                     // longueur record config 
+#define CONFIGRECLEN 995                     // longueur record config 
 
 #define LBUF1000 1000
 #define LBUF2000 2048
