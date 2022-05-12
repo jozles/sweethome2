@@ -721,6 +721,7 @@ void scanTemp()
 void scanDate()
 {
     if((millis()-datetime)>perdate*1000){   // *** maj date
+      trigwd();
       initDate();
       datetime=millis();
       histoStore_textdh("D","","<br>\n\0");
@@ -917,55 +918,12 @@ void sser(uint8_t det,uint8_t valnou,const char* src) // si un det a changé (!=
     poolperif(tablePerToSend,det,&onoff[newV*3],src);break;}}              // si le memDet est utilisé dans un périf, ajout du périf dans tablePerRoSend
 }
 
-/*void periRemoteUpdate()                        // recherche remote ayant changé d'état (onoff!=newonoff ou enable!=newenable)
-                                               // polling table des détecteurs pour trouver les détecteurs concernés
-                                               // màj de memDetServ et poolperif() pour trouver les périf concernés et charger tablePerToSend
-{  
-  remotetime=millis();
-  memset(tablePerToSend,0x00,NBPERIF);         // périphériques !=0 si (periSend) periReq à faire via pertoSend())
-  Serial.println("periRemoteUpdate() ");dumpfield((char*)tablePerToSend,NBPERIF);Serial.println();
-  
-  for(uint8_t nbr=0;nbr<NBREMOTE;nbr++){                          // boucle des remotes
-  
-    uint8_t nou=remoteN[nbr].newonoff;
-    if(remoteN[nbr].onoff!=nou){                                  // si on/off de la remote a changé --> maj détecteurs, periSw, com perif
-      for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                      // recherche des détecteurs utilisés dans la remote
-        if(remoteT[nbd].num==nbr+1){                              // détecteur concerné ? (utilisé pour la remote courante)
-          sser(remoteT[nbd].detec,nou,"pRU1");}                          // vérif changement d'état du détecteur on/off pour maj memDet et com périf
-      }
-      remoteN[nbr].onoff=nou;
-    }
-  
-    nou=remoteN[nbr].newenable;if(nou==2){nou=3;}                 // si forçage, le bit enable est ON
-    if(remoteN[nbr].oldenable!=nou){                                 // si le enable de la remote a changé --> maj détecteurs, periSw, com perif
-      for(uint8_t nbd=0;nbd<MAXREMLI;nbd++){                      // recherche des memDet utilisant la remote
-        if(remoteT[nbd].num==nbr+1){                              // remote courante ?
-          if(remoteT[nbd].peri!=0 && remoteT[nbd].peri<=NBPERIF){ // si peri/sw ok 
-            sser(remoteT[nbd].deten,nou,"pRU2");                         // vérif changement d'état du memDet_enable pour maj memDet et com perif
-            sser((remoteT[nbd].deten)+1,(nou)>>1,"pRU3");                // update memDet_forçage  0 -> 0 ; 1 -> 0 ; 2 -> 1
-            tablePerToSend[(remoteT[nbd].peri)-1]++;              // remoteN[nbr].enable change donc le perif doit être updaté
-            periCur=remoteT[nbd].peri;periLoad(periCur);          // récup periSwCde ; la com perif sera déclenchée par perToSend positionné par sser
-            periSwCdUpdate(remoteT[nbd].sw,nou);
-            periSave(periCur,PERISAVESD);                                   
-          }
-        }
-      }
-      remoteN[nbr].oldenable=nou;
-    }
-  }
-  remoteSave();
-dumpfield((char*)tablePerToSend,NBPERIF);Serial.println();
-}
-*/
-
 void periDetecUpdate(const char* src)                          
 // les actions qui modifient memDetServ (timers/thermos/remotes/modifs manuelles)
 // doivent effectuer periDetecUpdate() qui fait poolperif
 
 {
   uint8_t of=3;                                 // 0 si memDet=1 ou 3 si memDet=0
-  //uint8_t st=0;
-  //uint16_t rfound=0;
   srvdettime=millis();                                        
   
   memset(tablePerToSend,0x00,NBPERIF);          // périphériques !=0 => periReq à faire via pertoSend()
@@ -980,42 +938,10 @@ void periDetecUpdate(const char* src)
       //if((memDetServ&mDSmaskbit[ds])!=0){of=0;st=1;}
       for(uint8_t i=0;i<MDSLEN;i++){if(mds1[i]!=0){of=0;break;}}
       poolperif(tablePerToSend,ds,&onoff[of],src);                    // et si utilisé dans un périf, ajout du périf dans tablePerRoSend
-/*      for(uint8_t nbr=0;nbr<MAXREMLI;nbr++){                          // recherche dans remotes et maj
-        if(remoteT[nbr].num!=0){
-          //Serial.print("     ");Serial.print(nbr);Serial.print(" - ");Serial.print(remoteT[nbr].detec);Serial.print(";");Serial.println(remoteT[nbr].deten);
-          if(remoteT[nbr].detec == ds){remoteN[remoteT[nbr].num-1].onoff =st;rfound++;}   
-          if(remoteT[nbr].deten == ds){                               // si .oldenable -> periSwCde update
-            remoteN[remoteT[nbr].num-1].oldenable=st;rfound++;
-            periCur=remoteT[nbr].peri;periLoad(periCur);periSwCdUpdate(remoteT[nbr].sw,st);periSave(periCur,PERISAVELOCAL);
-          }
-        }
-      }*/
     }
   }
-  //if(rfound!=0){remoteSave();}
 }
 
-/*void remoteUpdate(uint8_t perif,uint8_t sw,uint8_t cd,uint8_t src)    // modif de remoteN.oldenable et (periSwCde ou memDet) selon la provenance ;                                                                       
-{                                                                     // periLoad effectué !
-  for(uint8_t k=0;k<MAXREMLI;k++){
-    if(remoteT[k].peri==perif && remoteT[k].sw==sw){                   // recherche remote concernée
-      remoteN[remoteT[k].num-1].oldenable=cd;                            // update disjoncteur remote
-      if(src==PERILINE){remMemDetUpdate(k,REM_ENABLE);}               // update memDetServ si periline ( memDetServ(remoteT[k].deten) )      
-      if(src==MEMDET){periSwCdUpdate(sw,cd);}                         // update perif si memDet 
-    }
-  }
-  Serial.println();
-}*/
-
-/*
-void checkdate(uint8_t num)                                           // détection des dates invalides (en général défaut de format des messages)
-{
-  if(periLastDateIn[0]==0x66){Serial.print("===>>> date ");Serial.print(num);Serial.print(" HS ");
-    char dateascii[12];
-    unpackDate(dateascii,periLastDateIn);for(j=0;j<12;j++){Serial.print(dateascii[j]);if(j==5){Serial.print(" ");}}Serial.println();
-  }
-}
-*/
 /* ================================ decodage ligne GET/POST ================================ */
 
 void cliWrite(EthernetClient* cli,const char* data)

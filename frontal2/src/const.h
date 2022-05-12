@@ -130,6 +130,8 @@
    1.76 Ajout data_na___ idem data_save_ sans réponse du serveur ; 
    1.77 serverPort devient perifPort ; pilot devient remote 
         création browserPort (ajouté dans fichier config) et browserserver pour browsers ; 
+        révision trigWd() : actif si LEDOFF
+        ajout trigWd() sur date(), mail, messToServer()
 
    BUGS :
         

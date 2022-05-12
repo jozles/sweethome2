@@ -113,6 +113,7 @@ void mail(const char* a, const char* mm)
   
   if(mailEnable){
     
+      trigwd();
       char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
 
       uint32_t bufIp=Ethernet.localIP();
