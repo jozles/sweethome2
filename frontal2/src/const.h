@@ -132,6 +132,8 @@
         création browserPort (ajouté dans fichier config) et browserserver pour browsers ; 
         révision trigWd() : actif si LEDOFF
         ajout trigWd() sur date(), mail, messToServer()
+        correction fonction "swi_______" remplacée par "sw" là où elle apparait
+        mise en service sur run le 24/05/2022
 
    BUGS :
         

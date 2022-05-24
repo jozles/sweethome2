@@ -142,7 +142,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
 
       if(*periProg!=0){
 
-          if(fonct!=nullptr && memcmp(fonct,"swi_______",LENNOM)!=0 && memcmp(fonct,"mds_______",LENNOM)!=0)
+          if(fonct!=nullptr && memcmp(fonct,"sw",2)!=0 && memcmp(fonct,"mds_______",LENNOM)!=0)
           {
           
                 for(int k=0;k<NBPULSE*2;k++){                     // 2 fois 4 compteurs (8*(8+1)bytes) =72
@@ -162,7 +162,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
                 memcpy((message+v1+2*NBPERRULES*PERINPLEN),"_\0",2);
 
                 v1+=2*NBPERRULES*PERINPLEN+1;
-          } // pas swi_______ ni mds_______
+          } // pas swx ni mds_______
           
                 byte byt;
                 for(uint8_t mds=MDSLEN;mds>0;mds--){              // NBDSRV bits memDetServ -> MDSLEN car hexa
@@ -236,7 +236,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     Serial.print(" Ip=");serialPrintIp(periIpAddr);
     Serial.print(" port=");Serial.print(*periPort);Serial.print(") ");
 
-    if(memcmp(nfonct,"mds_______",LENNOM)==0 || memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0 || memcmp(nfonct,"swi_______",LENNOM)==0 ){
+    if(memcmp(nfonct,"mds_______",LENNOM)==0 || memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0 || memcmp(nfonct,"sw",2)==0 ){
         assySet(message,periCur,periDiag(periMess),date14,nfonct);}      // assemblage datas ; ci-après buildMess controle l'ovf
     else if(strlen(msg)<(LENMESS-2)){strcat(message,msg);}
 

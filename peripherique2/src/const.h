@@ -84,7 +84,8 @@
  *     ajout traitement mds_______ (version set_______ sans pulses ni rules)
  * 2.1 swCde stocke l'état du disjoncteur pour 4 switchs et n'est plus modifié par le périphérique
  *     outSw contient ce que outputCtl doit effectuer ; outPutCtl() en 2 étapes pour ouvertures et fermetures
- * 2.2 ajout data_na___ enrichissement debug actions
+ * 2.2 ajout data_na___ (data_save_ sans réponse serveur) 
+ *     enrichissement debug actions ; 
  *  
 Modifier : 
 
