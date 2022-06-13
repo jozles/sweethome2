@@ -268,8 +268,12 @@ void swCtlTableHtml(EthernetClient* cli)
 
 /* affichage/saisie règles */
   
-  scrDspText(buf,jsbuf,"fonctions logiques : la valeur courante et la source produisent la destination et la nlle valeur courante",0,BRYES);
-  scrDspText(buf,jsbuf,"'0' et '1' : forçage destination et valeur courante si source=1 sinon nop",0,BRYES);
+  scrDspText(buf,jsbuf,"",0,BRYES);
+  scrDspText(buf,jsbuf,"quand la condition d'état est remplie, la suite s'exécute",0,BRYES);
+  scrDspText(buf,jsbuf,"fonctions logiques,'0','1' : si la source est 1 la fonction s'exécute ",0,BRYES);
+  scrDspText(buf,jsbuf,"la valeur courante et la destination produisent la destination et la nlle valeur courante",0,BRYES);
+  
+  scrDspText(buf,jsbuf," 'FORCE' force la source dans la destination et la valeur courante",0,BRYES);
   scrDspText(buf,jsbuf,"      (si static/high et srce/dest ident : 0 force 0 ; si static/low et srce/dest ident : 1 force 1)",0,BRYES);
   
   scrDspText(buf,jsbuf,"pulses     : Si la source est 1, exécution de la fonction ; valeur courante inchangée",0,BRYES);

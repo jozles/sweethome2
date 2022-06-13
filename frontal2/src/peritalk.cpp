@@ -307,6 +307,7 @@ int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphéri
   //Serial.print("\n a0=");Serial.println(millis());
   buildMess(nfonct,message,"\0");                           // bufServer complété 
   strcat(bufServer,"</body>");
+  //Serial.println(bufServer);
           if(*periProtocol=='T'){
             cli->write(bufServer);
             //Serial.print(" a1=");Serial.println(millis());

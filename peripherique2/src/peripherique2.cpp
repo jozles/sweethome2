@@ -116,6 +116,7 @@ bool serverStarted=false;
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
   uint8_t outSw=0;                            // image mémoire des switchs (1 bit par switch)
+  uint8_t old_outSw=0x0F;                     // pour debug outSw
   #define OUTPUTDLY 250                       // délai mini pour décolage et ouverture relai fermé
   unsigned long outPutDly=millis();           // tempo après ouverture relais avant fermeture
 
@@ -643,6 +644,7 @@ if(diags){Serial.println(" dataTransfer() ");}
             conv_atoh((data+posMds+k*2),(byte*)(cstRec.extDetec+mdsl-1-k));
           }   
 
+          Serial.print("==");Serial.print((char*)data+posMds+mdsl*2+1);Serial.print(' ');Serial.println(sizeRead);
           cstRec.periPort=(uint16_t)convStrToNum(data+posMds+mdsl*2+1,&sizeRead); // port server
           
           #ifdef _SERVER_MODE
@@ -744,7 +746,8 @@ int buildReadSave(const char* nomFonction,const char* data)   // construit et en
 
   buildData(nomFonction,data);
   
-  showBS(bufServer);
+  if(diags){//showBS(bufServer);
+  }
 
 //cntMTS++;if(cntMTS>3){memcpy(textFrontalIp,"192.168.1.1",LSRVTEXTIP);} 
 // frontal devient inaccessible ce qui permet de tester l'interruption de messToServer par un ordreExt()
@@ -1151,7 +1154,8 @@ void outputCtl()            // cstRec.swCde contient 4 paires de bits disjoncteu
                             // car l'éventuelle remote mère multiple est prise en compte dans disjValue() de frontal2)
                             // les ouvertures de switchs sont prioritaires.
                             // après une ouverture, un délai est respecté avant les fermetures pour assurer un non recoouvrement
-{                           
+{
+    if(diags){if(outSw!=old_outSw){Serial.print("outputCtl() ; outSw=");Serial.println(outSw);old_outSw=outSw;}}
     bool isOpenSw=false;
       for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à ouvrir
         if(!((((cstRec.swCde>>(sw*2))&0x03)==2) ||(((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){
