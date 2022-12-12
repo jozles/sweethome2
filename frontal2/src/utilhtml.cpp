@@ -817,7 +817,7 @@ void scrGetNum(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfon
     concatn(buf,dec);
 //  }
 
-  strcat(buf,"\" pattern=\"[");
+  strcat(buf,"\" pattern=\"[-]{0-1}[");
   if(dec!=0){strcat(buf,".,");}strcat(buf,"0-9]{1,");
   if(len!=0){concatn(buf,jsbuf,len);}else{strcat(buf,"9");}               // len
   strcat(buf,"}\">");

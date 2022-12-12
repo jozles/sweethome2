@@ -130,10 +130,12 @@
    1.76 Ajout data_na___ idem data_save_ sans réponse du serveur ; 
    1.77 serverPort devient perifPort ; pilot devient remote 
         création browserPort (ajouté dans fichier config) et browserserver pour browsers ; 
+        bug : parfois les requêtes browser ne sont plus traitées...
         révision trigWd() : actif si LEDOFF
         ajout trigWd() sur date(), mail, messToServer()
         correction fonction "swi_______" remplacée par "sw" là où elle apparait
         mise en service sur run le 24/05/2022
+   1.78 modif pattern saisie offset température valeurs négatives ;  
 
    BUGS :
         

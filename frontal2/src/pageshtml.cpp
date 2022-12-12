@@ -177,6 +177,7 @@ void htmlFavicon(EthernetClient* cli)
 
 void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,uint16_t* lb)   // liste le fichier histo depuis une adresse
 {
+  scrDspNum(buf,jsbuf,'l',&histoPeri,0,0,0);affSpace(buf,jsbuf);
   scrDspNum(buf,jsbuf,'l',&pos,0,0,0);scrDspText(buf,jsbuf,"/",0,STRING|CONCAT|TDBEG);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,BRYES);
   strcat(buf,"\n");
 

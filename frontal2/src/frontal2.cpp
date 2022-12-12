@@ -2007,7 +2007,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           switch(what){                                           
             case 0: break;                                                
             case 1: periMess=periAns(cli,"ack_______");break;            // data_save
-            case 2: if(ab=='c'){periTableHtml(cli);}                     // peritable suite à login
+            case 2: 
+            Serial.print("ab=");Serial.println(ab);
+            if(ab=='c'){periTableHtml(cli);}                     // peritable suite à login
                     if(ab=='b'){remoteHtml(cli);}                        // remote    suite à login
                     break;
             case 3: periMess=periAns(cli,"set_______");break;            // data_read
