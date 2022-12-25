@@ -61,7 +61,7 @@ v1.a
 
 //#define NOCONFSER
   
-  #define NRF_MODE 'C'            //  P périphérique
+  #define NRF_MODE 'P'            //  P périphérique
   //#define NRF_MODE 'C'            //  C concentrateur  
 /* !!!!!! changer de platformio.ini selon le NRF_MODE ('C'=due ou stm32 ; 'P' =328 !!!!! */
 
@@ -83,7 +83,7 @@ v1.a
 
 #if NRF_MODE == 'C'
   //#define DUE                   // DUE OU STM32... provient de platformio.ini
-  #define LED        PINLED     // 3 sur proto          
+  #define PLED        PINLED     // 3 sur proto          
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
   #define PORT_PP    7          // pin pour pulse de debug analyseur logique (macro PP4)
@@ -101,7 +101,7 @@ v1.a
 
 #ifdef DETS
 // led
-  #define LED         PINLED
+  #define PLED         PINLED
 // NRF
   #define PORT_CSN    PORTB
   #define DDR_CSN     DDRB
@@ -172,7 +172,7 @@ v1.a
   #define A2ADMUXVAL  0 | (1<<REFS1) | (1<<REFS0) | A2CHECKADC     // internal 1,1V ref + ADC input for volts
 #endif // def DETS
 #ifndef DETS                      // params douteux
-  #define LED        PINLED
+  #define PLED        PINLED
   #define CSN_PIN    10
   #define CE_PIN     9
   #define VFACTOR 0.009           // volts conversion 3,9K+33K

@@ -312,7 +312,7 @@ void setup() {
   //Serial.print(" PP=");Serial.print(PP);
   Serial.print(" ");Serial.print(TXRX_MODE);Serial.print(" ");
 
-  pinMode(LED,OUTPUT);
+  pinMode(PLED,OUTPUT);
 #ifdef REDV1
   pinMode(POWCD,OUTPUT);                // power ON shield
   digitalWrite(POWCD,POWON);
@@ -408,9 +408,9 @@ void loop() {
 
   /* usefull awake or retry */
   ini_t_on();
-  digitalWrite(LED,HIGH);
+  digitalWrite(PLED,HIGH);
   getVolts();                                 // 1.2 mS include notDS18X20 thermo reading and low voltage check (not blocking)                                   
-  digitalWrite(LED,LOW);
+  digitalWrite(PLED,LOW);
   readTemp();                                 // only for DS18X20
   awakeCnt=aw_ok;
 
@@ -940,8 +940,8 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
     sprintf(bufCv,"%ld",(time_end - time_beg));
     strcat(diagMessR,bufCv);
     strcat(diagMessR,"uS");
-  #endif // NRF_MODE=='C'
   }
+  #endif // NRF_MODE=='C'
   return rdSta;
 }
 
@@ -1085,12 +1085,12 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
 {
   while(dly>0){
     for(int i=0;i<bnb;i++){
-      digitalWrite(LED,HIGH);
-      pinMode(LED,OUTPUT);
+      digitalWrite(PLED,HIGH);
+      pinMode(PLED,OUTPUT);
       if(dur<DLYSTP){delay(dur);}       // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
                                         // for 32mS sleep, power saving is greater than 90%
       else {sleepDly(dur);}
-      digitalWrite(LED,LOW);
+      digitalWrite(PLED,LOW);
       if(bint!=0){sleepDly(bint);}    // 1 blink doesnt need bint
       dly-=(dur+bint);
     }
@@ -1116,9 +1116,9 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,unsigned long dly)
 void ledblk(int dur,int bdelay,int bint,uint8_t bnb)
 {   // dur = durée on ; bdelay = delay entre séquences ; bint = intervalle entre blinks ; bnb = nbre blinks
   if((millis()-blktime)>blkdelay){
-    if(digitalRead(LED)==LOW){
-      digitalWrite(LED,HIGH);blkdelay=dur;}
-    else{digitalWrite(LED,LOW);
+    if(digitalRead(PLED)==LOW){
+      digitalWrite(PLED,HIGH);blkdelay=dur;}
+    else{digitalWrite(PLED,LOW);
       if(bcnt<bnb){blkdelay=bint;bcnt++;}
       else{blkdelay=bdelay;bcnt=1;}}
     blktime=millis();
@@ -1127,10 +1127,10 @@ void ledblk(int dur,int bdelay,int bint,uint8_t bnb)
 
 void led(unsigned long dur)
 {
-  digitalWrite(LED,HIGH);
-  pinMode(LED,OUTPUT);
+  digitalWrite(PLED,HIGH);
+  pinMode(PLED,OUTPUT);
   delayMicroseconds(dur);
-  digitalWrite(LED,LOW);
+  digitalWrite(PLED,LOW);
 }
 
 void diagT(char* texte,int duree)
