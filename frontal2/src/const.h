@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".77"
+#define NVERS ".79"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -135,7 +135,8 @@
         ajout trigWd() sur date(), mail, messToServer()
         correction fonction "swi_______" remplacée par "sw" là où elle apparait
         mise en service sur run le 24/05/2022
-   1.78 modif pattern saisie offset température valeurs négatives ;  
+   1.78 modif pattern saisie offset température valeurs négatives ;
+   1.79 correction indexation check box jours des timers  
 
    BUGS :
         
@@ -348,7 +349,7 @@ struct Remote             // liste des remotes
 #define NBTIMERS     16
 #define LENTIMNAM    16
 #define TIMERSNFNAME "NOMS_TIM"
-#define NBCBTIM      4   // nbre check box (hors dw)   
+#define NBCBTIM      3   // nbre check box (hors dw)   
 
 struct Timers
 {
