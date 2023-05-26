@@ -2152,7 +2152,7 @@ void browserServer()
 {
   ab='c';
 
-  cli_c.stop();
+  //cli_c.stop(); normalement déjà effectué dans commonserver
   if(cli_c = browserserv->available())      // attente d'un client browser sur port remote
   {
     getremote_IP(&cli_c,remote_IP,remote_MAC);      
@@ -2168,7 +2168,7 @@ void remoteServer()
 {
   ab='b';
 
-  cli_b.stop();
+  //cli_b.stop(); normalement déjà effectué dans commonserver
   if(cli_b = remoteserv->available())      // attente d'un client browser sur port remote
   {
     getremote_IP(&cli_b,remote_IP,remote_MAC);      

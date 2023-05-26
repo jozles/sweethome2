@@ -1148,12 +1148,12 @@ void readAnalog()
 
 /* Output control -------------------- */
 
-void outputCtl()            // cstRec.swCde contient 4 paires de bits disjoncteurs 0=DISJ ; 1=ON ; 2 FORCE
-                            // le résultat des règles dans outSw encodé selon la carte openSW/cloSw
-                            // (la valeur contenue dans swCde n'est pas forcément identique au contenu du périf dans periTable
-                            // car l'éventuelle remote mère multiple est prise en compte dans disjValue() de frontal2)
-                            // les ouvertures de switchs sont prioritaires.
-                            // après une ouverture, un délai est respecté avant les fermetures pour assurer un non recoouvrement
+void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0=DISJ ; 1=ON ; 2 FORCE
+                        // le résultat des règles dans outSw encodé selon la carte openSW/cloSw
+                        // (la valeur contenue dans swCde n'est pas forcément identique au contenu du périf dans periTable
+                        // car l'éventuelle remote mère multiple est prise en compte dans disjValue() de frontal2)
+                        // les ouvertures de switchs sont prioritaires.
+                        // après une ouverture, un délai est respecté avant les fermetures pour assurer un non recouvrement
 {
     if(diags){if(outSw!=old_outSw){Serial.print("outputCtl() ; outSw=");Serial.println(outSw);old_outSw=outSw;}}
     bool isOpenSw=false;

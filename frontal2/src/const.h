@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".79"
+#define NVERS ".7a"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -118,7 +118,8 @@
         révision codage fonctions de periLine. cli.stop() pour les connexions navigateur.
         ajouts variables dans structures remote pour remotes multiples
         periSwCde() devient periSwRead() (réutilisation periSwCde pour remplacer periSwVal dans version 1.74)
-   1.74 periSwVal devient periSwCde : 2 bits par switch codent 0,1,2 disjoncté,on,forçé 
+   1.74 periSwVal devient periSwCde : 2 bits par switch codent 0,1,2 disjoncté,on,forçé
+        (la représentation D/F/enable disparait dans les detserv et libère de l'espace)
         ajout periSwSta qui reçoit l'état de la sortie des switchs (anciennement dans periSwVal)
         tous les boutons de remotes deviennent des fonctions
         remoteN.deten inutilisé ; remoteN.enable = valeur disjoncteur si remote multiple
@@ -136,7 +137,8 @@
         correction fonction "swi_______" remplacée par "sw" là où elle apparait
         mise en service sur run le 24/05/2022
    1.78 modif pattern saisie offset température valeurs négatives ;
-   1.79 correction indexation check box jours des timers  
+   1.79 correction indexation check box jours des timers 
+   1.7a tentative de debug blocage browser sans réponse 
 
    BUGS :
         

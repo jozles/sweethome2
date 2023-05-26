@@ -57,8 +57,8 @@ extern Capat capaKeys;
 
 #if POWER_MODE==NO_MODE
 
-extern uint32_t locmem;        // mémoire = valeurs locales pour partiels
-extern uint8_t outSw;
+extern uint32_t locmem;         // mémoire = valeurs locales pour partiels
+extern uint8_t outSw;           // état à appliquer aux switchs (produit par "actions()")
 
 extern constantValues cstRec;
 
@@ -92,10 +92,13 @@ byte oldCstCde; // memo swCde pour debug
 
   switchs :
 
-  les switchs sont actionnés par polling de la table des règles via actions()
-  pinSw[] est la table les pins associés aux switchs
+  (pinSw[] est la table des pins associés aux switchs)
+  la table des règles est pollée via actions() maxi NBPERRULES(48) règles
+  (l'état du disjoncteur du switch (forcé,enable,coupé) est appliqué au résultat dans outputCtl())
+  outSW reçoit les résultats de tous les switchs (1 bit par switch)
+  (la variable mskSw limite à 4 le nombre de switchs)
+  (le flag DEBUG_ACTIONS permet de suivre l'évolution et le résultat du polling)
 
-  dans la limite du nombre disponibles (24) une règle peut comporter autant d'actions que désiré
   elles sont exécutées dans l'ordre ce qui a un effet sur le résultat !
   via la source/destination "mémoire" le résultat d'une action peut être la source d'une autre
   les positions de "mémoire" sont le résultat des opérations logiques effectuées par les actions
@@ -158,8 +161,6 @@ byte oldCstCde; // memo swCde pour debug
     comptage  (RUN)  suite à une action START, RUN1 si compteur 1 en cours, RUN2 si compteur 2
     fin       (END)  lorsque le comptage d'une phase est terminé et que la phase suivante est débranchée 
   staPulse est mis à jour par isrPulse() et est modifiable par les actions
-
-
 
 */
 
