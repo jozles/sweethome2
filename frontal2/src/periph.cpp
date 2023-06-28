@@ -1825,6 +1825,8 @@ void timersPrint()
     Serial.print(timersN[nt].hdeb);Serial.print(" ");Serial.print(timersN[nt].hfin);Serial.print(" ");
     for(int nd=7;nd>=0;nd--){Serial.print((char)(((timersN[nt].dw>>nd)&0x01)+48));}Serial.print(" "); // 0=tous 1-7
     Serial.print(timersN[nt].dhdebcycle);Serial.print(" ");Serial.println(timersN[nt].dhfincycle);
+    Serial.print("last :");Serial.print(timersN[nt].dhLastStart);Serial.print(" ");Serial.print(timersN[nt].dhLastStop);
+    Serial.print(" periode :");Serial.print(timersN[nt].dayPeriode);Serial.print(" ");Serial.println(timersN[nt].timePeriode);
   }
 }
 
@@ -1833,7 +1835,9 @@ void timersInit()
   memset(timersN,0x00,timersNlen);
   for(int nt=0;nt<NBTIMERS;nt++){
     memset(timersN[nt].dhdebcycle,'0',16);
-    memset(timersN[nt].dhfincycle,'9',16); 
+    memset(timersN[nt].dhfincycle,'9',16);
+    memset(timersN[nt].dhLastStart,'0',16); 
+    memset(timersN[nt].dhLastStop,'0',16);
   }
   
 /*  for(uint8_t nt=0;nt<NBTIMERS;nt++){  
@@ -1877,8 +1881,25 @@ int timersConvert()
     Serial.print("Load timers   ");
     if(sdOpen(TIMERSNFNAME,&ftimers)==SDKO){Serial.println(" KO");return SDKO;}
     ftimers.seek(0);
-    for(uint16_t i=0;i<(sizeof(Timers)*8);i++){*(timersNA+i)=ftimers.read();}             
+    for(uint8_t i=0;i<NBTIMERS;i++){
+      for(uint16_t j=0;j<sizeof(TimersOld);j++){
+        *(timersNA+i*sizeof(Timers)+j)=ftimers.read();}
+      memset(timersN[i].dhLastStart,'0',16);
+      memset(timersN[i].dhLastStop,'0',16);
+      timersN[i].dayPeriode=0;
+      memset(timersN[i].timePeriode,'0',7);
+      if(i>7){
+        memcpy(timersN[i].dhdebcycle,timersN[7].dhdebcycle,16);
+        memcpy(timersN[i].dhfincycle,timersN[7].dhfincycle,16);
+      }
+    }
     ftimers.close();Serial.println(" OK");
+
+    Serial.println("check");timersPrint();
+    Serial.print("ok=CR ");
+    char inp=' ';while(inp==' '){if(Serial.available()){inp=Serial.read();if(inp!=13){inp=' ';}}}
+    Serial.println();
+    //while(1){};
 
     ftimers.remove();    
 

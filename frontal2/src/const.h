@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".7a"
+#define NVERS ".7b"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -139,6 +139,8 @@
    1.78 modif pattern saisie offset température valeurs négatives ;
    1.79 correction indexation check box jours des timers 
    1.7a tentative de debug blocage browser sans réponse 
+   1.7b ajout date/heure dernier évènement + période dans timers
+          (reste à faire la maj de lastStart/lastStop et la prise en compte de la période)
 
    BUGS :
         
@@ -353,6 +355,22 @@ struct Remote             // liste des remotes
 #define TIMERSNFNAME "NOMS_TIM"
 #define NBCBTIM      3   // nbre check box (hors dw)   
 
+struct TimersOld
+{
+  uint8_t detec;         // numéro détecteur associé --- plusieurs timers possibles pour un détecteur ; voir le forçage
+  char    nom[LENTIMNAM];// nom
+  char    hdeb[7];       // heure début
+  char    hfin[7];       // heure fin
+  bool    perm;          // permanent (pas de test sur deb/fin cycle ni cyclic)
+  bool    cyclic;        // cyclique/one time (si one time disable en fin de cycle)
+  bool    enable;        //
+  bool    curstate;      // etat courant du timer
+  bool    forceonoff;    // inutilisé devrait être "action" (OR/NOR/XOR/AND)
+  byte    dw;            // jours semaine xyyyyyyyy ; x si tout
+  char    dhdebcycle[16];
+  char    dhfincycle[16];
+};
+
 struct Timers
 {
   uint8_t detec;         // numéro détecteur associé --- plusieurs timers possibles pour un détecteur ; voir le forçage
@@ -367,6 +385,10 @@ struct Timers
   byte    dw;            // jours semaine xyyyyyyyy ; x si tout
   char    dhdebcycle[16];
   char    dhfincycle[16];
+  char    dhLastStart[16];
+  char    dhLastStop[16];
+  uint16_t dayPeriode;   // nbre jours depuis last avant enable
+  char    timePeriode[7];// temps depuis last avant enable ; la période est la somme day+time   
 };
 
 #define NBTHERMOS  NBPERIF

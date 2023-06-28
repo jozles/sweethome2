@@ -1372,7 +1372,7 @@ Serial.print(" config timers ");
   detServHtml(cli,buf,jsbuf,&lb,lb0,memDetServ,&libDetServ[0][0]);
 
   tableBeg(buf,jsbuf,0);
-  scrDspText(buf,jsbuf,"|nom|det|h_beg|h_end|OI det|e_p_c_|7_d_ l_m_m_ j_v_s|dh_beg_cycle|dh_end_cycle",0,TRBE|TDBE);
+  scrDspText(buf,jsbuf,"|nom|det|h_beg|h_end|D_per|T_per|OI det|e_p_c_|7_d_ l_m_m_ j_v_s|dh_beg_cycle|dh_end_cycle|dh_last_start|dh_last_stop",0,TRBE|TDBE);
 
   for(uint8_t nt=0;nt<NBTIMERS;nt++){
     formIntro(buf,jsbuf,0,TRBEG|TDBEG);
@@ -1385,6 +1385,8 @@ Serial.print(" config timers ");
     sscfgtB(buf,jsbuf,"tim_det__",nt,&timersN[nt].detec,2,3,TDBE);                                            
     sscfgtB(buf,jsbuf,"tim_hdf_d",nt,timersN[nt].hdeb,6,0,TDBE);                                            
     sscfgtB(buf,jsbuf,"tim_hdf_f",nt,timersN[nt].hfin,6,0,TDBE);                   
+    sscfgtB(buf,jsbuf,"tim_hdf_p",nt,&timersN[nt].dayPeriode,3,3,TDBE);                   
+    sscfgtB(buf,jsbuf,"tim_hdf_P",nt,timersN[nt].timePeriode,6,0,TDBE);                   
                     
     char oo[7];memset(oo,'_',6);oo[6]=0x00;
     char oi[]="OI";  
@@ -1409,7 +1411,10 @@ Serial.print(" config timers ");
     }
                     
     sscfgtB(buf,jsbuf,"tim_hdf_b",nt,&timersN[nt].dhdebcycle,14,0,TDBE);
-    sscfgtB(buf,jsbuf,"tim_hdf_e",nt,&timersN[nt].dhfincycle,14,0,TDBE); 
+    sscfgtB(buf,jsbuf,"tim_hdf_e",nt,&timersN[nt].dhfincycle,14,0,TDBE);
+    sscfgtB(buf,jsbuf,"tim_hdf_s",nt,&timersN[nt].dhLastStart,14,0,TDBE);
+    sscfgtB(buf,jsbuf,"tim_hdf_S",nt,&timersN[nt].dhLastStop,14,0,TDBE); 
+
     scrGetButSub(buf,jsbuf,"MàJ",TDBE);
 
     formEnd(buf,jsbuf,0,TDEND|TREND);

@@ -321,6 +321,10 @@ struct Timers timersN[NBTIMERS];
 char*  timersNA=(char*)&timersN;
 unsigned long   timersNlen=(sizeof(Timers))*NBTIMERS;
 
+//struct TimersOld timersN_Old[NBTIMERS];
+//char*  timersNA=(char*)&timersN;
+//unsigned long   timersNlen=(sizeof(Timers))*NBTIMERS;
+
 struct Thermo thermos[NBTHERMOS];
 char*  thermosA=(char*)&thermos;
 unsigned long   thermoslen=(sizeof(Thermo))*NBTHERMOS;
@@ -540,6 +544,7 @@ void setup() {                          // ====================================
   remoteLoad();//periSwSync();
   //timersConvert();                // chgt du nombre de timers
   timersLoad();
+  //timersConvert();
   //thermosInit();thermosSave();    // si NBPERIF change
   thermosLoad();
   //memosInit();memosSave(-1);  
@@ -872,6 +877,7 @@ void scanTimers()                                             //   recherche tim
           {                                                         // si timer déclenché
           if(timersN[nt].curstate!=1){                              // et état précédent 0, chgt->1
             timersN[nt].curstate=1;
+            //timersN[nt].dhLastStart;                              // mise à jour lastStart
             uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] |= mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
             //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
             //memDetServ |= mDSmaskbit[timersN[nt].detec];
@@ -881,6 +887,7 @@ void scanTimers()                                             //   recherche tim
         else {                                                      // si timer pas déclenché
           if(timersN[nt].curstate!=0){                              // et état précédent 1, chgt->0
             timersN[nt].curstate=0;
+            //timersN[nt].dhLastStop;                               // mise à jour lastStop            
             uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
             //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
             //memDetServ &= ~mDSmaskbit[timersN[nt].detec];     // maj détecteur
@@ -1922,8 +1929,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           switch (*(libfonctions+2*i)){         
                             case 'd':textfonc(timersN[nb].hdeb,6);break;
                             case 'f':textfonc(timersN[nb].hfin,6);break;
+                            case 'p':timersN[nb].dayPeriode=0;
+                                     timersN[nb].dayPeriode=convStrToInt(valf,&j);break;
+                            case 'P':textfonc(timersN[nb].timePeriode,6);break;
                             case 'b':textfonc(timersN[nb].dhdebcycle,14);break;
                             case 'e':textfonc(timersN[nb].dhfincycle,14);break;
+                            case 's':textfonc(timersN[nb].dhLastStart,14);break;
+                            case 'S':textfonc(timersN[nb].dhLastStop,14);break;
                             default:break;
                           } 
                         }break;
