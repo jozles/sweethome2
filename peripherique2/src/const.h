@@ -7,7 +7,7 @@
 // !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
 
 
-#define VERSION "2.2_"
+#define VERSION "2.4_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -83,9 +83,13 @@
  *     ordreExt directement intégré à la boucle d'attente (temps : 36 to peri ; 3 rcv+answer ; 4,5 to frontal)
  *     ajout traitement mds_______ (version set_______ sans pulses ni rules)
  * 2.1 swCde stocke l'état du disjoncteur pour 4 switchs et n'est plus modifié par le périphérique
+ *     (le disjoncteur est codé sur 2 bits ; la représentation D/F/enable disparait dans les detserv et libère de l'espace)
  *     outSw contient ce que outputCtl doit effectuer ; outPutCtl() en 2 étapes pour ouvertures et fermetures
  * 2.2 ajout data_na___ (data_save_ sans réponse serveur) 
- *     enrichissement debug actions ; 
+ *     enrichissement debug actions ;
+ * 2.3 les emails fonctionnent de nouveau 
+ *     (utilisation du mot de passe spécial de google - voir OneNote "mot de passe pour smtp gmail" ) 
+ * 2.4 ajout esp8285 et hard sonoff
  *  
 Modifier : 
 
@@ -218,7 +222,8 @@ Modifier :
 
 #define VR      'V'  // 2 triacs
 #define VRR     'W'  // 2 relais
-#define VRDEV   'D'  // carte dev avec 2 leds 
+#define VRDEV   'D'  // carte dev avec 2 leds
+#define SFRFR2  'S'  // carte sonoff_rf_r2 
 //#define RELAY   
 #define THESP01 '1'
 #define THESP12 '2'
@@ -230,7 +235,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRR             // <------------- modèle carte
+#define CARTE SFRFR2            // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation 
 //#define PININT_MODE             // <------------- avec/sans pin d'interruption
 
@@ -291,6 +296,9 @@ Modifier :
 
 #if CARTE==VR
 
+#define PINLED 0
+#define LEDON LOW
+#define LEDOFF HIGH
 #ifndef RELAY
 #define PINXB 5
 #define PINXDT 13
@@ -309,7 +317,7 @@ Modifier :
 #define PINSWB PINXB    // pin sortie switch B (interrupteur)
 #define CLOSB  HIGH     // triac ON sortie haute
 #define OPENB  LOW      // triac OFF
-#define PINSWC PINSWB   // pin sortie switch C
+#define PINSWC PINSWB   // pin sortie switch C 
 #define CLOSC  CLOSA    
 #define OPENC  OPENA
 #define PINSWD 2        // pin sortie switch D
@@ -330,6 +338,9 @@ Modifier :
 
 #if CARTE==VRR
 
+#define PINLED 0
+#define LEDON LOW
+#define LEDOFF HIGH
 #define MAIL_SENDER
 #define PINXDT 13
 #define WPIN   2        // 1 wire ds1820
@@ -369,7 +380,45 @@ Modifier :
 #endif // CAPATOUCH
 #endif // CARTE==VRR
 
+#if CARTE==SFRFR2
+
+#define PINLED 13
+#define LEDON LOW
+#define LEDOFF HIGH
+#define MAIL_SENDER
+//#define PINXDT 13
+#define WPIN   2        // 1 wire ds1820
+#define NBSW   1        // nbre switchs
+#define PINSWA 12       // pin sortie switch A
+#define CLOSA  HIGH     // relais ON
+#define OPENA  LOW      // relais off
+#define PINSWB 4   // pin sortie switch B
+#define CLOSB  CLOSA    // relais ON sortie haute
+#define OPENB  OPENA    // relais OFF
+#define PINSWC 4   // pin sortie switch C
+#define CLOSC  CLOSA    
+#define OPENC  OPENA
+#define PINSWD 4   // pin sortie switch D
+#define CLOSD  CLOSA    
+#define OPEND  OPENA
+#define NBDET  1        //  3 det et non 4
+#define PINDTA 0        // pin entrée détect bit 0 
+#define PINDTB PINDTA   // pin entrée détect bit 1 
+#define PINDTC PINDTA   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
+#define PINDTD PINDTA   // pin entrée détect bit 3  sur la même entrée. --> génère un bug dans le traitement des règles (2 det changent au lieu d'un)
+//#define PININTA 12      // in interupt
+//#define PININTB 14      // in interupt
+//#define PININTC PINXDT  // in interupt
+#define MEMDINIT 0x1111 // bits enable
+//#define PINPOFF 3       // power off TPL5111 (RX ESP01)
+#define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#endif // CARTE==SFRFR2
+
+
 #if CARTE==THESP01
+#define PINLED 0
+#define LEDON LOW
+#define LEDOFF HIGH
 #define WPIN   2        // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
 #define NBSW   0        // nbre switchs
 #define PINSWA 5        // pin sortie switch A
@@ -397,6 +446,9 @@ Modifier :
 #endif // CARTE==THESP01
 
 #if CARTE==THESP12
+#define PINLED 0
+#define LEDON LOW
+#define LEDOFF HIGH
 #define WPIN   4        // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
 #define NBSW   2        // nbre switchs
 #define PINSWA 5        // pin sortie switch A
@@ -423,6 +475,9 @@ Modifier :
 #endif // CARTE==THESP12
 
 #if CARTE==VRDEV
+#define PINLED 0
+#define LEDON LOW
+#define LEDOFF HIGH
 #define MAIL_SENDER
 #define WPIN   4        // ESP01=GPIO2 ; ESP12=GPIO4 ... 1 wire ds1820
 #define NBSW   2        // nbre switchs

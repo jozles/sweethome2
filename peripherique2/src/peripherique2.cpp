@@ -12,7 +12,7 @@
 
 #ifdef MAIL_SENDER
 #include <EMailSender.h>                            // STORAGE_SD doit etre "ndef"
-EMailSender emailSend("lucieliu66", "eicul666");
+EMailSender emailSend("alain66p@gmail.com", "uuunclajxtrabnpj");
 EMailSender::EMailMessage message;
 #endif //MAIL_SENDER
 
@@ -236,9 +236,9 @@ delay(1);
     capaKeys.calibrate();
 #endif    
 
-  initLed();
+  initLed(PINLED,LEDOFF,LEDON);
 
-#if CARTE==VR || CARTE==VRR || CARTE==VRDEV
+#if CARTE==VR || CARTE==VRR || CARTE==VRDEV || CARTE==SFRFR2
   for(uint8_t sw=0;sw<MAXSW;sw++){
     digitalWrite(pinSw[sw],openSw[sw]);
     pinMode(pinSw[sw],OUTPUT);}
@@ -402,6 +402,7 @@ initConstant();             // à supprimer en production
   pinMode(ANPIN1,OUTPUT);
   pinMode(ANPIN2,OUTPUT);
 #endif // ANALYZE  
+  clkTime=millis();
   }    // fin setup NO_MODE
 
   void loop(){  //=== NO_MODE =================================      
@@ -438,7 +439,8 @@ initConstant();             // à supprimer en production
   
       ordreExt();
   
-      if(millis()>(clkTime+PERFASTCLK)){        // période 5mS/step
+      if(millis()>(clkTime)){        // période 5mS/step
+        clkTime+=PERFASTCLK;
         switch(clkFastStep++){
 
 /*
@@ -475,7 +477,7 @@ initConstant();             // à supprimer en production
           default:  //if(clkFastStep==0){Serial.print(" cFS0 ");}
           break;
         }
-        clkTime=millis();
+        //clkTime=millis();
       }
   #endif // def_SERVER_MODE  
 
