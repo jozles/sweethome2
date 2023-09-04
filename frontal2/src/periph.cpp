@@ -198,7 +198,7 @@ extern char strdate[33];
 extern char temp[3],temp0[3],humid[3];
 
 extern  char* fonctions;
-extern  int   nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fperitst,ffavicon;
+extern  int   nbfonct,faccueil,fdatasave,fdatana,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fperitst,ffavicon;
 
 /* ---------- configuration ---------- */
 
@@ -401,6 +401,7 @@ byte* temp=(byte*)configRec;
   nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;
   faccueil=(strstr(fonctions,"accueil___")-fonctions)/LENNOM;
   fdatasave=(strstr(fonctions,"data_save_")-fonctions)/LENNOM;
+  fdatana=(strstr(fonctions,"data_na___")-fonctions)/LENNOM;
   fperiSwVal=(strstr(fonctions,"peri_intv0")-fonctions)/LENNOM;
   fdone=(strstr(fonctions,"done______")-fonctions)/LENNOM;
   fpericur=(strstr(fonctions,"peri_cur__")-fonctions)/LENNOM;

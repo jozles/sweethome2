@@ -128,7 +128,7 @@ EthernetServer* remoteserv=nullptr;            // serveur remote
   const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___dispo_____percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmldispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
-  int     nbfonct=0,faccueil=0,fdatasave=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
+  int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
   char    valeurs[LENVALEURS];         // les valeurs associées à chaque fonction trouvée
   uint16_t nvalf[NBVAL];               // offset dans valeurs[] des valeurs trouvées (séparées par '\0')
   char*   valf;                        // pointeur dans valeurs en cours de décodage
@@ -450,7 +450,7 @@ void setup() {                          // ====================================
 
   delay(3000);  // éponge le délai entre la fin de l'upload et le reset du Jlink
   
-  initLed();
+  initLed(PINLED,LEDOFF,LEDON);
   wdEnable=true;trigwd(10000);
 
   SERIALX.begin (115200);               // export config periphériques
@@ -877,6 +877,7 @@ void scanTimers()                                             //   recherche tim
           {                                                         // si timer déclenché
           if(timersN[nt].curstate!=1){                              // et état précédent 0, chgt->1
             timersN[nt].curstate=1;
+            ds3231.alphaNow(timersN[nt].dhLastStart);
             //timersN[nt].dhLastStart;                              // mise à jour lastStart
             uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] |= mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
             //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
@@ -887,6 +888,7 @@ void scanTimers()                                             //   recherche tim
         else {                                                      // si timer pas déclenché
           if(timersN[nt].curstate!=0){                              // et état précédent 1, chgt->0
             timersN[nt].curstate=0;
+            ds3231.alphaNow(timersN[nt].dhLastStop);
             //timersN[nt].dhLastStop;                               // mise à jour lastStop            
             uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
             //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur

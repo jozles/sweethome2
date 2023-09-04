@@ -87,7 +87,7 @@ extern char      bufServer[LBUFSERVER];
 extern char*     chexa;
 
 extern  char*    fonctions;
-extern int       nbfonct,faccueil,fdatasave,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
+extern int       nbfonct,faccueil,fdatasave,fdatana,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
 
 
 void assySet(char* message,int periCur,const char* diag,char* date14,const char* fonct)     
@@ -262,7 +262,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
                 //else {
                   //Serial.println(bufServer);
                   //Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
-                  if(fonct==fdatasave){
+                  if(fonct==fdatasave || fonct==fdatana){
                     memcpy(remote_IP_cur,periIpAddr,4); // remote_IP_cur n'est pas valide ici 
                     periDataRead(bufServer+LENNOM+1);
                     periSave(periCur,PERISAVELOCAL);    // màj cache ... toujours OK (periCur from periDataRead)

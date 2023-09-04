@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".7b"
+#define NVERS ".8 "
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -141,6 +141,8 @@
    1.7a tentative de debug blocage browser sans réponse 
    1.7b ajout date/heure dernier évènement + période dans timers
           (reste à faire la maj de lastStart/lastStop et la prise en compte de la période)
+   1.8  correction periReq : ajout data_na___ pour la mise à jour des données du périf -> allumage/extinction rond jaune; 
+        update initLed() ; maj de lastStart/lastStop des timers ;
 
    BUGS :
         
