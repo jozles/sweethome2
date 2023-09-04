@@ -646,11 +646,11 @@ if(diags){Serial.println(" dataTransfer() ");}
             conv_atoh((data+posMds+k*2),(byte*)(cstRec.extDetec+mdsl-1-k));
           }   
 
-          Serial.print("==");Serial.print((char*)data+posMds+mdsl*2+1);Serial.print(' ');Serial.println(sizeRead);
+          if(diags){Serial.print("==");Serial.print((char*)data+posMds+mdsl*2+1);Serial.print(' ');Serial.println(sizeRead);}
           cstRec.periPort=(uint16_t)convStrToNum(data+posMds+mdsl*2+1,&sizeRead); // port server
           
           #ifdef _SERVER_MODE
-            if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);}
+            if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);Serial.println("newS");}
           #endif
         } // periMess==MESSOK
         if(periMess!=MESSOK){
@@ -955,19 +955,21 @@ void talkClient(char* mess) // réponse à une requête
   if(diags){Serial.print("talk...done (");Serial.print(strlen(mess));Serial.println(')');}            
 }
 
-void showMD()
+void showMD() // display hexa locmem, extDetec, swCde
 {
-  for(uint8_t i=0;i<4;i++){
-    if(*(char*)(&locmem+3-i)<16){Serial.print('0');}Serial.print(*(char*)(&locmem+3-i),HEX);
-    Serial.print(' ');
+  if(diags){
+    for(uint8_t i=0;i<4;i++){
+      if(*(char*)(&locmem+3-i)<16){Serial.print('0');}Serial.print(*(char*)(&locmem+3-i),HEX);
+      Serial.print(' ');
+    }
+    Serial.print("   ");
+    for(uint8_t i=0;i<8;i++){
+      if(cstRec.extDetec[8-i-1]<16){Serial.print('0');}Serial.print(cstRec.extDetec[8-i-1],HEX);
+      Serial.print(' ');
+    }
+    Serial.print(" swCde=");if(cstRec.swCde<16){Serial.print('0');}Serial.print(cstRec.swCde,HEX);Serial.print(' ');
+    Serial.println();
   }
-  Serial.print("   ");
-  for(uint8_t i=0;i<8;i++){
-    if(cstRec.extDetec[8-i-1]<16){Serial.print('0');}Serial.print(cstRec.extDetec[8-i-1],HEX);
-    Serial.print(' ');
-  }
-  Serial.print(" swCde=");if(cstRec.swCde<16){Serial.print('0');}Serial.print(cstRec.swCde,HEX);Serial.print(' ');
-  Serial.println();
 }
 
 void showBS(char* buf)
@@ -994,8 +996,9 @@ void answer(const char* what)
     else {buildMess("done______",what,"\0",diags);}
   }
   
-  showBS(bufServer);
+  if(diags){showBS(bufServer);}
   talkClient(bufServer);
+  Serial.print(' ');Serial.println(millis());
   cliext.stop();
   ledblink(4);                        // connexion réussie 
 #ifdef ANALYZE
@@ -1006,9 +1009,14 @@ void answer(const char* what)
   clkFastStep=0;delay(1);   
 }
 
-void rcvOrdreExt(char* data)
+void rcvOrdreExt(char* data)  
+/*  charge dans les variables locales le message reçu 
+    update pulses, update actions, update sorties
+    renvoie les données du périphérique (dont l'état des switchs)
+    tout doit être effectué avant que waitRefCli() du serveur ne tombe en TO (délai TOFINCHCLI 1sec?)
+*/
 {
-  Serial.println(data);
+  if(diags){Serial.println(data);}
   dataTransfer(data);
   showMD();
   pulseClk();actions();outputCtl();  // récup data,compute rules,exec résultat // 9,2/6,3mS
@@ -1065,6 +1073,7 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
 #ifdef ANALYZE
   RCVEND  // 4,9mS
 #endif
+      Serial.print(' ');Serial.println(millis());
       if(diags){
         Serial.print(" reçu(");Serial.print(hm);Serial.print(")  =");
         Serial.print(strlen(httpMess));Serial.print(" httpMess=");Serial.println(httpMess);}

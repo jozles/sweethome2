@@ -7,7 +7,7 @@
 // !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
 
 
-#define VERSION "2.4_"
+#define VERSION "2.5_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -90,7 +90,8 @@
  * 2.3 les emails fonctionnent de nouveau 
  *     (utilisation du mot de passe spécial de google - voir OneNote "mot de passe pour smtp gmail" ) 
  * 2.4 ajout esp8285 et hard sonoff
- *  
+ * 2.5 divers messages Serial passés dans diags pour accélération réponse ordrext()
+ *   
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
