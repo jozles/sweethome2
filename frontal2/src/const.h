@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8 "
+#define NVERS ".80"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 

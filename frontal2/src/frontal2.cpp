@@ -39,9 +39,11 @@ uint8_t chaine[16+1]={0}; // chaine à encrypter/décrypter ---> void xcrypt()
 extern "C" {
  #include "utility/w5100.h"
 }
-#define MAXTPS 3                    // nbre instances pour TCP
-
-  EthernetClient cli_a[MAXTPS];     // instances serveur de periphériques et browser configuration
+#define MAXTPS 3                    // nbre instances pour TCP périfs 
+                                    // plusieurs permet un .stop() rapide
+                                    // l'envoi de la réponse se fait pendant que le frontal tourne
+                                    // si saturation des instances, .stop() de l'instance en cours
+  EthernetClient cli_a[MAXTPS];     // instances serveur de periphériques 
 
 uint8_t tPS=0;                      // pointeur prochaine instance cli_a à utiliser
 unsigned long tPSStop[MAXTPS];      // heure fin d'usage des instances pour faire .stop()
@@ -49,16 +51,16 @@ char ab;                            // protocole et type de la connexion en cour
                                     // 'a' TCP periTable 'b' TCP remote 'u' UDP
 
 //  EthernetClient cli_a;             // instance serveur de periphériques et browser configuration
-  EthernetClient cli_b;             // instance du serveur pilotage
-  EthernetClient cli_c;             // instance du serveur browser
+  EthernetClient cli_b;             // instance du serveur remote 
+  EthernetClient cli_c;             // instance du serveur config
   EthernetClient cliext;            // instance client serveurs externes  
 
   char udpData[UDPBUFLEN];          // buffer paquets UDP
   uint16_t udpDataLen;              // taille paquet contenu
     
-  extern EthernetUDP Udp;
+  extern EthernetUDP Udp;           // serveur Udp
 
-/* ---------- config server ---------- */
+/* ---------- config frontal ---------- */
 
 char configRec[CONFIGRECLEN];       // enregistrement de config  
 
@@ -66,8 +68,8 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
 
   byte*     mac;              // mac adresse server
   byte*     localIp;          // ip  adresse server
-  uint16_t* perifPort;        // port server
-  uint16_t* browserPort;      // port browser
+  uint16_t* perifPort;        // port perifs
+  uint16_t* browserPort;      // port config
   uint16_t* remotePort;       // port remote
   uint16_t* serverUdpPort;    // port udp
   char*     serverName;       // nom server
@@ -76,13 +78,13 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   char*     passssid;         // liste des password ssid pour peripherique2
   uint8_t*  ssid1;            // n° 1er ssid à essayer pour peripherique2 (1-n)
   uint8_t*  ssid2;            // n° 2nd ssid à essayer pour peripherique2 (1-n)
-  uint8_t*  concMac;          // (table concentrateurs) macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
-  byte*     concIp;           // (table concentrateurs) adresse IP concentrateur
-  uint16_t* concPort;         // (table concentrateurs) port concentrateur
-  uint8_t*  concRx;           // (table concentrateurs) radio Addr length
-  uint16_t* concChannel;      // (table concentrateurs) n° channel nrf utilisé par le concentrateur
-  uint16_t* concRfSpeed;      // (table concentrateurs) RF_Speed concentrateur
-  uint8_t*  concNb;           // numéro de concentrateur pour config concentrateurs et périphériques
+  uint8_t*  concMac;          // (table concentrateurs udp) macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
+  byte*     concIp;           // (table concentrateurs udp) adresse IP concentrateur
+  uint16_t* concPort;         // (table concentrateurs udp) port concentrateur
+  uint8_t*  concRx;           // (table concentrateurs udp) radio Addr length
+  uint16_t* concChannel;      // (table concentrateurs udp) n° channel nrf utilisé par le concentrateur
+  uint16_t* concRfSpeed;      // (table concentrateurs udp) RF_Speed concentrateur
+  uint8_t*  concNb;           // numéro de concentrateur udp pour config concentrateurs udp et périphériques udp
   uint8_t*  concPeriParams;   // peri params 0=keep 1=new
   float*    thFactor;
   float*    thOffset;
@@ -153,7 +155,8 @@ EthernetServer* remoteserv=nullptr;            // serveur remote
   uint16_t      perrefr=0;             // periode rafraichissement de l'affichage
 
   unsigned long lastcxt=0;             // last TCP server connection for watchdog
-  unsigned long lastcxu=0;             // last UDP server connection for watchdog  
+  unsigned long lastcxu=0;             // last UDP server connection for watchdog 
+  unsigned long last_shscksta=0;       // last 'showSocketsStatus()' 
    
 #define WDSD    "W"                    // Watchdog record
 #define TCPWD   "T"                    // TCP watchdog event
@@ -427,6 +430,7 @@ void periDetecUpdate(const char* src);
 void testSwitch(const char* command,char* perihost,int periport);
 void serialServer();
 uint16_t serialRcv(char* rcv,uint16_t maxl);
+void showSocketsStatus();
 
 void yield()
 {
@@ -687,6 +691,7 @@ void watchdog()
 {
   if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("\n>>>>>>>>>>>>>>> TCP cx lost ",*maxCxWt);}
   if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("\n>>>>>>>>>>>>>>> UDP cx lost ",*maxCxWu);}
+  if(millis()-lastcxt>2000 && millis()-lastcxu>2000 && millis()-last_shscksta>3000){last_shscksta=millis();showSocketsStatus();}
 }
 
 void usrReboot()
@@ -2150,7 +2155,7 @@ void tcpPeriServer()
   }
   
   
-  if(cli_a[preTPS] = periserv->available())     // attente d'un client (perif ou browser sur port server)
+  if(cli_a[preTPS] = periserv->available())     // attente d'un client périf
   {
     getremote_IP(&cli_a[preTPS],remote_IP,remote_MAC);  // récupère les coordonnées du serveur DNS ????
     if (cli_a[preTPS].connected()){
@@ -2167,7 +2172,7 @@ void browserServer()
   ab='c';
 
   //cli_c.stop(); normalement déjà effectué dans commonserver
-  if(cli_c = browserserv->available())      // attente d'un client browser sur port remote
+  if(cli_c = browserserv->available())      // attente d'un client browser sur port config
   {
     getremote_IP(&cli_c,remote_IP,remote_MAC);      
     if (cli_c.connected()){
@@ -2273,4 +2278,36 @@ void testUdp()
       else{Serial.println("paquet trop gros...");Udp.flush();}
     }  
   }
+}
+
+void showSocketsStatus()
+{
+  #define MAXSOCKX 8
+	for (uint8_t s=0; s < MAXSOCKX; s++) {
+		uint8_t stat = W5100.readSnSR(s);
+    Serial.print(s);Serial.print('-');Serial.print(stat);
+		switch(stat){
+      case SnSR::CLOSED: Serial.println(" CLOSED");break;
+      case SnSR::LAST_ACK: Serial.println(" LAST_ACK");break;
+      case SnSR::TIME_WAIT: Serial.println(" TIME_WAIT");break;
+      case SnSR::FIN_WAIT: Serial.println(" FIN_WAIT");break;
+		  case SnSR::CLOSING: Serial.println(" CLOSING");break;
+      case SnSR::CLOSE_WAIT: Serial.println(" CLOSE_WAIT");break;
+      case SnSR::LISTEN: Serial.println(" LISTEN");break;
+      case SnSR::ESTABLISHED: Serial.println(" ESTABLISHED... close");W5100.execCmdSn(s, Sock_CLOSE);break;
+      
+      default:Serial.println();break;
+
+/*
+constatations :
+ce ne sont pas tojours les mêmes sockets qui ont le status LISTEN... un nouveau est créé quand une connexion de périf intervient
+(3 serveurs : 1 tcp périfs + 1 browser config + 1 browser remote)
+le nombre d'instances server tcp périfs n'agit pas sur le nombre de sockets en LISTEN 
+il y a un status 34 sur un socket qui est nécessaire au fonctionnement de l'udp (si Sock_CLOSE plantage)
+Après certaines transactions tcp dont toutes celles de browser, 
+malgré le délai depuis tcp et udp pour les appels de showSocketsStatus, il reste un status ESTABLISHED sur le socket qui peut(doit?) étre clos (manquerait un .stop() ?)
+Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (perireq()). Comment ?
+*/      
+    }
+	}
 }
