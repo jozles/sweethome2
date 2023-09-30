@@ -35,10 +35,17 @@ uint8_t key[16]=KEY,iv[16]=IV;
 uint8_t chaine[16+1]={0}; // chaine à encrypter/décrypter ---> void xcrypt()
 #endif // _AVEC_AES
 
-
 extern "C" {
  #include "utility/w5100.h"
 }
+
+#define MAXSV 10
+//char sss[MAX_SOCK_NUM];     //buffer sockets status numérique
+//char sssVal[MAXSV]={SnSR::UDP,SnSR::CLOSED,SnSR::LAST_ACK,SnSR::TIME_WAIT,SnSR::FIN_WAIT,SnSR::CLOSING,SnSR::CLOSE_WAIT,SnSR::LISTEN,SnSR::ESTABLISHED,0};
+//                        // valeurs utiles pour sockets status
+char sssa[MAX_SOCK_NUM+2];  // valeurs alpha pour sockets status
+char sssp[MAX_SOCK_NUM+1];    // valeurs alpha pour sockets ports
+
 #define MAXTPS 3                    // nbre instances pour TCP périfs 
                                     // plusieurs permet un .stop() rapide
                                     // l'envoi de la réponse se fait pendant que le frontal tourne
@@ -118,7 +125,7 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
 
 EthernetServer* periserv=nullptr;             // serveur perif
 EthernetServer* browserserv=nullptr;          // serveur browser
-EthernetServer* remoteserv=nullptr;            // serveur remote
+EthernetServer* remoteserv=nullptr;           // serveur remote
   
   uint8_t   remote_IP[4]={0,0,0,0};           // periserver
   uint8_t   remote_IP_cur[4]={0,0,0,0};       // périphériques periserver
@@ -351,9 +358,9 @@ char   memosTable[LMEMO*NBMEMOS];
  *  Ethernet.maintain() pour renouveler le bail DHCP
  *                                                                                                        
  *  l'objet client est utilisé pour l'accès aux serveurs externes ET l'accès aux clients du serveur interne
- *  EthernetClient nom_client crée les objets clients pour serveur externe ou interne (capacité 4 clients)
+ *  EthernetClient nom_client crée les objets clients pour serveur externe ou interne (capacité 8 clients)
  *                                                                                                          
- *  pour creer/utiliser un serveur : EthernetServer nom_serveur(port) crée l'objet ; 4 serveurs possibles sur 4 ports différents
+ *  pour creer/utiliser un serveur : EthernetServer nom_serveur(port) crée l'objet ; 8 serveurs possibles sur 8 ports différents
  *                                   nom_serveur.begin()  activation
  *                                   connexions des appels entrants : nom_client_in=nom_serveur.available()
  *                                   nom_serveur.write(byte) ou (buf,len) envoie la donnée à tous les clients 
@@ -2280,21 +2287,32 @@ void testUdp()
   }
 }
 
+uint8_t sockindex(uint16_t* port)
+{
+  for (uint8_t i=0; i < MAX_SOCK_NUM; i++) {
+      if (EthernetServer::server_port[i] == *port) {
+			return i;
+    }
+  }
+  return MAX_SOCK_NUM;
+}
+
 void showSocketsStatus()
 {
-  #define MAXSOCKX 8
-	for (uint8_t s=0; s < MAXSOCKX; s++) {
-		uint8_t stat = W5100.readSnSR(s);
-    Serial.print(s);Serial.print('-');Serial.print(stat);
-		switch(stat){
-      case SnSR::CLOSED: Serial.println(" CLOSED");break;
-      case SnSR::LAST_ACK: Serial.println(" LAST_ACK");break;
-      case SnSR::TIME_WAIT: Serial.println(" TIME_WAIT");break;
-      case SnSR::FIN_WAIT: Serial.println(" FIN_WAIT");break;
-		  case SnSR::CLOSING: Serial.println(" CLOSING");break;
-      case SnSR::CLOSE_WAIT: Serial.println(" CLOSE_WAIT");break;
-      case SnSR::LISTEN: Serial.println(" LISTEN");break;
-      case SnSR::ESTABLISHED: Serial.println(" ESTABLISHED... close");W5100.execCmdSn(s, Sock_CLOSE);break;
+  memset(sssa,'_',MAX_SOCK_NUM+1);sssa[MAX_SOCK_NUM+1]=0;
+  memset(sssp,'_',MAX_SOCK_NUM);sssp[MAX_SOCK_NUM]=0;
+	for (uint8_t s=0; s < MAX_SOCK_NUM; s++) {
+    sssa[s]=' ';
+		switch(W5100.readSnSR(s)){
+      case SnSR::CLOSED:  sssa[s]='C';break; 
+      case SnSR::UDP:     sssa[s]='U';break; 
+      case SnSR::LISTEN:  sssa[s]='L';break; 
+      case SnSR::ESTABLISHED: sssa[s]='E';break;
+      case SnSR::LAST_ACK:    sssa[s]='A';break;
+      case SnSR::TIME_WAIT:   sssa[s]='W';break;
+      case SnSR::FIN_WAIT:    sssa[s]='F';break;
+		  case SnSR::CLOSING:     sssa[s]='c';break;
+      case SnSR::CLOSE_WAIT:  sssa[s]='w';break;
       
       default:Serial.println();break;
 
@@ -2310,4 +2328,20 @@ Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (
 */      
     }
 	}
+
+  sssp[0]=sssa[sockindex(serverUdpPort)];
+  sssp[1]=sssa[sockindex(perifPort)];
+  sssp[2]=sssa[sockindex(browserPort)];
+  sssp[3]=sssa[sockindex(remotePort)];
+  if(periPort!=0){sssp[4]=sssa[sockindex(periPort)];}      // cliext periReq
+
+  Serial.print(sssa);Serial.print(' ');Serial.print(sssp);
+  for(uint8_t s=0;s<MAX_SOCK_NUM;s++){
+    if(sssa[s]=='E'){
+      uint8_t b;while(Ethernet.socketRecv(s, &b, 1) > 0){Serial.print(b);}
+      Serial.print(" close ");Serial.print(s);
+      W5100.execCmdSn(s, Sock_CLOSE);
+    }
+  }
+  Serial.println();
 }

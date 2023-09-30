@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".80"
+#define NVERS ".81"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -143,6 +143,8 @@
           (reste à faire la maj de lastStart/lastStop et la prise en compte de la période)
    1.8  correction periReq : ajout data_na___ pour la mise à jour des données du périf -> allumage/extinction rond jaune; 
         update initLed() ; maj de lastStart/lastStop des timers ;
+   1.80 ajout affichage status sockets - Close sockets status 'ESTABLISHED'
+   1.81 modif affichage status sockets/ports
 
    BUGS :
         
