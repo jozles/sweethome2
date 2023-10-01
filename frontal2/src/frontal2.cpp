@@ -39,12 +39,14 @@ extern "C" {
  #include "utility/w5100.h"
 }
 
-#define MAXSV 10
+//#define MAXSV 10
 //char sss[MAX_SOCK_NUM];     //buffer sockets status numérique
 //char sssVal[MAXSV]={SnSR::UDP,SnSR::CLOSED,SnSR::LAST_ACK,SnSR::TIME_WAIT,SnSR::FIN_WAIT,SnSR::CLOSING,SnSR::CLOSE_WAIT,SnSR::LISTEN,SnSR::ESTABLISHED,0};
-//                        // valeurs utiles pour sockets status
-char sssa[MAX_SOCK_NUM+2];  // valeurs alpha pour sockets status
-char sssp[MAX_SOCK_NUM+1];    // valeurs alpha pour sockets ports
+//                            // valeurs utiles pour sockets status
+char sssa[MAX_SOCK_NUM+2];    // valeurs alpha pour sockets status
+#define LSSSP 6
+char sssP[MAX_SOCK_NUM*LSSSP+2];
+#define NOLF true
 
 #define MAXTPS 3                    // nbre instances pour TCP périfs 
                                     // plusieurs permet un .stop() rapide
@@ -437,7 +439,8 @@ void periDetecUpdate(const char* src);
 void testSwitch(const char* command,char* perihost,int periport);
 void serialServer();
 uint16_t serialRcv(char* rcv,uint16_t maxl);
-void showSocketsStatus();
+void showSocketsStatus(bool close);
+void showSocketsStatus(bool close,bool nolf);
 
 void yield()
 {
@@ -698,7 +701,7 @@ void watchdog()
 {
   if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("\n>>>>>>>>>>>>>>> TCP cx lost ",*maxCxWt);}
   if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("\n>>>>>>>>>>>>>>> UDP cx lost ",*maxCxWu);}
-  if(millis()-lastcxt>2000 && millis()-lastcxu>2000 && millis()-last_shscksta>3000){last_shscksta=millis();showSocketsStatus();}
+  if(millis()-lastcxt>2000 && millis()-lastcxu>2000 && millis()-last_shscksta>3000){last_shscksta=millis();showSocketsStatus(true);}
 }
 
 void usrReboot()
@@ -1389,7 +1392,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 */
       cxtime=millis();    // pour rémanence pwd
       
-      Serial.println();Serial.print((long)cxtime);Serial.print(" *** serveur(");Serial.print((char)ab);
+      Serial.println();showSocketsStatus(false);
+      Serial.print((long)cxtime);Serial.print(" *** serveur(");Serial.print((char)ab);
       if(ab=='a'){Serial.print(tPS);}
       Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
 
@@ -1578,9 +1582,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         #endif
                         // !( usrtime ok || (html && usrpretime ok) ) || time out  => accueil 
                         if( !(usrtime[usernum]==cxtime 
-                            || (usrpretime[usernum]==cxtime 
-                            && memcmp(&fonctions[numfonct[i+1]*LENNOM]+(LENNOM-3),"html",4)==0)) 
-                            || (millis()-usrtime[usernum])>(*toPassword*1000)){
+                          || (usrpretime[usernum]==cxtime 
+                          && memcmp(&fonctions[numfonct[i+1]*LENNOM]+(LENNOM-3),"html",4)==0)) 
+                          || (millis()-usrtime[usernum])>(*toPassword*1000)){
                           what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;usrtime[usernum]=0;}
                         else {Serial.print(" user ");Serial.print(usrnames+usernum*LENUSRNAME);Serial.print(" ok");
                           usrtime[usernum]=millis();
@@ -2033,9 +2037,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           switch(what){                                           
             case 0: break;                                                
             case 1: periMess=periAns(cli,"ack_______");break;            // data_save
-            case 2: 
-            Serial.print("ab=");Serial.println(ab);
-            if(ab=='c'){periTableHtml(cli);}                     // peritable suite à login
+            case 2: Serial.print("ab=");Serial.println(ab);
+                    if(ab=='c'){periTableHtml(cli);}                     // peritable suite à login
                     if(ab=='b'){remoteHtml(cli);}                        // remote    suite à login
                     break;
             case 3: periMess=periAns(cli,"set_______");break;            // data_read
@@ -2077,6 +2080,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           //Serial.print(" st=");Serial.println(millis());
           */
         if(what!=1 && what!=3 && what!=14){       // gestion "normale" si dataread/save/na
+          showSocketsStatus(false);
           cli->stop();} // ********************************************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                         // sinon server.available() crée des fantômes .... 
                         // la gestion d'instances multiples ne fonctionne pas avec le navigateur
@@ -2092,6 +2096,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         if(what==0){Serial.print(" w0 ");}
         if(ab=='u'){Serial.print(" *** end udp - ");}
         else {Serial.print(" *** end tcp - ");}
+        Serial.println();showSocketsStatus(false,NOLF);
         Serial.println(millis()-cxDur);
 #ifdef DEBUG_ON
   delay(20);
@@ -2146,7 +2151,7 @@ void tcpPeriServer()
       tPSStop[t]=0;
       //purgeCli(&cli_a[t]);
       cli_a[t].stop();
-     }
+    }
   }
 
   uint8_t preTPS=tPS+1;                         // attribue l'instance suivante
@@ -2154,7 +2159,7 @@ void tcpPeriServer()
 
   if(tPSStop[preTPS]!=0){                       // si instance pas encore libérée -> libération
     unsigned long tStop=millis();               // tStop heure du stop de l'instance   
-    cli_a[preTPS].stop();                       // confirme la libération de l'instance
+    cli_a[preTPS].stop();                       // force la libération de l'instance
     if(millis()-tStop>1){
       Serial.print(loopCnt);Serial.print(" tStop=");Serial.println(millis()-tStop); // libération d'instance avec attente
                                                                                     // ne devrait se produire que rarement
@@ -2186,6 +2191,7 @@ void browserServer()
       lastcxt=millis();             // trig watchdog
       commonserver(&cli_c,nullptr,0);
     }
+    else cli_c.stop();
   }     
 }
 
@@ -2202,6 +2208,7 @@ void remoteServer()
       lastcxt=millis();             // trig watchdog
       commonserver(&cli_b,nullptr,0);
     }
+    else cli_b.stop();
   }     
 }
 
@@ -2287,20 +2294,10 @@ void testUdp()
   }
 }
 
-uint8_t sockindex(uint16_t* port)
+void showSocketsStatus(bool close,bool nolf)
 {
-  for (uint8_t i=0; i < MAX_SOCK_NUM; i++) {
-      if (EthernetServer::server_port[i] == *port) {
-			return i;
-    }
-  }
-  return MAX_SOCK_NUM;
-}
-
-void showSocketsStatus()
-{
+  //uint32_t sssTime=micros();
   memset(sssa,'_',MAX_SOCK_NUM+1);sssa[MAX_SOCK_NUM+1]=0;
-  memset(sssp,'_',MAX_SOCK_NUM);sssp[MAX_SOCK_NUM]=0;
 	for (uint8_t s=0; s < MAX_SOCK_NUM; s++) {
     sssa[s]=' ';
 		switch(W5100.readSnSR(s)){
@@ -2314,34 +2311,53 @@ void showSocketsStatus()
 		  case SnSR::CLOSING:     sssa[s]='c';break;
       case SnSR::CLOSE_WAIT:  sssa[s]='w';break;
       
-      default:Serial.println();break;
+      default:break;
 
 /*
 constatations :
-ce ne sont pas tojours les mêmes sockets qui ont le status LISTEN... un nouveau est créé quand une connexion de périf intervient
-(3 serveurs : 1 tcp périfs + 1 browser config + 1 browser remote)
-le nombre d'instances server tcp périfs n'agit pas sur le nombre de sockets en LISTEN 
-il y a un status 34 sur un socket qui est nécessaire au fonctionnement de l'udp (si Sock_CLOSE plantage)
-Après certaines transactions tcp dont toutes celles de browser, 
-malgré le délai depuis tcp et udp pour les appels de showSocketsStatus, il reste un status ESTABLISHED sur le socket qui peut(doit?) étre clos (manquerait un .stop() ?)
-Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (perireq()). Comment ?
+
+en tcp périfs
+si server.available() est vrai, le socket est passé en mode ESTABLISHED 
+et un nouveau socket (le premier CLOSED trouvé) est en LISTEN sur le meme port
+le .stop() fera server.close() et le nombre de sockets utilisés reste constant.
+
+il y a un socket dédié au fonctionnement de l'udp (si Sock_CLOSE plantage)
+
+en tcp de browser, il reste un status ESTABLISHED sur le socket qui peut(doit?) étre clos (manquerait un .stop() ?)
+En fait, il y aurait 2 demandes de connexion de la part du browser por favicon (!?) ce qui génère 2 sockets E 
+
+Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (periReq()). Comment ?
 */      
     }
 	}
 
-  sssp[0]=sssa[sockindex(serverUdpPort)];
-  sssp[1]=sssa[sockindex(perifPort)];
-  sssp[2]=sssa[sockindex(browserPort)];
-  sssp[3]=sssa[sockindex(remotePort)];
-  if(periPort!=0){sssp[4]=sssa[sockindex(periPort)];}      // cliext periReq
+  Serial.print(sssa);Serial.print(' ');
 
-  Serial.print(sssa);Serial.print(' ');Serial.print(sssp);
-  for(uint8_t s=0;s<MAX_SOCK_NUM;s++){
-    if(sssa[s]=='E'){
-      uint8_t b;while(Ethernet.socketRecv(s, &b, 1) > 0){Serial.print(b);}
-      Serial.print(" close ");Serial.print(s);
-      W5100.execCmdSn(s, Sock_CLOSE);
+  uint8_t prt;
+  uint16_t prt0;
+  for(uint8_t i=0;i<MAX_SOCK_NUM;i++){
+    prt0=EthernetServer::server_port[i];prt=prt0-prt0/10*10;
+    sssP[i*LSSSP]=i+'0';sssP[i*LSSSP+1]='_';sssP[i*LSSSP+2]=prt+'0';sssP[i*LSSSP+3]='=';sssP[i*LSSSP+4]=sssa[i];sssP[i*LSSSP+5]=' ';
+  }
+  sssP[MAX_SOCK_NUM*LSSSP]=' ';
+  sssP[MAX_SOCK_NUM*LSSSP+1]=0;
+  Serial.print(sssP);
+
+ if(close){
+    for(uint8_t s=0;s<MAX_SOCK_NUM;s++){
+      if(sssa[s]=='E'){
+        uint8_t b;while(Ethernet.socketRecv(s, &b, 1) > 0){Serial.print(b);}
+        Serial.print("close ");Serial.print(s);Serial.print(' ');
+        W5100.execCmdSn(s, Sock_CLOSE);
+      }
     }
   }
-  Serial.println();
+
+  //Serial.print(micros()-sssTime);Serial.print(' ');
+  if(!nolf){Serial.println();}
+}
+
+void showSocketsStatus(bool close)
+{
+  showSocketsStatus(close,false);
 }

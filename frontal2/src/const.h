@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".81"
+#define NVERS ".82"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -145,6 +145,7 @@
         update initLed() ; maj de lastStart/lastStop des timers ;
    1.80 ajout affichage status sockets - Close sockets status 'ESTABLISHED'
    1.81 modif affichage status sockets/ports
+   1.82 idem
 
    BUGS :
         
