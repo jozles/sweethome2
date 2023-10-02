@@ -44,6 +44,7 @@ extern "C" {
 //char sssVal[MAXSV]={SnSR::UDP,SnSR::CLOSED,SnSR::LAST_ACK,SnSR::TIME_WAIT,SnSR::FIN_WAIT,SnSR::CLOSING,SnSR::CLOSE_WAIT,SnSR::LISTEN,SnSR::ESTABLISHED,0};
 //                            // valeurs utiles pour sockets status
 char sssa[MAX_SOCK_NUM+2];    // valeurs alpha pour sockets status
+char prevsssa[MAX_SOCK_NUM+2];
 #define LSSSP 6
 char sssP[MAX_SOCK_NUM*LSSSP+2];
 #define NOLF true
@@ -441,6 +442,8 @@ void serialServer();
 uint16_t serialRcv(char* rcv,uint16_t maxl);
 void showSocketsStatus(bool close);
 void showSocketsStatus(bool close,bool nolf);
+void showSocketsStatus(bool close,bool nolf,bool print);
+void printSocketStatus(bool nolf);
 
 void yield()
 {
@@ -651,6 +654,11 @@ void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC
 
 void loop()                         
 {
+            showSocketsStatus(false,false,false);
+            if(memcmp(prevsssa,sssa,MAX_SOCK_NUM)!=0){
+              memcpy(prevsssa,sssa,MAX_SOCK_NUM+2);
+              Serial.print("** ");printSocketStatus(false);}
+
             loopCnt++;
 //Serial.print("tcp=");Serial.println(millis());
             tcpPeriServer();     // *** périphérique TCP ou maintenance
@@ -2195,14 +2203,15 @@ void browserServer()
   }     
 }
 
-
 void remoteServer()
 {
   ab='b';
 
   //cli_b.stop(); normalement déjà effectué dans commonserver
+  showSocketsStatus(false,true,false);
   if(cli_b = remoteserv->available())      // attente d'un client browser sur port remote
   {
+    Serial.print("--");printSocketStatus(false);
     getremote_IP(&cli_b,remote_IP,remote_MAC);      
     if (cli_b.connected()){
       lastcxt=millis();             // trig watchdog
@@ -2294,9 +2303,15 @@ void testUdp()
   }
 }
 
-void showSocketsStatus(bool close,bool nolf)
+void printSocketStatus(bool nolf)
 {
-  //uint32_t sssTime=micros();
+  Serial.print(sssa);
+  Serial.print(sssP);
+  if(!nolf){Serial.println();}
+}
+
+void showSocketsStatus(bool close,bool nolf,bool print)
+{
   memset(sssa,'_',MAX_SOCK_NUM+1);sssa[MAX_SOCK_NUM+1]=0;
 	for (uint8_t s=0; s < MAX_SOCK_NUM; s++) {
     sssa[s]=' ';
@@ -2310,28 +2325,37 @@ void showSocketsStatus(bool close,bool nolf)
       case SnSR::FIN_WAIT:    sssa[s]='F';break;
 		  case SnSR::CLOSING:     sssa[s]='c';break;
       case SnSR::CLOSE_WAIT:  sssa[s]='w';break;
-      
+      case SnSR::INIT:        sssa[s]='I';break;      
+      case SnSR::SYNRECV:     sssa[s]='R';break;
+      case SnSR::SYNSENT:     sssa[s]='S';break;      
+
       default:break;
 
 /*
 constatations :
 
-en tcp périfs
-si server.available() est vrai, le socket est passé en mode ESTABLISHED 
-et un nouveau socket (le premier CLOSED trouvé) est en LISTEN sur le meme port
-le .stop() fera server.close() et le nombre de sockets utilisés reste constant.
+en tcp server
+lors d'une demande de connexion un socket LISTEN passe en mode ESTABLISHED 
+
+.available() a 2 fonctions :
+1) détecter la présence de data dispo
+2) passer un socket en mode LISTEN si ce port n'en a pas (EthernetServer::begin())
+.stop() fait Ethernet.socketDisconnect() sur le port pour que le nombre de sockets utilisés reste constant.
+
+problème : une connexion établie sans data ne sera jamais fermée 
+(le retour de .available() toujours faux n'aboutira jamais à un .stop())
+solution provisoire(?) : fermeture des sockets E après 3(?) secondes d'inactivité.
 
 il y a un socket dédié au fonctionnement de l'udp (si Sock_CLOSE plantage)
 
-en tcp de browser, il reste un status ESTABLISHED sur le socket qui peut(doit?) étre clos (manquerait un .stop() ?)
-En fait, il y aurait 2 demandes de connexion de la part du browser por favicon (!?) ce qui génère 2 sockets E 
+en tcp de browser, il reste un status ESTABLISHED en fin de commonserver
+il y aurait 2 demandes de connexion de la part du browser (pour favicon !?) 
+ce qui génère 2 sockets E dont un sans data qui, de ce fait, reste ouvert
 
 Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (periReq()). Comment ?
 */      
     }
 	}
-
-  Serial.print(sssa);Serial.print(' ');
 
   uint8_t prt;
   uint16_t prt0;
@@ -2341,9 +2365,10 @@ Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (
   }
   sssP[MAX_SOCK_NUM*LSSSP]=' ';
   sssP[MAX_SOCK_NUM*LSSSP+1]=0;
-  Serial.print(sssP);
 
- if(close){
+  if(print){printSocketStatus(true);}
+
+  if(close && print){
     for(uint8_t s=0;s<MAX_SOCK_NUM;s++){
       if(sssa[s]=='E'){
         uint8_t b;while(Ethernet.socketRecv(s, &b, 1) > 0){Serial.print(b);}
@@ -2353,11 +2378,16 @@ Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (
     }
   }
 
-  //Serial.print(micros()-sssTime);Serial.print(' ');
-  if(!nolf){Serial.println();}
+  if(print && !nolf){Serial.println();}
+
+}
+
+void showSocketsStatus(bool close,bool nolf)
+{
+  showSocketsStatus(close,nolf,true);
 }
 
 void showSocketsStatus(bool close)
 {
-  showSocketsStatus(close,false);
+  showSocketsStatus(close,false,true);
 }

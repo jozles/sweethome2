@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".82"
+#define NVERS ".83"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -146,6 +146,7 @@
    1.80 ajout affichage status sockets - Close sockets status 'ESTABLISHED'
    1.81 modif affichage status sockets/ports
    1.82 idem
+   1.83 séparation affichage status sockets de l'acquisition ; diag en cours
 
    BUGS :
         
