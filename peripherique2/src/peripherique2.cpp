@@ -12,13 +12,25 @@
 
 
 #ifdef MAIL_SENDER
-//#define MAIL_CONFIG
+#define MAIL_CONFIG
 #include <EMailSender.h>
-EMailSender::EMailMessage message;                            // STORAGE_SD doit etre "ndef"
-const char* fromMail={"alain66p@gmail.com"};
-const char* fromPass={"bncfuobkxmhnbwgi"};  // old="uuunclajxtrabnpj"
 EMailSender* emailSend=nullptr;
-#endif //MAIL_SENDER
+EMailSender::EMailMessage message;                            // STORAGE_SD doit etre "ndef"
+
+#ifdef MAIL_CONFIG
+char* fromMail=nullptr;
+char* fromPass=nullptr;
+#endif // MAIL_CONFIG
+
+#ifndef MAIL_CONFIG
+char* fromMail={"alain66p@gmail.com"};
+char* fromPass={"bncfuobkxmhnbwgi"};  // old="uuunclajxtrabnpj"
+#endif // MAIL_CONFIG
+
+char* fromMail={"alain66p@gmail.com"};
+char* fromPass={"bncfuobkxmhnbwgi"};  // old="uuunclajxtrabnpj"
+
+#endif // MAIL_SENDER
 
 extern "C" {                  
 #include <user_interface.h>                 // pour struct rst_info, system_deep_sleep_set_option(), rtc_mem
@@ -190,10 +202,13 @@ void mail(char* subj,char* dest,char* msg);
 #ifdef MAIL_CONFIG
 void mailInit(char* login,char* pass)
 {
+  emailSend = new EMailSender(fromMail,fromPass);
+/*
   if(memcmp(login,fromMail,strlen(login))!=0 || memcmp(login,fromPass,strlen(pass))!=0){
     if(emailSend!=nullptr){delete emailSend;emailSend=nullptr;}
     emailSend = new EMailSender(login,pass);
   }
+*/
 }
 #endif // MAIL_CONFIG
 #endif // MAILSENDER
@@ -960,12 +975,12 @@ unsigned long beg=millis();
       EMailSender::Response resp = emailSend->send(dest, message);
       resp.code[1]=0;resp.desc[16]=0; // 0 sent ; 1 SMTP time out ; 2 not connect to server
       Serial.print(">>> email ");
-/*
+
 Serial.print("dest ");Serial.print(dest);
 Serial.print(" mess ");Serial.println(msg);
 Serial.print(" resp.code ");Serial.print(resp.code);
 Serial.print(" resp.desc ");Serial.print(resp.desc);
-*/
+
       Serial.print(" millis()=");Serial.println(millis()-beg);
     }
 }
@@ -1170,13 +1185,17 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
               #ifdef MAIL_SENDER
               #ifdef MAIL_CONFIG
                       if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
+                      Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);
                       v0+=21;
                       {uint16_t vx=strlen(httpMess);
                         if(vx<LBUFSERVER){
                           httpMess[vx-2]='\0';             // erase CRC                   
                           uint16_t v1=strstr(httpMess,"==")-httpMess;
                           httpMess[v1]='\0';
-                          answer("mail_init_");                  
+                          answer("mail_init_"); 
+                          Serial.println(httpMess+v0);                 
+                          Serial.println(httpMess+v1+2);
+                          delay(100);                 
                           mailInit(httpMess+v0,httpMess+v1+2);
                         }
                         else if(diags){Serial.println("overflow message fmail_init_");}

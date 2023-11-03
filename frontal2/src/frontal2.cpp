@@ -110,8 +110,8 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   unsigned long* maxCxWt;     // Délai WD TCP
   unsigned long* maxCxWu;     // Délai WD UDP
 
-  char* mailFromAddr;         // Adresse exp mail
-  char* mailPass;             // mot de passe exp
+  char* mailFromAddr=nullptr; // Adresse exp mail
+  char* mailPass=nullptr;     // mot de passe exp
   char* mailToAddr1;          // Adresse dest mail 1
   char* mailToAddr2;          // Adresse dest mail 2
   uint16_t* periMail1;        // N° perif mail 1
@@ -629,8 +629,13 @@ void setup() {                          // ====================================
   trigwd();
 
   mailEnable=VRAI;
+
   Serial.print("Mail START ");
-  mail("START","");
+  if(mailFromAddr!=nullptr && mailPass!=nullptr){
+    mailInit(mailFromAddr,mailPass);
+    mail("START","");
+  }
+  else Serial.println(" no config");
 
 #ifdef ANALYZE
   STOPALL

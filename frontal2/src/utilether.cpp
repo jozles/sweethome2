@@ -107,6 +107,17 @@ int ethWrite(EthernetClient* cli,char* buf,uint16_t* lb)
   return ethWrite(cli,buf,lb,strlen(buf));
 }
 
+void mailInit(char* login,char* pass)
+{
+  if(mailEnable){
+    
+    trigwd();
+    char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
+
+    strcat(ms,login);strcat(ms,"==");strcat(ms,pass);
+    periReq(&cliext,*periMail1,"mail_init_",ms);
+  }
+}
 
 void mail(const char* a, const char* mm)
 {
