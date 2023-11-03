@@ -7,7 +7,7 @@
 // !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
 
 
-#define VERSION "2.5_"
+#define VERSION "2.6_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -91,7 +91,8 @@
  *     (utilisation du mot de passe spécial de google - voir OneNote "mot de passe pour smtp gmail" ) 
  * 2.4 ajout esp8285 et hard sonoff
  * 2.5 divers messages Serial passés dans diags pour accélération réponse ordrext()
- *   
+ * 2.6 le compte gmail et le pswd associé sont configurables depuis le frontal (fmail_init_)  
+ * 
 Modifier : 
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ; 
@@ -236,7 +237,7 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE SFRFR2            // <------------- modèle carte
+#define CARTE VRR            // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation 
 //#define PININT_MODE             // <------------- avec/sans pin d'interruption
 

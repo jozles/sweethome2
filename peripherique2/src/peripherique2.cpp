@@ -10,10 +10,14 @@
 #include "dynam.h"
 #include "peripherique2.h"
 
+
 #ifdef MAIL_SENDER
-#include <EMailSender.h>                            // STORAGE_SD doit etre "ndef"
-EMailSender emailSend("alain66p@gmail.com", "uuunclajxtrabnpj");
-EMailSender::EMailMessage message;
+//#define MAIL_CONFIG
+#include <EMailSender.h>
+EMailSender::EMailMessage message;                            // STORAGE_SD doit etre "ndef"
+const char* fromMail={"alain66p@gmail.com"};
+const char* fromPass={"bncfuobkxmhnbwgi"};  // old="uuunclajxtrabnpj"
+EMailSender* emailSend=nullptr;
 #endif //MAIL_SENDER
 
 extern "C" {                  
@@ -83,8 +87,8 @@ bool serverStarted=false;
   char  bufServer[LBUFSERVER];            // buffer des envois/réceptions de messages
   int   periMess;                         // diag de réception de message
 
-  const char* fonctions={"set_______ack_______etat______reset_____sleep_____sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______mds_______last_fonc_"};
-  uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__,fmail______,fmds_______;
+  const char* fonctions={"set_______ack_______etat______reset_____sleep_____sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______mds_______mail_init_last_fonc_"};
+  uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__,fmail______,fmds_______,fmail_init_;
   int     nbfonct;
   uint8_t fonction;                       // la dernière fonction reçue
 
@@ -172,7 +176,7 @@ char* tempStr();
 int   buildData(const char* nomfonction,const char* data);
 int   dataSave();
 int   dataRead();
-void  dataTransfer(char* data);  
+void  dataTransfer(char* data);
 void  readTemp();
 void  ordreExt();
 void  outputCtl();
@@ -183,6 +187,15 @@ void  showBS(char* buf);
 
 #ifdef MAIL_SENDER
 void mail(char* subj,char* dest,char* msg);
+#ifdef MAIL_CONFIG
+void mailInit(char* login,char* pass)
+{
+  if(memcmp(login,fromMail,strlen(login))!=0 || memcmp(login,fromPass,strlen(pass))!=0){
+    if(emailSend!=nullptr){delete emailSend;emailSend=nullptr;}
+    emailSend = new EMailSender(login,pass);
+  }
+}
+#endif // MAIL_CONFIG
 #endif // MAILSENDER
 
 void tmarker()
@@ -393,6 +406,16 @@ initConstant();             // à supprimer en production
   while(!wifiAssign()){                     // setup ssid,ssidPwd par défaut
     delay(2000);blink(3);}
   
+#ifdef MAIL_SENDER
+  Serial.print("MAIL_SENDER ");
+#ifndef MAIL_CONFIG
+  emailSend = new EMailSender(fromMail,fromPass);
+#endif // MAIL_CONFIG
+#ifdef MAIL_CONFIG
+  Serial.print("MAIL_CONFIG ");
+#endif
+#endif // MAIL_SENDER
+
 #endif // def_SERVER_MODE
   Serial.println(">>>> fin setup\n");
   actionsDebug();
@@ -433,7 +456,8 @@ initConstant();             // à supprimer en production
   // le délai d'appel au serveur devient PERSERVKO pour économiser les batteries
   //
   // la période est allongée par les communications avec le serveur (appel ou réception d'ordre)
-   
+
+  //pinMode(2,OUTPUT);while(1){digitalWrite(2,0);delay(1000);digitalWrite(2,1);delay(1000);} 
 
   #ifdef  _SERVER_MODE
   
@@ -925,16 +949,25 @@ void mail(char* subj,char* dest,char* msg)
 unsigned long beg=millis();
 
     Serial.print("---mail--- ");
-    
-    wifiConnexion(ssid,ssidPwd);
+    if(emailSend==nullptr){Serial.println(">>>>>>>>>>>> no conf for mail");}
+    else {
+      wifiConnexion(ssid,ssidPwd);
 
-    char s[64]={"sh "};strcat(s,subj);
-    message.subject = s;
-    message.message = msg ;
+      char s[64]={"sh "};strcat(s,subj);
+      message.subject = s;
+      message.message = msg ;
 
-    EMailSender::Response resp = emailSend.send(dest, message);
-
-Serial.print(">>> email millis()=");Serial.println(millis()-beg);
+      EMailSender::Response resp = emailSend->send(dest, message);
+      resp.code[1]=0;resp.desc[16]=0; // 0 sent ; 1 SMTP time out ; 2 not connect to server
+      Serial.print(">>> email ");
+/*
+Serial.print("dest ");Serial.print(dest);
+Serial.print(" mess ");Serial.println(msg);
+Serial.print(" resp.code ");Serial.print(resp.code);
+Serial.print(" resp.desc ");Serial.print(resp.desc);
+*/
+      Serial.print(" millis()=");Serial.println(millis()-beg);
+    }
 }
 #endif // MAIL_SENDER
 
@@ -1107,29 +1140,56 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
             case  7: digitalWrite(pinSw[1],cloSw[1]);answer("1_ON______");delay(1000);digitalWrite(pinSw[1],cloSw[1]);break;   // test on  B  1sec  http://82.64.32.56:1796/sw1__ON___=0005_5A
             case  8: digitalWrite(pinSw[1],openSw[1]);answer("1_OFF_____");delay(1000);digitalWrite(pinSw[1],openSw[1]);break;   // test off B  1sec  adresse/port indifférent crc=5A
             
-            case  9: 
+            case  9: // mail
               #ifdef MAIL_SENDER                      
                       if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
                       v0+=21;
-                      {httpMess[strlen(httpMess)-2]='\0';             // erase CRC                   
-                      uint16_t v1=strstr(httpMess,"==")-httpMess;
-                      httpMess[v1]='\0';
-                      uint16_t v2=strstr(httpMess+v1+1,"==")-httpMess;
-                      httpMess[v2]='\0';
-                      #define LMLOC 16
-                      char a[LMLOC];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
-                      strcat(a,"°C ");strcat(a,VERSION);
-                      if(strlen(a)>=LMLOC){ledblink(BCODESHOWLINE);}
-                      a[LMLOC-1]='\0';strcat(httpMess+v2+2,a);
-                      answer("mail______");                   
-                      mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
+                      {uint16_t vx=strlen(httpMess);
+                        if(vx<LBUFSERVER){
+                          httpMess[vx-2]='\0';             // erase CRC                   
+                          uint16_t v1=strstr(httpMess,"==")-httpMess;
+                          httpMess[v1]='\0';
+                          uint16_t v2=strstr(httpMess+v1+1,"==")-httpMess;
+                          httpMess[v2]='\0';
+                          #define LMLOC 16
+                          char a[LMLOC];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
+                          strcat(a,"°C ");strcat(a,VERSION);
+                          if(strlen(a)>=LMLOC){ledblink(BCODESHOWLINE);}
+                          a[LMLOC-1]='\0';strcat(httpMess+v2+2,a);
+                          answer("mail______");                   
+                          mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
+                        }
+                        else if(diags){Serial.println("overflow message fmail");}
                       }
               #endif // MAIL_SENDER
               #ifndef MAIL_SENDER
                       if(diags){Serial.println("no mail on this board");}
               #endif // MAIL_SENDER
+                      break;                 
+            case 11: // mail_init_
+              #ifdef MAIL_SENDER
+              #ifdef MAIL_CONFIG
+                      if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
+                      v0+=21;
+                      {uint16_t vx=strlen(httpMess);
+                        if(vx<LBUFSERVER){
+                          httpMess[vx-2]='\0';             // erase CRC                   
+                          uint16_t v1=strstr(httpMess,"==")-httpMess;
+                          httpMess[v1]='\0';
+                          answer("mail_init_");                  
+                          mailInit(httpMess+v0,httpMess+v1+2);
+                        }
+                        else if(diags){Serial.println("overflow message fmail_init_");}
+                      }
+              #endif // MAIL_CONFIG
+              #ifndef MAIL_CONFIG
+                      if(diags){Serial.println("no MAIL_CONFIG on this board");}
+              #endif // MAIL_CONFIG
+              #endif // MAIL_SENDER
+              #ifndef MAIL_SENDER
+                      if(diags){Serial.println("no mail on this board");}
+              #endif // MAIL_SENDER
                       break;                
-
             default:break;
           }          
           Serial.println();
