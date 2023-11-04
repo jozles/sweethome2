@@ -43,6 +43,7 @@ extern "C" {
 //char sss[MAX_SOCK_NUM];     //buffer sockets status numérique
 //char sssVal[MAXSV]={SnSR::UDP,SnSR::CLOSED,SnSR::LAST_ACK,SnSR::TIME_WAIT,SnSR::FIN_WAIT,SnSR::CLOSING,SnSR::CLOSE_WAIT,SnSR::LISTEN,SnSR::ESTABLISHED,0};
 //                            // valeurs utiles pour sockets status
+//#define SOCK_DEBUG          // WARNING : le traitement de fermeture des sockets ouverts est dans showSocketStatus()
 char sssa[MAX_SOCK_NUM+2];    // valeurs alpha pour sockets status
 char prevsssa[MAX_SOCK_NUM+2];
 #define LSSSP 6
@@ -659,11 +660,13 @@ void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC
 
 void loop()                         
 {
-            showSocketsStatus(false,false,false);
+            showSocketsStatus(false,false,false);           
             if(memcmp(prevsssa,sssa,MAX_SOCK_NUM)!=0){
               memcpy(prevsssa,sssa,MAX_SOCK_NUM+2);
-              Serial.print("** ");printSocketStatus(false);}
-
+#ifdef SOCK_DEBUG
+              Serial.print("** ");printSocketStatus(false);
+#endif // SOCK_DEBUG              
+            }
             loopCnt++;
 //Serial.print("tcp=");Serial.println(millis());
             tcpPeriServer();     // *** périphérique TCP ou maintenance
@@ -1891,7 +1894,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 56:  what=6;
                         switch (*(libfonctions+2*i+1)){                                                 // mailcfg___
                           case 'f':alphaTfr(mailFromAddr,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;      // (config) mailFrom
-                          case 'w':alphaTfr(mailPass,LMAILPWD,valf,nvalf[i+1]-nvalf[i]);break;          // (config) pwd mailFrom
+                          case 'w':alphaTfr(mailPass,LMAILPWD,valf,nvalf[i+1]-nvalf[i],0);break;        // (config) pwd mailFrom
                           case '1':alphaTfr(mailToAddr1,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;       // (config) mailTo1
                           case '2':alphaTfr(mailToAddr2,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;       // (config) mailTo2              
                           case 'p':conv_atob(valf,periMail1);                                           // (config) peri1
@@ -2109,7 +2112,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         if(what==0){Serial.print(" w0 ");}
         if(ab=='u'){Serial.print(" *** end udp - ");}
         else {Serial.print(" *** end tcp - ");}
-        Serial.println();showSocketsStatus(false,NOLF);
+#ifdef SOCK_DEBUG        
+        Serial.println();
+#endif // SOCK_DEBUG
+        showSocketsStatus(false,NOLF);
         Serial.println(millis()-cxDur);
 #ifdef DEBUG_ON
   delay(20);
@@ -2310,9 +2316,11 @@ void testUdp()
 
 void printSocketStatus(bool nolf)
 {
+#ifdef SOCK_DEBUG
   Serial.print(sssa);
   Serial.print(sssP);
   if(!nolf){Serial.println();}
+#endif // SOCK_DEBUG
 }
 
 void showSocketsStatus(bool close,bool nolf,bool print)
@@ -2382,9 +2390,9 @@ Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (
       }
     }
   }
-
+#ifdef SOCK_DEBUG
   if(print && !nolf){Serial.println();}
-
+#endif // SOCK_DEBUG
 }
 
 void showSocketsStatus(bool close,bool nolf)

@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".83"
+#define NVERS ".84"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -147,6 +147,9 @@
    1.81 modif affichage status sockets/ports
    1.82 idem
    1.83 séparation affichage status sockets de l'acquisition ; diag en cours
+   1.84 ajout #define SOCK_DEBUG pour supprimer l'affichage des sockets ;
+        correction bug de transfert du pswd de mailfrom dans la config 
+        (en fait le défaut est dans alphaTfr qui est utilisé partout donc intouchable)
 
    BUGS :
         

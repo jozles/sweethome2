@@ -18,17 +18,16 @@ EMailSender* emailSend=nullptr;
 EMailSender::EMailMessage message;                            // STORAGE_SD doit etre "ndef"
 
 #ifdef MAIL_CONFIG
-char* fromMail=nullptr;
-char* fromPass=nullptr;
+#define FROM_MAIL_LEN 64
+#define FROM_PASS_LEN 64
+char fromMail[FROM_MAIL_LEN];
+char fromPass[FROM_PASS_LEN];
 #endif // MAIL_CONFIG
 
 #ifndef MAIL_CONFIG
 char* fromMail={"alain66p@gmail.com"};
 char* fromPass={"bncfuobkxmhnbwgi"};  // old="uuunclajxtrabnpj"
 #endif // MAIL_CONFIG
-
-char* fromMail={"alain66p@gmail.com"};
-char* fromPass={"bncfuobkxmhnbwgi"};  // old="uuunclajxtrabnpj"
 
 #endif // MAIL_SENDER
 
@@ -201,14 +200,18 @@ void  showBS(char* buf);
 void mail(char* subj,char* dest,char* msg);
 #ifdef MAIL_CONFIG
 void mailInit(char* login,char* pass)
-{
-  emailSend = new EMailSender(fromMail,fromPass);
-/*
-  if(memcmp(login,fromMail,strlen(login))!=0 || memcmp(login,fromPass,strlen(pass))!=0){
-    if(emailSend!=nullptr){delete emailSend;emailSend=nullptr;}
-    emailSend = new EMailSender(login,pass);
+{ 
+  if(emailSend!=nullptr && (memcmp(login,fromMail,strlen(login))!=0 || memcmp(login,fromPass,strlen(pass)!=0))){
+    delete emailSend;emailSend=nullptr;
   }
-*/
+  if(emailSend==nullptr){
+    if((strlen(login)<FROM_MAIL_LEN) && (strlen(pass)<FROM_PASS_LEN)){
+      strcpy(fromMail,login);
+      strcpy(fromPass,pass);
+      emailSend = new EMailSender(login,pass);
+    }
+    else Serial.println("login/pass oversized");
+  }
 }
 #endif // MAIL_CONFIG
 #endif // MAILSENDER
@@ -1193,8 +1196,8 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
                           uint16_t v1=strstr(httpMess,"==")-httpMess;
                           httpMess[v1]='\0';
                           answer("mail_init_"); 
-                          Serial.println(httpMess+v0);                 
-                          Serial.println(httpMess+v1+2);
+                          //Serial.print('!');Serial.print(httpMess+v0);Serial.println('!');
+                          //Serial.print('!');Serial.print(httpMess+v1+2);Serial.println('!');
                           delay(100);                 
                           mailInit(httpMess+v0,httpMess+v1+2);
                         }

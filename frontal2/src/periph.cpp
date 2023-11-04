@@ -591,7 +591,7 @@ void configPrint()
   Serial.print(" table ssid ");Serial.print(*ssid1);Serial.print("/");Serial.println(*ssid2);
   subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
   Serial.println(" table user ");subcprint(usrnames,usrpass,NBUSR,LENUSRNAME,LENUSRPASS,usrtime);
-  Serial.print(" mailFrom=");Serial.print(mailFromAddr);Serial.print(" pass= ");Serial.println(mailPass);     
+  Serial.print(" mailFrom=");Serial.print(mailFromAddr);Serial.print(" pass=");Serial.println(mailPass);     
   Serial.print(" mailTo1=");Serial.print(mailToAddr1);Serial.print(" mailTo2=");Serial.println(mailToAddr2);  
   Serial.print(" peri1=");Serial.print(*periMail1);Serial.print(" peri2=");Serial.println(*periMail2);
   Serial.print(" maxCxWt ");Serial.print(*maxCxWt);Serial.print(" maxCxWu ");Serial.println(*maxCxWu);
