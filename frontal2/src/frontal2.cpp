@@ -1891,7 +1891,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         }break;                                                                       
               case 54:  remoteHtml(cli);break;                                                          // remotehtml
               case 55:  break;                                                                          // dispo
-              case 56:  what=6;
+              case 56:  what=60;
                         switch (*(libfonctions+2*i+1)){                                                 // mailcfg___
                           case 'f':alphaTfr(mailFromAddr,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;      // (config) mailFrom
                           case 'w':alphaTfr(mailPass,LMAILPWD,valf,nvalf[i+1]-nvalf[i],0);break;        // (config) pwd mailFrom
@@ -2052,36 +2052,39 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           //if(what==0){Serial.print("!*!*!");}
           switch(what){                                           
             case 0: break;                                                
-            case 1: periMess=periAns(cli,"ack_______");break;            // data_save
+            case 1: periMess=periAns(cli,"ack_______");break;             // data_save
             case 2: Serial.print("ab=");Serial.println(ab);
-                    if(ab=='c'){periTableHtml(cli);}                     // peritable suite à login
-                    if(ab=='b'){remoteHtml(cli);}                        // remote    suite à login
+                    if(ab=='c'){periTableHtml(cli);}                      // peritable suite à login
+                    if(ab=='b'){remoteHtml(cli);}                         // remote    suite à login
                     break;
-            case 3: periMess=periAns(cli,"set_______");break;            // data_read
-            case 4: periMess=periSave(periCur,PERISAVESD);               // switchs
+            case 3: periMess=periAns(cli,"set_______");break;             // data_read
+            case 4: periMess=periSave(periCur,PERISAVESD);                // switchs
                     swCtlTableHtml(cli);
                     cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;
-            case 5: periMess=periSave(periCur,PERISAVESD);               // (periLine) modif ligne de peritable
+            case 5: periMess=periSave(periCur,PERISAVESD);                // (periLine) modif ligne de peritable
                     periTableHtml(cli); 
                     cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;
-            case 6: configPrint();configSave();cfgServerHtml(cli);break; // config serveur
-            case 7: timersSave();timersHtml(cli);break;                  // timers
-            case 8: remoteSave();cfgRemoteHtml(cli);break;               // bouton remotecfg puis submit
+            case 6: configPrint();configSave();
+                    mail("SERV_CONFIG"," ");cfgServerHtml(cli);break;     // config serveur            
+            case 60:configPrint();configSave();
+                    mail("MAIL_CONFIG"," ");cfgServerHtml(cli);break;     // config mail     
+            case 7: timersSave();timersHtml(cli);break;                   // timers
+            case 8: remoteSave();cfgRemoteHtml(cli);break;                // bouton remotecfg puis submit
 // à réviser
             //case 9: periRemoteUpdate();                                  // bouton remotehtml ou remote ctl puis submit 
             //        periMess=perToSend(tablePerToSend,remotetime);
             //        remoteHtml(cli);break; 
-            case 10:memDetSave();periDetecUpdate("pDUma");               // bouton submit détecteurs serveur
+            case 10:memDetSave();periDetecUpdate("pDUma");                // bouton submit détecteurs serveur
                     periMess=perToSend(tablePerToSend,srvdettime);
                     periTableHtml(cli);break;
-            case 11:memDetSave();cfgDetServHtml(cli);break;              // bouton cfgdetserv puis submit         
-            case 12:thermosSave();thermoCfgHtml(cli);break;              // thermos
+            case 11:memDetSave();cfgDetServHtml(cli);break;               // bouton cfgdetserv puis submit         
+            case 12:thermosSave();thermoCfgHtml(cli);break;               // thermos
             case 13:memosSave(-1);
-                    periSave(periCur,PERISAVESD);                        // bouton submit periLine (MàJ/analog/digital)                                             
+                    periSave(periCur,PERISAVESD);                         // bouton submit periLine (MàJ/analog/digital)                                             
                     periLineHtml(cli);
                     break;                                                                                                           
-            case 14:break;                                               // data_na___
-            default:accueilHtml(cli);break;                              // what=-1
+            case 14:break;                                                // data_na___
+            default:accueilHtml(cli);break;                               // what=-1
           }
         
         } // getnv nbreparams>=0  

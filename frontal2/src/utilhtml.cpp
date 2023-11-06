@@ -407,7 +407,8 @@ void alphaTfr(char* recep,uint16_t lenRecep,char* emet,uint16_t lenEmet,uint8_t 
 {
   // st =1 => \0 final sinon rien
   memset(recep,0x00,lenRecep);
-  if(lenEmet>=lenRecep-1){lenEmet=lenRecep-st;}
+  if(lenRecep<lenEmet){lenEmet=lenRecep;}
+  if(lenRecep==lenEmet){lenEmet-=st;}
   memcpy(recep,emet,lenEmet);
   trailingSpaces(recep,lenRecep);
 }

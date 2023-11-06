@@ -139,6 +139,10 @@ void mail(const char* a, const char* mm)
       if(LDATEB+3<=(LMAILMESS-strlen(ms))){
         strcat(ms,alphaDate());strcat(ms," ");}
       strcat(ms,VERSION);
+      //#define LP 4
+      //char per[LP];memset(per,'\0',LP);sprintf(per,"%d",*periMail1);
+      //strcat(ms," p=");strcat(ms,per);
+      sprintf(ms+strlen(ms)," p=%d",*periMail1);
       periReq(&cliext,*periMail1,"mail______",ms);  
   }
 }
