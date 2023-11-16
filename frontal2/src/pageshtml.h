@@ -12,6 +12,7 @@ void testHtml(EthernetClient* cli);
 void htmlFavicon(EthernetClient* cli);
 int  htmlImg(EthernetClient* cli,const char* fimgname);
 void remoteHtml(EthernetClient* cli);
+void remoteTimHtml(EthernetClient* cli,int16_t rem);
 void thermoCfgHtml(EthernetClient* cli);
 void thermoShowHtml(EthernetClient* cli);
 void timersHtml(EthernetClient* cli);

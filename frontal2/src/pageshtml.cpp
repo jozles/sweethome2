@@ -812,6 +812,37 @@ void cfgRemoteHtml(EthernetClient* cli)
             bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
+void remoteTimHtml(EthernetClient* cli,int16_t rem)
+{
+            Serial.print(millis());Serial.print(" remoteTimHtml() ");
+
+            uint16_t lb0=8000;
+            char buf[lb0];buf[0]='\0';
+            char jsbuf[LBUF4000];*jsbuf=0x00;
+            uint8_t ni=0;                                     // nbre lignes dans buffer
+            uint16_t lb;
+            unsigned long begTPage=millis();                  // calcul durée envoi page
+ 
+            htmlBeg(buf,jsbuf,serverName,'R');
+
+            pageLineOne(buf,jsbuf);
+            formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+            //usrFormBHtml(buf,1);
+            scrGetButRet(buf,jsbuf,"retour",0);
+            ethWrite(cli,buf,&lb);
+// ------------------------------------------------------------- header end
+  
+  int16_t min=0;
+  int16_t max=MAXREMLI;
+  scrDspText(buf,jsbuf,"  ",0,BR);
+  scrDspNum(buf,jsbuf,&rem,&min,&max,BR);
+
+  //void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl)
+  
+  strcat(buf,"\n");
+  ethWrite(cli,buf,&lb);
+}
+
 void remoteHtml(EthernetClient* cli)
 {              
             Serial.print(millis());Serial.print(" remoteHtml() ");
@@ -867,6 +898,7 @@ void remoteHtml(EthernetClient* cli)
               uint8_t nb1=nb+1;
               uint8_t butModel=remoteN[nb].butModel;                  
               char fn[LENNOM+1];
+              char fnt[LENNOM+1];                                       // bouton '>'
               if(remoteN[nb].nam[0]!='\0'){
                 strcat(buf,"<tr height=130>");                          // patch à intégrer dans le ctl des fonctions d'affichage
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);
@@ -943,7 +975,8 @@ void remoteHtml(EthernetClient* cli)
                 
                 scrDspText(buf,jsbuf,"",0,TDBEG);
                 memcpy(fn,"remote_c__\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);            // transmission n° remote
-                
+                memcpy(fnt,"remote_tim\0",LENNOM+1);fnt[LENNOM-1]=(char)(nb+PMFNCHAR);          // transmission n° remote pour one_shot_timer
+
                 char codeFn[3]={'a','b','c'};                                                   // pour disjoncteurs OFF/ON/FORCED
                 const char* lib[3];lib[0]="OFF";lib[1]="ON";lib[2]="FOR";
                 uint8_t colors[3]={DISJCOLOR,ONCOLOR,FORCEDCOLOR};                              // pour valeurs 0/1/2 du disjoncteur                
@@ -955,7 +988,12 @@ void remoteHtml(EthernetClient* cli)
                   //Serial.print(" disj color=");Serial.println(color);
                   scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,0);
                   uint8_t ctl=0;
-                  if(i==2){ctl=TDEND|TREND|BRYES;}
+                  if(i==2){
+                    ctl=TDEND|TREND|BRYES;
+                    scrDspText(buf,jsbuf," ",0,TDEND);
+                    scrDspText(buf,jsbuf," - ",0,TDBEG);
+                    scrGetButFn(buf,jsbuf,fnt,remTNum,">",ALICNO,0,OFFCOLOR,0,0,1,0);
+                  }
                   scrDspText(buf,jsbuf,"  ",0,ctl);
                 }
 

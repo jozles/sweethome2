@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".85"
+#define NVERS ".86"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -150,6 +150,10 @@
    1.84 ajout #define SOCK_DEBUG pour supprimer l'affichage des sockets ;
         correction bug de transfert du pswd de mailfrom dans la config 
         (en fait le défaut est dans alphaTfr qui est utilisé partout donc intouchable)
+   1.85 debug alphaTfr(); ajout mail_init_ du perif lors des config mail + envoi mail MAIL_CONFIG ; 
+        ajout n° perif dans message mail (p=xx)
+   1.86 debut dev one_shot_timer des remotes
+
 
    BUGS :
         

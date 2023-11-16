@@ -138,7 +138,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___dispo_____percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmldispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___dispo_____percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlremote_timmailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
@@ -1890,7 +1890,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           remoteHtml(cli);
                         }break;                                                                       
               case 54:  remoteHtml(cli);break;                                                          // remotehtml
-              case 55:  break;                                                                          // dispo
+              case 55:  remoteTimHtml(cli,*((libfonctions+2*i+1)-PMFNCHAR));break;                      // remote_tim
               case 56:  what=60;
                         switch (*(libfonctions+2*i+1)){                                                 // mailcfg___
                           case 'f':alphaTfr(mailFromAddr,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;      // (config) mailFrom
