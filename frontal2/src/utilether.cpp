@@ -378,6 +378,47 @@ void calcDate(int bd,int* yy,int*mm,int* dd,int* js,int*hh,int* mi,int* ss)     
   *js=js0;  
 }
 
+void dateToStr(char* buff,int year,int month,int day,int hour,int minute,int second)
+{
+  sprintf(buff,"%.8lu",(long)(year+2000)*10000+(long)month*100+(long)day);
+  sprintf((buff+8),"%.2u",hour);sprintf((buff+10),"%.2u",minute);sprintf((buff+12),"%.2u",second);
+  buff[14]=' ';
+  buff[15]='\0';
+}  
+
+void addTime(char* recep,const char* tim1,const char* tim2)
+{
+  int year,month,day,hour,minute,seconde;
+  uint32_t buf;
+  
+  conv_atobl(tim1,&buf,4);year=buf;
+  conv_atobl(tim1+4,&buf,2);month=buf;
+  conv_atobl(tim1+6,&buf,2);day=buf;
+  conv_atobl(tim1+8,&buf,2);hour=buf;
+  conv_atobl(tim1+10,&buf,2);minute=buf;  
+  conv_atobl(tim1+12,&buf,2);seconde=buf;
+
+  unsigned long unixtim1=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
+
+  conv_atobl(tim2,&buf,4);year=buf;
+  conv_atobl(tim2+4,&buf,2);month=buf;
+  conv_atobl(tim2+6,&buf,2);day=buf;
+  conv_atobl(tim2+8,&buf,2);hour=buf;
+  conv_atobl(tim2+10,&buf,2);minute=buf;  
+  conv_atobl(tim2+12,&buf,2);seconde=buf;
+
+  unsigned long unixtim2=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
+
+  unsigned long unixsum=unixtim1+unixtim2;
+
+  convertNTP(&unixsum,&year,&month,&day,&js,&hour,&minute,&seconde);
+  dateToStr(recep,year,month,day,hour,minute,seconde);
+
+}
+
+void subTime(char* recep,const char* endtime,const char* time)
+{}
+
 #ifndef UDPUSAGE
 void initDate()
 {

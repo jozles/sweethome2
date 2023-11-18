@@ -331,23 +331,26 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
   uint8_t  multRem;       // multiple remote nb if not 0
 };
 
-/*
-struct Remote             // liste des remotes
-{
-  char    nam[LENREMNAM]; // remote name
-  uint8_t onoff;          // état on/off
-  uint8_t newonoff;       // buffer pour reception et traitement cb par GET /
-  uint8_t enable;         // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
-  uint8_t newenable;      // buffer pour reception et traitement cb par GET /
-};
-
-struct NewRemote             // liste des remotes
-*/
-
 #define SLIDER false
 #define PUSH   true
 #define SQR    0
 #define RND    2
+
+struct newRemote              // liste des remotes
+{
+  char     nam[LENREMNAM]; // remote name
+  uint8_t  oldonoff;          // état on/off                                          -- inutilisé
+  uint8_t  oldnewonoff;       // buffer pour reception et traitement cb par GET /     -- inutilisé
+  uint8_t  enable;         // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
+  uint8_t  oldnewenable;      // buffer pour reception et traitement cb par GET /     -- inutilisé
+  bool     multRem;           // multiple Remote flag
+  uint8_t  detec;             // detecteur on/off (slider/push)
+  uint8_t  timstat;           // status oneshot timer (0=off 1=pause 2=running)
+  uint8_t  butModel;          // modèle bouton (slider/pushButton)
+  char     durat[7];          // durée oneshot              voir addTime et subTime
+  char     remT[7];           // temps restant (si pause)   
+  char     dhfin[16];         // memset(datedurat,'0',16);memcpy(datedurat+8,durat,7);addTime(remoteN.dhfin,now,datedurat);
+};
 
 struct Remote             // liste des remotes
 {
