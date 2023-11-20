@@ -413,11 +413,37 @@ void addTime(char* recep,const char* tim1,const char* tim2)
 
   convertNTP(&unixsum,&year,&month,&day,&js,&hour,&minute,&seconde);
   dateToStr(recep,year,month,day,hour,minute,seconde);
-
 }
 
-void subTime(char* recep,const char* endtime,const char* time)
-{}
+void subTime(char* recep,const char* endtime,const char* time,bool onlyHours)
+{
+  int year,month,day,hour,minute,seconde;
+  uint32_t buf;
+  
+  conv_atobl(endtime,&buf,4);year=buf;
+  conv_atobl(endtime+4,&buf,2);month=buf;
+  conv_atobl(endtime+6,&buf,2);day=buf;
+  conv_atobl(endtime+8,&buf,2);hour=buf;
+  conv_atobl(endtime+10,&buf,2);minute=buf;  
+  conv_atobl(endtime+12,&buf,2);seconde=buf;
+
+  unsigned long unixtim1=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
+
+  conv_atobl(time,&buf,4);year=buf;
+  conv_atobl(time+4,&buf,2);month=buf;
+  conv_atobl(time+6,&buf,2);day=buf;
+  conv_atobl(time+8,&buf,2);hour=buf;
+  conv_atobl(time+10,&buf,2);minute=buf;  
+  conv_atobl(time+12,&buf,2);seconde=buf;
+
+  unsigned long unixtim2=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
+
+  unsigned long unixdate=unixtim1-unixtim2;
+
+  convertNTP(&unixdate,&year,&month,&day,&js,&hour,&minute,&seconde);
+  if(onlyHours){hour+=day*24;year=-2000;month=0;day=0;}
+  dateToStr(recep,year,month,day,hour,minute,seconde);
+}
 
 #ifndef UDPUSAGE
 void initDate()

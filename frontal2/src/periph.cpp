@@ -1777,28 +1777,32 @@ void remoteNConvert()
   // créer la nouvelle structure dans const.h (newRemote dans l'exemple)
   // (dupliquer la structure et ajouter les nouvelles variables)
   // dans la boucle de recopie des lignes initialiser les nouvelles variables
-  // faire tourner frontal2 avec la ligne remoteConvert décommentée
+  // faire tourner frontal2 avec la ligne remoteNConvert décommentée
   // la recommenter
   // mettre à jour la structure "normale" dans const.h et supprimer la nouvelle
 
-  // // pour la migration de la carte serveur RUN, le plus simple est de copier le fichier noms_rem depuis la carte DEV
-/*
-  struct NewRemote newRemoteN[NBREMOTE];
-  char*  newRemoteNA=(char*)&newRemoteN;
-  unsigned long   newRemoteNlen=(sizeof(NewRemote))*NBREMOTE;
+  // pour la migration de la carte serveur RUN, le plus simple est de copier le fichier noms_rem depuis la carte DEV
 
-  if(remLoad(REMOTENFNAME,newRemoteNlen,newRemoteNA)!=SDOK){while(1){yield();}}
+  struct newRemote newRemoteN[NBREMOTE];
+  char*  newRemoteNA=(char*)&newRemoteN;
+  unsigned long   newRemoteNlen=(sizeof(newRemote))*NBREMOTE;
+
+  if(remLoad(REMOTENFNAME,remoteNlen,remoteNA)!=SDOK){while(1){yield();}}
 
   for(uint8_t i=0;i<NBREMOTE;i++){
     memcpy(&newRemoteN[i].nam,&remoteN[i].nam,LENREMNAM) ;
-    newRemoteN[i].onoff=remoteN[i].onoff ;
-    newRemoteN[i].newonoff=remoteN[i].newonoff ;
-    newRemoteN[i].oldenable=remoteN[i].oldenable ;
-    newRemoteN[i].newenable=remoteN[i].newenable ;
-    newRemoteN[i].multRem=0 ;
-    newRemoteN[i].detec=0 ;
-    newRemoteN[i].deten=0 ;
-    newRemoteN[i].butModel=0 ;
+    newRemoteN[i].enable=remoteN[i].enable ;
+//    newRemoteN[i].onoff=remoteN[i].onoff ;
+//    newRemoteN[i].newonoff=remoteN[i].newonoff ;
+//    newRemoteN[i].oldenable=remoteN[i].oldenable ;
+//    newRemoteN[i].newenable=remoteN[i].newenable ;
+//    newRemoteN[i].multRem=0 ;
+    newRemoteN[i].detec=remoteN[i].detec ;
+    newRemoteN[i].butModel=remoteN[i].butModel ;
+    newRemoteN[i].timstat=0;
+    memset(newRemoteN[i].durat,'0',7);
+    memset(newRemoteN[i].remT,'0',7);
+    memset(newRemoteN[i].dhfin,'0',16);
   }
 
   fremote.remove();
@@ -1810,7 +1814,7 @@ void remoteNConvert()
 
   fremote.close();
   if(remSave(REMOTENFNAME,newRemoteNlen,newRemoteNA)!=SDOK){while(1){yield();}}
-*/
+
   Serial.println("conversion remoteN terminée");
 }
 

@@ -22,7 +22,7 @@ void convertNTP(unsigned long *dateUnix,int *year,int *month,int *day,byte *js,i
 void calcDate(int bd,int* yy,int*mm,int* dd,int* js,int*hh,int* mi,int* ss);
 void dateToStr(char* buff,int year,int month,int day,int hour,int minute,int second);
 void addTime(char* recep,const char* tim1,const char* tim2);
-void subTime(char* recep,const char* endtime,const char* time);
+void subTime(char* recep,const char* endtime,const char* time,bool onlyHours);
 
 void initDate();
 char* alphaDate();

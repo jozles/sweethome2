@@ -321,13 +321,13 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
                           // le détecteur 0 sert "d'élément neutre" et est donc inutilisable comme détecteur
                           
   uint8_t  num;           // remote number (numéro dans table des noms)
-  uint8_t  multNum;       // multiple remote number
+  uint8_t  multNum_;         // multiple remote number --- inutilisé
   uint8_t  olddetec;         // detecteur on/off  -- inutilisé
   uint8_t  olddeten;         // detecteur enable  -- inutilisé
   bool     oldenable;        // remote enable     -- inutilisé
   uint8_t  peri;          // périphérique dont un disjoncteur est sous controle de enable (0 pas de périphérique)
   uint8_t  sw;            // sw concerné du périphérique 
-  uint8_t  butModel;      // modèle bouton (slider/pushButton)
+  uint8_t  butModel_;        // modèle bouton     -- inutilisé       
   uint8_t  multRem;       // multiple remote nb if not 0
 };
 
@@ -338,15 +338,11 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
 
 struct newRemote              // liste des remotes
 {
-  char     nam[LENREMNAM]; // remote name
-  uint8_t  oldonoff;          // état on/off                                          -- inutilisé
-  uint8_t  oldnewonoff;       // buffer pour reception et traitement cb par GET /     -- inutilisé
-  uint8_t  enable;         // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
-  uint8_t  oldnewenable;      // buffer pour reception et traitement cb par GET /     -- inutilisé
-  bool     multRem;           // multiple Remote flag
+  char     nam[LENREMNAM];    // remote name
+  uint8_t  enable;            // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
   uint8_t  detec;             // detecteur on/off (slider/push)
-  uint8_t  timstat;           // status oneshot timer (0=off 1=pause 2=running)
   uint8_t  butModel;          // modèle bouton (slider/pushButton)
+  uint8_t  timstat;           // status oneshot timer (0=off 1=pause 2=running)  
   char     durat[7];          // durée oneshot              voir addTime et subTime
   char     remT[7];           // temps restant (si pause)   
   char     dhfin[16];         // memset(datedurat,'0',16);memcpy(datedurat+8,durat,7);addTime(remoteN.dhfin,now,datedurat);
