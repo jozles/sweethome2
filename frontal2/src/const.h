@@ -339,13 +339,15 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
 struct newRemote              // liste des remotes
 {
   char     nam[LENREMNAM];    // remote name
+  bool     multRem;           // multiple Remote flag
   uint8_t  enable;            // état enable (recopié dans les disjoncteurs des switch/périphériques concernés)
-  uint8_t  detec;             // detecteur on/off (slider/push)
+  uint8_t  detec;             // n° detecteur dsrv on/off 
   uint8_t  butModel;          // modèle bouton (slider/pushButton)
-  uint8_t  timstat;           // status oneshot timer (0=off 1=pause 2=running)  
-  char     durat[7];          // durée oneshot              voir addTime et subTime
-  char     remT[7];           // temps restant (si pause)   
-  char     dhfin[16];         // memset(datedurat,'0',16);memcpy(datedurat+8,durat,7);addTime(remoteN.dhfin,now,datedurat);
+  uint8_t  osTimStat;         // status oneshot timer (0=off 1=pause 2=running) 
+  uint8_t  osType;            // type one_shot (ON/OFF) 
+  char     osDurat[7];        // durée oneshot              voir addTime et subTime
+  char     osRemT[7];         // temps restant (si pause)   
+  char     osEndDate[16];     // memset(datedurat,'0',16);memcpy(datedurat+8,durat,7);addTime(remoteN.dhfin,now,datedurat);
 };
 
 struct Remote             // liste des remotes

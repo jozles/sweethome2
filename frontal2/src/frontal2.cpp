@@ -179,11 +179,14 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
 #define UBOOT   "u"                    // User Request Boot record
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
+  unsigned long oneShotRemTime=100;    // last millis pour one_shot_timers des remotes
   unsigned long srvdettime=0;          // mesure scans détecteurs
-  unsigned long timerstime=0;          // last millis pour timers
+  unsigned long timerstime=300;        // last millis pour timers (désynchro)
+#define POSREMOTE 1                    // secondes
+  uint32_t  perOSR=POSREMOTE;          // période scan one_shot_timers
 #define PTIMERS 1                      // secondes
-  uint32_t  pertimers=PTIMERS;         // période ctle timers 
-  unsigned long thermosTime=0;         // last millis pour thermos
+  uint32_t  pertimers=PTIMERS;         // période scan timers 
+  unsigned long thermosTime=400;       // last millis pour thermos
 #define PTHERMOS 4                     // secondes
   uint32_t  perThermos=PTHERMOS;       // période ctle thermos
   unsigned long datetime=0;            // last millis() pour date 
@@ -428,6 +431,7 @@ void udpPeriServer();
 int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime);
 void poolperif(uint8_t* tablePerToSend,uint8_t detec,const char* nf,const char* src);
 void scanTimers();
+void scanRemote();
 void scanDate();
 void scanTemp();
 void scanThermos();
@@ -688,6 +692,8 @@ void loop()
 
             scanTimers();
 //Serial.print("wdg=");Serial.println(millis());
+            scanRemote();
+
             watchdog();
 //Serial.print("hal=");Serial.println(millis());
             stoprequest();
@@ -931,6 +937,34 @@ void scanTimers()                                             //   recherche tim
       }
       periDetecUpdate("pDUti");                         // mise à jour remotes, fichier perif et tablePerToSend
       perToSend(tablePerToSend,timerstime);             // mise à jour périphériques de tablePerToSend
+    }
+}
+
+void scanRemote()
+{
+    if((millis()-oneShotRemTime)>perOSR*1000){  
+      oneShotRemTime=millis();
+  /*
+  char now[LNOW];*now='/0';
+  for(uint8_t r=0;r<NBREMOTE,r++){
+    switch (remoteN[r].osTimStat){
+      case 0:break;                                                 // off
+      case 1: 
+          if(*now=='/0'){ds3231.alphaNow(now);}
+          if(memcmp(remoteN[r].osEndDate,now,15)<=0){               // fin timing
+                remoteN[r].osTimStat=0;                             // status STOP
+                for(uint8_t nr=0;nr>MAXREMLI;nr++){
+                  if(remoteT[nr].num==r){
+                    disjValue(remoteN[r].enable,r,remoteT[nr].sw);  // restore periSwCde et maj perifs
+                  }
+                }
+              }
+              break;
+      case 2:break;                                                 // paused
+      default:break;
+    }
+  }
+  */
     }
 }
 
@@ -1353,12 +1387,14 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem)
                         if(remoteN[rem].butModel==PUSH){memDetServ[mi] &= ~mDSmaskbit[ptmi];}     // push envoie toujours 1 donc raz
 }
 
-void disjValue(uint8_t val,uint8_t rem)   
+void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 1 ou 2) dans periSwCde
+                                                            // et màj du ou des périf(s) concerné(s)
+                                                            // selon remote simple/multiple
 {
   uint8_t swMsk[]={0xFC,0xF3,0xCF,0x3F};
   
   if(!remoteN[rem].multRem){              // remote simple 
-    uint8_t remTNum=*valf-PMFNCHAR;       // n° switch dans table remoteT
+    //uint8_t remTNum=*valf-PMFNCHAR;       // n° switch dans table remoteT
     if(remTNum<MAXREMLI){
         periCur=remoteT[remTNum].peri;
         uint8_t curSw=remoteT[remTNum].sw;
@@ -1881,9 +1917,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 53:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteHtml (disjoncteurs/push/slider)
                                                                                                         // si nb= n° remoteN faire +1 (remoteN[1->n])
                           switch(*(libfonctions+2*i)){                                               
-                            case 'a': disjValue(0,nb);break;                                            // (remote_ca) 1ère position disjoncteur (disjoncté)
-                            case 'b': disjValue(1,nb);break;                                            // (remote_cb) 2nde position disjoncteur (on)
-                            case 'c': disjValue(2,nb);break;                                            // (remote_cc) 2nde position disjoncteur (forcé)
+                            case 'a': disjValue(0,nb,*valf-PMFNCHAR);break;                                            // (remote_ca) 1ère position disjoncteur (disjoncté)
+                            case 'b': disjValue(1,nb,*valf-PMFNCHAR);break;                                            // (remote_cb) 2nde position disjoncteur (on)
+                            case 'c': disjValue(2,nb,*valf-PMFNCHAR);break;                                            // (remote_cc) 2nde position disjoncteur (forcé)
                             case 'u': pushSliderRemote(cli,nb);break;                                   // (remote_cu) push/slider
                             default:break;
                           }
