@@ -138,7 +138,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___dispo_____percocfg__peripcfg__ethcfg____remotecfg_remote_ctlremotehtmlremote_timmailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
@@ -1841,9 +1841,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 46: {int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                          // (config) usrpass[libf+1]
                        alphaTfr(usrpass+nb*(LENUSRPASS+1),LENUSRPASS,valf,nvalf[i+1]-nvalf[i]);
                        }break;                       
-              case 47: if(memcmp((usrnames+usernum*LENUSRNAME),"admin",5)==0){cfgServerHtml(cli);}      // bouton config cfg_serv__
+              case 47: if(memcmp((usrnames+usernum*LENUSRNAME),"admin",5)==0){cfgServerHtml(cli);}      // bouton config cfgserv___
                        break;                                                        
-              case 48: break;                                                                           // dispo
+              case 48: break;                                                                           // null_fnct_ rien à faire (permet les boutons muets)
               case 49: what=6;                                                                         
                        {uint8_t nC=*(libfonctions+2*i)-PMFNCVAL;                                        // num concentrateur             
                         int rr=0;uint16_t aa=0;  
@@ -1915,18 +1915,43 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           }
                        }break;
               case 53:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteHtml (disjoncteurs/push/slider)
-                                                                                                        // si nb= n° remoteN faire +1 (remoteN[1->n])
-                          switch(*(libfonctions+2*i)){                                               
-                            case 'a': disjValue(0,nb,*valf-PMFNCHAR);break;                                            // (remote_ca) 1ère position disjoncteur (disjoncté)
-                            case 'b': disjValue(1,nb,*valf-PMFNCHAR);break;                                            // (remote_cb) 2nde position disjoncteur (on)
-                            case 'c': disjValue(2,nb,*valf-PMFNCHAR);break;                                            // (remote_cc) 2nde position disjoncteur (forcé)
+                          char nf=*(libfonctions+2*i);                                                                                                       // si nb= n° remoteN faire +1 (remoteN[1->n])
+                          switch(nf){                                               
+                            case 'a': disjValue(0,nb,*valf-PMFNCHAR);break;                             // (remote_ca) 1ère position disjoncteur (disjoncté)
+                            case 'b': disjValue(1,nb,*valf-PMFNCHAR);break;                             // (remote_cb) 2nde position disjoncteur (on)
+                            case 'c': disjValue(2,nb,*valf-PMFNCHAR);break;                             // (remote_cc) 2nde position disjoncteur (forcé)
+                            case 'r': break;                                                            // (remote_cr) remoteHtml seul 
+                            case 't': break;                                                            // (remote_ct) accès fenêtre one_shot
                             case 'u': pushSliderRemote(cli,nb);break;                                   // (remote_cu) push/slider
                             default:break;
                           }
-                          remoteHtml(cli);
+                          if(nf!='t'){remoteHtml(cli);}
+                          else remoteTimHtml(cli,nb);
                         }break;                                                                       
-              case 54:  remoteHtml(cli);break;                                                          // remotehtml
-              case 55:  remoteTimHtml(cli,*((libfonctions+2*i+1)-PMFNCHAR));break;                      // remote_tim
+              case 54:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteTimHtml
+                          char nf=*(libfonctions+2*i);                                                  // si nb= n° remoteN faire +1 (remoteN[1->n])
+                          /*
+                          switch(nf){                                               
+                            case 'a': remoteN[nb].osEnable=0;break;                                     // (remote_oa) 1ère position disjoncteur (disjoncté)
+                            case 'b': remoteN[nb].osEnable=1;break;                                     // (remote_ob) 2nde position disjoncteur (on)
+                            case 'c': remoteN[nb].osEnable=2;break;                                     // (remote_oc) 2nde position disjoncteur (forcé)
+                            case 'd': remoteN[nb].osStatus=0;                                           // (remote_od) stop
+                                      disjValue(remoteN[nb].enable,nb,*valf-PMFNCHAR);                  // restauration état courant 
+                                      break;
+                            case 'e': remoteN[nb].osStatus=1;break;                                     // (remote_oe) pause
+                            case 'f': remoteN[nb].osStatus=2;                                           // (remote_of) start
+                                      disjValue(remoteN[nb].osEnable,nb,*valf-PMFNCHAR);                // chargement état one_shot
+                                      if(*remoteN[nb].osDurat==0){}
+                                      addTime(remoteN[nb].osEndDate,now,remoteN[nb].osRemT,trueL)
+                                      break;
+                            case 't': textfonc(remoteN[nb].osDurat,6);break;                            // (remote_ot) duration 
+                            default:break;
+                          if(remoteN[nb].osEnable==0){*remoteN[nb].osRemT='\0';}
+                          */
+                          
+                          remoteTimHtml(cli,nb);
+                        }break;                                                     
+              case 55:  break;                                                                          // dispo
               case 56:  what=60;
                         switch (*(libfonctions+2*i+1)){                                                 // mailcfg___
                           case 'f':alphaTfr(mailFromAddr,LMAILADD,valf,nvalf[i+1]-nvalf[i]);break;      // (config) mailFrom

@@ -396,7 +396,7 @@ void periTableHtml(EthernetClient* cli)
           scrGetButFn(buf,jsbuf,"deco_____B","","_ reboot _",ALICNO,0,0);          
           scrGetButFn(buf,jsbuf,"cfgserv___","","_ config _",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"remote____","","remote_cfg",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"remotehtml","","remotehtml",ALICNO,0,0);
+          scrGetButFn(buf,jsbuf,"remote_cr_","","remotehtml",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"thermoscfg","","thermo_cfg",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"thermoshow","","thermoshow",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"timershtml","","timershtml",ALICNO,0,0);

@@ -386,7 +386,7 @@ void dateToStr(char* buff,int year,int month,int day,int hour,int minute,int sec
   buff[15]='\0';
 }  
 
-void addTime(char* recep,const char* tim1,const char* tim2)
+void addTime(char* recep,const char* tim1,const char* tim2,bool onlyHours)
 {
   int year,month,day,hour,minute,seconde;
   uint32_t buf;
@@ -400,9 +400,12 @@ void addTime(char* recep,const char* tim1,const char* tim2)
 
   unsigned long unixtim1=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
 
-  conv_atobl(tim2,&buf,4);year=buf;
-  conv_atobl(tim2+4,&buf,2);month=buf;
-  conv_atobl(tim2+6,&buf,2);day=buf;
+  year=0;month=0;day=0;
+  if(!onlyHours){
+    conv_atobl(tim2,&buf,4);year=buf;
+    conv_atobl(tim2+4,&buf,2);month=buf;
+    conv_atobl(tim2+6,&buf,2);day=buf;
+  }
   conv_atobl(tim2+8,&buf,2);hour=buf;
   conv_atobl(tim2+10,&buf,2);minute=buf;  
   conv_atobl(tim2+12,&buf,2);seconde=buf;

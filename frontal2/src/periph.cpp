@@ -1799,11 +1799,11 @@ void remoteNConvert()
 //    newRemoteN[i].multRem=0 ;
     newRemoteN[i].detec=remoteN[i].detec ;
     newRemoteN[i].butModel=remoteN[i].butModel ;
-    newRemoteN[i].osTimStat=0;
-    newRemoteN[i].osType=0;
-    memset(newRemoteN[i].osDurat,'0',6);
-    memset(newRemoteN[i].osRemT,'0',6);
-    memset(newRemoteN[i].osEndDate,'0',15);
+    newRemoteN[i].osEnable=0;
+    newRemoteN[i].osStatus=0;
+    memset(newRemoteN[i].osDurat,'\0',7);
+    memset(newRemoteN[i].osRemT,'\0',7);
+    memset(newRemoteN[i].osEndDate,'\0',16);
   }
 
   fremote.remove();

@@ -837,8 +837,67 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   scrDspText(buf,jsbuf,"  ",0,BR);
   scrDspNum(buf,jsbuf,&rem,&min,&max,BR);
 
+  // affichage état courant
+  uint8_t disjVal;
+
+  char codeFn[6]={'a','b','c','d','e','f'};                                                   // pour disjoncteurs OFF/ON/FORCED
+  const char* lib[3];lib[0]="OFF";lib[1]="ON";lib[2]="FOR";
+  uint8_t colors[3]={DISJCOLOR,ONCOLOR,FORCEDCOLOR};                              // pour valeurs 0/1/2 du disjoncte
+  uint8_t color;
+
+  char    remTNum[]={'\0','\0'};
+  char    fn[LENNOM+1];
+  memcpy(fn,"remote_o__\0",LENNOM+1);fn[LENNOM-1]=(char)(rem+PMFNCHAR);           // transmission n° remote
+
+  disjVal=remoteN[rem].enable;
+  for(uint8_t i=0;i<3;i++){                                                       // affichage état courant
+                  if(disjVal%10==i){color=colors[i];
+                    if(disjVal>=10){color+=LIGHTVALUE;}
+                    scrGetButFn(buf,jsbuf,"null_fnct_",remTNum,lib[i],ALICNO,1,color,0,0,1,BRYES);
+                  }
+  }
+/*
+  sscfgtB(buf,jsbuf,"remote_ct_",0,remoteN[rem].osDurat,6,0,0);
+  scrDspText(buf,jsbuf,"  ",0,0);
+  scrDspText(buf,jsbuf,remoteN[rem].osRemT,0,BRYES); 
+
+  tableBeg(buf,jsbuf,courier,true,0,0); 
+  strcat(buf,"\n");            
+
+  uint8_t osStatus=0;
+  disjVal=remoteN[rem].osEnable;
+  for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons état one_shot
+                  if(remoteN[rem].osStatus==0){fn[LENNOM-2]=codeFn[i];}
+                  else memcpy(fn,"null_fnct_",LENNOM);                            // si running ou paused pas de changement possible
+                  if(disjVal%10==i){color=colors[i];} else color=OFFCOLOR;
+                  if(disjVal>=10){color+=LIGHTVALUE;}
+                  //Serial.print(" disj color=");Serial.println(color);
+                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,0);
+                  uint8_t ctl=0;
+                  if(i==2){
+                    ctl=TDEND|TREND|BRYES;
+                    scrDspText(buf,jsbuf," ",0,TDEND);
+                  }
+                  scrDspText(buf,jsbuf,"  ",0,ctl);
+  }
+
+  disjVal=remoteN[rem].osStatus;
+  for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons status
+                  fn[LENNOM-2]=codeFn[i+3];
+                  if(disjVal%10==i){color=OFFCOLOR;} else color=CURCOLOR;
+                  if(disjVal>=10){color+=LIGHTVALUE;}
+                  //Serial.print(" disj color=");Serial.println(color);
+                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,0);
+                  uint8_t ctl=0;
+                  if(i==2){
+                    ctl=TDEND|TREND|BRYES;
+                    scrDspText(buf,jsbuf," ",0,TDEND);
+                  }
+                  scrDspText(buf,jsbuf,"  ",0,ctl);
+  }
+
   //void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl)
-  
+*/
   strcat(buf,"\n");
   ethWrite(cli,buf,&lb);
 }
@@ -975,7 +1034,7 @@ void remoteHtml(EthernetClient* cli)
                 
                 scrDspText(buf,jsbuf,"",0,TDBEG);
                 memcpy(fn,"remote_c__\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);            // transmission n° remote
-                memcpy(fnt,"remote_tim\0",LENNOM+1);fnt[LENNOM-1]=(char)(nb+PMFNCHAR);          // transmission n° remote pour one_shot_timer
+                memcpy(fnt,"remote_ct_\0",LENNOM+1);fnt[LENNOM-1]=(char)(nb+PMFNCHAR);          // transmission n° remote pour one_shot_timer
 
                 char codeFn[3]={'a','b','c'};                                                   // pour disjoncteurs OFF/ON/FORCED
                 const char* lib[3];lib[0]="OFF";lib[1]="ON";lib[2]="FOR";
@@ -1005,7 +1064,7 @@ void remoteHtml(EthernetClient* cli)
             
             scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,7,STDBUTTON,1,0,1,0);
             scrGetButFn(buf,jsbuf,"timersctl_","","timers",ALICNO,7,STDBUTTON,1,0,1,0);
-            scrGetButFn(buf,jsbuf,"remotehtml","","refresh",ALICNO,7,STDBUTTON,1,0,1,0);
+            scrGetButFn(buf,jsbuf,"remote_cr_","","refresh",ALICNO,7,STDBUTTON,1,0,1,0);
             
             formEnd(buf,jsbuf,0,0);
             htmlEnd(buf,jsbuf);
@@ -1249,7 +1308,7 @@ void thermoShowHtml(EthernetClient* cli)
           tableEnd(buf,jsbuf,BRYES);
 
         //strcat(buf,"<p align=\"center\">");
-        scrGetButFn(buf,jsbuf,"remotehtml","","remote",ALIC,7,0);                
+        scrGetButFn(buf,jsbuf,"remote_cr_","","remote",ALIC,7,0);                
         scrGetButFn(buf,jsbuf,"thermoshow","","refresh",ALIC,7,BRYES);
         
         //strcat(buf,"</p><br>");

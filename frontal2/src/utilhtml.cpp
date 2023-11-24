@@ -931,7 +931,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
       colNames[2]="Red";          // forced
       colNames[3]="Gold";         // push
       colNames[4]="Grey";         // off
-      colNames[5]="";
+      colNames[5]="Yellow";       // selected
       colNames[6]="";
       colNames[7]="";
       colNames[8]="";
@@ -965,8 +965,6 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     
     fnHtmlEnd(buf,0,ctl);
 }
-
-
 
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 {
