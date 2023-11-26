@@ -878,7 +878,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
       scrGetButFn(buf,jsbuf,"null_fnct_",remTNum,lib[i],ALICNO,1,color,0,0,1,ctl);
     }
   }
-/*
+
   sscfgtB(buf,jsbuf,"remote_ct_",0,remoteN[rem].osDurat,6,0,0);
   scrDspText(buf,jsbuf,"  ",0,0);
   scrDspText(buf,jsbuf,remoteN[rem].osRemT,0,BRYES); 
@@ -886,7 +886,6 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   tableBeg(buf,jsbuf,courier,true,0,0); 
   strcat(buf,"\n");            
 
-  uint8_t osStatus=0;
   disjVal=remoteN[rem].osEnable;
   for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons état one_shot
                   if(remoteN[rem].osStatus==0){fn[LENNOM-2]=codeFn[i];}
@@ -919,7 +918,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   }
 
   //void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl)
-*/
+
   strcat(buf,"\n");
   ethWrite(cli,buf,&lb);
 }

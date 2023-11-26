@@ -1618,8 +1618,9 @@ void remotePrint()
   for(uint8_t num=0;num<NBREMOTE;num++){
     Serial.print(num+1);Serial.print(" ");if(num<10){Serial.print(" ");}Serial.print(remoteN[num].nam);
     for(int nr=LENREMNAM-strlen(remoteN[num].nam);nr>=0;nr--){Serial.print(" ");}
-    //Serial.print(remoteN[num].onoff);Serial.print("/");Serial.print(remoteN[num].newonoff);Serial.print(" ");
-    //Serial.print(remoteN[num].oldenable);Serial.print("/");Serial.print(remoteN[num].newenable);Serial.print(" ");
+    Serial.print(remoteN[num].multRem);Serial.print("/");Serial.print(remoteN[num].enable);Serial.print(" ");
+    Serial.print(remoteN[num].detec);Serial.print("/");Serial.print(remoteN[num].butModel);Serial.print(" ");
+    //Serial.print(remoteN[num].osEnable);Serial.print("/");Serial.print(remoteN[num].osStatus);Serial.println(" ");
     for(uint8_t numd=0;numd<MAXREMLI;numd++){
       if(remoteT[numd].num==num+1){
         remPrint(numd);
@@ -1782,21 +1783,17 @@ void remoteNConvert()
   // mettre à jour la structure "normale" dans const.h et supprimer la nouvelle
 
   // pour la migration de la carte serveur RUN, le plus simple est de copier le fichier noms_rem depuis la carte DEV
-
-  struct newRemote newRemoteN[NBREMOTE];
+/*
+  struct NewRemote newRemoteN[NBREMOTE];
   char*  newRemoteNA=(char*)&newRemoteN;
-  unsigned long   newRemoteNlen=(sizeof(newRemote))*NBREMOTE;
+  unsigned long   newRemoteNlen=(sizeof(NewRemote))*NBREMOTE;
 
   if(remLoad(REMOTENFNAME,remoteNlen,remoteNA)!=SDOK){while(1){yield();}}
 
   for(uint8_t i=0;i<NBREMOTE;i++){
     memcpy(&newRemoteN[i].nam,&remoteN[i].nam,LENREMNAM) ;
+    newRemoteN[i].multRem=remoteN[i].multRem;
     newRemoteN[i].enable=remoteN[i].enable ;
-//    newRemoteN[i].onoff=remoteN[i].onoff ;
-//    newRemoteN[i].newonoff=remoteN[i].newonoff ;
-//    newRemoteN[i].oldenable=remoteN[i].oldenable ;
-//    newRemoteN[i].newenable=remoteN[i].newenable ;
-//    newRemoteN[i].multRem=0 ;
     newRemoteN[i].detec=remoteN[i].detec ;
     newRemoteN[i].butModel=remoteN[i].butModel ;
     newRemoteN[i].osEnable=0;
@@ -1805,17 +1802,31 @@ void remoteNConvert()
     memset(newRemoteN[i].osRemT,'\0',7);
     memset(newRemoteN[i].osEndDate,'\0',16);
   }
+  
+  sdRemove(REMOTENFNAME,&fremote);
 
-  fremote.remove();
+  if(remSave(REMOTENFNAME,newRemoteNlen,newRemoteNA)!=SDOK){Serial.println("save newRemoteN KO");while(1){yield();}}
+  if(remLoad(REMOTENFNAME,newRemoteNlen,newRemoteNA)!=SDOK){Serial.println("load newRemoteN KO");while(1){yield();}}
 
-  if (!fremote.open(REMOTENFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
-    Serial.println(" create failed");
-    return;
+//void nbewRemotePrint()
+//{
+  for(uint8_t num=0;num<NBREMOTE;num++){
+    Serial.print(num+1);Serial.print(" ");if(num<10){Serial.print(" ");}Serial.print(newRemoteN[num].nam);
+    for(int nr=LENREMNAM-strlen(newRemoteN[num].nam);nr>=0;nr--){Serial.print(" ");}
+    Serial.print(newRemoteN[num].multRem);Serial.print("/");Serial.print(newRemoteN[num].enable);Serial.print(" ");
+    Serial.print(newRemoteN[num].detec);Serial.print("/");Serial.print(newRemoteN[num].butModel);Serial.print(" ");
+    //Serial.print(remoteN[num].osEnable);Serial.print("/");Serial.print(remoteN[num].osStatus);Serial.println(" ");
+    for(uint8_t numd=0;numd<MAXREMLI;numd++){
+      if(remoteT[numd].num==num+1){
+        remPrint(numd);
+      }
+    }
+    Serial.println();
   }
+  Serial.println();
+//}
 
-  fremote.close();
-  if(remSave(REMOTENFNAME,newRemoteNlen,newRemoteNA)!=SDOK){while(1){yield();}}
-
+*/
   Serial.println("conversion remoteN terminée");
 }
 

@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".86"
+#define NVERS ".87"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -153,6 +153,7 @@
    1.85 debug alphaTfr(); ajout mail_init_ du perif lors des config mail + envoi mail MAIL_CONFIG ; 
         ajout n° perif dans message mail (p=xx)
    1.86 debut dev one_shot_timer des remotes
+   1.87 conversion fichier remoteN effectuée, debug en cours
 
 
    BUGS :
@@ -336,7 +337,7 @@ struct SwRemote           // liste des détecteurs modifiables par les remotes
 #define SQR    0
 #define RND    2
 
-struct newRemote              // liste des remotes
+struct Remote              // liste des remotes
 {
   char     nam[LENREMNAM];    // remote name
   bool     multRem;           // multiple Remote flag
@@ -350,7 +351,8 @@ struct newRemote              // liste des remotes
   char     osEndDate[16];     // memset(datedurat,'0',16);memcpy(datedurat+8,durat,7);addTime(remoteN.dhfin,now,datedurat);
 };
 
-struct Remote             // liste des remotes
+
+struct OldRemote             // liste des remotes
 {
   char     nam[LENREMNAM]; // remote name
   uint8_t  oldonoff;         // état on/off                                          -- inutilisé

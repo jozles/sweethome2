@@ -355,7 +355,8 @@ char   memosTable[LMEMO*NBMEMOS];
 
   //Ymdhms dt;
   Ds3231 ds3231;
- 
+  char now[LNOW];
+
 /*
  * =========== mécanisme de la librairie 
  * 
@@ -449,6 +450,7 @@ void showSocketsStatus(bool close);
 void showSocketsStatus(bool close,bool nolf);
 void showSocketsStatus(bool close,bool nolf,bool print);
 void printSocketStatus(bool nolf);
+void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum);
 
 void yield()
 {
@@ -561,9 +563,8 @@ void setup() {                          // ====================================
   memDetLoad();                     // le second pour Sync 
   //remoteNPlus(8);while(1){};
   //remoteTConvert();
-  //remoteNConvert();
-  //while(1){};
-  remoteLoad();//periSwSync();
+  //remoteNConvert();while(1){};
+  remoteLoad();//remotePrint();//periSwSync();
   //timersConvert();                // chgt du nombre de timers
   timersLoad();
   //timersConvert();
@@ -895,7 +896,6 @@ void scanTimers()                                             //   recherche tim
       //bakDetServ=memDetServ;
       timerstime=millis();
       memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
-      char now[LNOW];
       ds3231.alphaNow(now);
       
       for(int nt=0;nt<NBTIMERS;nt++){
@@ -942,17 +942,17 @@ void scanTimers()                                             //   recherche tim
 
 void scanRemote()
 {
-    if((millis()-oneShotRemTime)>perOSR*1000){  
-      oneShotRemTime=millis();
-  /*
-  char now[LNOW];*now='/0';
-  for(uint8_t r=0;r<NBREMOTE,r++){
-    switch (remoteN[r].osTimStat){
-      case 0:break;                                                 // off
-      case 1: 
-          if(*now=='/0'){ds3231.alphaNow(now);}
+  if((millis()-oneShotRemTime)>perOSR*1000){  
+    oneShotRemTime=millis();
+  
+    now[0]='\0';
+    for(uint8_t r=0;r<NBREMOTE;r++){
+      switch (remoteN[r].osStatus){
+        case 0:break;                                               // STOP
+        case 1: 
+          if(now[0]=='\0'){ds3231.alphaNow(now);}
           if(memcmp(remoteN[r].osEndDate,now,15)<=0){               // fin timing
-                remoteN[r].osTimStat=0;                             // status STOP
+                remoteN[r].osStatus=0;                             // status STOP
                 for(uint8_t nr=0;nr>MAXREMLI;nr++){
                   if(remoteT[nr].num==r){
                     disjValue(remoteN[r].enable,r,remoteT[nr].sw);  // restore periSwCde et maj perifs
@@ -960,12 +960,11 @@ void scanRemote()
                 }
               }
               break;
-      case 2:break;                                                 // paused
-      default:break;
+        case 2:break;                                               // paused
+        default:break;
+      }
     }
   }
-  */
-    }
 }
 
 void sser(uint8_t det,uint8_t valnou,const char* src) // si un det a changé (!= old) -> inscription perif éventuel dans tablePerToSend
@@ -1930,7 +1929,6 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         }break;                                                                       
               case 54:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteTimHtml
                           char nf=*(libfonctions+2*i);                                                  // si nb= n° remoteN faire +1 (remoteN[1->n])
-                          /*
                           switch(nf){                                               
                             case 'a': remoteN[nb].osEnable=0;break;                                     // (remote_oa) 1ère position disjoncteur (disjoncté)
                             case 'b': remoteN[nb].osEnable=1;break;                                     // (remote_ob) 2nde position disjoncteur (on)
@@ -1942,13 +1940,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 'f': remoteN[nb].osStatus=2;                                           // (remote_of) start
                                       disjValue(remoteN[nb].osEnable,nb,*valf-PMFNCHAR);                // chargement état one_shot
                                       if(*remoteN[nb].osDurat==0){}
-                                      addTime(remoteN[nb].osEndDate,now,remoteN[nb].osRemT,trueL)
+                                      addTime(remoteN[nb].osEndDate,now,remoteN[nb].osRemT,VRAI);
                                       break;
                             case 't': textfonc(remoteN[nb].osDurat,6);break;                            // (remote_ot) duration 
                             default:break;
+                          }
                           if(remoteN[nb].osEnable==0){*remoteN[nb].osRemT='\0';}
-                          */
-                          
+                                                  
                           remoteTimHtml(cli,nb);
                         }break;                                                     
               case 55:  break;                                                                          // dispo
