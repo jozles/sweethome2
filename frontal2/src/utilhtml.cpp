@@ -580,7 +580,7 @@ void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t p
   fnHtmlEnd(buf,pol,ctl);
 }
 
-void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl)
+void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t dec,uint8_t ctl)
 {
   char colour[6+1];
   char colour1[]={"black"};
@@ -591,10 +591,17 @@ void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* 
 
   fnHtmlIntro(buf,0,ctl,nullptr);
   
-  float vf=((float)*valfonct)/100; 
-  concatnf(buf,jsbuf,vf,2,NOBR,SEPNO);
+  if(dec>4){dec=4;}
+  uint16_t vfnt[5]={1,10,100,1000,10000};
+  float vf=((float)*valfonct)/vfnt[dec]; 
+  concatnf(buf,jsbuf,vf,dec,NOBR,SEPNO);
   fnHtmlEnd(buf,0,ctl);
   setColourE(buf,jsbuf);
+}
+
+void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl)
+{
+  scrDspNum(buf,jsbuf,valfonct,valmin,valmax,2,ctl);
 }
 
 /* ----------------- structures (formulaires/tables) ---------------------- 

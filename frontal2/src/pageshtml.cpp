@@ -814,6 +814,7 @@ void cfgRemoteHtml(EthernetClient* cli)
 
 void remoteTimHtml(EthernetClient* cli,int16_t rem)
 {
+            rem++;
             Serial.print(millis());Serial.print(" remoteTimHtml() ");
 
             uint16_t lb0=8000;
@@ -833,8 +834,8 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   
   int16_t min=0;
   int16_t max=MAXREMLI;
-  scrDspText(buf,jsbuf,"  ",0,BR);
-  scrDspNum(buf,jsbuf,&rem,&min,&max,BR);
+  //scrDspText(buf,jsbuf,"  ",0,BRYES);
+  
 
   // affichage état courant
   uint8_t disjVal;
@@ -848,21 +849,27 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 
   char    remTNum[]={'\0','\0'};
   char    fn[LENNOM+1];
-  memcpy(fn,"remote_o__\0",LENNOM+1);fn[LENNOM-1]=(char)(rem+PMFNCHAR);           // transmission n° remote
+  memcpy(fn,"remote_o__\0",LENNOM+1);fn[LENNOM-1]=(char)(rem-1+PMFNCHAR);           // transmission n° remote
 
   tableBeg(buf,jsbuf,courier,true,0,0); 
+  scrDspNum(buf,jsbuf,&rem,&min,&max,0,BRYES|TDBE);
+  scrDspText(buf,jsbuf,remoteN[rem-1].nam,0,TDBE);
   strcat(buf,"\n");            
 
   uint8_t nt;
   periCur=0;
+  int16_t pCSta,ntSta,pCSw;
   for(nt=0;nt<MAXREMLI;nt++){
-    if(remoteT[nt].num==rem+1 && remoteT[nt].peri!=0){
+    if(remoteT[nt].num==rem && remoteT[nt].peri!=0){
       periCur=remoteT[nt].peri;
       periLoad(periCur);
       strcat(buf,"<td width=45>");                                                    // patch à intégrer dans le ctl des fonctions d'affichage
+      pCSta=*periSwSta;
+      ntSta=nt;
+      pCSw=remoteT[nt].sw;
       if(((*periSwSta>>remoteT[nt].sw)&0x01)!=0){                                     // switch 'allumé'
-            scrDspText(buf,jsbuf," ON ",0,TDBE);
-            affRondJaune(buf,jsbuf,TDBE);
+            scrDspText(buf,jsbuf," ON ",0,TDBEG);
+            affRondJaune(buf,jsbuf,TDEND);
       }
       else {scrDspText(buf,jsbuf," OFF ",0,TDBE);}
       break;
@@ -870,25 +877,42 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   }
   if(periCur==0){scrDspText(buf,jsbuf,".",0,TDBE);}                               // pas de périf donc pas de switch
 
-  ctl=TDEND|TREND|BRYES;
-  disjVal=remoteN[rem].enable;
+  //ctl=TDEND|TREND;
+  disjVal=remoteN[rem-1].enable;
+  /*
   for(uint8_t i=0;i<3;i++){                                                       // affichage état courant de la remote
     if(disjVal%10==i){color=colors[i];
       if(disjVal>=10){color+=LIGHTVALUE;}
       scrGetButFn(buf,jsbuf,"null_fnct_",remTNum,lib[i],ALICNO,1,color,0,0,1,ctl);
     }
   }
+  */
+  color=colors[disjVal%10];
+  if(disjVal>=10){color+=LIGHTVALUE;}
+  int16_t dV=disjVal,dV10=disjVal%10,pC=periCur,rNen=remoteN[rem-1].enable,rchk=0;
+  if(remoteN[rem-1].enable!=pCSta){rchk=9;}
+  min=0;max=99;
+  scrDspNum(buf,jsbuf,&pC,&min,&max,0,TDBE);
+  scrDspNum(buf,jsbuf,&pCSta,&min,&max,0,TDBE);
+  scrDspNum(buf,jsbuf,&ntSta,&min,&max,0,TDBE);
+  scrDspNum(buf,jsbuf,&pCSw,&min,&max,0,TDBE);
+  scrDspNum(buf,jsbuf,&rNen,&min,&max,0,TDBE);
+  scrDspNum(buf,jsbuf,&rchk,&min,&max,0,TDBE);
+  scrDspNum(buf,jsbuf,&dV,&min,&max,0,TDBE);
+  scrDspNum(buf,jsbuf,&dV10,&min,&max,0,TDBE);
 
-  sscfgtB(buf,jsbuf,"remote_ct_",0,remoteN[rem].osDurat,6,0,0);
+  scrGetButFn(buf,jsbuf,"null_fnct_",remTNum,lib[disjVal%10],ALICNO,1,color,0,0,1,TDBE);
+
+  sscfgtB(buf,jsbuf,"remote_ct_",0,remoteN[rem-1].osDurat,6,0,0);
   scrDspText(buf,jsbuf,"  ",0,0);
-  scrDspText(buf,jsbuf,remoteN[rem].osRemT,0,BRYES); 
+  scrDspText(buf,jsbuf,remoteN[rem-1].osRemT,0,BRYES); 
 
   tableBeg(buf,jsbuf,courier,true,0,0); 
   strcat(buf,"\n");            
 
-  disjVal=remoteN[rem].osEnable;
+  disjVal=remoteN[rem-1].osEnable;
   for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons état one_shot
-                  if(remoteN[rem].osStatus==0){fn[LENNOM-2]=codeFn[i];}
+                  if(remoteN[rem-1].osStatus==0){fn[LENNOM-2]=codeFn[i];}
                   else memcpy(fn,"null_fnct_",LENNOM);                            // si running ou paused pas de changement possible
                   if(disjVal%10==i){color=colors[i];} else color=OFFCOLOR;
                   if(disjVal>=10){color+=LIGHTVALUE;}
@@ -902,7 +926,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
                   scrDspText(buf,jsbuf,"  ",0,ctl);
   }
 
-  disjVal=remoteN[rem].osStatus;
+  disjVal=remoteN[rem-1].osStatus;
   for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons status
                   fn[LENNOM-2]=codeFn[i+3];
                   if(disjVal%10==i){color=OFFCOLOR;} else color=CURCOLOR;
