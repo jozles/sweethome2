@@ -838,10 +838,11 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   
 
   // affichage état courant
-  uint8_t disjVal;
+  uint8_t disjVal=0;
 
   char codeFn[6]={'a','b','c','d','e','f'};                                                   // pour disjoncteurs OFF/ON/FORCED
   const char* lib[3];lib[0]="OFF";lib[1]="ON";lib[2]="FOR";
+  const char* libcd[3];lib[0]="STOP";lib[1]="PAUSE";lib[2]="START";
   uint8_t colors[3]={DISJCOLOR,ONCOLOR,FORCEDCOLOR};                              // pour valeurs 0/1/2 du disjoncte
   uint8_t color;
 
@@ -851,7 +852,9 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   char    fn[LENNOM+1];
   memcpy(fn,"remote_o__\0",LENNOM+1);fn[LENNOM-1]=(char)(rem-1+PMFNCHAR);           // transmission n° remote
 
-  tableBeg(buf,jsbuf,courier,true,0,0); 
+  // ----------------------- une ligne état de la remote hors one_shot_timer
+
+  tableBeg(buf,jsbuf,courier,true,0,0);                                             
   scrDspNum(buf,jsbuf,&rem,&min,&max,0,BRYES|TDBE);
   scrDspText(buf,jsbuf,remoteN[rem-1].nam,0,TDBE);
   strcat(buf,"\n");            
@@ -867,6 +870,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
       pCSta=*periSwSta;
       ntSta=nt;
       pCSw=remoteT[nt].sw;
+      disjVal=periSwRead(remoteT[nt].sw);
       if(((*periSwSta>>remoteT[nt].sw)&0x01)!=0){                                     // switch 'allumé'
             scrDspText(buf,jsbuf," ON ",0,TDBEG);
             affRondJaune(buf,jsbuf,TDEND);
@@ -878,7 +882,8 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   if(periCur==0){scrDspText(buf,jsbuf,".",0,TDBE);}                               // pas de périf donc pas de switch
 
   //ctl=TDEND|TREND;
-  disjVal=remoteN[rem-1].enable;
+  //disjVal=remoteN[rem-1].enable;
+  
   /*
   for(uint8_t i=0;i<3;i++){                                                       // affichage état courant de la remote
     if(disjVal%10==i){color=colors[i];
@@ -888,10 +893,11 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   }
   */
   color=colors[disjVal%10];
-  if(disjVal>=10){color+=LIGHTVALUE;}
-  int16_t dV=disjVal,dV10=disjVal%10,pC=periCur,rNen=remoteN[rem-1].enable,rchk=0;
-  if(remoteN[rem-1].enable!=pCSta){rchk=9;}
+  if(disjVal>=10){color+=LIGHTVALUE;}  
+
   min=0;max=99;
+/*int16_t dV=disjVal,dV10=disjVal%10,pC=periCur,rNen=remoteN[rem-1].enable,rchk=0;
+  if(remoteN[rem-1].enable!=pCSta){rchk=9;}
   scrDspNum(buf,jsbuf,&pC,&min,&max,0,TDBE);
   scrDspNum(buf,jsbuf,&pCSta,&min,&max,0,TDBE);
   scrDspNum(buf,jsbuf,&ntSta,&min,&max,0,TDBE);
@@ -900,18 +906,19 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   scrDspNum(buf,jsbuf,&rchk,&min,&max,0,TDBE);
   scrDspNum(buf,jsbuf,&dV,&min,&max,0,TDBE);
   scrDspNum(buf,jsbuf,&dV10,&min,&max,0,TDBE);
+*/
+  scrGetButFn(buf,jsbuf,"null_fnct_",remTNum,lib[disjVal%10],ALICNO,1,color,0,0,1,TDBE|TREND);
 
-  scrGetButFn(buf,jsbuf,"null_fnct_",remTNum,lib[disjVal%10],ALICNO,1,color,0,0,1,TDBE);
-
-  sscfgtB(buf,jsbuf,"remote_ct_",0,remoteN[rem-1].osDurat,6,0,0);
-  scrDspText(buf,jsbuf,"  ",0,0);
-  scrDspText(buf,jsbuf,remoteN[rem-1].osRemT,0,BRYES); 
-
-  tableBeg(buf,jsbuf,courier,true,0,0); 
   strcat(buf,"\n");            
 
+// ---------------------------- une ligne durées + état souhaité + commande STOP/PAUSE/START
+
+  tableBeg(buf,jsbuf,courier,true,0,0);
+  sscfgtB(buf,jsbuf,"remote_ct_",0,remoteN[rem-1].osDurat,6,0,TDBE);
+  scrDspText(buf,jsbuf,remoteN[rem-1].osRemT,0,TDBE); 
+
   disjVal=remoteN[rem-1].osEnable;
-  for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons état one_shot
+  for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons état one_shot souhaité
                   if(remoteN[rem-1].osStatus==0){fn[LENNOM-2]=codeFn[i];}
                   else memcpy(fn,"null_fnct_",LENNOM);                            // si running ou paused pas de changement possible
                   if(disjVal%10==i){color=colors[i];} else color=OFFCOLOR;
@@ -932,7 +939,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
                   if(disjVal%10==i){color=OFFCOLOR;} else color=CURCOLOR;
                   if(disjVal>=10){color+=LIGHTVALUE;}
                   //Serial.print(" disj color=");Serial.println(color);
-                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,0);
+                  scrGetButFn(buf,jsbuf,fn,remTNum,libcd[i],ALICNO,1,color,0,0,1,0);
                   uint8_t ctl=0;
                   if(i==2){
                     ctl=TDEND|TREND|BRYES;
