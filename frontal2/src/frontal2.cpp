@@ -940,6 +940,19 @@ void scanTimers()                                             //   recherche tim
     }
 }
 
+void osRemInit(uint8_t r)
+{
+                memset(remoteN[r].osRemT,'\0',7);
+                memset(remoteN[r].osEndDate,'\0',LDATEASCII);
+                remoteN[r].osStatus=0;                              // status STOP
+                for(uint8_t nr=0;nr>MAXREMLI;nr++){
+                  if(remoteT[nr].num==r){
+                    disjValue(remoteN[r].enable,r,remoteT[nr].sw);  // restore periSwCde et maj perifs
+                  }  
+                }
+                disjValue(remoteN[r].enable,r,*valf-PMFNCHAR);     // restauration état courant 
+}
+
 void scanRemote()
 {
   if((millis()-oneShotRemTime)>perOSR*1000){  
@@ -949,18 +962,13 @@ void scanRemote()
     for(uint8_t r=0;r<NBREMOTE;r++){
       switch (remoteN[r].osStatus){
         case 0:break;                                               // STOP
-        case 1: 
+        case 1:break;                                               // paused        
+        case 2:                                                     // running
           if(now[0]=='\0'){ds3231.alphaNow(now);}
           if(memcmp(remoteN[r].osEndDate,now,15)<=0){               // fin timing
-                remoteN[r].osStatus=0;                             // status STOP
-                for(uint8_t nr=0;nr>MAXREMLI;nr++){
-                  if(remoteT[nr].num==r){
-                    disjValue(remoteN[r].enable,r,remoteT[nr].sw);  // restore periSwCde et maj perifs
-                  }
-                }
+                osRemInit(r);                                       // status STOP
               }
               break;
-        case 2:break;                                               // paused
         default:break;
       }
     }
@@ -1929,20 +1937,27 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         }break;                                                                       
               case 54:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteTimHtml
                           char nf=*(libfonctions+2*i);                                                  // si nb= n° remoteN faire +1 (remoteN[1->n])
+                          Serial.print("============");Serial.print(nb);Serial.println(nf);
                           switch(nf){                                               
                             case 'a': remoteN[nb].osEnable=0;break;                                     // (remote_oa) 1ère position disjoncteur (disjoncté)
                             case 'b': remoteN[nb].osEnable=1;break;                                     // (remote_ob) 2nde position disjoncteur (on)
                             case 'c': remoteN[nb].osEnable=2;break;                                     // (remote_oc) 2nde position disjoncteur (forcé)
                             case 'd': remoteN[nb].osStatus=0;                                           // (remote_od) stop
-                                      disjValue(remoteN[nb].enable,nb,*valf-PMFNCHAR);                  // restauration état courant 
+                                      osRemInit(nb);
                                       break;
-                            case 'e': remoteN[nb].osStatus=1;break;                                     // (remote_oe) pause
+                            case 'e': remoteN[nb].osStatus=1;                                           // (remote_oe) pause
+                                      ds3231.alphaNow(now);subTime(remoteN[nb].osRemT,remoteN[nb].osEndDate,now,VRAI);
+                                      break;                                     
                             case 'f': remoteN[nb].osStatus=2;                                           // (remote_of) start
                                       disjValue(remoteN[nb].osEnable,nb,*valf-PMFNCHAR);                // chargement état one_shot
-                                      if(*remoteN[nb].osDurat==0){}
-                                      addTime(remoteN[nb].osEndDate,now,remoteN[nb].osRemT,VRAI);
+                                      if(*remoteN[nb].osDurat!=0 && *remoteN[nb].osRemT!=0){
+                                        memcpy(remoteN[nb].osRemT,remoteN[nb].osDurat,7);
+                                        addTime(remoteN[nb].osEndDate,now,remoteN[nb].osRemT,VRAI);
+                                      }
                                       break;
-                            case 't': textfonc(remoteN[nb].osDurat,6);break;                            // (remote_ot) duration 
+                            case 't': textfonc(remoteN[nb].osDurat,6);
+                            Serial.print("============");Serial.print(remoteN[nb].osDurat);Serial.println(valf);
+                            break;                            // (remote_ot) duration 
                             default:break;
                           }
                           if(remoteN[nb].osEnable==0){*remoteN[nb].osRemT='\0';}
