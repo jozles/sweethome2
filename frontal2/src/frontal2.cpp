@@ -1937,7 +1937,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         }break;                                                                       
               case 54:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteTimHtml
                           char nf=*(libfonctions+2*i);                                                  // si nb= n° remoteN faire +1 (remoteN[1->n])
-                          Serial.print("============");Serial.print(nb);Serial.println(nf);
+                          Serial.print(">==========");Serial.print(nb);Serial.print(' ');Serial.println(nf);
                           switch(nf){                                               
                             case 'a': remoteN[nb].osEnable=0;break;                                     // (remote_oa) 1ère position disjoncteur (disjoncté)
                             case 'b': remoteN[nb].osEnable=1;break;                                     // (remote_ob) 2nde position disjoncteur (on)
@@ -1946,22 +1946,24 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       osRemInit(nb);
                                       break;
                             case 'e': remoteN[nb].osStatus=1;                                           // (remote_oe) pause
+                                      char remT[LDATEA];memset(remT,'0',LDATEA);memcpy(remT+6,remoteN[nb].osRemT,7);
                                       ds3231.alphaNow(now);subTime(remoteN[nb].osRemT,remoteN[nb].osEndDate,now,VRAI);
+                                      Serial.print(">==========");Serial.print(remoteN[nb].osEndDate);Serial.print('-');Serial.print(now);Serial.print('=');Serial.println(remoteN[nb].osRemT);
                                       break;                                     
                             case 'f': remoteN[nb].osStatus=2;                                           // (remote_of) start
                                       disjValue(remoteN[nb].osEnable,nb,*valf-PMFNCHAR);                // chargement état one_shot
-                                      if(*remoteN[nb].osDurat!=0 && *remoteN[nb].osRemT!=0){
-                                        memcpy(remoteN[nb].osRemT,remoteN[nb].osDurat,7);
-                                        addTime(remoteN[nb].osEndDate,now,remoteN[nb].osRemT,VRAI);
-                                      }
+                                      if(*remoteN[nb].osDurat!=0 && *remoteN[nb].osRemT==0){
+                                        memcpy(remoteN[nb].osRemT,remoteN[nb].osDurat,7);}
+                                      char durat[LDATEA];memset(durat,'0',LDATEA);memcpy(durat+6,remoteN[nb].osRemT,7);
+                                      ds3231.alphaNow(now);addTime(remoteN[nb].osEndDate,now,durat,VRAI);
+                                      Serial.print(">==========");Serial.print(now);Serial.print('+');Serial.print(durat);Serial.print('=');Serial.println(remoteN[nb].osEndDate);
                                       break;
                             case 't': textfonc(remoteN[nb].osDurat,6);
-                            Serial.print("============");Serial.print(remoteN[nb].osDurat);Serial.println(valf);
-                            break;                            // (remote_ot) duration 
+                                      Serial.print(">==========");Serial.print(remoteN[nb].osDurat);Serial.print(' ');Serial.println(valf);
+                                      break;                                                            // (remote_ot) duration 
                             default:break;
                           }
-                          if(remoteN[nb].osEnable==0){*remoteN[nb].osRemT='\0';}
-                                                  
+                          if(remoteN[nb].osEnable==0){*remoteN[nb].osRemT='\0';}                        
                           remoteTimHtml(cli,nb);
                         }break;                                                     
               case 55:  break;                                                                          // dispo
@@ -2462,7 +2464,7 @@ Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (
     for(uint8_t s=0;s<MAX_SOCK_NUM;s++){
       if(sssa[s]=='E'){
         uint8_t b;while(Ethernet.socketRecv(s, &b, 1) > 0){Serial.print(b);}
-        Serial.print("close ");Serial.print(s);Serial.print(' ');
+        Serial.print("sock close ");Serial.print(s);Serial.print(' ');
         W5100.execCmdSn(s, Sock_CLOSE);
       }
     }

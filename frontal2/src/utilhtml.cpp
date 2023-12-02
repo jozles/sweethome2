@@ -938,7 +938,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
       colNames[2]="Red";          // forced
       colNames[3]="Gold";         // push
       colNames[4]="Grey";         // off
-      colNames[5]="Yellow";       // selected
+      colNames[5]="Goldenrod";    // selected
       colNames[6]="";
       colNames[7]="";
       colNames[8]="";
@@ -950,6 +950,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
       colNames[2]="LightPink";    // forced
       colNames[3]="LightYellow";  // push
       colNames[4]="LightGrey";    // off
+      colNames[5]="NavajoWhite";  // selected
     }
     bgcolor%=LIGHTVALUE;
 

@@ -444,7 +444,7 @@ void subTime(char* recep,const char* endtime,const char* time,bool onlyHours)
   unsigned long unixdate=unixtim1-unixtim2;
 
   convertNTP(&unixdate,&year,&month,&day,&js,&hour,&minute,&seconde);
-  if(onlyHours){hour+=day*24;year=-2000;month=0;day=0;}
+  if(onlyHours){hour+=day*24;year-=2000;month=0;day=0;}
   dateToStr(recep,year,month,day,hour,minute,seconde);
 }
 

@@ -917,7 +917,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   tableBeg(buf,jsbuf,courier,true,0,0);
   scrDspText(buf,jsbuf,"duration|rem time|",0,TRBE|TDBE);
   fn[LENNOM-2]='t';
-  Serial.print("============");Serial.print(fn);Serial.println(rem);
+  Serial.print(">==========");Serial.print(fn);Serial.print(' ');Serial.println(rem);
   sscfgtB(buf,jsbuf,fn,rem-1,remoteN[rem-1].osDurat,6,0,TRBEG|TDBE);
   if(remoteN[rem-1].osStatus==2){
     char now[LNOW];ds3231.alphaNow(now);
@@ -950,19 +950,22 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 
   //tableBeg(buf,jsbuf,courier,true,0,0);
   disjVal=remoteN[rem-1].osStatus;
-  char    fnv[LENNOM+1];
+  char    fnv[LENNOM+1];fnv[LENNOM-1]=(char)(rem-1+PMFNCHAR);fnv[LENNOM]='\0';            // N° remote
       // bouton stop 
-      if(disjVal%10==0){color=OFFCOLOR;memcpy(fnv,"null_fnct_",LENNOM);} else color=CURCOLOR;
+      memcpy(fnv,"remote_od",LENNOM-1);
+      if(disjVal%10==0){color=OFFCOLOR;memcpy(fnv,"null_fnct",LENNOM-1);} else color=CURCOLOR;
       //if(disjVal>=10){color+=LIGHTVALUE;}
-      scrGetButFn(buf,jsbuf,fn,remTNum,libcd[0],ALICNO,1,color,0,0,1,TRBEG|TDBE);
+      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[0],ALICNO,1,color,0,0,1,TRBEG|TDBE);
       // bouton pause
-      if(disjVal%10!=2){color=OFFCOLOR;memcpy(fnv,"null_fnct_",LENNOM);} else color=CURCOLOR;
+      memcpy(fnv,"remote_oe",LENNOM-1);
+      if(disjVal%10!=2){color=OFFCOLOR;memcpy(fnv,"null_fnct",LENNOM-1);} else color=CURCOLOR;
       //if(disjVal>=10){color+=LIGHTVALUE;}
-      scrGetButFn(buf,jsbuf,fn,remTNum,libcd[1],ALICNO,1,color,0,0,1,TDBE);
+      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[1],ALICNO,1,color,0,0,1,TDBE);
       // bouton start
-      if(disjVal%10==2){color=OFFCOLOR;memcpy(fnv,"null_fnct_",LENNOM);} else color=CURCOLOR;
+      memcpy(fnv,"remote_of",LENNOM-1);
+      if(disjVal%10==2){color=OFFCOLOR;memcpy(fnv,"null_fnct",LENNOM-1);} else color=CURCOLOR;
       //if(disjVal>=10){color+=LIGHTVALUE;}
-      scrGetButFn(buf,jsbuf,fn,remTNum,libcd[2],ALICNO,1,color,0,0,1,TREND|TDBE);
+      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[2],ALICNO,1,color,0,0,1,TREND|TDBE);
 
 /*
   for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons status
