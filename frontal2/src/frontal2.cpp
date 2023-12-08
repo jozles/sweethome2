@@ -23,7 +23,6 @@ File32 fhisto;            // fichier histo sd card
 File32 fhtml;             // fichiers pages html
 
 //#define DEBUG_ON          // ajoute des delay(20) pour obtenir les sorties sur le terminal
-bool debugOs=FAUX;
 
 //#define _AVEC_AES
 #ifdef _AVEC_AES
@@ -693,7 +692,6 @@ void loop()
 
             scanTimers();
 //Serial.print("wdg=");Serial.println(millis());
-            if(debugOs==VRAI){Serial.print(">>==========");Serial.println(remoteN[7].osEndDate);debugOs=FAUX;}
             scanRemote();
 
             watchdog();
@@ -943,15 +941,16 @@ void scanTimers()                                             //   recherche tim
 
 void osRemInit(uint8_t r)
 {
+  Serial.print(">==osRemInit==<");Serial.print(r);Serial.print('_');Serial.println(remoteN[r].enable);
                 memset(remoteN[r].osRemT,'\0',7);
-                memset(remoteN[r].osEndDate,'\0',LDATEASCII);
+                memset(remoteN[r].osEndDate,'\0',LDATEA-1);
                 remoteN[r].osStatus=0;                              // status STOP
-                for(uint8_t nr=0;nr>MAXREMLI;nr++){
-                  if(remoteT[nr].num==r){
-                    disjValue(remoteN[r].enable,r,remoteT[nr].sw);  // restore periSwCde et maj perifs
+                for(uint8_t nr=0;nr<MAXREMLI;nr++){
+                  Serial.print(nr);Serial.print('_');Serial.print(remoteT[nr].num);Serial.print('_');Serial.println(r+1);
+                  if(remoteT[nr].num==r+1){
+                    disjValue(remoteN[r].enable,r,nr);              // restore periSwCde et maj perifs
                   }  
                 }
-                disjValue(remoteN[r].enable,r,*valf-PMFNCHAR);     // restauration état courant 
 }
 
 void scanRemote()
@@ -966,12 +965,12 @@ void scanRemote()
         case 1:break;                                               // paused        
         case 2:                                                     // running
           if(now[0]=='\0'){ds3231.alphaNow(now);}
-          if(remoteN[r].osStatus==2){Serial.print(">>===");Serial.print(r);Serial.print(remoteN[r].osStatus);Serial.print(' ');Serial.print(remoteN[r].osEndDate);Serial.print(' ');Serial.println(now);}
+          //if(remoteN[r].osStatus==2){Serial.print(">>===");Serial.print(r);Serial.print(remoteN[r].osStatus);Serial.print(' ');Serial.print(remoteN[r].osEndDate);Serial.print(' ');Serial.println(now);}
           if(memcmp(remoteN[r].osEndDate,now,14)<=0){               // fin timing
-                osRemInit(r);                                       // status STOP
-                Serial.print(">>========== stop remote ");Serial.println(r);
-              }
-              break;
+              osRemInit(r);                                         // status STOP
+              Serial.print(">>=== stop os remote ");Serial.println(r);
+            }
+            break;
         default:break;
       }
     }
@@ -1401,6 +1400,7 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
                                                             // et màj du ou des périf(s) concerné(s)
                                                             // selon remote simple/multiple
 {
+  Serial.print(">==(disjValue==<");Serial.print(rem);Serial.print('_');Serial.print(remTNum);Serial.print('_');Serial.println(val);
   uint8_t swMsk[]={0xFC,0xF3,0xCF,0x3F};
   
   if(!remoteN[rem].multRem){              // remote simple 
@@ -1940,7 +1940,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         }break;                                                                       
               case 54:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteTimHtml
                           char nf=*(libfonctions+2*i);                                                  // si nb= n° remoteN faire +1 (remoteN[1->n])
-                          Serial.print(">==========>");Serial.print(nb);Serial.print(' ');Serial.println(nf);
+                          Serial.print(">===>");Serial.print(nb);Serial.print(' ');Serial.print(valf-PMFNCHAR);Serial.print(' ');Serial.println(nf);
                           switch(nf){                                               
                             case 'a': remoteN[nb].osEnable=0;break;                                     // (remote_oa) 1ère position disjoncteur (disjoncté)
                             case 'b': remoteN[nb].osEnable=1;break;                                     // (remote_ob) 2nde position disjoncteur (on)
@@ -1964,10 +1964,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       ds3231.alphaNow(now);addTime(remoteN[nb].osEndDate,now,durat,VRAI);
                                       now[14]='\0';
                                       Serial.print(">==========");Serial.print(now);Serial.print('+');Serial.print(durat);Serial.print('=');Serial.println(remoteN[nb].osEndDate);
-                                      debugOs=VRAI;
                                       break;
                             case 't': textfonc(remoteN[nb].osDurat,6);
-                                      Serial.print(">==========");Serial.print(remoteN[nb].osDurat);Serial.print(' ');Serial.println(valf);
+                                      Serial.print(">===<");Serial.print(remoteN[nb].osDurat);Serial.print(' ');Serial.println(valf);
                                       break;                                                            // (remote_ot) duration 
                             default:break;
                           }
@@ -2170,7 +2169,6 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
             case 14:break;                                                // data_na___
             default:accueilHtml(cli);break;                               // what=-1
           }
-        if(debugOs==VRAI){Serial.print(">==========");Serial.println(remoteN[7].osEndDate);}
         } // getnv nbreparams>=0  
         else {accueilHtml(cli);} // rien dans getnv
 

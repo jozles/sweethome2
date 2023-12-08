@@ -431,8 +431,6 @@ void subTime(char* recep,const char* endtime,const char* time,bool onlyHours)
   conv_atobl(endtime+10,&buf,2);minute=buf;  
   conv_atobl(endtime+12,&buf,2);seconde=buf;
 
-  
-
   unsigned long unixtim1=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
 
   year=1970;month=1;day=1;
@@ -444,17 +442,13 @@ void subTime(char* recep,const char* endtime,const char* time,bool onlyHours)
   conv_atobl(time+8,&buf,2);hour=buf;
   conv_atobl(time+10,&buf,2);minute=buf;  
   conv_atobl(time+12,&buf,2);seconde=buf;
-  Serial.print(">>====");Serial.println(endtime);
 
   unsigned long unixtim2=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
 
   unsigned long unixdate=unixtim1-unixtim2;
-  Serial.print(">>====");Serial.println(endtime);
 
   convertNTP(&unixdate,&year,&month,&day,&js,&hour,&minute,&seconde);
-  Serial.print(">>====");Serial.println(endtime);
   dateToStr(recep,year,month,day,hour,minute,seconde);
-  Serial.print(">>====");Serial.println(endtime);
 }
 
 #ifndef UDPUSAGE

@@ -348,7 +348,7 @@ struct Remote              // liste des remotes
   uint8_t  osStatus;          // status oneshot timer (0=off 1=pause 2=running)  
   char     osDurat[7];        // durée oneshot              voir addTime et subTime
   char     osRemT[7];         // temps restant (si pause)   
-  char     osEndDate[16];     // memset(datedurat,'0',16);memcpy(datedurat+8,durat,7);addTime(remoteN.dhfin,now,datedurat);
+  char     osEndDate[LDATEA-1];     // memset(datedurat,'0',16);memcpy(datedurat+8,durat,7);addTime(remoteN.dhfin,now,datedurat);
 };
 
 

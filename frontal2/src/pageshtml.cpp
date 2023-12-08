@@ -857,11 +857,12 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   scrDspText(buf,jsbuf,remoteN[rem-1].nam,0,TDBE);
   //strcat(buf,"\n");            
 
-  uint8_t nt;
+  int16_t nt;
   periCur=0;
   //int16_t pCSta,ntSta,pCSw;
   for(nt=0;nt<MAXREMLI;nt++){
     if(remoteT[nt].num==rem && remoteT[nt].peri!=0){
+      *remTNum=nt+PMFNCHAR;
       periCur=remoteT[nt].peri;
       periLoad(periCur);
       //strcat(buf,"<td width=45>");                                                    // patch à intégrer dans le ctl des fonctions d'affichage
@@ -870,8 +871,15 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
       ntSta=nt;
       pCSw=remoteT[nt].sw;
       */
-      disjVal=periSwRead(remoteT[nt].sw);
-      if(((*periSwSta>>remoteT[nt].sw)&0x01)!=0){                                     // switch 'allumé'
+      scrDspNum(buf,jsbuf,&nt,&min,&max,0,TDBE);
+      scrDspText(buf,jsbuf,remTNum,0,TDBE);
+      if(remoteN[rem-1].osStatus==0){
+        disjVal=periSwRead(remoteT[nt].sw);
+        remoteN[rem-1].enable=disjVal;
+       Serial.print("status=");Serial.print(nt); Serial.print("disjVal======");Serial.println(disjVal);
+      }
+      else disjVal=(remoteN[rem-1].enable);                                       // disjVal état disj hors os     
+      if(((*periSwSta>>remoteT[nt].sw)&0x01)!=0){                                 // switch 'allumé'
             scrDspText(buf,jsbuf," ON ",0,TDBEG);
             affRondJaune(buf,jsbuf,TDEND);
       }
@@ -917,13 +925,13 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   tableBeg(buf,jsbuf,courier,true,0,0);
   scrDspText(buf,jsbuf,"duration|rem time|",0,TRBE|TDBE);
   fn[LENNOM-2]='t';
-  Serial.print(">==========");Serial.print(fn);Serial.print(' ');Serial.print(remoteN[rem-1].osEndDate);Serial.print(' ');Serial.println(rem);
+  //Serial.print(">==========");Serial.print(fn);Serial.print(' ');Serial.print(remoteN[rem-1].osEndDate);Serial.print(' ');Serial.println(rem);
   sscfgtB(buf,jsbuf,fn,rem-1,remoteN[rem-1].osDurat,6,0,TRBEG|TDBE);
   if(remoteN[rem-1].osStatus==2){
     char now[LNOW];ds3231.alphaNow(now);
     char remT[LDATEA];memset(remT,'0',LDATEA);memcpy(remT+6,remoteN[rem-1].osRemT,7);
-    subTime(remT,remoteN[rem-1].osEndDate,now,VRAI);memcpy(remoteN[rem-1].osRemT,remT,6);
-    Serial.print(">==========");Serial.println(remoteN[rem-1].osEndDate);
+    subTime(remT,remoteN[rem-1].osEndDate,now,VRAI);memcpy(remoteN[rem-1].osRemT,remT+8,6);
+    //Serial.print(">==========");Serial.println(remoteN[rem-1].osEndDate);
     }
   scrDspText(buf,jsbuf,remoteN[rem-1].osRemT,0,TDBE); 
   scrGetButSub(buf,jsbuf,"Maj",TREND|TDBE);
@@ -952,8 +960,9 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 // ----------------------------- une ligne commande STOP/PAUSE/START
 
   //tableBeg(buf,jsbuf,courier,true,0,0);
-  disjVal=remoteN[rem-1].osStatus;
-  char    fnv[LENNOM+1];fnv[LENNOM-1]=(char)(rem-1+PMFNCHAR);fnv[LENNOM]='\0';            // N° remote
+  if(*remTNum!=0){                                                                                  // remTNum doit être valide pour disjValue qui positionnera disjVal
+    disjVal=remoteN[rem-1].osStatus;
+    char    fnv[LENNOM+1];fnv[LENNOM-1]=(char)(rem-1+PMFNCHAR);fnv[LENNOM]='\0';                    // N° remote
       // bouton stop 
       memcpy(fnv,"remote_od",LENNOM-1);
       if(disjVal%10==0){color=OFFCOLOR;memcpy(fnv,"null_fnct",LENNOM-1);} else color=CURCOLOR;
@@ -968,7 +977,8 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
       memcpy(fnv,"remote_of",LENNOM-1);
       if(disjVal%10==2){color=OFFCOLOR;memcpy(fnv,"null_fnct",LENNOM-1);} else color=CURCOLOR;
       //if(disjVal>=10){color+=LIGHTVALUE;}
-      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[2],ALICNO,1,color,0,0,1,TREND|TDBE);
+      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[2],ALICNO,1,color,0,0,1,TREND|TDBE);                          
+  }
 
 /*
   for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons status
