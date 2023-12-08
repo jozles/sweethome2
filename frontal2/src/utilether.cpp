@@ -380,7 +380,7 @@ void calcDate(int bd,int* yy,int*mm,int* dd,int* js,int*hh,int* mi,int* ss)     
 
 void dateToStr(char* buff,int year,int month,int day,int hour,int minute,int second)
 {
-  sprintf(buff,"%.8lu",(long)(year+2000)*10000+(long)month*100+(long)day);
+  sprintf(buff,"%.8lu",(long)(year)*10000+(long)month*100+(long)day);
   sprintf((buff+8),"%.2u",hour);sprintf((buff+10),"%.2u",minute);sprintf((buff+12),"%.2u",second);
   buff[14]=' ';
   buff[15]='\0';
@@ -400,7 +400,7 @@ void addTime(char* recep,const char* tim1,const char* tim2,bool onlyHours)
 
   unsigned long unixtim1=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
 
-  year=0;month=0;day=0;
+  year=1970;month=1;day=1;
   if(!onlyHours){
     conv_atobl(tim2,&buf,4);year=buf;
     conv_atobl(tim2+4,&buf,2);month=buf;
@@ -411,7 +411,8 @@ void addTime(char* recep,const char* tim1,const char* tim2,bool onlyHours)
   conv_atobl(tim2+12,&buf,2);seconde=buf;
 
   unsigned long unixtim2=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
-
+//Serial.print(tim1);Serial.print(" ");Serial.println(tim2);
+//Serial.print(unixtim1);Serial.print(" ");Serial.println(unixtim2);
   unsigned long unixsum=unixtim1+unixtim2;
 
   convertNTP(&unixsum,&year,&month,&day,&js,&hour,&minute,&seconde);
@@ -422,7 +423,7 @@ void subTime(char* recep,const char* endtime,const char* time,bool onlyHours)
 {
   int year,month,day,hour,minute,seconde;
   uint32_t buf;
-  
+
   conv_atobl(endtime,&buf,4);year=buf;
   conv_atobl(endtime+4,&buf,2);month=buf;
   conv_atobl(endtime+6,&buf,2);day=buf;
@@ -430,22 +431,30 @@ void subTime(char* recep,const char* endtime,const char* time,bool onlyHours)
   conv_atobl(endtime+10,&buf,2);minute=buf;  
   conv_atobl(endtime+12,&buf,2);seconde=buf;
 
+  
+
   unsigned long unixtim1=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
 
+  year=1970;month=1;day=1;
+  if(!onlyHours){
   conv_atobl(time,&buf,4);year=buf;
   conv_atobl(time+4,&buf,2);month=buf;
   conv_atobl(time+6,&buf,2);day=buf;
+  }
   conv_atobl(time+8,&buf,2);hour=buf;
   conv_atobl(time+10,&buf,2);minute=buf;  
   conv_atobl(time+12,&buf,2);seconde=buf;
+  Serial.print(">>====");Serial.println(endtime);
 
   unsigned long unixtim2=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
 
   unsigned long unixdate=unixtim1-unixtim2;
+  Serial.print(">>====");Serial.println(endtime);
 
   convertNTP(&unixdate,&year,&month,&day,&js,&hour,&minute,&seconde);
-  if(onlyHours){hour+=day*24;year-=2000;month=0;day=0;}
+  Serial.print(">>====");Serial.println(endtime);
   dateToStr(recep,year,month,day,hour,minute,seconde);
+  Serial.print(">>====");Serial.println(endtime);
 }
 
 #ifndef UDPUSAGE

@@ -917,11 +917,14 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   tableBeg(buf,jsbuf,courier,true,0,0);
   scrDspText(buf,jsbuf,"duration|rem time|",0,TRBE|TDBE);
   fn[LENNOM-2]='t';
-  Serial.print(">==========");Serial.print(fn);Serial.print(' ');Serial.println(rem);
+  Serial.print(">==========");Serial.print(fn);Serial.print(' ');Serial.print(remoteN[rem-1].osEndDate);Serial.print(' ');Serial.println(rem);
   sscfgtB(buf,jsbuf,fn,rem-1,remoteN[rem-1].osDurat,6,0,TRBEG|TDBE);
   if(remoteN[rem-1].osStatus==2){
     char now[LNOW];ds3231.alphaNow(now);
-    subTime(remoteN[rem-1].osRemT,remoteN[rem-1].osEndDate,now,VRAI);}
+    char remT[LDATEA];memset(remT,'0',LDATEA);memcpy(remT+6,remoteN[rem-1].osRemT,7);
+    subTime(remT,remoteN[rem-1].osEndDate,now,VRAI);memcpy(remoteN[rem-1].osRemT,remT,6);
+    Serial.print(">==========");Serial.println(remoteN[rem-1].osEndDate);
+    }
   scrDspText(buf,jsbuf,remoteN[rem-1].osRemT,0,TDBE); 
   scrGetButSub(buf,jsbuf,"Maj",TREND|TDBE);
   tableEnd(buf,jsbuf,BRYES);

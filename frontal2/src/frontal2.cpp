@@ -23,7 +23,7 @@ File32 fhisto;            // fichier histo sd card
 File32 fhtml;             // fichiers pages html
 
 //#define DEBUG_ON          // ajoute des delay(20) pour obtenir les sorties sur le terminal
-
+bool debugOs=FAUX;
 
 //#define _AVEC_AES
 #ifdef _AVEC_AES
@@ -693,6 +693,7 @@ void loop()
 
             scanTimers();
 //Serial.print("wdg=");Serial.println(millis());
+            if(debugOs==VRAI){Serial.print(">>==========");Serial.println(remoteN[7].osEndDate);debugOs=FAUX;}
             scanRemote();
 
             watchdog();
@@ -965,8 +966,10 @@ void scanRemote()
         case 1:break;                                               // paused        
         case 2:                                                     // running
           if(now[0]=='\0'){ds3231.alphaNow(now);}
-          if(memcmp(remoteN[r].osEndDate,now,15)<=0){               // fin timing
+          if(remoteN[r].osStatus==2){Serial.print(">>===");Serial.print(r);Serial.print(remoteN[r].osStatus);Serial.print(' ');Serial.print(remoteN[r].osEndDate);Serial.print(' ');Serial.println(now);}
+          if(memcmp(remoteN[r].osEndDate,now,14)<=0){               // fin timing
                 osRemInit(r);                                       // status STOP
+                Serial.print(">>========== stop remote ");Serial.println(r);
               }
               break;
         default:break;
@@ -1937,7 +1940,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         }break;                                                                       
               case 54:  what=0;{int nb=*(libfonctions+2*i+1)-PMFNCHAR;                                  // submit depuis remoteTimHtml
                           char nf=*(libfonctions+2*i);                                                  // si nb= n° remoteN faire +1 (remoteN[1->n])
-                          Serial.print(">==========");Serial.print(nb);Serial.print(' ');Serial.println(nf);
+                          Serial.print(">==========>");Serial.print(nb);Serial.print(' ');Serial.println(nf);
                           switch(nf){                                               
                             case 'a': remoteN[nb].osEnable=0;break;                                     // (remote_oa) 1ère position disjoncteur (disjoncté)
                             case 'b': remoteN[nb].osEnable=1;break;                                     // (remote_ob) 2nde position disjoncteur (on)
@@ -1947,16 +1950,21 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       break;
                             case 'e': remoteN[nb].osStatus=1;                                           // (remote_oe) pause
                                       char remT[LDATEA];memset(remT,'0',LDATEA);memcpy(remT+6,remoteN[nb].osRemT,7);
-                                      ds3231.alphaNow(now);subTime(remoteN[nb].osRemT,remoteN[nb].osEndDate,now,VRAI);
+                                      ds3231.alphaNow(now);subTime(remT,remoteN[nb].osEndDate,now,VRAI);
+                                      memcpy(remoteN[nb].osRemT,remT,6);
+                                      now[14]='\0';
                                       Serial.print(">==========");Serial.print(remoteN[nb].osEndDate);Serial.print('-');Serial.print(now);Serial.print('=');Serial.println(remoteN[nb].osRemT);
                                       break;                                     
                             case 'f': remoteN[nb].osStatus=2;                                           // (remote_of) start
                                       disjValue(remoteN[nb].osEnable,nb,*valf-PMFNCHAR);                // chargement état one_shot
+                                      //Serial.print(">==========");Serial.print(remoteN[nb].osDurat);Serial.print(' ');Serial.println(remoteN[nb].osRemT);
                                       if(*remoteN[nb].osDurat!=0 && *remoteN[nb].osRemT==0){
                                         memcpy(remoteN[nb].osRemT,remoteN[nb].osDurat,7);}
-                                      char durat[LDATEA];memset(durat,'0',LDATEA);memcpy(durat+6,remoteN[nb].osRemT,7);
+                                      char durat[LDATEA];memset(durat,'0',14);memcpy(durat+8,remoteN[nb].osRemT,7);
                                       ds3231.alphaNow(now);addTime(remoteN[nb].osEndDate,now,durat,VRAI);
+                                      now[14]='\0';
                                       Serial.print(">==========");Serial.print(now);Serial.print('+');Serial.print(durat);Serial.print('=');Serial.println(remoteN[nb].osEndDate);
+                                      debugOs=VRAI;
                                       break;
                             case 't': textfonc(remoteN[nb].osDurat,6);
                                       Serial.print(">==========");Serial.print(remoteN[nb].osDurat);Serial.print(' ');Serial.println(valf);
@@ -2162,7 +2170,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
             case 14:break;                                                // data_na___
             default:accueilHtml(cli);break;                               // what=-1
           }
-        
+        if(debugOs==VRAI){Serial.print(">==========");Serial.println(remoteN[7].osEndDate);}
         } // getnv nbreparams>=0  
         else {accueilHtml(cli);} // rien dans getnv
 
