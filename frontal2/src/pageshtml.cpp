@@ -923,7 +923,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 // ---------------------------- une ligne durées
 
   tableBeg(buf,jsbuf,courier,true,0,0);
-  scrDspText(buf,jsbuf,"duration|rem time|",0,TRBE|TDBE);
+  scrDspText(buf,jsbuf,"duration|rem time|end Time",0,TRBE|TDBE);
   fn[LENNOM-2]='t';
   //Serial.print(">==========");Serial.print(fn);Serial.print(' ');Serial.print(remoteN[rem-1].osEndDate);Serial.print(' ');Serial.println(rem);
   sscfgtB(buf,jsbuf,fn,rem-1,remoteN[rem-1].osDurat,6,0,TRBEG|TDBE);
@@ -933,7 +933,8 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
     subTime(remT,remoteN[rem-1].osEndDate,now,VRAI);memcpy(remoteN[rem-1].osRemT,remT+8,6);
     //Serial.print(">==========");Serial.println(remoteN[rem-1].osEndDate);
     }
-  scrDspText(buf,jsbuf,remoteN[rem-1].osRemT,0,TDBE); 
+  scrDspText(buf,jsbuf,remoteN[rem-1].osRemT,0,TDBE);
+  scrDspText(buf,jsbuf,remoteN[rem-1].osEndDate,0,TDBE);
   scrGetButSub(buf,jsbuf,"Maj",TREND|TDBE);
   tableEnd(buf,jsbuf,BRYES);
   formEnd(buf,jsbuf,0,BRYES);
@@ -945,7 +946,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons état one_shot souhaité
                   if(remoteN[rem-1].osStatus==0){fn[LENNOM-2]=codeFn[i];}
                   else memcpy(fn,"null_fnct_",LENNOM);                            // si running ou paused pas de changement possible
-                  if(disjVal%10==i){color=colors[i];} else color=OFFCOLOR;
+                  if(disjVal%10==i){color=colors[i]+LIGHTVALUE;} else color=OFFCOLOR;
                   if(disjVal>=10){color+=LIGHTVALUE;}
                   scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,0);
                   ctl=0;

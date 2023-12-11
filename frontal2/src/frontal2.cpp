@@ -1949,9 +1949,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       osRemInit(nb);
                                       break;
                             case 'e': remoteN[nb].osStatus=1;                                           // (remote_oe) pause
-                                      char remT[LDATEA];memset(remT,'0',LDATEA);memcpy(remT+6,remoteN[nb].osRemT,7);
+                                      char remT[LDATEA];memset(remT,'0',LDATEA);memcpy(remT+8,remoteN[nb].osRemT,7);
                                       ds3231.alphaNow(now);subTime(remT,remoteN[nb].osEndDate,now,VRAI);
-                                      memcpy(remoteN[nb].osRemT,remT,6);
+                                      memcpy(remoteN[nb].osRemT,remT+8,6);
                                       now[14]='\0';
                                       Serial.print(">==========");Serial.print(remoteN[nb].osEndDate);Serial.print('-');Serial.print(now);Serial.print('=');Serial.println(remoteN[nb].osRemT);
                                       break;                                     

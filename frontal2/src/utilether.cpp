@@ -449,6 +449,8 @@ void subTime(char* recep,const char* endtime,const char* time,bool onlyHours)
 
   convertNTP(&unixdate,&year,&month,&day,&js,&hour,&minute,&seconde);
   dateToStr(recep,year,month,day,hour,minute,seconde);
+//Serial.print(unixtim1);Serial.print(" ");Serial.println(unixtim2);
+//Serial.print(unixdate);Serial.print(" ");Serial.println(recep);
 }
 
 #ifndef UDPUSAGE

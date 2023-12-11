@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".87"
+#define NVERS ".88"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -154,6 +154,7 @@
         ajout n° perif dans message mail (p=xx)
    1.86 debut dev one_shot_timer des remotes
    1.87 conversion fichier remoteN effectuée, debug en cours
+   1.88 one_shot_timer ok
 
 
    BUGS :
