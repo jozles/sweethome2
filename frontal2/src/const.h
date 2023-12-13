@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".88"
+#define NVERS ".89"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -155,6 +155,7 @@
    1.86 debut dev one_shot_timer des remotes
    1.87 conversion fichier remoteN effectuée, debug en cours
    1.88 one_shot_timer ok
+   1.89 fonctionne avec sdcard 1.88 
 
 
    BUGS :

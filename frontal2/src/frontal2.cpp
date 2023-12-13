@@ -451,6 +451,13 @@ void showSocketsStatus(bool close,bool nolf,bool print);
 void printSocketStatus(bool nolf);
 void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum);
 
+void testStack()
+{
+  int aa=10;
+  int* aaa=&aa;
+  //printf("%p\n",aaa);
+}
+
 void yield()
 {
   //trigwd();
@@ -1459,7 +1466,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
       if(ab=='a'){Serial.print(tPS);}
       Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
 
-      nbreparams=getnv(cli,bufData,bufDataLen);     //Serial.print("---- nbparams ");Serial.println(nbreparams);
+      nbreparams=getnv(cli,bufData,bufDataLen);    // Serial.print("---- nbparams ");Serial.println(nbreparams);
       if(nbreparams>=0){
 
 /*  getnv() décode la chaine GET ou POST ; le reste est ignoré
@@ -1617,7 +1624,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 0:  pertemp=0;conv_atobl(valf,&pertemp);break;                                    // pertemp serveur
               case 1:  if(checkData(valf)==MESSOK){                                                  // peri_pass_
                          periPassOk=ctlpass(valf+5,peripass);                                        // skip len
-                         if(!periPassOk){memset(remote_IP_cur,0x00,4);histoStore_textdh("pp","ko",strHisto);}
+                         if(!periPassOk){
+                          memset(remote_IP_cur,0x00,4);histoStore_textdh("pp","ko",strHisto);
+                          Serial.print(" periPass ");for(uint8_t c=0;c<6;c++){Serial.print(*(valf+5+c));}Serial.print(" ");for(uint8_t c=0;c<6;c++){Serial.print(*(peripass+c));}Serial.println(" ko");
+                         }
                          else {memcpy(remote_IP_cur,(byte*)&remote_IP,4);}
                        }break;
               case 2:  usernum=searchusr(valf);if(usernum<0){                                        // username__
@@ -1631,9 +1641,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        break;
               case 3:  if(!ctlpass(valf,usrpass+usernum*LENUSRPASS)){                                // password__
                          what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;usrtime[usernum]=0;          // si faux accueil (what=-1)
-                         histoStore_textdh("pw","ko",strHisto);}                                   
-                       else {Serial.print(" password ok");usrtime[usernum]=millis();if(nbreparams==1){what=2;}}
-                       Serial.println();
+                         histoStore_textdh("pw","ko",strHisto);
+                         Serial.print(" password ");for(uint8_t c=0;c<LENUSRPASS;c++){Serial.print(*(valf+c));}Serial.print(" ");for(uint8_t c=0;c<LENUSRPASS;c++){Serial.print(*(usrpass+c));}Serial.print(" ko w=");
+                       }                                   
+                       else {Serial.print(" password ok w=");usrtime[usernum]=millis();if(nbreparams==1){what=2;}}
+                       Serial.println(what);
                        break;                                                                        
               case 4:  {usernum=*(libfonctions+2*i+1)-PMFNCHAR;                                      // user_ref__ (argument : millis() envoyées avec la fonction au chargement de la page)
                         unsigned long cxtime=0;conv_atobl(valf,(uint32_t*)&cxtime);
@@ -2181,13 +2193,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           //Serial.print(" st=");Serial.println(millis());
           */
         if(what!=1 && what!=3 && what!=14){       // gestion "normale" si dataread/save/na
-          showSocketsStatus(false);
-          cli->stop();} // ********************************************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          showSocketsStatus(true);
+testStack();
+          cli->stop(); // ********************************************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        }
                         // sinon server.available() crée des fantômes .... 
                         // la gestion d'instances multiples ne fonctionne pas avec le navigateur
-
         cliext.stop();                           // en principe rapide : la dernière action est une entrée
-        
         if(ab=='a'){
           tPSStop[tPS]=millis();if(tPSStop[tPS]==0){tPSStop[tPS]=1;} //heure du stop TCP
         }
@@ -2206,7 +2218,6 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
   delay(20);
 #endif        
 }
-
 
 /* ***************** serveurs *********************** */
 

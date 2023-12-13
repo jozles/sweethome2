@@ -859,18 +859,14 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 
   int16_t nt;
   periCur=0;
-  //int16_t pCSta,ntSta,pCSw;
+
   for(nt=0;nt<MAXREMLI;nt++){
     if(remoteT[nt].num==rem && remoteT[nt].peri!=0){
       *remTNum=nt+PMFNCHAR;
       periCur=remoteT[nt].peri;
       periLoad(periCur);
       //strcat(buf,"<td width=45>");                                                    // patch à intégrer dans le ctl des fonctions d'affichage
-      /*
-      pCSta=*periSwSta;
-      ntSta=nt;
-      pCSw=remoteT[nt].sw;
-      */
+
       scrDspNum(buf,jsbuf,&nt,&min,&max,0,TDBE);
       scrDspText(buf,jsbuf,remTNum,0,TDBE);
       if(remoteN[rem-1].osStatus==0){
@@ -890,31 +886,10 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   if(periCur==0){scrDspText(buf,jsbuf,".",0,TDBE);}                               // pas de périf donc pas de switch
 
   //ctl=TDEND|TREND;
-  //disjVal=remoteN[rem-1].enable;
-  
-  /*
-  for(uint8_t i=0;i<3;i++){                                                       // affichage état courant de la remote
-    if(disjVal%10==i){color=colors[i];
-      if(disjVal>=10){color+=LIGHTVALUE;}
-      scrGetButFn(buf,jsbuf,"null_fnct_",remTNum,lib[i],ALICNO,1,color,0,0,1,ctl);
-    }
-  }
-  */
   color=colors[disjVal%10];
   if(disjVal>=10){color+=LIGHTVALUE;}  
 
   min=0;max=99;
-/*int16_t dV=disjVal,dV10=disjVal%10,pC=periCur,rNen=remoteN[rem-1].enable,rchk=0;
-  if(remoteN[rem-1].enable!=pCSta){rchk=9;}
-  scrDspNum(buf,jsbuf,&pC,&min,&max,0,TDBE);
-  scrDspNum(buf,jsbuf,&pCSta,&min,&max,0,TDBE);
-  scrDspNum(buf,jsbuf,&ntSta,&min,&max,0,TDBE);
-  scrDspNum(buf,jsbuf,&pCSw,&min,&max,0,TDBE);
-  scrDspNum(buf,jsbuf,&rNen,&min,&max,0,TDBE);
-  scrDspNum(buf,jsbuf,&rchk,&min,&max,0,TDBE);
-  scrDspNum(buf,jsbuf,&dV,&min,&max,0,TDBE);
-  scrDspNum(buf,jsbuf,&dV10,&min,&max,0,TDBE);
-*/
   scrGetButFn(buf,jsbuf,"null_fnct_",remTNum,lib[disjVal%10],ALICNO,1,color,0,0,1,TDBE|TREND);
   tableEnd(buf,jsbuf,BRYES);
 
@@ -948,7 +923,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
                   else memcpy(fn,"null_fnct_",LENNOM);                            // si running ou paused pas de changement possible
                   if(disjVal%10==i){color=colors[i]+LIGHTVALUE;} else color=OFFCOLOR;
                   if(disjVal>=10){color+=LIGHTVALUE;}
-                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,0);
+                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,2,color,0,0,1,0);
                   ctl=0;
                   if(i==2){
                     ctl=TDEND|TREND|BRYES;
@@ -956,7 +931,6 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
                   }
                   scrDspText(buf,jsbuf,"  ",0,ctl);
   }
-  //tableEnd(buf,jsbuf,BRYES);
 
 // ----------------------------- une ligne commande STOP/PAUSE/START
 
@@ -968,38 +942,26 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
       memcpy(fnv,"remote_od",LENNOM-1);
       if(disjVal%10==0){color=OFFCOLOR;memcpy(fnv,"null_fnct",LENNOM-1);} else color=CURCOLOR;
       //if(disjVal>=10){color+=LIGHTVALUE;}
-      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[0],ALICNO,1,color,0,0,1,TRBEG|TDBE);
+      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[0],ALICNO,2,color,0,0,1,TRBEG|TDBE);
       // bouton pause
       memcpy(fnv,"remote_oe",LENNOM-1);
       if(disjVal%10!=2){color=OFFCOLOR;memcpy(fnv,"null_fnct",LENNOM-1);} else color=CURCOLOR;
       //if(disjVal>=10){color+=LIGHTVALUE;}
-      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[1],ALICNO,1,color,0,0,1,TDBE);
+      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[1],ALICNO,2,color,0,0,1,TDBE);
       // bouton start
       memcpy(fnv,"remote_of",LENNOM-1);
       if(disjVal%10==2){color=OFFCOLOR;memcpy(fnv,"null_fnct",LENNOM-1);} else color=CURCOLOR;
       //if(disjVal>=10){color+=LIGHTVALUE;}
-      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[2],ALICNO,1,color,0,0,1,TREND|TDBE);                          
+      scrGetButFn(buf,jsbuf,fnv,remTNum,libcd[2],ALICNO,2,color,0,0,1,TREND|TDBE);                          
   }
-
-/*
-  for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons status
-                  fn[LENNOM-2]=codeFn[i+3];
-                  if(disjVal%10==i){color=OFFCOLOR;} else color=CURCOLOR;
-                  if(disjVal>=10){color+=LIGHTVALUE;}
-                  scrGetButFn(buf,jsbuf,fn,remTNum,libcd[i],ALICNO,1,color,0,0,1,0);
-                  uint8_t ctl=0;
-                  if(i==2){
-                    ctl=TDEND|TREND|BRYES;
-                    scrDspText(buf,jsbuf," ",0,TDEND);
-                  }
-                  scrDspText(buf,jsbuf,"  ",0,ctl);
-  }
-  */
 
   tableEnd(buf,jsbuf,BRYES);
 
-  //formEnd(buf,jsbuf,0,0);
+  memcpy(fn,"remote_ct_\0",LENNOM+1);fn[LENNOM-1]=(char)(rem-1+PMFNCHAR);           // transmission n° remote
+  scrGetButFn(buf,jsbuf,fn,"","refresh",ALICNO,7,STDBUTTON,1,0,1,0);
 
+  formEnd(buf,jsbuf,0,0);
+  htmlEnd(buf,jsbuf);
   strcat(buf,"\n");
   ethWrite(cli,buf,&lb);
 }
