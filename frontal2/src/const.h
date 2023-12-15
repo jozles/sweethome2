@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".89"
+#define NVERS ".8a"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -156,12 +156,10 @@
    1.87 conversion fichier remoteN effectuée, debug en cours
    1.88 one_shot_timer ok
    1.89 fonctionne avec sdcard 1.88 
+   1.8a bug sockets ouvert réparé + bug péripass ko plantant réparé
 
 
    BUGS :
-        
-        1.76 déclenchement wd quotidien ?
-        Ratage de connexions via remote ; l'attente de messToServer du périphérique étant interruptible, étudier ce qui cloche
 
    à faire :
 
@@ -178,7 +176,7 @@
 
       détecter les changements à la réception des dataread/save pour effectuer un refresh de l'affichage de peritable
 
-      timers : ajouter option "1 jour sur n" : dhdebcycle=1ère date... calculer si date courante ok (récupérer un bool inutile - cyclic? )
+      timers : ajouter option "cyclic" durée ON/durée OFF/date_heure début de cycle pour (entre autres) faire 1 jour tous les n
       pulses : option entrée clock depuis input
 
       dans fenetre switchs ; xmit(pertosend)

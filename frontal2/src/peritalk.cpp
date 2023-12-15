@@ -350,7 +350,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
   int perizer=0;
   int messLen=strlen(valf)-2;   // longueur hors crc
   
-  Serial.print(millis());Serial.print(" pDR:");
+  //Serial.print(millis());Serial.print(" pDR:");
 
 //Serial.print("messLen=");Serial.print(messLen);Serial.print(" i=");Serial.print(i);Serial.print(" valf=");Serial.println((char*)valf);
 
@@ -361,7 +361,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
 
     periCur=0;valf+=5;conv_atob(valf,&periCur);packMac(periMacBuf,valf+3);                       
   
-    Serial.print(periCur);
+    //Serial.print(periCur);
   
     if(periCur!=0){                                                 // si le périph a un numéro, ctle de l'adr mac
       periLoad(periCur);
@@ -406,22 +406,23 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       memcpy(periMacr,periMacBuf,6);
       char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);            // maj dates
 
-      messLen-=(PNP+5);if(messLen>0){                               // PNP + (4 length +1) longueur hors CRC si message terminé
-      *periLastVal_=(int16_t)(convStrToNum(k,&i)*100);              // température si save
+      messLen-=(PNP+5);                                             // PNP + (4 length +1) longueur hors CRC si message terminé
+      if(messLen>0){                               
+        *periLastVal_=(int16_t)(convStrToNum(k,&i)*100);            // température si save
 
     #if PNP != HISTOPOSTEMP-HISTOPOSNUMPER
       cancelCompil();
     #endif //
       }
       messLen-=i;if(messLen>0){
-        k+=i;*periAnal=convStrToInt(k,&i);                            // analog value
+        k+=i;*periAnal=convStrToInt(k,&i);                          // analog value
       }
       messLen-=i;if(messLen>0){
-        k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);            // alim
+        k+=i;*periAlim_=(int16_t)(convStrToNum(k,&i)*100);          // alim
       }
       messLen-=i;if(messLen>0){    
-        k+=i;strncpy(periVers,k,LENVERSION);                          // version
-        i=strchr(k,'_')-k+1;                                          // ????? LENVERSION variable ?
+        k+=i;strncpy(periVers,k,LENVERSION);                        // version
+        i=strchr(k,'_')-k+1;                                        // ????? LENVERSION variable ?
       }
 
       messLen-=i;
@@ -434,7 +435,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
         k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){                                                   // détecteurs
         *periDetVal=(*periDetVal)<<1;*periDetVal |= (*(k+i)-PMFNCVAL);}
       }
-      Serial.println();
+      //Serial.println();
       // les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être initialisé à 0 
       messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){
         k+=MAXDET+1;

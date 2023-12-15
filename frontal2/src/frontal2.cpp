@@ -451,13 +451,6 @@ void showSocketsStatus(bool close,bool nolf,bool print);
 void printSocketStatus(bool nolf);
 void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum);
 
-void testStack()
-{
-  int aa=10;
-  int* aaa=&aa;
-  //printf("%p\n",aaa);
-}
-
 void yield()
 {
   //trigwd();
@@ -489,9 +482,6 @@ void setup() {                          // ====================================
   
   delay(1000);
   Serial.print("+");
-
-  /* void* stackPtr = alloca(4); // This returns a pointer to the current bottom of the stack
-  printf("StackPtr %d\n", stackPtr); */
 
   pinMode(STOPREQ,INPUT_PULLUP);        // push button "HALT REQ"
 
@@ -624,6 +614,8 @@ void setup() {                          // ====================================
 
   remoteserv=new EthernetServer(*remotePort);
   remoteserv->begin();Serial.print(" remoteserv.begin(");Serial.print(*remotePort);Serial.println(")");     //  remote serveur
+
+Serial.print("size_of EthernetServer=");Serial.println(sizeof(EthernetServer));
 
 /* ---------- RTC ON, check date/heure et maj éventuelle par NTP ---------- */
 /* ethernet doit être branché pour l'udp */
@@ -1445,6 +1437,8 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
 
 void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 {
+  EthernetClient* cli_debug=cli;    // backup cli pour vérifier sa stabilité
+
       unsigned long cxDur=millis();
 /*
     Les messages peuvent provenir soit d'une connexion TCP soit UDP soit autre. 
@@ -1461,7 +1455,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 */
       cxtime=millis();    // pour rémanence pwd
       
-      Serial.println();showSocketsStatus(false);
+      Serial.println();
       Serial.print((long)cxtime);Serial.print(" *** serveur(");Serial.print((char)ab);
       if(ab=='a'){Serial.print(tPS);}
       Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
@@ -1585,8 +1579,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
       if(numfonct[0]!=fperipass && numfonct[0]!=ffavicon){                                          // si la première fonction n'est pas peri_pass_ (mot de passe des périfs)
         if((numfonct[0]!=fusername || numfonct[1]!=fpassword) && numfonct[0]!=fuserref){            //   si (la 1ère fonct n'est pas username__ ou la 2nde pas password__ ) et la 1ère pas user_ref__
                                                                                                     //   ... en résumé : ni un périf, ni une nlle cx utilisateur, ni une continuation d'utilisateur  
-          if(nbreparams==0){what=-1;}nbreparams=-1;    //  what==-1 -> accueil (pas de params donc tentative de connexion) 
-        }                                             //  sinon what==0 aucune action - attente d'une connexion valide
+        // pourquoi faire un cas particulier de nbreparams!=0 ? pas périf, pas utilisateur donc ko et accueil devrait suffire ???
+          if(nbreparams==0){what=-1;}nbreparams=-1;     //  what==-1 -> accueil (pas de params donc tentative de connexion) 
+        }                                               //  sinon what==0 aucune action - attente d'une connexion valide
       }                                                                                             //  nbreparams==-1   skip all
 /*
     boucle des fonctions accumulées par getnv 
@@ -1595,16 +1590,16 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 
         uint16_t transferVal=0;         // pour passer "quelque chose" entre 2 fonctions 
         
-        for (i=0;i<=nbreparams;i++){
+        for (i=0;i<=nbreparams;i++){    // boucle de traitement des fonctions ; utiliser i comme pointeur est une foutue mauvaise idée... surtout que c'est une variable globale qu'on peut retrouver n'importe où...
           
           if(i<NBVAL && i>=0){
           
             trigwd();
           
-            valf=valeurs+nvalf[i];    // valf pointe la ième chaine à traiter dans valeurs[] (terminée par '\0')
-                                      // nvalf longueur dans valeurs
-                                      // si c'est la dernière chaîne, strlen(valf) est sa longueur 
-                                      // c'est obligatoirement le cas pour data_read_ et data_save_ qui terminent le message          
+            valf=valeurs+nvalf[i];      // valf pointe la ième chaine à traiter dans valeurs[] (terminée par '\0')
+                                        // nvalf longueur dans valeurs
+                                        // si c'est la dernière chaîne, strlen(valf) est sa longueur 
+                                        // c'est obligatoirement le cas pour data_read_ et data_save_ qui terminent le message          
 /*            
     controle de dépassement de capacité du buffer strHisto ; si ok, ajout de la fonction, sinon ajout de '*'  
 */
@@ -2184,22 +2179,14 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         } // getnv nbreparams>=0  
         else {accueilHtml(cli);} // rien dans getnv
 
-        valeurs[0]='\0';
-          /* ---- purgeServer enchainait la purge de cli et cli.stop() ; 
-                  la gestion circulaire des instances client gère le stop (il n'est plus nécessaire ici)
-                  la purge semble inutile...
-          //purgeServer(cli);
-          //cli->stop();                           // en principe inutile (purge fait stop)
-          //Serial.print(" st=");Serial.println(millis());
-          */
-        if(what!=1 && what!=3 && what!=14){       // gestion "normale" si dataread/save/na
-          showSocketsStatus(true);
-testStack();
-          cli->stop(); // ********************************************** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        valeurs[0]='\0';                                                            
+        
+        if(ab!='u'){                                                              
+          if(cli!=cli_debug){Serial.print("cli hs");while(1){trigwd();}}          
+          cli->stop();            // tcp only ********* !!!!!!!! 
+          cliext.stop();          // en principe rapide : la dernière action est une entrée
         }
-                        // sinon server.available() crée des fantômes .... 
-                        // la gestion d'instances multiples ne fonctionne pas avec le navigateur
-        cliext.stop();                           // en principe rapide : la dernière action est une entrée
+                                  // la gestion d'instances multiples ne fonctionne pas avec le navigateur ??
         if(ab=='a'){
           tPSStop[tPS]=millis();if(tPSStop[tPS]==0){tPSStop[tPS]=1;} //heure du stop TCP
         }
@@ -2211,8 +2198,9 @@ testStack();
         else {Serial.print(" *** end tcp - ");}
 #ifdef SOCK_DEBUG        
         Serial.println();
-#endif // SOCK_DEBUG
         showSocketsStatus(false,NOLF);
+#endif // SOCK_DEBUG
+        
         Serial.println(millis()-cxDur);
 #ifdef DEBUG_ON
   delay(20);
@@ -2315,10 +2303,8 @@ void remoteServer()
   ab='b';
 
   //cli_b.stop(); normalement déjà effectué dans commonserver
-  showSocketsStatus(false,true,false);
   if(cli_b = remoteserv->available())      // attente d'un client browser sur port remote
   {
-    Serial.print("--");printSocketStatus(false);
     getremote_IP(&cli_b,remote_IP,remote_MAC);      
     if (cli_b.connected()){
       lastcxt=millis();             // trig watchdog
