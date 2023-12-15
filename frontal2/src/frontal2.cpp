@@ -940,12 +940,12 @@ void scanTimers()                                             //   recherche tim
 
 void osRemInit(uint8_t r)
 {
-  Serial.print(">==osRemInit==<");Serial.print(r);Serial.print('_');Serial.println(remoteN[r].enable);
+  //Serial.print(">==osRemInit==<");Serial.print(r);Serial.print('_');Serial.println(remoteN[r].enable);
                 memset(remoteN[r].osRemT,'\0',7);
                 memset(remoteN[r].osEndDate,'\0',LDATEA-1);
                 remoteN[r].osStatus=0;                              // status STOP
                 for(uint8_t nr=0;nr<MAXREMLI;nr++){
-                  Serial.print(nr);Serial.print('_');Serial.print(remoteT[nr].num);Serial.print('_');Serial.println(r+1);
+                  //Serial.print(nr);Serial.print('_');Serial.print(remoteT[nr].num);Serial.print('_');Serial.println(r+1);
                   if(remoteT[nr].num==r+1){
                     disjValue(remoteN[r].enable,r,nr);              // restore periSwCde et maj perifs
                   }  
@@ -1960,7 +1960,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       ds3231.alphaNow(now);subTime(remT,remoteN[nb].osEndDate,now,VRAI);
                                       memcpy(remoteN[nb].osRemT,remT+8,6);
                                       now[14]='\0';
-                                      Serial.print(">==========");Serial.print(remoteN[nb].osEndDate);Serial.print('-');Serial.print(now);Serial.print('=');Serial.println(remoteN[nb].osRemT);
+                                      //Serial.print(">==========");Serial.print(remoteN[nb].osEndDate);Serial.print('-');Serial.print(now);Serial.print('=');Serial.println(remoteN[nb].osRemT);
                                       break;                                     
                             case 'f': remoteN[nb].osStatus=2;                                           // (remote_of) start
                                       disjValue(remoteN[nb].osEnable,nb,*valf-PMFNCHAR);                // chargement état one_shot
@@ -1970,10 +1970,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       char durat[LDATEA];memset(durat,'0',14);memcpy(durat+8,remoteN[nb].osRemT,7);
                                       ds3231.alphaNow(now);addTime(remoteN[nb].osEndDate,now,durat,VRAI);
                                       now[14]='\0';
-                                      Serial.print(">==========");Serial.print(now);Serial.print('+');Serial.print(durat);Serial.print('=');Serial.println(remoteN[nb].osEndDate);
+                                      //Serial.print(">==========");Serial.print(now);Serial.print('+');Serial.print(durat);Serial.print('=');Serial.println(remoteN[nb].osEndDate);
                                       break;
                             case 't': textfonc(remoteN[nb].osDurat,6);
-                                      Serial.print(">===<");Serial.print(remoteN[nb].osDurat);Serial.print(' ');Serial.println(valf);
+                                      //Serial.print(">===<");Serial.print(remoteN[nb].osDurat);Serial.print(' ');Serial.println(valf);
                                       break;                                                            // (remote_ot) duration 
                             default:break;
                           }

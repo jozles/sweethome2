@@ -822,6 +822,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
             char jsbuf[LBUF4000];*jsbuf=0x00;
             uint8_t ni=0;                                     // nbre lignes dans buffer
             uint16_t lb;
+            char    fn[LENNOM+1];
  
             htmlBeg(buf,jsbuf,serverName,'R');
 
@@ -829,6 +830,10 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
             //usrFormBHtml(buf,1);
             scrGetButRet(buf,jsbuf,"retour",0);
+            memcpy(fn,"remote_ct_\0",LENNOM+1);fn[LENNOM-1]=(char)(rem-1+PMFNCHAR);           // transmission n° remote
+  //scrGetButFn(buf,jsbuf,fn,"","refresh",ALICNO,7,STDBUTTON,1,0,1,0);
+            scrGetButRef(buf,jsbuf,fn,BRYES);
+
             ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
   
@@ -847,7 +852,6 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   uint8_t ctl=0;
 
   char    remTNum[]={'\0','\0'};
-  char    fn[LENNOM+1];
   memcpy(fn,"remote_o__\0",LENNOM+1);fn[LENNOM-1]=(char)(rem-1+PMFNCHAR);           // transmission n° remote
 
   // ----------------------- une ligne état de la remote hors one_shot_timer
@@ -956,9 +960,6 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   }
 
   tableEnd(buf,jsbuf,BRYES);
-
-  memcpy(fn,"remote_ct_\0",LENNOM+1);fn[LENNOM-1]=(char)(rem-1+PMFNCHAR);           // transmission n° remote
-  scrGetButFn(buf,jsbuf,fn,"","refresh",ALICNO,7,STDBUTTON,1,0,1,0);
 
   formEnd(buf,jsbuf,0,0);
   htmlEnd(buf,jsbuf);

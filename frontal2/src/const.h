@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8a"
+#define NVERS ".8b"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -157,6 +157,7 @@
    1.88 one_shot_timer ok
    1.89 fonctionne avec sdcard 1.88 
    1.8a bug sockets ouvert réparé + bug péripass ko plantant réparé
+   1.8b nettoyage prints osRem ; ajout bouton refresh idem retour
 
 
    BUGS :

@@ -995,6 +995,26 @@ void scrGetButRet(char* buf,char* jsbuf,const char* lib,uint8_t ctl)
 #endif // NOJSBUF    
 }
 
+void scrGetButRef(char* buf,char* jsbuf,const char* nomfonct,uint8_t ctl)
+{
+    fnHtmlIntro(buf,0,ctl);
+    strcat(buf,"<a href=\"?user_ref_");
+    concat1a(buf,(char)(usernum+PMFNCHAR));strcat(buf,"=");concatn(buf,usrtime[usernum]);
+    strcat(buf,"?");
+    strcat(buf,nomfonct);strcat(buf,"=");
+    
+    strcat(buf,"\">");
+    strcat(buf,"\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");
+    strcat(buf,"refresh");
+    strcat(buf,"\"></a>\n");
+    fnHtmlEnd(buf,0,ctl);
+#ifndef NOJSBUF
+    fnJsIntro(jsbuf,JSBRB,0,ctl);
+    jscat(jsbuf,lib);
+#endif // NOJSBUF    
+}
+
+
 void scrGetButSub(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
 {
 #ifndef NOJSBUF  
