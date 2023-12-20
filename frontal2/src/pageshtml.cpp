@@ -830,9 +830,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
             //usrFormBHtml(buf,1);
             scrGetButRet(buf,jsbuf,"retour",0);
-            memcpy(fn,"remote_ct_\0",LENNOM+1);fn[LENNOM-1]=(char)(rem-1+PMFNCHAR);           // transmission n° remote
-  //scrGetButFn(buf,jsbuf,fn,"","refresh",ALICNO,7,STDBUTTON,1,0,1,0);
-            scrGetButRef(buf,jsbuf,fn,BRYES);
+            scrGetButRef(buf,jsbuf,"remote_ct_\0",rem-1,BRYES);
 
             ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
@@ -984,6 +982,7 @@ void remoteHtml(EthernetClient* cli)
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
             //usrFormBHtml(buf,1);
             scrGetButRet(buf,jsbuf,"retour",0);
+            scrGetButRef(buf,jsbuf,"remote_cr_\0",0,BRYES);
             ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
 
@@ -1127,9 +1126,8 @@ void remoteHtml(EthernetClient* cli)
             if(buf[0]!='\0'){ethWrite(cli,buf);}
             tableEnd(buf,jsbuf,BRYES);
             
-            scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,7,STDBUTTON,1,0,1,0);
-            scrGetButFn(buf,jsbuf,"timersctl_","","timers",ALICNO,7,STDBUTTON,1,0,1,0);
-            scrGetButFn(buf,jsbuf,"remote_cr_","","refresh",ALICNO,7,STDBUTTON,1,0,1,0);
+            scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,5,STDBUTTON,1,0,1,0);
+            scrGetButFn(buf,jsbuf,"timersctl_","","timers",ALICNO,5,STDBUTTON,1,0,1,0);
             
             formEnd(buf,jsbuf,0,0);
             htmlEnd(buf,jsbuf);
@@ -1285,7 +1283,9 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
     pc=strchr(buf,';');
     if(memcmp(pc+1,strfds,2)==0){                                         // datasave (après ';' soit '\n' soit'<' soit num fonction)
       np_=(uint8_t)convStrToInt(pc+HISTOPOSNUMPER,&lnp);                     // num périphérique
-      th_=(int16_t)(convStrToNum(pc+HISTOPOSTEMP,&lnp)*100);                 // temp périphérique
+      th_=(int16_t)(convStrToNum(pc+HISTOPOSTEMP,&lnp)*100);                 // temp périphérique     
+if(np_==0 || np_>NBPERIF){Serial.print(nbli);Serial.print(" ligne histo anormale périf=");Serial.print(np_);Serial.print(" ");Serial.println(pc);}
+else{
       periLoad(np_);
 //    Serial.print(np_);Serial.print(" ");Serial.print(*periThmin_);Serial.print(" ");Serial.println(*periThmax_);
       packMac(periMacBuf,pc+HISTOPOSMAC);                       
@@ -1296,13 +1296,13 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
         if(*periThmin_>th_){*periThmin_=(int16_t)th_;save=true;}
         if(*periThmax_<th_){*periThmax_=(int16_t)th_;save=true;}
         if(save){periSave(np_,PERISAVELOCAL);nbth++;
-          Serial.print(*periThmin_);Serial.print(" - ");Serial.println(*periThmax_);
+          //Serial.print(*periThmin_);Serial.print(" - ");Serial.println(*periThmax_);
         }
-//        Serial.println();
+//        Serial.println();     
       }
+}      
     }
   }
-  
   periTableSave();
   
   Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);
@@ -1334,7 +1334,8 @@ void thermoShowHtml(EthernetClient* cli)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
   pageLineOne(buf,jsbuf);            // 1ère ligne page
-  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
+  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");
+  scrGetButRef(buf,jsbuf,"thermoshow\0",0,BRYES);
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
  // ------------------------------------------------------------- header end 
@@ -1374,13 +1375,11 @@ void thermoShowHtml(EthernetClient* cli)
 
         //strcat(buf,"<p align=\"center\">");
         scrGetButFn(buf,jsbuf,"remote_cr_","","remote",ALIC,7,0);                
-        scrGetButFn(buf,jsbuf,"thermoshow","","refresh",ALIC,7,BRYES);
         
         //strcat(buf,"</p><br>");
         memset(lith,0x00,LLITH);
         for(int d=0;d<NBDSRV;d++){
           mDSconc(lith,d);
-          //concat1a(lith,(char)(((memDetServ>>d)&0x01)+48));
           strcat(lith," ");}
         scrDspText(buf,jsbuf,lith,0,BRYES);
         htmlEnd(buf,jsbuf);
@@ -1525,7 +1524,7 @@ Serial.print(" config timers ");
 
   pageLineOne(buf,jsbuf);              // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
-  scrGetButFn(buf,jsbuf,"timershtml","","refresh",0,0,BRYES);
+  scrGetButRef(buf,jsbuf,"timerhtml\0",0,BRYES);
   //scrGetButFn(buf,jsbuf,"timershtml","","refresh",ALICNO,1,STDBUTTON,1,0,1,0);
 
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
@@ -1534,7 +1533,7 @@ Serial.print(" config timers ");
   detServHtml(cli,buf,jsbuf,&lb,lb0,memDetServ,&libDetServ[0][0]);
 
   tableBeg(buf,jsbuf,0);
-  scrDspText(buf,jsbuf,"|nom|det|h_beg|h_end|D_per|T_per|OI det|e_p_c_|7_d_ l_m_m_ j_v_s|dh_beg_cycle|dh_end_cycle|dh_last_start|dh_last_stop",0,TRBE|TDBE);
+  scrDspText(buf,jsbuf,"|nom|det|h_beg|h_end|OI det|e_p_c_|7_d_ l_m_m_ j_v_s|dh_beg_cycle|dh_end_cycle|onStateDur|offStateDur|dh_last_start|dh_last_stop",0,TRBE|TDBE);
 
   for(uint8_t nt=0;nt<NBTIMERS;nt++){
     formIntro(buf,jsbuf,0,TRBEG|TDBEG);
@@ -1547,8 +1546,8 @@ Serial.print(" config timers ");
     sscfgtB(buf,jsbuf,"tim_det__",nt,&timersN[nt].detec,2,3,TDBE);                                            
     sscfgtB(buf,jsbuf,"tim_hdf_d",nt,timersN[nt].hdeb,6,0,TDBE);                                            
     sscfgtB(buf,jsbuf,"tim_hdf_f",nt,timersN[nt].hfin,6,0,TDBE);                   
-    sscfgtB(buf,jsbuf,"tim_hdf_p",nt,&timersN[nt].dayPeriode,3,3,TDBE);                   
-    sscfgtB(buf,jsbuf,"tim_hdf_P",nt,timersN[nt].timePeriode,6,0,TDBE);                   
+    //sscfgtB(buf,jsbuf,"tim_hdf_p",nt,&timersN[nt].dayPeriode,3,3,TDBE);                   
+    //sscfgtB(buf,jsbuf,"tim_hdf_P",nt,timersN[nt].timePeriode,6,0,TDBE);                   
                     
     char oo[7];memset(oo,'_',6);oo[6]=0x00;
     char oi[]="OI";  
@@ -1559,7 +1558,7 @@ Serial.print(" config timers ");
     scrDspText(buf,jsbuf,oo,0,TDBE);
     nucb=0;sscb(buf,jsbuf,timersN[nt].enable,"tim_chkb__",nucb,NO_STATE,TDBEG,nt);affSpace(buf,jsbuf);
     nucb++;sscb(buf,jsbuf,timersN[nt].perm,"tim_chkb__",nucb,NO_STATE,0,nt);affSpace(buf,jsbuf);
-    nucb++;sscb(buf,jsbuf,timersN[nt].cyclic,"tim_chkb__",nucb,NO_STATE,TDEND,nt);   
+    nucb++;sscb(buf,jsbuf,timersN[nt].cyclic_,"tim_chkb__",nucb,NO_STATE,TDEND,nt);   
 
     ethWrite(cli,buf,&lb);
 
@@ -1574,6 +1573,8 @@ Serial.print(" config timers ");
                     
     sscfgtB(buf,jsbuf,"tim_hdf_b",nt,&timersN[nt].dhdebcycle,14,0,TDBE);
     sscfgtB(buf,jsbuf,"tim_hdf_e",nt,&timersN[nt].dhfincycle,14,0,TDBE);
+    sscfgtB(buf,jsbuf,"tim_hdf_p",nt,&timersN[nt].onStateDur,14,0,TDBE);
+    sscfgtB(buf,jsbuf,"tim_hdf_P",nt,&timersN[nt].offStateDur,14,0,TDBE);
     sscfgtB(buf,jsbuf,"tim_hdf_s",nt,&timersN[nt].dhLastStart,14,0,TDBE);
     sscfgtB(buf,jsbuf,"tim_hdf_S",nt,&timersN[nt].dhLastStop,14,0,TDBE); 
 

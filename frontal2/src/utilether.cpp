@@ -20,6 +20,8 @@ extern char  pass[];
 extern char* usrnames;
 extern char* usrpass;
 
+
+uint32_t sdopenFail=0;
 const uint8_t SD_CS_PIN = 4;
 #define SPI_CLOCK SD_SCK_MHZ(8)
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
@@ -160,15 +162,19 @@ int sdOpen(const char* fname,File32* file32)
 
 int sdOpen(const char* fname,File32* file32,const char* txt)
 {
+  sdopenFail++;
   if (!file32->open(fname, O_RDWR | O_CREAT)) {
-    char mess[LMAILMESS/2];mess[0]='\0';
+    char mess[LMAILMESS];
+    sprintf(mess,"%.6lu",sdopenFail);
+    mess[6]=' ';mess[7]='\0';
     strcat(mess,fname);
-    if(strlen(txt)>=LMAILMESS/2-strlen(mess)){
-      int ll=strlen(mess);
-      memcpy(mess,txt,LMAILMESS/2-ll-1);
-      mess[LMAILMESS/2-ll-1]='\0';
-    }
-    else {strcat(mess,txt);}
+    int ll=strlen(txt);
+    int mm=strlen(mess);
+    if(ll>=LMAILMESS-mm-2){
+      ll=LMAILMESS-mm-2;}
+    memcpy(mess+mm,txt,ll);
+    mess[mm+ll-1]='\0';
+    
     mail("SD OPEN FAIL",mess);
     Serial.print(fname);Serial.println(" inaccessible");return SDKO;
   }
@@ -194,22 +200,21 @@ void histoStore_textdh0(const char* val1,const char* val2,const char* val3)
   char text[LT];
   int v,w;
 
-        sprintf(text,"%.8lu",amj);text[8]=' ';            // 9
-        sprintf(text+9,"%.6lu",hms);text[15]=' ';         // +7
-        text[16]='\0';                                    // +1
+        sprintf(text,"%.8lu",amj);text[8]=' ';              // 9
+        sprintf(text+9,"%.6lu",hms);text[15]=' ';           // +7
+        sprintf(text+16,"%.6lu",sdopenFail);text[22]=' ';   // +7
+        text[23]='\0';                                      // +1
         if(strlen(val1)+strlen(text)+1<LT){strcat(text,val1);strcat(text," ");}
         if(strlen(val2)+strlen(text)+1<LT){strcat(text,val2);}      
           
-        //fhisto.open("fdhisto.txt", O_RDWR | O_CREAT);
-        if(sdOpen("fdhisto.txt",&fhisto)==SDKO){
-          mail("HISTO STORE FAIL",text);
+        if(sdOpen("fdhisto.txt",&fhisto)){  // si ko mail dans sdOpen
+          fhisto.seekEnd(0);
+          v=fhisto.write(text);w=fhisto.write(val3);
+          if(v==0 || w==0){mail("fdhisto_store_ko"," ");}   // ledblink(BCODEFHISTO);}
+          fhisto.sync();
+          fhsize=fhisto.size();
+          fhisto.close();
         }
-        fhisto.seekEnd(0);
-        v=fhisto.write(text);w=fhisto.write(val3);
-        if(v==0 || w==0){ledblink(BCODEFHISTO);}
-        fhisto.sync();
-        fhsize=fhisto.size();
-        fhisto.close();
 }
 
 void histoStore_textdh(const char* val1,const char* val2,const char* val3)

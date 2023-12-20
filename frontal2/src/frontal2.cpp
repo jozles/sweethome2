@@ -722,6 +722,7 @@ void watchdog()
 {
   if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("\n>>>>>>>>>>>>>>> TCP cx lost ",*maxCxWt);}
   if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("\n>>>>>>>>>>>>>>> UDP cx lost ",*maxCxWu);}
+  // showSocketsStatus reste utile pour fermer les sockets restés ouvert lors d'un reset du MCU
   if(millis()-lastcxt>2000 && millis()-lastcxu>2000 && millis()-last_shscksta>3000){last_shscksta=millis();showSocketsStatus(true);}
 }
 
@@ -884,10 +885,46 @@ int8_t perToSend(uint8_t* tablePerToSend)
   return perToSend(tablePerToSend,millis());
 }
 
+bool dhTimer(uint8_t nt)
+{
+   if(
+                (   ( memcmp(timersN[nt].hfin,timersN[nt].hdeb,6)>0   // heure fin > heure deb
+                      && memcmp(timersN[nt].hdeb,(now+8),6)<0             // heure deb < now
+                      && memcmp(timersN[nt].hfin,(now+8),6)>0)            // heure fin > now
+                    ||
+                    ( memcmp(timersN[nt].hfin,timersN[nt].hdeb,6)<0    // heure fin < heure deb
+                      &&  (  memcmp(timersN[nt].hdeb,(now+8),6)<0          // heure deb < now
+                          || memcmp(timersN[nt].hfin,(now+8),6)>0))        // heure fin > now
+                )
+                && ((timersN[nt].dw & maskbit[1+now[14]*2])!=0)       // jour semaine
+      )
+    return true;
+    else return false;
+}
+
+
 void scanTimers()                                             //   recherche timer ayant changé d'état 
 {                                                             //      si (en.perm.dh.js) (ON) et état OFF -> état ON, det ON, poolperif
                                                               //      sinon              (OFF) et état ON -> état OFF, det OFF, poolperif
                                                               //      màj tablePerToSend
+/*
+  si cyclic est off
+    si permanent est off                                                    
+      le timer est on à l'intérieur de la période dhdebcycle/dhfincycle     001
+      ET période hdeb/hfin
+    si permanent est on                                                     01x
+      le timer est on à l'intérieur de la période hdeb/hfin     
+  
+  si cyclic est on
+    si permanent est off
+      le timer est on à l'intérieur de la période dhdebcycle/dhfincycle 
+      ET période hdeb/hfin
+      ET (pendant onStateDur tous les dhdebcycle+onStateDur+offStateDur)
+    si permanent est on
+      le timer est on (pendant onStateDur tous les dhdebcycle+onStateDur+offStateDur) 
+      ET période hdeb/hfin
+
+*/
     if((millis()-timerstime)>pertimers*1000){
 
       memcpy(bakDetServ,memDetServ,MDSLEN);
@@ -895,7 +932,42 @@ void scanTimers()                                             //   recherche tim
       timerstime=millis();
       memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
       ds3231.alphaNow(now);
+
+    
+      for(uint8_t nt=0;nt<NBTIMERS;nt++){
+        if(timersN[nt].enable==1)                                  
+        {
+          bool timerOn=false;
+          uint8_t statusTimer=(timersN[nt].cyclic_*4+timersN[nt].perm*2);
+          if(memcmp(timersN[nt].dhdebcycle,now,14)<0 && memcmp(timersN[nt].dhfincycle,now,14)>0)
+          {statusTimer+=1;}
+
+          if(statusTimer>0 && statusTimer<4 && dhTimer(nt)){                  // cyclic off, perm on/off et deb/fincycle ok
+            timerOn=true;
+          }
+
+          if(statusTimer>4 && dhTimer(nt)){                                   // cyclic on
+
+          }
+          
+          if(timerOn==true){
+                  if(timersN[nt].curstate!=1){                              // et état précédent 0, chgt->1
+                    timersN[nt].curstate=1;
+                    ds3231.alphaNow(timersN[nt].dhLastStart);               // mise à jour lastStart
+                    uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] |= mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
+                  }
+          }
+          else    {
+                  if(timersN[nt].curstate!=0){                              // et état précédent 1, chgt->0
+                    timersN[nt].curstate=0;
+                    ds3231.alphaNow(timersN[nt].dhLastStop);                // mise à jour lastStop            
+                    uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
+                  }
+          }
+        }
+      }
       
+/*
       for(int nt=0;nt<NBTIMERS;nt++){
         if(                                                     
           timersN[nt].enable==1                                     // enable & (permanent ou (dans les dates du cycle)
@@ -912,27 +984,21 @@ void scanTimers()                                             //   recherche tim
           {                                                         // si timer déclenché
           if(timersN[nt].curstate!=1){                              // et état précédent 0, chgt->1
             timersN[nt].curstate=1;
-            ds3231.alphaNow(timersN[nt].dhLastStart);
-            //timersN[nt].dhLastStart;                              // mise à jour lastStart
+            ds3231.alphaNow(timersN[nt].dhLastStart);               // mise à jour lastStart
             uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] |= mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
-            //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] |= mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
-            //memDetServ |= mDSmaskbit[timersN[nt].detec];
-            //poolperif(tablePerToSend,timersN[nt].detec,"on");     // recherche inutile periphérique et mise à jour tablePerToSend
           }
         }
         else {                                                      // si timer pas déclenché
           if(timersN[nt].curstate!=0){                              // et état précédent 1, chgt->0
             timersN[nt].curstate=0;
-            ds3231.alphaNow(timersN[nt].dhLastStop);
-            //timersN[nt].dhLastStop;                               // mise à jour lastStop            
+            ds3231.alphaNow(timersN[nt].dhLastStop);                // mise à jour lastStop            
             uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
-            //for(uint8_t i=0;i<MDSLEN;i++){memDetServ[i] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+i] ;} // maj détecteur
-            //memDetServ &= ~mDSmaskbit[timersN[nt].detec];     // maj détecteur
-            if(timersN[nt].perm==0 && timersN[nt].cyclic==0){timersN[nt].enable=0;}; // si pas permanent et pas cyclique disable en fin
-            //poolperif(tablePerToSend,timersN[nt].detec,"off");                     // recherche periphérique et mise à jour tablePerToSend
+            if(timersN[nt].perm==0 && timersN[nt].cyclic_==0){timersN[nt].enable=0;}; // si pas permanent et pas cyclique disable en fin
           }     
         }
       }
+*/
+
       periDetecUpdate("pDUti");                         // mise à jour remotes, fichier perif et tablePerToSend
       perToSend(tablePerToSend,timerstime);             // mise à jour périphériques de tablePerToSend
     }
@@ -1732,9 +1798,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           case 'p':*periPitch_=0;*periPitch_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) - peri_lf_p_ pitch
                           case 'o':*periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break; // (periLine) - peri_lf_o_ th offset 
                           case 'r':*periPerRefr=0;conv_atobl(valf,periPerRefr);break;                     // (periLine) - peri_lf_r_ per refr
-                          case 'P':*periProg=*valf-48;break;                                              // (periLine) - peri_lf_P_ prog
-                          case 'i':*periSwNb=*valf-48;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;         // (periLine) - peri_lf_i_ sw nb
-                          case 'd':*periDetNb=*valf-48;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;    // (periLine) - peri_lf_d_ det nb
+                          case 'P':*periProg=*valf-PMFNCVAL;break;                                              // (periLine) - peri_lf_P_ prog
+                          case 'i':*periSwNb=*valf-PMFNCVAL;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;         // (periLine) - peri_lf_i_ sw nb
+                          case 'd':*periDetNb=*valf-PMFNCVAL;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;    // (periLine) - peri_lf_d_ det nb
                           case 'x':*periPort=0;conv_atob(valf,periPort);break;                            // (periLine) - peri_lf_x_ port
                           case 'W':{uint8_t sw=*(libfonctions+2*i+1)-PMFNCHAR;                            // (periLine) - peri_lf_W_ sw Val 
                                    uint8_t cd=*valf-PMFNCVAL;
@@ -2006,10 +2072,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToInt(valf,&j);
                                    if((thermos[nb].peri)>NBPERIF){(thermos[nb].peri)=NBPERIF;}
                                    break;
-                            case 'e':thermos[nb].lowenable=*valf-48;break;                                                  // enable low
-                            case 'E':thermos[nb].highenable=*valf-48;break;                                                 // enable high
-                            case 's':thermos[nb].lowstate=*valf-48;break;                                                   // state  low
-                            case 'S':thermos[nb].highstate=*valf-48;break;                                                  // state  high
+                            case 'e':thermos[nb].lowenable=*valf-PMFNCVAL;break;                                                  // enable low
+                            case 'E':thermos[nb].highenable=*valf-PMFNCVAL;break;                                                 // enable high
+                            case 's':thermos[nb].lowstate=*valf-PMFNCVAL;break;                                                   // state  low
+                            case 'S':thermos[nb].highstate=*valf-PMFNCVAL;break;                                                  // state  high
                             case 'v':thermos[nb].lowvalue=0;thermos[nb].lowvalue=(int16_t)convStrToInt(valf,&j);break;      // value low
                             case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=(int16_t)convStrToInt(valf,&j);break;    // value high
                             case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=(int16_t)convStrToInt(valf,&j);break;    // offset low
@@ -2038,7 +2104,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        //Serial.print("efface cb timers ");Serial.print(nb);Serial.print(" ");Serial.print(timersN[nb].nom);
                         timersN[nb].enable=0;                                                            // (timers) effacement cb     
                         timersN[nb].perm=0;
-                        timersN[nb].cyclic=0;
+                        timersN[nb].cyclic_=0;
                         timersN[nb].curstate=0;
                         timersN[nb].forceonoff=0;
                         timersN[nb].dw=0;
@@ -2053,9 +2119,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           switch (*(libfonctions+2*i)){         
                             case 'd':textfonc(timersN[nb].hdeb,6);break;
                             case 'f':textfonc(timersN[nb].hfin,6);break;
-                            case 'p':timersN[nb].dayPeriode=0;
-                                     timersN[nb].dayPeriode=convStrToInt(valf,&j);break;
-                            case 'P':textfonc(timersN[nb].timePeriode,6);break;
+                            case 'p':textfonc(timersN[nb].onStateDur,14);break;                          // tim_hdf_p
+                            case 'P':textfonc(timersN[nb].offStateDur,14);break;                         // tim_hdf_P
                             case 'b':textfonc(timersN[nb].dhdebcycle,14);break;
                             case 'e':textfonc(timersN[nb].dhfincycle,14);break;
                             case 's':textfonc(timersN[nb].dhLastStart,14);break;
@@ -2067,9 +2132,9 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                         int nv=*(libfonctions+2*i)-PMFNCHAR;
                           /* e_p_c_f */
                           switch (nv){         
-                            case 0:timersN[nb].enable=*valf-48;break;
-                            case 1:timersN[nb].perm=*valf-48;break;
-                            case 2:timersN[nb].cyclic=*valf-48;break;
+                            case 0:timersN[nb].enable=*valf-'0';break;
+                            case 1:timersN[nb].perm=*valf-'0';break;
+                            case 2:timersN[nb].cyclic_=*valf-'0';break;
                             default:break;
                           }
                           /* dw */

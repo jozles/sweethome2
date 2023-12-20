@@ -901,6 +901,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     strcat(buf,"<a href=\"?user_ref_");
     strcat(buf,b);strcat(buf,"=");concatn(buf,usrtime[usernum]);
     strcat(buf,"?");
+    //strcat(buf," rel=\"noreferrer\"?");
     //char* dm=buf+strlen(buf);
     strcat(buf,nomfonct);strcat(buf,"=");strcat(buf,valfonct);
     
@@ -908,10 +909,11 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     if(aligncenter){strcat(buf,"<p align=\"center\">");}
     strcat(buf,"<input type=\"button\"");
 
-    if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;");}
     if(sizfnt==1){strcat(buf," style=\"height:40px;width:80px;");}
     if(sizfnt==2){strcat(buf," style=\"height:75px;width:150px;");}
     if(sizfnt==4){strcat(buf," style=\"height:100px;width:220px;");}
+    if(sizfnt==5){strcat(buf," style=\"height:110px;width:350px;");}
+    if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;");}
     if(round!=0){
       strcat(buf,"  border-radius: ");
       if(round==1){strcat(buf,"5");}
@@ -925,6 +927,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     else if(sizfnt==1){strcat(buf,"15px;");}
     else if(sizfnt==2){strcat(buf,"25px;");}
     else if(sizfnt==4){strcat(buf,"25px;");}
+    else if(sizfnt==5){strcat(buf,"30px;");}
     else strcat(buf,"25px;");
     strcat(buf,"font-family:Courier,sans-serif;");
 
@@ -995,15 +998,16 @@ void scrGetButRet(char* buf,char* jsbuf,const char* lib,uint8_t ctl)
 #endif // NOJSBUF    
 }
 
-void scrGetButRef(char* buf,char* jsbuf,const char* nomfonct,uint8_t ctl)
+void scrGetButRef(char* buf,char* jsbuf,const char* nomfonct,const uint8_t suffn,uint8_t ctl)
 {
     fnHtmlIntro(buf,0,ctl);
     strcat(buf,"<a href=\"?user_ref_");
     concat1a(buf,(char)(usernum+PMFNCHAR));strcat(buf,"=");concatn(buf,usrtime[usernum]);
     strcat(buf,"?");
-    strcat(buf,nomfonct);strcat(buf,"=");
+    char suffix[2];suffix[0]=(char)(suffn+PMFNCHAR);suffix[1]='\0';
+    strcat(buf,nomfonct);strcat(buf,suffix),strcat(buf,"=");
     
-    strcat(buf,"\">");
+    //strcat(buf,"\">");
     strcat(buf,"\"><input type=\"button\" text style=\"width:300px;height:60px;font-size:40px\" value=\"");
     strcat(buf,"refresh");
     strcat(buf,"\"></a>\n");

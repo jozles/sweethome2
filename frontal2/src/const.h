@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8b"
+#define NVERS ".8c"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -158,6 +158,7 @@
    1.89 fonctionne avec sdcard 1.88 
    1.8a bug sockets ouvert réparé + bug péripass ko plantant réparé
    1.8b nettoyage prints osRem ; ajout bouton refresh idem retour
+   1.8c fichiers timers modifié pour mode cyclic (durée on/off) ; mode cyclic non pris en compte
 
 
    BUGS :
@@ -379,13 +380,17 @@ struct TimersOld
   char    hdeb[7];       // heure début
   char    hfin[7];       // heure fin
   bool    perm;          // permanent (pas de test sur deb/fin cycle ni cyclic)
-  bool    cyclic;        // cyclique/one time (si one time disable en fin de cycle)
+  bool    cyclic_;        // cyclique/one time (si one time disable en fin de cycle)
   bool    enable;        //
   bool    curstate;      // etat courant du timer
   bool    forceonoff;    // inutilisé devrait être "action" (OR/NOR/XOR/AND)
   byte    dw;            // jours semaine xyyyyyyyy ; x si tout
   char    dhdebcycle[16];
   char    dhfincycle[16];
+  char    dhLastStart[16];
+  char    dhLastStop[16];
+  uint16_t dayPeriode_;   // nbre jours depuis last avant enable
+  char    timePeriode_[7];// temps depuis last avant enable ; la période est la somme day+time   
 };
 
 struct Timers
@@ -395,7 +400,7 @@ struct Timers
   char    hdeb[7];       // heure début
   char    hfin[7];       // heure fin
   bool    perm;          // permanent (pas de test sur deb/fin cycle ni cyclic)
-  bool    cyclic;        // cyclique/one time (si one time disable en fin de cycle)
+  bool    cyclic_;        // cyclique/one time (si one time disable en fin de cycle)
   bool    enable;        //
   bool    curstate;      // etat courant du timer
   bool    forceonoff;    // inutilisé devrait être "action" (OR/NOR/XOR/AND)
@@ -404,8 +409,8 @@ struct Timers
   char    dhfincycle[16];
   char    dhLastStart[16];
   char    dhLastStop[16];
-  uint16_t dayPeriode;   // nbre jours depuis last avant enable
-  char    timePeriode[7];// temps depuis last avant enable ; la période est la somme day+time   
+  char    onStateDur[16];
+  char    offStateDur[16];
 };
 
 #define NBTHERMOS  NBPERIF

@@ -667,8 +667,8 @@ void periCheck(uint16_t num,const char* text){periSave(NBPERIF+1,PERISAVESD);per
 void periFname(uint16_t num,char* fname)
 {
   strcpy(fname,"PERI");
-  fname[4]=(char)(num/10+48);
-  fname[5]=(char)(num%10+48);
+  fname[4]=(char)(num/10+'0');
+  fname[5]=(char)(num%10+'0');
   fname[6]='\0';
 }
 
@@ -685,8 +685,8 @@ void periInputPrint(byte* input)
       memset(binput,0x20,LBINP-1);binput[LBINP-1]=0x00;
       binput[0]=ed[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPEN_PB)&0x01)];                         // en input
       binput[2]=es[((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPDETES_PB)&0x01)];                      // edge/static input
-      binput[4]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPOLDLEV_PB)&0x01)+48;                      // prev level
-      binput[6]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPVALID_PB)&0x01)+48;                       // valid level
+      binput[4]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPOLDLEV_PB)&0x01)+'0';                      // prev level
+      binput[6]=((*(uint8_t*)(input+2+ninp*PERINPLEN)>>PERINPVALID_PB)&0x01)+'0';                       // valid level
       a=*(uint8_t*)(input+ninp*PERINPLEN)&PERINPNT_MS;
       if(a>3){a=4;}binput[8]=*(inptyps+2+a*2);binput[9]=*(inptyps+2+a*2+1);                            // type détec src
       a=*(uint8_t*)(input+ninp*PERINPLEN)>>PERINPNVLS_PB;conv_htoa(binput+11,&a);                      // n° détec src
@@ -869,7 +869,8 @@ if(num<=0 || num>NBPERIF){Serial.print(" periLoad ");Serial.println(num);delay(5
   int i=0;
   int sta=SDOK;
   
-    for(i=0;i<PERIRECLEN;i++){periRec[i]=periCache[(num-1)*PERIRECLEN+i];}    // copie dans variables  
+    for(i=0;i<PERIRECLEN;i++){periRec[i]=periCache[(num-1)*PERIRECLEN+i];
+    }    // copie dans variables  
   
   return sta;
 }
@@ -1838,12 +1839,11 @@ void timersPrint()
     Serial.print("   ");Serial.print(nt);Serial.print("/");Serial.print(timersN[nt].detec);Serial.print(" ");
     Serial.print(timersN[nt].nom);Serial.print(" ");Serial.print(timersN[nt].enable);Serial.print(" ");
     Serial.print(timersN[nt].perm);Serial.print(" ");Serial.print(timersN[nt].curstate);Serial.print(" ");
-    Serial.print(timersN[nt].cyclic);Serial.print(" ");Serial.print(timersN[nt].forceonoff);Serial.print(" ");
+    Serial.print(timersN[nt].cyclic_);Serial.print(" ");Serial.print(timersN[nt].forceonoff);Serial.print(" ");
     Serial.print(timersN[nt].hdeb);Serial.print(" ");Serial.print(timersN[nt].hfin);Serial.print(" ");
-    for(int nd=7;nd>=0;nd--){Serial.print((char)(((timersN[nt].dw>>nd)&0x01)+48));}Serial.print(" "); // 0=tous 1-7
+    for(int nd=7;nd>=0;nd--){Serial.print((char)(((timersN[nt].dw>>nd)&0x01)+'0'));}Serial.print(" "); // 0=tous 1-7
     Serial.print(timersN[nt].dhdebcycle);Serial.print(" ");Serial.println(timersN[nt].dhfincycle);
     Serial.print("last :");Serial.print(timersN[nt].dhLastStart);Serial.print(" ");Serial.print(timersN[nt].dhLastStop);
-    Serial.print(" periode :");Serial.print(timersN[nt].dayPeriode);Serial.print(" ");Serial.println(timersN[nt].timePeriode);
   }
 }
 
@@ -1851,10 +1851,8 @@ void timersInit()
 {
   memset(timersN,0x00,timersNlen);
   for(int nt=0;nt<NBTIMERS;nt++){
-    memset(timersN[nt].dhdebcycle,'0',16);
-    memset(timersN[nt].dhfincycle,'9',16);
-    memset(timersN[nt].dhLastStart,'0',16); 
-    memset(timersN[nt].dhLastStop,'0',16);
+    memset(timersN[nt].onStateDur,'0',16);
+    memset(timersN[nt].offStateDur,'9',16);
   }
   
 /*  for(uint8_t nt=0;nt<NBTIMERS;nt++){  
@@ -1877,6 +1875,7 @@ int timersLoad()
     ftimers.seek(0);
     for(uint16_t i=0;i<timersNlen;i++){*(timersNA+i)=ftimers.read();}             
     ftimers.close();Serial.println(" OK");
+    
     return SDOK;
 }
 
@@ -1901,21 +1900,16 @@ int timersConvert()
     for(uint8_t i=0;i<NBTIMERS;i++){
       for(uint16_t j=0;j<sizeof(TimersOld);j++){
         *(timersNA+i*sizeof(Timers)+j)=ftimers.read();}
-      memset(timersN[i].dhLastStart,'0',16);
-      memset(timersN[i].dhLastStop,'0',16);
-      timersN[i].dayPeriode=0;
-      memset(timersN[i].timePeriode,'0',7);
-      if(i>7){
-        memcpy(timersN[i].dhdebcycle,timersN[7].dhdebcycle,16);
-        memcpy(timersN[i].dhfincycle,timersN[7].dhfincycle,16);
-      }
+      memset(timersN[i].onStateDur,'0',16);
+      memset(timersN[i].offStateDur,'0',16);
     }
     ftimers.close();Serial.println(" OK");
 
-    Serial.println("check");timersPrint();
+    /*Serial.println("check");timersPrint();
     Serial.print("ok=CR ");
     char inp=' ';while(inp==' '){if(Serial.available()){inp=Serial.read();if(inp!=13){inp=' ';}}}
     Serial.println();
+    */
     //while(1){};
 
     ftimers.remove();    
