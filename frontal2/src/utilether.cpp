@@ -141,9 +141,7 @@ void mail(const char* a, const char* mm)
       if(LDATEB+3<=(LMAILMESS-strlen(ms))){
         strcat(ms,alphaDate());strcat(ms," ");}
       strcat(ms,VERSION);
-      //#define LP 4
-      //char per[LP];memset(per,'\0',LP);sprintf(per,"%d",*periMail1);
-      //strcat(ms," p=");strcat(ms,per);
+
       sprintf(ms+strlen(ms)," p=%d",*periMail1);
       periReq(&cliext,*periMail1,"mail______",ms);  
   }
@@ -163,7 +161,10 @@ int sdOpen(const char* fname,File32* file32)
 int sdOpen(const char* fname,File32* file32,const char* txt)
 {
   sdopenFail++;
+  //Serial.print(">====>");Serial.print(sdopenFail);Serial.print(" sdOpen ");Serial.print(fname);
+  file32->close();                                  // sdOpen de thermoshow ne fonctionne pas sans ce close !!!???
   if (!file32->open(fname, O_RDWR | O_CREAT)) {
+    //Serial.println(" ko");
     char mess[LMAILMESS];
     sprintf(mess,"%.6lu",sdopenFail);
     mess[6]=' ';mess[7]='\0';
@@ -176,8 +177,10 @@ int sdOpen(const char* fname,File32* file32,const char* txt)
     mess[mm+ll-1]='\0';
     
     mail("SD OPEN FAIL",mess);
-    Serial.print(fname);Serial.println(" inaccessible");return SDKO;
+    fhisto.close();
+    return SDKO;
   }
+  //Serial.println(" ok");
   return SDOK;
 }
 
@@ -375,7 +378,7 @@ unsigned long genUnixDate(int* year,int* month, int* day, int* hour,int* minute,
 void calcDate(int bd,int* yy,int*mm,int* dd,int* js,int*hh,int* mi,int* ss)     // bd jours avant date*
 {
   unsigned long udate=genUnixDate(yy,mm,dd,hh,mi,ss);
-  Serial.print("udate1=");Serial.println(udate);Serial.print(" (");Serial.print(*yy);Serial.print("/");Serial.print(*mm);Serial.print("/");Serial.print(*dd);Serial.println(") ");
+  Serial.print("udate1=");Serial.print(udate);Serial.print(" (");Serial.print(*yy);Serial.print("/");Serial.print(*mm);Serial.print("/");Serial.print(*dd);Serial.print(") ");
   udate-=bd*24*3600;
   Serial.print("udate2=");Serial.println(udate);
   byte js0;

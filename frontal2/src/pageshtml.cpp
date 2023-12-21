@@ -1218,8 +1218,9 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   sprintf(dhasc+9,"%.6lu",hms);dhasc[15]='\0';            // dhasc date/heure recherchée imprimable
 //  Serial.print("dhasc=");Serial.println(dhasc);
   
-  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){return SDKO;}
-  
+  char file[]={"fdhisto.txt"};
+  if(sdOpen(file,&fhisto)==SDKO){return SDKO;}
+
   long histoSiz=fhisto.size();
   long searchStep=100000;
   long ptr=0,curpos=histoSiz;
@@ -1236,6 +1237,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   int pt;
 
 /* recherche rétrograde de la date début */
+  
   while(curpos>0 && !fini){
     curpos-=searchStep;if(curpos<0){curpos=0;}ptr=curpos;
     fhisto.seek(curpos);
@@ -1284,25 +1286,20 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
     if(memcmp(pc+1,strfds,2)==0){                                         // datasave (après ';' soit '\n' soit'<' soit num fonction)
       np_=(uint8_t)convStrToInt(pc+HISTOPOSNUMPER,&lnp);                     // num périphérique
       th_=(int16_t)(convStrToNum(pc+HISTOPOSTEMP,&lnp)*100);                 // temp périphérique     
-if(np_==0 || np_>NBPERIF){Serial.print(nbli);Serial.print(" ligne histo anormale périf=");Serial.print(np_);Serial.print(" ");Serial.println(pc);}
-else{
-      periLoad(np_);
-//    Serial.print(np_);Serial.print(" ");Serial.print(*periThmin_);Serial.print(" ");Serial.println(*periThmax_);
-      packMac(periMacBuf,pc+HISTOPOSMAC);                       
-      //if(compMac(periMacBuf,periMacr) && th_<9900 && th_>-9900){                                  // contrôle mac
-      if(memcmp(periMacBuf,periMacr,6)==0 && th_<9900 && th_>-9900){                                  // contrôle mac
-//        Serial.println(buf);Serial.print(" per=");Serial.print(np_);Serial.print(" th=");Serial.print(th_);Serial.print(" thmin=");Serial.print(*periThmin_);Serial.print(" thmax=");Serial.print(*periThmax_);Serial.print(" - ");
-        save=false;
-        if(*periThmin_>th_){*periThmin_=(int16_t)th_;save=true;}
-        if(*periThmax_<th_){*periThmax_=(int16_t)th_;save=true;}
-        if(save){periSave(np_,PERISAVELOCAL);nbth++;
-          //Serial.print(*periThmin_);Serial.print(" - ");Serial.println(*periThmax_);
+      if(np_==0 || np_>NBPERIF){Serial.print(nbli);Serial.print(" ligne histo anormale périf=");Serial.print(np_);Serial.print(" ");Serial.println(pc);}
+      else{
+        periLoad(np_);
+        packMac(periMacBuf,pc+HISTOPOSMAC);                       
+        if(memcmp(periMacBuf,periMacr,6)==0 && th_<9900 && th_>-9900){                                  // contrôle mac
+          save=false;
+          if(*periThmin_>th_){*periThmin_=(int16_t)th_;save=true;}
+          if(*periThmax_<th_){*periThmax_=(int16_t)th_;save=true;}
+          if(save){periSave(np_,PERISAVELOCAL);nbth++;}
         }
-//        Serial.println();     
-      }
-}      
+      }      
     }
   }
+  
   periTableSave();
   
   Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);
@@ -1310,9 +1307,8 @@ else{
 #ifdef DEBUG_ON
   delay(1);
 #endif
-  //fhisto.seek(end);
-  return 1;
-  //return sdOpen("fdhisto.txt",&fhisto);
+  
+  return SDOK;
 }
 
 void thermoShowHtml(EthernetClient* cli)
@@ -1353,10 +1349,7 @@ void thermoShowHtml(EthernetClient* cli)
 
                   if(periMacr[0]!=0x00){
                     ni++;
-                    //memset(lith,0x00,LLITH);
-                    //char* li=lith;
                     float th;
-
                     scrDspNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,7,TDBE);
                     th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,7,TDBE);
                     th=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
@@ -1373,15 +1366,14 @@ void thermoShowHtml(EthernetClient* cli)
               }
           tableEnd(buf,jsbuf,BRYES);
 
-        //strcat(buf,"<p align=\"center\">");
-        scrGetButFn(buf,jsbuf,"remote_cr_","","remote",ALIC,7,0);                
-        
-        //strcat(buf,"</p><br>");
+        scrGetButFn(buf,jsbuf,"remote_cr_","","remote",ALIC,7,0);                        
+        /*
         memset(lith,0x00,LLITH);
         for(int d=0;d<NBDSRV;d++){
           mDSconc(lith,d);
           strcat(lith," ");}
         scrDspText(buf,jsbuf,lith,0,BRYES);
+        */
         htmlEnd(buf,jsbuf);
         strcat(buf,"\n");
         
