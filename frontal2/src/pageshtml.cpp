@@ -2,6 +2,7 @@
 #include <ds3231.h>
 #include "const.h"
 #include <shconst2.h>
+#include <SdFat.h>
 #include <shutil2.h>
 #include "utilether.h"
 #include "utilhtml.h"
@@ -37,6 +38,9 @@ extern byte       maskbit[];
 
 extern int        periCur;          // Numéro du périphérique courant
 
+extern char       periCache[PERIRECLEN*(NBPERIF+1)];
+
+extern char*      periBegOfRecord;              // ptr début buffer
 extern byte*      periMacr;                     // ptr ds buffer : mac address 
 extern char*      periNamer;                    // ptr ds buffer : description périphérique
 extern int16_t*   periLastVal_;                 // ptr ds buffer : dernière valeur de température  
@@ -53,8 +57,11 @@ extern uint8_t*   periSwSta;                    // ptr ds buffer : état des swi
 
 extern byte       periMacBuf[MACADDRLENGTH]; 
 
+File32 fhisto;            // fichier histo sd card
+File32 fimg;              // fichier image
+File32 fhtml;             // fichiers pages html
+
 extern uint16_t   perrefr;
-extern File32     fhisto;           // fichier histo sd card
 extern long       fhsize;           // remplissage fhisto
 extern uint32_t   histoPos;
 extern uint32_t   histoPeri;
@@ -86,9 +93,6 @@ extern unsigned long*     usrtime;
 extern uint16_t*  toPassword;
 
 extern int        usernum;
-
-
-File32 fimg;     // fichier image
 
 extern struct SwRemote remoteT[MAXREMLI];
 extern struct Remote remoteN[NBREMOTE];
@@ -134,7 +138,7 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
 {
         unsigned long begIC=millis();
         Serial.print(fimgname);
-        File32 fimg;                              // = SD.open(fimgname,FILE_READ);
+
         if(sdOpen(fimgname,&fimg)==SDKO){return SDKO;}
         else {
           uint32_t fimgSiz=fimg.size();
@@ -183,11 +187,6 @@ void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,u
 
   ethWrite(cli,buf,lb);
 
-//Serial.println("\nB");
-
-  //long ptr=pos;
-  //long ptr0=ptr;
-  //long ptra=ptr;
   #define LBLEN 1000
   char lineBuf[LBLEN];
   uint32_t linePeri=0;
@@ -196,9 +195,6 @@ void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,u
   long totalRead=0;
 
   fhisto.seek(pos);
-
-//Serial.println("\nC");
-//Serial.print(fhsize);Serial.print(' ');Serial.println(pos+totalRead);
 
   while((pos+totalRead)<fhsize && totalRead<1000000){
     memset(lineBuf,'\0',LBLEN);
@@ -213,28 +209,11 @@ void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,u
     if(histoPeri!=0 && linePtr>(linePeriPtr-lineBuf+LINELMINI)){     
       conv_atobl(linePeriPtr,&linePeri);
     }
-    //char bid[17];bid[16]='\0';
-    //memcpy(bid,linePeriPtr,16);
-    //Serial.print((char*)bid);Serial.print(' ');Serial.print(linePeri);Serial.print(' ');Serial.println(histoPeri);delay(10);//while(1){yield();}
     if(linePeri==histoPeri){
       ethWrite(cli,lineBuf,linePtr);  
     }
     linePtr=0;linePeri=0;
   }
-
-/*
-  while(ptr<fhsize){
-    trigwd();
-    while(((ptr-ptra) < (long)lb0) && (ptr<fhsize)){           // -1 for end null char
-      buf[ptr-ptra]=fhisto.read();ptr++;
-    }
-    buf[ptr-ptra]='\0';
-    ethWrite(cli,buf,lb);
-    ptra=ptr;
-    if((ptr-ptr0)>1000000){break;}  // pour limiter la durée ...
-  }
-  */
-  fhisto.close();
 }
 
 void dumpHisto(EthernetClient* cli)
@@ -251,7 +230,6 @@ void dumpHisto(EthernetClient* cli)
 
   //unsigned long begTPage=millis();     // calcul durée envoi page
   long pos=histoPos;
-  char file[]={"fdhisto.txt"};
 
   htmlBeg(buf,jsbuf,serverName);     // chargement CSS etc
   
@@ -267,7 +245,7 @@ void dumpHisto(EthernetClient* cli)
   trigwd();
 
   scrDspText(buf,jsbuf,"histoSD ",0,0);
-  if(sdOpen(file,&fhisto)==SDKO){scrDspText(buf,jsbuf,"KO",0,0);return;}
+  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){scrDspText(buf,jsbuf,"KO",0,0);return;}
   fhsize=fhisto.size();Serial.print(fhsize);
 
   if(histoDh[0]=='2'){
@@ -284,11 +262,9 @@ void dumpHisto(EthernetClient* cli)
   }
 
   ethWrite(cli,buf,&lb);
-
-//Serial.println("\nA");
-  
   
   dumpHisto0(cli,buf,jsbuf,pos,lb0,&lb);
+  fhisto.close();
 
   scrGetButRet(buf,jsbuf,"retour",1);
   htmlEnd(buf,jsbuf);
@@ -1218,8 +1194,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   sprintf(dhasc+9,"%.6lu",hms);dhasc[15]='\0';            // dhasc date/heure recherchée imprimable
 //  Serial.print("dhasc=");Serial.println(dhasc);
   
-  char file[]={"fdhisto.txt"};
-  if(sdOpen(file,&fhisto)==SDKO){return SDKO;}
+  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){return SDKO;}
 
   long histoSiz=fhisto.size();
   long searchStep=100000;
@@ -1259,6 +1234,8 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
 
 /* --- balayage et màj --- */
 
+
+
   unsigned long t1=millis();
   char strfds[3];memset(strfds,0x00,3);
   if(convIntToString(strfds,fdatasave)>2){
@@ -1270,6 +1247,28 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   int lnp=0,nbli=0,nbth=0;
   bool save=false;
 
+/*
+  byte* periMac[NBPERIF];     // pointeurs mac addr dans cache
+  int16_t* periThMin[NBPERIF];
+  int16_t* periThMax[NBPERIF];
+
+  for(int pp=1;pp<NBPERIF;pp++){
+    periMac[pp]=(byte*)(periMacr-(byte*)periBegOfRecord+(pp-1)*PERIRECLEN+(byte*)periCache);
+    periThMin[pp]=(int16_t*)(periThmin_-(int16_t*)periBegOfRecord+(pp-1)*PERIRECLEN+(int16_t*)periCache);
+    periThMax[pp]=(int16_t*)(periThmax_-(int16_t*)periBegOfRecord+(pp-1)*PERIRECLEN+(int16_t*)periCache);
+    *periThMin[pp]=9900;
+    *periThMax[pp]=-9900;
+    Serial.print(pp);Serial.print(" ");
+    char m[18];m[17]=0x00;
+          for(int k=0;k<6;k++){
+            m[k*3]=chexa[*periMac[k]/16];
+            m[k*3+1]=chexa[*periMac[k]%16];
+            if(k<5){m[k*3+2]='.';}
+          }
+    Serial.print(m);Serial.print(" ");
+    Serial.print(*periThMin[pp]);Serial.print(" ");Serial.println(*periThMin[pp]);
+  }
+*/
   for(int pp=1;pp<=NBPERIF;pp++){periLoad(pp);*periThmin_=9900;*periThmax_=-9900;periSave(pp,PERISAVELOCAL);}
                                                                              
                                                                          // acquisition
@@ -1288,6 +1287,14 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
       th_=(int16_t)(convStrToNum(pc+HISTOPOSTEMP,&lnp)*100);                 // temp périphérique     
       if(np_==0 || np_>NBPERIF){Serial.print(nbli);Serial.print(" ligne histo anormale périf=");Serial.print(np_);Serial.print(" ");Serial.println(pc);}
       else{
+        /*
+        packMac(periMacBuf,pc+HISTOPOSMAC);                       
+        if(memcmp(periMacBuf,periMac[np_],6)==0 && th_<9900 && th_>-9900){                                  // contrôle mac
+          if(*periThMin[np_]>th_){*periThmin_=(int16_t)th_;}
+          if(*periThMax[np_]<th_){*periThmax_=(int16_t)th_;}
+        }
+        */
+        
         periLoad(np_);
         packMac(periMacBuf,pc+HISTOPOSMAC);                       
         if(memcmp(periMacBuf,periMacr,6)==0 && th_<9900 && th_>-9900){                                  // contrôle mac
@@ -1296,12 +1303,15 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
           if(*periThmax_<th_){*periThmax_=(int16_t)th_;save=true;}
           if(save){periSave(np_,PERISAVELOCAL);nbth++;}
         }
+        
       }      
     }
   }
   
-  periTableSave();
   
+  fhisto.close();  
+  periTableSave();
+
   Serial.print("--- fin balayage ");Serial.print(nbli);Serial.print(" lignes ; ");Serial.print(nbth);
   Serial.print(" màj ; millis=");Serial.print(millis()-t1);Serial.print(" total=");Serial.println(millis()-t0);
 #ifdef DEBUG_ON

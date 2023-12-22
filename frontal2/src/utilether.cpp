@@ -21,12 +21,13 @@ extern char* usrnames;
 extern char* usrpass;
 
 
+SdFat32 sd32;
+#define error(s) sd32.errorHalt(&Serial, F(s))
+
 uint32_t sdopenFail=0;
 const uint8_t SD_CS_PIN = 4;
 #define SPI_CLOCK SD_SCK_MHZ(8)
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
-extern SdFat32 sd32;
-#define error(s) sd32.errorHalt(&Serial, F(s))
 
 #ifdef UDPUSAGE
 
@@ -162,7 +163,6 @@ int sdOpen(const char* fname,File32* file32,const char* txt)
 {
   sdopenFail++;
   //Serial.print(">====>");Serial.print(sdopenFail);Serial.print(" sdOpen ");Serial.print(fname);
-  file32->close();                                  // sdOpen de thermoshow ne fonctionne pas sans ce close !!!???
   if (!file32->open(fname, O_RDWR | O_CREAT)) {
     //Serial.println(" ko");
     char mess[LMAILMESS];
@@ -394,8 +394,34 @@ void dateToStr(char* buff,int year,int month,int day,int hour,int minute,int sec
   buff[15]='\0';
 }  
 
+unsigned long alphaDateToUnix(const char* tim,bool onlyHours)
+{
+  int year,month,day,hour,minute,seconde;
+  uint32_t buf;
+  
+  year=1970;month=1;day=1;
+  if(!onlyHours){
+    conv_atobl(tim,&buf,4);year=buf;if(year==0){year=1970;}
+    conv_atobl(tim+4,&buf,2);month=buf;if(month==0){month=1;}
+    conv_atobl(tim+6,&buf,2);day=buf;if(day==0){day=1;}
+  }
+  conv_atobl(tim+8,&buf,2);hour=buf;
+  conv_atobl(tim+10,&buf,2);minute=buf;  
+  conv_atobl(tim+12,&buf,2);seconde=buf;
+
+  return genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
+}
+
+void unixDateToStr(unsigned long uxd,char* date)
+{
+  int year,month,day,hour,minute,seconde;
+  convertNTP(&uxd,&year,&month,&day,&js,&hour,&minute,&seconde);
+  dateToStr(date,year,month,day,hour,minute,seconde);
+}
+
 void addTime(char* recep,const char* tim1,const char* tim2,bool onlyHours)
 {
+  /*
   int year,month,day,hour,minute,seconde;
   uint32_t buf;
   
@@ -407,7 +433,10 @@ void addTime(char* recep,const char* tim1,const char* tim2,bool onlyHours)
   conv_atobl(tim1+12,&buf,2);seconde=buf;
 
   unsigned long unixtim1=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
+*/
+  unsigned long unixtim1=alphaDateToUnix(tim1,false);
 
+/*  
   year=1970;month=1;day=1;
   if(!onlyHours){
     conv_atobl(tim2,&buf,4);year=buf;
@@ -421,10 +450,12 @@ void addTime(char* recep,const char* tim1,const char* tim2,bool onlyHours)
   unsigned long unixtim2=genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
 //Serial.print(tim1);Serial.print(" ");Serial.println(tim2);
 //Serial.print(unixtim1);Serial.print(" ");Serial.println(unixtim2);
+*/
+  unsigned long unixtim2=alphaDateToUnix(tim2,onlyHours);
+
   unsigned long unixsum=unixtim1+unixtim2;
 
-  convertNTP(&unixsum,&year,&month,&day,&js,&hour,&minute,&seconde);
-  dateToStr(recep,year,month,day,hour,minute,seconde);
+  unixDateToStr(unixsum,recep);
 }
 
 void subTime(char* recep,const char* endtime,const char* time,bool onlyHours)

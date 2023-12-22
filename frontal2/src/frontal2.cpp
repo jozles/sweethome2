@@ -3,7 +3,6 @@
 #include <Ethernet.h> //bibliothèque W5x00 Ethernet
 #include <EthernetUdp.h>
 #include <Wire.h>     //biblio I2C pour RTC 3231
-#include <SdFat.h>
 #include "ds3231.h"
 #include <shconst2.h>
 #include <shmess2.h>
@@ -17,10 +16,6 @@
 #include "peritable.h"
 #include "pageshtml.h"
 #include "utilhtml.h"
-
-SdFat32 sd32;
-File32 fhisto;            // fichier histo sd card
-File32 fhtml;             // fichiers pages html
 
 //#define DEBUG_ON          // ajoute des delay(20) pour obtenir les sorties sur le terminal
 
@@ -181,6 +176,8 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
   unsigned long oneShotRemTime=100;    // last millis pour one_shot_timers des remotes
   unsigned long srvdettime=0;          // mesure scans détecteurs
   unsigned long timerstime=300;        // last millis pour timers (désynchro)
+  char cyclicTimersCurDate[NBTIMERS*16];   // prochaine date à laquelle l'état du timer doit changer  
+  uint8_t cyclicTimersState[NBTIMERS];     // état selon cycle
 #define POSREMOTE 1                    // secondes
   uint32_t  perOSR=POSREMOTE;          // période scan one_shot_timers
 #define PTIMERS 1                      // secondes
@@ -430,6 +427,7 @@ void remoteServer();
 void udpPeriServer();
 int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime);
 void poolperif(uint8_t* tablePerToSend,uint8_t detec,const char* nf,const char* src);
+void cyclicTimersInit();
 void scanTimers();
 void scanRemote();
 void scanDate();
@@ -563,6 +561,7 @@ void setup() {                          // ====================================
   remoteLoad();//remotePrint();//periSwSync();
   //timersConvert();                // chgt du nombre de timers
   timersLoad();
+  cyclicTimersInit();
   //timersConvert();
   //thermosInit();thermosSave();    // si NBPERIF change
   thermosLoad();
@@ -902,6 +901,53 @@ bool dhTimer(uint8_t nt)
     else return false;
 }
 
+void cyclicTimersInit()
+{
+  ds3231.alphaNow(now);
+  unsigned long unixNow=alphaDateToUnix(now,false);
+  for(uint8_t t=0;t<NBTIMERS;t++){
+    char curDate[16];
+    if(timersN[t].cyclic_!=0){
+      memcpy(curDate,timersN[t].dhdebcycle,14);curDate[14]='\0';
+      unsigned long unixCurD=alphaDateToUnix(curDate,false);
+      unsigned long unixOnT=alphaDateToUnix(timersN[t].onStateDur,false);
+      unsigned long unixOffT=alphaDateToUnix(timersN[t].offStateDur,false);
+      
+      uint8_t k=0;                        // pas déclenché état courant off 
+      unsigned long warn=millis();
+      if(unixCurD<=unixNow){              // si déclenché rechercher l'état actuel et la dh de la prochaine transition
+        while (unixCurD<unixNow){
+          if(unixCurD<unixNow){unixCurD+=unixOnT;k=1;}   // état courant ON
+          if(unixCurD<unixNow){unixCurD+=unixOffT;k=2;}  // état courant OFF
+          if((millis()-warn)>2000){warn=millis();trigwd();}
+        }
+      }
+      
+      if(k==1){cyclicTimersState[t]=1;}
+      else cyclicTimersState[t]=0;
+
+      char* cTCD=cyclicTimersCurDate+16*t;cTCD[14]='\0';
+      unixDateToStr(unixCurD,cTCD);                     // dh prochaine transition
+
+    }
+    //Serial.print(t+1);Serial.print(" ");Serial.print((char*)(cyclicTimersCurDate+16*t));Serial.print(" ");Serial.print(cyclicTimersState[t]);Serial.print(" ");Serial.println(timersN[t].curstate);
+  }
+}
+
+void cyclicTimerUpdate(uint8_t nt)
+{
+  unsigned long cupd=micros();
+  
+  char* cTCD=cyclicTimersCurDate+16*nt;cTCD[14]='\0';
+  if(memcmp(now,cTCD,14)>0){
+    cyclicTimersState[nt]^=1;
+    if(cyclicTimersState[nt]==0){addTime(cyclicTimersCurDate+16*nt,cyclicTimersCurDate+16*nt,timersN[nt].offStateDur,false);}
+    else{addTime(cyclicTimersCurDate+16*nt,cyclicTimersCurDate+16*nt,timersN[nt].onStateDur,false);}
+    Serial.print(nt+1);Serial.print(" ");Serial.print(cyclicTimersState[nt]);Serial.print(" ");  //Serial.print((char*)(cyclicTimersCurDate+16*nt));Serial.print(" ");Serial.print(timersN[nt].onStateDur);Serial.print(" ");Serial.print(timersN[nt].offStateDur);Serial.print(" ");
+  }
+
+  Serial.println("====>> cyc upd "); //Serial.println(micros()-cupd);
+}
 
 void scanTimers()                                             //   recherche timer ayant changé d'état 
 {                                                             //      si (en.perm.dh.js) (ON) et état OFF -> état ON, det ON, poolperif
@@ -916,11 +962,11 @@ void scanTimers()                                             //   recherche tim
       le timer est on à l'intérieur de la période hdeb/hfin     
   
   si cyclic est on
-    si permanent est off
+    si permanent est off                                                    101
       le timer est on à l'intérieur de la période dhdebcycle/dhfincycle 
       ET période hdeb/hfin
       ET (pendant onStateDur tous les dhdebcycle+onStateDur+offStateDur)
-    si permanent est on
+    si permanent est on                                                     11x
       le timer est on (pendant onStateDur tous les dhdebcycle+onStateDur+offStateDur) 
       ET période hdeb/hfin
 
@@ -942,12 +988,15 @@ void scanTimers()                                             //   recherche tim
           if(memcmp(timersN[nt].dhdebcycle,now,14)<0 && memcmp(timersN[nt].dhfincycle,now,14)>0)
           {statusTimer+=1;}
 
-          if(statusTimer>0 && statusTimer<4 && dhTimer(nt)){                  // cyclic off, perm on/off et deb/fincycle ok
+          if(statusTimer>0 && statusTimer<4 && dhTimer(nt)){                // cyclic off, perm on/off et deb/fincycle ok
             timerOn=true;
           }
 
-          if(statusTimer>4 && dhTimer(nt)){                                   // cyclic on
-
+          if(statusTimer>4 && dhTimer(nt)){                                 // cyclic on
+            Serial.print(statusTimer);Serial.print(" ");
+            cyclicTimerUpdate(nt);
+            timerOn=false;
+            if(cyclicTimersState[nt]!=0){timerOn=true;}                         // seul 100 est off
           }
           
           if(timerOn==true){
@@ -2134,7 +2183,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           switch (nv){         
                             case 0:timersN[nb].enable=*valf-'0';break;
                             case 1:timersN[nb].perm=*valf-'0';break;
-                            case 2:timersN[nb].cyclic_=*valf-'0';break;
+                            case 2:timersN[nb].cyclic_=*valf-'0';cyclicTimerUpdate(nb);break;
                             default:break;
                           }
                           /* dw */

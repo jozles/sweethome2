@@ -931,6 +931,7 @@ int periRemove(uint16_t num)
 {
   char periFile[7];periFname(num,periFile);
   if(sdOpen(periFile,&fperi)==SDOK){fperi.remove();}
+  fperi.close();
   return SDOK;
 }
 

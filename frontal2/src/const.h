@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8c"
+#define NVERS ".8d"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -159,6 +159,7 @@
    1.8a bug sockets ouvert réparé + bug péripass ko plantant réparé
    1.8b nettoyage prints osRem ; ajout bouton refresh idem retour
    1.8c fichiers timers modifié pour mode cyclic (durée on/off) ; mode cyclic non pris en compte
+   1.8d mode cyclic fonctionnel
 
 
    BUGS :
