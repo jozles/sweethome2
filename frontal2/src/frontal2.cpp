@@ -176,8 +176,10 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
   unsigned long oneShotRemTime=100;    // last millis pour one_shot_timers des remotes
   unsigned long srvdettime=0;          // mesure scans détecteurs
   unsigned long timerstime=300;        // last millis pour timers (désynchro)
-  char cyclicTimersCurDate[NBTIMERS*16];   // prochaine date à laquelle l'état du timer doit changer  
-  uint8_t cyclicTimersState[NBTIMERS];     // état selon cycle
+  uint8_t cyclicTimersState[NBTIMERS];                // état selon cycle
+  unsigned long unixCyclicTimersCurDate[NBTIMERS];    // prochaine date à laquelle l'état du timer doit changer  
+  unsigned long unixCyclicTimersOnState[NBTIMERS];    // accélérateur calcul
+  unsigned long unixCyclicTimersOffState[NBTIMERS];   // accélérateur calcul
 #define POSREMOTE 1                    // secondes
   uint32_t  perOSR=POSREMOTE;          // période scan one_shot_timers
 #define PTIMERS 1                      // secondes
@@ -901,52 +903,63 @@ bool dhTimer(uint8_t nt)
     else return false;
 }
 
+void cyclicTimersInit(uint8_t nt,unsigned long unixNow)     // recalage état et unixCyclicTimersCurDate 
+{   
+  if(timersN[nt].cyclic_!=0){
+    if(unixNow==0){
+      ds3231.alphaNow(now);
+      unixNow=alphaDateToUnix(now,false);
+    }
+
+    char curDate[16];
+    memcpy(curDate,timersN[nt].dhdebcycle,14);curDate[14]='\0';
+    unsigned long unixCurD=alphaDateToUnix(curDate,false);
+    unixCyclicTimersOnState[nt]=alphaDateToUnix(timersN[nt].onStateDur,false);
+    unixCyclicTimersOffState[nt]=alphaDateToUnix(timersN[nt].offStateDur,false);
+      
+    uint8_t k=0;                        // pas déclenché état courant off 
+    unsigned long warn=millis();
+    if(unixCurD<=unixNow){              // si déclenché rechercher l'état actuel et la dh de la prochaine transition
+      while (unixCurD<unixNow){
+          if(unixCurD<unixNow){unixCurD+=unixCyclicTimersOnState[nt];k=1;}   // état courant ON
+          if(unixCurD<unixNow){unixCurD+=unixCyclicTimersOffState[nt];k=2;}  // état courant OFF
+          if((millis()-warn)>2000){warn=millis();trigwd();}
+      }
+    }
+      
+    if(k==1){cyclicTimersState[nt]=1;}
+    else cyclicTimersState[nt]=0;
+
+    //char* cTCD=cyclicTimersCurDate+16*nt;cTCD[14]='\0';
+    //unixDateToStr(unixCurD,cTCD);                     // dh prochaine transition
+  }
+}
+
 void cyclicTimersInit()
 {
   ds3231.alphaNow(now);
   unsigned long unixNow=alphaDateToUnix(now,false);
   for(uint8_t t=0;t<NBTIMERS;t++){
-    char curDate[16];
-    if(timersN[t].cyclic_!=0){
-      memcpy(curDate,timersN[t].dhdebcycle,14);curDate[14]='\0';
-      unsigned long unixCurD=alphaDateToUnix(curDate,false);
-      unsigned long unixOnT=alphaDateToUnix(timersN[t].onStateDur,false);
-      unsigned long unixOffT=alphaDateToUnix(timersN[t].offStateDur,false);
-      
-      uint8_t k=0;                        // pas déclenché état courant off 
-      unsigned long warn=millis();
-      if(unixCurD<=unixNow){              // si déclenché rechercher l'état actuel et la dh de la prochaine transition
-        while (unixCurD<unixNow){
-          if(unixCurD<unixNow){unixCurD+=unixOnT;k=1;}   // état courant ON
-          if(unixCurD<unixNow){unixCurD+=unixOffT;k=2;}  // état courant OFF
-          if((millis()-warn)>2000){warn=millis();trigwd();}
-        }
-      }
-      
-      if(k==1){cyclicTimersState[t]=1;}
-      else cyclicTimersState[t]=0;
-
-      char* cTCD=cyclicTimersCurDate+16*t;cTCD[14]='\0';
-      unixDateToStr(unixCurD,cTCD);                     // dh prochaine transition
-
-    }
+    cyclicTimersInit(t,unixNow);
     //Serial.print(t+1);Serial.print(" ");Serial.print((char*)(cyclicTimersCurDate+16*t));Serial.print(" ");Serial.print(cyclicTimersState[t]);Serial.print(" ");Serial.println(timersN[t].curstate);
   }
 }
 
-void cyclicTimerUpdate(uint8_t nt)
-{
-  unsigned long cupd=micros();
+void cyclicTimerUpdate(uint8_t nt,unsigned long unixNow)
+{ 
+  if(unixNow==0){
+    ds3231.alphaNow(now);
+    unixNow=alphaDateToUnix(now,false);
+  }
   
-  char* cTCD=cyclicTimersCurDate+16*nt;cTCD[14]='\0';
-  if(memcmp(now,cTCD,14)>0){
+  if(unixNow>unixCyclicTimersCurDate[nt]){
     cyclicTimersState[nt]^=1;
-    if(cyclicTimersState[nt]==0){addTime(cyclicTimersCurDate+16*nt,cyclicTimersCurDate+16*nt,timersN[nt].offStateDur,false);}
-    else{addTime(cyclicTimersCurDate+16*nt,cyclicTimersCurDate+16*nt,timersN[nt].onStateDur,false);}
+    if(cyclicTimersState[nt]==0){unixCyclicTimersCurDate[nt]+=unixCyclicTimersOffState[nt];}
+    else{unixCyclicTimersCurDate[nt]+=unixCyclicTimersOnState[nt];}
     Serial.print(nt+1);Serial.print(" ");Serial.print(cyclicTimersState[nt]);Serial.print(" ");  //Serial.print((char*)(cyclicTimersCurDate+16*nt));Serial.print(" ");Serial.print(timersN[nt].onStateDur);Serial.print(" ");Serial.print(timersN[nt].offStateDur);Serial.print(" ");
   }
 
-  Serial.println("====>> cyc upd "); //Serial.println(micros()-cupd);
+  Serial.println("====>> cyc upd ");
 }
 
 void scanTimers()                                             //   recherche timer ayant changé d'état 
@@ -954,21 +967,18 @@ void scanTimers()                                             //   recherche tim
                                                               //      sinon              (OFF) et état ON -> état OFF, det OFF, poolperif
                                                               //      màj tablePerToSend
 /*
-  si cyclic est off
-    si permanent est off                                                    
-      le timer est on à l'intérieur de la période dhdebcycle/dhfincycle     001
-      ET période hdeb/hfin
-    si permanent est on                                                     01x
-      le timer est on à l'intérieur de la période hdeb/hfin     
+  si cyclic est off (mode static)
+    si enable
+    si permanent ou dans période dhdebcycle/dhfincycle
+    si dans période hdeb/hfin     
   
   si cyclic est on
-    si permanent est off                                                    101
-      le timer est on à l'intérieur de la période dhdebcycle/dhfincycle 
-      ET période hdeb/hfin
-      ET (pendant onStateDur tous les dhdebcycle+onStateDur+offStateDur)
-    si permanent est on                                                     11x
-      le timer est on (pendant onStateDur tous les dhdebcycle+onStateDur+offStateDur) 
-      ET période hdeb/hfin
+    la mise à jour de l'état et pochaine date/heure de changement est permanente
+    (au reset ou changement de static à cyclic, cyclicTimersInit recale l'état et unixCyclicTimersCurDate )
+    si cycle dans période onState
+    si enable
+    si permanent ou dans période dhdebcycle/dhfincycle
+    si dans période hdeb/hfin     
 
 */
     if((millis()-timerstime)>pertimers*1000){
@@ -978,79 +988,49 @@ void scanTimers()                                             //   recherche tim
       timerstime=millis();
       memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
       ds3231.alphaNow(now);
+      unsigned long unixNow=alphaDateToUnix(now,false);
+      bool timerOn=false;
 
-    
       for(uint8_t nt=0;nt<NBTIMERS;nt++){
-        if(timersN[nt].enable==1)                                  
-        {
-          bool timerOn=false;
-          uint8_t statusTimer=(timersN[nt].cyclic_*4+timersN[nt].perm*2);
-          if(memcmp(timersN[nt].dhdebcycle,now,14)<0 && memcmp(timersN[nt].dhfincycle,now,14)>0)
-          {statusTimer+=1;}
 
-          if(statusTimer>0 && statusTimer<4 && dhTimer(nt)){                // cyclic off, perm on/off et deb/fincycle ok
-            timerOn=true;
-          }
-
-          if(statusTimer>4 && dhTimer(nt)){                                 // cyclic on
-            Serial.print(statusTimer);Serial.print(" ");
-            cyclicTimerUpdate(nt);
-            timerOn=false;
-            if(cyclicTimersState[nt]!=0){timerOn=true;}                         // seul 100 est off
-          }
+        if(timersN[nt].cyclic_==0 
+          && timersN[nt].enable==1
+          && (timersN[nt].perm==1 || (memcmp(timersN[nt].dhdebcycle,now,14)<0 && memcmp(timersN[nt].dhfincycle,now,14)>0))
+          && dhTimer(nt)
+          )                                  
+        {timerOn=true;}
           
-          if(timerOn==true){
-                  if(timersN[nt].curstate!=1){                              // et état précédent 0, chgt->1
-                    timersN[nt].curstate=1;
-                    ds3231.alphaNow(timersN[nt].dhLastStart);               // mise à jour lastStart
-                    uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] |= mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
-                  }
-          }
-          else    {
-                  if(timersN[nt].curstate!=0){                              // et état précédent 1, chgt->0
-                    timersN[nt].curstate=0;
-                    ds3231.alphaNow(timersN[nt].dhLastStop);                // mise à jour lastStop            
-                    uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
-                  }
-          }
+        if(timersN[nt].cyclic_==1){
+          cyclicTimerUpdate(nt,unixNow);
+          if(timersN[nt].enable==1
+            && cyclicTimersState[nt]!=0
+            && (timersN[nt].perm==1 || (memcmp(timersN[nt].dhdebcycle,now,14)<0 && memcmp(timersN[nt].dhfincycle,now,14)>0))
+            && dhTimer(nt)
+          )
+          {timerOn=true;} 
         }
-      }
-      
-/*
-      for(int nt=0;nt<NBTIMERS;nt++){
-        if(                                                     
-          timersN[nt].enable==1                                     // enable & (permanent ou (dans les dates du cycle)
-          && (timersN[nt].perm==1 || (memcmp(timersN[nt].dhdebcycle,now,14)<0 && memcmp(timersN[nt].dhfincycle,now,14)>0)) 
-          && (  
-               (   memcmp(timersN[nt].hfin,timersN[nt].hdeb,6)>0    // heure fin > heure deb
-                && memcmp(timersN[nt].hdeb,(now+8),6)<0             // heure deb < now
-                && memcmp(timersN[nt].hfin,(now+8),6)>0)            // heure fin > now
-               ||
-               (   memcmp(timersN[nt].hfin,timersN[nt].hdeb,6)<0    // heure fin < heure deb
-                && (  memcmp(timersN[nt].hdeb,(now+8),6)<0          // heure deb < now
-                   || memcmp(timersN[nt].hfin,(now+8),6)>0)))       // heure fin > now
-          && (timersN[nt].dw & maskbit[1+now[14]*2])!=0 )           // jour semaine
-          {                                                         // si timer déclenché
+
+    // timerOn valorisé application sur détecteur
+
+        if(timerOn==true){
           if(timersN[nt].curstate!=1){                              // et état précédent 0, chgt->1
             timersN[nt].curstate=1;
-            ds3231.alphaNow(timersN[nt].dhLastStart);               // mise à jour lastStart
+            memcpy(timersN[nt].dhLastStart,now,16);                 // mise à jour lastStart
             uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] |= mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
           }
         }
-        else {                                                      // si timer pas déclenché
+        else  {
           if(timersN[nt].curstate!=0){                              // et état précédent 1, chgt->0
             timersN[nt].curstate=0;
-            ds3231.alphaNow(timersN[nt].dhLastStop);                // mise à jour lastStop            
+            memcpy(timersN[nt].dhLastStop,now,16);                  // mise à jour lastStop            
             uint8_t mi=timersN[nt].detec>>3;memDetServ[mi] &= ~mDSmaskbit[timersN[nt].detec*MDSLEN+mi]; // maj détecteur
-            if(timersN[nt].perm==0 && timersN[nt].cyclic_==0){timersN[nt].enable=0;}; // si pas permanent et pas cyclique disable en fin
-          }     
+          }
         }
       }
-*/
-
-      periDetecUpdate("pDUti");                         // mise à jour remotes, fichier perif et tablePerToSend
-      perToSend(tablePerToSend,timerstime);             // mise à jour périphériques de tablePerToSend
     }
+        
+  periDetecUpdate("pDUti");                         // mise à jour remotes, fichier perif et tablePerToSend
+  perToSend(tablePerToSend,timerstime);             // mise à jour périphériques de tablePerToSend
 }
 
 void osRemInit(uint8_t r)
@@ -2168,8 +2148,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           switch (*(libfonctions+2*i)){         
                             case 'd':textfonc(timersN[nb].hdeb,6);break;
                             case 'f':textfonc(timersN[nb].hfin,6);break;
-                            case 'p':textfonc(timersN[nb].onStateDur,14);break;                          // tim_hdf_p
-                            case 'P':textfonc(timersN[nb].offStateDur,14);break;                         // tim_hdf_P
+                            case 'p':textfonc(timersN[nb].onStateDur,14);                                // tim_hdf_p
+                                    unixCyclicTimersOnState[nb]=alphaDateToUnix(timersN[nb].onStateDur,false);break;                          
+                            case 'P':textfonc(timersN[nb].offStateDur,14);                               // tim_hdf_P
+                                    unixCyclicTimersOffState[nb]=alphaDateToUnix(timersN[nb].offStateDur,false);break;
                             case 'b':textfonc(timersN[nb].dhdebcycle,14);break;
                             case 'e':textfonc(timersN[nb].dhfincycle,14);break;
                             case 's':textfonc(timersN[nb].dhLastStart,14);break;
@@ -2183,7 +2165,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           switch (nv){         
                             case 0:timersN[nb].enable=*valf-'0';break;
                             case 1:timersN[nb].perm=*valf-'0';break;
-                            case 2:timersN[nb].cyclic_=*valf-'0';cyclicTimerUpdate(nb);break;
+                            case 2:timersN[nb].cyclic_=*valf-'0';if(timersN[nb].cyclic_==1){cyclicTimersInit(nb,0);};break;
                             default:break;
                           }
                           /* dw */
