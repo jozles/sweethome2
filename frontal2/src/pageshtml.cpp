@@ -1234,8 +1234,6 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
 
 /* --- balayage et màj --- */
 
-
-
   unsigned long t1=millis();
   char strfds[3];memset(strfds,0x00,3);
   if(convIntToString(strfds,fdatasave)>2){
@@ -1245,31 +1243,23 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   int16_t th_;
   uint8_t np_;
   int lnp=0,nbli=0,nbth=0;
-  bool save=false;
 
-/*
-  byte* periMac[NBPERIF];     // pointeurs mac addr dans cache
-  int16_t* periThMin[NBPERIF];
-  int16_t* periThMax[NBPERIF];
+  byte* periMac[NBPERIF];         // pointeurs mac addr dans cache
+  int16_t* periThMin[NBPERIF];    // pointeurs ThMin dans cache
+  int16_t* periThMax[NBPERIF];    // pointeurs ThMax dans cache
 
   for(int pp=1;pp<NBPERIF;pp++){
-    periMac[pp]=(byte*)(periMacr-(byte*)periBegOfRecord+(pp-1)*PERIRECLEN+(byte*)periCache);
-    periThMin[pp]=(int16_t*)(periThmin_-(int16_t*)periBegOfRecord+(pp-1)*PERIRECLEN+(int16_t*)periCache);
-    periThMax[pp]=(int16_t*)(periThmax_-(int16_t*)periBegOfRecord+(pp-1)*PERIRECLEN+(int16_t*)periCache);
+    
+    periMac[pp]=(byte*)(periMacr-(byte*)periBegOfRecord+(pp*PERIRECLEN)+(byte*)periCache);
+    periThMin[pp]=(int16_t*)(periThmin_-(int16_t*)periBegOfRecord+(pp*PERIRECLEN)+(int16_t*)periCache);
+    periThMax[pp]=(int16_t*)(periThmax_-(int16_t*)periBegOfRecord+(pp*PERIRECLEN)+(int16_t*)periCache);
     *periThMin[pp]=9900;
     *periThMax[pp]=-9900;
-    Serial.print(pp);Serial.print(" ");
-    char m[18];m[17]=0x00;
-          for(int k=0;k<6;k++){
-            m[k*3]=chexa[*periMac[k]/16];
-            m[k*3+1]=chexa[*periMac[k]%16];
-            if(k<5){m[k*3+2]='.';}
-          }
-    Serial.print(m);Serial.print(" ");
-    Serial.print(*periThMin[pp]);Serial.print(" ");Serial.println(*periThMin[pp]);
   }
-*/
-  for(int pp=1;pp<=NBPERIF;pp++){periLoad(pp);*periThmin_=9900;*periThmax_=-9900;periSave(pp,PERISAVELOCAL);}
+
+  //char m[18];memset(m,' ',17);m[17]='\0';
+
+  //for(int pp=1;pp<=NBPERIF;pp++){periLoad(pp);*periThmin_=9900;*periThmax_=-9900;periSave(pp,PERISAVELOCAL);}
                                                                              
                                                                          // acquisition
   fhisto.seek(ptr-ldate);                                                // sur début enregistrement
@@ -1283,18 +1273,31 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
     nbli++;
     pc=strchr(buf,';');
     if(memcmp(pc+1,strfds,2)==0){                                         // datasave (après ';' soit '\n' soit'<' soit num fonction)
-      np_=(uint8_t)convStrToInt(pc+HISTOPOSNUMPER,&lnp);                     // num périphérique
-      th_=(int16_t)(convStrToNum(pc+HISTOPOSTEMP,&lnp)*100);                 // temp périphérique     
+      np_=(uint8_t)convStrToInt(pc+HISTOPOSNUMPER,&lnp);                  // num périphérique
+      th_=(int16_t)(convStrToNum(pc+HISTOPOSTEMP,&lnp)*100);              // temp périphérique     
       if(np_==0 || np_>NBPERIF){Serial.print(nbli);Serial.print(" ligne histo anormale périf=");Serial.print(np_);Serial.print(" ");Serial.println(pc);}
       else{
-        /*
-        packMac(periMacBuf,pc+HISTOPOSMAC);                       
-        if(memcmp(periMacBuf,periMac[np_],6)==0 && th_<9900 && th_>-9900){                                  // contrôle mac
-          if(*periThMin[np_]>th_){*periThmin_=(int16_t)th_;}
-          if(*periThMax[np_]<th_){*periThmax_=(int16_t)th_;}
-        }
-        */
         
+        packMac(periMacBuf,pc+HISTOPOSMAC);                       
+        if(memcmp(periMacBuf,periMac[np_-1],6)==0 && th_<9900 && th_>-9900){       // contrôle mac
+          if(*periThMin[np_]>th_){*periThMin[np_]=(int16_t)th_;}
+          if(*periThMax[np_]<th_){*periThMax[np_]=(int16_t)th_;}
+          nbth++;
+        }
+    
+    //Serial.print(np_);Serial.print(" ");Serial.print(th_);
+    //Serial.print(" ");Serial.print((unsigned long)(periMacr-(byte*)periBegOfRecord));Serial.print(" ");
+    
+    //      for(int k=0;k<6;k++){
+    //        m[k*3]=chexa[*(periMac[np_]+k)/16];
+    //        m[k*3+1]=chexa[*(periMac[np_]+k)%16];
+    //        if(k<5){m[k*3+2]='.';}
+    //      }
+          
+    //Serial.print(m);Serial.print(" ");
+    //Serial.print(*periThMin[np_]);Serial.print(" ");Serial.println(*periThMax[np_]);
+
+        /*  
         periLoad(np_);
         packMac(periMacBuf,pc+HISTOPOSMAC);                       
         if(memcmp(periMacBuf,periMacr,6)==0 && th_<9900 && th_>-9900){                                  // contrôle mac
@@ -1303,7 +1306,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
           if(*periThmax_<th_){*periThmax_=(int16_t)th_;save=true;}
           if(save){periSave(np_,PERISAVELOCAL);nbth++;}
         }
-        
+        */
       }      
     }
   }

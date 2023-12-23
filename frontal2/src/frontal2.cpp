@@ -954,15 +954,15 @@ void cyclicTimerUpdate(uint8_t nt,unsigned long unixNow)
     ds3231.alphaNow(now);
     unixNow=alphaDateToUnix(now,false);
   }
-  Serial.print(unixCyclicTimersCurDate[nt]);Serial.print(" ");
+  //Serial.print(unixCyclicTimersCurDate[nt]);Serial.print(" ");
   if(unixNow>unixCyclicTimersCurDate[nt]){
     cyclicTimersState[nt]^=1;
     if(cyclicTimersState[nt]==0){unixCyclicTimersCurDate[nt]+=unixCyclicTimersOffState[nt];}
     else{unixCyclicTimersCurDate[nt]+=unixCyclicTimersOnState[nt];}
-    Serial.print(nt+1);Serial.print(" ");Serial.print(cyclicTimersState[nt]);Serial.print(" ");Serial.print(unixCyclicTimersOnState[nt]);Serial.print(" ");Serial.print(unixCyclicTimersOffState[nt]);Serial.print(" ");
+    //Serial.print(nt+1);Serial.print(" ");Serial.print(cyclicTimersState[nt]);Serial.print(" ");Serial.print(unixCyclicTimersOnState[nt]);Serial.print(" ");Serial.print(unixCyclicTimersOffState[nt]);Serial.print(" ");
   }
 
-  Serial.print("====>> cyc upd ");Serial.println(unixNow);
+//  Serial.print("====>> cyc upd ");Serial.println(unixNow);
 }
 
 void scanTimers()                                             //   recherche timer ayant changé d'état 
