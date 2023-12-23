@@ -13,6 +13,7 @@
 extern bool oneIcon;
 
 extern Ds3231 ds3231;
+extern char now[16];
 
 extern char*      serverName;
 extern byte*      mac;              // adresse server
@@ -881,7 +882,6 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   //Serial.print(">==========");Serial.print(fn);Serial.print(' ');Serial.print(remoteN[rem-1].osEndDate);Serial.print(' ');Serial.println(rem);
   sscfgtB(buf,jsbuf,fn,rem-1,remoteN[rem-1].osDurat,6,0,TRBEG|TDBE);
   if(remoteN[rem-1].osStatus==2){
-    char now[LNOW];ds3231.alphaNow(now);
     char remT[LDATEA];memset(remT,'0',LDATEA);memcpy(remT+6,remoteN[rem-1].osRemT,7);
     subTime(remT,remoteN[rem-1].osEndDate,now,VRAI);memcpy(remoteN[rem-1].osRemT,remT+8,6);
     //Serial.print(">==========");Serial.println(remoteN[rem-1].osEndDate);

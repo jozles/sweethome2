@@ -159,7 +159,7 @@
    1.8a bug sockets ouvert réparé + bug péripass ko plantant réparé
    1.8b nettoyage prints osRem ; ajout bouton refresh idem retour
    1.8c fichiers timers modifié pour mode cyclic (durée on/off) ; mode cyclic non pris en compte
-   1.8d mode cyclic fonctionnel
+   1.8d mode cyclic fonctionnel ; now et unixnow sont globales et updatées dans la loop ; cli.stop des perifs tcp différé
 
 
    BUGS :

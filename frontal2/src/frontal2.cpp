@@ -354,6 +354,7 @@ char   memosTable[LMEMO*NBMEMOS];
   //Ymdhms dt;
   Ds3231 ds3231;
   char now[LNOW];
+  unsigned long unixNow=0;
 
 /*
  * =========== mécanisme de la librairie 
@@ -526,6 +527,9 @@ void setup() {                          // ====================================
   ds3231.i2cAddr=DS3231_I2C_ADDRESS; // doit être avant getDate
   ds3231.getDate(&hms2,&amj2,&js2,strdate);
   Serial.print("DS3231 time ");Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.println(hms2);
+  
+  ds3231.alphaNow(now);                                             
+  unixNow=alphaDateToUnix(now,false);
 
 //remInit();remoteSave();while(1){ledblink(0);delay(1000);};
 //periConvert();
@@ -649,16 +653,13 @@ Serial.print("size_of EthernetServer=");Serial.println(sizeof(EthernetServer));
   pinMode(ANPIN2,OUTPUT);
 #endif // ANALYZE
 
+  ds3231.alphaNow(now);                                             
+  unixNow=alphaDateToUnix(now,false);
+  
   Serial.println(">>>>>>>>> fin setup\n");
 }
 
 /* ================================== fin setup ================================= */
-
-void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC)
-{ 
-    W5100.readSnDHAR(client->getSocketNumber(), ptremote_MAC);
-    W5100.readSnDIPR(client->getSocketNumber(), ptremote_IP);
-}
 
 /* ==================================== loop ===================================== */
 
@@ -683,6 +684,10 @@ void loop()
             ledblink(0);
 //Serial.print("ser=");Serial.println(millis());            
             serialServer();
+
+ds3231.alphaNow(now);                                                 // après les serveurs qui peuvent être longs
+unixNow=alphaDateToUnix(now,false);
+
 //Serial.print("tem=");Serial.println(millis());
             scanTemp(); 
 //Serial.print("dat=");Serial.println(millis());
@@ -697,7 +702,6 @@ void loop()
             watchdog();
 //Serial.print("hal=");Serial.println(millis());
             stoprequest();
-
 }
 
 
@@ -903,7 +907,7 @@ bool dhTimer(uint8_t nt)
     else return false;
 }
 
-void cyclicTimersInit(uint8_t nt,unsigned long unixNow)     // recalage état et unixCyclicTimersCurDate 
+void cyclicTimersInit(uint8_t nt)     // recalage état et unixCyclicTimersCurDate 
 {   
   if(timersN[nt].cyclic_!=0){
     if(unixNow==0){
@@ -911,18 +915,17 @@ void cyclicTimersInit(uint8_t nt,unsigned long unixNow)     // recalage état et
       unixNow=alphaDateToUnix(now,false);
     }
 
-    char curDate[16];
-    memcpy(curDate,timersN[nt].dhdebcycle,14);curDate[14]='\0';
-    unsigned long unixCurD=alphaDateToUnix(curDate,false);
+    unixCyclicTimersCurDate[nt]=alphaDateToUnix(timersN[nt].dhdebcycle,false);
     unixCyclicTimersOnState[nt]=alphaDateToUnix(timersN[nt].onStateDur,false);
     unixCyclicTimersOffState[nt]=alphaDateToUnix(timersN[nt].offStateDur,false);
-      
+    Serial.print(nt);Serial.print(" cyclicInit >>>");Serial.print(timersN[nt].onStateDur);Serial.print(" ");Serial.print(unixCyclicTimersOnState[nt]);Serial.print(" ");Serial.print(timersN[nt].offStateDur);Serial.print(" ");Serial.println(unixCyclicTimersOffState[nt]);
+
     uint8_t k=0;                        // pas déclenché état courant off 
     unsigned long warn=millis();
-    if(unixCurD<=unixNow){              // si déclenché rechercher l'état actuel et la dh de la prochaine transition
-      while (unixCurD<unixNow){
-          if(unixCurD<unixNow){unixCurD+=unixCyclicTimersOnState[nt];k=1;}   // état courant ON
-          if(unixCurD<unixNow){unixCurD+=unixCyclicTimersOffState[nt];k=2;}  // état courant OFF
+    if(unixCyclicTimersCurDate[nt]<=unixNow){              // si déclenché rechercher l'état actuel et la dh de la prochaine transition
+      while (unixCyclicTimersCurDate[nt]<unixNow){
+          if(unixCyclicTimersCurDate[nt]<unixNow){unixCyclicTimersCurDate[nt]+=unixCyclicTimersOnState[nt];k=1;}   // état courant ON
+          if(unixCyclicTimersCurDate[nt]<unixNow){unixCyclicTimersCurDate[nt]+=unixCyclicTimersOffState[nt];k=2;}  // état courant OFF
           if((millis()-warn)>2000){warn=millis();trigwd();}
       }
     }
@@ -938,9 +941,9 @@ void cyclicTimersInit(uint8_t nt,unsigned long unixNow)     // recalage état et
 void cyclicTimersInit()
 {
   ds3231.alphaNow(now);
-  unsigned long unixNow=alphaDateToUnix(now,false);
+  unixNow=alphaDateToUnix(now,false);
   for(uint8_t t=0;t<NBTIMERS;t++){
-    cyclicTimersInit(t,unixNow);
+    cyclicTimersInit(t);
     //Serial.print(t+1);Serial.print(" ");Serial.print((char*)(cyclicTimersCurDate+16*t));Serial.print(" ");Serial.print(cyclicTimersState[t]);Serial.print(" ");Serial.println(timersN[t].curstate);
   }
 }
@@ -951,15 +954,15 @@ void cyclicTimerUpdate(uint8_t nt,unsigned long unixNow)
     ds3231.alphaNow(now);
     unixNow=alphaDateToUnix(now,false);
   }
-  
+  Serial.print(unixCyclicTimersCurDate[nt]);Serial.print(" ");
   if(unixNow>unixCyclicTimersCurDate[nt]){
     cyclicTimersState[nt]^=1;
     if(cyclicTimersState[nt]==0){unixCyclicTimersCurDate[nt]+=unixCyclicTimersOffState[nt];}
     else{unixCyclicTimersCurDate[nt]+=unixCyclicTimersOnState[nt];}
-    Serial.print(nt+1);Serial.print(" ");Serial.print(cyclicTimersState[nt]);Serial.print(" ");  //Serial.print((char*)(cyclicTimersCurDate+16*nt));Serial.print(" ");Serial.print(timersN[nt].onStateDur);Serial.print(" ");Serial.print(timersN[nt].offStateDur);Serial.print(" ");
+    Serial.print(nt+1);Serial.print(" ");Serial.print(cyclicTimersState[nt]);Serial.print(" ");Serial.print(unixCyclicTimersOnState[nt]);Serial.print(" ");Serial.print(unixCyclicTimersOffState[nt]);Serial.print(" ");
   }
 
-  Serial.println("====>> cyc upd ");
+  Serial.print("====>> cyc upd ");Serial.println(unixNow);
 }
 
 void scanTimers()                                             //   recherche timer ayant changé d'état 
@@ -975,8 +978,8 @@ void scanTimers()                                             //   recherche tim
   si cyclic est on
     la mise à jour de l'état et pochaine date/heure de changement est permanente
     (au reset ou changement de static à cyclic, cyclicTimersInit recale l'état et unixCyclicTimersCurDate )
-    si cycle dans période onState
     si enable
+    si cycle dans période onState
     si permanent ou dans période dhdebcycle/dhfincycle
     si dans période hdeb/hfin     
 
@@ -1027,10 +1030,9 @@ void scanTimers()                                             //   recherche tim
           }
         }
       }
+    periDetecUpdate("pDUti");                         // mise à jour remotes, fichier perif et tablePerToSend
+    perToSend(tablePerToSend,timerstime);             // mise à jour périphériques de tablePerToSend
     }
-        
-  periDetecUpdate("pDUti");                         // mise à jour remotes, fichier perif et tablePerToSend
-  perToSend(tablePerToSend,timerstime);             // mise à jour périphériques de tablePerToSend
 }
 
 void osRemInit(uint8_t r)
@@ -1052,13 +1054,11 @@ void scanRemote()
   if((millis()-oneShotRemTime)>perOSR*1000){  
     oneShotRemTime=millis();
   
-    now[0]='\0';
     for(uint8_t r=0;r<NBREMOTE;r++){
       switch (remoteN[r].osStatus){
         case 0:break;                                               // STOP
         case 1:break;                                               // paused        
         case 2:                                                     // running
-          if(now[0]=='\0'){ds3231.alphaNow(now);}
           //if(remoteN[r].osStatus==2){Serial.print(">>===");Serial.print(r);Serial.print(remoteN[r].osStatus);Serial.print(' ');Serial.print(remoteN[r].osEndDate);Serial.print(' ');Serial.println(now);}
           if(memcmp(remoteN[r].osEndDate,now,14)<=0){               // fin timing
               osRemInit(r);                                         // status STOP
@@ -2052,9 +2052,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       break;
                             case 'e': remoteN[nb].osStatus=1;                                           // (remote_oe) pause
                                       char remT[LDATEA];memset(remT,'0',LDATEA);memcpy(remT+8,remoteN[nb].osRemT,7);
-                                      ds3231.alphaNow(now);subTime(remT,remoteN[nb].osEndDate,now,VRAI);
+                                      subTime(remT,remoteN[nb].osEndDate,now,VRAI);
                                       memcpy(remoteN[nb].osRemT,remT+8,6);
-                                      now[14]='\0';
                                       //Serial.print(">==========");Serial.print(remoteN[nb].osEndDate);Serial.print('-');Serial.print(now);Serial.print('=');Serial.println(remoteN[nb].osRemT);
                                       break;                                     
                             case 'f': remoteN[nb].osStatus=2;                                           // (remote_of) start
@@ -2063,8 +2062,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                                       if(*remoteN[nb].osDurat!=0 && *remoteN[nb].osRemT==0){
                                         memcpy(remoteN[nb].osRemT,remoteN[nb].osDurat,7);}
                                       char durat[LDATEA];memset(durat,'0',14);memcpy(durat+8,remoteN[nb].osRemT,7);
-                                      ds3231.alphaNow(now);addTime(remoteN[nb].osEndDate,now,durat,VRAI);
-                                      now[14]='\0';
+                                      addTime(remoteN[nb].osEndDate,now,durat,VRAI);
                                       //Serial.print(">==========");Serial.print(now);Serial.print('+');Serial.print(durat);Serial.print('=');Serial.println(remoteN[nb].osEndDate);
                                       break;
                             case 't': textfonc(remoteN[nb].osDurat,6);
@@ -2165,7 +2163,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                           switch (nv){         
                             case 0:timersN[nb].enable=*valf-'0';break;
                             case 1:timersN[nb].perm=*valf-'0';break;
-                            case 2:timersN[nb].cyclic_=*valf-'0';if(timersN[nb].cyclic_==1){cyclicTimersInit(nb,0);};break;
+                            case 2:timersN[nb].cyclic_=*valf-'0';if(timersN[nb].cyclic_==1){cyclicTimersInit(nb);};break;
                             default:break;
                           }
                           /* dw */
@@ -2279,7 +2277,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         
         if(ab!='u'){                                                              
           if(cli!=cli_debug){Serial.print("cli hs");while(1){trigwd();}}          
-          cli->stop();            // tcp only ********* !!!!!!!! 
+          if(ab!='a'){cli->stop();}            // tcp only ********* !!!!!!!! stop géré en instances multiples pour cli_a 
           cliext.stop();          // en principe rapide : la dernière action est une entrée
         }
                                   // la gestion d'instances multiples ne fonctionne pas avec le navigateur ??
@@ -2304,6 +2302,12 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 }
 
 /* ***************** serveurs *********************** */
+
+void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC)
+{ 
+    W5100.readSnDHAR(client->getSocketNumber(), ptremote_MAC);
+    W5100.readSnDIPR(client->getSocketNumber(), ptremote_IP);
+}
 
 void udpPeriServer()
 {
