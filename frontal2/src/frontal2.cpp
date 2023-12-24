@@ -992,10 +992,10 @@ void scanTimers()                                             //   recherche tim
       memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
       ds3231.alphaNow(now);
       unsigned long unixNow=alphaDateToUnix(now,false);
-      bool timerOn=false;
 
       for(uint8_t nt=0;nt<NBTIMERS;nt++){
 
+        bool timerOn=false;
         if(timersN[nt].cyclic_==0 
           && timersN[nt].enable==1
           && (timersN[nt].perm==1 || (memcmp(timersN[nt].dhdebcycle,now,14)<0 && memcmp(timersN[nt].dhfincycle,now,14)>0))
