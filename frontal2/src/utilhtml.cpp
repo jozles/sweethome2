@@ -585,7 +585,7 @@ void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* 
   char colour[6+1];
   char colour1[]={"black"};
   char colour2[]={"red"};
-  memcpy(colour,colour1,6);if(*valfonct<*valmin || *valfonct>*valmax){memcpy(colour,colour2,4);}
+  memcpy(colour,colour1,6);if(*valfonct<=*valmin || *valfonct>=*valmax){memcpy(colour,colour2,4);}
   setColourB(buf,jsbuf,colour);
   fnJsIntro(jsbuf,JSNTI,0,ctl);
 

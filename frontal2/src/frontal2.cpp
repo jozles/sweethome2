@@ -705,7 +705,7 @@ unixNow=alphaDateToUnix(now,false);
 }
 
 
-/* ==================================== tools =================================== */
+/* ======================= tools et scans =========================== */
 
 void stoprequest()
 {
@@ -890,7 +890,7 @@ int8_t perToSend(uint8_t* tablePerToSend)
   return perToSend(tablePerToSend,millis());
 }
 
-bool dhTimer(uint8_t nt)
+bool dhTimer(uint8_t nt)            // retour true si l'heure(now) est dans la fourchette hdeb/hfin et jour semaine ok
 {
    if(
                 (   ( memcmp(timersN[nt].hfin,timersN[nt].hdeb,6)>0   // heure fin > heure deb
@@ -948,8 +948,8 @@ void cyclicTimersInit()
   }
 }
 
-void cyclicTimerUpdate(uint8_t nt,unsigned long unixNow)
-{ 
+void cyclicTimerUpdate(uint8_t nt,unsigned long unixNow)    // positionne cyclicTimersState[nt] et unixCyclicTimersCurDate[nt]
+{                                                           // (doit etre effectué au moins 1 fois par seconde)
   if(unixNow==0){
     ds3231.alphaNow(now);
     unixNow=alphaDateToUnix(now,false);
@@ -2363,7 +2363,7 @@ void tcpPeriServer()
   if(tPSStop[preTPS]!=0){                       // si instance pas encore libérée -> libération
     unsigned long tStop=millis();               // tStop heure du stop de l'instance   
     cli_a[preTPS].stop();                       // force la libération de l'instance
-    if(millis()-tStop>1){
+    if((millis()-tStop)>1){
       Serial.print(loopCnt);Serial.print(" tStop=");Serial.println(millis()-tStop); // libération d'instance avec attente
                                                                                     // ne devrait se produire que rarement
     }
@@ -2453,7 +2453,7 @@ void serialServer()
     
     for(uint8_t i=0;i<TSCNB+1;i++){SERIALX.print(RCVSYNCHAR);}
     for(uint16_t lb=0;lb<strlen(bec);lb++){SERIALX.print(*(bec+lb));delay(1);}
-    Serial.println(bec);
+    Serial.print("bec:");Serial.println(bec);
   }
 }
 

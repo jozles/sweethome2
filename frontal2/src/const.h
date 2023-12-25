@@ -160,13 +160,18 @@
    1.8b nettoyage prints osRem ; ajout bouton refresh idem retour
    1.8c fichiers timers modifié pour mode cyclic (durée on/off) ; mode cyclic non pris en compte
    1.8d mode cyclic fonctionnel ; now et unixnow sont globales et updatées dans la loop ; cli.stop des perifs tcp différé
-   1.8e accélérateur pour thermoshow
+   1.8e accélérateur pour thermoshow ; offset  ajouté th aux min/max ; re-branchement cli.stop périfs
 
 
-   BUGS :
+   BUGS : 
+     
+     cli.stop() différé des périfs semble planter if(ab!='a'){cli.stop();} : 
+          interaction possible avec le socket close de showSocketStatus de watchdog()
 
    à faire :
 
+      Accélérateur de lecture des lignes d'histo qui utilise la longueur de ligne plutôt que l'acquisition par caractère
+      Accélérateur de positionnement (temps et état) des timers cyclic par calcul de modulo
       Ajouter une check box dans la ligne des rules pour faire envoyer data_upd__ (data_na___) au serveur quand la condition est validée
       Ajouter table des N° de remoteT associés aux péri/switchs (NBPER x SWMAX) pour speeder l'accès aux switchs
       (màj au reset puis à chaque appui MàJ dans lignes switchs des remotes)
@@ -180,7 +185,6 @@
 
       détecter les changements à la réception des dataread/save pour effectuer un refresh de l'affichage de peritable
 
-      timers : ajouter option "cyclic" durée ON/durée OFF/date_heure début de cycle pour (entre autres) faire 1 jour tous les n
       pulses : option entrée clock depuis input
 
       dans fenetre switchs ; xmit(pertosend)
