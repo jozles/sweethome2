@@ -2277,7 +2277,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         
         if(ab!='u'){                                                              
           if(cli!=cli_debug){Serial.print("cli hs");while(1){trigwd();}}          
-          if(ab!='a'){cli->stop();}            // tcp only ********* !!!!!!!! stop géré en instances multiples pour cli_a 
+          cli->stop();            // tcp only ********* !!!!!!!! stop géré en instances multiples pour cli_a 
           cliext.stop();          // en principe rapide : la dernière action est une entrée
         }
                                   // la gestion d'instances multiples ne fonctionne pas avec le navigateur ??

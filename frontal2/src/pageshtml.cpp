@@ -1284,7 +1284,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
           if(*periThMax[np_]<th_){*periThMax[np_]=(int16_t)th_;}
           nbth++;
         }
-    
+        
     //Serial.print(np_);Serial.print(" ");Serial.print(th_);
     //Serial.print(" ");Serial.print((unsigned long)(periMacr-(byte*)periBegOfRecord));Serial.print(" ");
     
@@ -1365,8 +1365,8 @@ void thermoShowHtml(EthernetClient* cli)
                     float th;
                     scrDspNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,7,TDBE);
                     th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,7,TDBE);
-                    th=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
-                    th=(float)(*periThmax_)/100;scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
+                    th=(float)(*periThmin_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
+                    th=(float)(*periThmax_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
                     
                     memset(lith,0x00,LLITH);
                     bufPrintPeriDate(lith,periLastDateIn);
