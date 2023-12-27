@@ -38,6 +38,7 @@ extern "C" {
 //char sssVal[MAXSV]={SnSR::UDP,SnSR::CLOSED,SnSR::LAST_ACK,SnSR::TIME_WAIT,SnSR::FIN_WAIT,SnSR::CLOSING,SnSR::CLOSE_WAIT,SnSR::LISTEN,SnSR::ESTABLISHED,0};
 //                            // valeurs utiles pour sockets status
 //#define SOCK_DEBUG          // WARNING : le traitement de fermeture des sockets ouverts est dans showSocketStatus()
+
 char sssa[MAX_SOCK_NUM+2];    // valeurs alpha pour sockets status
 char prevsssa[MAX_SOCK_NUM+2];
 #define LSSSP 6
@@ -104,6 +105,8 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   uint16_t* toPassword;       // Délai validité password en sec !
   unsigned long* maxCxWt;     // Délai WD TCP
   unsigned long* maxCxWu;     // Délai WD UDP
+  uint8_t*  openSockScan;     // Délai scan sockets
+  uint8_t*  openSockTo;       // TO open sockets 
 
   char* mailFromAddr=nullptr; // Adresse exp mail
   char* mailPass=nullptr;     // mot de passe exp
@@ -135,7 +138,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
   const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
-  int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0;
+  int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0,fthermoshow=0;
   char    valeurs[LENVALEURS];         // les valeurs associées à chaque fonction trouvée
   uint16_t nvalf[NBVAL];               // offset dans valeurs[] des valeurs trouvées (séparées par '\0')
   char*   valf;                        // pointeur dans valeurs en cours de décodage
@@ -727,8 +730,12 @@ void watchdog()
 {
   if(millis()-lastcxt>*maxCxWt && lastcxt!=0){wdReboot("\n>>>>>>>>>>>>>>> TCP cx lost ",*maxCxWt);}
   if(millis()-lastcxu>*maxCxWu && lastcxu!=0){wdReboot("\n>>>>>>>>>>>>>>> UDP cx lost ",*maxCxWu);}
+  
   // showSocketsStatus reste utile pour fermer les sockets restés ouvert lors d'un reset du MCU
-  if(millis()-lastcxt>2000 && millis()-lastcxu>2000 && millis()-last_shscksta>3000){last_shscksta=millis();showSocketsStatus(true);}
+  if(*openSockTo<2){*openSockTo=2;}
+  if(*openSockScan<4){*openSockScan=4;}
+  if((millis()-lastcxt>(*openSockTo*1000)) && (millis()-lastcxu)>(*openSockTo*1000) && (millis()-last_shscksta)>(*openSockScan*1000)){
+    last_shscksta=millis();showSocketsStatus(true);}
 }
 
 void usrReboot()
@@ -1551,7 +1558,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
       cxtime=millis();    // pour rémanence pwd
       
       Serial.println();
-      Serial.print((long)cxtime);Serial.print(" *** serveur(");Serial.print((char)ab);
+      Serial.print((long)cxtime);Serial.print(" sock:");Serial.print(cli->sockindex);Serial.print(" serveur(");Serial.print((char)ab);
       if(ab=='a'){Serial.print(tPS);}
       Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
 
@@ -1981,6 +1988,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                        }break;                                      
               case 50:  memset(peripass,0x00,LPWD);memcpy(peripass,valf,nvalf[i+1]-nvalf[i]);break;     // (config) peripcfg__ // submit depuis cfgServervHtml                              
               case 51:  what=6;{                                                                        // (config) ethcfg___
+                          uint16_t v1=0;
                           switch(*(libfonctions+2*i+1)){                                            
                             case 'i': memset(localIp,0x00,4);                                           // (config) localIp
                                       textIp((byte*)valf,localIp);break;   
@@ -1991,6 +1999,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;              // (config) mac
                             case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                        // (config) TO sans TCP
                             case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                        // (config) TO sans UDP
+                            case 'x': conv_atob(valf,&v1);*openSockScan=(uint8_t)v1;break;              // (config) open sockets scan dly
+                            case 'z': conv_atob(valf,&v1);*openSockTo=(uint8_t)v1;break;                // (config) To open Sockets
                             case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;       // (config) nom serveur
                             case 'W': *ssid1=0;*ssid1=*valf-PMFNCVAL;break;                             // (config) ssid1
                             case 'w': *ssid2=0;*ssid2=*valf-PMFNCVAL;break;                             // (config) ssid2
@@ -2274,9 +2284,10 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         else {accueilHtml(cli);} // rien dans getnv
 
         valeurs[0]='\0';                                                            
-        
+
+        Serial.print("-sock stop ");Serial.print(cli->sockindex);Serial.print(" ");        
         if(ab!='u'){                                                              
-          if(cli!=cli_debug){Serial.print("cli hs");while(1){trigwd();}}          
+          if(cli!=cli_debug){Serial.print("cli hs");while(1){trigwd();}}
           cli->stop();            // tcp only ********* !!!!!!!! stop géré en instances multiples pour cli_a 
           cliext.stop();          // en principe rapide : la dernière action est une entrée
         }
@@ -2567,7 +2578,10 @@ Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (
     for(uint8_t s=0;s<MAX_SOCK_NUM;s++){
       if(sssa[s]=='E'){
         uint8_t b;while(Ethernet.socketRecv(s, &b, 1) > 0){Serial.print(b);}
-        Serial.print("sock close ");Serial.print(s);Serial.print(' ');
+         // fermeture des sockets fantomes... apparemment toujours sur serveur remotes, donc
+         // remotehtml() génèrerait une connexion supplémentaire ?
+        Serial.print("sock close ");Serial.print(s);Serial.print(' ');         
+        prt0=EthernetServer::server_port[s];prt=prt0-prt0/10*10;Serial.print(prt0);Serial.print(' ');
         W5100.execCmdSn(s, Sock_CLOSE);
       }
     }

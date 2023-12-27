@@ -59,6 +59,8 @@ extern unsigned long* usrpretime;
 extern uint16_t* toPassword;
 extern unsigned long* maxCxWt;    
 extern unsigned long* maxCxWu;
+extern uint8_t*   openSockScan;
+extern uint8_t*   openSockTo;
 
 extern char*      mailFromAddr; 
 extern char*      mailPass;     
@@ -198,7 +200,7 @@ extern char strdate[33];
 extern char temp[3],temp0[3],humid[3];
 
 extern  char* fonctions;
-extern  int   nbfonct,faccueil,fdatasave,fdatana,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fperitst,ffavicon;
+extern  int   nbfonct,faccueil,fdatasave,fdatana,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fperitst,ffavicon,fthermoshow;
 
 /* ---------- configuration ---------- */
 
@@ -329,7 +331,10 @@ byte* temp=(byte*)configRec;
   temp+=sizeof(uint8_t);
   ssid2=(uint8_t*)temp;          
   temp+=sizeof(uint8_t);
-  temp+=2;                           // dispo
+  openSockScan=(uint8_t*)temp;
+  temp+=sizeof(uint8_t);            // dispo
+  openSockTo=(uint8_t*)temp;
+  temp+=sizeof(uint8_t);            // dispo
   concMac=(uint8_t*)temp;
   temp+=(MAXCONC*MACADDRLENGTH);
   concChannel=(uint16_t*)temp;
@@ -411,6 +416,7 @@ byte* temp=(byte*)configRec;
   fuserref=(strstr(fonctions,"user_ref__")-fonctions)/LENNOM;
   fperitst=(strstr(fonctions,"peri_tst__")-fonctions)/LENNOM;
   ffavicon=(strstr(fonctions,"favicon___")-fonctions)/LENNOM;
+  fthermoshow=(strstr(fonctions,"thermoshow")-fonctions)/LENNOM;
   
   Serial.print("  nbfonct=");Serial.println(nbfonct);
   Serial.print("RECCHAR=");Serial.print(RECCHAR);Serial.print(" LBUFSERVER=");Serial.println(LBUFSERVER);

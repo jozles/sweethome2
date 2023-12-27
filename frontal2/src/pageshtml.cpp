@@ -26,6 +26,8 @@ extern uint16_t*  serverUdpPort;
 extern char*      peripass;         // mot de passe périphériques
 extern unsigned long* maxCxWt;
 extern unsigned long* maxCxWu;
+extern uint8_t*   openSockScan;
+extern uint8_t*   openSockTo;
 
 extern char*      mailFromAddr; 
 extern char*      mailPass;     
@@ -587,7 +589,9 @@ fontBeg(buf,jsbuf,2,0);
             scrDspText(buf,jsbuf," serverUdpPort ",0,0);scrGetNum(buf,jsbuf,'d',serverUdpPort,"ethcfg___u",5,0,0,BRYES);strcat(buf,"\n");
             scrDspText(buf,jsbuf,"peripass ",0,0);scrGetText(buf,jsbuf,peripass,"peripcfg__",5,LPWD,0,0);
             scrDspText(buf,jsbuf," TO sans cx tcp ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWt,"ethcfg___q",8,0,0,0);
-            scrDspText(buf,jsbuf," TO sans cx udp ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWu,"ethcfg___r",8,0,0,BRYES);strcat(buf,"\n");
+            scrDspText(buf,jsbuf," TO sans cx udp ",0,0);scrGetNum(buf,jsbuf,'l',maxCxWu,"ethcfg___r",8,0,0,BRYES);
+            scrDspText(buf,jsbuf," Délai scan sockets ",0,0);scrGetNum(buf,jsbuf,'D',openSockScan,"ethcfg___x",8,0,0,0);
+            scrDspText(buf,jsbuf," TO open sockets ",0,0);scrGetNum(buf,jsbuf,'D',openSockTo,"ethcfg___z",8,0,0,BRYES);strcat(buf,"\n");            
             //scrDspText(buf,jsbuf,"",0,BRYES);
 
             subcfgtable(buf,jsbuf,"USERNAME",NBUSR,"usrname__",usrnames,LENUSRNAME,1,"usrpass__",usrpass,LENUSRPASS,"password",1);
