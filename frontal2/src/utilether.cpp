@@ -394,7 +394,7 @@ void dateToStr(char* buff,int year,int month,int day,int hour,int minute,int sec
   buff[15]='\0';
 }  
 
-unsigned long alphaDateToUnix(const char* tim,bool onlyHours)
+unsigned long alphaDateToUnix(const char* tim,bool onlyHours,bool print)
 {
   int year,month,day,hour,minute,seconde;
   uint32_t buf;
@@ -409,7 +409,16 @@ unsigned long alphaDateToUnix(const char* tim,bool onlyHours)
   conv_atobl(tim+10,&buf,2);minute=buf;  
   conv_atobl(tim+12,&buf,2);seconde=buf;
 
+  if(print){
+    Serial.print(year);Serial.print(" ");Serial.print(month);Serial.print(" ");Serial.println(day);
+    Serial.print(hour);Serial.print(" ");Serial.print(minute);Serial.print(" ");Serial.println(seconde);}
+
   return genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
+}
+
+unsigned long alphaDateToUnix(const char* tim,bool onlyHours)
+{
+  alphaDateToUnix(tim,onlyHours,false);
 }
 
 void unixDateToStr(unsigned long uxd,char* date)

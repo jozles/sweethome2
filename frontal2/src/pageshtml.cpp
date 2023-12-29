@@ -14,6 +14,7 @@ extern bool oneIcon;
 
 extern Ds3231 ds3231;
 extern char now[16];
+extern unsigned long unixNow;
 
 extern char*      serverName;
 extern byte*      mac;              // adresse server
@@ -35,6 +36,8 @@ extern char*      mailToAddr1;
 extern char*      mailToAddr2;  
 extern uint16_t*  periMail1;    
 extern uint16_t*  periMail2;
+
+extern char*      thermoPrev;
 
 extern char*      chexa;
 extern byte       maskbit[];
@@ -600,7 +603,10 @@ fontBeg(buf,jsbuf,2,0);
 
             subcfgtable(buf,jsbuf,"SSID",MAXSSID,"ssid_____",ssid,LENSSID,1,"passssid_",passssid,LPWSSID,"password",1);
             scrDspText(buf,jsbuf,"ssid1 ",0,0);scrGetNum(buf,jsbuf,'b',ssid1,"ethcfg___W",1,1,0,0,0);
-            scrDspText(buf,jsbuf," ssid2 ",0,0);scrGetNum(buf,jsbuf,'b',ssid2,"ethcfg___w",1,1,0,0,BRYES);strcat(buf,"\n");
+            scrDspText(buf,jsbuf," ssid2 ",0,0);scrGetNum(buf,jsbuf,'b',ssid2,"ethcfg___w",1,1,0,0,BRYES);
+
+            scrDspText(buf,jsbuf,"thermos prev ",0,0);scrGetText(buf,jsbuf,thermoPrev,"ethcfg___v",14,15,0,BRYES);strcat(buf,"\n");
+
             formEnd(buf,jsbuf,0,0);
             ethWrite(cli,buf,&lb);
 
@@ -1178,25 +1184,20 @@ void timersCtlHtml(EthernetClient* cli)
   bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
-int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd derniers jours
+int scalcTh(int bd,char* dhasc)           // maj temp min/max des périphériques sur les bd derniers jours
 {
 /* --- calcul date début --- */
  
   unsigned long t0=millis();
   
-  int   ldate=LDATEA;
+  int   ldate=15;       // "YYYYMMDD HHMMSS"
+  unsigned long unixPrev=alphaDateToUnix(thermoPrev,false,true);
+  unsigned long unixBeg=unixNow-unixPrev;
 
-  int   yy,mm,dd,js,hh,mi,ss;
-  byte  yb,mb,db,dsb,hb,ib,sb;
-  ds3231.readTime(&sb,&ib,&hb,&dsb,&db,&mb,&yb);          // get date(now)
-  yy=yb+2000;mm=mb;dd=db;hh=hb;mi=ib;ss=sb;
-  calcDate(bd,&yy,&mm,&dd,&js,&hh,&mi,&ss);               // compute date-bd
-  uint32_t amj=yy*10000L+mm*100+dd;
-  uint32_t hms=hh*10000L+mi*100+ss;
-  char     dhasc[ldate+1];
-  sprintf(dhasc,"%.8lu",amj);strcat(dhasc," ");
-  sprintf(dhasc+9,"%.6lu",hms);dhasc[15]='\0';            // dhasc date/heure recherchée imprimable
-  //Serial.print("dhasc=");Serial.println(dhasc);
+  unixDateToStr(unixBeg,dhasc);
+  for(uint8_t k=13;k>7;k--){dhasc[k+1]=dhasc[k];}dhasc[8]=' ';  // mise au format de l'histo
+
+  //Serial.print(unixNow);Serial.print(" ");Serial.print(thermoPrev);Serial.print(" ");Serial.print(unixPrev);Serial.print(" ");Serial.println(unixBeg);
   
   if(sdOpen("fdhisto.txt",&fhisto)==SDKO){return SDKO;}
 
@@ -1206,7 +1207,7 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
   fhisto.seek(curpos);
   long pos=fhisto.position();  
   
-  Serial.print("--- start search date at ");Serial.print(curpos-searchStep);Serial.print(" histoSiz=");Serial.print(histoSiz);Serial.print(" pos=");Serial.println(pos);
+  Serial.print("--- start search date:");Serial.print(dhasc);Serial.print(" at ");Serial.print(curpos-searchStep);Serial.print(" histoSiz=");Serial.print(histoSiz);Serial.print(" pos=");Serial.println(pos);
 
 /* --- recherche 1ère ligne --- */
 
@@ -1217,25 +1218,42 @@ int scalcTh(int bd)           // maj temp min/max des périphériques sur les bd
 
 /* recherche rétrograde de la date début */
   
+  char etat='0';
+
   while(curpos>0 && !fini){
-    curpos-=searchStep;if(curpos<0){curpos=0;}
+    curpos-=searchStep;if(curpos<0){curpos=0;break;}
     ptr=curpos;
     fhisto.seek(curpos);
-    while(ptr<(curpos+searchStep) && inch1!='\n'){inch1=fhisto.read();ptr++;}
-    for(pt=0;pt<ldate;pt++){buf[pt]=fhisto.read();ptr++;}                    // '\n' trouvé : get date
-    if(memcmp(buf,dhasc,ldate)>0){}//ptr=curpos+searchStep;}                    // si la date trouvée est > reculer
-    else {                                                                   // sinon chercher >
+    //Serial.print("W ");
+    inch1='\0';
+    while(inch1!='\n'){inch1=fhisto.read();//Serial.print(inch1);
+          ptr++;}
+    if(ptr>=(curpos+searchStep)){fini=true;etat='1';break;}                                                                        
+    for(pt=0;pt<ldate;pt++){buf[pt]=fhisto.read();}
+    //buf[ldate]='\0';Serial.println(buf);                           // '\n' trouvé : get date
+    
+    if(memcmp(buf,dhasc,ldate)==0){fini=true;etat='2';break;}                                // ptr sur début ligne
+    if(memcmp(buf,dhasc,ldate)<0){                                            // si la date trouvée est < chercher >= sinon reculer                                                                 
     
       while(!fini){
-        while(ptr<pos && inch1!='\n'){inch1=fhisto.read();ptr++;}
-        for(pt=0;pt<ldate;pt++){buf[pt]=fhisto.read();ptr++;}                // '\n' trouvé : get date
+        fhisto.seek(ptr);
+        //Serial.print("w ");
+        inch1='\0';
+        while(inch1!='\n'){inch1=fhisto.read();//Serial.print(inch1);
+              ptr++;}             // ptr sur '\n'
+        if(ptr>=(curpos+searchStep)){fini=true;etat='3';break;}
+        
+        for(pt=0;pt<ldate;pt++){buf[pt]=fhisto.read();}                       // '\n' trouvé : get date
+        //buf[ldate]='\0';Serial.println(buf);
         if(memcmp(buf,dhasc,ldate)>=0){                                       // si la date trouvé est >= ok sinon continuer
-          fini=VRAI;                                                         // ptr ok ; pt ok commencer l'acquisition
+          fini=VRAI;etat='4';                                                          // ptr ok ; pt ok commencer l'acquisition
         }
       }
     }
   }
-  Serial.print("--- fin recherche ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
+  fhisto.seek(ptr);
+  Serial.print("--- fin recherche état ");Serial.print(etat);Serial.print(" ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
+  //char c='\0';while(c!='\n'){c=fhisto.read();Serial.print(c);}
 
 /* --- init ptrs et th min/max --- */
 
@@ -1338,10 +1356,13 @@ void thermoShowHtml(EthernetClient* cli)
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
  // ------------------------------------------------------------- header end 
-  scalcTh(1);          // update periphériques
+  char dhasc[LDATEA];memset(dhasc,'\0',LDATEA);
+  scalcTh(1,dhasc);          // update periphériques
+
+
 
 /* peritable températures */
-
+  scrDspText(buf,jsbuf,dhasc,0,BRYES);
   tableBeg(buf,jsbuf,courier,BORDER,BRYES|TRBEG);
   scrDspText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
   strcat(buf,"\n");

@@ -552,13 +552,21 @@ void concNum(char* buf,char* jsbuf,char type,uint8_t dec,void* value,bool sep)
   }
 }
 
-void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl)
+void scrDspNum(char* buf,char* jsbuf,char type,void* value,void* valmin,void* valmax,uint8_t dec,uint8_t pol,uint8_t ctl)
 // mode STRING :  ne fonctionne que dans une ligne de table
 //                le premier appel comporte TDBEG pour forcer le nom de la commande et BRYES (ignoré dans ctl) ou TDEND 
 //                TDEND est forcé dans le ctl de la commande
 //                les suivants BRYES ou TDEND
 //                le dernier rien : TDEND est déjà dans le ctl de la commande
 {
+  /*
+  char colour[6+1];
+  char colour1[]={"black"};
+  char colour2[]={"red"};
+  memcpy(colour,colour1,6);if(value<=valmin || value>=valmax){memcpy(colour,colour2,4);}
+  setColourB(buf,jsbuf,colour);
+  */
+
   uint8_t ctlb=ctl&~STRING;
   if((ctl&STRING)!=0){ctlb&=~BRYES;
   if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
@@ -578,6 +586,16 @@ void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t p
   if((ctl&STRING)!=0){ctl&=~TDEND;}   // évite le double emploi avec JSSCO déjà dans dm
   if((ctl&STRING)!=0){ctl&=~BRYES;}   // évite le double emploi avec JSSBR déjà dans dm
   fnHtmlEnd(buf,pol,ctl);
+  /*
+  setColourE(buf,jsbuf);
+  */
+}
+
+void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl)
+{
+  uint16_t valmin=0;
+  uint16_t valmax=65500;
+  scrDspNum(buf,jsbuf,type,value,&valmin,&valmax,dec,pol,ctl);
 }
 
 void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t dec,uint8_t ctl)

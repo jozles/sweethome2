@@ -68,7 +68,9 @@ extern char*      mailToAddr1;
 extern char*      mailToAddr2;  
 extern uint16_t*  periMail1;    
 extern uint16_t*  periMail2;
-       
+
+extern char*      thermoPrev;  
+
 extern byte*      configBegOfRecord;
 extern byte*      configEndOfRecord;
 
@@ -320,6 +322,7 @@ byte* temp=(byte*)configRec;
   temp+=LNSERV;
   serverUdpPort=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
+  thermoPrev=(char*)temp;
   temp+=16;                         // dispo  
   peripass=(char*)temp;
   temp+=(LPWD+1);
@@ -596,6 +599,7 @@ void configPrint()
   Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.print(" table ssid ");Serial.print(*ssid1);Serial.print("/");Serial.println(*ssid2);
   subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);
+  Serial.print(" thermo prev ");Serial.println(thermoPrev);
   Serial.println(" table user ");subcprint(usrnames,usrpass,NBUSR,LENUSRNAME,LENUSRPASS,usrtime);
   Serial.print(" mailFrom=");Serial.print(mailFromAddr);Serial.print(" pass=");Serial.println(mailPass);     
   Serial.print(" mailTo1=");Serial.print(mailToAddr1);Serial.print(" mailTo2=");Serial.println(mailToAddr2);  

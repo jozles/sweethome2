@@ -115,6 +115,8 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   uint16_t* periMail1;        // N° perif mail 1
   uint16_t* periMail2;        // N° perif mail 2
 
+  char* thermoPrev;           // antériorité pour calculs mini/maxi thermos
+
   byte* configBegOfRecord;
   byte* configEndOfRecord;
 
@@ -2004,6 +2006,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             case 's': alphaTfr(serverName,LNSERV,valf,nvalf[i+1]-nvalf[i]);break;       // (config) nom serveur
                             case 'W': *ssid1=0;*ssid1=*valf-PMFNCVAL;break;                             // (config) ssid1
                             case 'w': *ssid2=0;*ssid2=*valf-PMFNCVAL;break;                             // (config) ssid2
+                            case 'v': alphaTfr(thermoPrev,15,valf,nvalf[i+1]-nvalf[i]);break;           // (config) thermo prev
 
                             default: break;
                           }
