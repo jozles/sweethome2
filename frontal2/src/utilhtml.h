@@ -122,10 +122,10 @@ void affRondJaune(char* buf,char* jsbuf,uint8_t ctl);
 void scrDspText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl);
 void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,uint8_t ctl);
 
-void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl);
-void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t dec,uint8_t ctl);
+void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t ctl);
+void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t dec,uint8_t ctl);
 void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl);
-void scrDspNum(char* buf,char* jsbuf,char type,void* value,void* valmin,void* valmax,uint8_t dec,uint8_t pol,uint8_t ctl);
+void scrDspNum(char* buf,char* jsbuf,char type,void* value,const void* valmin,const void* valmax,bool nominmax,uint8_t dec,uint8_t pol,uint8_t ctl);
 
 void bufLenShow(char* buf,char* jsbuf,uint16_t lb,unsigned long begTPage);
 

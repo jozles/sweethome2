@@ -418,7 +418,7 @@ unsigned long alphaDateToUnix(const char* tim,bool onlyHours,bool print)
 
 unsigned long alphaDateToUnix(const char* tim,bool onlyHours)
 {
-  alphaDateToUnix(tim,onlyHours,false);
+ return alphaDateToUnix(tim,onlyHours,false);
 }
 
 void unixDateToStr(unsigned long uxd,char* date)

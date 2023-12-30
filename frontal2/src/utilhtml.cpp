@@ -434,7 +434,8 @@ void setColourE(char* buf)
 void setColourB(char* buf,char* jsbuf,const char* textColour)
 {
   if(buf!=nullptr){
-    memcpy(colour,textColour,LENCOLOUR);strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");
+    //memcpy(colour,textColour,LENCOLOUR);
+    strcat(buf,"<font color=\"");strcat(buf,textColour);strcat(buf,"\"> ");
   }
 #ifndef NOJSBUF  
   if(jsbuf!=nullptr){
@@ -552,28 +553,50 @@ void concNum(char* buf,char* jsbuf,char type,uint8_t dec,void* value,bool sep)
   }
 }
 
-void scrDspNum(char* buf,char* jsbuf,char type,void* value,void* valmin,void* valmax,uint8_t dec,uint8_t pol,uint8_t ctl)
+void checkColour(char* buf,char* jsbuf,char type,const void* value,const void* valmin,const void* valmax)
+{
+    char colour[6+1];
+    char colour1[]={"black"};
+    char colour2[]={"red"};
+    memcpy(colour,colour1,6);
+    if(type=='b' || type=='D' || type=='s'){
+      if(*(uint8_t*)value<=*(uint8_t*)valmin || *(uint8_t*)value>=*(uint8_t*)valmax){memcpy(colour,colour2,4);}
+    }
+    else if(type=='d' || type=='r'){
+      if(*(uint16_t*)value<=*(uint16_t*)valmin || *(uint16_t*)value>=*(uint16_t*)valmax){memcpy(colour,colour2,4);}
+    }
+    else if(type=='f' || type=='F'){
+      if(*(float*)value<=*(float*)valmin || *(float*)value>=*(float*)valmax){memcpy(colour,colour2,4);}
+    }
+    else if(type=='I'){
+      if((*(int16_t*)value<=*(int16_t*)valmin) || (*(int16_t*)value>=*(int16_t*)valmax)){memcpy(colour,colour2,4);}
+    }
+    else if(type=='i'){
+      if((*(int*)value<=*(int*)valmin) || (*(int*)value>=*(int*)valmax)){memcpy(colour,colour2,4);}
+    }
+    else if(type=='l'){
+      if(*(long*)value<=*(long*)valmin || *(long*)value>=*(long*)valmax){memcpy(colour,colour2,4);}
+    }
+    setColourB(buf,jsbuf,colour);
+}
+
+void scrDspNum(char* buf,char* jsbuf,char type,void* value,const void* valmin,const void* valmax,bool minmax,uint8_t dec,uint8_t pol,uint8_t ctl)
 // mode STRING :  ne fonctionne que dans une ligne de table
 //                le premier appel comporte TDBEG pour forcer le nom de la commande et BRYES (ignoré dans ctl) ou TDEND 
 //                TDEND est forcé dans le ctl de la commande
 //                les suivants BRYES ou TDEND
 //                le dernier rien : TDEND est déjà dans le ctl de la commande
 {
-  /*
-  char colour[6+1];
-  char colour1[]={"black"};
-  char colour2[]={"red"};
-  memcpy(colour,colour1,6);if(value<=valmin || value>=valmax){memcpy(colour,colour2,4);}
-  setColourB(buf,jsbuf,colour);
-  */
-
+  
   uint8_t ctlb=ctl&~STRING;
   if((ctl&STRING)!=0){ctlb&=~BRYES;
   if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
   if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0))){fnJsIntro(jsbuf,JSNT,pol,ctlb);} 
   
   fnHtmlIntro(buf,pol,ctl);
-  
+
+  if(minmax){checkColour(buf,jsbuf,type,value,valmin,valmax);} 
+
   char* dm;dm=jsbuf+strlen(jsbuf);
   
   concNum(nullptr,jsbuf,type,dec,value,0);
@@ -586,29 +609,23 @@ void scrDspNum(char* buf,char* jsbuf,char type,void* value,void* valmin,void* va
   if((ctl&STRING)!=0){ctl&=~TDEND;}   // évite le double emploi avec JSSCO déjà dans dm
   if((ctl&STRING)!=0){ctl&=~BRYES;}   // évite le double emploi avec JSSBR déjà dans dm
   fnHtmlEnd(buf,pol,ctl);
-  /*
-  setColourE(buf,jsbuf);
-  */
+
+  if(minmax){setColourE(buf,jsbuf);}
 }
 
 void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl)
 {
-  uint16_t valmin=0;
-  uint16_t valmax=65500;
-  scrDspNum(buf,jsbuf,type,value,&valmin,&valmax,dec,pol,ctl);
+  char valmin[8],valmax[8];
+  scrDspNum(buf,jsbuf,type,value,&valmin,&valmax,false,dec,pol,ctl);
 }
 
-void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t dec,uint8_t ctl)
-{
-  char colour[6+1];
-  char colour1[]={"black"};
-  char colour2[]={"red"};
-  memcpy(colour,colour1,6);if(*valfonct<=*valmin || *valfonct>=*valmax){memcpy(colour,colour2,4);}
-  setColourB(buf,jsbuf,colour);
+void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t dec,uint8_t ctl)
+{ 
   fnJsIntro(jsbuf,JSNTI,0,ctl);
-
   fnHtmlIntro(buf,0,ctl,nullptr);
-  
+
+  checkColour(buf,jsbuf,'I',valfonct,valmin,valmax);
+
   if(dec>4){dec=4;}
   uint16_t vfnt[5]={1,10,100,1000,10000};
   float vf=((float)*valfonct)/vfnt[dec]; 
@@ -617,7 +634,7 @@ void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* 
   setColourE(buf,jsbuf);
 }
 
-void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,int16_t* valmin,int16_t* valmax,uint8_t ctl)
+void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t ctl)
 {
   scrDspNum(buf,jsbuf,valfonct,valmin,valmax,2,ctl);
 }

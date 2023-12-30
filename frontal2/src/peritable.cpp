@@ -707,7 +707,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
           vv=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
           vv=(float)(*periThmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);
-          scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);          
+          scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);                   
           vv=(float)(*periVmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
           vv=(float)(*periVmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);               
 /* pertemp - pitch - offset */ 
