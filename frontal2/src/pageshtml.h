@@ -20,7 +20,7 @@ void timersCtlHtml(EthernetClient* cli);
 void detServHtml(EthernetClient* cli,uint8_t* mds,char* lib);
 void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0,uint8_t* mds,char* lib);
 void cfgDetServHtml(EthernetClient* cli);
-int  scalcTh(int bd);
+int  scalcTh(const char* endDate,char* dhasc,const char* prev);
 
 
 #endif // _PAGESHTML_H_

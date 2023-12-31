@@ -105,8 +105,8 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   uint16_t* toPassword;       // Délai validité password en sec !
   unsigned long* maxCxWt;     // Délai WD TCP
   unsigned long* maxCxWu;     // Délai WD UDP
-  uint8_t*  openSockScan;     // Délai scan sockets
-  uint8_t*  openSockTo;       // TO open sockets 
+  uint8_t*  openSockScan;     // Délai scan sockets secondes
+  uint8_t*  openSockTo;       // TO open sockets secondes
 
   char* mailFromAddr=nullptr; // Adresse exp mail
   char* mailPass=nullptr;     // mot de passe exp
@@ -116,6 +116,9 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   uint16_t* periMail2;        // N° perif mail 2
 
   char* thermoPrev;           // antériorité pour calculs mini/maxi thermos
+  char* thermoLastScan;       // date/heure last scan
+  char* thermoLastPrev;       // antériorité last scan
+  char* thermoLastBeg;        // date/heure dans l'histo
 
   byte* configBegOfRecord;
   byte* configEndOfRecord;
@@ -2132,7 +2135,12 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             default:break;
                           } 
                         }break;
-              case 58:  thermoShowHtml(cli);break;                                                       // thermoshow
+              case 58:  if(*(libfonctions+2*i+1)=='s'){                                                  // thermoshow
+                          if(scalcTh(now,thermoLastBeg,thermoPrev)==SDOK){                               // update periphériques
+                            memcpy(thermoLastScan,now,15);thermoLastScan[15]='\0';
+                            memcpy(thermoLastPrev,thermoPrev,15);thermoLastPrev[15]='\0';
+                            configSave();}}
+                        thermoShowHtml(cli);break;                                                       // thermoshow
               case 59:  thermoCfgHtml(cli);break;                                                        // thermos___ (bouton thermo_cfg)
               case 60:  what=0;{uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;
                           timersN[nt].enable=!timersN[nt].enable;

@@ -38,6 +38,9 @@ extern uint16_t*  periMail1;
 extern uint16_t*  periMail2;
 
 extern char*      thermoPrev;
+extern char*      thermoLastScan;       // date/heure last scan
+extern char*      thermoLastPrev;       // antériorité last scan
+extern char*      thermoLastBeg;        // date/heure histo
 
 extern char*      chexa;
 extern byte       maskbit[];
@@ -605,7 +608,10 @@ fontBeg(buf,jsbuf,2,0);
             scrDspText(buf,jsbuf,"ssid1 ",0,0);scrGetNum(buf,jsbuf,'b',ssid1,"ethcfg___W",1,1,0,0,0);
             scrDspText(buf,jsbuf," ssid2 ",0,0);scrGetNum(buf,jsbuf,'b',ssid2,"ethcfg___w",1,1,0,0,BRYES);
 
-            scrDspText(buf,jsbuf,"thermos prev ",0,0);scrGetText(buf,jsbuf,thermoPrev,"ethcfg___v",14,15,0,BRYES);strcat(buf,"\n");
+            scrDspText(buf,jsbuf,"thermos default prev ",0,0);scrGetText(buf,jsbuf,thermoPrev,"ethcfg___v",14,15,0,0);
+            scrDspText(buf,jsbuf," thermos last prev ",0,0);scrDspText(buf,jsbuf,thermoLastPrev,0,BRYES);
+            scrDspText(buf,jsbuf," thermos last beg (du) ",0,0);scrDspText(buf,jsbuf,thermoLastBeg,0,0);
+            scrDspText(buf,jsbuf," (au) thermos last scan ",0,0);scrDspText(buf,jsbuf,thermoLastScan,0,BRYES);strcat(buf,"\n");
 
             formEnd(buf,jsbuf,0,0);
             ethWrite(cli,buf,&lb);
@@ -1184,16 +1190,20 @@ void timersCtlHtml(EthernetClient* cli)
   bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
-int scalcTh(int bd,char* dhasc)           // maj temp min/max des périphériques sur les bd derniers jours
-{
+int scalcTh(const char* endDate,char* dhasc,const char* prev)           // maj temp min/max des périphériques sur les prev derniers jours
+{                                                                       // jusqu'à endDate (non traité toujours now) 
+                                                                        // retour date début dans dhasc
 /* --- calcul date début --- */
  
+  memset(dhasc,'\0',16);
+  
   unsigned long t0=millis();
   
   int   ldate=15;       // "YYYYMMDD HHMMSS"
-  unsigned long unixPrev=alphaDateToUnix(thermoPrev,false,true);
+  unsigned long unixPrev=alphaDateToUnix(prev,false,true);
   unsigned long unixBeg=unixNow-unixPrev;
 
+//Serial.print(now);Serial.print(" - ");Serial.print(unixNow);Serial.print(" - ");Serial.print(prev);Serial.print(unixPrev);Serial.print(" - ");Serial.println(unixBeg);
   unixDateToStr(unixBeg,dhasc);
   for(uint8_t k=13;k>7;k--){dhasc[k+1]=dhasc[k];}dhasc[8]=' ';  // mise au format de l'histo
 
@@ -1276,7 +1286,7 @@ int scalcTh(int bd,char* dhasc)           // maj temp min/max des périphérique
   }
 
   //Serial.print((unsigned long)periBegOfRecord);Serial.print(" ");Serial.println((unsigned long)periCache);
-  Serial.println("--- fin init ptrs periCache & th min/max ");                                                                           
+  Serial.println("--- fin init ptrs periCache & th min/max ");Serial.print("--- ");
 
   /* --- acquisition lignes --- */
    
@@ -1352,17 +1362,15 @@ void thermoShowHtml(EthernetClient* cli)
                                     // de la page formBeg() suffit
   pageLineOne(buf,jsbuf);            // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");
-  scrGetButRef(buf,jsbuf,"thermoshow\0",0,BRYES);
+  scrGetButRef(buf,jsbuf,"thermoshow\0",0,0);
+  scrGetButFn(buf,jsbuf,"thermoshos","","màj min/max",false,2,7,1,1,0,0,BRYES);
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
  // ------------------------------------------------------------- header end 
-  char dhasc[LDATEA];memset(dhasc,'\0',LDATEA);
-  scalcTh(1,dhasc);          // update periphériques
-
-
 
 /* peritable températures */
-  scrDspText(buf,jsbuf,dhasc,0,BRYES);
+  scrDspText(buf,jsbuf,thermoLastBeg,0,0);scrDspText(buf,jsbuf," au ",0,0);scrDspText(buf,jsbuf,thermoLastScan,0,BRYES);        // période scan
+  
   tableBeg(buf,jsbuf,courier,BORDER,BRYES|TRBEG);
   scrDspText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
   strcat(buf,"\n");

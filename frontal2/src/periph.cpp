@@ -70,6 +70,9 @@ extern uint16_t*  periMail1;
 extern uint16_t*  periMail2;
 
 extern char*      thermoPrev;  
+extern char*      thermoLastScan;       // date/heure last scan
+extern char*      thermoLastPrev;       // antériorité last scan
+extern char*      thermoLastBeg;        // position début last scan
 
 extern byte*      configBegOfRecord;
 extern byte*      configEndOfRecord;
@@ -323,7 +326,7 @@ byte* temp=(byte*)configRec;
   serverUdpPort=(uint16_t*)temp;
   temp+=sizeof(uint16_t);
   thermoPrev=(char*)temp;
-  temp+=16;                         // dispo  
+  temp+=16; 
   peripass=(char*)temp;
   temp+=(LPWD+1);
   ssid=(char*)temp;
@@ -335,9 +338,9 @@ byte* temp=(byte*)configRec;
   ssid2=(uint8_t*)temp;          
   temp+=sizeof(uint8_t);
   openSockScan=(uint8_t*)temp;
-  temp+=sizeof(uint8_t);            // dispo
+  temp+=sizeof(uint8_t);
   openSockTo=(uint8_t*)temp;
-  temp+=sizeof(uint8_t);            // dispo
+  temp+=sizeof(uint8_t);
   concMac=(uint8_t*)temp;
   temp+=(MAXCONC*MACADDRLENGTH);
   concChannel=(uint16_t*)temp;
@@ -364,7 +367,13 @@ byte* temp=(byte*)configRec;
   temp+=sizeof(float*);
   periRxAddr=(byte*)temp;
   temp+=RADIO_ADDR_LENGTH+1;
-  temp+=105;                         // dispo 
+  thermoLastScan=(char*)temp;
+  temp+=16;
+  thermoLastPrev=(char*)temp;
+  temp+=16;
+  thermoLastBeg=(char*)temp;
+  temp+=16;
+  temp+=57;                         // dispo 
   usrnames=(char*)temp;
   temp+=NBUSR*(LENUSRNAME+1);
   usrpass=(char*)temp;
