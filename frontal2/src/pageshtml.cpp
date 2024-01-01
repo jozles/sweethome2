@@ -42,6 +42,8 @@ extern char*      thermoLastScan;       // date/heure last scan
 extern char*      thermoLastPrev;       // antériorité last scan
 extern char*      thermoLastBeg;        // date/heure histo
 
+extern char       thermoCurPrev[16];
+
 extern char*      chexa;
 extern byte       maskbit[];
 
@@ -973,8 +975,13 @@ void remoteHtml(EthernetClient* cli)
             pageLineOne(buf,jsbuf);
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
             //usrFormBHtml(buf,1);
-            scrGetButRet(buf,jsbuf,"retour",0);
-            scrGetButRef(buf,jsbuf,"remote_cr_\0",0,BRYES);
+            
+            tableBeg(buf,jsbuf,0);
+            scrGetButRet(buf,jsbuf,"retour",TRBEG|TDBE);
+            scrGetButRef(buf,jsbuf,"remote_cr_\0",0,TDBE|TREND|BRYES);
+            scrGetButFn(buf,jsbuf,"thermoshos","","températures",false,2,7,1,1,0,0,TRBEG|TDBE);
+            scrGetButFn(buf,jsbuf,"timersctl_","","timers",false,2,7,1,1,0,0,TDBE|TREND);
+            tableEnd(buf,jsbuf,BRYES);
             ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
 
@@ -1015,7 +1022,7 @@ void remoteHtml(EthernetClient* cli)
               char fn[LENNOM+1];
               char fnt[LENNOM+1];                                       // bouton '>'
               if(remoteN[nb].nam[0]!='\0'){
-                strcat(buf,"<tr height=130>");                          // patch à intégrer dans le ctl des fonctions d'affichage
+                strcat(buf,"<tr height=100>");                          // patch à intégrer dans le ctl des fonctions d'affichage
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);
                 
                 if(!remoteN[nb].multRem){                               // remote simple
@@ -1118,8 +1125,8 @@ void remoteHtml(EthernetClient* cli)
             if(buf[0]!='\0'){ethWrite(cli,buf);}
             tableEnd(buf,jsbuf,BRYES);
             
-            scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,5,STDBUTTON,1,0,1,0);
-            scrGetButFn(buf,jsbuf,"timersctl_","","timers",ALICNO,5,STDBUTTON,1,0,1,0);
+            //scrGetButFn(buf,jsbuf,"thermoshow","","températures",ALICNO,5,STDBUTTON,1,0,1,0);
+            //scrGetButFn(buf,jsbuf,"timersctl_","","timers",ALICNO,5,STDBUTTON,1,0,1,0);
             
             formEnd(buf,jsbuf,0,0);
             htmlEnd(buf,jsbuf);
@@ -1361,15 +1368,24 @@ void thermoShowHtml(EthernetClient* cli)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
   pageLineOne(buf,jsbuf);            // 1ère ligne page
-  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");
-  scrGetButRef(buf,jsbuf,"thermoshow\0",0,0);
-  scrGetButFn(buf,jsbuf,"thermoshos","","màj min/max",false,2,7,1,1,0,0,BRYES);
+ 
+  tableBeg(buf,jsbuf,courier,NOBORDER,BRYES|TRBEG);
+  scrGetButRet(buf,jsbuf,"retour",TDBE);
+  scrGetButRef(buf,jsbuf,"thermoshow\0",0,TDBE|TREND);
+  //formIntro(buf,jsbuf,0,0);                
+  scrDspText(buf,jsbuf,"prev yyymmddhhmmss",5,TRBEG|TDBEG|BRYES);
+  scrGetText(buf,jsbuf,thermoCurPrev,"thermoshop",12,15,20,0,TDEND);
+  //scrGetButFn(buf,jsbuf,"thermoshos","","màj min/max",false,2,7,1,1,0,0,TDBE);
+  scrGetButSub(buf,jsbuf,"màj min/max",ALICNO,1,TDBE|TREND);
+  formEnd(buf,jsbuf,0,0);
+  tableEnd(buf,jsbuf,BRYES);
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
  // ------------------------------------------------------------- header end 
 
 /* peritable températures */
-  scrDspText(buf,jsbuf,thermoLastBeg,0,0);scrDspText(buf,jsbuf," au ",0,0);scrDspText(buf,jsbuf,thermoLastScan,0,BRYES);        // période scan
+  char thls[16];memcpy(thls,thermoLastScan,8);thls[8]=' ';memcpy(thls+9,thermoLastScan+8,6);thls[15]='\0';
+  scrDspText(buf,jsbuf,"min/max du ",0,0);scrDspText(buf,jsbuf,thermoLastBeg,0,0);scrDspText(buf,jsbuf," au ",0,0);scrDspText(buf,jsbuf,thls,0,BRYES);        // période scan
   
   tableBeg(buf,jsbuf,courier,BORDER,BRYES|TRBEG);
   scrDspText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
@@ -1398,7 +1414,6 @@ void thermoShowHtml(EthernetClient* cli)
               }
           tableEnd(buf,jsbuf,BRYES);
 
-        scrGetButFn(buf,jsbuf,"remote_cr_","","remote",ALIC,7,0);                        
         /*
         memset(lith,0x00,LLITH);
         for(int d=0;d<NBDSRV;d++){

@@ -100,6 +100,7 @@ void scrGetNum(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfon
 void scrGetNum(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
 
 void scrGetText(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,int len,uint8_t pol,uint8_t ctl);
+void scrGetText(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t sizfnt,uint8_t pol,uint8_t ctl);
 void scrGetText(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl);
 void scrGetHidden(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t pol,uint8_t ctl);
 

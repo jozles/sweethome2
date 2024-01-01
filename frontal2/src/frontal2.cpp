@@ -123,6 +123,8 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   byte* configBegOfRecord;
   byte* configEndOfRecord;
 
+  char  thermoCurPrev[16];    // antériorité courante
+
 
   bool mailEnable=FAUX;     // interdit les mails si config n'est pas chargé et periCacheLoad n'est pas terminé 
 
@@ -546,6 +548,7 @@ void setup() {                          // ====================================
   sdInit();
 
   configInit();configLoad();configSave();configPrint();
+  memcpy(thermoCurPrev,thermoPrev,14);thermoCurPrev[14]='\0';
     
 /* ---------- load variables du systeme : périphériques, table et noms remotes, 
               timers, détecteurs serveur ---------- */
@@ -2135,11 +2138,22 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
                             default:break;
                           } 
                         }break;
-              case 58:  if(*(libfonctions+2*i+1)=='s'){                                                  // thermoshow
-                          if(scalcTh(now,thermoLastBeg,thermoPrev)==SDOK){                               // update periphériques
-                            memcpy(thermoLastScan,now,15);thermoLastScan[15]='\0';
-                            memcpy(thermoLastPrev,thermoPrev,15);thermoLastPrev[15]='\0';
-                            configSave();}}
+              case 58:  switch(*(libfonctions+2*i+1)){                                                   // thermoshow
+                          /*
+                          case 's': if(scalcTh(now,thermoLastBeg,thermoCurPrev)==SDOK){                  // update periphériques
+                                      memcpy(thermoLastScan,now,15);thermoLastScan[15]='\0';
+                                      memcpy(thermoLastPrev,thermoPrev,15);thermoLastPrev[15]='\0';
+                                      configSave();}
+                                    break;
+                                    */
+                          case 'p': alphaTfr(thermoCurPrev,15,valf,nvalf[i+1]-nvalf[i]);
+                                    if(scalcTh(now,thermoLastBeg,thermoCurPrev)==SDOK){                  // update periphériques
+                                      memcpy(thermoLastScan,now,15);thermoLastScan[15]='\0';
+                                      memcpy(thermoLastPrev,thermoPrev,15);thermoLastPrev[15]='\0';
+                                      configSave();}
+                                    break;
+                          default:  break;
+                        }
                         thermoShowHtml(cli);break;                                                       // thermoshow
               case 59:  thermoCfgHtml(cli);break;                                                        // thermos___ (bouton thermo_cfg)
               case 60:  what=0;{uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;

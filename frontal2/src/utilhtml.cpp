@@ -785,7 +785,7 @@ void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
 
 /* ----------------- saisies (scrGet...) --------------------- */
 
-void scrGetText0(const char* fn,const char* htmlType,char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl)
+void scrGetText0(const char* fn,const char* htmlType,char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t sizfnt,uint8_t pol,uint8_t ctl)
 {
   #define NOSIZE 100
   // -------------------- début traitement js
@@ -815,9 +815,10 @@ void scrGetText0(const char* fn,const char* htmlType,char* buf,char* jsbuf,const
   jscat(jsbuf,valfonct,SEP);
 #endif  
   if(size<NOSIZE){strcat(buf,"\" size=\"");if(size==0){strcat(buf,"2");}else concatn(buf,jsbuf,size);}
-  if(len!=0){strcat(buf,"\" maxlength=\"");    
-  concatn(buf,jsbuf,len);}
-  strcat(buf,"\" >");
+  strcat(buf,"\"");
+  if(sizfnt!=0){strcat(buf," style=\"font-size: ");concatn(buf,sizfnt);strcat(buf,"pt\"");}
+  if(len!=0){strcat(buf," maxlength=\"");concatn(buf,jsbuf,len);strcat(buf,"\" ");}
+  strcat(buf,">");
   fnHtmlEnd(buf,pol,ctl);
 }
 
@@ -826,14 +827,19 @@ void scrGetText(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,
   scrGetText(buf,jsbuf,valfonct,nomfonct,0,len,pol,ctl);
 }
 
+void scrGetText(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t sizfnt,uint8_t pol,uint8_t ctl)
+{
+  scrGetText0(JSATB,"text",buf,jsbuf,valfonct,nomfonct,size,len,sizfnt,pol,ctl);
+}
+
 void scrGetText(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl)
 {
-  scrGetText0(JSATB,"text",buf,jsbuf,valfonct,nomfonct,size,len,pol,ctl);
+  scrGetText0(JSATB,"text",buf,jsbuf,valfonct,nomfonct,size,0,len,pol,ctl);
 }
 
 void scrGetHidden(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t pol,uint8_t ctl)
 {
-  scrGetText0(JSHID,"hidden",buf,jsbuf,valfonct,nomfonct,100,0,pol,ctl);
+  scrGetText0(JSHID,"hidden",buf,jsbuf,valfonct,nomfonct,100,0,0,pol,ctl);
 }
 
 void scrGetNum(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t dec,uint8_t pol,uint8_t ctl)
@@ -1073,6 +1079,7 @@ void scrGetButSub(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t
   fnHtmlIntro(buf,sizfnt,ctl);
   if(aligncenter){strcat(buf,"<p align=\"center\">");}
   strcat(buf,"<input type=\"submit\"");
+  if(sizfnt==1){strcat(buf," text style=\"width:300px;height:60px;font-size:40px\"");}
   if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\" ");}
   strcat(buf," value=\"");
   strcat(buf,lib);

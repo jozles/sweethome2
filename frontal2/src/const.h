@@ -160,7 +160,9 @@
    1.8b nettoyage prints osRem ; ajout bouton refresh idem retour
    1.8c fichiers timers modifié pour mode cyclic (durée on/off) ; mode cyclic non pris en compte
    1.8d mode cyclic fonctionnel ; now et unixnow sont globales et updatées dans la loop ; cli.stop des perifs tcp différé
-   1.8e accélérateur pour thermoshow ; offset  ajouté th aux min/max ; re-branchement cli.stop périfs
+   1.8e re-branchement cli.stop périfs;
+        accélérateur pour thermoshow et debug ; offset  ajouté th aux min/max ; dissociation show et scalc(ajout bouton)
+   
 
 
    BUGS : 
