@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8e"
+#define NVERS ".8f"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -162,7 +162,8 @@
    1.8d mode cyclic fonctionnel ; now et unixnow sont globales et updatées dans la loop ; cli.stop des perifs tcp différé
    1.8e re-branchement cli.stop périfs;
         accélérateur pour thermoshow et debug ; offset  ajouté th aux min/max ; dissociation show et scalc(ajout bouton)
-   
+   1.8f les 5 bits de poids fort de periAnalLow et periAnalHigh sont utilisés pour stocker une consigne analogique pour périf
+        periProg devient periCfg : bit 0 si serveur, bit 1 si consigne Analogique
 
 
    BUGS : 

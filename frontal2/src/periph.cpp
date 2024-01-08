@@ -113,7 +113,7 @@ extern uint32_t*  periSwPulseCurrTwo;           // ptr ds buffer : temps courant
 extern byte*      periSwPulseCtl;               // ptr ds buffer : mode pulses
 extern byte*      periSwPulseSta;               // ptr ds buffer : état clock pulses
 extern uint8_t*   periSwSta;                    // ptr ds buffer : dispo
-extern bool*      periProg;                     // ptr ds buffer : flag "programmable" (périphériques serveurs)
+extern uint8_t*   periCfg;                      // ptr ds buffer : config périf
 extern byte*      periDetNb;                    // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*      periDetVal;                   // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
 extern int16_t*   periThOffset_;                // ptr ds buffer : offset correctif sur mesure température
@@ -123,9 +123,9 @@ extern int16_t*   periVmin_;                    // ptr ds buffer : alarme mini v
 extern int16_t*   periVmax_;                    // ptr ds buffer : alarme maxi volts
 extern byte*      periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*      periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
-extern uint16_t*  periAnal;                     // ptr ds buffer : analog value
-extern uint16_t*  periAnalLow;                  // ptr ds buffer : low analog value 
-extern uint16_t*  periAnalHigh;                 // ptr ds buffer : high analog value 
+extern uint16_t*  periAnal;                     // ptr ds buffer : analog value 
+extern uint16_t*  periAnalLow;                  // ptr ds buffer : low threshold analog value 
+extern uint16_t*  periAnalHigh;                 // ptr ds buffer : high threshold analog value 
 extern uint16_t*  periAnalOffset1;              // ptr ds buffer : offset on adc value
 extern float*     periAnalFactor;               // ptr ds buffer : factor to float for analog value
 extern float*     periAnalOffset2;              // ptr ds buffer : offset on float value
@@ -762,7 +762,7 @@ void  periPrint(uint16_t num)
 
 void periSub(uint16_t num,int sta,bool sd)
 {
-  Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(")status=");Serial.print(sta);Serial.print(";save=");Serial.print(sd);Serial.print(" NbSw=");Serial.print(*periSwNb);Serial.print(" srv=");Serial.print(*periProg);Serial.print(" port=");Serial.println(*periPort);
+  Serial.print(num);Serial.print("/");Serial.print(*periNum);Serial.print(")status=");Serial.print(sta);Serial.print(";save=");Serial.print(sd);Serial.print(" NbSw=");Serial.print(*periSwNb);Serial.print(" cfg=");Serial.print(*periCfg,HEX);Serial.print(" port=");Serial.println(*periPort);
 }
 
 int periCacheLoad(uint16_t num)
@@ -1044,12 +1044,12 @@ void periModification()
       char* new_periNamer=(char*)periNamer-periRec+periRec_New;
       char* new_periPort=(char*)periPort-periRec+periRec_New+ADDED*PERINPLEN;
       char* new_periProtocol=(char*)periProtocol-periRec+periRec_New+ADDED*PERINPLEN;
-      char* new_periProg=(char*)periProg-periRec+periRec_New+ADDED*PERINPLEN;
+      char* new_periCfg=(char*)periCfg-periRec+periRec_New+ADDED*PERINPLEN;
       char* new_periDetNb=(char*)periDetNb-periRec+periRec_New+ADDED*PERINPLEN;
       Serial.print(' ');Serial.print(new_periNamer);Serial.print(' ');Serial.print(*periPort);Serial.print('/');Serial.print(*(uint16_t*)new_periPort);Serial.print(" ");
       Serial.print(*periProtocol);Serial.print('/');Serial.print(*(char*)new_periProtocol);Serial.print(' ');      
       Serial.print(*periDetNb);Serial.print('/');Serial.print(*(uint8_t*)new_periDetNb);Serial.print(' ');      
-      Serial.print(*periProg);Serial.print('/');Serial.print(*(bool*)new_periProg);Serial.print(' ');      
+      Serial.print(*periCfg);Serial.print('/');Serial.print(*(bool*)new_periCfg);Serial.print(' ');      
       */
       char periFile[7];periFname(i,periFile);
       Serial.print(periFile);
@@ -1169,8 +1169,8 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=NBPULSE*sizeof(byte);
   periSwSta=(uint8_t*)temp;
   temp +=sizeof(uint8_t);
-  periProg=(bool*)temp;
-  temp +=sizeof(bool);
+  periCfg=(uint8_t*)temp;
+  temp +=sizeof(uint8_t);
   periDetNb=(byte*)temp;
   temp +=sizeof(byte);
   periDetVal=(byte*)temp;
@@ -1261,8 +1261,8 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   memset(periIpAddr,0x00,4);
   *periSwNb=0;
   *periSwCde=0;
-  *periProg=FAUX;
-  if(*periProg==FAUX){*periPort=0;}
+  *periCfg=0;
+  if((*periCfg&PERI_SERV)==0){*periPort=0;}
   *periDetNb=0;
   *periDetVal=0;
   *periThOffset_=0;
@@ -1420,7 +1420,7 @@ void periModif()
   byte*     IperiSwPulseCtl;              // ptr ds buffer : mode pulses
   byte*     IperiSwPulseTrig;             // ptr ds buffer : durée trig 
   uint8_t*  Idispo;                       // ptr ds buffer : nbre sonde
-  bool*     IperiProg;                    // ptr ds buffer : flag "programmable"
+  uint8_t*  IperiCfg;                     // ptr ds buffer : flags config perif
   byte*     IperiDetNb;                   // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
   byte*     IperiDetVal;                  // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
   
@@ -1475,8 +1475,8 @@ void periModif()
   temp +=MAXSW*sizeof(byte);      
   //dispo=(uint8_t*)temp;
   temp +=sizeof(uint8_t);
-  IperiProg=(bool*)temp;
-  temp +=sizeof(bool);
+  IperiCfg=(uint8_t*)temp;
+  temp +=sizeof(uint8_t*);
   IperiDetNb=(byte*)temp;
   temp +=sizeof(byte);
   IperiDetVal=(byte*)temp;
@@ -1527,7 +1527,7 @@ for(int k=0;k<MAXSW;k++){
   IperiSwPulseTrig[k]= 0;
 }
   *Idispo=            1;
-  *IperiProg=         0;
+  *IperiCfg=          0;
   *IperiDetNb=        *periDetNb;
   *IperiDetVal=       0;
 

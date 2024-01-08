@@ -73,7 +73,7 @@ extern uint32_t* periSwPulseCurrTwo;            // ptr ds buffer : temps courant
 extern byte*     periSwPulseCtl;                // ptr ds buffer : mode pulses 
 extern byte*     periSwPulseSta;                // ptr ds buffer : état clock pulses
 extern uint8_t*  periSwSta;                     // ptr ds buffer : état switchs
-extern bool*     periProg;                      // ptr ds buffer : flag "programmable" 
+extern uint8_t*  periCfg;                       // ptr ds buffer : flag "programmable" 
 extern byte*     periDetNb;                     // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                    // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
 extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
@@ -139,7 +139,7 @@ void perifHeader(char* buf,char* jsbuf)
     strcat(buf,"<font size=\"2\">");
     dm=buf+strlen(buf);
     for(int j=0;j<4;j++){concatn(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}};
-    if(*periProg!=0){strcat(buf," / port=");concatn(buf,*periPort);strcat(buf,"  v");}
+    if((*periCfg&PERI_SERV)!=0){strcat(buf," / port=");concatn(buf,*periPort);strcat(buf,"  v");}
     char* db=buf+strlen(buf);
     db[0]=' ';db++;
     memcpy(db,periVers,LENVERSION);db[LENVERSION]='\0';
@@ -409,7 +409,7 @@ void periTableHtml(EthernetClient* cli)
           
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
           tableBeg(buf,jsbuf,"Courier, sans-serif\"",BORDER,TRBEG|TDBEG);
-          scrDspText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|ver ssid prot~last out~last in|",0,TREND|TDEND);
+          scrDspText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg||nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|ver ssid prot~last out~last in|",0,TREND|TDEND);
           
           strcat(buf,"\n\n");
 
@@ -585,7 +585,7 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
 
                 tableBeg(buf,jsbuf,0);
                       //strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   
-                      scrDspText(buf,jsbuf,"||~periph_name|~TH|~  V |per_t~pth~ofs|per_s~ ~pg|nb~sw~det|._D_ _l~._i_ _e~._s_ _v|mac_addr~ip_addr|version Th~last out~last in",0,TRBE);
+                      scrDspText(buf,jsbuf,"||~periph_name|~TH|~  V |per_t~per_s|pth~ofs|serv~an|nb~sw~det|._D_ _l~._i_ _e~._s_ _v|mac_addr~ip_addr|version Th~last out~last in",0,TRBE);
                       strcat(buf,"\n");
                       scrDspNum(buf,jsbuf,'d',&periCur,0,0,TDBE);
                       char pLFonc[]="perifonc__\0";
@@ -600,11 +600,21 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                       pLFonc[LENNOM-2]='v';scrGetNum(buf,jsbuf,'I',periVmin_,pLFonc,1,5,0,0,BRYES);                       //scrGetNum(buf,jsbuf,'I',periVmin_,"peri_vmin_",1,5,0,0,BRYES);
                       pLFonc[LENNOM-2]='V';scrGetNum(buf,jsbuf,'I',periVmax_,pLFonc,1,5,0,0,TDEND);                       //scrGetNum(buf,jsbuf,'I',periVmax_,"peri_vmax_",1,5,0,0,TDEND);
                       pLFonc[LENNOM-2]='t';scrGetNum(buf,jsbuf,'d',(uint32_t*)periPerTemp,pLFonc,1,5,0,0,BRYES|TDBEG);    //scrGetNum(buf,jsbuf,'d',(uint32_t*)periPerTemp,"peri_rtemp",1,5,0,0,BRYES|TDBEG);
-                      pLFonc[LENNOM-2]='p';scrGetNum(buf,jsbuf,'r',periPitch_,pLFonc,1,4,2,0,BRYES);                      //scrGetNum(buf,jsbuf,'r',periPitch_,"peri_pitch",1,4,2,0,BRYES);
+                      pLFonc[LENNOM-2]='r';scrGetNum(buf,jsbuf,'l',(uint32_t*)periPerRefr,pLFonc,1,5,0,0,TDEND);
+                      pLFonc[LENNOM-2]='p';scrGetNum(buf,jsbuf,'r',periPitch_,pLFonc,1,4,2,0,TDBEG|BRYES);                      //scrGetNum(buf,jsbuf,'r',periPitch_,"peri_pitch",1,4,2,0,BRYES);
                       pLFonc[LENNOM-2]='o';scrGetNum(buf,jsbuf,'r',periThOffset_,pLFonc,1,4,2,0,TDEND);                   //scrGetNum(buf,jsbuf,'r',periThOffset_,"peri_tofs_",1,4,2,0,TDEND);
                       strcat(buf,"\n");
-                      pLFonc[LENNOM-2]='r';scrGetNum(buf,jsbuf,'l',(uint32_t*)periPerRefr,pLFonc,1,5,0,0,TDBEG|BRYES);    //scrGetNum(buf,jsbuf,'l',(uint32_t*)periPerRefr,"peri_refr_",1,5,0,0,TDBEG|BRYES);
-                      pLFonc[LENNOM-2]='P';scrGetCheckbox(buf,jsbuf,(uint8_t*)periProg,pLFonc,NO_STATE,TDEND,"");         //scrGetCheckbox(buf,jsbuf,(uint8_t*)periProg,"peri_prog_",NO_STATE,TDEND,"");
+                          //scrGetNum(buf,jsbuf,'l',(uint32_t*)periPerRefr,"peri_refr_",1,5,0,0,TDBEG|BRYES);
+                      pLFonc[LENNOM-2]='P';uint8_t servFlg=*periCfg&PERI_SERV;if(servFlg!=0){servFlg=0x01;}
+                                           scrDspText(buf,jsbuf,"serv ",0,TDBEG);
+                                           scrGetCheckbox(buf,jsbuf,&servFlg,pLFonc,NO_STATE,BRYES,"");                   //scrGetCheckbox(buf,jsbuf,(uint8_t*)periCfg,"peri_prog_",NO_STATE,TDEND,"");
+                      pLFonc[LENNOM-2]='a';servFlg=*periCfg&PERI_ANAL;if(servFlg!=0){servFlg=0x01;}
+                                           scrDspText(buf,jsbuf,"anal ",0,0);
+                                           scrGetCheckbox(buf,jsbuf,&servFlg,pLFonc,NO_STATE,0,"");
+                      pLFonc[LENNOM-2]='A';if((*periCfg&PERI_ANAL)!=0){                                                   // consigne analogique stockée dans 5 bits de poids fort des limites
+                                           uint16_t value=((*periAnalHigh&0xf800)>>6)+(*periAnalLow>>11);
+                                           scrGetNum(buf,jsbuf,'I',&value,pLFonc,5,0,0,0);}
+                                           scrDspText(buf,jsbuf," ",0,TDEND);
                       pLFonc[LENNOM-2]='i';scrGetNum(buf,jsbuf,'b',periSwNb,pLFonc,1,1,0,0,TDBEG|BRYES);                  //scrGetNum(buf,jsbuf,'b',periSwNb,"peri_intnb",1,1,0,0,TDBEG|BRYES);
                       pLFonc[LENNOM-2]='d';scrGetNum(buf,jsbuf,'b',periDetNb,pLFonc,1,1,0,0,TDEND);                       //scrGetNum(buf,jsbuf,'b',periDetNb,"peri_detnb",1,1,0,0,TDEND);
                       strcat(buf,"\n");
@@ -652,8 +662,10 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                 tableBeg(buf,jsbuf,TRBEG);
                 scrDspText(buf,jsbuf,"val~Low~High",0,TDBE);
                 scrDspNum(buf,jsbuf,(int16_t*)periAnal,&valMin,&valMax,BRYES|TDBEG);
-                scrGetNum(buf,jsbuf,'I',periAnalLow,"peri_ana@",5,0,0,BRYES);
-                scrGetNum(buf,jsbuf,'I',periAnalHigh,"peri_anaA",5,0,0,NOBR|TDEND);
+                uint16_t val=*periAnalLow&0x07ff;
+                scrGetNum(buf,jsbuf,'I',&val,"peri_ana@_",5,0,0,BRYES);
+                val=*periAnalHigh&0x07ff;
+                scrGetNum(buf,jsbuf,'I',&val,"peri_anaA_",5,0,0,NOBR|TDEND);
                 scrDspText(buf,jsbuf,"Off1~Fact~Off2",0,TDBE);
                 scrGetNum(buf,jsbuf,'I',periAnalOffset1,"peri_anaB_",5,0,0,TDBEG|BRYES);
                 scrGetNum(buf,jsbuf,'F',periAnalFactor,"peri_anaC_",2,1,0,4,BRYES);               
@@ -707,20 +719,28 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
           vv=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
           vv=(float)(*periThmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);
+/* volts */
           scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);                   
           vv=(float)(*periVmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
           vv=(float)(*periVmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);               
+/* perTemp/perRefr */
+          scrDspNum(buf,jsbuf,'d',periPerTemp,0,0,TDBEG|BRYES);
+          scrDspNum(buf,jsbuf,'d',(uint16_t*)periPerRefr,0,0,TDEND);
 /* pertemp - pitch - offset */ 
-          scrDspNum(buf,jsbuf,'d',periPerTemp,0,0,STRING|TDBEG|BRYES);
-          vv=(float)(*periPitch_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,STRING|BRYES);
-          vv=(float)(*periThOffset_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,STRING|TDEND);          
-      
-          
-          if(*periProg==0){lctl=STRING|TDEND;}
-          else {lctl=STRING|BRYES;}
-          scrDspNum(buf,jsbuf,'d',(uint16_t*)periPerRefr,0,0,lctl);
-          if(*periProg!=0){scrDspText(buf,jsbuf,"serv",0,STRING|TDEND);}
-            
+          vv=(float)(*periPitch_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDBEG|BRYES);
+          vv=(float)(*periThOffset_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);          
+/* serv/anal */
+          lctl=STRING|BRYES|TDBEG;
+          if(((*periCfg)&PERI_SERV)!=0){scrDspText(buf,jsbuf,"serv",0,lctl);}
+          else{scrDspText(buf,jsbuf," ",0,lctl);}
+          lctl=STRING|TDEND;
+          if(((*periCfg)&PERI_ANAL)!=0){
+            Serial.print("H=");Serial.print(*periAnalHigh);Serial.print(" L=");Serial.print(*periAnalLow);
+            uint16_t val=((*periAnalHigh&0xf800)>>6)+(*periAnalLow>>11);                // consigne analogique stockée dans 5 bits de poids fort des limites
+            Serial.print(" H>>6=");Serial.print((*periAnalHigh&0xf800)>>6);Serial.print(" L>>11=");Serial.println(*periAnalLow>>11);
+            scrDspText(buf,jsbuf,"an ",0,0);scrDspNum(buf,jsbuf,'I',&val,0,0,lctl);}
+          else{scrDspText(buf,jsbuf," ",0,lctl);}
+
           scrDspNum(buf,jsbuf,'s',(uint8_t*)periSwNb,0,0,STRING|BRYES);
           scrDspNum(buf,jsbuf,'s',(uint8_t*)periDetNb,0,0,STRING|TDEND);                                                 
 
@@ -757,7 +777,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             if(k<5){m[k*3+2]='.';}
           }
           scrDspText(buf,jsbuf,m,0,STRING|BRYES);
-          if(*periProg!=0 || *periProtocol=='U'){
+          if((*periCfg&PERI_SERV)!=0 || *periProtocol=='U'){
             scrDspText(buf,jsbuf,"port=",0,STRING|CONCAT);
             scrDspNum(buf,jsbuf,'d',periPort,0,0,STRING|BRYES);}
           else{scrDspText(buf,jsbuf,"",0,STRING|BRYES);}

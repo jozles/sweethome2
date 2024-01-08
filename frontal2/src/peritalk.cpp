@@ -53,7 +53,7 @@ extern uint32_t* periSwPulseCurrTwo;            // ptr ds buffer : temps courant
 extern byte*     periSwPulseCtl;                // ptr ds buffer : mode pulses
 extern byte*     periSwPulseSta;                // ptr ds buffer : état clock pulses
 extern uint8_t*  periSwSta;                     // ptr ds buffer : état des switchs
-extern bool*     periProg;                      // ptr ds buffer : flag "programmable" (périphériques serveurs)
+extern uint8_t*  periCfg;                       // ptr ds buffer : flag "programmable" (périphériques serveurs)
 extern byte*     periDetNb;                     // ptr ds buffer : Nbre de détecteurs maxi 4 (MAXDET)
 extern byte*     periDetVal;                    // ptr ds buffer : flag "ON/OFF" si détecteur (2 bits par détec))
 extern int16_t*  periThOffset_;                 // ptr ds buffer : offset correctif sur mesure température
@@ -97,11 +97,11 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
 
-  if(periCur>0){                                        // si periCur >0 macaddr ok -> set
+  if(periCur>0){                                          // si periCur >0 macaddr ok -> set
     unpackMac(message+strlen(message),periMacr);}
 
   else if(periCur<=0){
-    unpackMac(message+strlen(message),periMacBuf);  // si periCur<=0 plus de place -> ack
+    unpackMac(message+strlen(message),periMacBuf);        // si periCur<=0 plus de place -> ack
     strcat(message,periDiag(periMess));}
 
     strcat(message,"_");
@@ -133,14 +133,14 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
                 v1+=MAXSW+1;
                 //dumpstr((char*)periAnalLow,2);
                 //dumpstr((char*)periAnalHigh,2);
-                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalLow+k));}   // analog Low  2 bytes
+                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalLow+k));}   // mini analog 2 bytes
                 v1+=4;
-                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalHigh+k));}  // analog High 2 bytes
+                for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalHigh+k));}  // maxi analog 2 bytes
                 v1+=4;
                 memcpy(message+v1,"_\0",2);         
                 v1+=1;
 
-      if(*periProg!=0){
+      if(((*periCfg)&PERI_SERV)!=0){
 
           if(fonct!=nullptr && memcmp(fonct,"sw",2)!=0 && memcmp(fonct,"mds_______",LENNOM)!=0)
           {
@@ -175,7 +175,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
                 sprintf((message+v1),"%04d",v2);                  // periPort
                 memcpy(message+v1+4,"_\0",2);
 
-      }  // periprog != 0
+      }  // periCfg != 0
       strcat(message,diag);                                 // periMess length=LPERIMESS
 
     }  // pericur != 0            
@@ -228,7 +228,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
   //periPrint(periCur);
 
   int ret=MESSCX; // pas de port pas de connexion
-  if(*periProg!=0 && *periPort!=0){
+  if(((*periCfg)&PERI_SERV)!=0 && *periPort!=0){
     charIp(host,(char*)periIpAddr);
   
     Serial.print(millis());Serial.print(" periReq(");Serial.print((char)*periProtocol);
@@ -318,8 +318,8 @@ int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphéri
             IPAddress udpAddress;
             memcpy((char*)(&udpAddress)+4,periIpAddr,4);
             Udp.beginPacket(udpAddress,*periPort);
-            /*Serial.print("sending (");Serial.print(strlen(bufServer));Serial.print(")>");Serial.print(bufServer);
-            Serial.print("< to ");serialPrintIp(periIpAddr);Serial.print(":");Serial.println(*periPort);*/
+            Serial.print("sending (");Serial.print(strlen(bufServer));Serial.print(")>");Serial.print(bufServer);
+            Serial.print("< to ");serialPrintIp(periIpAddr);Serial.print(":");Serial.println(*periPort);
             Udp.write(bufServer,strlen(bufServer));
             Udp.endPacket();
           }
