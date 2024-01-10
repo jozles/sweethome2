@@ -2226,9 +2226,13 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
               case 70:  {uint16_t val=0;
                         switch(*(libfonctions+2*i)){                                                     // analog_
                           case '@': conv_atob(valf,&val);                                                // maxi 2^11
-                                    *periAnalLow&=0xf800;val&=0x07ff;*periAnalLow+=val;break;            // 5 bits poids fort réservés pour consigne analogique
+                                    if((*periCfg&PERI_ANAL)!=0){*periAnalLow&=0xf800;val&=0x07ff;}
+                                    else{*periAnalLow=0;}
+                                    *periAnalLow+=val;break;            // 5 bits poids fort réservés pour consigne analogique
                           case 'A': conv_atob(valf,&val);                                                // maxi 2^11
-                                    *periAnalHigh&=0xf800;val&=0x07ff;*periAnalHigh+=val;break;          // 5 bits poids fort réservés pour consigne analogique
+                                    if((*periCfg&PERI_ANAL)!=0){*periAnalHigh&=0xf800;val&=0x07ff;}
+                                    else{*periAnalHigh=0;}
+                                    *periAnalHigh+=val;break;           // 5 bits poids fort réservés pour consigne analogique
                           case 'B': *periAnalOffset1=0;conv_atob(valf,periAnalOffset1);break;
                           case 'C': *periAnalFactor=0;*periAnalFactor=convStrToNum(valf,&j);break;
                           case 'D': *periAnalOffset2=0;*periAnalOffset2=convStrToNum(valf,&j);break;
