@@ -1,7 +1,7 @@
 #ifndef _NRF_CONST_INCLUDED
 #define _NRF_CONST_INCLUDED
 
-#define VERSION "1.a "
+#define VERSION "1.b "
 #define LENVERSION 4
 
 #include <shconst2.h>
@@ -54,7 +54,8 @@ v1.9  configs concentrateurs et périfs nrf chargées via Serial1 depuis le serv
       concNb indique le numéro de concentrateur pour la config série des concentrateurs et périphériques concentrés.
       Les paramètres des périfs sont chargés ou non dans la config du serveur selon keep/new.
       La totalité des paramètres de toutes les machines sont définis dans la config du serveur. v1.57 finale de frontal2
-v1.a        
+v1.a
+v1.b  le concentrateur transfère les consignes analogiques        
 */
 
 /************* config ****************/

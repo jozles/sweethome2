@@ -153,6 +153,24 @@ uint16_t getServerConfig()
     
     return rcvl;
 }
+
+void configCreate()       // valeurs pour concentrateur de test 
+{
+  serverIp[0]=192;serverIp[1]=168;serverIp[2]=0;serverIp[3]=36;
+  *serverTcpPort=1786;
+  *serverUdpPort=8886;
+  memcpy(peripass,"17515A\0\0",8);
+  memcpy(concMac,"\x72\x37\x68\x30\xFD\xFD",6);            
+  concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=216;
+  *concPort=55558;
+  memcpy(concRx,"SHCO2",RADIO_ADDR_LENGTH);
+  *concChannel=100;
+  *concRfSpeed=0;
+  *concNb=2;
+
+  configSave();
+}
+
 #endif // NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'

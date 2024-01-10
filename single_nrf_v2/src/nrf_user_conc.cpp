@@ -170,9 +170,7 @@ void userResetSetup(byte* serverIp)
  
   Serial.print(" Ethernet begin mac=");serialPrintMac(concMac,0);
   
-  trigwd();
   if(Ethernet.begin(concMac) == 0){
-    trigwd();
     Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(concIp);Serial.println();
     for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.print((IPAddress)localIp);Serial.println();
     Ethernet.begin (concMac, localIp); 
@@ -406,6 +404,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);} // data_save_ -> ack
     buildMess(fonctName,message,"");                                    // buld message for server
 
+    Serial.println(bufServer);
     t3_0=micros();                                                      // fin buildMess
 
 /* send to server */
@@ -465,7 +464,10 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         int eds=99;
         if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
         else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}    // if numPeri doesnt match message -> error
-        else {eds=radio.extDataStore(nP,numT,indata+MPOSPERREFR,SBLINIT);} // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+        else {
+          eds=radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16); // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+          eds=radio.extDataStore(nP,numT,16,indata+MPOSPERREFR+16+5,9); // min/max analogique (incluse consigne dans 5 bits de poids fort ; voir frontal2)
+        }
         t2_1=micros();                                                    
         
         if(diags){                
@@ -482,6 +484,20 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         }
   }
   return periMess;
+}
+
+void testExport()
+{
+  uint8_t testPeri=1;
+  tableC[testPeri].periBufLength=MAX_PAYLOAD_LENGTH;
+  memset(tableC[testPeri].periBuf,' ',MAX_PAYLOAD_LENGTH-1);
+  *(tableC[testPeri].periBuf+MAX_PAYLOAD_LENGTH-1)='\0';
+  memcpy(tableC[testPeri].periBuf+6,VERSION,LENVERSION);
+  memcpy(tableC[testPeri].periBuf+6+LENVERSION,"x",1);
+  memcpy(tableC[testPeri].periBuf+6+LENVERSION+1,"0500",4);     // volts
+  memcpy(tableC[testPeri].periBuf+6+LENVERSION+1+4,"003999",6);   // température
+  Serial.println(tableC[testPeri].periBuf);
+  exportData(testPeri);  // test présence serveur avec périf virtuel des broadcast
 }
 
 #endif // DETS

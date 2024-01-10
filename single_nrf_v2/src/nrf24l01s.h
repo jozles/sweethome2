@@ -133,8 +133,8 @@ struct NrfConTable
   bool    periBufSent;
 };
 
-#define SBVINIT "00072_00024_0025"  // server buffer init value
-#define SBLINIT 16                  // server buffer init length
+#define SBVINIT "00072_00024_0025_00000000"  // server buffer init value
+#define SBLINIT 25                           // server buffer init length (MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1)
 
 #endif // NRF_MODE == 'C'
 
@@ -176,7 +176,7 @@ class Nrfp
     void    tableCPrint();
     uint8_t cRegister(char* message);
     uint8_t macSearch(char* mac,int* numPer);
-    uint8_t extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len);
+    uint8_t extDataStore(uint8_t numPer,uint8_t offset,uint8_t numT,char* data,uint8_t len);
 #endif // NRF_MODE == 'C'
 
   private:

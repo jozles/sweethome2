@@ -599,19 +599,19 @@ uint8_t Nrfp::macSearch(char* mac,int* numPer)    // search mac in tableC ; out 
   return i;
 }
 
-uint8_t Nrfp::extDataStore(uint8_t numPer,uint8_t numT,char* data,uint8_t len)
+uint8_t Nrfp::extDataStore(uint8_t numPer,uint8_t numT,uint8_t offset,char* data,uint8_t len)
 {
   if(numT>NBPERIF){return EDS_STAT_PER;}
   if(len>BUF_SERVER_LENGTH || len>MAX_PAYLOAD_LENGTH){return EDS_STAT_LEN;}
 
   tableC[numT].numPeri=numPer;
-  if(len>MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1){len=MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1;}
+  if((len+offset)>MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1){len=MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1;}
   if(len!=0){
-    tableC[numT].servBufLength=len;
-    memcpy(tableC[numT].servBuf,data,len);}
+    tableC[numT].servBufLength=len+offset;
+    memcpy(tableC[numT].servBuf+offset,data,len);}
   else{
-    tableC[numT].servBufLength=SBLINIT;
-    memcpy(tableC[numT].servBuf,SBVINIT,SBLINIT);}
+    tableC[numT].servBufLength=MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1;
+    memcpy(tableC[numT].servBuf+offset,SBVINIT,SBLINIT);}
 
   return EDS_STAT_OK;
 }
@@ -626,8 +626,10 @@ void Nrfp::tableCPrint()
     Serial.print(tableC[i].periBufLength);Serial.print("/");
     Serial.print(tableC[i].periBufSent);Serial.print(") ");
     Serial.print(tableC[i].periBuf);Serial.print(" (");
+    
     Serial.print(tableC[i].servBufLength);Serial.print(")");
     Serial.print(tableC[i].servBuf);Serial.print(" ");
+    
     Serial.println();
   }
 }

@@ -229,7 +229,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\n+");
 
-  initLed();
+  initLed(PINLED,LEDOFF,LEDON);
   
   configInit();
   configLoad();
@@ -325,8 +325,10 @@ void setup() {
 
   configInit();
 
-  initLed();
+  initLed(PINLED,LEDOFF,LEDON);
   blink(4);
+
+  //configCreate();while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
 
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
@@ -367,7 +369,10 @@ void setup() {
   time_beg=millis();  
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
 
+  testExport();
+
 #endif // NRF_MODE == 'C'
+
 
   Serial.println("end setup\n");delay(1);
  

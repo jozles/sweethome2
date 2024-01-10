@@ -19,5 +19,7 @@ void configInit();
 bool configLoad();
 void configSave();
 void configPrint();
+void configCreate();
+void testExport();
 
 #endif // CONFIG INCLUDED
