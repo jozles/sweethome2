@@ -261,7 +261,7 @@ void iniDetServ()
     (voir periInit() pour l'ordre physique des champs + periSave et periLoad=
 */
   char      periRec[PERIRECLEN];                // 1er buffer de l'enregistrement de périphérique
-  char      periCache[PERIRECLEN*(NBPERIF+1)];  // cache des périphériques  
+  char      periCache[PERIRECLEN*(NBPERIF+1)];  // cache des périphériques - la ligne supplémentaire est utilisée par periCheck()
   bool      periCacheStatus[(NBPERIF+1)];       // indicateur de validité du cache d'un périph  (vaut CACHEISFILE si cache==fichier)
   
   uint16_t  periCur=0;                      // Numéro du périphérique courant
@@ -2494,7 +2494,7 @@ void serialServer()
       setExpEnd(bec);
       Serial.println("conc ");//dumpstr(bec,300);      
     }
-    if(memcmp(serialBuf,PERICONF,10)==0){
+    if(memcmp(serialBuf,PERICFG,10)==0){
       periImport(serialBuf+10);
       memset(bec,0x00,LBEC);memcpy(bec,"0000;",5);  // len
       periExport(bec,*concNb);

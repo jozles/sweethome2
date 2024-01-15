@@ -580,6 +580,7 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
 /* ligne périphérique */                
 
                 periInitVar();periLoad(periCur);
+
                 if(*periSwNb>MAXSW){periCheck(periCur,"perT");periInitVar();periSave(periCur,PERISAVESD);}
                 if(*periDetNb>MAXDET){periCheck(periCur,"perT");periInitVar();periSave(periCur,PERISAVESD);}
 
@@ -618,6 +619,9 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                       pLFonc[LENNOM-2]='i';scrGetNum(buf,jsbuf,'b',periSwNb,pLFonc,1,1,0,0,TDBEG|BRYES);                  //scrGetNum(buf,jsbuf,'b',periSwNb,"peri_intnb",1,1,0,0,TDBEG|BRYES);
                       pLFonc[LENNOM-2]='d';scrGetNum(buf,jsbuf,'b',periDetNb,pLFonc,1,1,0,0,TDEND);                       //scrGetNum(buf,jsbuf,'b',periDetNb,"peri_detnb",1,1,0,0,TDEND);
                       strcat(buf,"\n");
+                
+                ethWrite(cli,buf,&lb);
+
                       pLFonc[LENNOM-2]='W';
                       char oi[]={"OI"};
                       uint8_t lctl=TDBEG;
