@@ -96,7 +96,7 @@ char c;         // pour macros TCP/UDP
 
 /* user fields */
 
-  char model[]={"D32800"};
+  extern unsigned long perConc;
 
 #define LBODY 6 // "<body>"
   extern char bufServer[BUF_SERVER_LENGTH];
@@ -114,7 +114,7 @@ char c;         // pour macros TCP/UDP
 /* importDSata & getHData times */
 
   unsigned long t1;     // beg importData()
-  unsigned long t1_0;   // MESSCX
+  unsigned long t1_0;   // MESSCX  
   unsigned long t1_01;  // udpRead()
   unsigned long t1_1;   // MESSLEN got '<body>'
   unsigned long t1_2;   // MESSLEN got len
@@ -320,7 +320,7 @@ int getHData(char* data,uint16_t* len)
   return MESSLEN;
 }
 
-int exportData(uint8_t numT)                            // formatting periBuf data in bufServer 
+int exportData(uint8_t numT,char* modelName)                            // formatting periBuf data in bufServer 
                                                         // sending bufServer to server 
 {
 
@@ -383,18 +383,21 @@ int exportData(uint8_t numT)                            // formatting periBuf da
 
       for(i=0;i<NBPULSE;i++){message[sb+i]='0';} //chexa[staPulse[i]];}
       memcpy(message+sb+NBPULSE,"_\0",2);                               // clock pulse status          - 5
-      sb+=NBPULSE+1;
+      sb+=NBPULSE+1; 
 
-char model[LENMODEL];
+char model[LENMODEL+1];
 
   model[0]='D'; //CARTE;
   model[1]='D'; //POWER_MODE;
   model[2]='_'; //CONSTANT;
   model[3]='1';
   model[4]=(char)(NBSW+48);
-  model[5]=(char)(NBDET+48);  
+  model[5]=(char)(NBDET+48);
+  model[LENMODEL]='\0'; 
 
-      memcpy(message+sb,model,LENMODEL);
+char* mm=model;if(modelName!=nullptr){mm=modelName;}
+
+      memcpy(message+sb,mm,LENMODEL);
       memcpy(message+sb+LENMODEL,"_\0",2);
       sb+=LENMODEL+1;
 
@@ -430,6 +433,10 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     return periMess;
 }
 
+void exportData(uint8_t numT)
+{
+  exportData(numT,nullptr);
+}
 
 int  importData(uint32_t* tLast) // reçoit un message du serveur
                                  // update tLast
@@ -466,6 +473,8 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}    // if numPeri doesnt match message -> error
         else {
           eds=radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16); // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+          uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,6);perConc=pp*1000;
+
           eds=radio.extDataStore(nP,numT,16,indata+MPOSPERREFR+16+5,9); // min/max analogique (incluse consigne dans 5 bits de poids fort ; voir frontal2)
         }
         t2_1=micros();                                                    
@@ -488,16 +497,17 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
 
 void testExport()
 {
+  char concName[LENMODEL+1]={'C','O','N','C','_','\0','\0'};concName[LENMODEL-1]=*concNb+48;
   uint8_t testPeri=1;
   tableC[testPeri].periBufLength=MAX_PAYLOAD_LENGTH;
   memset(tableC[testPeri].periBuf,' ',MAX_PAYLOAD_LENGTH-1);
   *(tableC[testPeri].periBuf+MAX_PAYLOAD_LENGTH-1)='\0';
   memcpy(tableC[testPeri].periBuf+6,VERSION,LENVERSION);
   memcpy(tableC[testPeri].periBuf+6+LENVERSION,"x",1);
-  memcpy(tableC[testPeri].periBuf+6+LENVERSION+1,"0500",4);     // volts
-  memcpy(tableC[testPeri].periBuf+6+LENVERSION+1+4,"003999",6);   // température
+  memcpy(tableC[testPeri].periBuf+6+LENVERSION+1,"0.00",4);       // volts
+  memcpy(tableC[testPeri].periBuf+6+LENVERSION+1+4,"+00.00",6);   // température
   Serial.println(tableC[testPeri].periBuf);
-  exportData(testPeri);  // test présence serveur avec périf virtuel des broadcast
+  exportData(testPeri,concName);  // test présence serveur avec périf virtuel des broadcast
 }
 
 #endif // DETS

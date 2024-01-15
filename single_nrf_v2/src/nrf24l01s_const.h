@@ -55,15 +55,16 @@ v1.9  configs concentrateurs et périfs nrf chargées via Serial1 depuis le serv
       Les paramètres des périfs sont chargés ou non dans la config du serveur selon keep/new.
       La totalité des paramètres de toutes les machines sont définis dans la config du serveur. v1.57 finale de frontal2
 v1.a
-v1.b  le concentrateur transfère les consignes analogiques        
+v1.b  le concentrateur transfère les consignes analogiques et envoit des messages de présence au serveur (apparait dans periTable)
+      dev en cours du controle des radiateurs
 */
 
 /************* config ****************/
 
 //#define NOCONFSER
   
-  #define NRF_MODE 'P'            //  P périphérique
-  //#define NRF_MODE 'C'            //  C concentrateur  
+  //#define NRF_MODE 'P'            //  P périphérique
+  #define NRF_MODE 'C'            //  C concentrateur  
 /* !!!!!! changer de platformio.ini selon le NRF_MODE ('C'=due ou stm32 ; 'P' =328 !!!!! */
 
   #define TXRX_MODE 'U'           // TCP / UDP

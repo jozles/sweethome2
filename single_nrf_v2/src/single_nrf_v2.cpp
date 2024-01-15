@@ -121,8 +121,11 @@ bool menu=true;
 
 char    bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
 
-unsigned long timeImport=0;        // timer pour Import (si trop fréquent, buffer pas plein         
-unsigned long tLast=0;             // date unix dernier message reçu 
+unsigned long concTime=millis();    // timer pour export de présence vers le serveur
+unsigned long perConc=60000;        // période pour export de présence
+
+unsigned long timeImport=0;         // timer pour Import (si trop fréquent, buffer pas plein         
+unsigned long tLast=0;              // date unix dernier message reçu 
 #define PERIMPORT 100
 
 #define LDIAGMESS 80
@@ -182,12 +185,12 @@ float     period;
 float temp;
 float previousTemp=-99.99;
 float deltaTemp=0.25;
+char  userData[4];
 bool  thSta=true;                     // temp validity
 char  thermo[]={THERMO};              // thermo name text
 char  thN;                            // thermo code for version
 
 void sleepNoPwr(uint8_t durat);
-void initConf();
 void configPrint();
 int  beginP();
 void echo();
@@ -199,7 +202,7 @@ void int_ISR()
   extTimer=true;
   //Serial.println("int_ISR");
 }
-void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print(" /");Serial.print(nbK);Serial.println("ko");delay(5);}
+void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(5);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);}
 #endif // NRF_MODE == 'P'
@@ -233,6 +236,7 @@ void setup() {
   
   configInit();
   configLoad();
+  configPrint();
 
   radio.locAddr=periRxAddr;
   radio.ccAddr=concAddr;
@@ -441,7 +445,7 @@ void loop() {
     }
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
-    memset(message,0x00,MAX_PAYLOAD_LENGTH);memset(message,0x20,NRF_ADDR_LENGTH+1);
+    memset(message,0x00,MAX_PAYLOAD_LENGTH+1);memset(message,0x20,NRF_ADDR_LENGTH+1);
 
     uint8_t outLength=NRF_ADDR_LENGTH+1;                              // perifx     - 6
     memcpy(message+outLength,VERSION,LENVERSION);                     // version    - 4
@@ -453,7 +457,7 @@ void loop() {
     //outLength+=9;                                                     //            - 9
  
     messageBuild((char*)message,&outLength);                          // add user data 
-    memcpy(message,periRxAddr,NRF_ADDR_LENGTH);                         // macAddr
+    memcpy(message,periRxAddr,NRF_ADDR_LENGTH);                       // macAddr
     message[NRF_ADDR_LENGTH]=numT+48;                                 // numéro du périphérique
     message[outLength]='\0';
 
@@ -609,13 +613,20 @@ void loop() {
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
   //            update tLast (last unix date)
 
-    int dt=importData(&tLast);
+  int dt=MESSCX;
+  if(rdSta==AV_EMPTY){                  // import quand rien n' a été reçu des périfs
+    dt=importData(&tLast);
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
 #ifdef DIAG
   if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
 #endif // DIAG
+  }
 
+  // ====== si rien reçu des périfs et rien du serveur, éventuel message de présence ====
 
+  if(rdSta==AV_EMPTY && dt==MESSCX){
+    if((millis()-concTime)>=perConc){concTime=millis();testExport();}
+  }
 
   // ====== menu choice ======  
   
@@ -761,12 +772,13 @@ int beginP()                        // manage registration ; output value >0 is 
     confSta=radio.pRegister(messageIn,&pldLength);  // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
                                                     // 0 na ; >=1 ok numT
     radio.powerOff();                    
-    if(diags){
-      unsigned long localTdiag=micros();          
-      Serial.print("\nbeginP ");        // après pReg pour que la sortie n'interfère pas avec les tfr SPI
-      Serial.print(confSta);Serial.print(" ");delay(2);    
-      tdiag+=(micros()-localTdiag);
-    }
+
+    if(diags){          
+      unsigned long localTdiag=micros();
+      Serial.print("\nbeginP");
+      tdiag+=(micros()-localTdiag);}    // après pReg pour que la sortie n'interfère pas avec les tfr SPI
+    Serial.print("##");Serial.print(confSta);delay(1);                                                        
+    
     if(confSta>0){
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
@@ -1032,10 +1044,12 @@ void prt(const char* d)
 bool checkTemp()
 {
   if( temp>(previousTemp+deltaTemp) ){                                
-    prt(">");previousTemp=temp-(deltaTemp/2);
+    //prt(">");
+    previousTemp=temp-(deltaTemp/2);
     return true;}
   else if( temp<(previousTemp-deltaTemp) ){
-    prt("<");previousTemp=temp+(deltaTemp/2);
+    //prt("<");
+    previousTemp=temp+(deltaTemp/2);
     return true;}
   return false;
 }

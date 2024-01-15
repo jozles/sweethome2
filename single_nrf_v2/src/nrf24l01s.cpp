@@ -393,7 +393,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
         *pldLength=SPI.transfer(0xff);            // get pldLength (dynamic length)
         CSN_HIGH      
     }
-    else {err=AV_EMPTY;} //AV_NBPIP;}                          // ---------------- pipe nb error
+    else {err=AV_EMPTY;} //AV_NBPIP;}             // ---------------- pipe nb error
     
     if(((*pldLength>maxLength) || (*pldLength<=0)) && err==0){
       err=AV_LMERR;}                              // ---------------- pldLength error

@@ -30,7 +30,7 @@ extern float   temp;
 extern float   deltaTemp;
 extern bool    thSta;
 extern float   period;
-
+extern char    userData[4];
 
 /* cycle functions */
 
@@ -46,11 +46,11 @@ void messageBuild(char* message,uint8_t* messageLength)
 {
   /* Here add user data >>> be carefull to not override 32 bytes <<< */
   
-    Serial.print(" ");Serial.print(volts);
+    //Serial.print(" ");Serial.print(volts);
     dtostrf(volts,4,2,(char*)(message+*messageLength));             //          - 4                    
     (*messageLength)+=4;                                            // power voltage
 
-    Serial.print("V ");Serial.print(temp);Serial.print("°");
+    //Serial.print("V ");Serial.print(temp);Serial.print("°");
     char s='+';if(temp<0){s='-';}
     message[*messageLength]=s;
 
@@ -90,12 +90,15 @@ void importData(byte* data,uint8_t dataLength)
     deltaTemp=(convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead))/100;    // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
                                                                                 // devrait être convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead)/100;
                                                                                 // vérifier srt...   
+    srt+=sizeRead;
+    for(uint8_t k=0;k<2;k++){conv_atoh((char*)(data+NRF_ADDR_LENGTH+1+srt+k*2),(byte*)userData[k]);}
     if(diags){
     Serial.print("\n£ ");
     Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS com nb ; nbL loop nb
     for(uint8_t ii=0;ii<dataLength;ii++){Serial.print((char)data[ii]);delayMicroseconds(100);}Serial.print(" ");
     Serial.print("per_s=");Serial.print(perRefr);Serial.print(" per_t=");Serial.print(perTemp);Serial.print(" period=");Serial.print(period);                                                                                   
     Serial.print(" aw_min=");Serial.print(aw_min);Serial.print(" aw_ok=");Serial.print(aw_ok);Serial.print(" pth=");Serial.print(deltaTemp);
+    Serial.print(" usr=");dumpfield(userData,2);
     delay(4);
     Serial.println(" £");                                                                                   
     }

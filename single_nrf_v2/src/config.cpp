@@ -156,7 +156,7 @@ uint16_t getServerConfig()
 
 void configCreate()       // valeurs pour concentrateur de test 
 {
-  serverIp[0]=192;serverIp[1]=168;serverIp[2]=0;serverIp[3]=36;
+  serverIp[0]=192;serverIp[1]=168;serverIp[2]=0;serverIp[3]=31;
   *serverTcpPort=1786;
   *serverUdpPort=8886;
   memcpy(peripass,"17515A\0\0",8);
