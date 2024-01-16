@@ -370,20 +370,16 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
     if(periCur==0){                                                 // si periCur=0 recherche si mac connu   
       for(i=1;i<=NBPERIF;i++){                                      // et, au cas où, une place libre
         periLoad(i);
-        //if(compMac(periMacBuf,periMacr)){
         if(memcmp(periMacBuf,periMacr,6)==0){
-          periCur=i;i=NBPERIF+1;
-          //Serial.println(" DataRead/Save Mac connu");
-        }                                                           // mac trouvé
-        if((memcmp("\0\0\0\0\0\0",periMacr,6)==0 || memcmp("      ",periMacr,6)==0) && perizer==0){
-          perizer=i;
-          //Serial.println(" DataRead/Save place libre");
-        }        // place libre trouvée
+          periCur=i;break;}                                         // mac trouvé
+        if(memcmp("\0\0\0\0\0\0",periMacr,6)==0 && perizer==0){
+          perizer=i;}        // place libre trouvée
       }
     }
 
     if(periCur==0 && perizer!=0){                                   // si pas connu utilisation N° perif libre "perizer"
-      periInitVar();periCur=perizer;
+      //periInitVar();
+      periCur=perizer;
       Serial.print(" DataRead/Save nouveau périphérique :");Serial.println(perizer);
     }  
     else if(periCur==0 && perizer==0){
@@ -403,7 +399,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
 
     k=valf+PNP;
     if(periCur!=0){                                                 // si ni trouvé, ni place libre, periCur=0 
-      memcpy(periMacr,periMacBuf,6);
+      if(periCur==perizer){memcpy(periMacr,periMacBuf,6);}
       char date14[LNOW];ds3231.alphaNow(date14);checkdate(0);packDate(periLastDateIn,date14+2);checkdate(1);            // maj dates
 
       messLen-=(PNP+5);                                             // PNP + (4 length +1) longueur hors CRC si message terminé
@@ -443,7 +439,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       }
       messLen-=(NBPULSE+1);if(messLen>0){
         k+=NBPULSE+1;
-        for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}                               // model
+        if(periCur==perizer){for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}}         // model
       }
       messLen-=(LENMODEL+1);
       if(messLen>(int)(NBPULSE*sizeof(uint32_t)*2)){

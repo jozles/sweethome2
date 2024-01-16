@@ -1393,7 +1393,7 @@ void thermoShowHtml(EthernetClient* cli)
               for(int nuth=0;nuth<NBTHERMOS;nuth++){
                 periCur=thermos[nuth].peri;
                 if(periCur!=0){
-                  periInitVar();periLoad(periCur);
+                  periLoad(periCur);
 
                   if(periMacr[0]!=0x00){
                     ni++;

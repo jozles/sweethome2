@@ -579,10 +579,11 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
 
 /* ligne périphérique */                
 
-                periInitVar();periLoad(periCur);
+                //periInitVar();
+              if(periLoad(periCur)==SDOK){
 
-                if(*periSwNb>MAXSW){periCheck(periCur,"perT");periInitVar();periSave(periCur,PERISAVESD);}
-                if(*periDetNb>MAXDET){periCheck(periCur,"perT");periInitVar();periSave(periCur,PERISAVESD);}
+                if(*periSwNb>MAXSW){periCheck(periCur,"perT");*periSwNb=MAXSW;periSave(periCur,PERISAVESD);}
+                if(*periDetNb>MAXDET){periCheck(periCur,"perT");*periDetNb=MAXDET;periSave(periCur,PERISAVESD);}
 
                 tableBeg(buf,jsbuf,0);
                       //strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   
@@ -697,11 +698,12 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                   subCbdet(buf,jsbuf,cli,1,"Digital Inputs Rules","rul_dig___",*periDetNb,dLibState,DIGITSIZLIB,NBRULOP,LENRULOP,rulop,optNam0,periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo,&lb);
                 }
                 
-            htmlEnd(buf,jsbuf);
+              }
+              htmlEnd(buf,jsbuf);
 
-            ethWrite(cli,buf,&lb);
+              ethWrite(cli,buf,&lb);
 
-            bufLenShow(buf,jsbuf,lb,begTPage);
+              bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
 void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate,uint16_t* lb)
@@ -710,8 +712,8 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
   float vv=0;
       periLoad(numline);
       periCur=numline;
-      if(*periSwNb>MAXSW){periInitVar();periSave(numline,PERISAVESD);}  
-      if(*periDetNb>MAXDET){periInitVar();periSave(numline,PERISAVESD);}
+      if(*periSwNb>MAXSW){*periSwNb=MAXSW;periSave(numline,PERISAVESD);}  
+      if(*periDetNb>MAXDET){*periDetNb=MAXDET;periSave(numline,PERISAVESD);}
 
 /* line form header */
           formIntro(buf,jsbuf,0,TRBEG);

@@ -1015,7 +1015,7 @@ void periModification()
   }
   
   periInit();
-  periInitVar();
+  
   for(uint16_t i=1;i<=NBPERIF;i++){
   //for(uint16_t i=3;i<=3;i++){    
     if(periLoadDirect(i)!=SDOK){Serial.println(" load KO");}

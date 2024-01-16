@@ -1630,7 +1630,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
     Pratiquement voir les paramètres NBVAL LENVAL LVAL LBUFSERVER etc...
     
 */
-        periInitVar();        // pas de rémanence des données des périphériques entre 2 accès au serveur
+        //periInitVar();        // pas de rémanence des données des périphériques entre 2 accès au serveur
 
         memset(strHisto,0x00,sizeof(strHisto)); memset(buf,0,sizeof(buf));charIp(strHisto,(char*)&remote_IP);        // histo :
         sprintf(buf,"%d",nbreparams+1);strcat(strHisto," ");strcat(strHisto,buf);strcat(strHisto," = ");             // une ligne par transaction
