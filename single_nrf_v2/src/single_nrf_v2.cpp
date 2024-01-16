@@ -554,7 +554,7 @@ void loop() {
         if(numT<(NBPERIF)){                             // registration ok
           rdSta=numT;                                   // entry is valid -> rdSta >0              
           radio.printAddr((char*)tableC[numT].periMac,' ');
-          if(diags){Serial.print(" registred as ");Serial.println(numT);}                  // numT = 0-(NBPERIF-1) ; rdSta=numT
+          if(diags){Serial.print(" registred as ");Serial.print(numT);}                  // numT = 0-(NBPERIF-1) ; rdSta=numT
         }
         else if(numT==(NBPERIF+2)){if(diags){Serial.println(" MAX_RT ... deleted");}}      // numT = NBPERIF+2 ; rdSta=0
         else {if(diags){Serial.println(" full");}}                                         // numT = NBPERIF   ; rdSta=0
@@ -607,7 +607,9 @@ void loop() {
     showRx(false);
     showErr(true);}
   
-  if(diags){if(rdSta!=AV_EMPTY){Serial.print("rd=");Serial.print(rdSta);Serial.print(" tr=");Serial.print(trSta);Serial.print(" rx+tx+export=");Serial.println(micros()-time_beg);}}
+  if(diags){if(rdSta!=AV_EMPTY){
+    //Serial.print("rd=");Serial.print(rdSta);Serial.print(" tr=");Serial.print(trSta);
+    Serial.print(" rx+tx+export(micros)=");Serial.println(micros()-time_beg);}}
 
   // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
@@ -624,8 +626,8 @@ void loop() {
 
   // ====== si rien reçu des périfs et rien du serveur, éventuel message de présence ====
 
-  if(rdSta==AV_EMPTY && dt==MESSCX){
-    if((millis()-concTime)>=perConc){concTime=millis();testExport();}
+  if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){
+    if((millis()-concTime)>=perConc){concTime=millis();testExport();Serial.println("Exp_conc");}
   }
 
   // ====== menu choice ======  

@@ -111,7 +111,7 @@ char c;         // pour macros TCP/UDP
 
   char getHDmess[1000];
 
-/* importDSata & getHData times */
+/* importData & getHData times */
 
   unsigned long t1;     // beg importData()
   unsigned long t1_0;   // MESSCX  
@@ -423,11 +423,13 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
       else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup(serverIp);t3_2=micros();}}}       // si connecté fin sinon redémarrer ethernet
 
     if(diags){
+    
     Serial.print(" periMess=");Serial.print(periMess);
     Serial.print(" buildmess=");Serial.print(t3_0-t3);
     Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
     Serial.print(" userResetSetup=");Serial.println(t3_2-t3_1);
     //Serial.print("    ");Serial.println(bufServer);
+    
     }
     
     return periMess;
@@ -473,7 +475,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}    // if numPeri doesnt match message -> error
         else {
           eds=radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16); // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-          uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,6);perConc=pp*1000;
+          uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
 
           eds=radio.extDataStore(nP,numT,16,indata+MPOSPERREFR+16+5,9); // min/max analogique (incluse consigne dans 5 bits de poids fort ; voir frontal2)
         }
@@ -481,14 +483,17 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         
         if(diags){                
         Serial.print(">>> getHD ");
-        Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
-        Serial.print("/");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
-        Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
-        Serial.print(" ok=");Serial.println(t1_4);Serial.print("    data=");Serial.println(indata);
-        Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
+        //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
+        //Serial.print("/");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
+        //Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
+        //Serial.print(" ok=");Serial.println(t1_4);
+        Serial.print("    data=");Serial.println(indata);
+        //Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
         Serial.print(" nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);Serial.print(" numPeri=");Serial.print(numPeri);
-        Serial.print(" eds=");Serial.print(eds);Serial.print(" fromServerMac=");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
-        Serial.print(" print diag=");Serial.print(micros()-t2_1);
+        //Serial.print(" eds=");Serial.print(eds);Serial.print(" fromServerMac");
+        Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
+        //Serial.print(" perConc=");Serial.println(perConc);
+        //Serial.print(" print diag=");Serial.print(micros()-t2_1);
         Serial.println();        
         }
   }
@@ -506,7 +511,7 @@ void testExport()
   memcpy(tableC[testPeri].periBuf+6+LENVERSION,"x",1);
   memcpy(tableC[testPeri].periBuf+6+LENVERSION+1,"0.00",4);       // volts
   memcpy(tableC[testPeri].periBuf+6+LENVERSION+1+4,"+00.00",6);   // température
-  Serial.println(tableC[testPeri].periBuf);
+  //Serial.println(tableC[testPeri].periBuf);
   exportData(testPeri,concName);  // test présence serveur avec périf virtuel des broadcast
 }
 
