@@ -1547,6 +1547,8 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
 
 void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 {
+  trigwd();
+  if(ab=='u'){Serial.println(bufData);}
   EthernetClient* cli_debug=cli;    // backup cli pour vérifier sa stabilité
 
       unsigned long cxDur=millis();
