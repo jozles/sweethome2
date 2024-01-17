@@ -1705,7 +1705,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 
         for (i=0;i<=nbreparams;i++){    // boucle de traitement des fonctions ; utiliser i comme pointeur est une foutue mauvaise idée... surtout que c'est une variable globale qu'on peut retrouver n'importe où...
           
-          if(i<NBVAL && i>=0 && periMess==MESSOK){                // si un crc ko fin de la boucle (periMess positionné dans checkData et periDataRead)
+          if(i<NBVAL && i>=0 && periMess==MESSOK){     // si une anomalie, fin de la boucle (periMess positionné dans checkData et periDataRead)
           
             trigwd();
           
