@@ -818,21 +818,21 @@ void scanThermos()                                                        // pos
     for(th=0;th<NBTHERMOS;th++){
       uint8_t per=(uint8_t)thermos[th].peri;
       if(per!=0){
-        periLoad(per);
+          periLoad(per);
         
-        if( thermos[th].lowenable && *periLastVal_<=thermos[th].lowvalue){                                                        // set low  (tjrs on si<ref)
-          thermos[th].lowstate=1;
-        } else if( thermos[th].lowenable && *periLastVal_>(thermos[th].lowvalue+(thermos[th].lowoffset*thermos[th].lowstate))){   // clr low si > ref+offset*etat prec
-          thermos[th].lowstate=0;}
+          if( thermos[th].lowenable && *periLastVal_<=thermos[th].lowvalue){                                                        // set low  (tjrs on si<ref)
+            thermos[th].lowstate=1;
+          } else if( thermos[th].lowenable && *periLastVal_>(thermos[th].lowvalue+(thermos[th].lowoffset*thermos[th].lowstate))){   // clr low si > ref+offset*etat prec
+            thermos[th].lowstate=0;}
         
-        detSta[thermos[th].lowdetec]+=thermos[th].lowstate;
+          detSta[thermos[th].lowdetec]+=thermos[th].lowstate;
         
-        if( thermos[th].highenable && *periLastVal_>=thermos[th].highvalue){                                                      // set high (tjrs on si>ref)
-          thermos[th].highstate=1;
-        } else if(thermos[th].highenable && *periLastVal_<(thermos[th].highvalue-thermos[th].highoffset*thermos[th].highstate)){  // clr high si < ref+offset*etat prec
-          thermos[th].highstate=0;}
+          if( thermos[th].highenable && *periLastVal_>=thermos[th].highvalue){                                                      // set high (tjrs on si>ref)
+            thermos[th].highstate=1;
+          } else if(thermos[th].highenable && *periLastVal_<(thermos[th].highvalue-thermos[th].highoffset*thermos[th].highstate)){  // clr high si < ref+offset*etat prec
+            thermos[th].highstate=0;}
           
-        detSta[thermos[th].highdetec]+=thermos[th].highstate;
+          detSta[thermos[th].highdetec]+=thermos[th].highstate;
       }      
     }
 
@@ -875,16 +875,16 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,const char* nf,const char* 
     periLoad(np);
     if(*periSwNb!=0){                                                 // peripherique avec switchs ?
             
-      for(ninp=0;ninp<NBPERRULES;ninp++){                             // boucle regles          
-        offs=ninp*PERINPLEN;
-        eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);      // enable          
-        if(eni!=0 && model==*(byte*)(periInput+offs)){                // trouvé usage du détecteur dans periInput 
+        for(ninp=0;ninp<NBPERRULES;ninp++){                           // boucle regles          
+          offs=ninp*PERINPLEN;
+          eni=((*(uint8_t*)(periInput+2+offs)>>PERINPEN_PB)&0x01);    // enable          
+          if(eni!=0 && model==*(byte*)(periInput+offs)){              // trouvé usage du détecteur dans periInput 
 
-          tablePerToSend[np-1]++;                                     // (periSend) periReq à faire sur ce périf            
-        } // enable et model ok
-      }   // input suivant
-    }     // periswNb !=0
-  }       // perif suivant
+            tablePerToSend[np-1]++;                                   // (periSend) periReq à faire sur ce périf            
+          } // enable et model ok
+        }   // input suivant   
+    }       // periswNb !=0
+  }         // perif suivant
 }
 
 int8_t perToSend(uint8_t* tablePerToSend,unsigned long begTime)       // maj des périphériques repérés dans la table spécifiée 
@@ -1251,7 +1251,6 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* ptr)
                                                                                                         // Si '?' n'est pas ignoré, le calage sur le 1er car de la fonction ne se fait pas
                
               if (val==VRAI && c!='&' && c!=':' && c!='=' && c>' '){
-                
                 valeurs[nvalf[i+1]]=c;if(nvalf[i+1]<LENVALEURS-2){nvalf[i+1]++;}}                       // contrôle decap !
               if (val==VRAI && (c=='&' || c<=' ')){
                 nom=VRAI;val=FAUX;j=0;
@@ -1702,9 +1701,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 
         uint16_t transferVal=0;         // pour passer "quelque chose" entre 2 fonctions 
         
+        periMess=MESSOK;
+
         for (i=0;i<=nbreparams;i++){    // boucle de traitement des fonctions ; utiliser i comme pointeur est une foutue mauvaise idée... surtout que c'est une variable globale qu'on peut retrouver n'importe où...
           
-          if(i<NBVAL && i>=0){
+          if(i<NBVAL && i>=0 && periMess==MESSOK){                // si un crc ko fin de la boucle (periMess positionné dans checkData et periDataRead)
           
             trigwd();
           
@@ -1729,7 +1730,8 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
             switch (numfonct[i])
               {
               case 0:  pertemp=0;conv_atobl(valf,&pertemp);break;                                    // pertemp serveur
-              case 1:  if(checkData(valf)==MESSOK){                                                  // peri_pass_
+              case 1:  periMess=checkData(valf);                                                     // peri_pass_
+                       if(periMess==MESSOK){
                          periPassOk=ctlpass(valf+5,peripass);                                        // skip len
                          if(!periPassOk){
                           memset(remote_IP_cur,0x00,4);histoStore_textdh("pp","ko",strHisto);
@@ -2275,6 +2277,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           }       // fin boucle nbre params
           Serial.print((unsigned long)millis());
           Serial.print(" what=");Serial.print(what);
+          Serial.print(" periMess=");Serial.print(periMess);
           Serial.print(" periSrc=");Serial.print(periSrc);
           Serial.print(" periCur=");Serial.println(periCur);
 #ifdef SHDIAGS            
@@ -2283,17 +2286,19 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           char aabb[2]={ab,'\0'};
           histoStore_textdh(aabb,"",strHisto);
 
-          periMess=MESSOK;
+          //periMess=MESSOK;
           // what==99 pour accueil
           //if(what==0){Serial.print("!*!*!");}
           switch(what){                                           
             case 0: break;                                                
-            case 1: periMess=periAns(cli,"ack_______");break;             // data_save
+            case 1: if(periMess==MESSOK){                                 // data_save (si periMess KO, periDataRead ne s'est pas exécuté et periCur n'est pas valorisé)
+                      periMess=periAns(cli,"ack_______");}break;          // donc pas de periAns possible
             case 2: Serial.print("ab=");Serial.println(ab);
                     if(ab=='c'){periTableHtml(cli);}                      // peritable suite à login
                     if(ab=='b'){remoteHtml(cli);}                         // remote    suite à login
                     break;
-            case 3: periMess=periAns(cli,"set_______");break;             // data_read
+            case 3: if(periMess==MESSOK){                                 // data_read (si periMess KO, periDataRead ne s'est pas exécuté et periCur n'est pas valorisé)
+                      periMess=periAns(cli,"set_______");}break;          // donc pas de periAns possible
             case 4: periMess=periSave(periCur,PERISAVESD);                // switchs
                     swCtlTableHtml(cli);
                     cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;

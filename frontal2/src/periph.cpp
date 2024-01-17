@@ -2179,8 +2179,8 @@ void sdCardGen()
 
 // perifiles
 
+  periInit();
   for(int i=1;i<=NBPERIF;i++){
-    periInit();
     periSave(i,1);
   }
 

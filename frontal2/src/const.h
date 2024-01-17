@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8f"
+#define NVERS ".8g"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -164,6 +164,7 @@
         accélérateur pour thermoshow et debug ; offset  ajouté th aux min/max ; dissociation show et scalc(ajout bouton)
    1.8f les 5 bits de poids fort de periAnalLow et periAnalHigh sont utilisés pour stocker une consigne analogique pour périf
         periProg devient periCfg : bit 0 si serveur, bit 1 si consigne Analogique
+   1.8g periMess doit être ok pour le traitement des fonctions des périfs (reste à vérifier les fonctions browser)
 
 
    BUGS : 
