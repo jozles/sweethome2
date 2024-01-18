@@ -815,7 +815,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
             uint16_t lb0=8000;
             char buf[lb0];buf[0]='\0';
             char jsbuf[LBUF4000];*jsbuf=0x00;
-            uint8_t ni=0;                                     // nbre lignes dans buffer
+
             uint16_t lb;
             char    fn[LENNOM+1];
  
@@ -1142,7 +1142,7 @@ void timersCtlHtml(EthernetClient* cli)
   uint16_t lb0=8000;
   char buf[lb0];buf[0]='\0';
   char jsbuf[LBUF4000];*jsbuf=0x00;
-            //uint8_t ni=0;                                     // nbre lignes dans buffer
+
   uint16_t lb;
   unsigned long begTPage=millis();                  // calcul durée envoi page
  
