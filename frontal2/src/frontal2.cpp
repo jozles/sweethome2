@@ -2384,19 +2384,27 @@ void udpPeriServer()
  
   if (udpPacketLen){
     udpDataLen=udpPacketLen;
-    if(udpPacketLen>UDPBUFLEN){udpDataLen=UDPBUFLEN-1;}
-    
-      rip = (uint32_t) Udp.remoteIP();
-      memcpy(remote_IP,(char*)&rip+4,4);
-      remote_Port_Udp = (uint16_t) Udp.remotePort();
-      Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
+    rip = (uint32_t) Udp.remoteIP();
+    memcpy(remote_IP,(char*)&rip+4,4);
+    remote_Port_Udp = (uint16_t) Udp.remotePort();
 
+    if(udpPacketLen<UDPBUFLEN){
+    
+      Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
       packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
-      
       lastcxu=millis();     // trig watchdog
       commonserver(nullptr,udpData,udpDataLen);              
     }
-    //else{Udp.flush();Serial.print("Udp overflow=");Serial.print(udpPacketLen);Serial.print(" from ");Serial.println(rip);}
+    else{
+      Serial.print("Udp overflow=");
+      Serial.print(udpPacketLen);Serial.print(" from ");serialPrintIp(remote_IP);Serial.print("/");Serial.println(remote_Port_Udp);
+      Udp.flush();
+      #define RPULEN 16
+      char rpu[RPULEN];memset(rpu,'\0',RPULEN);
+      sprintf(rpu,"%d",remote_Port_Udp);
+      mail("UDP_OVERFLOW port:",rpu);
+    }
+  }
 }
 
 /* En TCP
