@@ -1213,7 +1213,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
               c=cpc+c;
               cpc=0x00;}     // traitement second                 
             
-            Serial.print((char)c);trigwd();
+            Serial.print((char)c);trigwd();if(ab=='u'){}
             if (!termine){
           
               if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,0x00,LENNOM);if(i<NBVAL){i++;};Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
@@ -1555,7 +1555,11 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
 void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 {
   trigwd();
-  if(ab=='u'){Serial.println(bufData);}
+  if(ab=='u'){
+    Serial.println(bufDataLen);
+    for(uint16_t bd=0;bd<bufDataLen;bd++){Serial.print((char)(bufData[bd]));}
+    Serial.println();
+    }
   EthernetClient* cli_debug=cli;    // backup cli pour vérifier sa stabilité
 
       unsigned long cxDur=millis();
@@ -1578,6 +1582,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
       Serial.print((long)cxtime);Serial.print(" sock:");Serial.print(cli->sockindex);Serial.print(" serveur(");Serial.print((char)ab);
       if(ab=='a'){Serial.print(tPS);}
       Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
+      delay(20);
 
       nbreparams=getnv(cli,bufData,bufDataLen);    // Serial.print("---- nbparams ");Serial.println(nbreparams);
       if(nbreparams>=0){
@@ -2346,6 +2351,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
           cli->stop();            // tcp only ********* !!!!!!!! stop géré en instances multiples pour cli_a 
           cliext.stop();          // en principe rapide : la dernière action est une entrée
         }
+        //else {Udp.stop();}
                                   // la gestion d'instances multiples ne fonctionne pas avec le navigateur ??
         if(ab=='a'){
           tPSStop[tPS]=millis();if(tPSStop[tPS]==0){tPSStop[tPS]=1;} //heure du stop TCP
@@ -2375,6 +2381,23 @@ void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC
     W5100.readSnDIPR(client->getSocketNumber(), ptremote_IP);
 }
 
+void udpError(const char* message,uint16_t udpPacketLen)
+{
+      Serial.print(message);
+      serialPrintIp(remote_IP);Serial.print("/");Serial.print(remote_Port_Udp);Serial.print('/');Serial.println(udpPacketLen);
+      //Serial.println(udpData);
+      //Udp.stop();
+      if(udpPacketLen>=UDPBUFLEN-1){udpPacketLen=UDPBUFLEN-2;}
+      Udp.read(udpData,udpPacketLen);udpData[udpPacketLen]='\0';
+      
+      #define RPULEN 40
+      char rpu[RPULEN];memset(rpu,'\0',RPULEN);
+      for(uint8_t ii=0;ii<4;ii++){sprintf(rpu+strlen(rpu),"%u",remote_IP[ii]);if(ii<3){*(rpu+strlen(rpu))='.';}}
+      *(rpu+strlen(rpu))='/';sprintf(rpu+strlen(rpu),"%u",remote_Port_Udp);
+      *(rpu+strlen(rpu))='/';sprintf(rpu+strlen(rpu),"%u",udpPacketLen);
+      //mail(message,rpu);
+}
+
 void udpPeriServer()
 {
   ab='u';
@@ -2387,22 +2410,19 @@ void udpPeriServer()
     rip = (uint32_t) Udp.remoteIP();
     memcpy(remote_IP,(char*)&rip+4,4);
     remote_Port_Udp = (uint16_t) Udp.remotePort();
-
-    if(udpPacketLen<UDPBUFLEN){
-    
-      Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
-      packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
-      lastcxu=millis();     // trig watchdog
-      commonserver(nullptr,udpData,udpDataLen);              
-    }
-    else{
-      Serial.print("Udp overflow=");
-      Serial.print(udpPacketLen);Serial.print(" from ");serialPrintIp(remote_IP);Serial.print("/");Serial.println(remote_Port_Udp);
-      Udp.flush();
-      #define RPULEN 16
-      char rpu[RPULEN];memset(rpu,'\0',RPULEN);
-      sprintf(rpu,"%d",remote_Port_Udp);
-      mail("UDP_OVERFLOW port:",rpu);
+    if(remote_IP[0]!=192 || remote_IP[1]!=168 || remote_IP[2]!=0 || (remote_IP[3]!=11 && remote_IP[3]!=31)){
+        udpError("UDP_IP_KO IP/port/len:",udpPacketLen);
+        }
+    else {
+      if(udpPacketLen<UDPBUFLEN){
+        Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
+        packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
+        lastcxu=millis();     // trig watchdog
+        commonserver(nullptr,udpData,udpDataLen);              
+      }
+      else{
+        udpError("UDP_OVERFLOW IP/port/len:",udpPacketLen);
+      }
     }
   }
 }
