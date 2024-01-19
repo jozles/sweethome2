@@ -324,7 +324,7 @@ int exportData(uint8_t numT,char* modelName)                            // forma
                                                         // sending bufServer to server 
 {
 
-  if(diags){Serial.print("<<< exportData ");}
+  if(diags){Serial.print(" <<< exportData ");}
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
   strcpy(bufServer,"GET /cx?\0");
@@ -427,7 +427,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     Serial.print(" periMess=");Serial.print(periMess);
     Serial.print(" buildmess=");Serial.print(t3_0-t3);
     Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
-    Serial.print(" userResetSetup=");Serial.println(t3_2-t3_1);
+    Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);
     //Serial.print("    ");Serial.println(bufServer);
     
     }
@@ -482,7 +482,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         t2_1=micros();                                                    
         
         if(diags){                
-        Serial.print(">>> getHD ");
+        Serial.print(" >>> getHD ");
         //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
         //Serial.print("/");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
         //Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);

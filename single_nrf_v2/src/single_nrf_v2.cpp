@@ -259,6 +259,7 @@ void setup() {
 #ifndef NOCONFSER
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
+      Serial.print("Server Config ");
       getVolts();getVolts();spvt();
       blink(4);
       if(getServerConfig()>5){configSave();}
@@ -294,11 +295,11 @@ void setup() {
   getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
 
   /* ------------------- */
-  
-  userResetSetup();
 
   if(diags){spvt();}
   ini_t_on();  
+
+  userResetSetup();
 
 //diagT("sleepNoPower à suivre",10);
 //sleepNoPwr(T8000);
@@ -374,6 +375,7 @@ void setup() {
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
 
   testExport();
+  Serial.println();
 
 #endif // NRF_MODE == 'C'
 
@@ -596,7 +598,8 @@ void loop() {
         if(!echoOn){sendEchoReq();echoOn=true;}  // sendEchoReq gère la tempo
         else {echOn=false; controle temps et réponse ; affichage de la réponse}
       */
-        echo();}
+        echo();
+      }
   }
   
   // ====== error, full or empty -> ignore ======
@@ -627,7 +630,7 @@ void loop() {
   // ====== si rien reçu des périfs et rien du serveur, éventuel message de présence ====
 
   if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){
-    if((millis()-concTime)>=perConc){concTime=millis();testExport();Serial.println("Exp_conc");}
+    if((millis()-concTime)>=perConc){concTime=millis();Serial.print("millis()");Serial.println(" Exp_conc");testExport();}
   }
 
   // ====== menu choice ======  
@@ -779,21 +782,26 @@ int beginP()                        // manage registration ; output value >0 is 
       unsigned long localTdiag=micros();
       Serial.print("\nbeginP");
       tdiag+=(micros()-localTdiag);}    // après pReg pour que la sortie n'interfère pas avec les tfr SPI
+    else {Serial.println();}
     Serial.print("##");Serial.print(confSta);delay(1);                                                        
     
     if(confSta>0){
+      prtCom(" ok");nbS++;
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
       delayBlk(32,0,125,4,1);           // 4 blinks
       radio.powerOn(channel,speed);     // txRx or other running
-      break;                            // ok -> out of while(beginP_retryCnt>0)
+      beginP_retryCnt=0;
+      //break;                            // ok -> out of while(beginP_retryCnt>0)
     }
 
     if(confSta==-5){
       radio.lastSta=0xFF;               // KO mode : radio missing or HS
-      break;                            // ko -> out of while(beginP_retryCnt>0)  
+      beginP_retryCnt=0;
+      //break;                            // ko -> out of while(beginP_retryCnt>0)  
     }
 
+    /*
     if(diags){
       unsigned long localTdiag=micros();    
       if(confSta==-4){Serial.print(" no answer");}
@@ -801,6 +809,7 @@ int beginP()                        // manage registration ; output value >0 is 
       delay(2);
       tdiag+=(micros()-localTdiag);
     }
+    */
 
     if(beginP_retryCnt>0){
       sleepNoPwr(0);                    
@@ -967,6 +976,7 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
 void showRx(bool crlf)
 { 
   if(diags){
+    Serial.print(millis());
     Serial.print(" reçu l=");Serial.print(pldLength);
     Serial.print(" p=");Serial.print(pipe);
     Serial.print(" ");

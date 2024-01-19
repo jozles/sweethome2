@@ -9,6 +9,7 @@ extern uint16_t aw_ok;
 extern uint16_t aw_min;
 extern uint32_t nbS;
 extern uint32_t nbL;
+extern unsigned long t_on;
 
 extern bool diags;
 
@@ -21,6 +22,9 @@ extern bool diags;
 
 /* user fields */
 
+#define RAD1 5
+#define RAD2 6
+#define RADSTEP 100
 
 /* system fields */
 
@@ -75,27 +79,6 @@ void messageBuild(char* message,uint8_t* messageLength)
     message[*messageLength]='\0';                                   //          - 1
 }
 
-/*
-uint32_t convStrToHex(char* str,uint8_t len)
-{
-  uint8_t v0=0;
-  uint32_t v=0;
-  int i=0;
-
-  for(i=0;i<len;i++){
-    v0=strstr(chexa,&str[i])-chexa;if(v0>15){v0-=6;}
-    //if(str[i]>='0' && str[i]<='9'){v0=*(str+i)-48;}
-    //else if(str[i]>='A' && str[i]<='F'){v0=*(str+i)-64+10;}
-    //else if(str[i]>='a' && str[i]<='f'){v0=*(str+i)-64+10;}
-    //else v0=0;
-    v+=v0;
-    v=v<<4;
-  }
-  return v;
-  //Serial.print("s>n str,num=");Serial.print(string);Serial.print(" ");Serial.println(v*minus);
-}
-*/
-
 uint16_t usdGet(char* data){
   uint16_t v=0;
   char cc[2];cc[1]='\0';
@@ -123,13 +106,16 @@ void importData(byte* data,uint8_t dataLength)
                                                                                 // devrait être convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead)/100;
                                                                                 // vérifier srt...   
     srt+=sizeRead;
-    Serial.print(" ");Serial.print(srt);Serial.print(":::");Serial.println((char*)(data+NRF_ADDR_LENGTH+1+srt)); 
+    Serial.print(" ");Serial.print(srt);
+    Serial.print(":::");Serial.print((char*)(data+NRF_ADDR_LENGTH+1+srt));
       
     userData[0]=usdGet((char*)(data+NRF_ADDR_LENGTH+1+srt));//Serial.println(userData[0]);
     srt+=4;
     userData[1]=usdGet((char*)(data+NRF_ADDR_LENGTH+1+srt));//Serial.println(userData[1]);
     srt+=4;
     analOutput=(userData[0]&=0xf800)>>=11;analOutput+=(userData[1]&=0xf800)>>=6;
+    Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.println(analOutput);
+    radUpdate(analOutput);
                   
     if(diags){
     Serial.print("\n£ ");
@@ -148,13 +134,47 @@ void importData(byte* data,uint8_t dataLength)
 void userResetSetup()
 {
   /* initial setup after reset */
-
+  radSetup();
 }
 
 void userHardPowerDown()
 { 
   /* materials to powerDown when sleep */
   
+}
+
+void radSetup(){
+  Serial.print("rad setup ");
+  analOutput=0;
+  pinMode(RAD1,INPUT_PULLUP);
+  pinMode(RAD2,INPUT_PULLUP);
+  Serial.print(digitalRead(RAD1));Serial.println(digitalRead(RAD2));delay(10);
+  while((digitalRead(RAD1)*digitalRead(RAD2)==0) && (millis()-t_on)<20000){ledblink(1);delay(50);}
+}
+
+void radUpdate(uint16_t value)
+{
+  if(value!=0){
+    for(uint8_t i=0;i<22;i++){
+      digitalWrite(RAD1,LOW);pinMode(RAD1,OUTPUT);delay(RADSTEP);
+      digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);delay(RADSTEP);
+      pinMode(RAD1,INPUT_PULLUP);delay(RADSTEP);
+      pinMode(RAD2,INPUT_PULLUP);delay(RADSTEP);
+    }
+  
+    for(uint8_t i=0;i<value;i++){
+      switch(i&0x03){
+        case 0:digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);delay(RADSTEP);break;
+        case 1:digitalWrite(RAD1,LOW);pinMode(RAD1,OUTPUT);delay(RADSTEP);break;
+        case 2:pinMode(RAD2,INPUT_PULLUP);delay(RADSTEP);break;
+        case 3:pinMode(RAD1,INPUT_PULLUP);delay(RADSTEP);break;
+        default:break;
+      }
+    }
+  
+    pinMode(RAD1,INPUT_PULLUP);
+    pinMode(RAD2,INPUT_PULLUP);
+  }
 }
 
 #endif // NRF_MODE == 'P'

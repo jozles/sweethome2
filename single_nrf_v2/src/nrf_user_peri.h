@@ -38,6 +38,9 @@ void messageBuild(char* message,uint8_t* messageLength);
 void importData(byte* data,uint8_t dataLength);
 void userResetSetup();
 void userHardPowerDown();
+void radSetup();
+void radUpdate(uint16_t value);
+
 
 #endif // NRF_MODE == 'P'
 
