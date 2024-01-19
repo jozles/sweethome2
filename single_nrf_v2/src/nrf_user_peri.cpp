@@ -1,3 +1,5 @@
+#include <shconst2.h>
+#include <shutil2.h>
 #include "nrf_user_peri.h"
 #include "nrf24l01s.h"
 #include "nrf24l01s_const.h"
@@ -16,21 +18,21 @@ extern bool diags;
 
 /* user includes */
 
-#include <shconst2.h>
-#include <shutil2.h>
-
 
 /* user fields */
 
 
 /* system fields */
 
+extern char* chexa;
+
 extern float   volts;
 extern float   temp;
 extern float   deltaTemp;
 extern bool    thSta;
 extern float   period;
-extern char    userData[4];
+extern uint16_t userData[2];
+uint16_t       analOutput;
 
 /* cycle functions */
 
@@ -73,6 +75,36 @@ void messageBuild(char* message,uint8_t* messageLength)
     message[*messageLength]='\0';                                   //          - 1
 }
 
+/*
+uint32_t convStrToHex(char* str,uint8_t len)
+{
+  uint8_t v0=0;
+  uint32_t v=0;
+  int i=0;
+
+  for(i=0;i<len;i++){
+    v0=strstr(chexa,&str[i])-chexa;if(v0>15){v0-=6;}
+    //if(str[i]>='0' && str[i]<='9'){v0=*(str+i)-48;}
+    //else if(str[i]>='A' && str[i]<='F'){v0=*(str+i)-64+10;}
+    //else if(str[i]>='a' && str[i]<='f'){v0=*(str+i)-64+10;}
+    //else v0=0;
+    v+=v0;
+    v=v<<4;
+  }
+  return v;
+  //Serial.print("s>n str,num=");Serial.print(string);Serial.print(" ");Serial.println(v*minus);
+}
+*/
+
+uint16_t usdGet(char* data){
+  uint16_t v=0;
+  char cc[2];cc[1]='\0';
+  uint8_t k[4];k[0]=2;k[1]=3;k[2]=0;k[3]=1;
+  for(int8_t i=0;i<4;i++){
+      cc[0]=*(data+k[i]);v<<=4;v+=strstr(chexa,cc)-chexa;}
+return v;
+}
+
 void importData(byte* data,uint8_t dataLength)
 {
   /* Here received data to local fields transfer */
@@ -91,14 +123,22 @@ void importData(byte* data,uint8_t dataLength)
                                                                                 // devrait être convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead)/100;
                                                                                 // vérifier srt...   
     srt+=sizeRead;
-    for(uint8_t k=0;k<2;k++){conv_atoh((char*)(data+NRF_ADDR_LENGTH+1+srt+k*2),(byte*)userData[k]);}
+    Serial.print(" ");Serial.print(srt);Serial.print(":::");Serial.println((char*)(data+NRF_ADDR_LENGTH+1+srt)); 
+      
+    userData[0]=usdGet((char*)(data+NRF_ADDR_LENGTH+1+srt));//Serial.println(userData[0]);
+    srt+=4;
+    userData[1]=usdGet((char*)(data+NRF_ADDR_LENGTH+1+srt));//Serial.println(userData[1]);
+    srt+=4;
+    analOutput=(userData[0]&=0xf800)>>=11;analOutput+=(userData[1]&=0xf800)>>=6;
+                  
     if(diags){
     Serial.print("\n£ ");
     Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS com nb ; nbL loop nb
     for(uint8_t ii=0;ii<dataLength;ii++){Serial.print((char)data[ii]);delayMicroseconds(100);}Serial.print(" ");
     Serial.print("per_s=");Serial.print(perRefr);Serial.print(" per_t=");Serial.print(perTemp);Serial.print(" period=");Serial.print(period);                                                                                   
     Serial.print(" aw_min=");Serial.print(aw_min);Serial.print(" aw_ok=");Serial.print(aw_ok);Serial.print(" pth=");Serial.print(deltaTemp);
-    Serial.print(" usr=");dumpfield(userData,2);
+    Serial.print(" usr=");Serial.print(userData[0]);Serial.print(" / ");Serial.print(userData[1]);
+    Serial.print(" anOut=");Serial.print(analOutput);Serial.print(" / ");Serial.print(analOutput,HEX);
     delay(4);
     Serial.println(" £");                                                                                   
     }

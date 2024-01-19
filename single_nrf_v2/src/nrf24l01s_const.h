@@ -63,8 +63,8 @@ v1.b  le concentrateur transfère les consignes analogiques et envoit des messag
 
 //#define NOCONFSER
   
-  //#define NRF_MODE 'P'            //  P périphérique
-  #define NRF_MODE 'C'            //  C concentrateur  
+  #define NRF_MODE 'P'            //  P périphérique
+  //#define NRF_MODE 'C'            //  C concentrateur  
 /* !!!!!! changer de platformio.ini selon le NRF_MODE ('C'=due ou stm32 ; 'P' =328 !!!!! */
 
   #define TXRX_MODE 'U'           // TCP / UDP

@@ -2,6 +2,7 @@
 #define NRFUSER_H_INCLUDED
 
 #include <Arduino.h>
+#include <nrf24l01s_const.h>
 
 #if NRF_MODE == 'P'
 

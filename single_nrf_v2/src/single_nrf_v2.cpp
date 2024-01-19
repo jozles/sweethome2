@@ -185,7 +185,7 @@ float     period;
 float temp;
 float previousTemp=-99.99;
 float deltaTemp=0.25;
-char  userData[4];
+uint16_t  userData[2];
 bool  thSta=true;                     // temp validity
 char  thermo[]={THERMO};              // thermo name text
 char  thN;                            // thermo code for version
