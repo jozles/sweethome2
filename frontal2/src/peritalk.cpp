@@ -231,7 +231,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
   if(((*periCfg)&PERI_SERV)!=0 && *periPort!=0){
     charIp(host,(char*)periIpAddr);
   
-    Serial.print(millis());Serial.print(" periReq(");Serial.print((char)*periProtocol);
+    Serial.print(" periReq(");Serial.print((char)*periProtocol);
     Serial.print(" peri=");Serial.print(periCur);
     Serial.print(" Ip=");serialPrintIp(periIpAddr);
     Serial.print(" port=");Serial.print(*periPort);Serial.print(") ");
@@ -246,12 +246,12 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     if(lbs==0 || (lbs+2)>LBUFSERVER){ledblink(BCODEPERIRECLEN);}  // bufServer complété
     strcat(bufServer,"\n\n");                                     // fin de message pour le périf
     
-    Serial.println(millis());Serial.println(bufServer);
+    Serial.print(" dur=");Serial.println(millis()-dur);//Serial.print(bufServer);
 
     if(*periProtocol=='T'){                                       // UDP à développer (sortie ret=MESSCX)
           periMess=messToServer(cli,host,*periPort,bufServer);
           //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(messToServer)=");Serial.println(periMess);
-          Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
+          //Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
           uint8_t fonct;
           if(periMess==MESSOK){
               trigwd();
@@ -274,9 +274,9 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
           *periErr=periMess;
     } // periProtocole=='T'
       
-    Serial.print(millis());
+    //Serial.print(millis());
     cli->stop();                              // cliext
-    Serial.print(" pM(periReq)=");Serial.print(periMess);Serial.print(" dur=");Serial.println(millis()-dur);
+    Serial.print(" periMess=");Serial.print(periMess);Serial.print(" periReq dur=");Serial.println(millis()-dur);
     ret=periMess;
   }
 #ifdef ANALYZE

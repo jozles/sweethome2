@@ -1190,7 +1190,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                                               // '%' encodé '%25' ; '@' '%40' etc... 
   bool nom=VRAI,val=FAUX,termine=FAUX;
   int i=0,j=0;
-  uint8_t c,cpc=0x00;                            // cpc pour convertir les séquences %hh 
+  uint8_t c,cpc=0;                            // cpc pour convertir les séquences %hh 
   char noms[LENNOM+1]={0},nomsc[LENNOM-1];noms[LENNOM]='\0';nomsc[LENNOM-2]='\0';
   memset(libfonctions,0x00,sizeof(libfonctions));
 
@@ -1213,13 +1213,16 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
               c=cpc+c;
               cpc=0x00;}     // traitement second                 
             
-            Serial.print((char)c);trigwd();if(ab=='u'){}
+            Serial.print((char)c);trigwd();
+//Serial.println();Serial.print(i);Serial.print("/");Serial.print(j);Serial.print(":");Serial.print((char)c);Serial.print(" ");Serial.print(nom);Serial.print(" ");Serial.print(val);Serial.print(" ");Serial.println(termine);            
             if (!termine){
-          
-              if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,0x00,LENNOM);if(i<NBVAL){i++;};Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
+              if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,0x00,LENNOM);
+                                                  if(i<(NBVAL-1)){i++;}
+                                                  else {nom=FAUX;termine=VRAI;}           // tableaux saturés -> fin
+                                                  Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
               if (nom==VRAI && j>=LENNOM && (c==':' || c=='=')){
 
-                //Serial.print("\n");Serial.print(noms);
+//Serial.print("\n");Serial.println(noms);
 
                 nom=FAUX;val=VRAI;
                 nvalf[i+1]=nvalf[i]+1;
@@ -1228,7 +1231,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
 
                 long numfonc=(strstr(fonctions,noms)-fonctions)/LENNOM;     // acquisition nom terminée récup N° fonction
                 memcpy(libfonctions+2*i,noms+LENNOM-2,2);                   // les 2 derniers car du nom de fonction si nom court
-
+//Serial.print(" numfonc=");Serial.println(numfonc);
                 //Serial.print(" ");Serial.print(numfonc);
 
                 if(numfonc<0 || numfonc>=nbfonct){
@@ -1237,7 +1240,9 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
 
                   //Serial.print(" ");Serial.print(nomsc);Serial.print(" ");Serial.print(numfonc);
 
-                  if(numfonc<0 || numfonc>=nbfonct){numfonc=faccueil;}
+                  if(numfonc<0 || numfonc>=nbfonct){
+//Serial.print(" numfonc=");Serial.println(numfonc);
+                    numfonct[0]=faccueil;i=0;termine=VRAI;nom=FAUX;val=FAUX;}   // pas de fonction valide -> fin
                   else {numfonct[i]=numfonc;}
                 }
                 else {numfonct[i]=numfonc;}
@@ -1247,13 +1252,17 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
 
               if (nom==VRAI && j>=LENNOM-2 && c>' '){noms[j]=c;j++;}                                    // les 2 derniers car codent avec PMFNCVAL et PMFNCHAR
                                                                                                         // ils peuvent prendre toutes les valeurs 
-              if (nom==VRAI && j<LENNOM-2 && c>' ' && c!='?' && c!=':' && c!='&'){noms[j]=c;j++;}       // acquisition nom avec filtrage caractères spéciaux
+              if (nom==VRAI && j<LENNOM-2 && c>' ' && c!='?' && c!=':' && c!='&'){noms[j]=c;j++;
+//Serial.print("\n noms=");Serial.println(noms);
+              }       // acquisition nom avec filtrage caractères spéciaux
                                                                                                         // la commande est de la forme :
                                                                                                         // GET /?ffffffffff=aaaa..aaa&ffff... etc
                                                                                                         // Si '?' n'est pas ignoré, le calage sur le 1er car de la fonction ne se fait pas
                
               if (val==VRAI && c!='&' && c!=':' && c!='=' && c>' '){
-                valeurs[nvalf[i+1]]=c;if(nvalf[i+1]<LENVALEURS-2){nvalf[i+1]++;}}                       // contrôle decap !
+                valeurs[nvalf[i+1]]=c;
+                if(nvalf[i+1]<(LENVALEURS-2)){nvalf[i+1]++;}                                           // contrôle decap !
+                else {val=FAUX;termine=VRAI;}}                                                           // valeurs saturé -> fin
               if (val==VRAI && (c=='&' || c<=' ')){
                 nom=VRAI;val=FAUX;j=0;
                 if(c<=' '){termine=VRAI;}
@@ -1263,7 +1272,8 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
           }                                                                                             // acquisition valeur terminée (données aussi si c=' ')
         }
       }
-      Serial.print("---- fin getnv i=");Serial.println(i);
+      Serial.print("---- fin getnv i=");Serial.print(i);
+      Serial.print(" nf[0]=");Serial.println(numfonct[0]);delay(15); // delai affichage pour debug ===============================================
       if(numfonct[0]<0){return -1;} else return i;
 }
 
@@ -1278,7 +1288,7 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
 #define LBUFLI 12
   char bufli[LBUFLI];
   
-  Serial.println("--- getnv");
+  Serial.print("--- getnv ");Serial.println(dataLen);
   int cdNb=getcde(cli,data,dataLen,&dataCharNb); 
 
   Serial.print(" cdNb=");Serial.print(cdNb);Serial.println(" ");
@@ -1555,11 +1565,6 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
 void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
 {
   trigwd();
-  if(ab=='u'){
-    Serial.println(bufDataLen);
-    for(uint16_t bd=0;bd<bufDataLen;bd++){Serial.print((char)(bufData[bd]));}
-    Serial.println();
-    }
   EthernetClient* cli_debug=cli;    // backup cli pour vérifier sa stabilité
 
       unsigned long cxDur=millis();
@@ -2395,7 +2400,12 @@ void udpError(const char* message,uint16_t udpPacketLen)
       for(uint8_t ii=0;ii<4;ii++){sprintf(rpu+strlen(rpu),"%u",remote_IP[ii]);if(ii<3){*(rpu+strlen(rpu))='.';}}
       *(rpu+strlen(rpu))='/';sprintf(rpu+strlen(rpu),"%u",remote_Port_Udp);
       *(rpu+strlen(rpu))='/';sprintf(rpu+strlen(rpu),"%u",udpPacketLen);
-      //mail(message,rpu);
+      *(rpu+strlen(rpu))='\0';
+      Serial.println(rpu);
+#ifdef DEBUG_ON
+      for(uint16_t bd=0;bd<udpPacketLen;bd++){Serial.print((char)(udpData[bd]));}Serial.println();
+#endif  
+      mail(message,rpu);
 }
 
 void udpPeriServer()
