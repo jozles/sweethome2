@@ -69,6 +69,7 @@ int     rdSta;                            // return status read() / available()
 int     trSta;                            // return status write() / transmitting()
 uint8_t pipe;
 uint8_t pldLength;
+bool    beginP_done;                      // au retour de txRxMessage indique que importData est déjà fait
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
@@ -202,7 +203,7 @@ void int_ISR()
   extTimer=true;
   //Serial.println("int_ISR");
 }
-void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(5);}
+void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(2);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);}
 #endif // NRF_MODE == 'P'
@@ -469,7 +470,7 @@ void loop() {
     /* One transaction is tx+rx ; if both ok reset counters else retry management*/  
 
     rdSta=-1;
-    nbS++;
+    //nbS++;
 
     t_on2=micros();                   // message build ... send   
     radio.powerOn(channel,speed);
@@ -479,10 +480,10 @@ void loop() {
     
     if(rdSta>=0){                                                 // no error
       
-      prtCom(" ok");
       /* echo request ? (address field is 0x5555555555) */
-      if(memcmp(messageIn,ECHO_MAC_REQ,NRF_ADDR_LENGTH)==0){echo();}
-      else {          
+      if(memcmp(messageIn,ECHO_MAC_REQ,NRF_ADDR_LENGTH)==0){prtCom(" ok");echo();}
+      else if(!beginP_done){                                      // si begin_P a été effectué dans txRxMessage importData aussi
+        prtCom(" ok");                                      
         importData(messageIn,pldLength);                          // user data
       }
         
@@ -498,7 +499,8 @@ void loop() {
 
     if(trSta<0 || rdSta<0){                                           // error
     
-      nbK++;prtCom(" ko");
+      nbK++;
+      prtCom(" ko");
       forceSend=true;
       showErr(true);
       trSta=0;rdSta=0;
@@ -770,9 +772,10 @@ char getch()
 
 int beginP()                        // manage registration ; output value >0 is numT else error with radio.powerOff()
 {
+  nbS++;
   int confSta=-1;
   int8_t beginP_retryCnt=1; // 2; // ================================================= version sans retry 
-  while(beginP_retryCnt>0){                         // confsta>=1 or -5 or wait 
+  while(beginP_retryCnt>0){                         // confsta>=1 or -5 or wait     
     beginP_retryCnt--;
     confSta=radio.pRegister(messageIn,&pldLength);  // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
                                                     // 0 na ; >=1 ok numT
@@ -786,7 +789,7 @@ int beginP()                        // manage registration ; output value >0 is 
     Serial.print("##");Serial.print(confSta);delay(1);                                                        
     
     if(confSta>0){
-      prtCom(" ok");nbS++;
+      prtCom(" ok");
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
       delayBlk(32,0,125,4,1);           // 4 blinks
@@ -876,6 +879,7 @@ void echo()
 
 int txRxMessage()
 {
+  beginP_done=false;
   if(numT==0){
     rdSta=beginP();
     if(diags){
@@ -886,11 +890,13 @@ int txRxMessage()
     }
     if(rdSta<=0){rdSta=-2;return rdSta;}           // numT still 0 ; beginP n'a pas fonctionné
     numT=rdSta;
+    beginP_done=true;
   }
   message[NRF_ADDR_LENGTH]=numT+48;
   memcpy(messageIn,message,pldLength);
 
-  return radio.txRx(messageIn,&pldLength);
+  if(!beginP_done){nbS++;return radio.txRx(messageIn,&pldLength);}
+  else return rdSta;
 }
 
 #endif // NRF_MODE == 'P'

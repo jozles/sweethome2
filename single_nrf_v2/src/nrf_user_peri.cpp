@@ -24,7 +24,7 @@ extern bool diags;
 
 #define RAD1 5
 #define RAD2 6
-#define RADSTEP 100
+#define RADSTEP 25
 
 /* system fields */
 
@@ -36,7 +36,8 @@ extern float   deltaTemp;
 extern bool    thSta;
 extern float   period;
 extern uint16_t userData[2];
-uint16_t       analOutput;
+uint16_t       analOutput=0;
+uint16_t       prevAnalOutput=0;
 
 /* cycle functions */
 
@@ -107,6 +108,8 @@ void importData(byte* data,uint8_t dataLength)
                                                                                 // vérifier srt...   
     srt+=sizeRead;
     Serial.print(" ");Serial.print(srt);
+    *(data+NRF_ADDR_LENGTH+1+srt+8)='\0';
+//dumpstr((char*)data,32);
     Serial.print(":::");Serial.print((char*)(data+NRF_ADDR_LENGTH+1+srt));
       
     userData[0]=usdGet((char*)(data+NRF_ADDR_LENGTH+1+srt));//Serial.println(userData[0]);
@@ -114,8 +117,8 @@ void importData(byte* data,uint8_t dataLength)
     userData[1]=usdGet((char*)(data+NRF_ADDR_LENGTH+1+srt));//Serial.println(userData[1]);
     srt+=4;
     analOutput=(userData[0]&=0xf800)>>=11;analOutput+=(userData[1]&=0xf800)>>=6;
-    Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.println(analOutput);
-    radUpdate(analOutput);
+    Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.println(analOutput);delay(2);
+    if(prevAnalOutput!=analOutput){radUpdate(analOutput);prevAnalOutput=analOutput;}
                   
     if(diags){
     Serial.print("\n£ ");
@@ -144,12 +147,26 @@ void userHardPowerDown()
 }
 
 void radSetup(){
-  Serial.print("rad setup ");
+  Serial.print("rad init : ");
   analOutput=0;
   pinMode(RAD1,INPUT_PULLUP);
   pinMode(RAD2,INPUT_PULLUP);
   Serial.print(digitalRead(RAD1));Serial.println(digitalRead(RAD2));delay(10);
-  while((digitalRead(RAD1)*digitalRead(RAD2)==0) && (millis()-t_on)<20000){ledblink(1);delay(50);}
+  while((digitalRead(RAD1)*digitalRead(RAD2)==0) && (millis()-t_on)<30000){ledblink(1);delay(100);}
+
+/* 
+  uint16_t preRad,curRad;
+  uint16_t cnt=0;
+  preRad=0;//digitalRead(RAD1)+digitalRead(RAD2)<<8;
+  while(1){
+    delay(1);
+    curRad=(digitalRead(RAD1))+(digitalRead(RAD2)<<8);
+    if(preRad!=curRad){Serial.print(cnt);Serial.print(" ");Serial.print(curRad&0x01);Serial.print(" ");Serial.println((curRad>>8)&0x01);
+      preRad=curRad;cnt=0;}
+    else cnt++;
+    if(cnt>99){cnt=99;}
+  }
+*/
 }
 
 void radUpdate(uint16_t value)
@@ -163,12 +180,24 @@ void radUpdate(uint16_t value)
     }
   
     for(uint8_t i=0;i<value;i++){
-      switch(i&0x03){
-        case 0:digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);delay(RADSTEP);break;
-        case 1:digitalWrite(RAD1,LOW);pinMode(RAD1,OUTPUT);delay(RADSTEP);break;
-        case 2:pinMode(RAD2,INPUT_PULLUP);delay(RADSTEP);break;
-        case 3:pinMode(RAD1,INPUT_PULLUP);delay(RADSTEP);break;
-        default:break;
+      if((i&0x01)==0){
+        switch(i&0x03){
+          case 0:digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);delay(RADSTEP);break;
+          case 1:digitalWrite(RAD1,LOW);pinMode(RAD1,OUTPUT);delay(RADSTEP);break;
+          case 2:pinMode(RAD2,INPUT_PULLUP);delay(RADSTEP);break;
+          case 3:pinMode(RAD1,INPUT_PULLUP);delay(RADSTEP);break;
+          default:break;
+        }
+      }
+      else{
+        switch(i&0x03){
+          case 0:if(i!=0){digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);delay(RADSTEP);}break;
+          case 1:if(i==0){digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);}
+                 digitalWrite(RAD1,LOW);pinMode(RAD1,OUTPUT);delay(RADSTEP);break;
+          case 2:pinMode(RAD2,INPUT_PULLUP);delay(RADSTEP);break;
+          case 3:pinMode(RAD1,INPUT_PULLUP);delay(RADSTEP);break;
+          default:break;
+        }
       }
     }
   

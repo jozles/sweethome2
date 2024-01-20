@@ -1,7 +1,7 @@
 #ifndef _NRF_CONST_INCLUDED
 #define _NRF_CONST_INCLUDED
 
-#define VERSION "1.b "
+#define VERSION "1.c "
 #define LENVERSION 4
 
 #include <shconst2.h>
@@ -57,6 +57,8 @@ v1.9  configs concentrateurs et périfs nrf chargées via Serial1 depuis le serv
 v1.a
 v1.b  le concentrateur transfère les consignes analogiques et envoit des messages de présence au serveur (apparait dans periTable)
       dev en cours du controle des radiateurs
+v1.c  la variable globale beginP_done indique que importData a été effectué dans beginP ; 
+      donc inutile de faire radio.txRx( et importData ensuite 
 */
 
 /************* config ****************/
