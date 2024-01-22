@@ -1218,7 +1218,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
             if (!termine){
               if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,0x00,LENNOM);
                                                   if(i<(NBVAL-1)){i++;}
-                                                  else {nom=FAUX;termine=VRAI;}           // tableaux saturés -> fin
+                                                  else {nom=FAUX;termine=VRAI;i=GETNV_FNNB_OVF;}     // tableaux saturés -> fin
                                                   Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
               if (nom==VRAI && j>=LENNOM && (c==':' || c=='=')){
 
@@ -1242,7 +1242,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
 
                   if(numfonc<0 || numfonc>=nbfonct){
 //Serial.print(" numfonc=");Serial.println(numfonc);
-                    numfonct[0]=faccueil;i=0;termine=VRAI;nom=FAUX;val=FAUX;}   // pas de fonction valide -> fin
+                    termine=VRAI;nom=FAUX;val=FAUX;i=GETNV_UNVALID_FN;}                               // pas de fonction valide -> fin
                   else {numfonct[i]=numfonc;}
                 }
                 else {numfonct[i]=numfonc;}
@@ -1250,19 +1250,19 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                 //Serial.print(" ");Serial.print(numfonc);Serial.println(" ");                  // une fonction est reçue avec = ou :
               }
 
-              if (nom==VRAI && j>=LENNOM-2 && c>' '){noms[j]=c;j++;}                                    // les 2 derniers car codent avec PMFNCVAL et PMFNCHAR
-                                                                                                        // ils peuvent prendre toutes les valeurs 
+              if (nom==VRAI && j>=LENNOM-2 && c>' '){noms[j]=c;j++;}                                  // les 2 derniers car codent avec PMFNCVAL et PMFNCHAR
+                                                                                                      // ils peuvent prendre toutes les valeurs 
               if (nom==VRAI && j<LENNOM-2 && c>' ' && c!='?' && c!=':' && c!='&'){noms[j]=c;j++;
 //Serial.print("\n noms=");Serial.println(noms);
               }       // acquisition nom avec filtrage caractères spéciaux
-                                                                                                        // la commande est de la forme :
-                                                                                                        // GET /?ffffffffff=aaaa..aaa&ffff... etc
-                                                                                                        // Si '?' n'est pas ignoré, le calage sur le 1er car de la fonction ne se fait pas
+                                                                                                      // la commande est de la forme :
+                                                                                                      // GET /?ffffffffff=aaaa..aaa&ffff... etc
+                                                                                                      // Si '?' n'est pas ignoré, le calage sur le 1er car de la fonction ne se fait pas
                
               if (val==VRAI && c!='&' && c!=':' && c!='=' && c>' '){
                 valeurs[nvalf[i+1]]=c;
-                if(nvalf[i+1]<(LENVALEURS-2)){nvalf[i+1]++;}                                           // contrôle decap !
-                else {val=FAUX;termine=VRAI;}}                                                           // valeurs saturé -> fin
+                if(nvalf[i+1]<(LENVALEURS-2)){nvalf[i+1]++;}                                          // contrôle decap !
+                else {val=FAUX;termine=VRAI;i=GETNV_RCD_OVF;}}                                        // valeurs saturé -> fin
               if (val==VRAI && (c=='&' || c<=' ')){
                 nom=VRAI;val=FAUX;j=0;
                 if(c<=' '){termine=VRAI;}
@@ -1590,7 +1590,11 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
       delay(20);
 
       nbreparams=getnv(cli,bufData,bufDataLen);    // Serial.print("---- nbparams ");Serial.println(nbreparams);
-      if(nbreparams>=0){
+      if(nbreparams<0){
+        Serial.print(" getnv error #");Serial.println(nbreparams);
+        //accueilHtml(cli);
+      }
+      else{
 
 /*  getnv() décode la chaine GET ou POST ; le reste est ignoré
     forme ?nom1:valeur1&nom2:valeur2&... etc (NBVAL max)
@@ -1722,7 +1726,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
         periMess=MESSOK;
 
         for (i=0;i<=nbreparams;i++){    // boucle de traitement des fonctions ; utiliser i comme pointeur est une foutue mauvaise idée... surtout que c'est une variable globale qu'on peut retrouver n'importe où...
-          
+if(i==0 && ab=='u'){Serial.println(bufData);}
           if(i<NBVAL && i>=0 && periMess==MESSOK){     // si une anomalie, fin de la boucle (periMess positionné dans checkData et periDataRead)
           
             trigwd();
@@ -2346,8 +2350,7 @@ void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
             default:accueilHtml(cli);break;                               // what=-1
           }
         } // getnv nbreparams>=0  
-        else {accueilHtml(cli);} // rien dans getnv
-
+      
         valeurs[0]='\0';                                                            
 
         Serial.print("-sock stop ");Serial.print(cli->sockindex);Serial.print(" ");        
@@ -2389,7 +2392,7 @@ void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC
 void udpError(const char* message,uint16_t udpPacketLen)
 {
       Serial.print(message);
-      serialPrintIp(remote_IP);Serial.print("/");Serial.print(remote_Port_Udp);Serial.print('/');Serial.println(udpPacketLen);
+      //serialPrintIp(remote_IP);Serial.print("/");Serial.print(remote_Port_Udp);Serial.print('/');Serial.println(udpPacketLen);
       //Serial.println(udpData);
       //Udp.stop();
       if(udpPacketLen>=UDPBUFLEN-1){udpPacketLen=UDPBUFLEN-2;}
@@ -2403,7 +2406,7 @@ void udpError(const char* message,uint16_t udpPacketLen)
       *(rpu+strlen(rpu))='\0';
       Serial.println(rpu);
 #ifdef DEBUG_ON
-      for(uint16_t bd=0;bd<udpPacketLen;bd++){Serial.print((char)(udpData[bd]));}Serial.println();
+      Serial.println(udpData);
 #endif  
       mail(message,rpu);
 }

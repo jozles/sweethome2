@@ -255,7 +255,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
           uint8_t fonct;
           if(periMess==MESSOK){
               trigwd();
-              periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct,DIAGS);
+              periMess=getHttpResponse(cli,bufServer,LBUFSERVER,&fonct,false);
               //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(gHttpR)=");Serial.println(periMess);
               if(periMess==MESSOK){
                 //if(fonct>=nbfonct){fonct=nbfonct;periMess=MESSFON;} // déjà testé dans getHttpResponse/chkHttpData
