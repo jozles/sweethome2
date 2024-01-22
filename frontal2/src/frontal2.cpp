@@ -590,8 +590,8 @@ void setup() {                          // ====================================
   *perifPort=PORT_FRONTAL;
   *browserPort=PORT_BROWSER;
   *remotePort=PORT_REMOTE;
-  //udpPort[0]=PORTUDP;         // from const.h
-  //udpPort[1]=PORTUDP2;        // from const.h
+  udpPort[0]=PORTUDP;         // from const.h
+  udpPort[1]=PORTUDP2;        // from const.h
 
   Serial.print(MODE_EXEC);
   Serial.print(" mac=");serialPrintMac(mac,0);
@@ -613,10 +613,12 @@ void setup() {                          // ====================================
   configSave();
 //  configExport(bec);wifiExport(bec,2);wifiExport(bec,1);concExport(bec);setExpEnd(bec);Serial.println(bec);
 
+  udp[0]=&Udp1;
+  udp[1]=&Udp2;
   for(uint8_t su=0;su<2;su++){
     Serial.print("udp");Serial.print(su);
     Serial.print(" Udp.begin(");Serial.print(udpPort[su]);Serial.print(") ");
-    if(!(*udp[su]).begin(udpPort[su])){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
+    if(!udp[su]->begin(udpPort[su])){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
     
     //if(!Udp.begin(udpPort[su])){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
     Serial.println("ok");
