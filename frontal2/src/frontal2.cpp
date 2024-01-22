@@ -64,7 +64,9 @@ char ab;                            // protocole et type de la connexion en cour
   char udpData[UDPBUFLEN];          // buffer paquets UDP
   uint16_t udpDataLen;              // taille paquet contenu
     
-  extern EthernetUDP Udp;           // serveur Udp
+  EthernetUDP Udp1;                  // serveur Udp 1
+  EthernetUDP Udp2;                 // serveur Udp 2
+  EthernetUDP* udp[2];
 
 /* ---------- config frontal ---------- */
 
@@ -77,7 +79,7 @@ char configRec[CONFIGRECLEN];       // enregistrement de config
   uint16_t* perifPort;        // port perifs
   uint16_t* browserPort;      // port config
   uint16_t* remotePort;       // port remote
-  uint16_t* serverUdpPort;    // port udp
+  uint16_t  udpPort[2];       // 2 ports udp
   char*     serverName;       // nom server
   char*     peripass;         // mot de passe périphériques
   char*     ssid;             // liste des ssid pour peripherique2
@@ -555,15 +557,11 @@ void setup() {                          // ====================================
 
   blink(4);
   
-  //unsigned long beg=millis();
-  //#define FRDLY 5  // sec
   if(digitalRead(STOPREQ)==LOW){
       trigwd();
-      //if(millis()>(beg+FRDLY*1000)){
         blink(4);
         factoryReset();
         while(1){blink(2);delay(1000);}
-      //}
   }
 
   //periModification();             // chgt de structure de l'enregistrement perif (periRec)
@@ -587,22 +585,21 @@ void setup() {                          // ====================================
   Serial.println();
 
 /* ---------- ethernet start ---------- */
-//  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAE",6);*serverPort=1786;*remotePort=1788;*serverUdpPort=8886; // server service
-//  memcpy(mac,"\x90\xA2\xDA\x0F\xDF\xAC",6);*serverPort=1790;*remotePort=1792;*serverUdpPort=8890; // server test
 
   memcpy(mac,REDMAC,6);
   *perifPort=PORT_FRONTAL;
   *browserPort=PORT_BROWSER;
   *remotePort=PORT_REMOTE;
-  *serverUdpPort=PORTUDP; // config server from const.h
-  // else config server from config record
+  //udpPort[0]=PORTUDP;         // from const.h
+  //udpPort[1]=PORTUDP2;        // from const.h
 
   Serial.print(MODE_EXEC);
   Serial.print(" mac=");serialPrintMac(mac,0);
   Serial.print(" perifPort=");Serial.print(*perifPort);
   Serial.print(" browserPort=");Serial.print(*browserPort);
   Serial.print(" remotePort=");Serial.print(*remotePort);
-  Serial.print(" serverUdpPort=");Serial.print(*serverUdpPort);
+  Serial.print(" serverUdpPort1=");Serial.print(udpPort[0]);
+  Serial.print(" serverUdpPort2=");Serial.print(udpPort[1]);
 
   trigwd();
 
@@ -616,11 +613,15 @@ void setup() {                          // ====================================
   configSave();
 //  configExport(bec);wifiExport(bec,2);wifiExport(bec,1);concExport(bec);setExpEnd(bec);Serial.println(bec);
 
-  Serial.print(" Udp.begin(");Serial.print(*serverUdpPort);Serial.print(") ");
-  if(!Udp.begin(*serverUdpPort)){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
-  Serial.println("ok");
-
-  trigwd();
+  for(uint8_t su=0;su<2;su++){
+    Serial.print("udp");Serial.print(su);
+    Serial.print(" Udp.begin(");Serial.print(udpPort[su]);Serial.print(") ");
+    if(!(*udp[su]).begin(udpPort[su])){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
+    
+    //if(!Udp.begin(udpPort[su])){Serial.print("ko");mail("UDP_BEGIN_ERROR_HALT","");while(1){trigwd(1000000);}}
+    Serial.println("ok");
+    trigwd();
+  }
 
   periserv=new EthernetServer(*perifPort);
   periserv->begin();Serial.print(" periserv.begin(");Serial.print(*perifPort);Serial.println(")");        // serveur périphériques
@@ -650,12 +651,11 @@ Serial.print("size_of EthernetServer=");Serial.println(sizeof(EthernetServer));
 
   mailEnable=VRAI;
 
-  Serial.print("Mail START ");
   if(mailFromAddr!=nullptr && mailPass!=nullptr){
-    mailInit(mailFromAddr,mailPass);
-    mail("START","");
+    Serial.print("Init  Mail ");mailInit(mailFromAddr,mailPass);
+    Serial.print("START Mail ");mail("START","");
   }
-  else Serial.println(" no config");
+  else Serial.println(" no mail config");
 
 #ifdef ANALYZE
   STOPALL
@@ -1136,9 +1136,9 @@ void periDetecUpdate(const char* src)
 
 /* ================================ decodage ligne GET/POST ================================ */
 
-void cliWrite(EthernetClient* cli,const char* data)
+void cliWrite(EthernetClient* cli,const char* data)                             // !!!!!!!!!!!!!! provisoirement ne gère plus l'udp !!!!!!!!!!!!!!!!!!!!!
 {
-  if(ab=='u'){Udp.write(data,strlen(data));return;}
+  //if(ab=='u'){Udp.write(data,strlen(data));return;}                         // doit être udp[x]->write(...)
   cli->write(data);
 }
 
@@ -1562,7 +1562,7 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
 
 /* ================================ serveur ================================= */
 
-void commonserver(EthernetClient* cli,const char* bufData,uint16_t bufDataLen)
+void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,uint16_t bufDataLen)
 {
   trigwd();
   EthernetClient* cli_debug=cli;    // backup cli pour vérifier sa stabilité
@@ -2036,7 +2036,8 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                             case 'p': *perifPort=0;conv_atob(valf,perifPort);break;                     // (config) perifPort
                             case 'y': *browserPort=0;conv_atob(valf,browserPort);break;                 // (config) browserPort
                             case 't': *remotePort=0;conv_atob(valf,remotePort);break;                   // (config) remotePort
-                            case 'u': *serverUdpPort=0;conv_atob(valf,serverUdpPort);break;             // (config) serverUdpPort
+                            case 'u': udpPort[0]=0;conv_atob(valf,&udpPort[0]);break;                   // (config) serverUdpPort 1
+                            case 'U': udpPort[1]=0;conv_atob(valf,&udpPort[1]);break;                   // (config) serverUdpPort 2
                             case 'm': for(j=0;j<6;j++){conv_atoh(valf+j*2,(mac+j));}break;              // (config) mac
                             case 'q': *maxCxWt=0;conv_atobl(valf,maxCxWt);break;                        // (config) TO sans TCP
                             case 'r': *maxCxWu=0;conv_atobl(valf,maxCxWu);break;                        // (config) TO sans UDP
@@ -2314,13 +2315,13 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
           switch(what){                                           
             case 0: break;                                                
             case 1: if(periMess==MESSOK){                                 // data_save (si periMess KO, periDataRead ne s'est pas exécuté et periCur n'est pas valorisé)
-                      periMess=periAns(cli,"ack_______");}break;          // donc pas de periAns possible
+                      periMess=periAns(cli,udpCli,"ack_______");}break;          // donc pas de periAns possible
             case 2: Serial.print("ab=");Serial.println(ab);
                     if(ab=='c'){periTableHtml(cli);}                      // peritable suite à login
                     if(ab=='b'){remoteHtml(cli);}                         // remote    suite à login
                     break;
             case 3: if(periMess==MESSOK){                                 // data_read (si periMess KO, periDataRead ne s'est pas exécuté et periCur n'est pas valorisé)
-                      periMess=periAns(cli,"set_______");}break;          // donc pas de periAns possible
+                      periMess=periAns(cli,udpCli,"set_______");}break;          // donc pas de periAns possible
             case 4: periMess=periSave(periCur,PERISAVESD);                // switchs
                     swCtlTableHtml(cli);
                     cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;
@@ -2389,14 +2390,14 @@ void getremote_IP(EthernetClient* client,uint8_t* ptremote_IP,byte* ptremote_MAC
     W5100.readSnDIPR(client->getSocketNumber(), ptremote_IP);
 }
 
-void udpError(const char* message,uint16_t udpPacketLen)
+void udpError(EthernetUDP* uu,const char* message,uint16_t udpPacketLen)
 {
       Serial.print(message);
       //serialPrintIp(remote_IP);Serial.print("/");Serial.print(remote_Port_Udp);Serial.print('/');Serial.println(udpPacketLen);
       //Serial.println(udpData);
       //Udp.stop();
       if(udpPacketLen>=UDPBUFLEN-1){udpPacketLen=UDPBUFLEN-2;}
-      Udp.read(udpData,udpPacketLen);udpData[udpPacketLen]='\0';
+      uu->read(udpData,udpPacketLen);udpData[udpPacketLen]='\0';
       
       #define RPULEN 40
       char rpu[RPULEN];memset(rpu,'\0',RPULEN);
@@ -2415,29 +2416,32 @@ void udpPeriServer()
 {
   ab='u';
   IPAddress rip;
-  
-  int udpPacketLen = Udp.parsePacket();
+
+  for(uint8_t uu=0;uu<2;uu++){
+
+    int udpPacketLen = udp[uu]->parsePacket();
  
-  if (udpPacketLen){
-    udpDataLen=udpPacketLen;
-    rip = (uint32_t) Udp.remoteIP();
-    memcpy(remote_IP,(char*)&rip+4,4);
-    remote_Port_Udp = (uint16_t) Udp.remotePort();
-    if(remote_IP[0]!=192 || remote_IP[1]!=168 || remote_IP[2]!=0 || (remote_IP[3]!=11 && remote_IP[3]!=31)){
-        udpError("UDP_IP_KO IP/port/len:",udpPacketLen);
+    if (udpPacketLen){
+      udpDataLen=udpPacketLen;
+      rip = (uint32_t) udp[uu]->remoteIP();
+      memcpy(remote_IP,(char*)&rip+4,4);
+      remote_Port_Udp = (uint16_t) udp[uu]->remotePort();
+      if(remote_IP[0]!=192 || remote_IP[1]!=168 || remote_IP[2]!=0 || (remote_IP[3]!=11 && remote_IP[3]!=31)){
+        udpError(udp[uu],"UDP_IP_KO IP/port/len:",udpPacketLen);
         }
-    else {
-      if(udpPacketLen<UDPBUFLEN){
-        Udp.read(udpData,udpDataLen);udpData[udpDataLen]='\0';
-        packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
-        lastcxu=millis();     // trig watchdog
-        commonserver(nullptr,udpData,udpDataLen);              
-      }
-      else{
-        udpError("UDP_OVERFLOW IP/port/len:",udpPacketLen);
+      else {
+        if(udpPacketLen<UDPBUFLEN){
+          udp[uu]->read(udpData,udpDataLen);udpData[udpDataLen]='\0';
+          packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
+          lastcxu=millis();     // trig watchdog
+          commonserver(nullptr,udp[uu],udpData,udpDataLen);              
+        }
+        else{
+          udpError(udp[uu],"UDP_OVERFLOW IP/port/len:",udpPacketLen);
+        }
       }
     }
-  }
+}
 }
 
 /* En TCP
@@ -2483,7 +2487,7 @@ void tcpPeriServer()
     if (cli_a[preTPS].connected()){
       lastcxt=millis();                         // trig soft watchdog
       tPS=preTPS;                               // valide l'instance
-      commonserver(&cli_a[tPS],nullptr,0);      
+      commonserver(&cli_a[tPS],nullptr,nullptr,0);      
     }
     else cli_a[preTPS].stop();
   }
@@ -2499,7 +2503,7 @@ void browserServer()
     getremote_IP(&cli_c,remote_IP,remote_MAC);      
     if (cli_c.connected()){
       lastcxt=millis();             // trig watchdog
-      commonserver(&cli_c,nullptr,0);
+      commonserver(&cli_c,nullptr,nullptr,0);
     }
     else cli_c.stop();
   }     
@@ -2515,7 +2519,7 @@ void remoteServer()
     getremote_IP(&cli_b,remote_IP,remote_MAC);      
     if (cli_b.connected()){
       lastcxt=millis();             // trig watchdog
-      commonserver(&cli_b,nullptr,0);
+      commonserver(&cli_b,nullptr,nullptr,0);
     }
     else cli_b.stop();
   }     
@@ -2572,33 +2576,33 @@ void testUdp()
   
   while(1){
     trigwd(); 
-    int packetSize = Udp.parsePacket(); 
+    int packetSize = udp[0]->parsePacket(); 
     IPAddress ipAddr;
     unsigned int rxPort;
     char data[MAX_LENGTH_TEST];
     if (packetSize){
-      ipAddr = (uint32_t) Udp.remoteIP();
+      ipAddr = (uint32_t) udp[0]->remoteIP();
       Serial.print("Received packet of size ");Serial.println(packetSize);
       Serial.print("From ");Serial.print(ipAddr);Serial.print(" ");
     
-      rxPort = (unsigned int) Udp.remotePort();
+      rxPort = (unsigned int) udp[0]->remotePort();
       Serial.print(", port ");Serial.println(rxPort);
 
       if(packetSize<MAX_LENGTH_TEST){
-        Udp.read(data, packetSize);
+        udp[0]->read(data, packetSize);
         data[packetSize]='\0';
         Serial.print("Contents: ");Serial.println(data);
   
-        Udp.beginPacket(ipAddr,rxPort);
+        udp[0]->beginPacket(ipAddr,rxPort);
 
         char data[]="hello Slave";
         Serial.print("sending (");Serial.print(strlen(data));Serial.print(")>");Serial.print(data);
         Serial.print("< to ");Serial.print(ipAddr);Serial.print(":");Serial.println(rxPort);
   
-        Udp.write(data,strlen(data));
-        Udp.endPacket();
+        udp[0]->write(data,strlen(data));
+        udp[0]->endPacket();
       }
-      else{Serial.println("paquet trop gros...");Udp.flush();}
+      else{Serial.println("paquet trop gros...");udp[0]->flush();}
     }  
   }
 }

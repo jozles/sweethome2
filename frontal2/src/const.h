@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8g"
+#define NVERS ".8h"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -166,7 +166,8 @@
         periProg devient periCfg : bit 0 si serveur, bit 1 si consigne Analogique
    1.8g periMess doit être ok pour le traitement des fonctions des périfs sinon periCur n'est pas valorisé par periDataRead !
         ça corrige probablement le bug d'effacemenbt intempestif des périfs dans periTable
-        (reste à vérifier les fonctions browser)
+        (reste à vérifier les fonctions browser) ; multiples controles ajoutés dans getnv ; sortie erreurs 
+   1.8h 2 ports udp
 
 
    BUGS : 
@@ -263,6 +264,7 @@
 #define PORT_BROWSER PORT_FRONTAL+1             // 1787
 #define PORT_REMOTE PORT_FRONTAL+2              // 1788
 #define PORTUDP    8886                         // 8886
+#define PORTUDP2   8885
 #define DEFNOMSERV "sweet_home\0"
 #endif // _MODE_RUN
 

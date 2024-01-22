@@ -21,7 +21,7 @@ extern byte*      localIp;
 extern uint16_t*  perifPort;
 extern uint16_t*  browserPort;
 extern uint16_t*  remotePort;
-extern uint16_t*  serverUdpPort;
+extern uint16_t*  udpPort;
 extern char*      serverName;
 
 extern char*      peripass;
@@ -218,7 +218,8 @@ void factoryResetConfig()
   *perifPort=DEFSERVERPORT;
   *browserPort=DEFSERVERPORT+1;
   *remotePort=DEFSERVERPORT+2;
-  *serverUdpPort=DEFSERVERPORT+3;
+  udpPort[0]=DEFSERVERPORT+3;
+  udpPort[1]=DEFSERVERPORT+4;
   memset(usrnames,0x00,LENUSRNAME);
   memcpy(usrnames,"admin",5);
   memset(usrpass,0x00,LENUSRPASS);
@@ -323,8 +324,7 @@ byte* temp=(byte*)configRec;
   temp+=sizeof(uint16_t);
   serverName=(char*)temp;
   temp+=LNSERV;
-  serverUdpPort=(uint16_t*)temp;
-  temp+=sizeof(uint16_t);
+  temp+=sizeof(uint16_t);               // dispo
   thermoPrev=(char*)temp;
   temp+=16; 
   peripass=(char*)temp;
@@ -373,7 +373,9 @@ byte* temp=(byte*)configRec;
   temp+=16;
   thermoLastBeg=(char*)temp;
   temp+=16;
-  temp+=57;                         // dispo 
+  udpPort=(uint16_t*)temp;
+  temp+=sizeof(uint16_t)*2;
+  temp+=53;                         // dispo 
   usrnames=(char*)temp;
   temp+=NBUSR*(LENUSRNAME+1);
   usrpass=(char*)temp;
@@ -455,10 +457,12 @@ void configExport(char* bec)
   //*(bec+ll)=';';ll++;
   sprintf(bec+ll,"%05u",(uint16_t)*remotePort);ll+=5;         // remote
   *(bec+ll)=';';ll++;
-  sprintf(bec+ll,"%05u",(uint16_t)*serverUdpPort);ll+=5;      // udp
+  sprintf(bec+ll,"%05u",(uint16_t)udpPort[0]);ll+=5;          // udp1
   *(bec+ll)=';';ll++;
   strcat(bec+ll,peripass);                                    // peripass
   strcat(bec,";");
+  sprintf(bec+ll,"%05u",(uint16_t)udpPort[1]);ll+=5;          // udp2
+  *(bec+ll)=';';ll++;
 }
 
 void wifiExport(char* bec,uint8_t selssid)
@@ -604,7 +608,7 @@ void configPrint()
   Serial.print(" Mac=");serialPrintMac(mac,0);
   Serial.print(" localIp=");serialPrintIp(localIp);
   Serial.print("/");Serial.print(*perifPort);Serial.print("/");Serial.print(*browserPort);
-  Serial.print("/");Serial.print(*remotePort);Serial.print("/");Serial.println(*serverUdpPort);      
+  Serial.print("/");Serial.print(*remotePort);Serial.print("/");Serial.print(udpPort[0]);Serial.print("/");Serial.println(udpPort[1]);      
   Serial.print(" peripass=");Serial.print(peripass);Serial.print(" toPassword=");Serial.println(*toPassword);
   Serial.print(" table ssid ");Serial.print(*ssid1);Serial.print("/");Serial.println(*ssid2);
   subcprint(ssid,passssid,MAXSSID,LENSSID,LPWSSID,0);

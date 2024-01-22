@@ -38,7 +38,7 @@ char timeServer[] = "ntp-p1.obspm.fr\0";  //"ntp-p1.obspm.fr\0";      // 145.238
 const int NTP_PACKET_SIZE = 48;           // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[ NTP_PACKET_SIZE];      // buffer to hold incoming and outgoing packets
 
-EthernetUDP Udp;
+extern EthernetUDP* udp[2];
 
 #endif // UDPUSAGE
 
@@ -530,12 +530,12 @@ void sendNTPpacket(char* address)
 
   // all NTP fields have been given values, now
   // you can send a packet requesting a timestamp:
-  Udp.beginPacket(address, 123); //NTP requests are to port 123
+  udp[0]->beginPacket(address, 123); //NTP requests are to port 123
 //IPAddress loc(82,64,32,56);
 //Udp.beginPacket(loc,8888);
 
-  Udp.write(packetBuffer, NTP_PACKET_SIZE);
-  Udp.endPacket();
+  udp[0]->write(packetBuffer, NTP_PACKET_SIZE);
+  udp[0]->endPacket();
 }
 
 
@@ -549,8 +549,8 @@ int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
   sendNTPpacket(timeServer); 
   
   delay(1000);                                // wait to see if a reply is available
-  if (Udp.parsePacket()) {                    // packet received
-    Udp.read(packetBuffer, NTP_PACKET_SIZE);  // get it                 // sec1900- 2208988800UL;
+  if (udp[0]->parsePacket()) {                    // packet received
+    udp[0]->read(packetBuffer, NTP_PACKET_SIZE);  // get it                 // sec1900- 2208988800UL;
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
     unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
     unsigned long secsSince1900 = highWord << 16 | lowWord;

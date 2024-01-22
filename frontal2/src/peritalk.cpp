@@ -12,7 +12,7 @@
 
 extern Ds3231 ds3231;
 
-extern EthernetUDP Udp;
+//extern EthernetUDP* udp[2];
 
 extern uint16_t remote_Port_Udp;
 extern uint8_t remote_IP_cur[4];                   
@@ -286,7 +286,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
   return ret;
 }
 
-int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphérique cli ... ou udp(remote_IP,remote_Port_Udp)
+int periAns(EthernetClient* cli,EthernetUDP* udpCli,const char* nfonct)   // réponse à périphérique cli ... ou udp(remote_IP,remote_Port_Udp)
                     // envoie une page html (bufServer encapsulé dans <body>...</body>) (fonction ack suite à réception de datasave - set si dataread)
                     // periCur est à jour (0 ou n) et periMess contient le diag du dataread/save reçu
                     // format bufServer <body>message...</body>
@@ -317,11 +317,11 @@ int periAns(EthernetClient* cli,const char* nfonct)   // réponse à périphéri
           if(*periProtocol=='U'){
             IPAddress udpAddress;
             memcpy((char*)(&udpAddress)+4,periIpAddr,4);
-            Udp.beginPacket(udpAddress,*periPort);
+            udpCli->beginPacket(udpAddress,*periPort);
             //Serial.print("sending (");Serial.print(strlen(bufServer));Serial.print(")>");Serial.print(bufServer);
             //Serial.print("< to ");serialPrintIp(periIpAddr);Serial.print(":");Serial.println(*periPort);
-            Udp.write(bufServer,strlen(bufServer));
-            Udp.endPacket();
+            udpCli->write(bufServer,strlen(bufServer));
+            udpCli->endPacket();
           }
           packDate(periLastDateOut,date14+2);
           *periErr=MESSOK;                                  // assySet, buildMess, envoi ne génèrent pas d'erreur
