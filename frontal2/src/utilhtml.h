@@ -126,6 +126,7 @@ void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t p
 
 void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t ctl);
 void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t dec,uint8_t ctl);
+void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,bool check,uint8_t dec,uint8_t ctl);
 void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl);
 void scrDspNum(char* buf,char* jsbuf,char type,void* value,const void* valmin,const void* valmax,bool nominmax,uint8_t dec,uint8_t pol,uint8_t ctl);
 

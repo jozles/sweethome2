@@ -826,7 +826,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
             formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
             //usrFormBHtml(buf,1);
             scrGetButRet(buf,jsbuf,"retour",0);
-            scrGetButRef(buf,jsbuf,"remote_ct_\0",rem-1,BRYES);
+            scrGetButRef(buf,jsbuf,"remote_ct",rem-1,BRYES);
 
             ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
@@ -979,7 +979,7 @@ void remoteHtml(EthernetClient* cli)
             
             tableBeg(buf,jsbuf,0);
             scrGetButRet(buf,jsbuf,"retour",TRBEG|TDBE);
-            scrGetButRef(buf,jsbuf,"remote_cr_\0",0,TDBE|TREND|BRYES);
+            scrGetButRef(buf,jsbuf,"remote_cr",0,TDBE|TREND|BRYES);
             scrGetButFn(buf,jsbuf,"thermoshos","","températures",false,2,7,1,1,0,0,TRBEG|TDBE);
             scrGetButFn(buf,jsbuf,"timersctl_","","timers",false,2,7,1,1,0,0,TDBE|TREND);
             tableEnd(buf,jsbuf,BRYES);
@@ -1372,7 +1372,7 @@ void thermoShowHtml(EthernetClient* cli)
  
   tableBeg(buf,jsbuf,courier,NOBORDER,BRYES|TRBEG);
   scrGetButRet(buf,jsbuf,"retour",TDBE);
-  scrGetButRef(buf,jsbuf,"thermoshow\0",0,TDBE|TREND);
+  scrGetButRef(buf,jsbuf,"thermosho",0,TDBE|TREND);
   //formIntro(buf,jsbuf,0,0);                
   scrDspText(buf,jsbuf,"prev yyymmddhhmmss",5,TRBEG|TDBEG|BRYES);
   scrGetText(buf,jsbuf,thermoCurPrev,"thermoshop",12,15,20,0,TDEND);
@@ -1564,8 +1564,7 @@ Serial.print(" config timers ");
 
   pageLineOne(buf,jsbuf);              // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
-  scrGetButRef(buf,jsbuf,"timerhtml\0",0,BRYES);
-  //scrGetButFn(buf,jsbuf,"timershtml","","refresh",ALICNO,1,STDBUTTON,1,0,1,0);
+  scrGetButRef(buf,jsbuf,"timerhtml",0,BRYES);
 
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 

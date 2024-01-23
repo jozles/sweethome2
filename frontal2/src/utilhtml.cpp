@@ -619,12 +619,12 @@ void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t p
   scrDspNum(buf,jsbuf,type,value,&valmin,&valmax,false,dec,pol,ctl);
 }
 
-void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t dec,uint8_t ctl)
+void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,bool check,uint8_t dec,uint8_t ctl)
 { 
   fnJsIntro(jsbuf,JSNTI,0,ctl);
   fnHtmlIntro(buf,0,ctl,nullptr);
 
-  checkColour(buf,jsbuf,'I',valfonct,valmin,valmax);
+  if(check){checkColour(buf,jsbuf,'I',valfonct,valmin,valmax);}
 
   if(dec>4){dec=4;}
   uint16_t vfnt[5]={1,10,100,1000,10000};
@@ -632,6 +632,11 @@ void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,con
   concatnf(buf,jsbuf,vf,dec,NOBR,SEPNO);
   fnHtmlEnd(buf,0,ctl);
   setColourE(buf,jsbuf);
+}
+
+void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t dec,uint8_t ctl)
+{
+  scrDspNum(buf,jsbuf,valfonct,valmin,valmax,true,dec,ctl);
 }
 
 void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t ctl)

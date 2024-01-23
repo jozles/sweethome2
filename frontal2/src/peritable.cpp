@@ -721,12 +721,12 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           uint8_t lctl=STRING|TRBEG|TDBE;
           scrDspNum(buf,jsbuf,'d',&periCur,0,0,lctl);
           scrDspText(buf,jsbuf,periNamer,0,STRING);
-          //scrDspText(buf,jsbuf,"0.",0,TDBEG);scrDspNum(buf,jsbuf,'d',periLastVal_,0,0,BRYES);
-          scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,TDBEG|BRYES);
+          scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,false,2,TDBEG|BRYES);
           vv=(float)(*periThmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
           vv=(float)(*periThmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);
 /* volts */
-          scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,TDBEG|BRYES);                   
+          bool chk=true;if(*periAlim_==0){chk=false;}
+          scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,chk,2,TDBEG|BRYES);                   
           vv=(float)(*periVmin_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,BRYES);
           vv=(float)(*periVmax_)/100;scrDspNum(buf,jsbuf,'F',&vv,2,0,TDEND);               
 /* perTemp/perRefr */

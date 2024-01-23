@@ -1269,7 +1269,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                 else if (c=='&'){nom=VRAI;val=FAUX;j=0;                         // acquisition valeur terminée ... fonction suivante
                   Serial.println();}
                 else if (c<=' '){termine=VRAI;Serial.println();}                // ' ' interdit dans valeur : indique fin données
-                else {val=FAUX;termine=VRAI;i=GETNV_INVALID_VAL;}                       
+                else {val=FAUX;termine=VRAI;i=GETNV_INVALID_VAL;Serial.println();}                       
               }
               else {Serial.print("getnv ni nom ni val");while(1){ledblink(BCODESYSERR);}}   // ni nom ni val ... system error                                                                                      
             }//Serial.println(libfonctions+2*(i-1));
@@ -1315,7 +1315,7 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
             //else if(bufli[0]=='?' || strstr(bufli,"page.html?")>0 || strstr(bufli,"cx?")>0){return analyse(cli,data,dataLen,&dataCharNb);}
             else if(bufli[pbli-1]=='?'){return analyse(cli,data,dataLen,&dataCharNb);} // fonctions ?
             //else Serial.println(bufli);
-            else return -1;                                                   // pas de '?' = commande invalide
+            else {numfonct[0]=faccueil;return 0;} //-1;                                                   // pas de '?' = commande invalide
           case 2:                                                             // POST
             /*
             if(c=='\n' && cr>=3){return analyse(cli,data,dataLen,&dataCharNb);}
