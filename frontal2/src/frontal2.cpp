@@ -1198,7 +1198,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
 
       nvalf[0]=0;
       memset(valeurs,0,LENVALEURS);                     // effacement critique (password etc...)
-      memset(noms,' ',LENNOM);
+      memset(noms,'\0',LENNOM);
       numfonct[0]=-1;                                   // aucune fonction trouvée
 
       while (cliAv(cli,dataLen,dataCharNb)){
@@ -1220,63 +1220,65 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
             if (!termine){
               if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,0x00,LENNOM);
                                                   if(i<(NBVAL-1)){i++;}
-                                                  else {nom=FAUX;termine=VRAI;i=GETNV_FNNB_OVF;}     // tableaux saturés -> fin
+                                                  else {nom=FAUX;termine=VRAI;i=GETNV_FNNB_OVF;}     // tableaux saturés -> erreur
                                                   Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
-              if (nom==VRAI && j>=LENNOM && (c==':' || c=='=')){
-
+              else if (nom==VRAI){
+                if(j==LENNOM){
+                  if(c==':' || c=='='){                                         // séparateur trouvé, ctle validité nom fonction
 //Serial.print("\n");Serial.println(noms);
+                    nom=FAUX;val=VRAI;
+                    nvalf[i+1]=nvalf[i]+1;
+                    if(i==0){nvalf[1]=0;}                                       // permet de stocker le tout premier car dans valeurs[0]
+                    else {nvalf[i]++;}                                          // skip l'intervalle entre 2 valeurs           
+                    
+                    long numfonc=(strstr(fonctions,noms)-fonctions)/LENNOM;     // acquisition nom terminée récup N° fonction
+                    memcpy(libfonctions+2*i,noms+LENNOM-2,2);                   // les 2 derniers car du nom de fonction si nom court
+//Serial.print("nom=");Serial.print(nom);Serial.print("val=");Serial.print(val);Serial.print(" numfonc long=");Serial.println(numfonc);
 
-                nom=FAUX;val=VRAI;
-                nvalf[i+1]=nvalf[i]+1;
-                if(i==0){nvalf[1]=0;}                                       // permet de stocker le tout premier car dans valeurs[0]
-                else {nvalf[i]++;}                                          // skip l'intervalle entre 2 valeurs           
+                    if(numfonc<0 || numfonc>=nbfonct){
+                      memcpy(nomsc,noms,LENNOM-2);nomsc[LENNOM-2]=0x00;
+                      numfonc=(strstr(fonctions,nomsc)-fonctions)/LENNOM;       // si nom long pas trouvé, recherche nom court (complété par nn)
 
-                long numfonc=(strstr(fonctions,noms)-fonctions)/LENNOM;     // acquisition nom terminée récup N° fonction
-                memcpy(libfonctions+2*i,noms+LENNOM-2,2);                   // les 2 derniers car du nom de fonction si nom court
-//Serial.print(" numfonc=");Serial.println(numfonc);
-                //Serial.print(" ");Serial.print(numfonc);
+                      if(numfonc<0 || numfonc>=nbfonct){
+//Serial.print(" numfonc court=");Serial.println(numfonc);
 
-                if(numfonc<0 || numfonc>=nbfonct){
-                  memcpy(nomsc,noms,LENNOM-2);nomsc[LENNOM-2]=0x00;
-                  numfonc=(strstr(fonctions,nomsc)-fonctions)/LENNOM;       // si nom long pas trouvé, recherche nom court (complété par nn)
-
-                  //Serial.print(" ");Serial.print(nomsc);Serial.print(" ");Serial.print(numfonc);
-
-                  if(numfonc<0 || numfonc>=nbfonct){
-//Serial.print(" numfonc=");Serial.println(numfonc);
-                    termine=VRAI;nom=FAUX;val=FAUX;i=GETNV_UNVALID_FN;}                               // pas de fonction valide -> fin
-                  else {numfonct[i]=numfonc;}
+                        termine=VRAI;nom=FAUX;val=FAUX;i=GETNV_INVALID_FN1;}    // fonction inconnue -> erreur
+                      else {numfonct[i]=numfonc;}
+                    }
+                    else {numfonct[i]=numfonc;}                                 // une fonction est reçue avec = ou :    
+                  }
+                  else {nom=FAUX;termine=VRAI;i=GETNV_INV_SEP;}                 // séparateur invalide -> erreur
                 }
-                else {numfonct[i]=numfonc;}
-              
-                //Serial.print(" ");Serial.print(numfonc);Serial.println(" ");                  // une fonction est reçue avec = ou :
+                else if(j<LENNOM-2){
+//Serial.println((char)c);                        
+                       if((c>='A' && c<='Z') || (c>='a' && c<='z') || c=='_'){
+                         noms[j]=c;j++;}                                        // acquisition 8 premiers caractères
+                       else {nom=FAUX;termine=VRAI;i=GETNV_INVALID_FN2;}        // car invalide -> erreur
+                }
+                else if(j<LENNOM && c>PMFNCVAL){noms[j]=c;j++;}                 // 2 derniers caractères codés avec PMFNCVAL ou PMFNCHAR
+              } // les 2 derniers car codent avec PMFNCVAL et PMFNCHAR ils peuvent prendre toutes les valeurs sauf les caractères spéciaux
+                // la commande est de la forme : GET /[cx]?ffffffffff=aaaa..aaa&ffff... etc
+        
+              else if (val==VRAI){
+//Serial.print(" ");Serial.println((char)c);                
+                if (c!='&' && c!=':' && c!='=' && c>' '){
+                  valeurs[nvalf[i+1]]=c;
+                  if(nvalf[i+1]<(LENVALEURS-2)){nvalf[i+1]++;}                  // contrôle decap !
+                  else {val=FAUX;termine=VRAI;i=GETNV_RCD_OVF;}}                // valeurs saturé -> erreur
+                
+                else if (c=='&'){nom=VRAI;val=FAUX;j=0;                         // acquisition valeur terminée ... fonction suivante
+                  Serial.println();}
+                else if (c<=' '){termine=VRAI;Serial.println();}                // ' ' interdit dans valeur : indique fin données
+                else {val=FAUX;termine=VRAI;i=GETNV_INVALID_VAL;}                       
               }
-
-              if (nom==VRAI && j>=LENNOM-2 && c>' '){noms[j]=c;j++;}                                  // les 2 derniers car codent avec PMFNCVAL et PMFNCHAR
-                                                                                                      // ils peuvent prendre toutes les valeurs 
-              if (nom==VRAI && j<LENNOM-2 && c>' ' && c!='?' && c!=':' && c!='&'){noms[j]=c;j++;
-//Serial.print("\n noms=");Serial.println(noms);
-              }       // acquisition nom avec filtrage caractères spéciaux
-                                                                                                      // la commande est de la forme :
-                                                                                                      // GET /?ffffffffff=aaaa..aaa&ffff... etc
-                                                                                                      // Si '?' n'est pas ignoré, le calage sur le 1er car de la fonction ne se fait pas
-               
-              if (val==VRAI && c!='&' && c!=':' && c!='=' && c>' '){
-                valeurs[nvalf[i+1]]=c;
-                if(nvalf[i+1]<(LENVALEURS-2)){nvalf[i+1]++;}                                          // contrôle decap !
-                else {val=FAUX;termine=VRAI;i=GETNV_RCD_OVF;}}                                        // valeurs saturé -> fin
-              if (val==VRAI && (c=='&' || c<=' ')){
-                nom=VRAI;val=FAUX;j=0;
-                if(c<=' '){termine=VRAI;}
-                Serial.println(); 
-              }                                                                                         // ' ' interdit dans valeur : indique fin données                                 
+              else {Serial.print("getnv ni nom ni val");while(1){ledblink(BCODESYSERR);}}   // ni nom ni val ... system error                                                                                      
             }//Serial.println(libfonctions+2*(i-1));
-          }                                                                                             // acquisition valeur terminée (données aussi si c=' ')
+          }                                                                                             
         }
       }
-      Serial.print("---- fin getnv i=");Serial.print(i);
-      Serial.print(" nf[0]=");Serial.println(numfonct[0]);delay(15); // delai affichage pour debug ===============================================
-      if(numfonct[0]<0){return -1;} else return i;
+      Serial.print("\n---- fin getnv i=");Serial.print(i);Serial.print(' ');delay(10); // delai affichage pour debug ===============================================
+      if(numfonct[0]<0 && i>=0){i=GETNV_NO_FN;}
+      return i;
 }
 
 int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // décode commande, chaine et remplit les tableaux noms/valeurs
