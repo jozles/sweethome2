@@ -58,7 +58,7 @@ v1.a
 v1.b  le concentrateur transfère les consignes analogiques et envoit des messages de présence au serveur (apparait dans periTable)
       dev en cours du controle des radiateurs
 v1.c  la variable globale beginP_done indique que importData a été effectué dans beginP ; 
-      donc inutile de faire radio.txRx( et importData ensuite 
+      donc inutile de faire radio.txRx( et importData ensuite ; passage de consigne rad et exécution 
 */
 
 /************* config ****************/

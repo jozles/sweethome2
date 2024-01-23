@@ -152,7 +152,7 @@ void radSetup(){
   pinMode(RAD1,INPUT_PULLUP);
   pinMode(RAD2,INPUT_PULLUP);
   Serial.print(digitalRead(RAD1));Serial.println(digitalRead(RAD2));delay(10);
-  while((digitalRead(RAD1)*digitalRead(RAD2)==0) && (millis()-t_on)<30000){ledblink(1);delay(100);}
+  while((digitalRead(RAD1)+digitalRead(RAD2)!=2) && (millis()-t_on)<30000){blink(1);}
 
 /* 
   uint16_t preRad,curRad;
@@ -167,43 +167,65 @@ void radSetup(){
     if(cnt>99){cnt=99;}
   }
 */
+
+  char c;
+  Serial.println("valeur ascii (0x20->0x7F)-0x20 saisir un car");
+  while(1){
+    if(Serial.available()){c=Serial.read();c-=0x20;Serial.println((uint8_t)c);radUpdate(c);}
+  }
+
+  uint16_t max=10;
+  for(uint16_t consigne=0;consigne<max;consigne++){
+    Serial.println(consigne);delay(2000);radUpdate(consigne);
+    
+    char c='*';
+    while(c!=' ' && c!='q'){
+      if(Serial.available()){c=Serial.read();}
+    }
+    if(c=='q'){Serial.println("end");delay(10);Serial.end();consigne=max;}
+  }
 }
 
 void radUpdate(uint16_t value)
 {
+  
   if(value!=0){
-    for(uint8_t i=0;i<22;i++){
-      digitalWrite(RAD1,LOW);pinMode(RAD1,OUTPUT);delay(RADSTEP);
-      digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);delay(RADSTEP);
-      pinMode(RAD1,INPUT_PULLUP);delay(RADSTEP);
-      pinMode(RAD2,INPUT_PULLUP);delay(RADSTEP);
+
+    digitalWrite(RAD2,HIGH);pinMode(RAD1,OUTPUT); // setup mode DOWN
+    digitalWrite(RAD1,LOW);pinMode(RAD2,OUTPUT);
+
+    for(uint8_t i=0;i<22;i++){                    // RAZ
+      digitalWrite(RAD2,LOW);delay(RADSTEP);
+      digitalWrite(RAD1,HIGH);delay(RADSTEP);
+      digitalWrite(RAD2,HIGH);delay(RADSTEP);
+      digitalWrite(RAD1,LOW);delay(RADSTEP);      
     }
-  
-    for(uint8_t i=0;i<value;i++){
-      if((i&0x01)==0){
-        switch(i&0x03){
-          case 0:digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);delay(RADSTEP);break;
-          case 1:digitalWrite(RAD1,LOW);pinMode(RAD1,OUTPUT);delay(RADSTEP);break;
-          case 2:pinMode(RAD2,INPUT_PULLUP);delay(RADSTEP);break;
-          case 3:pinMode(RAD1,INPUT_PULLUP);delay(RADSTEP);break;
-          default:break;
-        }
-      }
-      else{
-        switch(i&0x03){
-          case 0:if(i!=0){digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);delay(RADSTEP);}break;
-          case 1:if(i==0){digitalWrite(RAD2,LOW);pinMode(RAD2,OUTPUT);}
-                 digitalWrite(RAD1,LOW);pinMode(RAD1,OUTPUT);delay(RADSTEP);break;
-          case 2:pinMode(RAD2,INPUT_PULLUP);delay(RADSTEP);break;
-          case 3:pinMode(RAD1,INPUT_PULLUP);delay(RADSTEP);break;
-          default:break;
-        }
-      }
+/*
+    digitalWrite(RAD2,!value&0x01);delay(RADSTEP);       // setup mode UP
+    digitalWrite(RAD1,!value&0x01);delay(RADSTEP);
+    for(uint16_t i=1;i<=value;i++){
+      digitalWrite(RAD2,i&0x01);delay(RADSTEP);
+      digitalWrite(RAD1,i&0x01);delay(RADSTEP);      
     }
-  
+  }
+*/
+
+    char(c);
+    while(1){
+      c=' ';
+      while(c==' '){
+        if(Serial.available()){c=Serial.read();Serial.print(c);digitalWrite(RAD2,c-48);}}
+      c=' ';
+      while(c==' '){
+      if(Serial.available()){c=Serial.read();Serial.println(c);digitalWrite(RAD1,c-48);}}
+    }
+
     pinMode(RAD1,INPUT_PULLUP);
     pinMode(RAD2,INPUT_PULLUP);
+    digitalWrite(RAD1,HIGH);
+    digitalWrite(RAD2,HIGH);
   }
+
 }
 
 #endif // NRF_MODE == 'P'

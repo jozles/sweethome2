@@ -345,7 +345,7 @@ void setup() {
       while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
   }
 
-  configLoad();
+  configLoad();*serverUdpPort=8885;configSave();
 
 #if TXRX_MODE == 'U' 
     hostPort=*serverUdpPort;
