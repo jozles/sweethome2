@@ -1216,6 +1216,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
               cpc=0x00;}     // traitement second                 
             
             Serial.print((char)c);trigwd();
+//if(c=='&'){Serial.println();Serial.print(i);Serial.print("/");Serial.print(j);Serial.print(" ");Serial.print(noms);Serial.print(" ");Serial.print(nom);Serial.println(val);}            
 //Serial.println();Serial.print(i);Serial.print("/");Serial.print(j);Serial.print(":");Serial.print((char)c);Serial.print(" ");Serial.print(nom);Serial.print(" ");Serial.print(val);Serial.print(" ");Serial.println(termine);            
             if (!termine){
               if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,0x00,LENNOM);
@@ -1224,6 +1225,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                                                   Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
               else if (nom==VRAI){
                 if(j==LENNOM){
+//Serial.println();Serial.println(c);                  
                   if(c==':' || c=='='){                                         // séparateur trouvé, ctle validité nom fonction
 //Serial.print("\n");Serial.println(noms);
                     nom=FAUX;val=VRAI;
@@ -1247,7 +1249,9 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                     }
                     else {numfonct[i]=numfonc;}                                 // une fonction est reçue avec = ou :    
                   }
-                  else {nom=FAUX;termine=VRAI;i=GETNV_INV_SEP;}                 // séparateur invalide -> erreur
+                  else {
+//Serial.println();Serial.print((char)c);Serial.print(" ");Serial.print(noms);Serial.print(" ");Serial.print(numfonct[i]);Serial.print(" ");Serial.println(j);
+                    nom=FAUX;termine=VRAI;i=GETNV_INV_SEP;}                     // séparateur invalide -> erreur
                 }
                 else if(j<LENNOM-2){
 //Serial.println((char)c);                        
@@ -1255,7 +1259,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                          noms[j]=c;j++;}                                        // acquisition 8 premiers caractères
                        else {nom=FAUX;termine=VRAI;i=GETNV_INVALID_FN2;}        // car invalide -> erreur
                 }
-                else if(j<LENNOM && c>PMFNCVAL){noms[j]=c;j++;}                 // 2 derniers caractères codés avec PMFNCVAL ou PMFNCHAR
+                else if(j<LENNOM && c>=PMFNCVAL){noms[j]=c;j++;}                 // 2 derniers caractères codés avec PMFNCVAL ou PMFNCHAR
               } // les 2 derniers car codent avec PMFNCVAL et PMFNCHAR ils peuvent prendre toutes les valeurs sauf les caractères spéciaux
                 // la commande est de la forme : GET /[cx]?ffffffffff=aaaa..aaa&ffff... etc
         
