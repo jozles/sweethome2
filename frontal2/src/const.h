@@ -167,7 +167,7 @@
    1.8g periMess doit être ok pour le traitement des fonctions des périfs sinon periCur n'est pas valorisé par periDataRead !
         ça corrige probablement le bug d'effacemenbt intempestif des périfs dans periTable
         (reste à vérifier les fonctions browser) ; multiples controles ajoutés dans getnv ; sortie erreurs 
-   1.8h 2 ports udp ; getnv-analyse revus
+   1.8h 2 ports udp ; getnv-analyse revus 
 
 
    BUGS : 

@@ -64,9 +64,11 @@ char ab;                            // protocole et type de la connexion en cour
   char udpData[UDPBUFLEN];          // buffer paquets UDP
   uint16_t udpDataLen;              // taille paquet contenu
     
-  EthernetUDP Udp1;                  // serveur Udp 1
+  EthernetUDP Udp1;                 // serveur Udp 1
   EthernetUDP Udp2;                 // serveur Udp 2
   EthernetUDP* udp[2];
+  uint8_t udpNb;
+  uint8_t udpSockIndex;
 
 /* ---------- config frontal ---------- */
 
@@ -1164,7 +1166,7 @@ int getcde(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* dataC
   while (cliAv(cli,HTTPCDLENGTH,dataCharNb) && c!='/' && cdCharCnt<HTTPCDLENGTH) {
       c=cliRead(cli,data,HTTPCDLENGTH,dataCharNb);Serial.print(c);                    // extrait la commande 
       if(c!='/'){inCd[cdCharCnt]=c;cdCharCnt++;}
-      inCd[cdCharCnt]='\0';                                                           // assure la fin de chaine
+      inCd[cdCharCnt]='\0';                                                           
   }
 
   uint8_t ko=0;
@@ -1590,10 +1592,13 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
       soit usr_ref___ la référence fournie en première zone (hidden) de la page (num user en libfonction+2xi+1) et millis() comme valeur;
 */
       cxtime=millis();    // pour rémanence pwd
-      
-      Serial.println();
-      Serial.print((long)cxtime);Serial.print(" sock:");Serial.print(cli->sockindex);Serial.print(" serveur(");Serial.print((char)ab);
+
+      Serial.println();now[14]='\0';Serial.print((char*)(now+4));Serial.print(' ');
+      Serial.print((long)cxtime);
+      Serial.print(" sock:");if(ab=='u'){Serial.print(udpSockIndex);}else{Serial.print(cli->sockindex);}
+      Serial.print(" serveur(");Serial.print((char)ab);
       if(ab=='a'){Serial.print(tPS);}
+      if(ab=='u'){Serial.print(udpNb);}
       Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
       delay(20);
 
@@ -2323,13 +2328,13 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
           switch(what){                                           
             case 0: break;                                                
             case 1: if(periMess==MESSOK){                                 // data_save (si periMess KO, periDataRead ne s'est pas exécuté et periCur n'est pas valorisé)
-                      periMess=periAns(cli,udpCli,"ack_______");}break;          // donc pas de periAns possible
+                      periMess=periAns(cli,udpCli,"ack_______");}break;   // donc pas de periAns possible
             case 2: Serial.print("ab=");Serial.println(ab);
                     if(ab=='c'){periTableHtml(cli);}                      // peritable suite à login
                     if(ab=='b'){remoteHtml(cli);}                         // remote    suite à login
                     break;
             case 3: if(periMess==MESSOK){                                 // data_read (si periMess KO, periDataRead ne s'est pas exécuté et periCur n'est pas valorisé)
-                      periMess=periAns(cli,udpCli,"set_______");}break;          // donc pas de periAns possible
+                      periMess=periAns(cli,udpCli,"set_______");}break;   // donc pas de periAns possible
             case 4: periMess=periSave(periCur,PERISAVESD);                // switchs
                     swCtlTableHtml(cli);
                     cliext.stop();periMess=periReq(&cliext,periCur,"set_______");break;
@@ -2362,13 +2367,12 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
       
         valeurs[0]='\0';                                                            
 
-        Serial.print("-sock stop ");Serial.print(cli->sockindex);Serial.print(" ");        
-        if(ab!='u'){                                                              
+        if(ab!='u'){
+          Serial.print("-sock stop ");Serial.print(cli->sockindex);Serial.print(" ");                                                              
           if(cli!=cli_debug){Serial.print("cli hs");while(1){trigwd();}}
           cli->stop();            // tcp only ********* !!!!!!!! stop géré en instances multiples pour cli_a 
           cliext.stop();          // en principe rapide : la dernière action est une entrée
         }
-        //else {Udp.stop();}
                                   // la gestion d'instances multiples ne fonctionne pas avec le navigateur ??
         if(ab=='a'){
           tPSStop[tPS]=millis();if(tPSStop[tPS]==0){tPSStop[tPS]=1;} //heure du stop TCP
@@ -2430,6 +2434,8 @@ void udpPeriServer()
     int udpPacketLen = udp[uu]->parsePacket();
  
     if (udpPacketLen){
+      udpSockIndex=udp[uu]->sockindex;
+      Serial.print(" udpSock ");Serial.println(udp[uu]->sockindex);
       udpDataLen=udpPacketLen;
       rip = (uint32_t) udp[uu]->remoteIP();
       memcpy(remote_IP,(char*)&rip+4,4);
@@ -2442,6 +2448,7 @@ void udpPeriServer()
           udp[uu]->read(udpData,udpDataLen);udpData[udpDataLen]='\0';
           packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
           lastcxu=millis();     // trig watchdog
+          udpNb=uu;
           commonserver(nullptr,udp[uu],udpData,udpDataLen);              
         }
         else{
@@ -2449,7 +2456,7 @@ void udpPeriServer()
         }
       }
     }
-}
+  }
 }
 
 /* En TCP

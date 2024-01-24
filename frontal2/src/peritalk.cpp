@@ -314,7 +314,7 @@ int periAns(EthernetClient* cli,EthernetUDP* udpCli,const char* nfonct)   // ré
             //cli->stop();
             //Serial.print(" a2=");Serial.println(millis());
           }
-          if(*periProtocol=='U'){
+          if(*periProtocol=='U' && udpCli!=nullptr){
             IPAddress udpAddress;
             memcpy((char*)(&udpAddress)+4,periIpAddr,4);
             udpCli->beginPacket(udpAddress,*periPort);
