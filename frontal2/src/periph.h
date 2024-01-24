@@ -66,6 +66,12 @@ int   timersLoad();
 int   timersSave();
 int   timersConvert();
 
+void  anTimersPrint();
+void  anTimersInit();
+int   anTimersLoad();
+int   anTimersSave();
+int   anTimersConvert();
+
 void  thermosPrint();
 void  thermosInit();
 int   thermosLoad();

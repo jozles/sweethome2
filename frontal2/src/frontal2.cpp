@@ -2414,6 +2414,7 @@ void udpError(EthernetUDP* uu,const char* message,uint16_t udpPacketLen)
       //Udp.stop();
       if(udpPacketLen>=UDPBUFLEN-1){udpPacketLen=UDPBUFLEN-2;}
       uu->read(udpData,udpPacketLen);udpData[udpPacketLen]='\0';
+      Serial.print("udpData ko:");Serial.println(udpData);delay(10);
       
       #define RPULEN 40
       char rpu[RPULEN];memset(rpu,'\0',RPULEN);
