@@ -110,6 +110,8 @@ extern struct Remote remoteN[NBREMOTE];
 
 extern struct Timers timersN[NBTIMERS];
 
+extern struct AnalTimers analTimers[NBANTIMERS];
+
 extern struct Thermo thermos[NBTHERMOS];
 
 extern int        fdatasave;
@@ -1197,6 +1199,68 @@ void timersCtlHtml(EthernetClient* cli)
 
   bufLenShow(buf,jsbuf,lb,begTPage);
 }
+
+void anTimersCtlHtml(EthernetClient* cli)
+{              
+  Serial.print(millis());Serial.print(" anTimersCtlHtml() ");
+
+  uint16_t lb0=8000;
+  char buf[lb0];buf[0]='\0';
+  char jsbuf[LBUF4000];*jsbuf=0x00;
+
+  uint16_t lb;
+  unsigned long begTPage=millis();                  // calcul durée envoi page
+ 
+  htmlBeg(buf,jsbuf,serverName,'R');
+
+  pageLineOne(buf,jsbuf);
+  formIntro(buf,jsbuf,nullptr,0,nullptr,0,0);
+            //usrFormBHtml(buf,1);
+  scrGetButRet(buf,jsbuf,"retour",0);
+  ethWrite(cli,buf,&lb);
+// ------------------------------------------------------------- header end
+
+
+  tableBeg(buf,jsbuf,courier,true,0,0);
+  scrDspText(buf,jsbuf,"|nom|en|d-I|d-O|time-1|val-1|time-2|val-2|time-3|val-3|time-4|val-4|time-5|val-5|time-6|val-6|time-7|val-7|time-8|val-8| |",0,TRBE|TDBE);
+
+  for(uint8_t nt=0;nt<NBANTIMERS;nt++){
+    formIntro(buf,jsbuf,0,TRBEG|TDBEG|BRYES);
+    
+    scrDspNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
+    scrDspText(buf,jsbuf,analTimers[nt].nom,7,TDBE);                 
+    
+    char nf[]="atim_ctl__";nf[LENNOM-1]=nt+PMFNCHAR;
+    const char* lib[2];
+    lib[0]="enable";
+    lib[1]="disable";
+    uint8_t color=OFFCOLOR;
+    if(analTimers[nt].enable!=0){color=ONCOLOR;}
+    scrGetButFn(buf,jsbuf,nf,"",lib[analTimers[nt].enable],ALICNO,4,color,0,1,RND,TDBE|TREND);
+
+    scrDspNum(buf,jsbuf,'D',&analTimers[nt].detecIn,0,0,TDBE);
+    scrDspNum(buf,jsbuf,'D',&analTimers[nt].detecOut,0,0,TDBE);
+
+    char hhmmss[6];
+    for(uint8_t ntv=0;ntv<NBEVTANTIM;ntv++){
+      unpack(hhmmss,analTimers[nt].heure,3);
+      scrDspText(buf,jsbuf,hhmmss,7,TDBE);
+      scrDspNum(buf,jsbuf,'d',&analTimers[nt].valeur,0,0,TDBE);}                     
+
+    formEnd(buf,jsbuf,0,TDEND|TREND);
+    strcat(buf,"\n");
+
+    ethWrite(cli,buf,&lb);
+  }
+
+  tableEnd(buf,jsbuf,0);
+  htmlEnd(buf,jsbuf);
+  
+  ethWrite(cli,buf,&lb);
+
+  bufLenShow(buf,jsbuf,lb,begTPage);
+}
+
 
 int scalcTh(const char* endDate,char* dhasc,const char* prev)           // maj temp min/max des périphériques sur les prev derniers jours
 {                                                                       // jusqu'à endDate (non traité toujours now) 

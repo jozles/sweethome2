@@ -170,6 +170,14 @@ extern struct Timers timersN[NBTIMERS];
 extern char*  timersNA;
 extern long   timersNlen;
 
+/* ------ analog timers -------- */
+
+File32 fanTimers;   // fichier
+
+extern struct AnalTimers analTimers[NBANTIMERS];
+extern char*  anTimersA;
+extern unsigned long   anTimersLen;
+
 /* ---------- Thermos ---------- */
 
 File32 fthermos;    // fichier thermos
@@ -1949,6 +1957,86 @@ int timersConvert()
 
 }
 
+/**** analog timers ****/
+
+void anTimersPrint()
+{
+  for(uint8_t nt=0;nt<NBTIMERS;nt++){
+    Serial.print("   ");Serial.print(nt);Serial.print("/");Serial.print(timersN[nt].detec);Serial.print(" ");
+    Serial.print(timersN[nt].nom);Serial.print(" ");Serial.print(timersN[nt].enable);Serial.print(" ");
+    Serial.print(timersN[nt].perm);Serial.print(" ");Serial.print(timersN[nt].curstate);Serial.print(" ");
+    Serial.print(timersN[nt].cyclic_);Serial.print(" ");Serial.print(timersN[nt].forceonoff);Serial.print(" ");
+    Serial.print(timersN[nt].hdeb);Serial.print(" ");Serial.print(timersN[nt].hfin);Serial.print(" ");
+    for(int nd=7;nd>=0;nd--){Serial.print((char)(((timersN[nt].dw>>nd)&0x01)+'0'));}Serial.print(" "); // 0=tous 1-7
+    Serial.print(timersN[nt].dhdebcycle);Serial.print(" ");Serial.println(timersN[nt].dhfincycle);
+    Serial.print("last :");Serial.print(timersN[nt].dhLastStart);Serial.print(" ");Serial.print(timersN[nt].dhLastStop);
+  }
+}
+
+void anTimersInit()
+{
+  memset(anTimersA,0x00,anTimersLen);
+  for(int ant=0;ant<NBANTIMERS;ant++){
+    //memset(timersN[nt].onStateDur,'0',16);
+    //memset(timersN[nt].offStateDur,'9',16);
+  }
+}
+
+int anTimersLoad()
+{
+    Serial.print("Load analog timers   ");
+    if(sdOpen(ANTIMERSFNAME,&fanTimers)==SDKO){Serial.println(" KO");return SDKO;}
+    fanTimers.seek(0);
+    for(uint16_t i=0;i<anTimersLen;i++){*(anTimersA+i)=fanTimers.read();}             
+    fanTimers.close();Serial.println(" OK");
+    
+    return SDOK;
+}
+
+int anTimersSave()
+{
+    Serial.print("Save analog timers ");
+    if(sdOpen(ANTIMERSFNAME,&fanTimers)==SDKO){Serial.println(" KO");return SDKO;}
+    fanTimers.seek(0);
+    for(uint16_t i=0;i<anTimersLen;i++){fanTimers.write(*(anTimersA+i));}             
+    fanTimers.close();Serial.println(" OK");
+    return SDOK;
+}
+
+int anTimersConvert()
+{
+    anTimersInit();
+    Serial.println("convert analog timers ");
+    
+    Serial.print("Load Analog timers   ");
+    if(sdOpen(ANTIMERSFNAME,&fanTimers)==SDKO){Serial.println(" KO");return SDKO;}
+    fanTimers.seek(0);
+    for(uint8_t i=0;i<NBANTIMERS;i++){
+      for(uint16_t j=0;j<sizeof(AnalTimersOld);j++){
+        *(anTimersA+i*sizeof(AnalTimers)+j)=fanTimers.read();}
+      //memset(timersN[i].onStateDur,'0',16);
+      //memset(timersN[i].offStateDur,'0',16);
+    }
+    fanTimers.close();Serial.println(" OK");
+
+    /*Serial.println("check");timersPrint();
+    Serial.print("ok=CR ");
+    char inp=' ';while(inp==' '){if(Serial.available()){inp=Serial.read();if(inp!=13){inp=' ';}}}
+    Serial.println();
+    */
+    //while(1){};
+
+    fanTimers.remove();    
+
+    if (!fanTimers.open(ANTIMERSFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
+        Serial.print(ANTIMERSFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO);}
+    else {fanTimers.close();Serial.println(" create OK");}
+
+    anTimersSave();
+
+    Serial.println("terminé");
+    while(1){blink(1);}
+}
 
 /**************** thermometres ******************/
 

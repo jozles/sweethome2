@@ -381,7 +381,6 @@ struct OldRemote             // liste des remotes
   uint8_t  butModel;      // modèle bouton (slider/pushButton)
 };
 
-
 #define NBTIMERS     16
 #define LENTIMNAM    16
 #define TIMERSNFNAME "NOMS_TIM"
@@ -394,7 +393,7 @@ struct TimersOld
   char    hdeb[7];       // heure début
   char    hfin[7];       // heure fin
   bool    perm;          // permanent (pas de test sur deb/fin cycle ni cyclic)
-  bool    cyclic_;        // cyclique/one time (si one time disable en fin de cycle)
+  bool    cyclic_;       // cyclique/one time (si one time disable en fin de cycle)
   bool    enable;        //
   bool    curstate;      // etat courant du timer
   bool    forceonoff;    // inutilisé devrait être "action" (OR/NOR/XOR/AND)
@@ -425,6 +424,41 @@ struct Timers
   char    dhLastStop[16];
   char    onStateDur[16];
   char    offStateDur[16];
+};
+
+#define NBANTIMERS 16
+#define LENANTIM   16
+#define NBEVTANTIM 8          // nbre évènements par jour
+#define ANTIMERSFNAME "ANTIMERS"
+
+struct AnalTimers
+{
+  char     nom[LENANTIM+1]; 
+  char     heure[3*NBEVTANTIM]; // heure packée
+  uint16_t valeur[NBEVTANTIM];
+  bool     enable;
+  uint8_t  dw;                  // jours semaine xyyyyyyyy ; x si tout
+  uint8_t  detecIn;             // détecteur associé (enable)
+  uint8_t  detecOut;            // détecteur associé (sortie?)
+  uint8_t  mode;
+  uint8_t  dispo1;
+  uint8_t  dispo2;
+};
+
+struct AnalTimersOld
+{
+/*     
+  char     nom[LENANTIM+1]; 
+  char     heure[3*NBEVTANTIM]; // heure packée
+  uint16_t valeur[NBEVTANTIM];
+  bool     enable;
+  uint8_t  dw;                  // jours semaine xyyyyyyyy ; x si tout
+  uint8_t  detecIn;             // détecteur associé (enable)
+  uint8_t  detecOut;            // détecteur associé (sortie?)
+  uint8_t  mode;
+  uint8_t  dispo1;
+  uint8_t  dispo2;
+*/
 };
 
 #define NBTHERMOS  NBPERIF

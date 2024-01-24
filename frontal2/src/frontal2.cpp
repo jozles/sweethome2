@@ -354,6 +354,10 @@ unsigned long   timersNlen=(sizeof(Timers))*NBTIMERS;
 //char*  timersNA=(char*)&timersN;
 //unsigned long   timersNlen=(sizeof(Timers))*NBTIMERS;
 
+struct AnalTimers analTimers[NBANTIMERS];
+char*  anTimersA=(char*)&analTimers;
+unsigned long   anTimersLen=(sizeof(AnalTimers))*NBANTIMERS;
+
 struct Thermo thermos[NBTHERMOS];
 char*  thermosA=(char*)&thermos;
 unsigned long   thermoslen=(sizeof(Thermo))*NBTHERMOS;
@@ -1301,7 +1305,7 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
   Serial.print("--- getnv ");Serial.println(dataLen);
   int cdNb=getcde(cli,data,dataLen,&dataCharNb); 
 
-  Serial.print(" cdNb=");Serial.print(cdNb);Serial.println(" ");
+  Serial.print(" cdNb=");Serial.print(cdNb);Serial.println(" ");delay(10);
       
       char c=' ';
       int pbli=0;
@@ -2435,7 +2439,6 @@ void udpPeriServer()
  
     if (udpPacketLen){
       udpSockIndex=udp[uu]->sockindex;
-      Serial.print(" udpSock ");Serial.println(udp[uu]->sockindex);
       udpDataLen=udpPacketLen;
       rip = (uint32_t) udp[uu]->remoteIP();
       memcpy(remote_IP,(char*)&rip+4,4);
