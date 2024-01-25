@@ -173,11 +173,17 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
                 v1+=MDSLEN*2+1;
                 v2=*periPort;
                 sprintf((message+v1),"%04d",v2);                  // periPort
-                memcpy(message+v1+4,"_\0",2);
-
+                v1+=4;*(message+v1)='_';
+                v1++;
       }  // periCfg != 0
+      /* ajouter de nouveaux champs ici, leur position est indexée sur la fin du message 
+         (par exemple periCfg est à l'adresse message+longueur-2  (-3 pour le'_')
+         et le suivant sera à l'adresse message-longueur-3-longueur du champ ajouté ;
+         voir exemple dans (single_nrf_v2/sweet_home/nrf_user_conc.cpp-importData() )
+      */
+      unpack(message+v1,(char*)periCfg,1);                        // periCfg
+      memcpy(message+v1+1,"_\0",2);
       strcat(message,diag);                                 // periMess length=LPERIMESS
-
     }  // pericur != 0            
 }
 

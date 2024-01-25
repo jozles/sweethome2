@@ -163,11 +163,13 @@
    1.8e re-branchement cli.stop périfs;
         accélérateur pour thermoshow et debug ; offset  ajouté th aux min/max ; dissociation show et scalc(ajout bouton)
    1.8f les 5 bits de poids fort de periAnalLow et periAnalHigh sont utilisés pour stocker une consigne analogique pour périf
-        periProg devient periCfg : bit 0 si serveur, bit 1 si consigne Analogique
+        periProg devient periCfg : bit 0 si serveur, bit 1 si consigne Analogique ; bit 2 si radiateur
    1.8g periMess doit être ok pour le traitement des fonctions des périfs sinon periCur n'est pas valorisé par periDataRead !
         ça corrige probablement le bug d'effacemenbt intempestif des périfs dans periTable
         (reste à vérifier les fonctions browser) ; multiples controles ajoutés dans getnv ; sortie erreurs 
-   1.8h 2 ports udp ; getnv-analyse revus 
+   1.8h 2 ports udp ; getnv-analyse revus ; création analog timers ; ajout periCfg dans les messages serveur->périfs
+        l'ajout de champs se fait maintenant en référence à la fin du message ; tfr periCfg aux perifs 
+        ajout de anTimersHtml et anTimersCtlHtml
 
 
    BUGS : 

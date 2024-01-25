@@ -428,7 +428,7 @@ void sscb(char* buf,char* jsbuf,bool val,const char* nomfonct,int nuf,int etat,u
   scrGetCheckbox(buf,jsbuf,(uint8_t*)&val,nf,etat,"",0,ctl);
 }
 
-void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,const void* value,int len,uint8_t type,uint8_t ctl)   
+void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,int8_t rg,const void* value,int len,uint8_t type,uint8_t ctl)   
                                                                     // nature valeur à saisir / nature de 'value'
                                                                     // type =0 char*   /    value=char*
                                                                     // type =1 char*   /    ((char*)value+nb*(len+1))=char*
@@ -437,13 +437,18 @@ void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,const void* value,
 {
   int8_t sizbx=len-3;if(sizbx<=0){sizbx=1;}
   char nf[LENNOM+1];memcpy(nf,nom,LENNOM-1);nf[LENNOM-1]=(char)(nb+PMFNCHAR);nf[LENNOM]=0x00;
+  if(rg>=0){nf[LENNOM-2]=(char)(rg+PMFNCHAR);}
 
-  
   //strcat(buf,"<td><input type=\"text\" name=\"");strcat(buf,nom);concat1a(buf,(char)(nb+PMFNCHAR));strcat(buf,"\" value=\"");
   if(type==0){scrGetText(buf,jsbuf,(char*)value,nf,sizbx,len,0,ctl);} //strcat(buf,(char*)value);strcat(buf,"\" size=\"");concatn(buf,sizbx);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>");}
   if(type==1){scrGetText(buf,jsbuf,(char*)((char*)value+(nb*(len+1))),nf,sizbx,len,0,ctl);} //strcat(buf,(char*)(((char*)value+(nb*(len+1)))));strcat(buf,"\" size=\"");concatn(buf,len);strcat(buf,"\" maxlength=\"");concatn(buf,len);strcat(buf,"\" ></td>\n");}  
   if(type==2){scrGetNum(buf,jsbuf,'I',((int16_t*)value+nb),nf,2,1,0,ctl);} //concatn(buf,*((int16_t*)value+nb));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>");}
   if(type==3){scrGetNum(buf,jsbuf,'s',(int8_t*)value,nf,2,1,0,ctl);} //concatn(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
+}
+
+void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,const void* value,int len,uint8_t type,uint8_t ctl)   
+{
+  sscfgtB(buf,jsbuf,nom,nb,-1,value,len,type,ctl);
 }
 
 void subcfgtable(char* buf,char* jsbuf,const char* titre,int nbl,const char* nom1,const char* value1,int len1,uint8_t type1,const char* nom2,void* value2,int len2,const char* titre2,uint8_t type2)
@@ -1628,7 +1633,7 @@ Serial.print(" config timers ");
 
   pageLineOne(buf,jsbuf);              // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
-  scrGetButRef(buf,jsbuf,"timerhtml",0,BRYES);
+  scrGetButRef(buf,jsbuf,"timerHtml",0,BRYES);
 
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 
@@ -1659,9 +1664,9 @@ Serial.print(" config timers ");
     oo[4]=(PMFNCVAL)+mDSval(timersN[nt].detec);                     
     //oo[4]=(PMFNCVAL)+((memDetServ>>timersN[nt].detec)&0x01);                     
     scrDspText(buf,jsbuf,oo,0,TDBE);
-    nucb=0;sscb(buf,jsbuf,timersN[nt].enable,"tim_chkb__",nucb,NO_STATE,TDBEG,nt);affSpace(buf,jsbuf);
-    nucb++;sscb(buf,jsbuf,timersN[nt].perm,"tim_chkb__",nucb,NO_STATE,0,nt);affSpace(buf,jsbuf);
-    nucb++;sscb(buf,jsbuf,timersN[nt].cyclic_,"tim_chkb__",nucb,NO_STATE,TDEND,nt);   
+    nucb=0;sscb(buf,jsbuf,timersN[nt].enable,"tim_chkb__",nucb,NO_STATE,TDBEG,nt);affSpace(buf,jsbuf);    // cb 0 : enable
+    nucb++;sscb(buf,jsbuf,timersN[nt].perm,"tim_chkb__",nucb,NO_STATE,0,nt);affSpace(buf,jsbuf);          // cb 1 : permanent
+    nucb++;sscb(buf,jsbuf,timersN[nt].cyclic_,"tim_chkb__",nucb,NO_STATE,TDEND,nt);                       // cb 2 : cyclic
 
     ethWrite(cli,buf,&lb);
 
@@ -1669,7 +1674,7 @@ Serial.print(" config timers ");
     for(int nj=7;nj>=0;nj--){
       bool vnj; 
       vnj=(timersN[nt].dw>>nj)&0x01;
-      nucb++;sscb(buf,jsbuf,vnj,"tim_chkb__",nucb,NO_STATE,lctl,nt);
+      nucb++;sscb(buf,jsbuf,vnj,"tim_chkb__",nucb,NO_STATE,lctl,nt);                                      // cb 3->n : dw
       lctl=0;if(nj==1){lctl=TDEND;}
       if(nj>=1){affSpace(buf,jsbuf);}
     }
@@ -1680,6 +1685,86 @@ Serial.print(" config timers ");
     sscfgtB(buf,jsbuf,"tim_hdf_P",nt,&timersN[nt].offStateDur,14,0,TDBE);
     sscfgtB(buf,jsbuf,"tim_hdf_s",nt,&timersN[nt].dhLastStart,14,0,TDBE);
     sscfgtB(buf,jsbuf,"tim_hdf_S",nt,&timersN[nt].dhLastStop,14,0,TDBE); 
+
+    scrGetButSub(buf,jsbuf,"MàJ",TDBE);
+
+    formEnd(buf,jsbuf,0,TDEND|TREND);
+    strcat(buf,"\n");
+
+    ethWrite(cli,buf,&lb);
+  }
+
+  tableEnd(buf,jsbuf,0);
+  htmlEnd(buf,jsbuf);
+  
+  ethWrite(cli,buf,&lb);
+
+bufLenShow(buf,jsbuf,lb,begTPage);
+}
+
+void anTimersHtml(EthernetClient* cli)
+{
+    
+Serial.print(" config analog timers ");
+#ifdef DEBUG_ON
+  delay(100);
+#endif
+  char jsbuf[8000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf et buf init 
+  uint16_t lb=0,lb0=8000;
+  char buf[lb0];*buf=0x00;
+
+  unsigned long begTPage=millis();    // calcul durée envoi page
+  int nucb;
+
+  htmlBeg(buf,jsbuf,serverName);       // chargement CSS etc
+
+  formIntro(buf,jsbuf,0,0);           // params pour retours navigateur (n° usr + time usr + pericur)
+                                      // à charger au moins une fois par page ; pour les autres formulaires 
+                                      // de la page formBeg() suffit
+
+  pageLineOne(buf,jsbuf);              // 1ère ligne page
+  scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
+  scrGetButRef(buf,jsbuf,"anTimerHtml",0,BRYES);
+
+  ethWrite(cli,buf,&lb);              // tfr -> navigateur
+// ------------------------------------------------------------- header end 
+
+  detServHtml(cli,buf,jsbuf,&lb,lb0,memDetServ,&libDetServ[0][0]);
+
+  tableBeg(buf,jsbuf,0);
+  scrDspText(buf,jsbuf,"|nom|en|deti|deto|7_d_ l_m_m_ j_v_s|heure 1|val1|heure 2|val2|heure 3|val3|heure 4|val4|heure 5|val5|heure 6|val6|heure 7|val7|heure 8|val8|",0,TRBE|TDBE);
+
+  for(uint8_t nt=0;nt<NBTIMERS;nt++){
+    formIntro(buf,jsbuf,0,TRBEG|TDBEG);
+                      /*strcat(buf,"<form method=\"GET \">");
+                      usrFormBHtml(buf,1);
+                      strcat(buf,"<td>");*/
+    scrDspNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
+                     
+    sscfgtB(buf,jsbuf,"antim___n_",nt,analTimers[nt].nom,LENTIMNAM,0,TDBE);
+    nucb=0;sscb(buf,jsbuf,analTimers[nt].enable,"antim_ch__",nucb,NO_STATE,TDBE,nt);affSpace(buf,jsbuf);    // cb 0 : enable
+    sscfgtB(buf,jsbuf,"antim___i_",nt,&analTimers[nt].detecIn,2,3,TDBE);                                            
+    sscfgtB(buf,jsbuf,"antim___o_",nt,&analTimers[nt].detecOut,2,3,TDBE);
+
+    uint8_t lctl=TDBEG;
+    for(int nj=7;nj>=0;nj--){
+      bool vnj; 
+      vnj=(analTimers[nt].dw>>nj)&0x01;
+      nucb++;sscb(buf,jsbuf,vnj,"antim_ch__",nucb,NO_STATE,lctl,nt);                                        // cb 1->n dw
+      lctl=0;if(nj==1){lctl=TDEND;}
+      if(nj>=1){affSpace(buf,jsbuf);}
+    }
+    
+    ethWrite(cli,buf,&lb);
+
+    char unpHeure[6];
+    for(uint8_t hh=0;hh<NBEVTANTIM;hh++){
+      unpack(unpHeure,&analTimers[nt].heure[hh*3],3);
+      sscfgtB(buf,jsbuf,"antim_hh__",nt,hh,unpHeure,6,0,TDBE);
+      sscfgtB(buf,jsbuf,"antim_vv__",nt,hh,analTimers[nt].valeur,4,2,TDBE);
+    }
+
+    ethWrite(cli,buf,&lb);
 
     scrGetButSub(buf,jsbuf,"MàJ",TDBE);
 

@@ -1869,7 +1869,8 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                        }break;                                                                       
               case 15: what=5;getPeriCurValf(PERILOAD);                                                   // (periLine) - peri_cur__ bouton submit
                        *periCfg&=~PERI_ANAL;                                                              // efface check box flag analogique
-                       *periCfg&=~PERI_SERV;break;                                                        // efface check box flag serveur                                                   
+                       *periCfg&=~PERI_SERV;                                                              // efface check box flag serveur                                                   
+                       *periCfg&=~PERI_RAD;break;                                                         // efface check box flag radiateur
               case 16: what=5;getPeriCurLibf(false);                                                      // (periLine) peri_raz___
                        periInitVar();
                        break;
@@ -1887,6 +1888,7 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                           case 'r':*periPerRefr=0;conv_atobl(valf,periPerRefr);break;                     // (periLine) - peri_lf_r_ per refr
                           case 'P':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_SERV;};break;    // (periLine) - peri_lf_P_ prog
                           case 'a':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_ANAL;};break;    // (periLine) - peri_lf_a_ anal
+                          case 'R':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_RAD;};break;     // (periLine) - peri_lf_r_ radiateur
                           case 'A':uint16_t value;conv_atob(valf,&value);
                           Serial.print("value=");Serial.print(value);Serial.print("H=");Serial.print(*periAnalHigh);Serial.print("L=");Serial.print(*periAnalLow);
                                    *periAnalHigh&=0x07ff;*periAnalHigh|=(value&0x03e0)<<6;Serial.print(" V<<6=");Serial.print((value&0x03e0)<<6);
