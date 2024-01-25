@@ -38,6 +38,7 @@ extern float   period;
 extern uint16_t userData[2];
 uint16_t       analOutput=0;
 uint16_t       prevAnalOutput=0;
+uint8_t        periCfg=0;        
 
 /* cycle functions */
 
@@ -80,11 +81,11 @@ void messageBuild(char* message,uint8_t* messageLength)
     message[*messageLength]='\0';                                   //          - 1
 }
 
-uint16_t usdGet(char* data){
+uint16_t packGet(char* data,uint8_t len){
   uint16_t v=0;
   char cc[2];cc[1]='\0';
   uint8_t k[4];k[0]=2;k[1]=3;k[2]=0;k[3]=1;
-  for(int8_t i=0;i<4;i++){
+  for(int8_t i=0;i<len;i++){
       cc[0]=*(data+k[i]);v<<=4;v+=strstr(chexa,cc)-chexa;}
 return v;
 }
@@ -104,22 +105,25 @@ void importData(byte* data,uint8_t dataLength)
     aw_ok=perTemp/period;
     srt+=sizeRead;
     deltaTemp=(convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead))/100;    // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
-                                                                                // devrait être convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead)/100;
-                                                                                // vérifier srt...   
+                                                                                  // devrait être convStrToNum((char*)(data+NRF_ADDR_LENGTH+1+srt),&sizeRead)/100;
+                                                                                  // vérifier srt...   
     srt+=sizeRead;
-    Serial.print(" ");Serial.print(srt);
+    //Serial.print(" ");Serial.print(srt);
     *(data+NRF_ADDR_LENGTH+1+srt+8)='\0';
 //dumpstr((char*)data,32);
     Serial.print(":::");Serial.print((char*)(data+NRF_ADDR_LENGTH+1+srt));
       
-    userData[0]=usdGet((char*)(data+NRF_ADDR_LENGTH+1+srt));//Serial.println(userData[0]);
-    srt+=4;
-    userData[1]=usdGet((char*)(data+NRF_ADDR_LENGTH+1+srt));//Serial.println(userData[1]);
+    userData[0]=packGet((char*)(data+NRF_ADDR_LENGTH+1+srt),4);                   // forme '_hhhhhhhh' //Serial.println(userData[0]);
+    srt+=5;
+    userData[1]=packGet((char*)(data+NRF_ADDR_LENGTH+srt),4);                     //Serial.println(userData[1]);
     srt+=4;
     analOutput=(userData[0]&=0xf800)>>=11;analOutput+=(userData[1]&=0xf800)>>=6;
-    Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.println(analOutput);delay(2);
-    if(prevAnalOutput!=analOutput){radUpdate(analOutput);prevAnalOutput=analOutput;}
-                  
+    Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.print(analOutput);
+    Serial.print('-');Serial.print(prevAnalOutput);
+    periCfg=(uint8_t)packGet((char*)(data+NRF_ADDR_LENGTH+srt+1),2);             // forme '_hh'
+    if(prevAnalOutput!=analOutput && (periCfg&PERI_RAD)!=0){radUpdate(analOutput);prevAnalOutput=analOutput;}
+    Serial.print(" cfg:");if(periCfg<16){Serial.print('0');}Serial.println(periCfg,HEX);delay(2);                  
+    
     if(diags){
     Serial.print("\n£ ");
     Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS com nb ; nbL loop nb
@@ -151,6 +155,7 @@ void radSetup(){
   analOutput=0;
   pinMode(RAD1,INPUT_PULLUP);
   pinMode(RAD2,INPUT_PULLUP);
+  delay(10);
   Serial.print(digitalRead(RAD1));Serial.println(digitalRead(RAD2));delay(10);
   while((digitalRead(RAD1)+digitalRead(RAD2)!=2) && (millis()-t_on)<30000){blink(1);}
 
@@ -167,7 +172,7 @@ void radSetup(){
     if(cnt>99){cnt=99;}
   }
 */
-
+/*
   char c;
   Serial.println("valeur ascii (0x20->0x7F)-0x20 saisir un car");
   while(1){
@@ -184,12 +189,14 @@ void radSetup(){
     }
     if(c=='q'){Serial.println("end");delay(10);Serial.end();consigne=max;}
   }
+*/
 }
 
 void radUpdate(uint16_t value)
 {
   
   if(value!=0){
+    if(value>42){value=42;}
 
     digitalWrite(RAD2,HIGH);pinMode(RAD1,OUTPUT); // setup mode DOWN
     digitalWrite(RAD1,LOW);pinMode(RAD2,OUTPUT);
@@ -200,7 +207,7 @@ void radUpdate(uint16_t value)
       digitalWrite(RAD2,HIGH);delay(RADSTEP);
       digitalWrite(RAD1,LOW);delay(RADSTEP);      
     }
-/*
+
     digitalWrite(RAD2,!value&0x01);delay(RADSTEP);       // setup mode UP
     digitalWrite(RAD1,!value&0x01);delay(RADSTEP);
     for(uint16_t i=1;i<=value;i++){
@@ -208,8 +215,8 @@ void radUpdate(uint16_t value)
       digitalWrite(RAD1,i&0x01);delay(RADSTEP);      
     }
   }
-*/
 
+/*
     char(c);
     while(1){
       c=' ';
@@ -219,12 +226,11 @@ void radUpdate(uint16_t value)
       while(c==' '){
       if(Serial.available()){c=Serial.read();Serial.println(c);digitalWrite(RAD1,c-48);}}
     }
-
+*/
     pinMode(RAD1,INPUT_PULLUP);
     pinMode(RAD2,INPUT_PULLUP);
     digitalWrite(RAD1,HIGH);
     digitalWrite(RAD2,HIGH);
-  }
 
 }
 

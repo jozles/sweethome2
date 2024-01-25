@@ -307,10 +307,10 @@ int getHData(char* data,uint16_t* len)
               else {messLength=0;data[0]='\0';CLIZER;}}
             t1_3=micros()-t1;
             break;
-    case 3: conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // contrôle crc
+    case 3: conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // récup crc
             //Serial.print(crcAsc,HEX);Serial.print(" ");Serial.print((char*)(data+introLength2-4));Serial.print(" ");Serial.println(messLength-suffixLength);
             CLIZER;
-            if(calcCrc((char*)(data+introLength2-4),messLength-suffixLength)==crcAsc){
+            if(calcCrc((char*)(data+introLength2-4),messLength-suffixLength)==crcAsc){             // contrôle crc
               t1_4=micros()-t1;
               return MESSOK;}
             else {messLength=0;data[0]='\0';CLIZER;}
@@ -461,7 +461,8 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   int  dataLen=LBUFSERVER;
   
   t1=micros();
-  periMess=getHData(indata,(uint16_t*)&dataLen);
+  periMess=getHData(indata,(uint16_t*)&dataLen);                  // la longueur du message est messLength-suffixLength (si periMess=MESSOK)
+                                                                  // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
 
   if(periMess==MESSOK){
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
@@ -476,9 +477,10 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         else {
           eds=radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16); // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
           uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
-
-          eds=radio.extDataStore(nP,numT,16,indata+MPOSPERREFR+16+5,9); // min/max analogique (incluse consigne dans 5 bits de poids fort ; voir frontal2)
+          eds=radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9); // min/max analogique '_hhhhhhhh'(incluse consigne dans 5 bits de poids fort ; voir frontal2)
+          eds=radio.extDataStore(nP,numT,0,indata+messLength-suffixLength-3,2); // periCfg '_hh'
         }
+        
         t2_1=micros();                                                    
         
         if(diags){                
