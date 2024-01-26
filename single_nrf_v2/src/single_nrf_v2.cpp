@@ -62,6 +62,7 @@ unsigned long t_on3;
 unsigned long t_on4;
 unsigned long time_beg=millis();
 unsigned long time_end;
+unsigned long lastRead=millis();
 
 byte    message[MAX_PAYLOAD_LENGTH+1];    // buffer pour write()
 byte    messageIn[MAX_PAYLOAD_LENGTH+1];  // buffer pour read()
@@ -124,6 +125,11 @@ char    bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
 
 unsigned long concTime=millis();    // timer pour export de présence vers le serveur
 unsigned long perConc=60000;        // période pour export de présence
+uint16_t importCnt=0;
+uint16_t etatImport0=0;
+uint16_t etatImport1=0;
+uint16_t etatImport2=0;
+extern uint8_t etatImport;
 
 unsigned long timeImport=0;         // timer pour Import (si trop fréquent, buffer pas plein         
 unsigned long tLast=0;              // date unix dernier message reçu 
@@ -546,7 +552,9 @@ void loop() {
 
   time_beg=micros();  
 
-  if(rdSta==0){
+  //if(rdSta!=AV_EMPTY){lastRead=millis();}
+
+  if(rdSta==0){                                         // >=0 pas d'erreur
     
   // ====== no error registration request or conc macAddr request (pipe 2) ======
 
@@ -558,24 +566,24 @@ void loop() {
         if(numT<(NBPERIF)){                             // registration ok
           rdSta=numT;                                   // entry is valid -> rdSta >0              
           radio.printAddr((char*)tableC[numT].periMac,' ');
-          if(diags){Serial.print(" registred as ");Serial.print(numT);}                  // numT = 0-(NBPERIF-1) ; rdSta=numT
+          if(diags){Serial.print(" registred as ");Serial.print(numT);}                    // numT = 0-(NBPERIF-1) ; rdSta=numT
         }
         else if(numT==(NBPERIF+2)){if(diags){Serial.println(" MAX_RT ... deleted");}}      // numT = NBPERIF+2 ; rdSta=0
         else {if(diags){Serial.println(" full");}}                                         // numT = NBPERIF   ; rdSta=0
       }
-      if(pipe==2){                                                // conc macAddr request
-        memcpy(tableC[NBPERIF].periMac,messageIn,NRF_ADDR_LENGTH+1);  // peri addr in table last entry
+      if(pipe==2){                                                        // conc macAddr request
+        memcpy(tableC[NBPERIF].periMac,messageIn,NRF_ADDR_LENGTH+1);      // peri addr in table last entry
         memcpy(message,messageIn,NRF_ADDR_LENGTH+1);
-        memcpy(message+NRF_ADDR_LENGTH+1,radio.locAddr,NRF_ADDR_LENGTH);        // build message to perif with conc macAddr
-        txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                // end of transaction so auto ACK
-      }                                                           // rdSta=0 so ... end of loop
+        memcpy(message+NRF_ADDR_LENGTH+1,radio.locAddr,NRF_ADDR_LENGTH);  // build message to perif with conc macAddr
+        txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                        // end of transaction so auto ACK
+      }                                                                   // rdSta=0 so ... end of loop
   }
 
-  // ====== no error && valid entry ======         
+  // ====== no error && valid entry (rdSta=n° de perif fourni par le perif ou à l'issue de cRegister) ======         
   
-  if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,NRF_ADDR_LENGTH)==0)){ 
+  if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,NRF_ADDR_LENGTH)==0)){    // verif de l'adresse mac
                                                       // rdSta is table entry nb
-      if(numT==0 && (echoNb!=rdSta || !echoOn)){      // numT=0 means that is not a registration, and message is not an echo answer 
+      if(numT==0 && (echoNb!=rdSta || !echoOn)){      // numT=0 means : that is not a registration, and message is not an echo answer 
                                                       // so -> incoming message storage
         memcpy(tableC[rdSta].periBuf,messageIn,pldLength);    
         tableC[rdSta].periBufLength=pldLength;
@@ -590,7 +598,7 @@ void loop() {
       /* send it to perif */    
         txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);      // end of transaction so auto ACK
         // ******************************* réponse passée **********************************
-        if(trSta==0){tableC[rdSta].periBufSent=true;} 
+        if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
       /* ======= formatting & tx to server ====== */
         if(numT==0){exportData(rdSta);}               // if not registration (no valid data), tx to server
       }
@@ -612,29 +620,44 @@ void loop() {
     showRx(false);
     showErr(true);}
   
-  if(diags){if(rdSta!=AV_EMPTY){
-    //Serial.print("rd=");Serial.print(rdSta);Serial.print(" tr=");Serial.print(trSta);
-    Serial.print(" rx+tx+export(micros)=");Serial.println(micros()-time_beg);}}
+  if(diags){
+    if(rdSta>=0){// if(rdSta!=AV_EMPTY){          // pas d'erreur, un cycle complet a été effectué
+      //Serial.print("rd=");Serial.print(rdSta);Serial.print(" tr=");Serial.print(trSta);
+      if(numT==0){Serial.print(" rx+tx+export(micros)=");Serial.println(micros()-time_beg);}
+      else {Serial.print(" rx+tx(micros)=");Serial.println(micros()-time_beg);}
+    }
+  }
 
   // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
   //            update tLast (last unix date)
 
   int dt=MESSCX;
-  if(rdSta==AV_EMPTY){                  // import quand rien n' a été reçu des périfs
-    dt=importData(&tLast);
+    dt=importData(&tLast);importCnt++;
+    /*
+    if(etatImport==0){etatImport0++;}
+    else if(etatImport==1){etatImport1++;}
+    else if(etatImport==2){etatImport2++;}
+    */
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
+    //if(dt!=MESSLEN){Serial.print(" ----------------- importData ");Serial.println(dt);}
 #ifdef DIAG
   if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
 #endif // DIAG
-  }
 
   // ====== si rien reçu des périfs et rien du serveur, éventuel message de présence ====
 
-  if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){
-    if((millis()-concTime)>=perConc){concTime=millis();Serial.print("millis()");Serial.println(" Exp_conc");testExport();}
+  if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
+    if((millis()-concTime)>=perConc){concTime=millis();testExport(); 
+      /*
+      Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
+      Serial.print(" etatImport0:");Serial.print(etatImport0);etatImport0=0;Serial.print(" ");
+      Serial.print(" etatImport1:");Serial.print(etatImport1);etatImport1=0;Serial.print(" ");
+      Serial.print(" etatImport2:");Serial.print(etatImport2);etatImport2=0;Serial.print(" ");
+      Serial.print(concTime-lastRead);Serial.println(" Exp_conc");testExport();}
+      */
+    }
   }
-
   // ====== menu choice ======  
   
   char a=getch();
@@ -911,11 +934,11 @@ int txMessage(bool ack,uint8_t len,uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2
   message[NRF_ADDR_LENGTH]=numT+48;
 #endif // NRF_MODE=='P'
 
-  radio.write(message,ack,len,numP);
+  radio.write(message,ack,len,numP);               // send message
   trSta=1;
   time_beg = micros();
   while(trSta==1){
-    trSta=radio.transmitting(ack);}                // trsta=0 if data sent ok ; -1 if maxRt
+    trSta=radio.transmitting(ack);}                // wait for ack from dest ; trsta=0 if data sent ok ; -1 if maxRt
 
   time_end=micros();
 

@@ -379,7 +379,7 @@ int Nrfp::available(uint8_t* pipe,uint8_t* pldLength)
     GET_STA
     lastSta=statu;
 
-      if((statu & RX_DR_BIT)==0 && (statu & RX_P_NO_BIT)==RX_P_NO_BIT){                   // RX && FIFO empty ?
+    if((statu & RX_DR_BIT)==0 && (statu & RX_P_NO_BIT)==RX_P_NO_BIT){                   // RX && FIFO empty ?
       return AV_EMPTY;}
 
     // RX full : either (statu & RX_DR_BIT)!=0

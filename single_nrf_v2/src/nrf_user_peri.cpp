@@ -120,8 +120,10 @@ void importData(byte* data,uint8_t dataLength)
     analOutput=(userData[0]&=0xf800)>>=11;analOutput+=(userData[1]&=0xf800)>>=6;
     Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.print(analOutput);
     Serial.print('-');Serial.print(prevAnalOutput);
-    periCfg=(uint8_t)packGet((char*)(data+NRF_ADDR_LENGTH+srt+1),2);             // forme '_hh'
-    if(prevAnalOutput!=analOutput && (periCfg&PERI_RAD)!=0){radUpdate(analOutput);prevAnalOutput=analOutput;}
+    if((NRF_ADDR_LENGTH+srt+1+2)<=MAX_PAYLOAD_LENGTH){periCfg=(uint8_t)packGet((char*)(data+NRF_ADDR_LENGTH+srt+1),2);} // forme '_hh'
+    else Serial.print(" decap MAX_PAYLOAD_LENGTH ");
+    if(prevAnalOutput!=analOutput && (periCfg&PERI_RAD)!=0){radUpdate(analOutput);prevAnalOutput=analOutput;} 
+    //if(prevAnalOutput!=analOutput && (periCfg&PERI_RAD)!=0){radUpdate(analOutput);prevAnalOutput=analOutput;}  !!!! vérifier que periCfg est valide !!!!!
     Serial.print(" cfg:");if(periCfg<16){Serial.print('0');}Serial.println(periCfg,HEX);delay(2);                  
     
     if(diags){

@@ -471,14 +471,14 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
                                                                   // numPeri should be same as nP (if !=0 && mac found)
         conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
         t2=micros();
-        int eds=99;
+        
         if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
         else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}    // if numPeri doesnt match message -> error
         else {
-          eds=radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16); // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+          radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16); // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
           uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
-          eds=radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9); // min/max analogique '_hhhhhhhh'(incluse consigne dans 5 bits de poids fort ; voir frontal2)
-          eds=radio.extDataStore(nP,numT,0,indata+messLength-suffixLength-3,2); // periCfg '_hh'
+          radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9); // min/max analogique '_hhhhhhhh'(incluse consigne dans 5 bits de poids fort ; voir frontal2)
+//          radio.extDataStore(nP,numT,0,indata+messLength-suffixLength-3,2); // periCfg '_hh'   !!!!! vérifier qu'l y a la place !!!!!!!!
         }
         
         t2_1=micros();                                                    
@@ -492,8 +492,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         Serial.print("    data=");Serial.println(indata);
         //Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
         Serial.print(" nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);Serial.print(" numPeri=");Serial.print(numPeri);
-        //Serial.print(" eds=");Serial.print(eds);Serial.print(" fromServerMac");
-        Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
+        Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
         //Serial.print(" perConc=");Serial.println(perConc);
         //Serial.print(" print diag=");Serial.print(micros()-t2_1);
         Serial.println();        
