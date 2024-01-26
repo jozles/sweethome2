@@ -1144,9 +1144,14 @@ void periDetecUpdate(const char* src)
 
 /* ================================ decodage ligne GET/POST ================================ */
 
+void cliPurge(EthernetClient* cli)
+{
+  if(ab!='u'){while(cli->available()){cli->read();}}                            // rien à faire en udp
+}
+
 void cliWrite(EthernetClient* cli,const char* data)                             // !!!!!!!!!!!!!! provisoirement ne gère plus l'udp !!!!!!!!!!!!!!!!!!!!!
 {
-  //if(ab=='u'){Udp.write(data,strlen(data));return;}                         // doit être udp[x]->write(...)
+  if(ab=='u'){return;}  // Udp.write(data,strlen(data));return;} !!!!!! doit être udp[x]->write(...) !!!!! inutilisé
   cli->write(data);
 }
 
@@ -1158,7 +1163,7 @@ int cliAv(EthernetClient* cli,uint16_t len,uint16_t* dataCharNb)
 
 char cliRead(EthernetClient* cli,const char* data,uint16_t len,uint16_t* dataCharNb)
 {
-  if(ab=='u'){if(*dataCharNb<len){(*dataCharNb)++;return data[(*dataCharNb)-1];}else return data[len-1];}
+  if(ab=='u'){if(*dataCharNb<len){(*dataCharNb)++;return data[(*dataCharNb)-1];}else return '\0';}
   return cli->read();
 }
 
@@ -1172,16 +1177,15 @@ int getcde(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* dataC
       if(c!='/'){inCd[cdCharCnt]=c;cdCharCnt++;}
       inCd[cdCharCnt]='\0';                                                           
   }
+  Serial.print(inCd);delay(2);
 
   uint8_t ko=0;
   char* cdPtr=strstr(httpCdes,inCd);
   if(c!='/'){ko=1;}                                                                   // pas de commande, message 400 Bad Request
-  else if(cdPtr==nullptr){ko=2;}                                                      // commande inconnue 501 Not Implemented
+  else if(cdPtr==nullptr){ko=2;}                                                      // commande inconnue 501 Not Implemented}
   else cdNb=1+(cdPtr-httpCdes)/HTTPCDLENGTH;                                          // numéro de commande
     
-  if(ko!=0){
-      while (cliAv(cli,dataLen,dataCharNb)){
-      c=cliRead(cli,data,dataLen,dataCharNb);}                                        // pas de cde valide -> vidage + message}
+  if(ko!=0 && (ab=='b' || ab=='c')){                                                                          // pas de cde valide -> vidage + message}
       switch(ko){
         case 1:cliWrite(cli,"<body><br><br> err. 400 Bad Request <br><br></body></html>");break;
         case 2:cliWrite(cli,"<body><br><br> err. 501 Not Implemented <br><br></body></html>");break;
@@ -1292,51 +1296,44 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
 }
 
 int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // décode commande, chaine et remplit les tableaux noms/valeurs
-{                                     // sortie -1 pas de commande ; 0 pas de nom/valeur ; >0 nbre de noms/valeurs                                
+{                                     // sortie -1 pas de commande ; >=0 nbre de noms/valeurs-1 (0=1) 
   #ifdef DEBUG_ON
   delay(10);
   #endif
   uint16_t dataCharNb=0;
   numfonct[0]=-1;
-  //int cr=0;
 #define LBUFLI 12
   char bufli[LBUFLI];
   
-  Serial.print("--- getnv ");Serial.println(dataLen);
+  Serial.print("--- getnv ");Serial.println(dataLen);delay(5);
   int cdNb=getcde(cli,data,dataLen,&dataCharNb); 
 
-  Serial.print(" cdNb=");Serial.print(cdNb);Serial.println(" ");delay(10);
-      
-      char c=' ';
-      int pbli=0;
-      while (cliAv(cli,dataLen,&dataCharNb) && c!='?'){      // attente '?' 
-        c=cliRead(cli,data,dataLen,&dataCharNb);Serial.print(c);
-        bufli[pbli]=c;if(pbli<LBUFLI-1){pbli++;bufli[pbli]='\0';}
-      }Serial.println();          
+  Serial.print(" cdNb=");Serial.print(cdNb);Serial.println();delay(5);          
 
-      switch(cdNb){
-          case 0:                                                             // pas de commande
-            return -1;
-          case 1:                                                             // GET
+  char c;
+  uint8_t pbli;
+  switch(cdNb){
+        case 0:                                                             // pas de commande
+            cliPurge(cli);return -1;
+        case 1:
+            c=' ';
+            pbli=0;
+            while (cliAv(cli,dataLen,&dataCharNb) && c!='?'){                 // attente '?' 
+              c=cliRead(cli,data,dataLen,&dataCharNb);Serial.print(c);
+              bufli[pbli]=c;if(pbli<LBUFLI-1){pbli++;bufli[pbli]='\0';}
+            }
+            Serial.println(bufli);delay(5);                                                             // GET
             if(strstr(bufli,"favicon")>0){                                    // favicon
               numfonct[0]=ffavicon;
-              //purgeCli(cli,true);
+              cliPurge(cli);
               return 0;}
-            //else if(bufli[0]=='?' || strstr(bufli,"page.html?")>0 || strstr(bufli,"cx?")>0){return analyse(cli,data,dataLen,&dataCharNb);}
-            else if(bufli[pbli-1]=='?'){return analyse(cli,data,dataLen,&dataCharNb);} // fonctions ?
-            //else Serial.println(bufli);
-            else {numfonct[0]=faccueil;return 0;} //-1;                                                   // pas de '?' = commande invalide
-          case 2:                                                             // POST
-            /*
-            if(c=='\n' && cr>=3){return analyse(cli,data,dataLen,&dataCharNb);}
-            else if(c=='\n' || c=='\r'){cr++;}
-            else {cr=0;}
-            break;
-            */            
+            else if(bufli[pbli-1]=='?'){uint8_t k=analyse(cli,data,dataLen,&dataCharNb);if(k<0){cliPurge(cli);}return k;}
+            else if(ab=='c' || ab=='b'){numfonct[0]=faccueil;cliPurge(cli);return 0;}  // pas de '?' = commande invalide -> faccueil
+            else {cliPurge(cli);return-1;}
+        case 2:                                                               // POST  
             return -1;                                                        // POST pas traité
-          default:return-1;
-      }
-      //if(numfonct[0]<0){return -1;} else return 0; 
+        default:cliPurge(cli);return-1;
+  } 
 }
 
 #ifdef _AVEC_AES
