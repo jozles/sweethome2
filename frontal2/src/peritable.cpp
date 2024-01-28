@@ -607,18 +607,20 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                       pLFonc[LENNOM-2]='o';scrGetNum(buf,jsbuf,'r',periThOffset_,pLFonc,1,4,2,0,TDEND);                   //scrGetNum(buf,jsbuf,'r',periThOffset_,"peri_tofs_",1,4,2,0,TDEND);
                       strcat(buf,"\n");
                           //scrGetNum(buf,jsbuf,'l',(uint32_t*)periPerRefr,"peri_refr_",1,5,0,0,TDBEG|BRYES);
-                      pLFonc[LENNOM-2]='P';uint8_t chkFlg;
-                                           if((*periCfg&PERI_SERV)!=0){chkFlg=0x01;}
+                      pLFonc[LENNOM-2]='P';uint8_t chkFlg=0;
+                                           if((*periCfg&PERI_SERV)!=0){chkFlg=1;}
                                            scrDspText(buf,jsbuf,"serv ",0,TDBEG);
                                            scrGetCheckbox(buf,jsbuf,&chkFlg,pLFonc,NO_STATE,BRYES,"");                   //scrGetCheckbox(buf,jsbuf,(uint8_t*)periCfg,"peri_prog_",NO_STATE,TDEND,"");
-                      pLFonc[LENNOM-2]='a';if((*periCfg&PERI_ANAL)!=0){chkFlg=0x01;}
+                      pLFonc[LENNOM-2]='a';chkFlg=0;
+                                           if((*periCfg&PERI_ANAL)!=0){chkFlg=1;}
                                            scrDspText(buf,jsbuf,"anal ",0,0);
                                            scrGetCheckbox(buf,jsbuf,&chkFlg,pLFonc,NO_STATE,BRYES,"");                                          
                       pLFonc[LENNOM-2]='A';if((*periCfg&PERI_ANAL)!=0){                                                   // consigne analogique stockée dans 5 bits de poids fort des limites
                                            uint16_t value=((*periAnalHigh&0xf800)>>6)+(*periAnalLow>>11);
                                            scrGetNum(buf,jsbuf,'I',&value,pLFonc,5,0,0,0);}
                                            scrDspText(buf,jsbuf," ",0,BRYES);
-                      pLFonc[LENNOM-2]='R';if((*periCfg&PERI_RAD)!=0){chkFlg=0x01;}
+                      pLFonc[LENNOM-2]='R';chkFlg=0;
+                                           if((*periCfg&PERI_RAD)!=0){chkFlg=1;}
                                            scrDspText(buf,jsbuf,"rad ",0,0);
                                            scrGetCheckbox(buf,jsbuf,&chkFlg,pLFonc,NO_STATE,TDEND,"");                                           
                       pLFonc[LENNOM-2]='i';scrGetNum(buf,jsbuf,'b',periSwNb,pLFonc,1,1,0,0,TDBEG|BRYES);                  //scrGetNum(buf,jsbuf,'b',periSwNb,"peri_intnb",1,1,0,0,TDBEG|BRYES);

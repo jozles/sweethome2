@@ -1907,7 +1907,7 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
               case 19: accueilHtml(cli);break;                                                      // accueil
               case 20: periTableHtml(cli);break;                                                    // peri table
               case 21: what=0;break;                                                                // data_store
-              case 22: break;                                                                       // dispo  
+              case 22: break;                                                                       // dispo  <
               case 23: break;                                                                       // dispo  
               case 24: {what=4;                                                                     // (lignes-regles) submit peri_inp__ set periCur raz cb
                        getPeriCurValf(PERILOAD);                                                    // periCur à jour via formIntro/peri_cur__

@@ -182,7 +182,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
          voir exemple dans (single_nrf_v2/sweet_home/nrf_user_conc.cpp-importData() )
       */
       unpack(message+v1,(char*)periCfg,1);                        // periCfg
-      memcpy(message+v1+1,"_\0",2);
+      memcpy(message+v1+2,"\0",2);
       strcat(message,diag);                                 // periMess length=LPERIMESS
     }  // pericur != 0            
 }
