@@ -81,13 +81,28 @@ void messageBuild(char* message,uint8_t* messageLength)
     message[*messageLength]='\0';                                   //          - 1
 }
 
-uint16_t packGet(char* data,uint8_t len){
+/*
+uint16_t packGet(char* data,uint8_t len){       // lecture depuis les poids faibles !!!
   uint16_t v=0;
   char cc[2];cc[1]='\0';
   uint8_t k[4];k[0]=2;k[1]=3;k[2]=0;k[3]=1;
   for(int8_t i=0;i<len;i++){
       cc[0]=*(data+k[i]);v<<=4;v+=strstr(chexa,cc)-chexa;}
 return v;
+}
+*/
+
+uint16_t packGet(char* data,uint8_t len){
+  uint16_t v=0;
+  char cc[2];cc[1]='\0';
+  for(int8_t i=len-1;i>0;i-=2){
+    //Serial.print(i);Serial.print(' ');Serial.print((char)*(data+i-1));Serial.print(' ');Serial.print(v);
+    v<<=4;cc[0]=*(data+i-1);v+=strstr(chexa,cc)-chexa;
+    //Serial.print(' ');Serial.print((char)*(data+i));Serial.print(' ');Serial.print(v);
+    v<<=4;cc[0]=*(data+i);v+=strstr(chexa,cc)-chexa;
+    //Serial.print(' ');Serial.print((uint8_t)(strstr(chexa,cc)-chexa));Serial.print(' ');Serial.println(v);
+    }
+  return v;
 }
 
 void importData(byte* data,uint8_t dataLength)
@@ -97,7 +112,7 @@ void importData(byte* data,uint8_t dataLength)
   uint16_t perRefr=0;
   uint16_t perTemp=0;
   int      sizeRead,srt=0;
-  
+
   if(memcmp(VERSION,"1.c",3)<=0){                                                 // version <= 1.C
     unsigned long perRefr=(long)convStrToNum((char*)(data+NRF_ADDR_LENGTH+1),&sizeRead);          // per refresh server
     aw_min=perRefr/period;
@@ -116,7 +131,7 @@ void importData(byte* data,uint8_t dataLength)
       
     userData[0]=packGet((char*)(data+NRF_ADDR_LENGTH+1+srt),4);                   // forme '_hhhhhhhh' //Serial.println(userData[0]);
     srt+=5;
-    userData[1]=packGet((char*)(data+NRF_ADDR_LENGTH+srt),4);                     //Serial.println(userData[1]);
+    userData[1]=packGet((char*)(data+NRF_ADDR_LENGTH+srt),4);
     srt+=4;
     analOutput=(userData[0]&=0xf800)>>=11;analOutput+=(userData[1]&=0xf800)>>=6;
     Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.print(analOutput);
@@ -126,31 +141,31 @@ void importData(byte* data,uint8_t dataLength)
     if(prevAnalOutput!=analOutput){radUpdate(analOutput);prevAnalOutput=analOutput;} 
   }
   else{                                                                           // version > 1.c
-    perRefr=0;conv_atob((char*)(data+NRF_ADDR_LENGTH+1),&perRefr,5);     // per refresh server
+    perRefr=0;conv_atob((char*)(data+NRF_ADDR_LENGTH+1),&perRefr,5);              // per refresh server
     aw_min=perRefr/period;
     srt=1+5;
     conv_atob((char*)(data+NRF_ADDR_LENGTH+srt),&perTemp,5);                      // per check température
     aw_ok=perTemp/period;
     srt+=5;
     uint16_t pitch=0;
-    conv_atob((char*)(data+NRF_ADDR_LENGTH+srt),&pitch,4);  // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
-    deltaTemp=pitch/100;
+    conv_atob((char*)(data+NRF_ADDR_LENGTH+srt),&pitch,4);                        // pitch mesure
+    deltaTemp=((float) pitch)/100;
     srt+=4;
-    //Serial.print(" ");Serial.print(srt);
-    *(data+NRF_ADDR_LENGTH+srt)='\0';
-//dumpstr((char*)data,32);
-    Serial.print(":::");Serial.print((char*)(data+NRF_ADDR_LENGTH+1+srt));
-      
     userData[0]=packGet((char*)(data+NRF_ADDR_LENGTH+srt),4);                     // forme 'hhhhhhhh' //Serial.println(userData[0]);
+    //Serial.print(" >> ");Serial.println(packGet((char*)(data+NRF_ADDR_LENGTH+srt),4));
     srt+=4;
     userData[1]=packGet((char*)(data+NRF_ADDR_LENGTH+srt),4);                     //Serial.println(userData[1]);
+    //Serial.print(" >> ");Serial.println(packGet((char*)(data+NRF_ADDR_LENGTH+srt),4));
     srt+=4;
-    analOutput=(userData[0]&=0xf800)>>=11;analOutput+=(userData[1]&=0xf800)>>=6;
+    
+    analOutput=(userData[0]&0xf800)>>11;userData[0]&=0x7ff;analOutput+=(userData[1]&0xf800)>>6;userData[1]&=0x7ff;
+    periCfg=(uint8_t)packGet((char*)(data+NRF_ADDR_LENGTH+srt),2);
+
     Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.print(analOutput);
-    Serial.print('-');Serial.print(prevAnalOutput);
-    if((NRF_ADDR_LENGTH+srt+2)<=MAX_PAYLOAD_LENGTH){periCfg=(uint8_t)packGet((char*)(data+NRF_ADDR_LENGTH+srt),2);} // forme 'hh'
-    else Serial.print(" decap MAX_PAYLOAD_LENGTH ");
+    Serial.print('-');Serial.print(prevAnalOutput);Serial.print(" cfg:");Serial.println(periCfg,HEX);delay(5);
+    
     if(prevAnalOutput!=analOutput && (periCfg&PERI_RAD)!=0){radUpdate(analOutput);prevAnalOutput=analOutput;}                  
+  
   }
 
     if(diags){

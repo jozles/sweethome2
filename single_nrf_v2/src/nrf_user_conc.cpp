@@ -480,14 +480,15 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
             radio.extDataStore(nP,numT,5,indata+MPOSPERREFR+6,5);               // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
             radio.extDataStore(nP,numT,10,indata+MPOSPERREFR+12,4);             // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
             radio.extDataStore(nP,numT,14,indata+MPOSANALH,8);                  // min/max analogique '_hhhhhhhh'(incluse consigne dans 5 bits de poids fort ; voir frontal2)
-            radio.extDataStore(nP,numT,22,indata+messLength-suffixLength-3,2);  // periCfg '_hh'   !!!!! vérifier qu'l y a la place !!!!!!!!
+            radio.extDataStore(nP,numT,22,indata+messLength-2,2);  // periCfg '_hh'   !!!!! vérifier qu'l y a la place !!!!!!!!
+            radio.extDataStore(nP,numT,24,(char*)"__",2);
           }
           else {                                                                // version périf <= 1.c
             radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16);                // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
             uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
             radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9);                // min/max analogique '_hhhhhhhh'(incluse consigne dans 5 bits de poids fort ; voir frontal2)
           }
-          if(numT==1){                                                            // entréée 1 de tableC pour concentrateur
+          if(numT==1){                                                          // entrée 1 de tableC pour concentrateur
             uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
           }
         }
@@ -508,7 +509,6 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           Serial.println();        
         }
   }
-  else {Serial.println("periMess(getHData) KO");}
   return periMess;
 }
 

@@ -1,7 +1,7 @@
 #ifndef _NRF_CONST_INCLUDED
 #define _NRF_CONST_INCLUDED
 
-#define VERSION "1.c "
+#define VERSION "1.d "
 #define LENVERSION 4
 
 #include <shconst2.h>
@@ -58,15 +58,17 @@ v1.a
 v1.b  le concentrateur transfère les consignes analogiques et envoit des messages de présence au serveur (apparait dans periTable)
       dev en cours du controle des radiateurs
 v1.c  la variable globale beginP_done indique que importData a été effectué dans beginP ; 
-      donc inutile de faire radio.txRx( et importData ensuite ; passage de consigne rad et exécution ; recup periCfg pour bit RAD
+      donc inutile de faire radio.txRx( et importData ensuite ; 
+v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD
+
 */
 
 /************* config ****************/
 
 //#define NOCONFSER
   
-  #define NRF_MODE 'P'            //  P périphérique
-  //#define NRF_MODE 'C'            //  C concentrateur  
+  //#define NRF_MODE 'P'            //  P périphérique
+  #define NRF_MODE 'C'            //  C concentrateur  
 /* !!!!!! changer de platformio.ini selon le NRF_MODE ('C'=due ou stm32 ; 'P' =328 !!!!! */
 
   #define TXRX_MODE 'U'           // TCP / UDP

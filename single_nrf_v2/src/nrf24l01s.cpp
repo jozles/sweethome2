@@ -563,18 +563,18 @@ int Nrfp::txRx(byte* message,uint8_t* pldLength)
 #if NRF_MODE =='C'
 
 uint8_t Nrfp::cRegister(char* message)      // search free line or existing macAddr
-{         // retour NBPERIF -> full ; NBPERIF+2 -> MAX_RT ; else numP
+{                                           // retour NBPERIF -> full else numP
 
           uint8_t i,freeLine=0;
           bool exist=false;
 
           for(i=1;i<NBPERIF;i++){
-            if(memcmp(tableC[i].periMac,message,NRF_ADDR_LENGTH)==0){exist=true;break;}      // already exist
-            else if(freeLine==0 && tableC[i].periMac[0]=='0'){freeLine=i;}        // store free line nb
+            if(memcmp(tableC[i].periMac,message,NRF_ADDR_LENGTH)==0){exist=true;break;}   // already exist at i
+            else if(freeLine==0 && tableC[i].periMac[0]=='0'){freeLine=i;}                // store free line nb
           }
 
           if(!exist && freeLine!=0){
-            i=freeLine;                                                           // i = free line
+            i=freeLine;                                                               // i = free line
             exist=true;
             memcpy(tableC[i].periMac,message,NRF_ADDR_LENGTH);                        // record macAddr
             tableC[i].periMac[NRF_ADDR_LENGTH]=i+48;                                  // add numT as 6th char

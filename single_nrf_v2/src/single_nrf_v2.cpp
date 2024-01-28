@@ -112,7 +112,7 @@ extern byte*  configVers;
   extern uint8_t*  concMac;          // macaddr concentrateur (5 premiers caractères valides le 6ème est le numéro dans la table)
   extern byte*     concIp;           // adresse IP concentrateur
   extern uint16_t* concPort;         // port concentrateur
-  extern uint8_t*  concRx;           // RX Addre concentrateur
+  extern uint8_t*  concRx;           // RX Addr concentrateur
   extern uint16_t* concChannel;      // n° channel nrf utilisé par le concentrateur
   extern uint16_t* concRfSpeed;      // RF_Speed concentrateur
   extern uint8_t*  concNb;
@@ -456,7 +456,7 @@ void loop() {
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);memset(message,0x20,NRF_ADDR_LENGTH+1);
 
-    uint8_t outLength=NRF_ADDR_LENGTH+1;                              // perifx     - 6
+    uint8_t outLength=NRF_ADDR_LENGTH+1;                              // perinx     - 6
     memcpy(message+outLength,VERSION,LENVERSION);                     // version    - 4
     outLength+=LENVERSION;
     memcpy(message+outLength,&thN,1);                                 // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
@@ -548,7 +548,7 @@ void loop() {
   numT=0;                                             // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                       // max length
   memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
-  rdSta=radio.read(messageIn,&pipe,&pldLength,NBPERIF);  // get message from perif (<0 err ; 0 reg to do ; >0 entry nb)
+  rdSta=radio.read(messageIn,&pipe,&pldLength,NBPERIF);  // get message from perif (<0 err ; 0 et pipe==1 reg to do ; 0 et pipe==2 conc radio Addr req ; >0 entry nb)
 
   time_beg=micros();  
 
@@ -561,14 +561,13 @@ void loop() {
       radio.printAddr((char*)messageIn,0);
       showRx(false);                                        
       
-      if(pipe==1){                                      // registration request
-        numT=radio.cRegister((char*)messageIn);               
+      if(pipe==1){                                      // registration request 
+        numT=radio.cRegister((char*)messageIn);         // retour NBPERIF full sinon N° perif dans tableC (1-n)
         if(numT<(NBPERIF)){                             // registration ok
           rdSta=numT;                                   // entry is valid -> rdSta >0              
           radio.printAddr((char*)tableC[numT].periMac,' ');
           if(diags){Serial.print(" registred as ");Serial.print(numT);}                    // numT = 0-(NBPERIF-1) ; rdSta=numT
         }
-        else if(numT==(NBPERIF+2)){if(diags){Serial.println(" MAX_RT ... deleted");}}      // numT = NBPERIF+2 ; rdSta=0
         else {if(diags){Serial.println(" full");}}                                         // numT = NBPERIF   ; rdSta=0
       }
       if(pipe==2){                                                        // conc macAddr request
@@ -579,6 +578,7 @@ void loop() {
       }                                                                   // rdSta=0 so ... end of loop
   }
 
+  // numT=0 si pipe==2 sinon pipe==1 : registration
   // ====== no error && valid entry (rdSta=n° de perif fourni par le perif ou à l'issue de cRegister) ======         
   
   if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,NRF_ADDR_LENGTH)==0)){    // verif de l'adresse mac
