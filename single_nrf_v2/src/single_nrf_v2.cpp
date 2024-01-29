@@ -538,6 +538,7 @@ void loop() {
 #if NRF_MODE == 'C'
 
   if(menu){
+    Serial.print("     ");
     radio.printAddr((char*)radio.locAddr,0);
     Serial.println(" (e)cho (b)roadcast (t)ableC (q)uit");
     menu=false;

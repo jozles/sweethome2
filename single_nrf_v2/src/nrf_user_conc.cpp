@@ -81,6 +81,7 @@ int   cliav=0;      // len reçue dans le dernier paquet
 int   clipt=0;      // prochain car à sortir du dernier paquet;
 char  udpData[LBUFSERVER+1];
 
+
 #define CLICX 1
 #define CLIAV (cliav-clipt)
 #define CLIRD udpData[clipt];clipt++
@@ -135,6 +136,7 @@ char c;         // pour macros TCP/UDP
 
 /* réception/decodage messages serveur */
 
+  uint8_t   prevEtatImport=0;
   uint8_t   etatImport=0;
   const char*     intro="<body>";
   uint8_t   introLength1=6;
@@ -324,7 +326,7 @@ int exportData(uint8_t numT,char* modelName)                            // forma
                                                         // sending bufServer to server 
 {
 
-  if(diags){Serial.print(" <<< exportData ");}
+  if(diags){Serial.print("  <<< exportData ");}
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
   strcpy(bufServer,"GET /cx?\0");
@@ -423,7 +425,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
       else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup(serverIp);t3_2=micros();}}}       // si connecté fin sinon redémarrer ethernet
 
     if(diags){
-    
+    Serial.print(millis());
     Serial.print(" periMess=");Serial.print(periMess);
     Serial.print(" buildmess=");Serial.print(t3_0-t3);
     Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
@@ -479,14 +481,14 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
             radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,5);                 // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
             radio.extDataStore(nP,numT,5,indata+MPOSPERREFR+6,5);               // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
             radio.extDataStore(nP,numT,10,indata+MPOSPERREFR+12,4);             // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            radio.extDataStore(nP,numT,14,indata+MPOSANALH,8);                  // min/max analogique '_hhhhhhhh'(incluse consigne dans 5 bits de poids fort ; voir frontal2)
-            radio.extDataStore(nP,numT,22,indata+messLength-2,2);  // periCfg '_hh'   !!!!! vérifier qu'l y a la place !!!!!!!!
-            radio.extDataStore(nP,numT,24,(char*)"__",2);
+            radio.extDataStore(nP,numT,14,indata+MPOSANALH,8);                  // min/max analogique '_hhhhhhhh'
+            radio.extDataStore(nP,numT,22,indata+messLength-5,2);               // periAnalOut consigne analogique 0-FF
+            radio.extDataStore(nP,numT,24,indata+messLength-2,2);               // periCfg '_hh' 
           }
           else {                                                                // version périf <= 1.c
             radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16);                // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
             uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
-            radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9);                // min/max analogique '_hhhhhhhh'(incluse consigne dans 5 bits de poids fort ; voir frontal2)
+            radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9);                // min/max analogique '_hhhhhhhh'
           }
           if(numT==1){                                                          // entrée 1 de tableC pour concentrateur
             uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
@@ -495,20 +497,28 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         t2_1=micros();                                                    
         
         if(diags){                
-          Serial.print(" >>> getHD ");
+          Serial.print("  >>> getHD ");
           //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
           //Serial.print("/");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
           //Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
           //Serial.print(" ok=");Serial.println(t1_4);
-          Serial.print("    data=");Serial.println(indata);
+          Serial.print("data=");Serial.print(indata);
           //Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
-          Serial.print(" nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);Serial.print(" numPeri=");Serial.print(numPeri);
-          Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
+          Serial.print("  nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);Serial.print(" numPeri=");Serial.print(numPeri);
+          //Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
           //Serial.print(" perConc=");Serial.println(perConc);
           //Serial.print(" print diag=");Serial.print(micros()-t2_1);
           Serial.println();        
         }
   }
+   
+    if(prevEtatImport!=etatImport){
+      prevEtatImport=etatImport;
+      Serial.print(millis());
+      Serial.print(" etatImport:");Serial.print(etatImport);
+      Serial.print(" cliav:");Serial.print(cliav);
+      Serial.print(" clipt:");Serial.print(clipt);
+      Serial.print(" periMess:");Serial.println(periMess);}
   return periMess;
 }
 

@@ -157,8 +157,8 @@ void importData(byte* data,uint8_t dataLength)
     userData[1]=packGet((char*)(data+NRF_ADDR_LENGTH+srt),4);                     //Serial.println(userData[1]);
     //Serial.print(" >> ");Serial.println(packGet((char*)(data+NRF_ADDR_LENGTH+srt),4));
     srt+=4;
-    
-    analOutput=(userData[0]&0xf800)>>11;userData[0]&=0x7ff;analOutput+=(userData[1]&0xf800)>>6;userData[1]&=0x7ff;
+    analOutput=0;analOutput=packGet((char*)(data+NRF_ADDR_LENGTH+srt),2);
+    srt+=2; 
     periCfg=(uint8_t)packGet((char*)(data+NRF_ADDR_LENGTH+srt),2);
 
     Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.print(analOutput);
