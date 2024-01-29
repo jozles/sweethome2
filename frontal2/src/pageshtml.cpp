@@ -1572,6 +1572,7 @@ void thermoCfgHtml(EthernetClient* cli)
     
     periInitVar();periCur=thermos[nb].peri;                                           // nom;lastVal    
     if(periCur!=0){
+      if(periCur>=NBPERIF){Serial.print("config Thermos");}
       periLoad(periCur);
       scrDspText(buf,jsbuf,periNamer,2,TDBEG);
       scrDspText(buf,jsbuf,":",2,0);

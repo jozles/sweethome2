@@ -93,6 +93,7 @@ extern uint8_t*  periAnalCb;                    // ptr ds buffer : 5 x 4 bits po
 extern uint8_t*  periAnalDestDet;               // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*  periAnalRefDet;                // ptr ds buffer : 5 x n° détect serveur pour op logique (0xff si rien)
 extern int8_t*   periAnalMemo;                  // ptr ds buffer : 5 x n° mémo dans table mémos
+extern uint16_t* periAnalOut;                   // ptr ds buffer : consigne analogique poour le périf
 extern uint8_t*  periDigitCb;                   // ptr ds buffer : 5 x 4 bits pour checkbox
 extern uint8_t*  periDigitDestDet;              // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*  periDigitRefDet;               // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
@@ -615,8 +616,8 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                                            if((*periCfg&PERI_ANAL)!=0){chkFlg=1;}
                                            scrDspText(buf,jsbuf,"anal ",0,0);
                                            scrGetCheckbox(buf,jsbuf,&chkFlg,pLFonc,NO_STATE,BRYES,"");                                          
-                      pLFonc[LENNOM-2]='A';if((*periCfg&PERI_ANAL)!=0){                                                   // consigne analogique stockée dans 5 bits de poids fort des limites
-                                           uint16_t value=((*periAnalHigh&0xf800)>>6)+(*periAnalLow>>11);
+                      pLFonc[LENNOM-2]='A';if((*periCfg&PERI_ANAL)!=0){                                                   // consigne analogique 
+                                           uint16_t value=*periAnalOut;
                                            scrGetNum(buf,jsbuf,'I',&value,pLFonc,5,0,0,0);}
                                            scrDspText(buf,jsbuf," ",0,BRYES);
                       pLFonc[LENNOM-2]='R';chkFlg=0;
@@ -747,9 +748,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           else{scrDspText(buf,jsbuf," ",0,lctl);}
           lctl=STRING|BRYES;
           if(((*periCfg)&PERI_ANAL)!=0){
-            //Serial.print("H=");Serial.print(*periAnalHigh);Serial.print(" L=");Serial.print(*periAnalLow);
-            uint16_t val=((*periAnalHigh&0xf800)>>6)+(*periAnalLow>>11);                // consigne analogique stockée dans 5 bits de poids fort des limites
-            //Serial.print(" H>>6=");Serial.print((*periAnalHigh&0xf800)>>6);Serial.print(" L>>11=");Serial.println(*periAnalLow>>11);
+            uint16_t val=*periAnalOut;                // consigne analogique 
             scrDspText(buf,jsbuf,"an ",0,0);scrDspNum(buf,jsbuf,'I',&val,0,0,lctl);}
           else{scrDspText(buf,jsbuf," ",0,lctl);}
           lctl=STRING|TDEND;

@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8h"
+#define NVERS ".8j"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -170,7 +170,7 @@
    1.8h 2 ports udp ; getnv-analyse revus ; création analog timers ; ajout periCfg dans les messages serveur->périfs
         l'ajout de champs se fait maintenant en référence à la fin du message ; tfr periCfg aux perifs 
         ajout de anTimersHtml et anTimersCtlHtml
-
+   1.8j 32 périfs, ajout variable periAnalOut ; agrandissement record perif -> 448 (40 dispo) ;
 
    BUGS : 
      
@@ -274,13 +274,13 @@
 
 #define DS3231_I2C_ADDRESS 0x68              // adresse 3231 sur bus I2C
 
-#define NBPERIF 28
+#define NBPERIF 32
 #define PERINAMLEN 16+1                      // longueur nom perif
-#define PERIRECLEN 406 // V1.6               // longueur record périph (310 V1.5A)
+#define PERIRECLEN 448 // V1.8j              // longueur record périph (310 V1.5A ; 406 V1.6)
 
 #define CONFIGRECLEN 995                     // longueur record config 
 
-#define LBUF1000 1000
+#define LBUF1000 1000 
 #define LBUF2000 2048
 #define LBUF4000 4096                        // buf size html print 
 
@@ -463,7 +463,7 @@ struct AnalTimersOld
 */
 };
 
-#define NBTHERMOS  NBPERIF
+#define NBTHERMOS 32 // NBPERIF
 #define LENTHNAME 16
 #define THERMOSFNAME "THERMOS_"
 

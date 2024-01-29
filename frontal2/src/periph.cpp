@@ -123,7 +123,7 @@ extern int16_t*   periVmin_;                    // ptr ds buffer : alarme mini v
 extern int16_t*   periVmax_;                    // ptr ds buffer : alarme maxi volts
 extern byte*      periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*      periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
-extern uint16_t*  periAnal;                     // ptr ds buffer : analog value 
+extern uint16_t*  periAnal;                     // ptr ds buffer : analog value In
 extern uint16_t*  periAnalLow;                  // ptr ds buffer : low threshold analog value 
 extern uint16_t*  periAnalHigh;                 // ptr ds buffer : high threshold analog value 
 extern uint16_t*  periAnalOffset1;              // ptr ds buffer : offset on adc value
@@ -133,6 +133,7 @@ extern uint8_t*   periAnalCb;                   // ptr ds buffer : 5 x 4 bits po
 extern uint8_t*   periAnalDestDet;              // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*   periAnalRefDet;               // ptr ds buffer : 5 x n° détect serveur pour op logique (0xff si rien)
 extern int8_t*    periAnalMemo;                 // ptr ds buffer : 5 x n° mémo dans table mémos
+extern uint16_t*  periAnalOut;                  // ptr ds buffer : consigne analogique poour le périf
 extern uint8_t*   periDigitCb;                  // ptr ds buffer : 5 x 4 bits pour checkbox
 extern uint8_t*   periDigitDestDet;             // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*   periDigitRefDet;              // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
@@ -1036,9 +1037,10 @@ void periModification()
       Serial.print(periNamer);
       Serial.println(" load OK");
 
-      #define ADDED 24
-      #define PERIRECLEN_NEW PERIRECLEN+ADDED*PERINPLEN // 24+24=48
+      //#define ADDED 24
+      #define PERIRECLEN_NEW PERIRECLEN+42
       char periRec_New[PERIRECLEN_NEW];memset(periRec_New,0x00,PERIRECLEN_NEW);
+      memcpy(periRec_New,periRec,PERIRECLEN);
 
       /* modif nbre rules      
       unsigned long pos=(byte*)periInput-(byte*)periRec;
@@ -1235,6 +1237,9 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=MAXDET*sizeof(int8_t);  
   periSsidNb=(byte*)temp;
   temp +=1*sizeof(byte);
+  periAnalOut=(uint16_t*)temp;
+  temp +=sizeof(uint16_t);
+  temp +=40;                        // dispo
   periEndOfRecord=(byte*)temp;      // doit être le dernier !!!
   temp ++;
 
@@ -1294,6 +1299,7 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   memset(periAnalDestDet,0x00,NBANST);
   memset(periAnalRefDet,0xFF,NBANST);  
   memset(periAnalMemo,0xFF,NBANST);
+  *periAnalOut=0;
   memset(periDigitCb,0x00,MAXDET);
   memset(periDigitDestDet,0x00,MAXDET);
   memset(periDigitRefDet,0xFF,MAXDET);  

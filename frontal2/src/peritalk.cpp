@@ -69,6 +69,7 @@ extern uint16_t* periAnalHigh;                  // ptr ds buffer : high analog v
 extern uint16_t* periAnalOffset1;               // ptr ds buffer : offset on adc value
 extern float*    periAnalFactor;                // ptr ds buffer : factor to float for analog value
 extern float*    periAnalOffset2;               // ptr ds buffer : offset on float value
+extern uint16_t* periAnalOut;                   // ptr ds buffer :
 extern byte*     periSsidNb;                    // ptr ds buffer : 
       
 extern byte*     periBegOfRecord;
@@ -169,8 +170,8 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
                     byt=memDetServ[mds-1];
                     conv_htoa(message+v1+2*(MDSLEN-mds),(byte*)&byt);}
                 memcpy(message+v1+2*MDSLEN,"_\0",2);
-
                 v1+=MDSLEN*2+1;
+
                 v2=*periPort;
                 sprintf((message+v1),"%04d",v2);                  // periPort
                 v1+=4;*(message+v1)='_';
@@ -181,6 +182,11 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
          et le suivant sera à l'adresse message-longueur-3-longueur du champ ajouté ;
          voir exemple dans (single_nrf_v2/sweet_home/nrf_user_conc.cpp-importData() )
       */
+
+      for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalOut+1-k));}   // consigne analog 2 bytes msb first
+      memcpy(message+v1+4,"_\0",2);
+      v1+=4+1;
+
       unpack(message+v1,(char*)periCfg,1);                        // periCfg
       memcpy(message+v1+2,"\0",2);
       strcat(message,diag);                                 // periMess length=LPERIMESS

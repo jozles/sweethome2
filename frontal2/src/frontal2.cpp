@@ -317,6 +317,7 @@ void iniDetServ()
   uint8_t*  periAnalDestDet;                // ptr ds buffer : 5 x n° détect serveur
   uint8_t*  periAnalRefDet;                 // ptr ds buffer : 5 x n° détect serveur pour op logique (0xff si rien)
   int8_t*   periAnalMemo;                   // ptr ds buffer : 5 x n° mémo dans table mémos
+  uint16_t* periAnalOut;                    // ptr ds buffer : consigne analogique poour le périf
   uint8_t*  periDigitCb;                    // ptr ds buffer : 5 x (4 bits pour checkbox + 4 bits pour operation logique)
   uint8_t*  periDigitDestDet;               // ptr ds buffer : 4 x n° détect serveur
   uint8_t*  periDigitRefDet;                // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
@@ -825,9 +826,8 @@ void scanThermos()                                                        // pos
     // déclenchement au seuil, retour sous/sur offset
     for(th=0;th<NBTHERMOS;th++){
       uint8_t per=(uint8_t)thermos[th].peri;
-      if(per!=0){
+      if(per!=0){        
           periLoad(per);
-        
           if( thermos[th].lowenable && *periLastVal_<=thermos[th].lowvalue){                                                        // set low  (tjrs on si<ref)
             thermos[th].lowstate=1;
           } else if( thermos[th].lowenable && *periLastVal_>(thermos[th].lowvalue+(thermos[th].lowoffset*thermos[th].lowstate))){   // clr low si > ref+offset*etat prec
@@ -1177,7 +1177,7 @@ int getcde(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* dataC
       if(c!='/'){inCd[cdCharCnt]=c;cdCharCnt++;}
       inCd[cdCharCnt]='\0';                                                           
   }
-  Serial.print(inCd);delay(2);
+  delay(2);
 
   uint8_t ko=0;
   char* cdPtr=strstr(httpCdes,inCd);
@@ -1322,7 +1322,7 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
               c=cliRead(cli,data,dataLen,&dataCharNb);Serial.print(c);
               bufli[pbli]=c;if(pbli<LBUFLI-1){pbli++;bufli[pbli]='\0';}
             }
-            Serial.println(bufli);delay(5);                                                             // GET
+            delay(5);                                                         // GET
             if(strstr(bufli,"favicon")>0){                                    // favicon
               numfonct[0]=ffavicon;
               cliPurge(cli);
@@ -1496,6 +1496,7 @@ void pushSliderRemote(EthernetClient* cli,uint8_t rem)
                           if(!remoteN[rem].multRem){                                              // remote simple
                             if(remoteN[rem].butModel!=PUSH || disjVal<10){                        // PUSH inactif si remote 'mère' disjonctée
                               uint16_t peri=*(valf+1)-PMFNCHAR;                                   // valide pour remote simple only
+if(peri>=NBPERIF){Serial.print("pushSliderRemote_periLoad peri invalide");}                                      
                               periLoad(peri);
                               if(periSwCde!=0){
                                 periReq(&cliext,peri,"mds_______");}                              // modif slider/push si switch pas disjoncté
@@ -1544,8 +1545,7 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
     //uint8_t remTNum=*valf-PMFNCHAR;       // n° switch dans table remoteT
     if(remTNum<MAXREMLI){
         periCur=remoteT[remTNum].peri;
-        uint8_t curSw=remoteT[remTNum].sw;
-        
+        uint8_t curSw=remoteT[remTNum].sw;            
         periLoad(periCur);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
         periSave(periCur,PERISAVESD);
         periReq0(&cliext,"mds_______","");                                      // update périf
@@ -1886,16 +1886,11 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                           case 'P':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_SERV;};break;    // (periLine) - peri_lf_P_ prog
                           case 'a':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_ANAL;};break;    // (periLine) - peri_lf_a_ anal
                           case 'R':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_RAD;};break;     // (periLine) - peri_lf_r_ radiateur
-                          case 'A':uint16_t value;conv_atob(valf,&value);
-                          Serial.print("value=");Serial.print(value);Serial.print("H=");Serial.print(*periAnalHigh);Serial.print("L=");Serial.print(*periAnalLow);
-                                   *periAnalHigh&=0x07ff;*periAnalHigh|=(value&0x03e0)<<6;Serial.print(" V<<6=");Serial.print((value&0x03e0)<<6);
-                                   *periAnalLow&=0x07ff;*periAnalLow|=(value<<11);Serial.print(" V<<11=");Serial.print(value<<11);
-                                   Serial.print(" H=");Serial.print(*periAnalHigh);Serial.print("L=");Serial.println(*periAnalLow);
-                                   break;
-                          case 'i':*periSwNb=*valf-PMFNCVAL;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;         // (periLine) - peri_lf_i_ sw nb
-                          case 'd':*periDetNb=*valf-PMFNCVAL;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;    // (periLine) - peri_lf_d_ det nb
-                          case 'x':*periPort=0;conv_atob(valf,periPort);break;                            // (periLine) - peri_lf_x_ port
-                          case 'W':{uint8_t sw=*(libfonctions+2*i+1)-PMFNCHAR;                            // (periLine) - peri_lf_W_ sw Val 
+                          case 'A':uint16_t value;conv_atob(valf,&value);*periAnalOut=0;*periAnalOut=value;break;   // (periLine) - consigne analogique
+                          case 'i':*periSwNb=*valf-PMFNCVAL;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;             // (periLine) - peri_lf_i_ sw nb
+                          case 'd':*periDetNb=*valf-PMFNCVAL;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;        // (periLine) - peri_lf_d_ det nb
+                          case 'x':*periPort=0;conv_atob(valf,periPort);break;                                      // (periLine) - peri_lf_x_ port
+                          case 'W':{uint8_t sw=*(libfonctions+2*i+1)-PMFNCHAR;                                      // (periLine) - peri_lf_W_ sw Val 
                                    uint8_t cd=*valf-PMFNCVAL;
                                    periSwCdUpdate(sw,cd);                 // maj periSwCde (periCur ok, periLoad effectué)
                                    //remoteUpdate(periCur,sw,cd,PERILINE);  // maj remotes concernées
@@ -2268,14 +2263,10 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
               case 69:  break;                                                                           // done         
               case 70:  {uint16_t val=0;
                         switch(*(libfonctions+2*i)){                                                     // analog_
-                          case '@': conv_atob(valf,&val);                                                // maxi 2^11
-                                    if((*periCfg&PERI_ANAL)!=0){*periAnalLow&=0xf800;val&=0x07ff;}
-                                    else{*periAnalLow=0;}
-                                    *periAnalLow+=val;break;            // 5 bits poids fort réservés pour consigne analogique
-                          case 'A': conv_atob(valf,&val);                                                // maxi 2^11
-                                    if((*periCfg&PERI_ANAL)!=0){*periAnalHigh&=0xf800;val&=0x07ff;}
-                                    else{*periAnalHigh=0;}
-                                    *periAnalHigh+=val;break;           // 5 bits poids fort réservés pour consigne analogique
+                          case '@': conv_atob(valf,&val);                                                // limite analogique basse
+                                    *periAnalLow=0;*periAnalLow+=val;break;             
+                          case 'A': conv_atob(valf,&val);                                                // limite analogique haute
+                                    *periAnalHigh=0;*periAnalHigh+=val;break;           
                           case 'B': *periAnalOffset1=0;conv_atob(valf,periAnalOffset1);break;
                           case 'C': *periAnalFactor=0;*periAnalFactor=convStrToNum(valf,&j);break;
                           case 'D': *periAnalOffset2=0;*periAnalOffset2=convStrToNum(valf,&j);break;
@@ -2286,7 +2277,7 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
               case 72:  what=13;rulesfonc(periDigitCb,periDigitDestDet,periDigitRefDet,periDigitMemo);break;   // dgrul___ digital input_rules
               case 73:  {uint8_t nf=*(libfonctions+2*i+1)-PMFNCHAR;                                      // bouton submit rul_init__                                                                                                        
                                                                                                          // n° de la fonction qui utilise rul_init__
-                          periCur=0;conv_atob(valf,&periCur);                                            // (0-n, 0=analog input rules ; 1=digital)                                                                                                
+                          periCur=0;conv_atob(valf,&periCur);                                            // (0-n, 0=analog input rules ; 1=digital)                                                                                                        
                           if(periCur>NBPERIF){periCur=NBPERIF;}periLoad(periCur); 
                        //Serial.print(" fonct 73======");periPrint(periCur);
                           uint8_t* cb=periAnalCb;
