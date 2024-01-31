@@ -67,8 +67,8 @@ v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD
 
 //#define NOCONFSER
   
-  #define NRF_MODE 'P'            //  P périphérique
-  //#define NRF_MODE 'C'            //  C concentrateur  
+  //#define NRF_MODE 'P'            //  P périphérique
+  #define NRF_MODE 'C'            //  C concentrateur  
 /* !!!!!! changer de platformio.ini selon le NRF_MODE ('C'=due ou stm32 ; 'P' =328 !!!!! */
 
   #define TXRX_MODE 'U'           // TCP / UDP
