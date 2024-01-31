@@ -96,6 +96,7 @@ char  udpData[LBUFSERVER+1];
 #define CLIST memcpy(data+k2,udpData+clipt,k1-k2);clipt+=(k1-k2);data[k1]='\0'
 #define CLIZER etatImport=0;cliav=0
 #define ELSECLIZER else{CLIZER;}
+#define ELSECLIZER2 else{CLIZER;Serial.println('*');}
 
 #endif //  TXRX_MODE == 'U' 
 
@@ -145,6 +146,7 @@ char c;         // pour macros TCP/UDP
 
 /* réception/decodage messages serveur */
 
+  uint32_t  hDataCnt=0;
   uint8_t   prevEtatImport=0;
   uint8_t   etatImport=0;
   const char*     intro="<body>";
@@ -157,6 +159,7 @@ char c;         // pour macros TCP/UDP
   uint16_t  messLength=0;
   uint16_t  l;
   uint8_t   crcAsc;
+  uint8_t   crcCal;
   uint8_t   crcLength=2;
   int       lastPeriMess;
   char      indata[LBUFSERVER+1];
@@ -256,6 +259,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
 }       // messToServer
 
 #if TXRX_MODE == 'U'
+
 int intro_Udp()
 {
   cliav=Udp.parsePacket();
@@ -272,6 +276,7 @@ int intro_Udp()
         else {
           Udp.read(udpData,cliav);cliav=0;}
       }
+      cliav=0;
     }
     t1_01=micros();
   }
@@ -297,6 +302,7 @@ int getHData(char* data,uint16_t* len)
 */
 /*    retour MESSCX not connected ; MESSLEN en cours selon etatImport ; MESSOK messLength in data  */
 
+  hDataCnt++;
   if(etatImport==0){messLength=0;data[0]='\0';}
 
 #if TXRX_MODE == 'U'
@@ -314,39 +320,32 @@ int getHData(char* data,uint16_t* len)
             ELSECLIZER                                                                // UDP : cliav trop petit -> attente du prochain paquet
             t1_1=micros()-t1;
             break;
-    case 1: if(CLIAV>=introLength2){                                                   // longueur minimum nécessaire à ce stade
+    case 1: if(CLIAV>=introLength2){                                                  // longueur minimum nécessaire à ce stade
               k1=introLength2;k2=0;CLIST;                                             // load fonction+len
               for(k=4;k>0;k--){
-                //Serial.print(" ");Serial.print(introLength2-k);Serial.print("=");Serial.print(data[introLength2-k]);
                 messLength*=10;messLength+=data[introLength2-k]-'0';}                 // conv len message atob
-              //Serial.print(" -> ");Serial.println(messLength);
-              messLength+=suffixLength;etatImport++;
-              //Serial.print(" mess:");Serial.print(messLength);Serial.print(" prev:");Serial.println(prevLength);delay(5);  
-              }                                 // ajout len suffixe -> suite 
+              messLength+=suffixLength;etatImport++;                                  // ajout len suffixe -> suite 
+            }                                                                         
             ELSECLIZER                                                                // UDP : cliav trop petit -> attente du prochain paquet
             t1_2=micros()-t1;
             break;
-    case 2: if(CLIAV>=messLength-2){                                                          // attente message
+    case 2: if(CLIAV>=messLength-2){                                                  // attente message
               k2=introLength2;k1=(messLength-crcLength)+k2;CLIST;                     // load message+ctle suffixe
-              //Serial.println(data);
               t1_03=micros()-t1;
               k1=messLength-suffixLength+introLength2-crcLength;
               for(k=0;k<suffixLength;k++){
-                if(data[k+k1]!=suffix[k]){CLIZER;
-                Serial.print(" suffixe:");Serial.println((char*)&data+k1);
-                break;}}                              // controle suffixe              
-              //Serial.print("l=");Serial.print(messLength);Serial.print(" GHD=");Serial.println(data);
-              //Serial.print(" suflen:");Serial.print(suffixLength);Serial.print(" k:");Serial.println(k);
-              if(k>=suffixLength){etatImport++;}                                            
-              else CLIZER;                                                             // trop petit -> attente du prochain paquet
+                if(data[k+k1]!=suffix[k]){
+                  CLIZER;break;}
+              }                                                                         // controle suffixe              
+              if(k>=suffixLength){etatImport++;}                          
+              else {CLIZER;}                                                            // trop petit -> attente du prochain paquet
             }
-           // else{Serial.print("cliav?");CLIZER;}
-            ELSECLIZER                                                                 // UDP : cliav trop petit -> attente du prochain paquet
+            ELSECLIZER2                                                                 // UDP : cliav trop petit -> attente du prochain paquet
             t1_3=micros()-t1;
             break;
-    case 3: conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // récup crc
-            //Serial.print(crcAsc,HEX);Serial.print(" ");Serial.print((char*)(data+introLength2-4));Serial.print(" ");Serial.println(messLength-suffixLength);
-            if(calcCrc((char*)(data+introLength2-4),messLength-suffixLength)==crcAsc){             // contrôle crc
+    case 3: crcAsc=0;crcCal=0;conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // récup crc
+            crcCal=calcCrc((char*)(data+introLength2-4),messLength-suffixLength);
+            if(crcCal==crcAsc){                                                        // contrôle crc
               t1_4=micros()-t1;
               etatImport=0;                                                            // si cliav > clipt un 2nd paquet est probablement dispo dans udpData()
 #if TXRX_MODE == 'U'
@@ -355,9 +354,9 @@ int getHData(char* data,uint16_t* len)
                 Serial.println("multiples paquets udp");
                 while(1){trigwd();}
               }
-#endif //   
+#endif // MODE U
               return MESSOK;}                                                          // crc ok
-            CLIZER;                                                                    // crc ko
+            CLIZER;return MESSCRC;                                                     // crc ko
             break;            
     default:CLIZER;break;
   }
@@ -557,10 +556,12 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
     if(prevEtatImport!=etatImport){
       prevEtatImport=etatImport;
       Serial.print(millis());
+      //Serial.print(" hDataCnt");Serial.print(hDataCnt);
       Serial.print(" etatImport:");Serial.print(etatImport);
       Serial.print(" cliav:");Serial.print(cliav);
       Serial.print(" clipt:");Serial.print(clipt);
       Serial.print(" periMess:");Serial.println(periMess);}
+  
   return periMess;
 }
 
