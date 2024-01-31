@@ -1205,7 +1205,7 @@ void timersCtlHtml(EthernetClient* cli)
   bufLenShow(buf,jsbuf,lb,begTPage);
 }
 
-void anTimersCtlHtml(EthernetClient* cli)
+void anTimersCfgHtml(EthernetClient* cli)
 {              
   Serial.print(millis());Serial.print(" anTimersCtlHtml() ");
 
@@ -1725,16 +1725,16 @@ Serial.print(" config analog timers ");
 
   pageLineOne(buf,jsbuf);              // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
-  scrGetButRef(buf,jsbuf,"anTimerHtml",0,BRYES);
+  scrGetButRef(buf,jsbuf,"anTimCfg__",0,BRYES);
 
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 
 
-  detServHtml(cli,buf,jsbuf,&lb,lb0,memDetServ,&libDetServ[0][0]);
+  //detServHtml(cli,buf,jsbuf,&lb,lb0,memDetServ,&libDetServ[0][0]);
 
   tableBeg(buf,jsbuf,0);
   scrDspText(buf,jsbuf,"|nom|en|deti|deto|7_d_ l_m_m_ j_v_s|heure 1|val1|heure 2|val2|heure 3|val3|heure 4|val4|heure 5|val5|heure 6|val6|heure 7|val7|heure 8|val8|",0,TRBE|TDBE);
-
+return;
   for(uint8_t nt=0;nt<NBTIMERS;nt++){
     formIntro(buf,jsbuf,0,TRBEG|TDBEG);
                       /*strcat(buf,"<form method=\"GET \">");
@@ -1743,7 +1743,7 @@ Serial.print(" config analog timers ");
     scrDspNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
                      
     sscfgtB(buf,jsbuf,"antim___n_",nt,analTimers[nt].nom,LENTIMNAM,0,TDBE);
-    nucb=0;sscb(buf,jsbuf,analTimers[nt].enable,"antim_ch__",nucb,NO_STATE,TDBE,nt);affSpace(buf,jsbuf);    // cb 0 : enable
+    nucb=0;sscb(buf,jsbuf,analTimers[nt].enable,"antim_cb__",nucb,NO_STATE,TDBE,nt);affSpace(buf,jsbuf);    // cb 0 : enable
     sscfgtB(buf,jsbuf,"antim___i_",nt,&analTimers[nt].detecIn,2,3,TDBE);                                            
     sscfgtB(buf,jsbuf,"antim___o_",nt,&analTimers[nt].detecOut,2,3,TDBE);
 
@@ -1751,7 +1751,7 @@ Serial.print(" config analog timers ");
     for(int nj=7;nj>=0;nj--){
       bool vnj; 
       vnj=(analTimers[nt].dw>>nj)&0x01;
-      nucb++;sscb(buf,jsbuf,vnj,"antim_ch__",nucb,NO_STATE,lctl,nt);                                        // cb 1->n dw
+      nucb++;sscb(buf,jsbuf,vnj,"antim_cb__",nucb,NO_STATE,lctl,nt);                                        // cb 1->n dw
       lctl=0;if(nj==1){lctl=TDEND;}
       if(nj>=1){affSpace(buf,jsbuf);}
     }
@@ -1760,9 +1760,9 @@ Serial.print(" config analog timers ");
 
     char unpHeure[6];
     for(uint8_t hh=0;hh<NBEVTANTIM;hh++){
-      unpack(unpHeure,&analTimers[nt].heure[hh*3],3);
+      unpack(unpHeure,&analTimers[nt].heure[hh],3);
       sscfgtB(buf,jsbuf,"antim_hh__",nt,hh,unpHeure,6,0,TDBE);
-      sscfgtB(buf,jsbuf,"antim_vv__",nt,hh,analTimers[nt].valeur,4,2,TDBE);
+      sscfgtB(buf,jsbuf,"antim_vv__",nt,hh,&analTimers[nt].valeur[hh],4,2,TDBE);
     }
 
     ethWrite(cli,buf,&lb);

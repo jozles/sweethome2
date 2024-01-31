@@ -432,6 +432,7 @@ struct Timers
 #define LENANTIM   16
 #define NBEVTANTIM 8          // nbre évènements par jour
 #define ANTIMERSFNAME "ANTIMERS"
+#define NBCBANT 1             // nbre check box hors dw
 
 struct AnalTimers
 {

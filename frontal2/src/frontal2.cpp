@@ -146,7 +146,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___dispo_____dispo_____dispo_____dispo_____dispo_____dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___antim_____antim_cb__antim_hh__antim_vv__antimcfg__dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0,fthermoshow=0;
@@ -1986,16 +1986,45 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                           default : break;
                         }
                        }break;                                                                      
-              case 36: break;                                                                           // dispo
-              {int pu=*(libfonctions+2*i)-PMFNCHAR;                                                     // (pulses) peri_ptt__ Pulse two (ptt)
-                        *(periSwPulseTwo+pu)=0;*(periSwPulseTwo+pu)=(uint32_t)convStrToInt(valf,&j); 
+              case 36: what=15;                                                                         // (antim___) analog timers
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
+                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
+                        switch(av){
+                          case 'n': alphaTfr(analTimers[nt].nom,LENTIMNAM,valf,nvalf[i+1]-nvalf[i]);    // (antim___n_) nom 
+                                    break;
+                          case 'i': analTimers[nt].detecIn=convStrToInt(valf,&j);                       // (antim___i_) n° detecteur in
+                                    break;     
+                          case 'o': analTimers[nt].detecOut=convStrToInt(valf,&j);                      // (antim___o_) n° detecteur out
+                                    break;
+                        }
                        }break;                                                                          
-              case 37: break;                                                                           // dispo
-              case 38: break;                                                                           // dispo
-              case 39: break;                                                                           // dispo
-              case 40: break;                                                                           // dispo
+              case 37: what=15;                                                                         // (antim_cb ) analog timers
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
+                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
+                        switch(av){
+                          case 0: analTimers[nt].enable=*valf-'0';break;                                // (anti_cb_0)  check box 0 : enable
+                                    break;
+                          default: break;
+                        }
+                          /* dw */
+                        if(av==NBCBANT){analTimers[nt].dw=0xFF;}                                        // (anti_cb_n)  check box 1-9 : dw
+                        if(av>NBCBANT){
+                          analTimers[nt].dw|=maskbit[1+2*(7-av+NBCBANT)];                          
+                        }
+                       }break;                                                                           
+              case 38:what=15;                                                                          // (antim_hh ) analog timers heures
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
+                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
+                        pack(&analTimers[nt].heure[av],valf,6);                                         // heures
+                        }break;
+              case 39: what=15;                                                                         // (antim_vv ) analog timers valeurs
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
+                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
+                        analTimers[nt].valeur[av]=0;conv_atob(valf,&analTimers[nt].valeur[av]);break;   // valeurs
+                        }break;
+              case 40: anTimersHtml(cli);break;                                                         // (bouton antimcfg__)
               case 41: what=10;memcpy(bakDetServ,memDetServ,MDSLEN);
-                       memset(memDetServ,0x00,MDSLEN);                  // (dsrv_init_) bouton submit detecteurs serveur ; effct cb
+                       memset(memDetServ,0x00,MDSLEN);                                                  // (dsrv_init_) bouton submit detecteurs serveur ; effct cb
                        break;
               case 42: {int nb=*(libfonctions+2*i+1)-PMFNCVAL;                                          // (mem_dsrv__) set det bit
                        uint8_t mi=nb>>3;memDetServ[mi] |= mDSmaskbit[MDSLEN*nb+mi];
@@ -2355,6 +2384,7 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                     periLineHtml(cli);
                     break;                                                                                                           
             case 14:break;                                                // data_na___
+            case 15:anTimersSave();anTimersHtml(cli);break;                  // antim___ & anti_ch_
             default:accueilHtml(cli);break;                               // what=-1
           }
         } // getnv nbreparams>=0  
