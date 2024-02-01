@@ -219,6 +219,7 @@ void iniTemp();
 void readTemp();
 void showErr(bool crlf);
 void showRx(bool crlf);
+void showRx(byte* message,bool crlf);
 void ledblk(int dur,int bdelay,int bint,uint8_t bnb);
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
@@ -229,6 +230,26 @@ char getch();
 void echo();
 void broadcast(char a);
 void getEchoNum();
+
+unsigned long radioWd;
+uint32_t radioInitCnt=0;
+#define NO_RADIO_CX_TO 125000 // millis() TO for radio cx
+
+void radioInit()
+{
+  radioInitCnt++;
+  radioWd=millis();
+  Serial.print(" --- radioInit()#");Serial.println(radioInitCnt);
+  radio.powerDown();
+  channel=*concChannel;
+  if(memcmp(configVers,"01",2)==0){*concNb=1;}
+  speed=*concRfSpeed;
+  radio.locAddr=concRx;                 // première init à faire !!
+  radio.tableCInit();
+  memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH+1);     // pour broadcast & test
+  radio.powerOn(channel,speed);
+  radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
+}
 #endif // NRF_MODE == 'C'
 
 
@@ -351,7 +372,7 @@ void setup() {
       while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
   }
 
-  configLoad();*serverUdpPort=8885;configSave();
+  configLoad();//*serverUdpPort=8885;configSave();
 
 #if TXRX_MODE == 'U' 
     hostPort=*serverUdpPort;
@@ -364,18 +385,10 @@ void setup() {
 
   userResetSetup(serverIp);             // doit être avant les inits radio (le spi.begin vient de la lib ethernet)
 
- // radio start
-  channel=*concChannel;
-  if(memcmp(configVers,"01",2)==0){*concNb=1;}
-  speed=*concRfSpeed;
-  radio.locAddr=concRx;                 // première init à faire !!
-  radio.tableCInit();
-  memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH+1);     // pour broadcast & test
-  radio.powerOn(channel,speed);
-  radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
+  radioInit();
 
 #ifdef DUE
-  Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.print(" ");
+  Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.println(" ");
 #endif //  
 
   time_beg=millis();  
@@ -540,6 +553,7 @@ void loop() {
   if(menu){
     Serial.print("     ");
     radio.printAddr((char*)radio.locAddr,0);
+    Serial.print(" init#");Serial.print(radioInitCnt);
     Serial.println(" (e)cho (b)roadcast (t)ableC (q)uit");
     menu=false;
   }
@@ -555,21 +569,30 @@ void loop() {
 
   //if(rdSta!=AV_EMPTY){lastRead=millis();}
 
+  if((rdSta<0 && rdSta!=AV_EMPTY) || rdSta>=0){                    
+    showRx(messageIn,false);
+    if(rdSta<0 && rdSta!=AV_EMPTY){    
+      showErr(true);}
+    else if(rdSta>0){Serial.println();}
+  }
+
+  if(rdSta>=0){radioWd=millis();}
+
   if(rdSta==0){                                         // >=0 pas d'erreur
     
   // ====== no error registration request or conc macAddr request (pipe 2) ======
 
-      radio.printAddr((char*)messageIn,0);
-      showRx(false);                                        
+      //radio.printAddr((char*)messageIn,0);
+      //showRx(messageIn,false);                                        
       
       if(pipe==1){                                      // registration request 
         numT=radio.cRegister((char*)messageIn);         // retour NBPERIF full sinon N° perif dans tableC (1-n)
         if(numT<(NBPERIF)){                             // registration ok
           rdSta=numT;                                   // entry is valid -> rdSta >0              
-          radio.printAddr((char*)tableC[numT].periMac,' ');
-          if(diags){Serial.print(" registred as ");Serial.print(numT);}                    // numT = 0-(NBPERIF-1) ; rdSta=numT
+          //radio.printAddr((char*)tableC[numT].periMac,' ');
+          if(diags){Serial.print(" reg as ");Serial.print(numT);}       // numT = 0-(NBPERIF-1) ; rdSta=numT
         }
-        else {if(diags){Serial.println(" full");}}                                         // numT = NBPERIF   ; rdSta=0
+        else {if(diags){Serial.println(" full");}}                        // numT = NBPERIF   ; rdSta=0
       }
       if(pipe==2){                                                        // conc macAddr request
         memcpy(tableC[NBPERIF].periMac,messageIn,NRF_ADDR_LENGTH+1);      // peri addr in table last entry
@@ -603,8 +626,7 @@ void loop() {
       /* ======= formatting & tx to server ====== */
         if(numT==0){exportData(rdSta);}               // if not registration (no valid data), tx to server
       }
-      else {                                    
-        
+      else {                                          
       /* echo pending  :                         // echoOn flag d'attente de réponse 
         if(!echoOn){sendEchoReq();echoOn=true;}  // sendEchoReq gère la tempo
         else {echOn=false; controle temps et réponse ; affichage de la réponse}
@@ -616,11 +638,12 @@ void loop() {
   // ====== error, full or empty -> ignore ======
   // peripheral must re-do registration so no answer to lead to rx error
 
-                            
-  if(rdSta<0 && rdSta!=AV_EMPTY){                    
-    showRx(false);
+/*                            
+  if((rdSta<0 && rdSta!=AV_EMPTY) || rdSta>=0){                    
+    showRx(messageIn,false);
     showErr(true);}
-  
+*/
+
   if(diags){
     if(rdSta>=0){// if(rdSta!=AV_EMPTY){          // pas d'erreur, un cycle complet a été effectué
       //Serial.print("rd=");Serial.print(rdSta);Serial.print(" tr=");Serial.print(trSta);
@@ -635,12 +658,8 @@ void loop() {
 
   int dt=MESSCX;
     dt=importData(&tLast);importCnt++;
-    /*
-    if(etatImport==0){etatImport0++;}
-    else if(etatImport==1){etatImport1++;}
-    else if(etatImport==2){etatImport2++;}
-    */
-    if(dt==MESSNUMP){tableC[rdSta].numPeri=0;} 
+    if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');} 
+    
     //if(dt!=MESSLEN){Serial.print(" ----------------- importData ");Serial.println(dt);}
 #ifdef DIAG
   if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
@@ -649,7 +668,9 @@ void loop() {
   // ====== si rien reçu des périfs et rien du serveur, éventuel message de présence ====
 
   if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
-    if((millis()-concTime)>=perConc){concTime=millis();testExport(); 
+    
+    if((millis()-concTime)>=perConc){concTime=millis();testExport();
+    Serial.print('%'); 
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
       Serial.print(" etatImport0:");Serial.print(etatImport0);etatImport0=0;Serial.print(" ");
@@ -661,6 +682,14 @@ void loop() {
   }
   // ====== menu choice ======  
   
+  if((millis()-radioWd)>NO_RADIO_CX_TO){    // wd radio
+    Serial.print('$');
+    configLoad();
+    Serial.print('@');
+    userResetSetup(serverIp);
+    radioInit();
+  }
+
   char a=getch();
   switch(a){
     case 'e':getEchoNum();menu=true;break;
@@ -1003,16 +1032,21 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
   return rdSta;
 }
 
-void showRx(bool crlf)
+void showRx(byte* message,bool crlf)
 { 
   if(diags){
     Serial.print(millis());
     Serial.print(" reçu l=");Serial.print(pldLength);
     Serial.print(" p=");Serial.print(pipe);
     Serial.print(" ");
+    if(message!=nullptr){Serial.print((char*)message);}
     if(crlf){Serial.println();}
     delay(2);
   }
+}
+
+void showRx(bool crlf){
+  showRx(nullptr,crlf);
 }
 
 void showErr(bool crlf)

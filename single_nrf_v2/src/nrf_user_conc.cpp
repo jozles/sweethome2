@@ -352,7 +352,7 @@ int getHData(char* data,uint16_t* len)
               if(cliav>clipt){cliav-=clipt;clipt=0;                                    // un éventuel packet déjà chargé dans udpData ?
                 Serial.println(udpData);  // les 2(?) paquets
                 Serial.println("multiples paquets udp");
-                while(1){trigwd();}
+                //while(1){trigwd();}
               }
 #endif // MODE U
               return MESSOK;}                                                          // crc ok
@@ -367,7 +367,7 @@ int exportData(uint8_t numT,char* modelName)                            // forma
                                                         // sending bufServer to server 
 {
 
-  if(diags){Serial.print("  <<< exportData ");}
+  if(diags){Serial.print("  <<< export ");}
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
   strcpy(bufServer,"GET /cx?\0");
@@ -543,7 +543,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           //Serial.print("/");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
           //Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
           //Serial.print(" ok=");Serial.println(t1_4);
-          Serial.print("data=");Serial.print(indata);
+          Serial.print(indata);
           //Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
           Serial.print("  nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);Serial.print(" numPeri=");Serial.print(numPeri);
           //Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
@@ -557,10 +557,10 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
       prevEtatImport=etatImport;
       Serial.print(millis());
       //Serial.print(" hDataCnt");Serial.print(hDataCnt);
-      Serial.print(" etatImport:");Serial.print(etatImport);
-      Serial.print(" cliav:");Serial.print(cliav);
-      Serial.print(" clipt:");Serial.print(clipt);
-      Serial.print(" periMess:");Serial.println(periMess);}
+      Serial.print(" eI:");Serial.print(etatImport);
+      Serial.print(" av:");Serial.print(cliav);
+      Serial.print(" pt:");Serial.print(clipt);
+      Serial.print(" pM:");Serial.println(periMess);}
   
   return periMess;
 }
@@ -576,7 +576,6 @@ void testExport()
   memcpy(tableC[testPeri].periBuf+6+LENVERSION,"x",1);
   memcpy(tableC[testPeri].periBuf+6+LENVERSION+1,"0.00",4);       // volts
   memcpy(tableC[testPeri].periBuf+6+LENVERSION+1+4,"+00.00",6);   // température
-  //Serial.println(tableC[testPeri].periBuf);
   exportData(testPeri,concName);  // test présence serveur avec périf virtuel des broadcast
 }
 
