@@ -1146,7 +1146,13 @@ void periDetecUpdate(const char* src)
 
 void cliPurge(EthernetClient* cli)
 {
-  if(ab!='u'){while(cli->available()){cli->read();}}                            // rien à faire en udp
+  if(ab!='u'){                                      // rien à faire en udp
+    int q=cli->available();
+    while(q>0){
+      for(int qq=q;qq>0;qq--){cli->read();}
+      q=cli->available();
+    }
+  }
 }
 
 void cliWrite(EthernetClient* cli,const char* data)                             // !!!!!!!!!!!!!! provisoirement ne gère plus l'udp !!!!!!!!!!!!!!!!!!!!!
@@ -1318,11 +1324,17 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
         case 1:
             c=' ';
             pbli=0;
+            while (cliAv(cli,dataLen,&dataCharNb) && c!='?' && pbli<LBUFLI-1){                  // attente '?' ou 'favicon'
+              c=cliRead(cli,data,dataLen,&dataCharNb);Serial.print(c);                          // version "accélérée" : print des maxi 12 premiers caractères
+              bufli[pbli]=c;pbli++;}                                                                   // le reste sera purgé
+            
+            /*
             while (cliAv(cli,dataLen,&dataCharNb) && c!='?'){                 // attente '?' 
               c=cliRead(cli,data,dataLen,&dataCharNb);Serial.print(c);
               bufli[pbli]=c;if(pbli<LBUFLI-1){pbli++;bufli[pbli]='\0';}
             }
-            delay(5);                                                         // GET
+            */
+            delay(2);                                                         // GET
             if(strstr(bufli,"favicon")>0){                                    // favicon
               numfonct[0]=ffavicon;
               cliPurge(cli);

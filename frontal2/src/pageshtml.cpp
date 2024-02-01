@@ -187,7 +187,7 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
 void htmlFavicon(EthernetClient* cli)
 {
   if(!oneIcon){
-    htmlImg(cli,"sweeth.png");
+    //htmlImg(cli,"sweeth.png");
     //oneIcon=true;
   }
 }
