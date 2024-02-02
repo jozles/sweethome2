@@ -1319,14 +1319,14 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
   char c;
   uint8_t pbli;
   switch(cdNb){
-        case 0:                                                             // pas de commande
+        case 0:                                                               // pas de commande
             cliPurge(cli);return -1;
         case 1:
             c=' ';
             pbli=0;
-            while (cliAv(cli,dataLen,&dataCharNb) && c!='?' && pbli<LBUFLI-1){                  // attente '?' ou 'favicon'
+            while (cliAv(cli,dataLen,&dataCharNb) && c!='?' && pbli<(LBUFLI-1)){                  // attente '?' ou 'favicon'
               c=cliRead(cli,data,dataLen,&dataCharNb);Serial.print(c);                          // version "accélérée" : print des maxi 12 premiers caractères
-              bufli[pbli]=c;pbli++;}                                                                   // le reste sera purgé
+              bufli[pbli]=c;pbli++;}                                          // le reste sera purgé
             
             /*
             while (cliAv(cli,dataLen,&dataCharNb) && c!='?'){                 // attente '?' 
