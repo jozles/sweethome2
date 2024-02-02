@@ -309,7 +309,7 @@ void Nrfp::rxError()
 
 /********** public *************/
 
-void Nrfp::write(byte* data,bool ack,uint8_t len,uint8_t numP)  // write data,len to numP if 'C' mode or to CCADDR if 'P' mode
+void Nrfp::write(byte* data,bool ack,uint8_t len,const uint8_t numP)  // write data,len to numP if 'C' mode or to CCADDR if 'P' mode
 {
     uint8_t llen=len; // MAX_PAYLOAD_LENGTH;
 

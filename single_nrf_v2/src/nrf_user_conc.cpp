@@ -367,7 +367,7 @@ int exportData(uint8_t numT,char* modelName)                            // forma
                                                         // sending bufServer to server 
 {
 
-  if(diags){Serial.print("  <<< export ");}
+  Serial.print("  <<< export ");
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
   strcpy(bufServer,"GET /cx?\0");
@@ -465,16 +465,15 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
       if(periMess!=-7){cnt=MAXRST;t3_02=micros();}
       else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup(serverIp);t3_2=micros();}}}       // si connecté fin sinon redémarrer ethernet
 
-    if(diags){
+    //if(diags){
     Serial.print(millis());
     Serial.print(" periMess=");Serial.print(periMess);
-    Serial.print(" buildmess=");Serial.print(t3_0-t3);
+    Serial.print(" mic: buildmess=");Serial.print(t3_0-t3);
     Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
-    Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);
+    Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);delay(1);
     //Serial.print("    ");Serial.println(bufServer);
-    
-    }
-    
+    //}
+
     return periMess;
 }
 
@@ -511,7 +510,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
         nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // nP = numPeri from set message (nb in server table)
         numT=radio.macSearch(fromServerMac,&numPeri);             // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 
-                                                                  // numPeri should be same as nP (if !=0 && mac found)
+                                                                  // numPeri should be == nP (if !=0 && mac found)
         conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
         t2=micros();
         
@@ -534,10 +533,9 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           if(numT==1){                                                          // entrée 1 de tableC pour concentrateur
             uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
           }
-        }
-        t2_1=micros();                                                    
-        
-        if(diags){                
+        }                                                  
+        t2_1=micros();
+        //if(diags){                
           Serial.print("  >>> getHD ");
           //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
           //Serial.print("/");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
@@ -545,12 +543,12 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           //Serial.print(" ok=");Serial.println(t1_4);
           Serial.print(indata);
           //Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
-          Serial.print("  nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);Serial.print(" numPeri=");Serial.print(numPeri);
-          //Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
+          Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);          //Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
           //Serial.print(" perConc=");Serial.println(perConc);
           //Serial.print(" print diag=");Serial.print(micros()-t2_1);
-          Serial.println();        
-        }
+          Serial.print(" mic: import=");
+          Serial.println(micros()-t1);        
+        //}
   }
 
   if(diags){ 

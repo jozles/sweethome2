@@ -601,7 +601,6 @@ void loop() {
         numT=radio.cRegister((char*)messageIn);         // retour NBPERIF full sinon N° perif dans tableC (1-n)
         if(numT<(NBPERIF)){                             // registration ok
           rdSta=numT;                                   // entry is valid -> rdSta >0              
-          //radio.printAddr((char*)tableC[numT].periMac,' ');
           if(diags){Serial.print(" reg as ");Serial.print(numT);}       // numT = 0-(NBPERIF-1) ; rdSta=numT
         }
         else {if(diags){Serial.println(" full");}}                        // numT = NBPERIF   ; rdSta=0
@@ -632,11 +631,11 @@ void loop() {
                                                                                                  // server data is MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
                                                                                                  // see importData()
       /* send it to perif */    
-        txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);      // end of transaction so auto ACK
+        txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);      // end of transaction so auto ACK ; rdSta table entry nb
         // ******************************* réponse passée **********************************
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
       /* ======= formatting & tx to server ====== */
-        if(numT==0){exportData(rdSta);}               // if not registration (no valid data), tx to server
+        if(numT==0){exportData(rdSta);}               // if not registration (no valid data), tx to server (rdSta table entry nb)
       }
       else {                                          
       /* echo pending  :                         // echoOn flag d'attente de réponse 
@@ -650,19 +649,13 @@ void loop() {
   // ====== error, full or empty -> ignore ======
   // peripheral must re-do registration so no answer to lead to rx error
 
-/*                            
-  if((rdSta<0 && rdSta!=AV_EMPTY) || rdSta>=0){                    
-    showRx(messageIn,false);
-    showErr(true);}
-*/
-
-  if(diags){
+  //if(diags){
     if(rdSta>=0){// if(rdSta!=AV_EMPTY){          // pas d'erreur, un cycle complet a été effectué
       //Serial.print("rd=");Serial.print(rdSta);Serial.print(" tr=");Serial.print(trSta);
-      if(numT==0){Serial.print(" rx+tx+export(micros)=");Serial.println(micros()-time_beg);}
-      else {Serial.print(" rx+tx(micros)=");Serial.println(micros()-time_beg);}
+      if(numT==0){Serial.print(" rx+tx+export=");Serial.println(micros()-time_beg);}
+      else {Serial.print(" rx+tx=");Serial.println(micros()-time_beg);}
     }
-  }
+  //}
 
   // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
@@ -966,7 +959,7 @@ int txRxMessage()
 
 #endif // NRF_MODE == 'P'
 
-int txMessage(bool ack,uint8_t len,uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2 registration ko
+int txMessage(bool ack,uint8_t len,const uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2 registration ko
 {
 #if NRF_MODE=='P'  
   if(numT==0){
