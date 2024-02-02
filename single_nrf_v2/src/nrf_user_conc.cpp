@@ -552,7 +552,8 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           Serial.println();        
         }
   }
-   
+
+  if(diags){ 
     if(prevEtatImport!=etatImport){
       prevEtatImport=etatImport;
       Serial.print(millis());
@@ -561,7 +562,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
       Serial.print(" av:");Serial.print(cliav);
       Serial.print(" pt:");Serial.print(clipt);
       Serial.print(" pM:");Serial.println(periMess);}
-  
+  }
   return periMess;
 }
 

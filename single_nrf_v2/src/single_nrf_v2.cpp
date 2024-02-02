@@ -47,7 +47,7 @@ uint8_t       bcnt=0;
 
 /*** scratch ***/
 
-bool diags=true;
+bool diags=false;
 
 #define TO_READ 30                        // mS rxMessage time out 
 long readTo;                              // compteur TO read()
@@ -237,9 +237,9 @@ uint32_t radioInitCnt=0;
 
 void radioInit()
 {
-  radioInitCnt++;
   radioWd=millis();
-  Serial.print(" --- radioInit()#");Serial.println(radioInitCnt);
+  radioInitCnt++;
+  
   radio.powerDown();
   channel=*concChannel;
   if(memcmp(configVers,"01",2)==0){*concNb=1;}
@@ -249,6 +249,18 @@ void radioInit()
   memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH+1);     // pour broadcast & test
   radio.powerOn(channel,speed);
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
+  
+  unsigned long mic=micros();
+  Serial.print(" --- radioInit()#");Serial.print(radioInitCnt);Serial.print(' ');Serial.print(millis()-radioWd);Serial.println("ms");
+  
+  /*
+  #define LBINIT 40
+  char binit[LBINIT];*binit='\0';
+  strcpy(binit," --- radioInit()#         ms\n\0");uint8_t lb=17;
+  sprintf(binit+lb,"%4u",(uint16_t)radioInitCnt);binit[lb+4]=' ';
+  sprintf(binit+lb+4+1,"%4u",(uint16_t)(millis()-radioWd));Serial.print(binit);
+  */
+ Serial.println(micros()-mic);
 }
 #endif // NRF_MODE == 'C'
 
@@ -278,7 +290,6 @@ void setup() {
   wd();                           // watchdog
   iniTemp();
   
-  diags=false;
   Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");
   radio.printAddr((char*)periRxAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);
   Serial.print('(');Serial.print(*concNb);Serial.print('-');Serial.print(channel);
@@ -296,9 +307,7 @@ void setup() {
   }
 #endif // NOCONFSER
 
-  Serial.print(" une touche pour diags ");
-  while((millis()-t_on)<4000){Serial.print(".");delay(500);if(Serial.available()){Serial.read();diags=true;break;}}
-  Serial.println();delay(1);
+  diags=diagSetup(t_on);
   if(diags){
     Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry)");
     Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
@@ -371,6 +380,9 @@ void setup() {
       configSave();
       while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
   }
+
+  t_on=millis();
+  diags=diagSetup(t_on);
 
   configLoad();//*serverUdpPort=8885;configSave();
 
