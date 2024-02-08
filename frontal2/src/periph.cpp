@@ -1968,14 +1968,17 @@ int timersConvert()
 void anTimersPrint()
 {
   for(uint8_t nt=0;nt<NBTIMERS;nt++){
-    Serial.print("   ");Serial.print(nt);Serial.print("/");Serial.print(timersN[nt].detec);Serial.print(" ");
-    Serial.print(timersN[nt].nom);Serial.print(" ");Serial.print(timersN[nt].enable);Serial.print(" ");
+    Serial.print("   ");Serial.print(nt);Serial.print("/");Serial.print(analTimers[nt].nom);Serial.print(" ");
+    Serial.print(analTimers[nt].enable);Serial.print(" ");Serial.print(analTimers[nt].dw);Serial.print(" ");
+    /*
     Serial.print(timersN[nt].perm);Serial.print(" ");Serial.print(timersN[nt].curstate);Serial.print(" ");
     Serial.print(timersN[nt].cyclic_);Serial.print(" ");Serial.print(timersN[nt].forceonoff);Serial.print(" ");
     Serial.print(timersN[nt].hdeb);Serial.print(" ");Serial.print(timersN[nt].hfin);Serial.print(" ");
     for(int nd=7;nd>=0;nd--){Serial.print((char)(((timersN[nt].dw>>nd)&0x01)+'0'));}Serial.print(" "); // 0=tous 1-7
     Serial.print(timersN[nt].dhdebcycle);Serial.print(" ");Serial.println(timersN[nt].dhfincycle);
     Serial.print("last :");Serial.print(timersN[nt].dhLastStart);Serial.print(" ");Serial.print(timersN[nt].dhLastStop);
+    */
+    Serial.println();
   }
 }
 
@@ -1983,19 +1986,30 @@ void anTimersInit()
 {
   memset(anTimersA,0x00,anTimersLen);
   for(int ant=0;ant<NBANTIMERS;ant++){
-    //memset(timersN[nt].onStateDur,'0',16);
-    //memset(timersN[nt].offStateDur,'9',16);
+    memset(analTimers[ant].nom,0x00,LENANTIM+1); 
+    memset(analTimers[ant].heure,0x00,3*NBEVTANTIM); // heure packée
+    memset(analTimers[ant].valeur,0x00,NBEVTANTIM*sizeof(uint16_t));
+    analTimers[ant].enable=0;
+    analTimers[ant].dw=0;                  // jours semaine xyyyyyyyy ; x si tout
+    analTimers[ant].detecIn=0;             // détecteur associé (enable)
+    analTimers[ant].detecOut=0;            // détecteur associé (sortie?)
+    analTimers[ant].mode=0;
+    analTimers[ant].factor_offset_mode=0;     
+    analTimers[ant].factor=0;
+    analTimers[ant].offset=0;
+    analTimers[ant].dispo1=0;
+    analTimers[ant].dispo2=0;
   }
 }
 
 int anTimersLoad()
 {
-    Serial.print("Load analog timers   ");
+    Serial.print("Load analog timers ");
     if(sdOpen(ANTIMERSFNAME,&fanTimers)==SDKO){Serial.println(" KO");return SDKO;}
     fanTimers.seek(0);
     for(uint16_t i=0;i<anTimersLen;i++){*(anTimersA+i)=fanTimers.read();}             
     fanTimers.close();Serial.println(" OK");
-    
+    dumpstr(anTimersA,38);
     return SDOK;
 }
 
@@ -2006,6 +2020,7 @@ int anTimersSave()
     fanTimers.seek(0);
     for(uint16_t i=0;i<anTimersLen;i++){fanTimers.write(*(anTimersA+i));}             
     fanTimers.close();Serial.println(" OK");
+    dumpstr(anTimersA,38);
     return SDOK;
 }
 

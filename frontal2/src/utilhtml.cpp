@@ -839,7 +839,7 @@ void scrGetText(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,
 
 void scrGetText(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t size,int len,uint8_t pol,uint8_t ctl)
 {
-  scrGetText0(JSATB,"text",buf,jsbuf,valfonct,nomfonct,size,0,len,pol,ctl);
+  scrGetText0(JSATB,"text",buf,jsbuf,valfonct,nomfonct,size,len,0,pol,ctl);
 }
 
 void scrGetHidden(char* buf,char* jsbuf,const char* valfonct,const char* nomfonct,uint8_t pol,uint8_t ctl)

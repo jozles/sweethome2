@@ -589,6 +589,9 @@ void setup() {                          // ====================================
   thermosLoad();
   //memosInit();memosSave(-1);  
   memosLoad(-1);
+  //anTimersInit();anTimersSave();
+  anTimersLoad();
+  Serial.print(' ');Serial.print(anTimersLen);Serial.print(' ');Serial.println(sizeof(AnalTimers));
   Serial.println();
 
 /* ---------- ethernet start ---------- */
@@ -1999,40 +2002,52 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                         }
                        }break;                                                                      
               case 36: what=15;                                                                         // (antim___) analog timers
-                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
+                        {uint8_t av=*(libfonctions+2*i);                                        
                         uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
                         switch(av){
                           case 'n': alphaTfr(analTimers[nt].nom,LENTIMNAM,valf,nvalf[i+1]-nvalf[i]);    // (antim___n_) nom 
+                                    Serial.print((char*)&analTimers[nt].nom);Serial.print('|');Serial.print(valf);Serial.print('|');
                                     break;
-                          case 'i': analTimers[nt].detecIn=convStrToInt(valf,&j);                       // (antim___i_) n° detecteur in
+                          case 'i': analTimers[nt].detecIn=0;analTimers[nt].detecIn=convStrToInt(valf,&j);    // (antim___i_) n° detecteur in
                                     break;     
-                          case 'o': analTimers[nt].detecOut=convStrToInt(valf,&j);                      // (antim___o_) n° detecteur out
+                          case 'o': analTimers[nt].detecOut=0;analTimers[nt].detecOut=convStrToInt(valf,&j);  // (antim___o_) n° detecteur out
+                                    break;
+                          case 'O': analTimers[nt].offset=0;analTimers[nt].offset=convStrToNum(valf,&j);      // (antim___O_) offset
+                                    break;
+                          case 'F': analTimers[nt].factor=0;analTimers[nt].factor=convStrToNum(valf,&j);      // (antim___F_) factor
                                     break;
                         }
+                        Serial.print("ndof:");Serial.print((char)av);Serial.print('/');Serial.println(nt);
                        }break;                                                                          
               case 37: what=15;                                                                         // (antim_cb ) analog timers
                         {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
                         uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
-                        switch(av){
-                          case 0: analTimers[nt].enable=*valf-'0';break;                                // (anti_cb_0)  check box 0 : enable
-                                    break;
-                          default: break;
-                        }
-                          /* dw */
-                        if(av==NBCBANT){analTimers[nt].dw=0xFF;}                                        // (anti_cb_n)  check box 1-9 : dw
-                        if(av>NBCBANT){
+                        Serial.print("cb:");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);
+                          /* dw 0-7*/
+                        if(av==NBCBANT){analTimers[nt].dw=0xFF;}                                        // (anti_cb_n)  check box 0-7 : dw
+                        if(av>NBCBANT && av<(NBCBANT+8)){
                           analTimers[nt].dw|=maskbit[1+2*(7-av+NBCBANT)];                          
+                        }
+                        if(av>=NBCBANT+8){
+                          switch(av-8){
+                            case 0: analTimers[nt].enable=*valf-'0';break;                              // (anti_cb_8)  check box 8 : enable
+                            case 1: analTimers[nt].factor_offset_mode=*valf-'0';break;                  // (anti_cb_9)  check box 9 : mode factor/offset
+                            default: break;
+                          }
                         }
                        }break;                                                                           
               case 38:what=15;                                                                          // (antim_hh ) analog timers heures
                         {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
                         uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
-                        pack(&analTimers[nt].heure[av],valf,6);                                         // heures
+                        pack(valf,&analTimers[nt].heure[av],6,false);
+                        Serial.print("hh:");Serial.print(valf);Serial.print('|');for(uint8_t h=0;h<3;h++){Serial.print((char)*(&analTimers[nt].heure[av]+h),HEX);
+                        Serial.print(',');}Serial.print("-");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);                                            // heures
                         }break;
               case 39: what=15;                                                                         // (antim_vv ) analog timers valeurs
                         {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
                         uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
-                        analTimers[nt].valeur[av]=0;conv_atob(valf,&analTimers[nt].valeur[av]);break;   // valeurs
+                        analTimers[nt].valeur[av]=0;conv_atob(valf,&analTimers[nt].valeur[av]);         // valeurs
+                        Serial.print("vv:");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);
                         }break;
               case 40: anTimersHtml(cli);break;                                                         // (bouton antimcfg__)
               case 41: what=10;memcpy(bakDetServ,memDetServ,MDSLEN);
@@ -2196,7 +2211,7 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                         //Serial.print("cfgTh lf+1/lf=");Serial.print(nb);Serial.print(" lf=");Serial.println(nf);
                           switch (nf){
                             case 'n':alphaTfr((char*)&thermos[nb].nom,LENTHNAME,valf,nvalf[i+1]-nvalf[i]);
-                                   thermos[nb].lowenable=0;                                                               // effacement cb
+                                   thermos[nb].lowenable=0;                                                                 // effacement cb
                                    thermos[nb].highenable=0;
                                    thermos[nb].lowstate=0;
                                    thermos[nb].highstate=0;
@@ -2204,10 +2219,10 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                             case 'p':thermos[nb].peri=0;thermos[nb].peri=convStrToInt(valf,&j);
                                    if((thermos[nb].peri)>NBPERIF){(thermos[nb].peri)=NBPERIF;}
                                    break;
-                            case 'e':thermos[nb].lowenable=*valf-PMFNCVAL;break;                                                  // enable low
-                            case 'E':thermos[nb].highenable=*valf-PMFNCVAL;break;                                                 // enable high
-                            case 's':thermos[nb].lowstate=*valf-PMFNCVAL;break;                                                   // state  low
-                            case 'S':thermos[nb].highstate=*valf-PMFNCVAL;break;                                                  // state  high
+                            case 'e':thermos[nb].lowenable=*valf-PMFNCVAL;break;                                            // enable low
+                            case 'E':thermos[nb].highenable=*valf-PMFNCVAL;break;                                           // enable high
+                            case 's':thermos[nb].lowstate=*valf-PMFNCVAL;break;                                             // state  low
+                            case 'S':thermos[nb].highstate=*valf-PMFNCVAL;break;                                            // state  high
                             case 'v':thermos[nb].lowvalue=0;thermos[nb].lowvalue=(int16_t)convStrToInt(valf,&j);break;      // value low
                             case 'V':thermos[nb].highvalue=0;thermos[nb].highvalue=(int16_t)convStrToInt(valf,&j);break;    // value high
                             case 'o':thermos[nb].lowoffset=0;thermos[nb].lowoffset=(int16_t)convStrToInt(valf,&j);break;    // offset low
@@ -2396,7 +2411,9 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                     periLineHtml(cli);
                     break;                                                                                                           
             case 14:break;                                                // data_na___
-            case 15:anTimersSave();anTimersHtml(cli);break;                  // antim___ & anti_ch_
+            case 15:anTimersSave();
+            anTimersPrint();
+            anTimersHtml(cli);break;               // antim___ & anti_ch_
             default:accueilHtml(cli);break;                               // what=-1
           }
         } // getnv nbreparams>=0  

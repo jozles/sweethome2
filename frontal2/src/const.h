@@ -432,7 +432,7 @@ struct Timers
 #define LENANTIM   16
 #define NBEVTANTIM 8          // nbre évènements par jour
 #define ANTIMERSFNAME "ANTIMERS"
-#define NBCBANT 1             // nbre check box hors dw
+#define NBCBANT 0             // numéro 1ère cb dw (0-7)
 
 struct AnalTimers
 {
@@ -444,6 +444,9 @@ struct AnalTimers
   uint8_t  detecIn;             // détecteur associé (enable)
   uint8_t  detecOut;            // détecteur associé (sortie?)
   uint8_t  mode;
+  uint8_t  factor_offset_mode;     
+  float    factor;
+  float    offset;
   uint8_t  dispo1;
   uint8_t  dispo2;
 };
