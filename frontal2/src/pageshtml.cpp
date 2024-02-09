@@ -1791,9 +1791,9 @@ Serial.print(" config analog timers ");
       //if(nt==0){
       //for(uint8_t h=0;h<3;h++){
       //Serial.print((char)*(&analTimers[nt].heure[hh]+h),HEX);Serial.print(',');}Serial.print(" ");Serial.println(unpHeure);}
-      unpack(&analTimers[nt].heure[hh],unpHeure,3);
+      unpack(&analTimers[nt].heure[hh*3],unpHeure,3);
       sscfgtB(buf,jsbuf,"antim_hh__",nt,hh,unpHeure,6,0,TDBE);
-      sscfgtB(buf,jsbuf,"antim_vv__",nt,hh,&analTimers[nt].valeur[hh],4,2,TDBE);
+      sscfgtB(buf,jsbuf,"antim_vv__",nt,hh,&(analTimers[nt].valeur[hh]),4,2,TDBE);
     }
 
     ethWrite(cli,buf,&lb);

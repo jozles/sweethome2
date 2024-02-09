@@ -71,6 +71,7 @@ void  anTimersInit();
 int   anTimersLoad();
 int   anTimersSave();
 int   anTimersConvert();
+void  antRemove();
 
 void  thermosPrint();
 void  thermosInit();

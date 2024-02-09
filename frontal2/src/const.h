@@ -439,6 +439,7 @@ struct AnalTimers
   char     nom[LENANTIM+1]; 
   char     heure[3*NBEVTANTIM]; // heure packée
   uint16_t valeur[NBEVTANTIM];
+  uint16_t curVal;              // valeur courante        
   bool     enable;
   uint8_t  dw;                  // jours semaine xyyyyyyyy ; x si tout
   uint8_t  detecIn;             // détecteur associé (enable)

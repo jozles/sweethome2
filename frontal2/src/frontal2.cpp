@@ -589,10 +589,10 @@ void setup() {                          // ====================================
   thermosLoad();
   //memosInit();memosSave(-1);  
   memosLoad(-1);
-  //anTimersInit();anTimersSave();
+  
+  //antRemove();anTimersInit();anTimersSave();
   anTimersLoad();
-  Serial.print(' ');Serial.print(anTimersLen);Serial.print(' ');Serial.println(sizeof(AnalTimers));
-  Serial.println();
+  dumpstr(anTimersA,anTimersLen);
 
 /* ---------- ethernet start ---------- */
 
@@ -644,7 +644,9 @@ void setup() {                          // ====================================
   remoteserv=new EthernetServer(*remotePort);
   remoteserv->begin();Serial.print(" remoteserv.begin(");Serial.print(*remotePort);Serial.println(")");     //  remote serveur
 
-Serial.print("size_of EthernetServer=");Serial.println(sizeof(EthernetServer));
+  showSocketsStatus(false,false,true);
+
+  Serial.print("size_of EthernetServer=");Serial.println(sizeof(EthernetServer));
 
 /* ---------- RTC ON, check date/heure et maj éventuelle par NTP ---------- */
 /* ethernet doit être branché pour l'udp */
@@ -1563,6 +1565,10 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
         uint8_t curSw=remoteT[remTNum].sw;            
         periLoad(periCur);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
         periSave(periCur,PERISAVESD);
+#ifdef SOCK_DEBUG        
+        Serial.print("avant periReq0 cliext_socket:");Serial.println(cliext.sockindex);
+        showSocketsStatus(false,false,true);
+#endif // SOCK_DEBUG        
         periReq0(&cliext,"mds_______","");                                      // update périf
     }
   }
@@ -2003,10 +2009,10 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                        }break;                                                                      
               case 36: what=15;                                                                         // (antim___) analog timers
                         {uint8_t av=*(libfonctions+2*i);                                        
-                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
+                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;if(nt>=NBANTIMERS){nt=NBANTIMERS-1;}  // n° anTimer
                         switch(av){
                           case 'n': alphaTfr(analTimers[nt].nom,LENTIMNAM,valf,nvalf[i+1]-nvalf[i]);    // (antim___n_) nom 
-                                    Serial.print((char*)&analTimers[nt].nom);Serial.print('|');Serial.print(valf);Serial.print('|');
+                                    //Serial.print((char*)&analTimers[nt].nom);Serial.print('|');Serial.print(valf);Serial.print('|');
                                     break;
                           case 'i': analTimers[nt].detecIn=0;analTimers[nt].detecIn=convStrToInt(valf,&j);    // (antim___i_) n° detecteur in
                                     break;     
@@ -2017,12 +2023,12 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                           case 'F': analTimers[nt].factor=0;analTimers[nt].factor=convStrToNum(valf,&j);      // (antim___F_) factor
                                     break;
                         }
-                        Serial.print("ndof:");Serial.print((char)av);Serial.print('/');Serial.println(nt);
+                        //Serial.print("ndof:");Serial.print((char)av);Serial.print('/');Serial.println(nt);
                        }break;                                                                          
               case 37: what=15;                                                                         // (antim_cb ) analog timers
-                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
-                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
-                        Serial.print("cb:");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;if(av>NBEVTANTIM){av=NBEVTANTIM;}                                       
+                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;if(nt>=NBANTIMERS){nt=NBANTIMERS-1;}  // n° anTimer
+                        //Serial.print("cb:");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);
                           /* dw 0-7*/
                         if(av==NBCBANT){analTimers[nt].dw=0xFF;}                                        // (anti_cb_n)  check box 0-7 : dw
                         if(av>NBCBANT && av<(NBCBANT+8)){
@@ -2037,17 +2043,17 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                         }
                        }break;                                                                           
               case 38:what=15;                                                                          // (antim_hh ) analog timers heures
-                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
-                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
-                        pack(valf,&analTimers[nt].heure[av],6,false);
-                        Serial.print("hh:");Serial.print(valf);Serial.print('|');for(uint8_t h=0;h<3;h++){Serial.print((char)*(&analTimers[nt].heure[av]+h),HEX);
-                        Serial.print(',');}Serial.print("-");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);                                            // heures
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;if(av>NBEVTANTIM){av=NBEVTANTIM;}                                        
+                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;if(nt>=NBANTIMERS){nt=NBANTIMERS-1;}  // n° anTimer
+                        pack(valf,&analTimers[nt].heure[av*3],6,false);
+                        //Serial.print("hh:");Serial.print(valf);Serial.print('|');for(uint8_t h=0;h<3;h++){Serial.print((char)*(&analTimers[nt].heure[av]+h),HEX);
+                        //Serial.print(',');}Serial.print("-");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);                                            // heures
                         }break;
               case 39: what=15;                                                                         // (antim_vv ) analog timers valeurs
-                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                        
-                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;                                      // n° anTimer
-                        analTimers[nt].valeur[av]=0;conv_atob(valf,&analTimers[nt].valeur[av]);         // valeurs
-                        Serial.print("vv:");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;if(av>NBEVTANTIM){av=NBEVTANTIM;}             
+                        uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;if(nt>=NBANTIMERS){nt=NBANTIMERS-1;}  // n° anTimer
+                        analTimers[nt].valeur[av]=0;conv_atob(valf,&(analTimers[nt].valeur[av]));         // valeurs
+                        //Serial.print("vv:");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);
                         }break;
               case 40: anTimersHtml(cli);break;                                                         // (bouton antimcfg__)
               case 41: what=10;memcpy(bakDetServ,memDetServ,MDSLEN);
@@ -2686,6 +2692,18 @@ void printSocketStatus(bool nolf)
 
 void showSocketsStatus(bool close,bool nolf,bool print)
 {
+/*
+  la lib ethernet gère les 8 sockets du W5500 
+  cli.available valorise la variable cli.sockindex avec le socket qui a une requête pendante (ou pas)
+  cli.connect cherche un socket libre (CLOSED) via lequel lancer une requête
+  cli.connected renvoie le socketstatus 
+  server.begin associe un numéro de port à un socket qui passe en mode LISTEN (attenet de requête)
+  Dans tous les cas sockindex>=MAX_SOCK_NUM indique que l'instance est déconnectée (pas de socket)
+
+  showSocketStatus montre le socketstatus des 8 sockets et ferme éventuellement
+  un socket ouvert et inactif depuis "trop" longtemps  
+*/
+
   memset(sssa,'_',MAX_SOCK_NUM+1);sssa[MAX_SOCK_NUM+1]=0;
 	for (uint8_t s=0; s < MAX_SOCK_NUM; s++) {
     sssa[s]=' ';

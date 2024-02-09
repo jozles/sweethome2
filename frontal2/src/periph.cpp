@@ -1989,6 +1989,7 @@ void anTimersInit()
     memset(analTimers[ant].nom,0x00,LENANTIM+1); 
     memset(analTimers[ant].heure,0x00,3*NBEVTANTIM); // heure packée
     memset(analTimers[ant].valeur,0x00,NBEVTANTIM*sizeof(uint16_t));
+    analTimers[ant].curVal=0;
     analTimers[ant].enable=0;
     analTimers[ant].dw=0;                  // jours semaine xyyyyyyyy ; x si tout
     analTimers[ant].detecIn=0;             // détecteur associé (enable)
@@ -2009,7 +2010,7 @@ int anTimersLoad()
     fanTimers.seek(0);
     for(uint16_t i=0;i<anTimersLen;i++){*(anTimersA+i)=fanTimers.read();}             
     fanTimers.close();Serial.println(" OK");
-    dumpstr(anTimersA,38);
+    //dumpstr(anTimersA,38);
     return SDOK;
 }
 
@@ -2020,7 +2021,7 @@ int anTimersSave()
     fanTimers.seek(0);
     for(uint16_t i=0;i<anTimersLen;i++){fanTimers.write(*(anTimersA+i));}             
     fanTimers.close();Serial.println(" OK");
-    dumpstr(anTimersA,38);
+    dumpstr(anTimersA,anTimersLen);
     return SDOK;
 }
 
@@ -2047,7 +2048,7 @@ int anTimersConvert()
     */
     //while(1){};
 
-    fanTimers.remove();    
+    fanTimers.remove();   
 
     if (!fanTimers.open(ANTIMERSFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
         Serial.print(ANTIMERSFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO);}
@@ -2058,6 +2059,12 @@ int anTimersConvert()
     Serial.println("terminé");
     while(1){blink(1);}
 }
+
+void  antRemove()
+{
+  sdRemove(ANTIMERSFNAME,&fanTimers);
+}
+
 
 /**************** thermometres ******************/
 
