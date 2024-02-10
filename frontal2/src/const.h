@@ -440,17 +440,17 @@ struct AnalTimers
   char     heure[3*NBEVTANTIM]; // heure packée
   uint16_t valeur[NBEVTANTIM];
   uint16_t curVal;              // valeur courante        
-  bool     enable;
+  uint8_t  cb;                  // 0=enable, 1 ante/post offset, 2-7 dispo
   uint8_t  dw;                  // jours semaine xyyyyyyyy ; x si tout
   uint8_t  detecIn;             // détecteur associé (enable)
-  uint8_t  detecOut;            // détecteur associé (sortie?)
-  uint8_t  mode;
-  uint8_t  factor_offset_mode;     
+  uint8_t  detecOut;            // détecteur associé (sortie?) 
   float    factor;
   float    offset;
-  uint8_t  dispo1;
-  uint8_t  dispo2;
+  char     dispo[6];
 };
+
+#define ANT_BIT_ENABLE   0
+#define ANT_BIT_ANTEPOST 1
 
 struct AnalTimersOld
 {

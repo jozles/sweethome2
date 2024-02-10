@@ -418,8 +418,7 @@ void mDSconc(char* concbuf,uint8_t num)
 }
 
 void sscb(char* buf,char* jsbuf,bool val,const char* nomfonct,int nuf,int etat,uint8_t ctl,uint8_t nb)
-{                                                                               // saisie checkbox ; 
-                                                                                // le nom de fonction reçoit 2 caractères
+{                                                                               // saisie checkbox ; bit nuf
   char nf[LENNOM+1];
   memcpy(nf,nomfonct,LENNOM);
   nf[LENNOM]='\0';
@@ -435,6 +434,7 @@ void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,int8_t rg,const vo
                                                                     // type =2 int16_t /    (int16t*)value+nb
                                                                     // type =3 int8_t  /    value=int8_t*
                                                                     // type =4 float   /    value=float*
+                                                                    // type =5 int16_t /    (int16t*)value                                                                    
 {
   int8_t sizbx=len-3;
   if(size==0){sizbx=30;}
@@ -448,6 +448,7 @@ void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,int8_t rg,const vo
   if(type==2){scrGetNum(buf,jsbuf,'I',((int16_t*)value+nb),nf,2,1,0,ctl);} //concatn(buf,*((int16_t*)value+nb));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>");}
   if(type==3){scrGetNum(buf,jsbuf,'s',(int8_t*)value,nf,2,1,0,ctl);} //concatn(buf,*((int8_t*)value));strcat(buf,"\" size=\"1\" maxlength=\"2\" ></td>\n");}
   if(type==4){scrGetNum(buf,jsbuf,'F',(int8_t*)value,nf,len,dec,0,ctl);}
+  if(type==5){scrGetNum(buf,jsbuf,'I',(int16_t*)value,nf,len,1,0,ctl);}
 }
 
 void sscfgtB(char* buf,char* jsbuf,const char* nom,uint8_t nb,int8_t rg,const void* value,int len,uint8_t dec,uint8_t type,uint8_t ctl)
@@ -1256,9 +1257,9 @@ void anTimersCfgHtml(EthernetClient* cli)
     scrDspText(buf,jsbuf,analTimers[nt].nom,7,TDBE);                 
     
     uint8_t color=OFFCOLOR;
-    if(analTimers[nt].enable!=0){color=ONCOLOR;}
+    if((analTimers[nt].cb & ANT_BIT_ENABLE)!=0){color=ONCOLOR;}
     nf[LENNOM-2]=NBCBANT+8+PMFNCHAR;
-    scrGetButFn(buf,jsbuf,nf,"",lib[analTimers[nt].enable],ALICNO,4,color,0,1,RND,TDBE|TREND);
+    scrGetButFn(buf,jsbuf,nf,"",lib[(analTimers[nt].cb & ANT_BIT_ENABLE)],ALICNO,4,color,0,1,RND,TDBE|TREND);
 
     scrDspNum(buf,jsbuf,'D',&analTimers[nt].detecIn,0,0,TDBE);
     scrDspNum(buf,jsbuf,'D',&analTimers[nt].detecOut,0,0,TDBE);
@@ -1741,7 +1742,6 @@ Serial.print(" config analog timers ");
   char buf[lb0];*buf=0x00;
 
   unsigned long begTPage=millis();    // calcul durée envoi page
-  int nucb;
 
   htmlBeg(buf,jsbuf,serverName);       // chargement CSS etc
 
@@ -1764,22 +1764,21 @@ Serial.print(" config analog timers ");
 
   for(uint8_t nt=0;nt<NBANTIMERS;nt++){                                            // NBANTIMERS
     formIntro(buf,jsbuf,0,TRBEG|TDBEG);
-                      /*strcat(buf,"<form method=\"GET \">");
-                      usrFormBHtml(buf,1);
-                      strcat(buf,"<td>");*/
+    
     scrDspNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
                      
     sscfgtB(buf,jsbuf,"antim___n_",nt,analTimers[nt].nom,LENTIMNAM,0,TDBE);
-    nucb=NBCBANT+8;sscb(buf,jsbuf,analTimers[nt].enable,"antim_cb__",nucb,NO_STATE,TDBE,nt);affSpace(buf,jsbuf);    // cb 8 : enable
+    sscb(buf,jsbuf,(analTimers[nt].cb>>ANT_BIT_ENABLE)&0x01,"antim_cb__",ANT_BIT_ENABLE+8,NO_STATE,TDBE,nt);affSpace(buf,jsbuf);    // cb 0 : enable
     
     sscfgtB(buf,jsbuf,"antim___i_",nt,&analTimers[nt].detecIn,2,3,TDBE);                                            
     sscfgtB(buf,jsbuf,"antim___o_",nt,&analTimers[nt].detecOut,2,3,TDBE);
 
     uint8_t lctl=TDBEG;
+    uint8_t nucb=0;
     for(int nj=7;nj>=0;nj--){
-      bool vnj; 
-      vnj=(analTimers[nt].dw>>nj)&0x01;
-      nucb++;sscb(buf,jsbuf,vnj,"antim_cb__",nucb,NO_STATE,lctl,nt);                                        // cb 1->n dw
+      uint8_t vnj=(analTimers[nt].dw>>nj)&0x01;
+      sscb(buf,jsbuf,vnj,"antim_cb__",nucb,NO_STATE,lctl,nt);                                         // dw 0-7
+      nucb++;
       lctl=0;if(nj==1){lctl=TDEND;}
       if(nj>=1){affSpace(buf,jsbuf);}
     }
@@ -1788,17 +1787,14 @@ Serial.print(" config analog timers ");
 
     char unpHeure[7];unpHeure[6]='\0';
     for(uint8_t hh=0;hh<NBEVTANTIM;hh++){
-      //if(nt==0){
-      //for(uint8_t h=0;h<3;h++){
-      //Serial.print((char)*(&analTimers[nt].heure[hh]+h),HEX);Serial.print(',');}Serial.print(" ");Serial.println(unpHeure);}
       unpack(&analTimers[nt].heure[hh*3],unpHeure,3);
       sscfgtB(buf,jsbuf,"antim_hh__",nt,hh,unpHeure,6,0,TDBE);
-      sscfgtB(buf,jsbuf,"antim_vv__",nt,hh,&(analTimers[nt].valeur[hh]),4,2,TDBE);
+      sscfgtB(buf,jsbuf,"antim_vv__",nt,hh,&(analTimers[nt].valeur[hh]),6,5,TDBE);
     }
 
     ethWrite(cli,buf,&lb);
 
-    nucb=NBCBANT+9;sscb(buf,jsbuf,analTimers[nt].factor_offset_mode,"antim_cb__",nucb,NO_STATE,TDBE,nt);affSpace(buf,jsbuf);    // cb 9 : factor/offset mode
+    sscb(buf,jsbuf,(analTimers[nt].cb>>ANT_BIT_ANTEPOST)&0x01,"antim_cb__",ANT_BIT_ANTEPOST+8,NO_STATE,TDBE,nt);affSpace(buf,jsbuf);  // cb 1 : ante/post
     sscfgtB(buf,jsbuf,"antim___F_",nt,-1,&analTimers[nt].factor,6,3,4,TDBE);
     sscfgtB(buf,jsbuf,"antim___O_",nt,-1,&analTimers[nt].offset,6,3,4,TDBE);
 

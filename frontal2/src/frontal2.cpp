@@ -2013,6 +2013,8 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                         switch(av){
                           case 'n': alphaTfr(analTimers[nt].nom,LENTIMNAM,valf,nvalf[i+1]-nvalf[i]);    // (antim___n_) nom 
                                     //Serial.print((char*)&analTimers[nt].nom);Serial.print('|');Serial.print(valf);Serial.print('|');
+                                    analTimers[nt].dw=0x00;                                                   // init dw
+                                    analTimers[nt].cb=0x00;                                                   // init cb 
                                     break;
                           case 'i': analTimers[nt].detecIn=0;analTimers[nt].detecIn=convStrToInt(valf,&j);    // (antim___i_) n° detecteur in
                                     break;     
@@ -2026,34 +2028,34 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                         //Serial.print("ndof:");Serial.print((char)av);Serial.print('/');Serial.println(nt);
                        }break;                                                                          
               case 37: what=15;                                                                         // (antim_cb ) analog timers
-                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;if(av>NBEVTANTIM){av=NBEVTANTIM;}                                       
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;                                       
                         uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;if(nt>=NBANTIMERS){nt=NBANTIMERS-1;}  // n° anTimer
                         //Serial.print("cb:");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);
                           /* dw 0-7*/
-                        if(av==NBCBANT){analTimers[nt].dw=0xFF;}                                        // (anti_cb_n)  check box 0-7 : dw
-                        if(av>NBCBANT && av<(NBCBANT+8)){
-                          analTimers[nt].dw|=maskbit[1+2*(7-av+NBCBANT)];                          
-                        }
-                        if(av>=NBCBANT+8){
-                          switch(av-8){
-                            case 0: analTimers[nt].enable=*valf-'0';break;                              // (anti_cb_8)  check box 8 : enable
-                            case 1: analTimers[nt].factor_offset_mode=*valf-'0';break;                  // (anti_cb_9)  check box 9 : mode factor/offset
+                          if(av>=0 && av<=7){
+                            analTimers[nt].dw|=maskbit[1+2*(7-av)];                          
+                          }                                                               
+                          switch(av){
+                            case 0: analTimers[nt].dw=0xFF;break;                                       // (anti_cb0 ) dw 0-7
+                            case 8: analTimers[nt].cb|=maskbit[1+ANT_BIT_ENABLE*2];
+                            dumpstr((char*)&analTimers[0].cb,1);break;               // (anti_cb8 ) enable
+                            case 9: analTimers[nt].cb|=maskbit[1+ANT_BIT_ANTEPOST*2];
+                            dumpstr((char*)&analTimers[0].cb,1);break;             // (anti_cb9 ) ante/post
                             default: break;
                           }
-                        }
-                       }break;                                                                           
+                        }break;                                                                           
               case 38:what=15;                                                                          // (antim_hh ) analog timers heures
-                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;if(av>NBEVTANTIM){av=NBEVTANTIM;}                                        
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;if(av>=NBEVTANTIM){av=NBEVTANTIM-1;}                                        
                         uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;if(nt>=NBANTIMERS){nt=NBANTIMERS-1;}  // n° anTimer
                         pack(valf,&analTimers[nt].heure[av*3],6,false);
                         //Serial.print("hh:");Serial.print(valf);Serial.print('|');for(uint8_t h=0;h<3;h++){Serial.print((char)*(&analTimers[nt].heure[av]+h),HEX);
                         //Serial.print(',');}Serial.print("-");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);                                            // heures
                         }break;
               case 39: what=15;                                                                         // (antim_vv ) analog timers valeurs
-                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;if(av>NBEVTANTIM){av=NBEVTANTIM;}             
+                        {uint8_t av=*(libfonctions+2*i)-PMFNCHAR;if(av>=NBEVTANTIM){av=NBEVTANTIM-1;}             
                         uint8_t nt=*(libfonctions+2*i+1)-PMFNCHAR;if(nt>=NBANTIMERS){nt=NBANTIMERS-1;}  // n° anTimer
                         analTimers[nt].valeur[av]=0;conv_atob(valf,&(analTimers[nt].valeur[av]));         // valeurs
-                        //Serial.print("vv:");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.println(nt);
+                        //Serial.print("vv:");Serial.print((char)(av+PMFNCHAR));Serial.print('/');Serial.print(nt);Serial.print('=');Serial.println(analTimers[nt].valeur[av]);
                         }break;
               case 40: anTimersHtml(cli);break;                                                         // (bouton antimcfg__)
               case 41: what=10;memcpy(bakDetServ,memDetServ,MDSLEN);
@@ -2417,9 +2419,7 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                     periLineHtml(cli);
                     break;                                                                                                           
             case 14:break;                                                // data_na___
-            case 15:anTimersSave();
-            anTimersPrint();
-            anTimersHtml(cli);break;               // antim___ & anti_ch_
+            case 15:anTimersSave();anTimersHtml(cli);break;               // antim___ & anti_ch_
             default:accueilHtml(cli);break;                               // what=-1
           }
         } // getnv nbreparams>=0  

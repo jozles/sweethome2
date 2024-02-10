@@ -1969,7 +1969,7 @@ void anTimersPrint()
 {
   for(uint8_t nt=0;nt<NBTIMERS;nt++){
     Serial.print("   ");Serial.print(nt);Serial.print("/");Serial.print(analTimers[nt].nom);Serial.print(" ");
-    Serial.print(analTimers[nt].enable);Serial.print(" ");Serial.print(analTimers[nt].dw);Serial.print(" ");
+    Serial.print((analTimers[nt].cb & ANT_BIT_ENABLE));Serial.print(" ");Serial.print(analTimers[nt].dw);Serial.print(" ");
     /*
     Serial.print(timersN[nt].perm);Serial.print(" ");Serial.print(timersN[nt].curstate);Serial.print(" ");
     Serial.print(timersN[nt].cyclic_);Serial.print(" ");Serial.print(timersN[nt].forceonoff);Serial.print(" ");
@@ -1990,16 +1990,13 @@ void anTimersInit()
     memset(analTimers[ant].heure,0x00,3*NBEVTANTIM); // heure packée
     memset(analTimers[ant].valeur,0x00,NBEVTANTIM*sizeof(uint16_t));
     analTimers[ant].curVal=0;
-    analTimers[ant].enable=0;
+    analTimers[ant].cb=0;
     analTimers[ant].dw=0;                  // jours semaine xyyyyyyyy ; x si tout
     analTimers[ant].detecIn=0;             // détecteur associé (enable)
     analTimers[ant].detecOut=0;            // détecteur associé (sortie?)
-    analTimers[ant].mode=0;
-    analTimers[ant].factor_offset_mode=0;     
     analTimers[ant].factor=0;
     analTimers[ant].offset=0;
-    analTimers[ant].dispo1=0;
-    analTimers[ant].dispo2=0;
+    memset(analTimers[ant].dispo,0x00,6);
   }
 }
 
@@ -2016,12 +2013,12 @@ int anTimersLoad()
 
 int anTimersSave()
 {
-    Serial.print("Save analog timers ");
+    unsigned long antmicros=micros();Serial.print(" Save analog timers ");
     if(sdOpen(ANTIMERSFNAME,&fanTimers)==SDKO){Serial.println(" KO");return SDKO;}
     fanTimers.seek(0);
     for(uint16_t i=0;i<anTimersLen;i++){fanTimers.write(*(anTimersA+i));}             
-    fanTimers.close();Serial.println(" OK");
-    dumpstr(anTimersA,anTimersLen);
+    fanTimers.close();Serial.print(" OK micros:");Serial.println(micros()-antmicros);
+    //dumpstr(anTimersA,anTimersLen);
     return SDOK;
 }
 
