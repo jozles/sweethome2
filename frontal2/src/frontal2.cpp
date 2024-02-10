@@ -194,6 +194,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
   unsigned long unixCyclicTimersCurDate[NBTIMERS];    // prochaine date à laquelle l'état du timer doit changer  
   unsigned long unixCyclicTimersOnState[NBTIMERS];    // accélérateur calcul
   unsigned long unixCyclicTimersOffState[NBTIMERS];   // accélérateur calcul
+  unsigned long antimerstime=0;        // last millis pour anTimers
 #define POSREMOTE 1                    // secondes
   uint32_t  perOSR=POSREMOTE;          // période scan one_shot_timers
 #define PTIMERS 1                      // secondes
@@ -201,6 +202,8 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
   unsigned long thermosTime=400;       // last millis pour thermos
 #define PTHERMOS 4                     // secondes
   uint32_t  perThermos=PTHERMOS;       // période ctle thermos
+#define PANTIMERS 2                    // secondes
+  uint32_t  perAnTimers=PANTIMERS;     // période ctle anTimers
   unsigned long datetime=0;            // last millis() pour date 
 #define PDATE 3600*24                  // secondes
   unsigned long perdate=PDATE;         // période ctle date & perisave general
@@ -455,6 +458,7 @@ void scanRemote();
 void scanDate();
 void scanTemp();
 void scanThermos();
+void scanAnTimers();
 void testUdp();
 void cidDmp();
 void watchdog();
@@ -592,7 +596,7 @@ void setup() {                          // ====================================
   
   //antRemove();anTimersInit();anTimersSave();
   anTimersLoad();
-  dumpstr(anTimersA,anTimersLen);
+  //dumpstr(anTimersA,anTimersLen);
 
 /* ---------- ethernet start ---------- */
 
@@ -690,10 +694,10 @@ void setup() {                          // ====================================
 
 void loop()                         
 {
-            showSocketsStatus(false,false,false);           
             if(memcmp(prevsssa,sssa,MAX_SOCK_NUM)!=0){
               memcpy(prevsssa,sssa,MAX_SOCK_NUM+2);
 #ifdef SOCK_DEBUG
+              showSocketsStatus(false,false,false); 
               Serial.print("** ");printSocketStatus(false);
 #endif // SOCK_DEBUG              
             }
@@ -723,6 +727,8 @@ unixNow=alphaDateToUnix(now,false);
             scanTimers();
 //Serial.print("wdg=");Serial.println(millis());
             scanRemote();
+
+            scanAnTimers();
 
             watchdog();
 //Serial.print("hal=");Serial.println(millis());
@@ -1097,6 +1103,55 @@ void scanRemote()
       }
     }
   }
+}
+
+void scanAnTimers()
+{
+  unsigned long satbeg=millis();
+  char* hhbeg;
+  char* hhend;
+  uint16_t newval[NBEVTANTIM];
+  uint8_t  newvalnb[NBEVTANTIM];for(uint8_t nv=0;nv<NBEVTANTIM;nv++){newvalnb[nv=0];}
+  uint8_t biten=maskbit[1+ANT_BIT_ENABLE*2];
+
+    if((millis()-antimerstime)>perAnTimers*1000){
+      for(uint8_t aa=0;aa<NBANTIMERS;aa++){
+        hhbeg="000001";
+        for(uint8_t ee=0;ee<NBEVTANTIM-1;ee++){
+          hhend=&analTimers[aa].heure[ee];
+          if( analTimers[aa].cb&biten!=0
+              && memcmp(hhbeg,"000000",6)!=0
+              && memcmp(hhbeg,now+8,6)<=0 
+              && memcmp(hhend,now+8,6)>0
+              && analTimers[aa].valeur[ee]!=analTimers[aa].curVal       
+            ){
+            // trouvé une valeur à mettre à jour
+            newvalnb[aa]=1;
+            newval[aa]=analTimers[aa].valeur[ee];
+            break;
+          }
+          hhbeg=hhend;
+        }
+      }
+      for(uint8_t aa=0;aa<NBANTIMERS;aa++){
+        // recherche périfs concernés : avec anal set et meme dsrv en première position des rules (perinput sur 1ère règle ; byte 0 type/n°)
+        // =======================   utiliser tablePerToSend  =======================
+        if(newvalnb[aa]!=0){
+          for(uint8_t peri=1;peri<NBPERIF;i++){
+            periLoad(peri);
+            if(*periCfg&PERI_ANAL!=0
+            && ((*periInput&PERINPNT_MS)>>PERINPNTLS_PB)==DETYEXT             // ctl type dsrv
+            && analTimers[aa].detecOut==(*periInput&PERINPV_MS)>>2            // ctl n° dsrv
+            && *periAnalOut!=newval[aa]                                       // analog value changed
+            ){
+              *periAnalOut=newval[aa];periSave(peri,PERISAVELOCAL);//periReq(&cliext,peri,"set_______");
+            }
+          }
+          analTimers[aa].curVal=newval[aa];
+        }
+      }
+    }
+  Serial.print("===> anTimScan=");Serial.println(millis()-satbeg);
 }
 
 void sser(uint8_t det,uint8_t valnou,const char* src) // si un det a changé (!= old) -> inscription perif éventuel dans tablePerToSend
