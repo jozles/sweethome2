@@ -1107,19 +1107,21 @@ void scanRemote()
 
 void scanAnTimers()
 {
-  unsigned long satbeg=millis();
-  char* hhbeg;
+  unsigned long anTimScan=micros();
+  const char* hhbeg;
   char* hhend;
-  uint16_t newval[NBEVTANTIM];
-  uint8_t  newvalnb[NBEVTANTIM];for(uint8_t nv=0;nv<NBEVTANTIM;nv++){newvalnb[nv=0];}
+  uint16_t newval[NBANTIMERS];
+  uint8_t  newvalnb[NBANTIMERS];for(uint8_t nv=0;nv<NBEVTANTIM;nv++){newvalnb[nv]=0;}
   uint8_t biten=maskbit[1+ANT_BIT_ENABLE*2];
 
-    if((millis()-antimerstime)>perAnTimers*1000){
+  if((millis()-antimerstime)>perAnTimers*1000){
+      antimerstime=millis();
+      
       for(uint8_t aa=0;aa<NBANTIMERS;aa++){
         hhbeg="000001";
         for(uint8_t ee=0;ee<NBEVTANTIM-1;ee++){
           hhend=&analTimers[aa].heure[ee];
-          if( analTimers[aa].cb&biten!=0
+          if( ((analTimers[aa].cb)&(biten))!=0
               && memcmp(hhbeg,"000000",6)!=0
               && memcmp(hhbeg,now+8,6)<=0 
               && memcmp(hhend,now+8,6)>0
@@ -1133,25 +1135,40 @@ void scanAnTimers()
           hhbeg=hhend;
         }
       }
+      
       for(uint8_t aa=0;aa<NBANTIMERS;aa++){
         // recherche périfs concernés : avec anal set et meme dsrv en première position des rules (perinput sur 1ère règle ; byte 0 type/n°)
         // =======================   utiliser tablePerToSend  =======================
         if(newvalnb[aa]!=0){
-          for(uint8_t peri=1;peri<NBPERIF;i++){
-            periLoad(peri);
-            if(*periCfg&PERI_ANAL!=0
-            && ((*periInput&PERINPNT_MS)>>PERINPNTLS_PB)==DETYEXT             // ctl type dsrv
-            && analTimers[aa].detecOut==(*periInput&PERINPV_MS)>>2            // ctl n° dsrv
-            && *periAnalOut!=newval[aa]                                       // analog value changed
+          for(uint8_t peri=1;peri<NBPERIF;peri++){
+            
+            
+            char* curRec=(char*)(&periCache[(peri-1)*PERIRECLEN]-periRec);
+            uint8_t* curCfg=(uint8_t*)curRec + (uint32_t)periCfg; // - (uint32_t)periRec;
+            byte* curInp=(byte*)curRec+(uint32_t)periInput; //-(uint32_t)periRec;
+            uint8_t* curAna=(uint8_t*)curRec+(uint32_t)periAnalOut; // -(uint32_t)periRec;
+           /*
+            uint8_t* curCfg=periCfg;
+            byte* curInp=periInput;
+            uint16_t* curAna=periAnalOut;
+            periLoad(peri);      
+           */ 
+            if((*curCfg&PERI_ANAL) !=0
+            && ((*curInp&PERINPNT_MS)>>PERINPNTLS_PB)==DETYEXT                // ctl type dsrv
+            && analTimers[aa].detecOut==(*curInp&PERINPV_MS)>>PERINPNVLS_PB   // ctl n° dsrv
+            && *(uint16_t*)curAna!=newval[aa]                                 // analog value changed
             ){
-              *periAnalOut=newval[aa];periSave(peri,PERISAVELOCAL);//periReq(&cliext,peri,"set_______");
+              *(uint16_t*)curAna=newval[aa];periSave(peri,PERISAVELOCAL);
+              if((*curCfg&PERI_SERV)!=0){
+                //periReq(&cliext,peri,"set_______");
+              }
             }
           }
           analTimers[aa].curVal=newval[aa];
         }
       }
-    }
-  Serial.print("===> anTimScan=");Serial.println(millis()-satbeg);
+      Serial.print("===> anTimScan(mic)=");Serial.println(micros()-anTimScan); //antimerstime);
+  }
 }
 
 void sser(uint8_t det,uint8_t valnou,const char* src) // si un det a changé (!= old) -> inscription perif éventuel dans tablePerToSend
