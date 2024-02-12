@@ -37,4 +37,13 @@ int  searchusr(char* usrname);
 int  getUDPdate(uint32_t* hms,uint32_t* amj,byte* js);
 #endif // UDPUSAGE
 
+//#define SOCK_DEBUG          // WARNING : le traitement de fermeture des sockets ouverts est dans showSocketStatus()
+
+void printSocketStatus(bool nolf);
+void printSocketStatus(bool nolf,const char* mess);
+void showSocketsStatus(bool close);
+void showSocketsStatus(bool close,bool nolf);
+void showSocketsStatus(bool close,bool nolf,bool print);
+void showSocketsStatus(bool close,bool nolf,bool print,const char* mess);
+
 #endif // _UTILETHER_H_

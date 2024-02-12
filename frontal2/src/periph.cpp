@@ -693,7 +693,12 @@ int configSave()
 
 /* ---------- périphériques ---------- */
 
-void periCheck(uint16_t num,const char* text){periSave(NBPERIF+1,PERISAVESD);periLoad(num);Serial.print(" ");Serial.print(text);Serial.print(" perinum(");Serial.print(num);Serial.print(") sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.println(*periDetNb);periLoad(NBPERIF+1);}
+void periCheck(uint16_t num,const char* text){Serial.print(" ");Serial.print(text);Serial.print(" perinum(");Serial.print(num);Serial.print(") sw=");Serial.print(*periSwNb);Serial.print(" det=");Serial.println(*periDetNb);periSave(NBPERIF+1,PERISAVESD);periLoad(num);
+
+Serial.print(" cache det:");Serial.println(*periDetNb);
+periCacheLoad(num);periLoad(num);Serial.print(" file det:");Serial.println(*periDetNb);
+dumpstr((char*)periBegOfRecord,periEndOfRecord-periBegOfRecord);
+periLoad(NBPERIF+1);}
 
 
 void periFname(uint16_t num,char* fname)

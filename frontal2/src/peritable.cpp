@@ -584,8 +584,8 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                 //periInitVar();
               if(periLoad(periCur)==SDOK){
 
-                if(*periSwNb>MAXSW){periCheck(periCur,"perT");*periSwNb=MAXSW;periSave(periCur,PERISAVESD);}
-                if(*periDetNb>MAXDET){periCheck(periCur,"perT");*periDetNb=MAXDET;periSave(periCur,PERISAVESD);}
+                if(*periSwNb>MAXSW){periCheck(periCur,"perSW ERR ");*periSwNb=MAXSW;periSave(periCur,PERISAVESD);}
+                if(*periDetNb>MAXDET){periCheck(periCur,"perDET ERR ");*periDetNb=MAXDET;periSave(periCur,PERISAVESD);}
 
                 tableBeg(buf,jsbuf,0);
                       //strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   

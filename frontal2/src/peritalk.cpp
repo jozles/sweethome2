@@ -9,6 +9,7 @@
 #include "shutil2.h"
 #include "periph.h"
 #include "peritalk.h"
+#include "utilether.h"
 
 extern Ds3231 ds3231;
 
@@ -95,6 +96,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
 // assemblage datas pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
 {
   Serial.print(" assySet ");Serial.print(fonct);Serial.print(' ');
+  
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
 
@@ -145,7 +147,6 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
 
           if(fonct!=nullptr && memcmp(fonct,"sw",2)!=0 && memcmp(fonct,"mds_______",LENNOM)!=0)
           {
-          
                 for(int k=0;k<NBPULSE*2;k++){                     // 2 fois 4 compteurs (8*(8+1)bytes) =72
                     sprintf(message+v1+k*(LENVALPULSE+1),"%08lu",*(periSwPulseOne+k));
                     memcpy(message+v1+(k+1)*LENVALPULSE+k,"_\0",2);
@@ -164,7 +165,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
 
                 v1+=2*NBPERRULES*PERINPLEN+1;
           } // pas swx ni mds_______
-          
+
                 byte byt;
                 for(uint8_t mds=MDSLEN;mds>0;mds--){              // NBDSRV bits memDetServ -> MDSLEN car hexa
                     byt=memDetServ[mds-1];
@@ -187,7 +188,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
       memcpy(message+v1+4,"_\0",2);
       v1+=4+1;
 
-      unpack(message+v1,(char*)periCfg,1);                        // periCfg
+      unpack((char*)periCfg,message+v1,1);                        // periCfg
       memcpy(message+v1+2,"\0",2);
       strcat(message,diag);                                 // periMess length=LPERIMESS
     }  // pericur != 0            
@@ -261,6 +262,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
     Serial.print(" dur=");Serial.println(millis()-dur);//Serial.print(bufServer);
 
     if(*periProtocol=='T'){                                       // UDP à développer (sortie ret=MESSCX)
+          showSocketsStatus(false,true,true,"periReq ");
           periMess=messToServer(cli,host,*periPort,bufServer);
           //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(messToServer)=");Serial.println(periMess);
           //Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");

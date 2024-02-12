@@ -60,7 +60,23 @@ extern uint16_t*  periMail1;
 extern File32 fhisto;           // fichier histo sd card
 extern long   fhsize;           // remplissage fhisto
 
+extern "C" {
+ #include "utility/w5100.h"
+}
+
 extern EthernetClient cliext;
+
+//#define MAXSV 10
+//char sss[MAX_SOCK_NUM];     //buffer sockets status numérique
+//char sssVal[MAXSV]={SnSR::UDP,SnSR::CLOSED,SnSR::LAST_ACK,SnSR::TIME_WAIT,SnSR::FIN_WAIT,SnSR::CLOSING,SnSR::CLOSE_WAIT,SnSR::LISTEN,SnSR::ESTABLISHED,0};
+//                            // valeurs utiles pour sockets status
+
+#define LSSSP 6
+#define NOLF true
+char sssa[MAX_SOCK_NUM+2];    // valeurs alpha pour sockets status ; buffer affichage
+char prevsssa[MAX_SOCK_NUM+2];
+char sssP[MAX_SOCK_NUM*LSSSP+2];
+
 
 int writeEth0(EthernetClient* cli,char* buf, uint16_t len)
 {
@@ -612,3 +628,114 @@ bool ctlpass(char* data,char* model)
 
 #endif // UDPUSAGE
 
+void printSocketStatus(bool nolf,const char* mess)
+{
+#ifdef SOCK_DEBUG
+  if(*mess!=0){Serial.print(mess);}
+  Serial.print(sssa);
+  Serial.print(sssP);
+  if(!nolf){Serial.println();}
+#endif // SOCK_DEBUG
+}
+
+void showSocketsStatus(bool close,bool nolf,bool print,const char* mess)
+{
+/*
+  la lib ethernet gère les 8 sockets du W5500 
+  cli.available valorise la variable cli.sockindex avec le socket qui a une requête pendante (ou pas)
+  cli.connect cherche un socket libre (CLOSED) via lequel lancer une requête
+  cli.connected renvoie le socketstatus 
+  server.begin associe un numéro de port à un socket qui passe en mode LISTEN (attenet de requête)
+  Dans tous les cas sockindex>=MAX_SOCK_NUM indique que l'instance est déconnectée (pas de socket)
+
+  showSocketStatus montre le socketstatus des 8 sockets et ferme éventuellement
+  un socket ouvert et inactif depuis "trop" longtemps  
+*/
+
+  memset(sssa,'_',MAX_SOCK_NUM+1);sssa[MAX_SOCK_NUM+1]=0;
+	for (uint8_t s=0; s < MAX_SOCK_NUM; s++) {
+    sssa[s]=' ';
+		switch(W5100.readSnSR(s)){
+      case SnSR::CLOSED:  sssa[s]='C';break; 
+      case SnSR::UDP:     sssa[s]='U';break; 
+      case SnSR::LISTEN:  sssa[s]='L';break; 
+      case SnSR::ESTABLISHED: sssa[s]='E';break;
+      case SnSR::LAST_ACK:    sssa[s]='A';break;
+      case SnSR::TIME_WAIT:   sssa[s]='W';break;
+      case SnSR::FIN_WAIT:    sssa[s]='F';break;
+		  case SnSR::CLOSING:     sssa[s]='c';break;
+      case SnSR::CLOSE_WAIT:  sssa[s]='w';break;
+      case SnSR::INIT:        sssa[s]='I';break;      
+      case SnSR::SYNRECV:     sssa[s]='R';break;
+      case SnSR::SYNSENT:     sssa[s]='S';break;      
+
+      default:break;
+
+/*
+constatations :
+
+en tcp server
+lors d'une demande de connexion un socket LISTEN passe en mode ESTABLISHED 
+
+.available() a 2 fonctions :
+1) détecter la présence de data dispo
+2) passer un socket en mode LISTEN si ce port n'en a pas (EthernetServer::begin())
+.stop() fait Ethernet.socketDisconnect() sur le port pour que le nombre de sockets utilisés reste constant.
+
+problème : une connexion établie sans data ne sera jamais fermée 
+(le retour de .available() toujours faux n'aboutira jamais à un .stop())
+solution provisoire(?) : fermeture des sockets E après 3(?) secondes d'inactivité.
+
+il y a un socket dédié au fonctionnement de l'udp (si Sock_CLOSE plantage)
+
+en tcp de browser, il reste un status ESTABLISHED en fin de commonserver
+il y aurait 2 demandes de connexion de la part du browser (pour favicon !?) 
+ce qui génère 2 sockets E dont un sans data qui, de ce fait, reste ouvert
+
+Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (periReq()). Comment ?
+*/      
+    }
+	}
+
+  uint8_t prt;
+  uint16_t prt0;
+  for(uint8_t i=0;i<MAX_SOCK_NUM;i++){
+    prt0=EthernetServer::server_port[i];prt=prt0-prt0/10*10;
+    sssP[i*LSSSP]=i+'0';sssP[i*LSSSP+1]='_';sssP[i*LSSSP+2]=prt+'0';sssP[i*LSSSP+3]='=';sssP[i*LSSSP+4]=sssa[i];sssP[i*LSSSP+5]=' ';
+  }
+  sssP[MAX_SOCK_NUM*LSSSP]=' ';
+  sssP[MAX_SOCK_NUM*LSSSP+1]=0;
+
+  if(print){printSocketStatus(true,mess);}
+
+  if(close && print){
+    for(uint8_t s=0;s<MAX_SOCK_NUM;s++){
+      if(sssa[s]=='E'){
+        uint8_t b;while(Ethernet.socketRecv(s, &b, 1) > 0){Serial.print(b);}
+         // fermeture des sockets fantomes... apparemment toujours sur serveur remotes
+         // remotehtml() génèrerait une connexion supplémentaire ?
+        Serial.print("sock close ");Serial.print(s);Serial.print(' ');         
+        prt0=EthernetServer::server_port[s];prt=prt0-prt0/10*10;Serial.print(prt0);Serial.print(' ');
+        W5100.execCmdSn(s, Sock_CLOSE);
+      }
+    }
+  }
+#ifdef SOCK_DEBUG
+  if(print && !nolf){Serial.println();}
+#endif // SOCK_DEBUG
+}
+
+void showSocketsStatus(bool close,bool nolf,bool print)
+{
+  showSocketsStatus(close,nolf,print,"");
+}
+
+void showSocketsStatus(bool close,bool nolf)
+{
+  showSocketsStatus(close,nolf,true);
+}
+
+void showSocketsStatus(bool close)
+{
+  showSocketsStatus(close,false,true);
+}

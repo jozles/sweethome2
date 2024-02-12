@@ -33,18 +33,6 @@ extern "C" {
  #include "utility/w5100.h"
 }
 
-//#define MAXSV 10
-//char sss[MAX_SOCK_NUM];     //buffer sockets status numérique
-//char sssVal[MAXSV]={SnSR::UDP,SnSR::CLOSED,SnSR::LAST_ACK,SnSR::TIME_WAIT,SnSR::FIN_WAIT,SnSR::CLOSING,SnSR::CLOSE_WAIT,SnSR::LISTEN,SnSR::ESTABLISHED,0};
-//                            // valeurs utiles pour sockets status
-//#define SOCK_DEBUG          // WARNING : le traitement de fermeture des sockets ouverts est dans showSocketStatus()
-
-char sssa[MAX_SOCK_NUM+2];    // valeurs alpha pour sockets status
-char prevsssa[MAX_SOCK_NUM+2];
-#define LSSSP 6
-char sssP[MAX_SOCK_NUM*LSSSP+2];
-#define NOLF true
-
 #define MAXTPS 3                    // nbre instances pour TCP périfs 
                                     // plusieurs permet un .stop() rapide
                                     // l'envoi de la réponse se fait pendant que le frontal tourne
@@ -69,6 +57,9 @@ char ab;                            // protocole et type de la connexion en cour
   EthernetUDP* udp[2];
   uint8_t udpNb;
   uint8_t udpSockIndex;
+
+extern char sssa[MAX_SOCK_NUM+2];    // valeurs alpha pour sockets status
+extern char prevsssa[MAX_SOCK_NUM+2];
 
 /* ---------- config frontal ---------- */
 
@@ -469,10 +460,6 @@ void periDetecUpdate(const char* src);
 void testSwitch(const char* command,char* perihost,int periport);
 void serialServer();
 uint16_t serialRcv(char* rcv,uint16_t maxl);
-void showSocketsStatus(bool close);
-void showSocketsStatus(bool close,bool nolf);
-void showSocketsStatus(bool close,bool nolf,bool print);
-void printSocketStatus(bool nolf);
 void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum);
 
 void yield()
@@ -488,6 +475,21 @@ void trigWdSetup()
 void factoryReset()
 {
   factoryResetConfig();
+}
+
+void checkPeri(bool set)
+{
+  uint8_t per[5];per[0]=8;per[1]=15;per[2]=16;per[3]=19;per[4]=22;
+  for(uint8_t ppp=0;ppp<4;ppp++){
+
+      if(*(periCache+(per[ppp]-1)*PERIRECLEN+(uint32_t)periDetNb-(uint32_t)periRec)>MAXDET || *(periCache+(per[ppp]-1)*PERIRECLEN+(uint32_t)periCfg-(uint32_t)periRec)!=0x01){
+        Serial.println();Serial.print((uint8_t)*periDetNb);Serial.println((uint8_t)*periCfg,HEX);
+        dumpstr(periCache+(per[ppp]-1)*PERIRECLEN,100);
+
+        *(periCache+(per[ppp]-1)*PERIRECLEN+(uint32_t)periDetNb-(uint32_t)periRec)=MAXDET; 
+        *(periCache+(per[ppp]-1)*PERIRECLEN+(uint32_t)periCfg-(uint32_t)periRec)=0x01;
+      }
+  }
 }
 
 
@@ -648,7 +650,7 @@ void setup() {                          // ====================================
   remoteserv=new EthernetServer(*remotePort);
   remoteserv->begin();Serial.print(" remoteserv.begin(");Serial.print(*remotePort);Serial.println(")");     //  remote serveur
 
-  showSocketsStatus(false,false,true);
+  showSocketsStatus(false,false,true,"all servers begin ");
 
   Serial.print("size_of EthernetServer=");Serial.println(sizeof(EthernetServer));
 
@@ -697,8 +699,7 @@ void loop()
             if(memcmp(prevsssa,sssa,MAX_SOCK_NUM)!=0){
               memcpy(prevsssa,sssa,MAX_SOCK_NUM+2);
 #ifdef SOCK_DEBUG
-              showSocketsStatus(false,false,false); 
-              Serial.print("** ");printSocketStatus(false);
+              showSocketsStatus(false,false,true,"** "); 
 #endif // SOCK_DEBUG              
             }
             loopCnt++;
@@ -891,6 +892,9 @@ void poolperif(uint8_t* tablePerToSend,uint8_t detec,const char* nf,const char* 
   
   Serial.print(" poolperif (detec ");Serial.print(detec);Serial.print(" -> ");Serial.print(nf);Serial.print(") ");Serial.println(src);
   for(uint8_t np=1;np<=NBPERIF;np++){                                 // boucle périphériques
+
+// ======================= accélérer façon anTimersScan ====================
+
     periLoad(np);
     if(*periSwNb!=0){                                                 // peripherique avec switchs ?
             
@@ -1106,8 +1110,10 @@ void scanRemote()
 }
 
 void scanAnTimers()
-{
-  unsigned long anTimScan=micros();
+{}
+
+void bid(){
+  //unsigned long anTimScan=micros();
   const char* hhbeg;
   char* hhend;
   uint16_t newval[NBANTIMERS];
@@ -1142,11 +1148,10 @@ void scanAnTimers()
         if(newvalnb[aa]!=0){
           for(uint8_t peri=1;peri<NBPERIF;peri++){
             
-            
-            char* curRec=(char*)(&periCache[(peri-1)*PERIRECLEN]-periRec);
-            uint8_t* curCfg=(uint8_t*)curRec + (uint32_t)periCfg; // - (uint32_t)periRec;
-            byte* curInp=(byte*)curRec+(uint32_t)periInput; //-(uint32_t)periRec;
-            uint8_t* curAna=(uint8_t*)curRec+(uint32_t)periAnalOut; // -(uint32_t)periRec;
+            char*     curRec=(char*)(&periCache[(peri-1)*PERIRECLEN]);
+            uint8_t*  curCfg=(uint8_t*)curRec + (uint32_t)periCfg-(uint32_t)periRec;
+            byte*     curInp=(byte*)curRec+(uint32_t)periInput-(uint32_t)periRec;
+            uint8_t*  curAna=(uint8_t*)curRec+(uint32_t)periAnalOut-(uint32_t)periRec;
            /*
             uint8_t* curCfg=periCfg;
             byte* curInp=periInput;
@@ -1158,7 +1163,7 @@ void scanAnTimers()
             && analTimers[aa].detecOut==(*curInp&PERINPV_MS)>>PERINPNVLS_PB   // ctl n° dsrv
             && *(uint16_t*)curAna!=newval[aa]                                 // analog value changed
             ){
-              *(uint16_t*)curAna=newval[aa];periSave(peri,PERISAVELOCAL);
+              //*(uint16_t*)curAna=newval[aa];periSave(peri,PERISAVELOCAL);  // à vérifier
               if((*curCfg&PERI_SERV)!=0){
                 //periReq(&cliext,peri,"set_______");
               }
@@ -1167,8 +1172,8 @@ void scanAnTimers()
           analTimers[aa].curVal=newval[aa];
         }
       }
-      Serial.print("===> anTimScan(mic)=");Serial.println(micros()-anTimScan); //antimerstime);
-  }
+      //Serial.print("===> anTimScan(mic)=");Serial.println(micros()-anTimScan); //antimerstime);
+  } 
 }
 
 void sser(uint8_t det,uint8_t valnou,const char* src) // si un det a changé (!= old) -> inscription perif éventuel dans tablePerToSend
@@ -1637,10 +1642,6 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
         uint8_t curSw=remoteT[remTNum].sw;            
         periLoad(periCur);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
         periSave(periCur,PERISAVESD);
-#ifdef SOCK_DEBUG        
-        Serial.print("avant periReq0 cliext_socket:");Serial.println(cliext.sockindex);
-        showSocketsStatus(false,false,true);
-#endif // SOCK_DEBUG        
         periReq0(&cliext,"mds_______","");                                      // update périf
     }
   }
@@ -1957,16 +1958,16 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                         cliext.stop();periReq(&cliext,periCur,fptst,msg);
                         periLineHtml(cli);                        
                        }break;                                                                       
-              case 15: what=5;getPeriCurValf(PERILOAD);                                                   // (periLine) - peri_cur__ bouton submit
-                       *periCfg&=~PERI_ANAL;                                                              // efface check box flag analogique
-                       *periCfg&=~PERI_SERV;                                                              // efface check box flag serveur                                                   
-                       *periCfg&=~PERI_RAD;break;                                                         // efface check box flag radiateur
+              case 15: what=5;getPeriCurValf(PERILOAD);break;                                             // (periLine) - peri_cur__ bouton submit
               case 16: what=5;getPeriCurLibf(false);                                                      // (periLine) peri_raz___
                        periInitVar();
                        break;
               case 17: {char pLFonc=*(libfonctions+2*i);                                                  // (periLine) sauf boutons et anal/dig
                         switch (pLFonc){
-                          case 'N':alphaTfr(periNamer,PERINAMLEN,valf,nvalf[i+1]-nvalf[i]);break;         // (periLine) - peri_lf_N_ nom
+                          case 'N':alphaTfr(periNamer,PERINAMLEN,valf,nvalf[i+1]-nvalf[i]);               // (periLine) - peri_lf_N_ nom
+                                  *periCfg&=~PERI_ANAL;                                                   // efface check box flag analogique
+                                  *periCfg&=~PERI_SERV;                                                   // efface check box flag serveur                                                   
+                                  *periCfg&=~PERI_RAD;break;                                              // efface check box flag radiateur
                           case 'M':for(j=0;j<6;j++){conv_atoh(valf+j*2,(periMacr+j));}break;              // (periLine) - peri_lf_M_ mac
                           case 'v':*periVmin_=0;*periVmin_=(int16_t)convStrToInt(valf,&j);break;          // (periLine) - peri_lf_v_ Vmin
                           case 'V':*periVmax_=0;*periVmax_=(int16_t)convStrToInt(valf,&j);break;          // (periLine) - peri_lf_V_ Vmax
@@ -1976,9 +1977,9 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
                           case 'p':*periPitch_=0;*periPitch_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) - peri_lf_p_ pitch
                           case 'o':*periThOffset_=0;*periThOffset_=(int16_t)(convStrToNum(valf,&j)*100);break;  // (periLine) - peri_lf_o_ th offset 
                           case 'r':*periPerRefr=0;conv_atobl(valf,periPerRefr);break;                     // (periLine) - peri_lf_r_ per refr
-                          case 'P':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_SERV;};break;    // (periLine) - peri_lf_P_ prog
-                          case 'a':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_ANAL;};break;    // (periLine) - peri_lf_a_ anal
-                          case 'R':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_RAD;};break;     // (periLine) - peri_lf_r_ radiateur
+                          case 'P':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_SERV;};break;                   // (periLine) - peri_lf_P_ prog
+                          case 'a':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_ANAL;};break;                   // (periLine) - peri_lf_a_ anal
+                          case 'R':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_RAD;};break;                    // (periLine) - peri_lf_r_ radiateur
                           case 'A':uint16_t value;conv_atob(valf,&value);*periAnalOut=0;*periAnalOut=value;break;   // (periLine) - consigne analogique
                           case 'i':*periSwNb=*valf-PMFNCVAL;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;             // (periLine) - peri_lf_i_ sw nb
                           case 'd':*periDetNb=*valf-PMFNCVAL;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;        // (periLine) - peri_lf_d_ det nb
@@ -2516,7 +2517,7 @@ if(i==0 && ab=='u'){Serial.println(bufData);}
         else {Serial.print(" *** end tcp - ");}
 #ifdef SOCK_DEBUG        
         Serial.println();
-        showSocketsStatus(false,NOLF);
+        showSocketsStatus(false,true,true,"");
 #endif // SOCK_DEBUG
         
         Serial.println(millis()-cxDur);
@@ -2751,110 +2752,4 @@ void testUdp()
       else{Serial.println("paquet trop gros...");udp[0]->flush();}
     }  
   }
-}
-
-void printSocketStatus(bool nolf)
-{
-#ifdef SOCK_DEBUG
-  Serial.print(sssa);
-  Serial.print(sssP);
-  if(!nolf){Serial.println();}
-#endif // SOCK_DEBUG
-}
-
-void showSocketsStatus(bool close,bool nolf,bool print)
-{
-/*
-  la lib ethernet gère les 8 sockets du W5500 
-  cli.available valorise la variable cli.sockindex avec le socket qui a une requête pendante (ou pas)
-  cli.connect cherche un socket libre (CLOSED) via lequel lancer une requête
-  cli.connected renvoie le socketstatus 
-  server.begin associe un numéro de port à un socket qui passe en mode LISTEN (attenet de requête)
-  Dans tous les cas sockindex>=MAX_SOCK_NUM indique que l'instance est déconnectée (pas de socket)
-
-  showSocketStatus montre le socketstatus des 8 sockets et ferme éventuellement
-  un socket ouvert et inactif depuis "trop" longtemps  
-*/
-
-  memset(sssa,'_',MAX_SOCK_NUM+1);sssa[MAX_SOCK_NUM+1]=0;
-	for (uint8_t s=0; s < MAX_SOCK_NUM; s++) {
-    sssa[s]=' ';
-		switch(W5100.readSnSR(s)){
-      case SnSR::CLOSED:  sssa[s]='C';break; 
-      case SnSR::UDP:     sssa[s]='U';break; 
-      case SnSR::LISTEN:  sssa[s]='L';break; 
-      case SnSR::ESTABLISHED: sssa[s]='E';break;
-      case SnSR::LAST_ACK:    sssa[s]='A';break;
-      case SnSR::TIME_WAIT:   sssa[s]='W';break;
-      case SnSR::FIN_WAIT:    sssa[s]='F';break;
-		  case SnSR::CLOSING:     sssa[s]='c';break;
-      case SnSR::CLOSE_WAIT:  sssa[s]='w';break;
-      case SnSR::INIT:        sssa[s]='I';break;      
-      case SnSR::SYNRECV:     sssa[s]='R';break;
-      case SnSR::SYNSENT:     sssa[s]='S';break;      
-
-      default:break;
-
-/*
-constatations :
-
-en tcp server
-lors d'une demande de connexion un socket LISTEN passe en mode ESTABLISHED 
-
-.available() a 2 fonctions :
-1) détecter la présence de data dispo
-2) passer un socket en mode LISTEN si ce port n'en a pas (EthernetServer::begin())
-.stop() fait Ethernet.socketDisconnect() sur le port pour que le nombre de sockets utilisés reste constant.
-
-problème : une connexion établie sans data ne sera jamais fermée 
-(le retour de .available() toujours faux n'aboutira jamais à un .stop())
-solution provisoire(?) : fermeture des sockets E après 3(?) secondes d'inactivité.
-
-il y a un socket dédié au fonctionnement de l'udp (si Sock_CLOSE plantage)
-
-en tcp de browser, il reste un status ESTABLISHED en fin de commonserver
-il y aurait 2 demandes de connexion de la part du browser (pour favicon !?) 
-ce qui génère 2 sockets E dont un sans data qui, de ce fait, reste ouvert
-
-Il serait utile d'avoir un socket réservé pour l'appel aux serveurs externes (periReq()). Comment ?
-*/      
-    }
-	}
-
-  uint8_t prt;
-  uint16_t prt0;
-  for(uint8_t i=0;i<MAX_SOCK_NUM;i++){
-    prt0=EthernetServer::server_port[i];prt=prt0-prt0/10*10;
-    sssP[i*LSSSP]=i+'0';sssP[i*LSSSP+1]='_';sssP[i*LSSSP+2]=prt+'0';sssP[i*LSSSP+3]='=';sssP[i*LSSSP+4]=sssa[i];sssP[i*LSSSP+5]=' ';
-  }
-  sssP[MAX_SOCK_NUM*LSSSP]=' ';
-  sssP[MAX_SOCK_NUM*LSSSP+1]=0;
-
-  if(print){printSocketStatus(true);}
-
-  if(close && print){
-    for(uint8_t s=0;s<MAX_SOCK_NUM;s++){
-      if(sssa[s]=='E'){
-        uint8_t b;while(Ethernet.socketRecv(s, &b, 1) > 0){Serial.print(b);}
-         // fermeture des sockets fantomes... apparemment toujours sur serveur remotes, donc
-         // remotehtml() génèrerait une connexion supplémentaire ?
-        Serial.print("sock close ");Serial.print(s);Serial.print(' ');         
-        prt0=EthernetServer::server_port[s];prt=prt0-prt0/10*10;Serial.print(prt0);Serial.print(' ');
-        W5100.execCmdSn(s, Sock_CLOSE);
-      }
-    }
-  }
-#ifdef SOCK_DEBUG
-  if(print && !nolf){Serial.println();}
-#endif // SOCK_DEBUG
-}
-
-void showSocketsStatus(bool close,bool nolf)
-{
-  showSocketsStatus(close,nolf,true);
-}
-
-void showSocketsStatus(bool close)
-{
-  showSocketsStatus(close,false,true);
 }
