@@ -1393,10 +1393,11 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
 #define LBUFLI 12
   char bufli[LBUFLI];
   
-  Serial.print("--- getnv ");Serial.println(dataLen);delay(5);
+  Serial.print(" -- getnv ");if(ab=='u'){Serial.println(dataLen);}else Serial.println();
+  delay(5);
   int cdNb=getcde(cli,data,dataLen,&dataCharNb); 
 
-  Serial.print(" cdNb=");Serial.print(cdNb);Serial.println();delay(5);          
+  Serial.print(" cdNb=");Serial.println(cdNb);delay(2);          
 
   char c;
   uint8_t pbli;
@@ -1694,8 +1695,8 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
       Serial.print(" serveur(");Serial.print((char)ab);
       if(ab=='a'){Serial.print(tPS);}
       if(ab=='u'){Serial.print(udpNb);}
-      Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,1);
-      delay(20);
+      Serial.print(") ");serialPrintIp(remote_IP);Serial.print(" ");serialPrintMac(remote_MAC,false);
+      delay(10);
 
       nbreparams=getnv(cli,bufData,bufDataLen);    // Serial.print("---- nbparams ");Serial.println(nbreparams);
       if(nbreparams<0){
@@ -1834,7 +1835,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
         periMess=MESSOK;
 
         for (i=0;i<=nbreparams;i++){    // boucle de traitement des fonctions ; utiliser i comme pointeur est une foutue mauvaise idée... surtout que c'est une variable globale qu'on peut retrouver n'importe où...
-if(i==0 && ab=='u'){Serial.println(bufData);}
+//if(i==0 && ab=='u'){Serial.println(bufData);}
           if(i<NBVAL && i>=0 && periMess==MESSOK){     // si une anomalie, fin de la boucle (periMess positionné dans checkData et periDataRead)
           
             trigwd();

@@ -136,44 +136,37 @@ extern const char* introHtmlE;
 extern const char* generalSt;
 extern const char* remoteSt;
 
-void htmlBegPng(char* dm)
-{
-  strcat(dm,introHttp);
-  strcat(dm,"<link rel=\"icon\" href=\"data:image/png;base64,");
-}
-
-void htmlEndPng(char* dm)
-{
-  strcat(dm,"\"/></html>");
-}
+const char* htmlIconBeg="<link rel=\"icon\" href=\"image/png;base64,"; // "<html>\n <html> <link rel=\"icon\" href=\"data:image/png;base64,";
+const char* htmlIconEnd="\">"; //</html>";
 
 int htmlImg(EthernetClient* cli,const char* fimgname)   
 {
+        uint16_t htmlIconBegLen=strlen(htmlIconBeg);
+        uint16_t htmlIconEndLen=strlen(htmlIconEnd);
         unsigned long begIC=millis();
-        Serial.print(fimgname);
+        Serial.print(' ');Serial.print(fimgname);
 
         if(sdOpen(fimgname,&fimg)==SDKO){return SDKO;}
         else {
           uint32_t fimgSiz=fimg.size();
           Serial.print(" size=");Serial.print(fimgSiz);
-          #define ICONLENGTH 1000
-          if(fimgSiz>=ICONLENGTH){Serial.println(" fichier icon trop grand *********");}
+          #define ICONMAXLENGTH 2000
+          uint32_t iconSiz=fimgSiz*3+htmlIconBegLen+htmlIconEndLen+1;
+          if(iconSiz>ICONMAXLENGTH){Serial.println(" fichier icon trop grand *********");}
           else {
-            uint32_t iconSiz=ICONLENGTH+ICONLENGTH/3+2+JPGINTROLEN+HTMLENDPNGLEN;
-            char icon[iconSiz];memset(icon,'\0',iconSiz);
-            htmlBegPng(icon);//Serial.print(icon);
-            char img[ICONLENGTH];
-            for(uint32_t limg=0;limg<fimgSiz;limg++){img[limg]=fimg.read();}
+            char icon[iconSiz];
+            memcpy(icon,htmlIconBeg,htmlIconBegLen);
+            uint32_t limg;
+            char img[fimgSiz+1];
+            for(limg=0;limg<fimgSiz;limg++){img[limg]=fimg.read();}
+            uint16_t len64=0;//=ato64(img,icon+htmlIconBegLen,fimgSiz);
+            //memcpy(icon+htmlIconBegLen+len64,htmlIconEnd,htmlIconEndLen);
+            limg=htmlIconBegLen+len64+htmlIconEndLen;
+            *(icon+limg)='\0';
             
-            uint32_t licon=strlen(icon);
-            to64(img,icon+licon,fimgSiz);
-            htmlEndPng(icon);
-            licon=strlen(icon);
-
-            //Serial.print("ms_rd=");Serial.print(millis()-begIC);Serial.print(" len=");Serial.println(licon);
-            //Serial.println(icon);
+            Serial.print(" limg:");Serial.println(limg);Serial.println(icon);
             
-            ethWrite(cli,icon,licon);
+            ethWrite(cli,icon,limg);
           }
           fimg.close();        
         }
@@ -391,6 +384,8 @@ void accueilHtml(EthernetClient* cli)
             scrDspText(buf,jsbuf,VERSION,5,BRYES);
             //strcat(buf,"<h1 class=\"point\">");
             //strcat(buf,VERSION);strcat(buf,"<br>");
+
+//htmlImg(cli,"sweeth.png");            
 
             strcat(buf,"<form method=\"GET \">");
             strcat(buf,"<p><input type=\"username\" text style=\"width:220px;height:60px;font-size:40px\" placeholder=\"Username\" name=\"username__\"  value=\"\" size=\"6\" maxlength=\"8\" ></p>\n");            
@@ -1764,7 +1759,7 @@ Serial.print(" config analog timers ");
 
   for(uint8_t nt=0;nt<NBANTIMERS;nt++){                                            // NBANTIMERS
     formIntro(buf,jsbuf,0,TRBEG|TDBEG);
-    
+
     scrDspNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
                      
     sscfgtB(buf,jsbuf,"antim___n_",nt,analTimers[nt].nom,LENTIMNAM,0,TDBE);
