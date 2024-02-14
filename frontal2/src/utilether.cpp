@@ -528,6 +528,13 @@ void initDate()
 
 #ifdef UDPUSAGE
 
+void sendUdpData(uint8_t udpChannel,IPAddress host,uint16_t hostPort,char* data)
+{
+  udp[udpChannel]->beginPacket(host,hostPort);
+  udp[udpChannel]->write(data,strlen(data));
+  udp[udpChannel]->endPacket();
+}
+
 void sendNTPpacket(char* address)
 {
   // set all bytes in the buffer to 0
@@ -553,7 +560,6 @@ void sendNTPpacket(char* address)
   udp[0]->write(packetBuffer, NTP_PACKET_SIZE);
   udp[0]->endPacket();
 }
-
 
 int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
 {

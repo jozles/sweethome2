@@ -123,6 +123,7 @@ extern int16_t*   periVmin_;                    // ptr ds buffer : alarme mini v
 extern int16_t*   periVmax_;                    // ptr ds buffer : alarme maxi volts
 extern byte*      periDetServEn;                // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*      periProtocol;                 // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern uint8_t*  periUdpPortNb;                 // ptr ds buffer : n° instance udp utilisée par le périf
 extern uint16_t*  periAnal;                     // ptr ds buffer : analog value In
 extern uint16_t*  periAnalLow;                  // ptr ds buffer : low threshold analog value 
 extern uint16_t*  periAnalHigh;                 // ptr ds buffer : high threshold analog value 
@@ -1244,7 +1245,9 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=1*sizeof(byte);
   periAnalOut=(uint16_t*)temp;
   temp +=sizeof(uint16_t);
-  temp +=40;                        // dispo
+  periUdpPortNb=(uint8_t*)temp;
+  temp +=sizeof(uint8_t);
+  temp +=39;                        // dispo
   periEndOfRecord=(byte*)temp;      // doit être le dernier !!!
   temp ++;
 
@@ -1294,6 +1297,7 @@ void periInitVar()   // attention : perInitVar ne concerne que les variables de 
   *periVmax_=350;
    memset(periDetServEn,0x00,2);
   *periProtocol=0; 
+  *periUdpPortNb=0xff;
   *periAnal=0;      
   *periAnalLow=0;   
   *periAnalHigh=0;  

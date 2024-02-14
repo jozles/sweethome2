@@ -64,6 +64,8 @@ extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini v
 extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
 extern byte*     periDetServEn;                 // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*     periProtocol;                  // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern uint8_t*  periUdpPortNb;                 // ptr ds buffer : n° instance udp utilisée par le périf
+extern uint8_t   udpNb;                         // n° instance udp courante
 extern uint16_t* periAnal;                      // ptr ds buffer : analog value
 extern uint16_t* periAnalLow;                   // ptr ds buffer : low analog value 
 extern uint16_t* periAnalHigh;                  // ptr ds buffer : high analog value 
@@ -211,7 +213,7 @@ int periReq(EthernetClient* cli,uint16_t np,const char* nfonct,const char* msg) 
     return periReq0(cli,nfonct,msg);
 }
 
-int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)                // fonction set ou ack vers périphérique ; periCur/periload() ok
+int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)   // fonction set ou ack vers périphérique ; periCur/periload() ok
                     // envoie cde GET dans bufServer via messToServer + getHttpResp         (fonction set suite à modif dans periTable)
                     //                            status retour de messToServer ou getHttpResponse ou fonct invalide (doit être done___)
                     // np=periCur à jour (0 ou n) si periCur = 0 message set réduit
@@ -287,7 +289,13 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)            
           if(periMess==MESSOK){packDate(periLastDateOut,date14+2);}
           *periErr=periMess;
     } // periProtocole=='T'
-      
+    
+    if(*periProtocol=='U'){                             // service minimum en Udp                         
+      sendUdpData(*periUdpPortNb,*periIpAddr,*periPort,bufServer);
+      packDate(periLastDateOut,date14+2);
+      periMess=MESSOK;
+    }
+
     //Serial.print(millis());
     cli->stop();                              // cliext
     Serial.print(" periMess=");Serial.print(periMess);Serial.print(" periReq dur=");Serial.println(millis()-dur);
@@ -472,9 +480,10 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       *periSsidNb='?';                                                                
       if(*(valf+oriMessLen-8)=='*'){*periSsidNb=*(valf+oriMessLen-7);}
 
-      memcpy(periIpAddr,remote_IP_cur,4);                                                   // Ip addr
+      memcpy(periIpAddr,remote_IP_cur,4);                                                 // Ip addr
+      *periUdpPortNb=udpNb;                                                               // n° instance udp
       
-      if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}              // port
+      if(remote_Port_Udp!=0 && *periProtocol=='U'){*periPort=remote_Port_Udp;}            // port
 
       periSave(periCur,PERISAVELOCAL);
     }

@@ -301,6 +301,7 @@ void iniDetServ()
   int16_t*  periVmax_;                      // ptr ds buffer : alarme maxi volts
   byte*     periDetServEn;                  // ptr ds buffer : 1 byte 8*enable detecteurs serveur
   byte*     periProtocol;                   // ptr ds buffer : protocole ('T'CP/'U'DP)
+  uint8_t*  periUdpPortNb;                  // ptr ds buffer : n° instance udp utilisée
   uint16_t* periAnal;                       // ptr ds buffer : analog value
   uint16_t* periAnalLow;                    // ptr ds buffer : low analog value 
   uint16_t* periAnalHigh;                   // ptr ds buffer : high analog value 
@@ -1334,14 +1335,11 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                     long numfonc=(strstr(fonctions,noms)-fonctions)/LENNOM;     // acquisition nom terminée récup N° fonction
                     memcpy(libfonctions+2*i,noms+LENNOM-2,2);                   // les 2 derniers car du nom de fonction si nom court
 //Serial.print("nom=");Serial.print(nom);Serial.print("val=");Serial.print(val);Serial.print(" numfonc long=");Serial.println(numfonc);
-
                     if(numfonc<0 || numfonc>=nbfonct){
                       memcpy(nomsc,noms,LENNOM-2);nomsc[LENNOM-2]=0x00;
                       numfonc=(strstr(fonctions,nomsc)-fonctions)/LENNOM;       // si nom long pas trouvé, recherche nom court (complété par nn)
-
                       if(numfonc<0 || numfonc>=nbfonct){
 //Serial.print(" numfonc court=");Serial.println(numfonc);
-
                         termine=VRAI;nom=FAUX;val=FAUX;i=GETNV_INVALID_FN1;}    // fonction inconnue -> erreur
                       else {numfonct[i]=numfonc;}
                     }
@@ -1353,7 +1351,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                 }
                 else if(j<LENNOM-2){
 //Serial.println((char)c);                        
-                       if((c>='A' && c<='Z') || (c>='a' && c<='z') || c=='_'){
+                       if((c>='A' && c<='Z') || (c>='a' && c<='z') || c=='_' || (c>='0' && c<='9')){
                          noms[j]=c;j++;}                                        // acquisition 8 premiers caractères
                        else {nom=FAUX;termine=VRAI;i=GETNV_INVALID_FN2;}        // car invalide -> erreur
                 }
@@ -1643,7 +1641,7 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
         uint8_t curSw=remoteT[remTNum].sw;            
         periLoad(periCur);*periSwCde&=swMsk[curSw];*periSwCde|=val<<(curSw*2);  // update swCde
         periSave(periCur,PERISAVESD);
-        periReq0(&cliext,"mds_______","");                                      // update périf
+        periReq(&cliext,periCur,"mds_______");                                  // update périf
     }
   }
   else {                                      // val 0/1/2 du disjoncteur appuyé de la remote

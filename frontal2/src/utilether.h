@@ -35,6 +35,7 @@ int  searchusr(char* usrname);
 
 #ifdef UDPUSAGE
 int  getUDPdate(uint32_t* hms,uint32_t* amj,byte* js);
+void sendUdpData(uint8_t udpChannel,IPAddress host,uint16_t hostPort,char* data);
 #endif // UDPUSAGE
 
 //#define SOCK_DEBUG          // WARNING : le traitement de fermeture des sockets ouverts est dans showSocketStatus()

@@ -83,6 +83,7 @@ extern int16_t*  periVmin_;                     // ptr ds buffer : alarme mini v
 extern int16_t*  periVmax_;                     // ptr ds buffer : alarme maxi volts
 extern byte*     periDetServEn;                 // ptr ds buffer : 1 byte 8*enable detecteurs serveur
 extern byte*     periProtocol;                  // ptr ds buffer : protocole ('T'CP/'U'DP)
+extern uint8_t*  periUdpPortNb;                 // ptr ds buffer : n° instance udp utilisée par le périf
 extern uint16_t* periAnal;                      // ptr ds buffer : analog value
 extern uint16_t* periAnalLow;                   // ptr ds buffer : low analog value 
 extern uint16_t* periAnalHigh;                  // ptr ds buffer : high analog value 
@@ -813,7 +814,9 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           vers[LENVERSION+2]='\0';
           scrDspText(buf,jsbuf,vers,0,STRING|CONCAT);scrDspText(buf,jsbuf," ",0,STRING|CONCAT);
           long p=strchr(protoChar,*periProtocol)-protoChar;if(p<0 || p>NBPROTOC){p=0;}
-          char* a=protocStr+LENPROSTR*p;scrDspText(buf,jsbuf,a,0,STRING|CONCAT|BRYES);
+          char* a=protocStr+LENPROSTR*p;scrDspText(buf,jsbuf,a,0,STRING|CONCAT);
+          char b[]={'\0','\0'};if(*periProtocol=='U'){b[0]=*periUdpPortNb+PMFNCVAL;}
+          scrDspText(buf,jsbuf,b,0,STRING|CONCAT|BRYES);
 // date_heures
           showDates(buf,jsbuf);
           strcat(buf,"\n");
