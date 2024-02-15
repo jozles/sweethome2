@@ -1111,38 +1111,55 @@ void scanRemote()
 }
 
 void scanAnTimers()
-{}
-
-void bid(){
-  //unsigned long anTimScan=micros();
+{
+  // si première heure == 0 timer inutilisé
+  // si heure suivante == 0 ou fin 
+  //  heure suivante = première heure 
+  //  si heure début >= heure(now) ou heure(now) < heure suivante ==> trouvé
+  // sinon si heure début >= heure(now) et heure(now) < heure suivante ==> trouvé
+  //
+  unsigned long anTimScan=micros();
   const char* hhbeg;
-  char* hhend;
+  char* hhfirst;
+  char* hhnext;
+  char* hhnow=now+8;
+  char val0[]={'\0','\0','\0'};
   uint16_t newval[NBANTIMERS];
-  uint8_t  newvalnb[NBANTIMERS];for(uint8_t nv=0;nv<NBEVTANTIM;nv++){newvalnb[nv]=0;}
+  uint8_t  newvalnb[NBANTIMERS];memset(newvalnb,0x00,NBANTIMERS); //(uint8_t nv=0;nv<NBEVTANTIM;nv++){newvalnb[nv]=0;}
   uint8_t biten=maskbit[1+ANT_BIT_ENABLE*2];
+  uint8_t dwNow=maskbit[1+2*(7-now[14])];
+  uint8_t lastee=NBEVTANTIM-1;
+  uint8_t ee;
+  bool found;
 
   if((millis()-antimerstime)>perAnTimers*1000){
       antimerstime=millis();
       
-      for(uint8_t aa=0;aa<NBANTIMERS;aa++){
-        hhbeg="000001";
-        for(uint8_t ee=0;ee<NBEVTANTIM-1;ee++){
-          hhend=&analTimers[aa].heure[ee];
-          if( ((analTimers[aa].cb)&(biten))!=0
-              && memcmp(hhbeg,"000000",6)!=0
-              && memcmp(hhbeg,now+8,6)<=0 
-              && memcmp(hhend,now+8,6)>0
-              && analTimers[aa].valeur[ee]!=analTimers[aa].curVal       
-            ){
-            // trouvé une valeur à mettre à jour
-            newvalnb[aa]=1;
-            newval[aa]=analTimers[aa].valeur[ee];
-            break;
+      // scan anTimers
+      for(uint8_t aa=0;aa<NBANTIMERS-1;aa++){
+        hhfirst=&analTimers[aa].heure[0];
+        if( ((analTimers[aa].cb)&(biten))!=0 
+              && memcmp(hhfirst,val0,3)!=0
+              && ((analTimers[aa].dw & 0x01)!=0 || (analTimers[aa].dw & dwNow)!=0 )){
+          hhbeg=hhfirst;
+          found=false;
+          for(ee=0;ee<NBEVTANTIM;ee++){
+            hhnext=&analTimers[aa].heure[ee+1];
+            if((memcmp(hhnext,val0,3)==0 || ee==lastee)){
+              if(hhbeg>=hhnow || hhnow<hhfirst){found=true;break;}
+            }
+            else if(hhbeg>=hhnow && hhnow<hhnext){found=true;break;}
+            hhbeg=hhnext;
           }
-          hhbeg=hhend;
+          if(found && analTimers[aa].valeur[ee]!=analTimers[aa].curVal){       
+            // trouvé une valeur à mettre à jour
+            newvalnb[aa]++;
+            newval[aa]=analTimers[aa].valeur[ee];
+          }
         }
       }
-      
+
+      memset(tablePerToSend,0x00,NBPERIF);      
       for(uint8_t aa=0;aa<NBANTIMERS;aa++){
         // recherche périfs concernés : avec anal set et meme dsrv en première position des rules (perinput sur 1ère règle ; byte 0 type/n°)
         // =======================   utiliser tablePerToSend  =======================
@@ -1163,16 +1180,12 @@ void bid(){
             && ((*curInp&PERINPNT_MS)>>PERINPNTLS_PB)==DETYEXT                // ctl type dsrv
             && analTimers[aa].detecOut==(*curInp&PERINPV_MS)>>PERINPNVLS_PB   // ctl n° dsrv
             && *(uint16_t*)curAna!=newval[aa]                                 // analog value changed
-            ){
-              //*(uint16_t*)curAna=newval[aa];periSave(peri,PERISAVELOCAL);  // à vérifier
-              if((*curCfg&PERI_SERV)!=0){
-                //periReq(&cliext,peri,"set_______");
-              }
-            }
+            ){tablePerToSend[peri-1]++;}
           }
           analTimers[aa].curVal=newval[aa];
         }
       }
+      perToSend(tablePerToSend );
       //Serial.print("===> anTimScan(mic)=");Serial.println(micros()-anTimScan); //antimerstime);
   } 
 }
