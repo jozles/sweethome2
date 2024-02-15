@@ -159,8 +159,8 @@ int htmlImg(EthernetClient* cli,const char* fimgname)
             uint32_t limg;
             char img[fimgSiz+1];
             for(limg=0;limg<fimgSiz;limg++){img[limg]=fimg.read();}
-            uint16_t len64=0;//=ato64(img,icon+htmlIconBegLen,fimgSiz);
-            //memcpy(icon+htmlIconBegLen+len64,htmlIconEnd,htmlIconEndLen);
+            uint16_t len64=ato64(img,icon+htmlIconBegLen,fimgSiz);
+            memcpy(icon+htmlIconBegLen+len64,htmlIconEnd,htmlIconEndLen);
             limg=htmlIconBegLen+len64+htmlIconEndLen;
             *(icon+limg)='\0';
             

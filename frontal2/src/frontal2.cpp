@@ -148,6 +148,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
   int     nbreparams=0;                // 
   int     what=0;                      // ce qui doit être fait après traitement des fonctions (0=rien)
   uint32_t loopCnt=0;
+  uint8_t scanCnt=0;
 
 #define HTTPCDLENGTH 6
   const char*   httpCdes="GET   POST  \0";       // commandes traitées par le serveur
@@ -704,6 +705,7 @@ void loop()
 #endif // SOCK_DEBUG              
             }
             loopCnt++;
+            scanCnt=0;
 //Serial.print("tcp=");Serial.println(millis());
             tcpPeriServer();     // *** périphérique TCP ou maintenance
 //Serial.print("udp=");Serial.println(millis());
@@ -790,8 +792,11 @@ void wdReboot(const char* msg,unsigned long maxCx)
 
 void scanTemp()
 {
-    if((millis()-temptime)>pertemp*1000){   // *** maj température  
+    if((millis()-temptime)>pertemp*1000 && scanCnt<10){   // *** maj température  
+      
+      unsigned long scanTempTime=micros();
       temptime=millis();
+      scanCnt++;
       char buf[]={0,0,'.',0,0,0};
       float th;
       ds3231.readTemp(&th);
@@ -799,27 +804,34 @@ void scanTemp()
         oldth=th;sprintf(buf,"%02.02f",th);
         histoStore_textdh(TEMP,buf,"<br>\n\0");
       }
+      if(0){Serial.print("   scanTemp(mic)=");Serial.println(micros()-scanTempTime);}
     }       
 }
 
 void scanDate()
 {
-    if((millis()-datetime)>perdate*1000){   // *** maj date
+    if((millis()-datetime)>perdate*1000 && scanCnt<10){   // *** maj date
+      
+      unsigned long scanDateTime=micros();
+      datetime=millis();
+      scanCnt++;
       trigwd();
       initDate();
-      datetime=millis();
       histoStore_textdh("D","","<br>\n\0");
       periTableSave();
       
       mail("DATE","");
+      if(0){Serial.print("   scanDate(mic)=");Serial.println(micros()-scanDateTime);}
     }
 }
 
 void scanThermos()                                                        // positionnement détecteurs associés aux thermos
 {                                                                         // maj tablePerToSend
-  if((millis()-thermosTime)>perThermos*1000){
+  if((millis()-thermosTime)>perThermos*1000 && scanCnt<10){
     
+  unsigned long scanThermosTime=micros();
   thermosTime=millis();
+  scanCnt++;
   memcpy(bakDetServ,memDetServ,MDSLEN);
   memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
 
@@ -877,6 +889,7 @@ void scanThermos()                                                        // pos
     }
     periDetecUpdate("pDUth");                 // mise à jour remotes, fichier perif et tablePerToSend
     perToSend(tablePerToSend,thermosTime);    // mise à jour périphériques de tablePerToSend
+    if(0){Serial.print("   scanThermos(mic)=");Serial.println(micros()-scanThermosTime);}
   }
 }
 
@@ -1023,11 +1036,14 @@ void scanTimers()                                             //   recherche tim
     si dans période hdeb/hfin     
 
 */
-    if((millis()-timerstime)>pertimers*1000){
+    if((millis()-timerstime)>pertimers*1000 && scanCnt<10){
 
+      unsigned long scanTimersTime=micros();
+      timerstime=millis();
+      scanCnt++;
       memcpy(bakDetServ,memDetServ,MDSLEN);
       //bakDetServ=memDetServ;
-      timerstime=millis();
+          
       memset(tablePerToSend,0x00,NBPERIF);      // !=0 si (periSend) periReq à faire sur le perif          
       ds3231.alphaNow(now);
       unsigned long unixNow=alphaDateToUnix(now,false);
@@ -1069,8 +1085,9 @@ void scanTimers()                                             //   recherche tim
           }
         }
       }
-    periDetecUpdate("pDUti");                         // mise à jour remotes, fichier perif et tablePerToSend
-    perToSend(tablePerToSend,timerstime);             // mise à jour périphériques de tablePerToSend
+      periDetecUpdate("pDUti");                         // mise à jour remotes, fichier perif et tablePerToSend
+      perToSend(tablePerToSend,timerstime);             // mise à jour périphériques de tablePerToSend
+      if(0){Serial.print("   scanTimers(mic)=");Serial.println(micros()-scanTimersTime);}
     }
 }
 
@@ -1090,9 +1107,11 @@ void osRemInit(uint8_t r)
 
 void scanRemote()
 {
-  if((millis()-oneShotRemTime)>perOSR*1000){  
-    oneShotRemTime=millis();
+  if((millis()-oneShotRemTime)>perOSR*1000 && scanCnt<10){  
   
+    unsigned long scanRemoteTime=micros();
+    oneShotRemTime=millis();
+    scanCnt++;
     for(uint8_t r=0;r<NBREMOTE;r++){
       switch (remoteN[r].osStatus){
         case 0:break;                                               // STOP
@@ -1107,8 +1126,23 @@ void scanRemote()
         default:break;
       }
     }
+    if(0){Serial.print("   scanRemote(mic)=");Serial.println(micros()-scanRemoteTime);}
   }
 }
+
+void printn(char* data,uint8_t len,bool nl)
+{
+  for(uint8_t ll=0;ll<len;ll++){Serial.print(*(data+ll));}
+  if(nl){Serial.println();}
+}
+
+void dumpprintn(char* data,uint8_t len,bool nl)
+{
+  for(uint8_t ll=0;ll<len;ll++){
+    Serial.print(chexa[*(data+ll)>>4]);Serial.print(chexa[*(data+ll)&0x0f]);Serial.print(' ');}
+  if(nl){Serial.println();}
+}
+
 
 void scanAnTimers()
 {
@@ -1118,47 +1152,57 @@ void scanAnTimers()
   //  si heure début >= heure(now) ou heure(now) < heure suivante ==> trouvé
   // sinon si heure début >= heure(now) et heure(now) < heure suivante ==> trouvé
   //
-  unsigned long anTimScan=micros();
-  const char* hhbeg;
-  char* hhfirst;
-  char* hhnext;
-  char* hhnow=now+8;
-  char val0[]={'\0','\0','\0'};
-  uint16_t newval[NBANTIMERS];
-  uint8_t  newvalnb[NBANTIMERS];memset(newvalnb,0x00,NBANTIMERS); //(uint8_t nv=0;nv<NBEVTANTIM;nv++){newvalnb[nv]=0;}
-  uint8_t biten=maskbit[1+ANT_BIT_ENABLE*2];
-  uint8_t dwNow=maskbit[1+2*(7-now[14])];
-  uint8_t lastee=NBEVTANTIM-1;
-  uint8_t ee;
-  bool found;
-
-  if((millis()-antimerstime)>perAnTimers*1000){
-      antimerstime=millis();
-      
-      // scan anTimers
-      for(uint8_t aa=0;aa<NBANTIMERS-1;aa++){
-        hhfirst=&analTimers[aa].heure[0];
-        if( ((analTimers[aa].cb)&(biten))!=0 
-              && memcmp(hhfirst,val0,3)!=0
-              && ((analTimers[aa].dw & 0x01)!=0 || (analTimers[aa].dw & dwNow)!=0 )){
-          hhbeg=hhfirst;
-          found=false;
-          for(ee=0;ee<NBEVTANTIM;ee++){
-            hhnext=&analTimers[aa].heure[ee+1];
+  
+  if((millis()-antimerstime)>perAnTimers*1000 && scanCnt<10){
+    
+    unsigned long anTimScan=micros();
+    antimerstime=millis();
+    scanCnt++;
+    char* hhbeg;
+    char* hhfirst;
+    char* hhnext;
+    char hhnow[3];pack(now+8,hhnow,3,false);
+    char val0[]={'\0','\0','\0'};
+    uint16_t newval[NBANTIMERS];
+    uint8_t  newvalnb[NBANTIMERS];memset(newvalnb,0x00,NBANTIMERS); //(uint8_t nv=0;nv<NBEVTANTIM;nv++){newvalnb[nv]=0;}
+    uint8_t biten=maskbit[1+ANT_BIT_ENABLE*2];
+    uint8_t dwNow=maskbit[1+2*(7-now[14])];
+    uint8_t lastee=NBEVTANTIM-1;
+    uint8_t ee;
+    bool found=false;
+    bool gfound=false;
+    
+    // scan anTimers
+    for(uint8_t aa=0;aa<NBANTIMERS-1;aa++){
+      hhfirst=&analTimers[aa].heure[0];
+      //Serial.print("hhfirst:");dumpprintn(hhfirst,3,false);Serial.print(" val0:");dumpprintn(val0,3,false);
+      //Serial.print(" dw:");dumpprintn((char*)&analTimers[aa].dw,1,false);Serial.print(" now:");dumpprintn(now,16,false);Serial.print(" dwNow:");dumpprintn((char*)&dwNow,1,true);
+      if( ((analTimers[aa].cb)&(biten))!=0 
+            && memcmp(hhfirst,val0,3)!=0
+            && ((analTimers[aa].dw & 0x01)!=0 || (analTimers[aa].dw & dwNow)!=0 )){
+        hhbeg=hhfirst;
+        found=false;
+        for(ee=0;ee<NBEVTANTIM;ee++){
+            hhnext=&analTimers[aa].heure[3*(ee+1)];
+      //Serial.print("hhbeg:");dumpprintn(hhbeg,3,false);Serial.print(" hhnext:");dumpprintn(hhnext,3,false);
+      //Serial.print(" hhnow:");dumpprintn(hhnow,3,false);Serial.print(" lastee:");Serial.println(lastee);
             if((memcmp(hhnext,val0,3)==0 || ee==lastee)){
-              if(hhbeg>=hhnow || hhnow<hhfirst){found=true;break;}
+              if((memcmp(hhbeg,hhnow,3)<=0) || (memcmp(hhnow,hhfirst,3)<0)){found=true;break;}
             }
-            else if(hhbeg>=hhnow && hhnow<hhnext){found=true;break;}
+            else if((memcmp(hhbeg,hhnow,3)<=0) && (memcmp(hhnow,hhnext,3)<0)){found=true;break;}
             hhbeg=hhnext;
-          }
-          if(found && analTimers[aa].valeur[ee]!=analTimers[aa].curVal){       
+        }
+        if(found && analTimers[aa].valeur[ee]!=analTimers[aa].curVal){       
             // trouvé une valeur à mettre à jour
             newvalnb[aa]++;
             newval[aa]=analTimers[aa].valeur[ee];
-          }
+            gfound=true;
+      //Serial.print(" curval:");Serial.print(analTimers[aa].curVal);Serial.print(" new:");Serial.println(analTimers[aa].valeur[ee]);
         }
       }
+    }
 
+    if(gfound){
       memset(tablePerToSend,0x00,NBPERIF);      
       for(uint8_t aa=0;aa<NBANTIMERS;aa++){
         // recherche périfs concernés : avec anal set et meme dsrv en première position des rules (perinput sur 1ère règle ; byte 0 type/n°)
@@ -1180,13 +1224,16 @@ void scanAnTimers()
             && ((*curInp&PERINPNT_MS)>>PERINPNTLS_PB)==DETYEXT                // ctl type dsrv
             && analTimers[aa].detecOut==(*curInp&PERINPV_MS)>>PERINPNVLS_PB   // ctl n° dsrv
             && *(uint16_t*)curAna!=newval[aa]                                 // analog value changed
-            ){tablePerToSend[peri-1]++;}
+            ){tablePerToSend[peri-1]++;*(uint16_t*)curAna=newval[aa];
+            Serial.print(" aa:");Serial.print(aa);Serial.print(" mdet:");Serial.print(analTimers[aa].detecOut);Serial.print(" peri:");Serial.print(peri);Serial.print(" val:");Serial.print(*(uint16_t*)curAna);
+            }
           }
           analTimers[aa].curVal=newval[aa];
         }
       }
-      perToSend(tablePerToSend );
-      //Serial.print("===> anTimScan(mic)=");Serial.println(micros()-anTimScan); //antimerstime);
+      perToSend(tablePerToSend,antimerstime);
+    }
+    if(0){Serial.print("   anTimScan(mic)=");Serial.println(micros()-anTimScan);}
   } 
 }
 
@@ -1681,6 +1728,7 @@ void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum)     // force val (=0 ou 
 
 void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,uint16_t bufDataLen)
 {
+  scanCnt+=10;
   trigwd();
   EthernetClient* cli_debug=cli;    // backup cli pour vérifier sa stabilité
 
@@ -2694,6 +2742,7 @@ void serialServer()
   uint16_t lrcv=serialRcv(serialBuf,MAXSER,1);
   
   if(lrcv!=0){
+    scanCnt+=100;
     rcvcnt++;
     Serial.print(rcvcnt);Serial.print(" ");Serial.print(lrcv);Serial.print("->");Serial.println(serialBuf);
     

@@ -170,7 +170,9 @@
    1.8h 2 ports udp ; getnv-analyse revus ; création analog timers ; ajout periCfg dans les messages serveur->périfs
         l'ajout de champs se fait maintenant en référence à la fin du message ; tfr periCfg aux perifs 
         ajout de anTimersHtml et anTimersCtlHtml
-   1.8j 32 périfs, ajout variable periAnalOut ; agrandissement record perif -> 448 (40 dispo) ;
+   1.8j 32 périfs, ajout variable periAnalOut ; agrandissement record perif -> 448 (40 dispo) ; 
+        ajout variable periUdpPortNb pour periReq udp ; scanAnTimers fonctionne : 
+        délai moyen 45sec avec refresh 30sec  sur dets
 
    BUGS : 
      
