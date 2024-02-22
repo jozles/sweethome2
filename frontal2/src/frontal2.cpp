@@ -33,7 +33,7 @@ extern "C" {
  #include "utility/w5100.h"
 }
 
-#define MAXTPS 3                    // nbre instances pour TCP périfs 
+#define MAXTPS 1                    // nbre instances pour TCP périfs 
                                     // plusieurs permet un .stop() rapide
                                     // l'envoi de la réponse se fait pendant que le frontal tourne
                                     // si saturation des instances, .stop() de l'instance en cours
@@ -46,7 +46,7 @@ char ab;                            // protocole et type de la connexion en cour
 
 //  EthernetClient cli_a;             // instance serveur de periphériques et browser configuration
   EthernetClient cli_b;             // instance du serveur remote 
-  EthernetClient cli_c;             // instance du serveur config
+  EthernetClient cli_c;             // instance du serveur config (browsers)
   EthernetClient cliext;            // instance client serveurs externes  
 
   char udpData[UDPBUFLEN];          // buffer paquets UDP
@@ -58,7 +58,7 @@ char ab;                            // protocole et type de la connexion en cour
   uint8_t udpNb;
   uint8_t udpSockIndex;
 
-extern char sssa[MAX_SOCK_NUM+2];    // valeurs alpha pour sockets status
+extern char sssa[MAX_SOCK_NUM+2];   // valeurs alpha pour sockets status
 extern char prevsssa[MAX_SOCK_NUM+2];
 
 /* ---------- config frontal ---------- */
@@ -1749,7 +1749,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
       cxtime=millis();    // pour rémanence pwd
 
       Serial.println();now[14]='\0';Serial.print((char*)(now+4));Serial.print(' ');
-      Serial.print((long)cxtime);
+      Serial.print(cxtime);
       Serial.print(" sock:");if(ab=='u'){Serial.print(udpSockIndex);}else{Serial.print(cli->sockindex);}
       Serial.print(" serveur(");Serial.print((char)ab);
       if(ab=='a'){Serial.print(tPS);}
@@ -2170,10 +2170,8 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                           }                                                               
                           switch(av){
                             case 0: analTimers[nt].dw=0xFF;break;                                       // (anti_cb0 ) dw 0-7
-                            case 8: analTimers[nt].cb|=maskbit[1+ANT_BIT_ENABLE*2];
-                            dumpstr((char*)&analTimers[0].cb,1);break;               // (anti_cb8 ) enable
-                            case 9: analTimers[nt].cb|=maskbit[1+ANT_BIT_ANTEPOST*2];
-                            dumpstr((char*)&analTimers[0].cb,1);break;             // (anti_cb9 ) ante/post
+                            case 8: analTimers[nt].cb|=maskbit[1+ANT_BIT_ENABLE*2];break;               // (anti_cb8 ) enable
+                            case 9: analTimers[nt].cb|=maskbit[1+ANT_BIT_ANTEPOST*2];break;             // (anti_cb9 ) ante/post
                             default: break;
                           }
                         }break;                                                                           
@@ -2558,7 +2556,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
         } // getnv nbreparams>=0  
       
         valeurs[0]='\0';                                                            
-
+        Serial.print(millis());Serial.print(' ');
         if(ab!='u'){
           Serial.print("-sock stop ");Serial.print(cli->sockindex);Serial.print(" ");                                                              
           if(cli!=cli_debug){Serial.print("cli hs");while(1){trigwd();}}
@@ -2570,7 +2568,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
           tPSStop[tPS]=millis();if(tPSStop[tPS]==0){tPSStop[tPS]=1;} //heure du stop TCP
         }
 
-        Serial.print((long)millis());
+        Serial.print(millis());
         Serial.print(" pM=");Serial.print(periDiag(periMess));
         if(what==0){Serial.print(" w0 ");}
         if(ab=='u'){Serial.print(" *** end udp - ");}
@@ -2664,6 +2662,13 @@ void udpPeriServer()
 void tcpPeriServer()
 {
   ab='a';
+  uint8_t preTPS=tPS+1;                         // attribue l'instance suivante
+  if(preTPS>=MAXTPS){preTPS=0;}
+
+  /*
+  // available() teste le port de chaque socket du w5500 ; 
+  // il peut donc trouver plusieurs sockets avec le même port server (periserv)
+  // dont ceux déjà en cours de vidage ou attente de 'stop' 
   
   for(int t=0;t<MAXTPS;t++){                    // effectue les .stop() éventuels pour libérer les instances
                                                 // qui ont eu le temps d'effectuer leur dernier .write
@@ -2675,9 +2680,6 @@ void tcpPeriServer()
     }
   }
 
-  uint8_t preTPS=tPS+1;                         // attribue l'instance suivante
-  if(preTPS>=MAXTPS){preTPS=0;}
-
   if(tPSStop[preTPS]!=0){                       // si instance pas encore libérée -> libération
     unsigned long tStop=millis();               // tStop heure du stop de l'instance   
     cli_a[preTPS].stop();                       // force la libération de l'instance
@@ -2687,7 +2689,7 @@ void tcpPeriServer()
     }
   }
   
-  
+  */
   if(cli_a[preTPS] = periserv->available())     // attente d'un client périf
   {
     getremote_IP(&cli_a[preTPS],remote_IP,remote_MAC);  // récupère les coordonnées du serveur DNS ????

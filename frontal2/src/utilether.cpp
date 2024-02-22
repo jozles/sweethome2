@@ -26,7 +26,7 @@ SdFat32 sd32;
 
 uint32_t sdopenFail=0;
 const uint8_t SD_CS_PIN = 4;
-#define SPI_CLOCK SD_SCK_MHZ(8)
+#define SPI_CLOCK SD_SCK_MHZ(30)
 #define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI, SPI_CLOCK)
 
 #ifdef UDPUSAGE
