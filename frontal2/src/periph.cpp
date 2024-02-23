@@ -679,7 +679,9 @@ int configSave(uint8_t addedLength)
         while(1){ledblink(1);}
       }  
   
-  for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
+  //for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
+  fconfig.write(configRec,CONFIGRECLEN);
+  fconfig.sync();
   fconfig.close();
   }
   else sta=SDKO;
@@ -891,7 +893,9 @@ int periCacheSave(uint16_t num)                                     // sauve les
       if(sdOpen(periFile,&fperi)==SDOK){
         periDetServUpdate();
         fperi.seek(0);
-        for(int i=0;i<PERIRECLEN;i++){fperi.write(periCache[(num-1)*PERIRECLEN+i]);}
+        //for(int i=0;i<PERIRECLEN;i++){fperi.write(periCache[(num-1)*PERIRECLEN+i]);}
+        fperi.write(periCache+(num-1)*PERIRECLEN,PERIRECLEN);
+        fperi.sync();
         fperi.close();
         periCacheStatus[num]=CACHEISFILE;                           // le fichier est à l'image du cache
         //for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
