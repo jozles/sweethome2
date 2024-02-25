@@ -500,7 +500,10 @@ void setup() {                          // ====================================
 /* ---------- hardware setup ---------- */
 
   delay(3000);  // éponge le délai entre la fin de l'upload et le reset du Jlink
-  
+
+pinMode(16,OUTPUT);pinMode(17,OUTPUT); // timing spi sd et w5100 voir spi.cpp
+
+
   initLed(PINLED,LEDOFF,LEDON);
   wdEnable=true;trigwd(10000);
 
@@ -564,7 +567,8 @@ void setup() {                          // ====================================
 
   sdInit();
 
-  configInit();configLoad();configSave();configPrint();
+  configInit();configLoad();//configSave();
+  configPrint();
   memcpy(thermoCurPrev,thermoPrev,14);thermoCurPrev[14]='\0';
     
 /* ---------- load variables du systeme : périphériques, table et noms remotes, 
@@ -2027,7 +2031,8 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                           case 'N':alphaTfr(periNamer,PERINAMLEN,valf,nvalf[i+1]-nvalf[i]);               // (periLine) - peri_lf_N_ nom
                                   *periCfg&=~PERI_ANAL;                                                   // efface check box flag analogique
                                   *periCfg&=~PERI_SERV;                                                   // efface check box flag serveur                                                   
-                                  *periCfg&=~PERI_RAD;break;                                              // efface check box flag radiateur
+                                  *periCfg&=~PERI_RAD;                                                    // efface check box flag radiateur
+                                  *periCfg&=~PERI_STA;break;                                              // efface check box flag thermostat
                           case 'M':for(j=0;j<6;j++){conv_atoh(valf+j*2,(periMacr+j));}break;              // (periLine) - peri_lf_M_ mac
                           case 'v':*periVmin_=0;*periVmin_=(int16_t)convStrToInt(valf,&j);break;          // (periLine) - peri_lf_v_ Vmin
                           case 'V':*periVmax_=0;*periVmax_=(int16_t)convStrToInt(valf,&j);break;          // (periLine) - peri_lf_V_ Vmax
@@ -2040,6 +2045,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                           case 'P':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_SERV;};break;                   // (periLine) - peri_lf_P_ prog
                           case 'a':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_ANAL;};break;                   // (periLine) - peri_lf_a_ anal
                           case 'R':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_RAD;};break;                    // (periLine) - peri_lf_r_ radiateur
+                          case 'T':if((*valf-PMFNCVAL)!=0){*periCfg|=PERI_STA;};break;                    // (periLine) - peri_lf_T_ thermostat
                           case 'A':uint16_t value;conv_atob(valf,&value);*periAnalOut=0;*periAnalOut=value;break;   // (periLine) - consigne analogique
                           case 'i':*periSwNb=*valf-PMFNCVAL;if(*periSwNb>MAXSW){*periSwNb=MAXSW;}break;             // (periLine) - peri_lf_i_ sw nb
                           case 'd':*periDetNb=*valf-PMFNCVAL;if(*periDetNb>MAXDET){*periDetNb=MAXDET;}break;        // (periLine) - peri_lf_d_ det nb

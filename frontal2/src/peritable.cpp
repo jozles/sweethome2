@@ -625,7 +625,11 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                       pLFonc[LENNOM-2]='R';chkFlg=0;
                                            if((*periCfg&PERI_RAD)!=0){chkFlg=1;}
                                            scrDspText(buf,jsbuf,"rad ",0,0);
-                                           scrGetCheckbox(buf,jsbuf,&chkFlg,pLFonc,NO_STATE,TDEND,"");                                           
+                                           scrGetCheckbox(buf,jsbuf,&chkFlg,pLFonc,NO_STATE,BRYES,"");
+                      pLFonc[LENNOM-2]='T';chkFlg=0;
+                                           if((*periCfg&PERI_STA)!=0){chkFlg=1;}
+                                           scrDspText(buf,jsbuf,"regul ",0,0);
+                                           scrGetCheckbox(buf,jsbuf,&chkFlg,pLFonc,NO_STATE,TDEND,"");                                                                                      
                       pLFonc[LENNOM-2]='i';scrGetNum(buf,jsbuf,'b',periSwNb,pLFonc,1,1,0,0,TDBEG|BRYES);                  //scrGetNum(buf,jsbuf,'b',periSwNb,"peri_intnb",1,1,0,0,TDBEG|BRYES);
                       pLFonc[LENNOM-2]='d';scrGetNum(buf,jsbuf,'b',periDetNb,pLFonc,1,1,0,0,TDEND);                       //scrGetNum(buf,jsbuf,'b',periDetNb,"peri_detnb",1,1,0,0,TDEND);
                       strcat(buf,"\n");
@@ -753,9 +757,12 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             uint16_t val=*periAnalOut;                // consigne analogique 
             scrDspText(buf,jsbuf,"an ",0,0);scrDspNum(buf,jsbuf,'I',&val,0,0,lctl);}
           else{scrDspText(buf,jsbuf," ",0,lctl);}
-          lctl=STRING|TDEND;
+          lctl=STRING|BRYES;
           if(((*periCfg)&PERI_RAD)!=0){scrDspText(buf,jsbuf,"rad",0,lctl);}
           else{scrDspText(buf,jsbuf," ",0,lctl);}          
+          lctl=STRING|TDEND;
+          if(((*periCfg)&PERI_STA)!=0){scrDspText(buf,jsbuf,"regul",0,lctl);}
+          else{scrDspText(buf,jsbuf," ",0,lctl);}                    
 
           scrDspNum(buf,jsbuf,'s',(uint8_t*)periSwNb,0,0,STRING|BRYES);
           scrDspNum(buf,jsbuf,'s',(uint8_t*)periDetNb,0,0,STRING|TDEND);                                                 

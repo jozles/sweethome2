@@ -189,8 +189,9 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
       for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalOut+1-k));}   // consigne analog 2 bytes msb first
       memcpy(message+v1+4,"_\0",2);
       v1+=4+1;
-
-      unpack((char*)periCfg,message+v1,1);                        // periCfg
+      
+      conv_htoa(&message[v1],(byte*)periCfg);
+      //unpackHexa((uint16_t)*periCfg,message+v1,2);                        // periCfg
       memcpy(message+v1+2,"\0",2);
       strcat(message,diag);                                 // periMess length=LPERIMESS
     }  // pericur != 0            
