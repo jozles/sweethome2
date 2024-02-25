@@ -93,7 +93,7 @@
  * 2.5 divers messages Serial passés dans diags pour accélération réponse ordrext()
  * 2.6 le compte gmail et le pswd associé sont configurables depuis le frontal (fmail_init_)  
  * 2.7 ajout periAnal (consigne analogique) et periCfg (config périf) dans message reçu peri_ans__ peri_set__ etc
- *     gestion thermostat en local
+ *     gestion thermostat en local via locmem et LOCMEM_STA_BIT
  * 
 Modifier : 
 
@@ -572,11 +572,11 @@ union {
   char      pwd1[64];             // 64   pwd1         
   char      ssid2[16];            // 16   ssid2 
   char      pwd2[64];             // 64   pwd2 
-  char      peripass[LPWD+1];     //  8+1   server passwd
-  uint8_t   periAnal;             //  1   consigne analogique       
+  char      peripass[LPWD+1];     //  8+1 server passwd
+  uint16_t  periAnal;             //  2   consigne analogique       
   uint8_t   periCfg;              //  1   config périf
 
-#define LENFILLERCST 44
+#define LENFILLERCST 42
 //#define LENFILLERCST 142  // VERSION "1.y_"
 
   byte      filler[LENFILLERCST]; 

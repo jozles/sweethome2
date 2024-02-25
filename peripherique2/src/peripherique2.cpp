@@ -121,12 +121,12 @@ bool serverStarted=false;
   unsigned long  debConv=millis();        // pour attendre la fin du délai de conversion
   int            tconversion=0;
   unsigned long  detTime[MAXDET]={millis(),millis(),millis(),millis()};    // temps pour debounce
-  uint32_t       locmem=0;                  // local mem rules bits
+  uint32_t       locmem=0;                // local mem rules bits
   uint32_t       locMaskbit[]={0x00000001,0x00000002,0x00000004,0x00000008,0x00000010,0x00000020,0x00000040,0x00000080,
                        0x00000100,0x00000200,0x00000400,0x00000800,0x00001000,0x00002000,0x00004000,0x00008000,
                        0x00010000,0x00020000,0x00040000,0x00080000,0x00100000,0x00200000,0x00400000,0x00800000,
                        0x01000000,0x02000000,0x04000000,0x08000000,0x10000000,0x20000000,0x40000000,0x80000000};
-
+  #define LOCMEM_STA_BIT 0x80000000       // bit réservé pour thermostat 
 
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
@@ -163,7 +163,7 @@ char* cstRecA=(char*)&cstRec.cstlen;
   ADC_MODE(ADC_VCC);
 #endif
 
-  const char*     chexa="0123456789ABCDEFabcdef\0";
+  const char*  chexa="0123456789ABCDEFabcdef\0";
   uint8_t      bitMsk[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
   //const byte      mask[]={0x00,0x01,0x03,0x07,0x0F};
   //uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  
@@ -195,6 +195,7 @@ void  readAnalog();
 uint16_t  getServerConfig();
 void  ordreExt0();
 void  showBS(char* buf);
+void  thermostat();
 
 #ifdef MAIL_SENDER
 void mail(char* subj,char* dest,char* msg);
@@ -509,8 +510,8 @@ initConstant();             // à supprimer en production
                       case 5:   break;
                       case 6:   break;
                       case 7:   readAnalog();break;
-                      case 8:   break;
-                      case 9:   readTemp();break;
+                      case 8:   readTemp();break;
+                      case 9:   thermostat();break;
                       case 10:  clkSlowStep=0;break;
                       default:  break;
                     }
@@ -631,10 +632,11 @@ void dataTransfer(char* data)   // transfert contenu de set ou ack dans variable
                                         //    si ok -> tfr params
                                         // retour periMess
 {
-  uint16_t messLength=0;                                    // len data with crc included
-  for(k=4;k>0;k--){
-    messLength*=10;messLength+=data[MPOSLEN+4-k]-'0';}      // conv len message atob
-  if(strlen(data)!=messLength){Serial.println("dataTransfer invalid length");}
+  size_t messLength=0;                                    // len usefull data
+  for(k=0;k<4;k++){
+    messLength*=10;messLength+=data[MPOSLEN+k]-'0';}      // conv len message atob
+    messLength+=(11+2);                                     // + 'fonction__=' + 'nn' crc
+  if(strlen(data)!=messLength){Serial.print("dataTransfer invalid length ");Serial.print(strlen(data));Serial.print('/');Serial.println(messLength);}
   
   byte fromServerMac[6];
   
@@ -693,15 +695,15 @@ if(diags){Serial.println(" dataTransfer() ");}
             conv_atoh((data+posMds+k*2),(byte*)(cstRec.extDetec+mdsl-1-k));
           }   
 
-          if(diags){Serial.print("==");Serial.print((char*)data+posMds+mdsl*2+1);Serial.print(' ');Serial.println(sizeRead);}
+          //if(diags){Serial.print("==");Serial.print((char*)data+posMds+mdsl*2+1);Serial.print(' ');Serial.println(sizeRead);}
           cstRec.periPort=(uint16_t)convStrToNum(data+posMds+mdsl*2+1,&sizeRead); // port server
           
           #ifdef _SERVER_MODE
             if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);Serial.println("newS");}
           #endif
 
-          pack((char*)&cstRec.periAnal,data+messLength-5,2,false);                // periAnalOut consigne analogique 0-FF
-          pack((char*)&cstRec.periCfg,data+messLength-2,2,false);                 // periCfg '_hh' 
+          cstRec.periAnal=packHexa(data+messLength-7-6,4);                // periAnalOut consigne analogique 0-FF
+          cstRec.periCfg=packHexa(data+messLength-2-6,2);                 // periCfg '_hh'         
 
         } // periMess==MESSOK
         if(periMess!=MESSOK){
@@ -1022,6 +1024,7 @@ void showMD() // display hexa locmem, extDetec, swCde
       if(*(char*)(&locmem+3-i)<16){Serial.print('0');}Serial.print(*(char*)(&locmem+3-i),HEX);
       Serial.print(' ');
     }
+    dumpstr((char*)&locmem-4,8);
     Serial.print("   ");
     for(uint8_t i=0;i<8;i++){
       if(cstRec.extDetec[8-i-1]<16){Serial.print('0');}Serial.print(cstRec.extDetec[8-i-1],HEX);
@@ -1246,6 +1249,22 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
 void readAnalog()
 {
  cstRec.analVal=analogRead(A0); 
+}
+
+/* Thermostat ------------------------ */
+
+void thermostat()
+{
+  if((cstRec.periCfg&=PERI_STA)!=0){
+    if(temp/100>(cstRec.periAnal+1)){locmem&=~LOCMEM_STA_BIT;}
+    else if(temp/100<(cstRec.periAnal-1)){
+      locmem|=LOCMEM_STA_BIT;
+      if(diags){
+        Serial.print(temp/100);Serial.print(' ');Serial.print(cstRec.periAnal);Serial.print(' ');showMD();
+      }
+    } 
+  }
+  else locmem&=~LOCMEM_STA_BIT;
 }
 
 /* Output control -------------------- */
