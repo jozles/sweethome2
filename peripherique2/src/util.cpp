@@ -277,6 +277,7 @@ if(diags){
   Serial.print("detTime         =  ");for(int s=MAXDET-1;s>=0;s--){Serial.print(detTime[s]);if(s!=0){Serial.print("   -   ");}}Serial.println();
   Serial.print("detect (pin/mem)= ");for(int s=MAXDET-1;s>=0;s--){Serial.print(digitalRead(pinDet[s]));Serial.print("/");Serial.print((cstRec.memDetec[s]>>DETBITLH_PB)&0x01,HEX);Serial.print("   -   ");}
   Serial.print("switchs (pins)  = ");for(int s=MAXSW-1;s>=0;s--){Serial.print(digitalRead(pinSw[s]));Serial.print("   -   ");}
+  Serial.print("\nconsigne analogique =0x");Serial.print(cstRec.periAnal,HEX);Serial.print(" config périf =0x");Serial.print(cstRec.periCfg,HEX);
   Serial.println();  
 #if POWER_MODE==NO_MODE
   periDetServPrint(cstRec.extDetec);  

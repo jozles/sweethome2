@@ -7,7 +7,7 @@
 // !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
 
 
-#define VERSION "2.6_"
+#define VERSION "2.7_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -92,6 +92,8 @@
  * 2.4 ajout esp8285 et hard sonoff
  * 2.5 divers messages Serial passés dans diags pour accélération réponse ordrext()
  * 2.6 le compte gmail et le pswd associé sont configurables depuis le frontal (fmail_init_)  
+ * 2.7 ajout periAnal (consigne analogique) et periCfg (config périf) dans message reçu peri_ans__ peri_set__ etc
+ *     gestion thermostat en local
  * 
 Modifier : 
 
@@ -570,9 +572,11 @@ union {
   char      pwd1[64];             // 64   pwd1         
   char      ssid2[16];            // 16   ssid2 
   char      pwd2[64];             // 64   pwd2 
-  char      peripass[LPWD+1];     //  8+1   server passwd       
+  char      peripass[LPWD+1];     //  8+1   server passwd
+  uint8_t   periAnal;             //  1   consigne analogique       
+  uint8_t   periCfg;              //  1   config périf
 
-#define LENFILLERCST 46
+#define LENFILLERCST 44
 //#define LENFILLERCST 142  // VERSION "1.y_"
 
   byte      filler[LENFILLERCST]; 

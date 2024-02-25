@@ -631,6 +631,11 @@ void dataTransfer(char* data)   // transfert contenu de set ou ack dans variable
                                         //    si ok -> tfr params
                                         // retour periMess
 {
+  uint16_t messLength=0;                                    // len data with crc included
+  for(k=4;k>0;k--){
+    messLength*=10;messLength+=data[MPOSLEN+4-k]-'0';}      // conv len message atob
+  if(strlen(data)!=messLength){Serial.println("dataTransfer invalid length");}
+  
   byte fromServerMac[6];
   
         periMess=MESSOK;
@@ -694,6 +699,10 @@ if(diags){Serial.println(" dataTransfer() ");}
           #ifdef _SERVER_MODE
             if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);Serial.println("newS");}
           #endif
+
+          pack((char*)&cstRec.periAnal,data+messLength-5,2,false);                // periAnalOut consigne analogique 0-FF
+          pack((char*)&cstRec.periCfg,data+messLength-2,2,false);                 // periCfg '_hh' 
+
         } // periMess==MESSOK
         if(periMess!=MESSOK){
           memcpy(cstRec.numPeriph,"00",2);cstRec.IpLocal=IPAddress(0,0,0,0);

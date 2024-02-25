@@ -680,7 +680,9 @@ int configSave(uint8_t addedLength)
       }  
   
   //for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
+  //digitalWrite(17,LOW);
   fconfig.write(configRec,CONFIGRECLEN);
+  //digitalWrite(17,HIGH);
   fconfig.sync();
   fconfig.close();
   }
