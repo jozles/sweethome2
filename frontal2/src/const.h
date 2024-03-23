@@ -173,7 +173,7 @@
    1.8j 32 périfs, ajout variable periAnalOut ; agrandissement record perif -> 448 (40 dispo) ; 
         ajout variable periUdpPortNb pour periReq udp ; scanAnTimers fonctionne : 
         délai moyen 45sec avec refresh 30sec  sur dets ; 100mS pour timeout fin négo ethernet ;
-        ajout bit thermostat dans periCfg
+        ajout bit thermostat dans periCfg ; debug scalcTh
 
    BUGS : 
      

@@ -251,8 +251,8 @@ void dumpHisto(EthernetClient* cli)
   trigwd();
 
   scrDspText(buf,jsbuf,"histoSD ",0,0);
-  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){scrDspText(buf,jsbuf,"KO",0,0);return;}
-  fhsize=fhisto.size();Serial.print(fhsize);
+  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){scrDspText(buf,jsbuf,"fdhisto KO",0,0);return;}
+  fhsize=fhisto.size();Serial.print("fhsize=");Serial.print(fhsize);Serial.print(" pos=");Serial.println(pos);
 
   if(histoDh[0]=='2'){
     shDateHist(histoDh,&pos);
@@ -262,14 +262,28 @@ void dumpHisto(EthernetClient* cli)
     fhisto.seek(pos);
     while(pos<fhsize){
       trigwd();
-      char a=fhisto.read();pos++;
-      if(a=='\n'){break;}
+      char a=fhisto.read();pos++;Serial.print(a);
+      if(a=='\n'){Serial.println();break;}
     }
   }
+  Serial.print(" pos=");Serial.println(pos);
 
   ethWrite(cli,buf,&lb);
   
-  dumpHisto0(cli,buf,jsbuf,pos,lb0,&lb);
+  #define LPP 1000
+  char aa[LPP];
+  long oldpos=pos;
+  fhisto.seek(pos);
+  while(pos<fhsize-1){
+    for(uint16_t pp=0;pp<LPP-1;pp++){
+      aa[pp]=fhisto.read();pos++;Serial.print(aa[pp]);
+      if(aa[pp]=='\n'){Serial.println();aa[pp+1]='\0';break;}
+    }
+    scrDspText(buf,jsbuf,aa,0,0);
+    ethWrite(cli,buf,&lb);
+    if((oldpos+10000)<pos){trigwd();oldpos+=10000;}
+  }
+  //dumpHisto0(cli,buf,jsbuf,pos,lb0,&lb);
   fhisto.close();
 
   scrGetButRet(buf,jsbuf,"retour",1);
@@ -865,8 +879,9 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   char    remTNum[]={'\0','\0'};
   memcpy(fn,"remote_o__\0",LENNOM+1);fn[LENNOM-1]=(char)(rem-1+PMFNCHAR);           // transmission n° remote
 
-  // ----------------------- une ligne état de la remote hors one_shot_timer
+  // ----------------------- une ligne état initial de la remote hors one_shot_timer
 
+  scrDspText(buf,jsbuf,"initial state",0,BRYES);
   tableBeg(buf,jsbuf,courier,true,0,BRYES);                                             
   scrDspNum(buf,jsbuf,&rem,&min,&max,0,BRYES|TDBE);
   scrDspText(buf,jsbuf,remoteN[rem-1].nam,0,TDBE);
@@ -912,8 +927,9 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 
 // ---------------------------- une ligne durées
 
+  scrDspText(buf,jsbuf,"requested dur",0,BRYES);
   tableBeg(buf,jsbuf,courier,true,0,0);
-  scrDspText(buf,jsbuf,"duration|rem time|end Time",0,TRBE|TDBE);
+  scrDspText(buf,jsbuf,"duration(hhmmss)|rem time|end Time",0,TRBE|TDBE);
   fn[LENNOM-2]='t';
   //Serial.print(">==========");Serial.print(fn);Serial.print(' ');Serial.print(remoteN[rem-1].osEndDate);Serial.print(' ');Serial.println(rem);
   sscfgtB(buf,jsbuf,fn,rem-1,remoteN[rem-1].osDurat,6,0,TRBEG|TDBE);
@@ -930,6 +946,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 
 // ---------------------------- une ligne état souhaité
 
+  scrDspText(buf,jsbuf,"requested state",0,BRYES);
   tableBeg(buf,jsbuf,courier,true,0,BRYES);
   disjVal=remoteN[rem-1].osEnable;
   for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons état one_shot souhaité
@@ -1290,11 +1307,12 @@ int scalcTh(const char* endDate,char* dhasc,const char* prev)           // maj t
                                                                         // retour date début dans dhasc
 /* --- calcul date début --- */
  
+  Serial.print("scalcTh ");
   memset(dhasc,'\0',16);
   
   unsigned long t0=millis();
   
-  int   ldate=15;       // "YYYYMMDD HHMMSS"
+  int   ldate=16;       // "YYYYMMDD HHMMSS\0"
   unsigned long unixPrev=alphaDateToUnix(prev,false,true);
   unsigned long unixBeg=unixNow-unixPrev;
 
@@ -1304,10 +1322,10 @@ int scalcTh(const char* endDate,char* dhasc,const char* prev)           // maj t
 
   //Serial.print(unixNow);Serial.print(" ");Serial.print(thermoPrev);Serial.print(" ");Serial.print(unixPrev);Serial.print(" ");Serial.println(unixBeg);
   
-  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){return SDKO;}
+  if(sdOpen("fdhisto.txt",&fhisto)==SDKO){Serial.println("sdOpen fdhisto KO");return SDKO;}
 
   long histoSiz=fhisto.size();
-  long searchStep=100000;
+  long searchStep=100000; // devrait etre un param de config
   long ptr=0,curpos=histoSiz;
   fhisto.seek(curpos);
   long pos=fhisto.position();  
@@ -1325,21 +1343,28 @@ int scalcTh(const char* endDate,char* dhasc,const char* prev)           // maj t
   
   char etat='0';
 
+  trigwd();
+
+  // 1) recule jusqu'à date < dhasc
   while(curpos>0 && !fini){
-    curpos-=searchStep;if(curpos<0){curpos=0;break;}
+    curpos-=searchStep;if(curpos<0){curpos=0;etat=5;break;}
     ptr=curpos;
     fhisto.seek(curpos);
     //Serial.print("W ");
     inch1='\0';
+    // 1.1 search \n pour positionnement sur début ligne
     while(inch1!='\n'){inch1=fhisto.read();//Serial.print(inch1);
           ptr++;}
+    // 1.2 anomalie searchStep char lus sans \n 
     if(ptr>=(curpos+searchStep)){fini=true;etat='1';break;}                                                                        
+    // 1.3 get date dans buf
     for(pt=0;pt<ldate;pt++){buf[pt]=fhisto.read();}
     //buf[ldate]='\0';Serial.println(buf);                           // '\n' trouvé : get date
-    
+    // 1.4 trouvé date =
     if(memcmp(buf,dhasc,ldate)==0){fini=true;etat='2';break;}                                // ptr sur début ligne
+    // 1.5 trouvé date <
     if(memcmp(buf,dhasc,ldate)<0){                                            // si la date trouvée est < chercher >= sinon reculer                                                                 
-    
+      // 1.5a continue lecture jusqu'à date >= ou rien trouvé
       while(!fini){
         fhisto.seek(ptr);
         //Serial.print("w ");
@@ -1351,13 +1376,25 @@ int scalcTh(const char* endDate,char* dhasc,const char* prev)           // maj t
         for(pt=0;pt<ldate;pt++){buf[pt]=fhisto.read();}                       // '\n' trouvé : get date
         //buf[ldate]='\0';Serial.println(buf);
         if(memcmp(buf,dhasc,ldate)>=0){                                       // si la date trouvé est >= ok sinon continuer
-          fini=VRAI;etat='4';                                                          // ptr ok ; pt ok commencer l'acquisition
+          fini=VRAI;etat='4';                                                 // ptr ok ; pt ok commencer l'acquisition
         }
       }
     }
+    // fini etat 1 anomalie pas de \n dans les searchStep char avant la fin du fichier
+    // fini etat 2 trouvé (date =)
+    // fini etat 3 anomalie pas trouvé date >= 
+    // fini etat 4 trouvé (date >= après avoir trouvé date <)
+    // sinon trouvé date > donc reculer
+    // etat 5 rien trouvé, début du fichier
+    trigwd(); 
   }
+  
+
+  trigwd();
   fhisto.seek(ptr);
-  Serial.print("--- fin recherche état ");Serial.print(etat);Serial.print(" ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
+  Serial.print("--- fin recherche état ");Serial.print(etat);
+  if(etat=='4'){buf[15]='\0';Serial.print(" cur date=");Serial.print(buf);}
+  Serial.print(" ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
   //char c='\0';while(c!='\n'){c=fhisto.read();Serial.print(c);}
 
 /* --- init ptrs et th min/max --- */
@@ -1389,10 +1426,14 @@ int scalcTh(const char* endDate,char* dhasc,const char* prev)           // maj t
   int16_t th_;
   uint8_t np_;
   int ldata=0,nbli=0,nbth=0;
+  long poswd=ptr;
+  long wdStep=100000; // devrait etre un param de config
                                                                          // acquisition
   fhisto.seek(ptr-ldate);                                                // sur début enregistrement
   fini=FAUX;
   while(ptr<pos){
+
+    if((poswd+wdStep)<ptr){trigwd();poswd+=wdStep;}
 
     pt=0;
     inch1='\0';

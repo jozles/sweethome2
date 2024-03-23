@@ -426,8 +426,9 @@ unsigned long alphaDateToUnix(const char* tim,bool onlyHours,bool print)
   conv_atobl(tim+12,&buf,2);seconde=buf;
 
   if(print){
-    Serial.print(year);Serial.print(" ");Serial.print(month);Serial.print(" ");Serial.println(day);
-    Serial.print(hour);Serial.print(" ");Serial.print(minute);Serial.print(" ");Serial.println(seconde);}
+    Serial.print(" alphaDateToUnix ");
+    Serial.print(year);Serial.print("/");Serial.print(month);Serial.print("/");Serial.print(day);Serial.print(" ");
+    Serial.print(hour);Serial.print(":");Serial.print(minute);Serial.print(":");Serial.println(seconde);}
 
   return genUnixDate(&year,&month,&day,&hour,&minute,&seconde);
 }
