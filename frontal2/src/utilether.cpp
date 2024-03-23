@@ -21,8 +21,10 @@ extern char* usrnames;
 extern char* usrpass;
 
 
-SdFat32 sd32;
-#define error(s) sd32.errorHalt(&Serial, F(s))
+//SdFat32 sd;
+SdFat sd;
+//SdExFat sd;
+#define error(s) sd.errorHalt(&Serial, F(s))
 
 uint32_t sdopenFail=0;
 const uint8_t SD_CS_PIN = 4;
@@ -57,7 +59,8 @@ extern uint16_t*  perifPort;
 extern char*      mailToAddr1;
 extern uint16_t*  periMail1;
 
-extern File32 fhisto;           // fichier histo sd card
+//extern File32 fhisto;           // fichier histo sd card
+extern SdFile fhisto;           // fichier histo sd card
 extern long   fhsize;           // remplissage fhisto
 
 extern "C" {
@@ -164,22 +167,34 @@ void mail(const char* a, const char* mm)
   }
 }
 
-void sdRemove(const char* fname,File32* file32)
+/* --------------------------- SD card ------------------------------- */
+
+/*void sdRemove(const char* fname,File32* file32)
 {
-  file32->remove(fname);
-  mail("REMOVE ",fname);
+  if(file32->remove(fname)){
+  mail("REMOVE ",fname);}
+  else {Serial.print("remove ");Serial.print(fname);Serial.println(" fail");}
+}
+*/
+void sdRemove(const char* fname,SdFile* file)
+{
+  if(file->remove(fname)){
+  mail("REMOVE ",fname);}
+  else {Serial.print("remove ");Serial.print(fname);Serial.println(" fail");}
 }
 
-int sdOpen(const char* fname,File32* file32)
+//int sdOpen(const char* fname,File32* file32)
+int sdOpen(const char* fname,SdFile* file)
 {
-  return sdOpen(fname,file32," ");
+  return sdOpen(fname,file," ");
 }
 
-int sdOpen(const char* fname,File32* file32,const char* txt)
+//int sdOpen(const char* fname,File32* file32,const char* txt)
+int sdOpen(const char* fname,SdFile* file,const char* txt)
 {
   sdopenFail++;
   //Serial.print(">====>");Serial.print(sdopenFail);Serial.print(" sdOpen ");Serial.print(fname);
-  if (!file32->open(fname, O_RDWR | O_CREAT)) {
+  if (!file->open(fname, O_RDWR | O_CREAT)) {
     //Serial.println(" ko");
     char mess[LMAILMESS];
     sprintf(mess,"%.6lu",sdopenFail);
@@ -200,6 +215,142 @@ int sdOpen(const char* fname,File32* file32,const char* txt)
   return SDOK;
 }
 
+void cidDmp() {
+  cid_t cid;
+  if (!sd.card()->readCID(&cid)) {error("readCID failed");
+  }
+  Serial.print(" Manufacturer ID: ");Serial.print(int(cid.mid),HEX);
+  Serial.print(" OEM ID: ");Serial.print(cid.oid[0]);Serial.println(cid.oid[1]);
+  Serial.print(" Product: ");
+  for (uint8_t i = 0; i < 5; i++) {Serial.print(cid.pnm[i]);}
+  Serial.print(" Version: ");Serial.print(int(cid.prv_n));Serial.print(".");Serial.println(int(cid.prv_m));
+  Serial.print(" Serial number: ");Serial.println(cid.psn,HEX);
+  Serial.print(" Manufacturing date: ");Serial.print(int(cid.mdt_month));Serial.print('/');
+  Serial.println((2000 + cid.mdt_year_low + 10 * cid.mdt_year_high));
+  Serial.println();
+}
+
+void sdInit()
+{
+  Serial.print("SDFAT_FILE_TYPE ");Serial.print(SDFAT_FILE_TYPE);Serial.print(" ");
+  if (!sd.begin(SD_CONFIG)) {
+    mail("SD_INIT_ERROR_HALT","");
+    Serial.println("SD_INIT_ERROR_HALT");
+    while(1){trigwd();}
+    sd.initErrorHalt(&Serial);
+  }
+
+  //Serial.print("\nSD TYPE");Serial.print((int)sd.fatType());
+
+  uint32_t size = sd.card()->sectorCount();
+  if (size == 0) {
+    Serial.print("\nCan't determine the card size.\n");
+    Serial.print("Try another SD card or reduce the SPI bus speed.\n");
+    Serial.print("Edit SPI_SPEED in this program to change it.\n");
+    mail("SD_INIT_SIZE_HALTED","");
+    while(1){trigwd();delay(1000);}
+  }
+
+  uint32_t sizeMB = 0.000512 * size + 0.5;
+  Serial.print(" Card size: ");Serial.print(sizeMB);
+  Serial.println(" MB (MB = 1,000,000 bytes)");
+  
+  Serial.print(" Cluster size (bytes): ");Serial.println(sd.vol()->bytesPerCluster());
+
+  cidDmp();
+}
+
+//------------------------------ format ------------------------------------------------
+
+void clearSerialInput() {
+  uint32_t m = micros();
+  do {
+    if (Serial.read() >= 0) {
+      m = micros();
+    }
+  } while (micros() - m < 10000);
+}
+
+void errorHalt() {
+  sd.printSdError(&Serial);
+  SysCall::halt();
+}
+
+void sdExfatFormat()
+{
+  // Force exFAT formatting for all SD cards larger than 512MB.
+/*
+  Change the value of SD_CS_PIN if you are using SPI and
+  your hardware does not use the default value, SS.
+  Common values are:
+  Arduino Ethernet shield: pin 4
+  Sparkfun SD shield: pin 8
+  Adafruit SD shields and modules: pin 10
+*/
+
+// SDCARD_SS_PIN is defined for the built-in SD on some boards.
+//#ifndef SDCARD_SS_PIN
+//const uint8_t SD_CS_PIN = SS;
+//#else  // SDCARD_SS_PIN
+// Assume built-in SD is used.
+//const uint8_t SD_CS_PIN = SDCARD_SS_PIN;
+//#endif  // SDCARD_SS_PIN
+
+// Select fastest interface.
+//#if HAS_SDIO_CLASS
+// SD config for Teensy 3.6 SDIO.
+//#define SD_CONFIG SdioConfig(FIFO_SDIO)
+//#define SD_CONFIG SdioConfig(DMA_SDIO)
+//#elif ENABLE_DEDICATED_SPI
+//#define SD_CONFIG SdSpiConfig(SD_CS_PIN, DEDICATED_SPI)
+//#else  // HAS_SDIO_CLASS
+//#define SD_CONFIG SdSpiConfig(SD_CS_PIN, SHARED_SPI)
+//#endif  // HAS_SDIO_CLASS
+
+//#define error(s) (Serial.println(F(s)),errorHalt())
+
+//SdExFat sd;
+//------------------------------------------------------------------------------
+//void setup() {
+  //Serial.begin(9600);
+  while (!Serial) {}
+  Serial.println(F("Type any character to begin formatting"));
+
+  while (!Serial.available()) {
+    yield();trigwd();
+  }
+  clearSerialInput();
+  Serial.println();
+  Serial.println(F(
+    "Your SD will be formated exFAT.\r\n"
+    "All data on the SD will be lost.\r\n"
+    "Type 'Y' to continue.\r\n"));
+
+  while (!Serial.available()) {
+    yield();trigwd();
+  }
+  if (Serial.read() != 'Y') {
+    Serial.println(F("Exiting, 'Y' not typed."));
+    return;
+  }
+  if (!sd.cardBegin(SD_CONFIG)) {
+    error("cardBegin failed");
+  }
+ // if(!sd.format(&Serial))    // utiliser SdExFat sd; 
+  {
+    error("format failed");
+  }
+  if (!sd.volumeBegin()) {
+    error("volumeBegin failed");
+  }
+  Serial.print(F("Bytes per cluster: "));
+  Serial.println(sd.bytesPerCluster());
+  Serial.println(F("Done"));
+//}
+}
+
+/* ---------------------------------------------------------------- */
+
 char* alphaDate()
 {
   ds3231.getDate(&hms,&amj,&js,strdate);
@@ -216,7 +367,7 @@ char* alphaDate()
 void histoStore_textdh0(const char* val1,const char* val2,const char* val3)
 {
   #define LT 40
-  char text[LT];
+  char text[LT];memset(text,0,LT);
   int v,w;
 
         sprintf(text,"%.8lu",amj);text[8]=' ';              // 9
@@ -224,11 +375,17 @@ void histoStore_textdh0(const char* val1,const char* val2,const char* val3)
         sprintf(text+16,"%.6lu",sdopenFail);text[22]=' ';   // +7
         text[23]='\0';                                      // +1
         if(strlen(val1)+strlen(text)+1<LT){strcat(text,val1);strcat(text," ");}
-        if(strlen(val2)+strlen(text)+1<LT){strcat(text,val2);}      
+        if(strlen(val2)+strlen(text)+1<LT){strcat(text,val2);}     
+
+        //Serial.print("\n histo store ");Serial.print(text);Serial.print(" | ");Serial.println(val3);
           
         if(sdOpen("fdhisto.txt",&fhisto)){  // si ko mail dans sdOpen
           fhisto.seekEnd(0);
-          v=fhisto.write(text);w=fhisto.write(val3);
+          //v=fhisto.write(text);w=fhisto.write(val3);
+          uint16_t kk;
+          v=1;kk=0;while(text[kk]!='\0' && kk<LT){v=fhisto.write(text[kk]);kk++;}
+          w=1;kk=0;while(val3[kk]!='\0' && kk<1000){w=fhisto.write(val3[kk]);kk++;}
+          if(val3[kk]!='\0'){w=fhisto.write('\0');}
           if(v==0 || w==0){mail("fdhisto_store_ko"," ");}   // ledblink(BCODEFHISTO);}
           fhisto.sync();
           fhsize=fhisto.size();
@@ -240,51 +397,6 @@ void histoStore_textdh(const char* val1,const char* val2,const char* val3)
 {
   ds3231.getDate(&hms,&amj,&js,strdate);
   histoStore_textdh0(val1,val2,val3);
-}
-
-
-void cidDmp() {
-  cid_t cid;
-  if (!sd32.card()->readCID(&cid)) {error("readCID failed");
-  }
-  Serial.print(" Manufacturer ID: ");Serial.print(int(cid.mid),HEX);
-  Serial.print(" OEM ID: ");Serial.print(cid.oid[0]);Serial.println(cid.oid[1]);
-  Serial.print(" Product: ");
-  for (uint8_t i = 0; i < 5; i++) {Serial.print(cid.pnm[i]);}
-  Serial.print(" Version: ");Serial.print(int(cid.prv_n));Serial.print(".");Serial.println(int(cid.prv_m));
-  Serial.print(" Serial number: ");Serial.println(cid.psn,HEX);
-  Serial.print(" Manufacturing date: ");Serial.print(int(cid.mdt_month));Serial.print('/');
-  Serial.println((2000 + cid.mdt_year_low + 10 * cid.mdt_year_high));
-  Serial.println();
-}
-
-void sdInit()
-{
-  if (!sd32.begin(SD_CONFIG)) {
-    mail("SD_INIT_ERROR_HALT","");
-    Serial.println("SD_INIT_ERROR_HALT");
-    while(1){trigwd();}
-    sd32.initErrorHalt(&Serial);
-  }
-
-  Serial.print("\nSD FAT");Serial.print((int)sd32.fatType());
-
-  uint32_t size = sd32.card()->sectorCount();
-  if (size == 0) {
-    Serial.print("\nCan't determine the card size.\n");
-    Serial.print("Try another SD card or reduce the SPI bus speed.\n");
-    Serial.print("Edit SPI_SPEED in this program to change it.\n");
-    mail("SD_INIT_SIZE_HALTED","");
-    while(1){trigwd();delay(1000);}
-  }
-
-  uint32_t sizeMB = 0.000512 * size + 0.5;
-  Serial.print(" Card size: ");Serial.print(sizeMB);
-  Serial.println(" MB (MB = 1,000,000 bytes)");
-  //Serial.print("Volume is FAT");Serial.print((int)(sd32.vol()->fatType()));
-  Serial.print(" Cluster size (bytes): ");Serial.println(sd32.vol()->bytesPerCluster());
-
-  cidDmp();
 }
 
 /*

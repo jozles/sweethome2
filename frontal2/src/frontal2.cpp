@@ -565,7 +565,10 @@ pinMode(16,OUTPUT);pinMode(17,OUTPUT); // timing spi sd et w5100 voir spi.cpp
 //periConvert();
 //periMaintenance();
 
+  //sdExfatFormat();
   sdInit();
+  //extern SdFile fhisto;sdRemove("fdhisto.txt",&fhisto);
+  //while(1){}
 
   configInit();configLoad();//configSave();
   configPrint();

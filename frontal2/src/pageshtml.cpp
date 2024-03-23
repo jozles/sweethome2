@@ -68,9 +68,12 @@ extern uint8_t*   periSwSta;                    // ptr ds buffer : état des swi
 
 extern byte       periMacBuf[MACADDRLENGTH]; 
 
-File32 fhisto;            // fichier histo sd card
-File32 fimg;              // fichier image
-File32 fhtml;             // fichiers pages html
+//File32 fhisto;            // fichier histo sd card
+SdFile fhisto;            // fichier histo sd card
+//File32 fimg;              // fichier image
+SdFile fimg;              // fichier image
+//File32 fhtml;             // fichiers pages html
+SdFile fhtml;             // fichiers pages html
 
 extern uint16_t   perrefr;
 extern long       fhsize;           // remplissage fhisto

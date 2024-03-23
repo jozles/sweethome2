@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8j"
+#define NVERS ".8k"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -173,7 +173,8 @@
    1.8j 32 périfs, ajout variable periAnalOut ; agrandissement record perif -> 448 (40 dispo) ; 
         ajout variable periUdpPortNb pour periReq udp ; scanAnTimers fonctionne : 
         délai moyen 45sec avec refresh 30sec  sur dets ; 100mS pour timeout fin négo ethernet ;
-        ajout bit thermostat dans periCfg ; debug scalcTh
+        ajout bit thermostat dans periCfg ; 
+   1.8k SdFile remplace File32, SdFat remplace SdFat32, SDFAT_FILE_TYPE 3 ; debug dumphisto,scalcTh (en cours)
 
    BUGS : 
      

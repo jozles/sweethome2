@@ -10,10 +10,14 @@ int  ethWrite(EthernetClient* cli,char* buf,uint16_t* lb);
 int  ethWrite(EthernetClient* cli,char* buf,uint16_t* lb,long len);
 void mail(const char* a, const char* mm);
 void mailInit(char* login,char* pass);
-int  sdOpen(const char* fname,File32* file32);
-int  sdOpen(const char* fname,File32* file32,const char* txt);
-void sdRemove(const char* fname,File32* file32);
+//int  sdOpen(const char* fname,File32* file32);
+int  sdOpen(const char* fname,SdFile* file32);
+//int  sdOpen(const char* fname,File32* file32,const char* txt);
+int  sdOpen(const char* fname,SdFile* file32,const char* txt);
+//void sdRemove(const char* fname,File32* file32);
+void sdRemove(const char* fname,SdFile* file);
 void sdInit();
+void sdExfatFormat();
 
 void histoStore_textdh(const char* val1,const char* val2,const char* val3);  // getdate()
 void histoStore_textdh0(const char* val1,const char* val2,const char* val3);
