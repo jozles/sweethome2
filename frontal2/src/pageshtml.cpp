@@ -81,7 +81,7 @@ FsFile fhtml;             // fichiers pages html
 extern uint16_t   perrefr;
 extern long       fhsize;           // remplissage fhisto
 extern uint32_t   histoPos;
-extern uint32_t   histoPeri;
+extern uint16_t   histoPeri;
 extern char       histoDh[LDATEA];
 extern char       strHisto[RECCHAR];
 
@@ -193,7 +193,7 @@ void htmlFavicon(EthernetClient* cli)
 
 void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,uint16_t* lb)   // liste le fichier histo depuis une adresse
 {
-  scrDspNum(buf,jsbuf,'l',&histoPeri,0,0,0);affSpace(buf,jsbuf);
+  scrDspNum(buf,jsbuf,'d',&histoPeri,0,0,0);affSpace(buf,jsbuf);
   scrDspNum(buf,jsbuf,'l',&pos,0,0,0);scrDspText(buf,jsbuf,"/",0,STRING|CONCAT|TDBEG);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,BRYES);
   strcat(buf,"\n");
 
@@ -228,6 +228,42 @@ void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,u
   }
 }
 
+void getPerif(uint16_t perif,long* pos)   // pos en début de ligne, retour sur le début de ligne du périf 
+{
+  long localPos=*pos;
+  uint16_t localPerif;
+  char a='0';
+  #define LBB 6
+  char bbuf[LBB];bbuf[LBB-1]='\0';
+  bool fini=false;
+  long fhs=fhsize-1;
+  while(!fini){
+    localPos+=25;fhisto.seek(localPos);
+    a='0';
+    while(a!='\n' && a!=';' && localPos<fhs){a=fhisto.read();localPos++;}
+    if(localPos>=fhs){fini=true;*pos=localPos;}
+    else if(a=='\n'){*pos=localPos;}
+    else {
+      a='0';
+      while(a!='\n' && a!='_' && localPos<fhs){a=fhisto.read();localPos++;}
+      if(localPos>=fhs){fini=true;*pos=localPos;}
+      else if(a=='\n'){*pos=localPos;}
+      else {
+        for(uint8_t bb=0;bb<LBB-2;bb++){bbuf[bb]=fhisto.read();localPos++;}
+        bbuf[LBB-2]='!';localPerif=0;conv_atob(bbuf,&localPerif);
+        //Serial.print(perif);Serial.print(' ');Serial.print(bbuf);Serial.print(' ');Serial.println(localPerif);
+        if(localPerif==perif){fini=true;}
+        else {
+          a='0';
+          while(a!='\n' && localPos<fhs){a=fhisto.read();localPos++;}
+          if(localPos>=fhs){fini=true;}
+          *pos=localPos;
+        }
+      }
+    }
+  }
+}
+
 void dumpHisto(EthernetClient* cli)
 {
   Serial.print(" dump histo ");
@@ -256,9 +292,18 @@ void dumpHisto(EthernetClient* cli)
 // ------------------------------------------------------------- header end
   trigwd();
 
-  scrDspText(buf,jsbuf,"histoSD ",0,0);
   if(sdOpen("fdhisto.txt",&fhisto)==SDKO){scrDspText(buf,jsbuf,"fdhisto KO",0,0);return;}
   fhsize=fhisto.size();Serial.print("fhsize=");Serial.print(fhsize);Serial.print(" pos=");Serial.println(pos);
+
+  scrDspText(buf,jsbuf,"histoSD size=",0,0);
+  scrDspNum(buf,jsbuf,'l',&fhsize,0,0,0);
+  scrDspText(buf,jsbuf," pos=",0,0);
+  scrDspNum(buf,jsbuf,'l',&pos,0,0,0);
+  scrDspText(buf,jsbuf," date deb",0,0);
+  histoDh[9]='\0';
+  scrDspText(buf,jsbuf,histoDh,0,0);
+  scrDspText(buf,jsbuf," peri=",0,0);
+  scrDspNum(buf,jsbuf,'d',&histoPeri,0,0,BRYES);
 
   if(histoDh[0]=='2'){
     shDateHist(histoDh,&pos);
@@ -269,9 +314,10 @@ void dumpHisto(EthernetClient* cli)
     while(pos<fhsize){
       trigwd();
       char a=fhisto.read();pos++;Serial.print(a);
-      if(a=='\n'){Serial.println();break;}
+      if(a=='\n'){break;}
     }
   }
+  if(histoPeri!=0){getPerif(histoPeri,&pos);} // recherche 1ère ligne avec périf ok
   Serial.print(" pos=");Serial.println(pos);
 
   ethWrite(cli,buf,&lb);
@@ -279,8 +325,9 @@ void dumpHisto(EthernetClient* cli)
   #define LPP 1000
   char aa[LPP];
   long oldpos=pos;
-  fhisto.seek(pos);
+  
   while(pos<fhsize-1){
+    fhisto.seek(pos);
     for(uint16_t pp=0;pp<LPP-1;pp++){
       aa[pp]=fhisto.read();pos++;Serial.print(aa[pp]);
       if(aa[pp]=='\n'){Serial.println();aa[pp+1]='\0';break;}
@@ -288,6 +335,7 @@ void dumpHisto(EthernetClient* cli)
     scrDspText(buf,jsbuf,aa,0,0);
     ethWrite(cli,buf,&lb);
     if((oldpos+10000)<pos){trigwd();oldpos+=10000;}
+    if(histoPeri!=0){getPerif(histoPeri,&pos);} // recherche 1ère ligne avec périf ok
   }
   //dumpHisto0(cli,buf,jsbuf,pos,lb0,&lb);
   fhisto.close();

@@ -412,7 +412,7 @@ byte js=0;
 uint32_t amj=0, hms=0;
 
 uint32_t histoPos=0;        // SD current pos. pour dump
-uint32_t histoPeri=0;       // SD selected perif
+uint16_t histoPeri=0;       // SD selected perif
 char histoDh[LDATEA]={'\0'};   // SD dh pour dump
 
 int   i=0,j=0;
@@ -2006,7 +2006,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
               case 11: {what=2;byte a=*(libfonctions+2*i);                                          // (en-tete peritable) saisie histo pos/histo dh pour dump
                         switch(a){ 
                           case 'D':memcpy(histoDh,valf,LDATEA-2);if(histoDh[8]==0x2B){histoDh[8]=0x20;}break;  // saisie date/heure au format "AAAAMMDD HHMMSS"
-                          case 'P':histoPeri=0;conv_atobl(valf,&histoPeri);                         // saisie péri
+                          case 'P':histoPeri=0;conv_atob(valf,&histoPeri);                         // saisie péri
                                    if(histoPeri>NBPERIF){histoPeri=0;}break;
                           default:histoPos=0;conv_atobl(valf,&histoPos);break;                      // saisie position
                         }
