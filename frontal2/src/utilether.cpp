@@ -22,8 +22,8 @@ extern char* usrpass;
 
 
 //SdFat32 sd;
-SdFat sd;
-//SdExFat sd;
+//SdFat sd;
+SdFs sd;
 #define error(s) sd.errorHalt(&Serial, F(s))
 
 uint32_t sdopenFail=0;
@@ -59,8 +59,9 @@ extern uint16_t*  perifPort;
 extern char*      mailToAddr1;
 extern uint16_t*  periMail1;
 
-//extern File32 fhisto;           // fichier histo sd card
-extern SdFile fhisto;           // fichier histo sd card
+//File32 fhisto;           // fichier histo sd card
+//SdFile fhisto;           // fichier histo sd card
+FsFile fhisto;
 extern long   fhsize;           // remplissage fhisto
 
 extern "C" {
@@ -176,7 +177,8 @@ void mail(const char* a, const char* mm)
   else {Serial.print("remove ");Serial.print(fname);Serial.println(" fail");}
 }
 */
-void sdRemove(const char* fname,SdFile* file)
+//void sdRemove(const char* fname,SdFile* file)
+void sdRemove(const char* fname,FsFile* file)
 {
   if(file->remove(fname)){
   mail("REMOVE ",fname);}
@@ -184,13 +186,15 @@ void sdRemove(const char* fname,SdFile* file)
 }
 
 //int sdOpen(const char* fname,File32* file32)
-int sdOpen(const char* fname,SdFile* file)
+//int sdOpen(const char* fname,SdFile* file)
+int sdOpen(const char* fname,FsFile* file)
 {
   return sdOpen(fname,file," ");
 }
 
 //int sdOpen(const char* fname,File32* file32,const char* txt)
-int sdOpen(const char* fname,SdFile* file,const char* txt)
+//int sdOpen(const char* fname,SdFile* file,const char* txt)
+int sdOpen(const char* fname,FsFile* file,const char* txt)
 {
   sdopenFail++;
   //Serial.print(">====>");Serial.print(sdopenFail);Serial.print(" sdOpen ");Serial.print(fname);
@@ -381,11 +385,12 @@ void histoStore_textdh0(const char* val1,const char* val2,const char* val3)
           
         if(sdOpen("fdhisto.txt",&fhisto)){  // si ko mail dans sdOpen
           fhisto.seekEnd(0);
-          //v=fhisto.write(text);w=fhisto.write(val3);
-          uint16_t kk;
+          v=fhisto.write((const void*)text,strlen(text));w=fhisto.write((const void*)val3,strlen(val3));
+          /*uint16_t kk;
           v=1;kk=0;while(text[kk]!='\0' && kk<LT){v=fhisto.write(text[kk]);kk++;}
           w=1;kk=0;while(val3[kk]!='\0' && kk<1000){w=fhisto.write(val3[kk]);kk++;}
           if(val3[kk]!='\0'){w=fhisto.write('\0');}
+          */
           if(v==0 || w==0){mail("fdhisto_store_ko"," ");}   // ledblink(BCODEFHISTO);}
           fhisto.sync();
           fhsize=fhisto.size();

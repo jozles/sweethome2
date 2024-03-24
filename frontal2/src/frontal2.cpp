@@ -151,7 +151,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
   uint8_t scanCnt=0;
 
 #define HTTPCDLENGTH 6
-  const char*   httpCdes="GET   POST  \0";       // commandes traitées par le serveur
+  const char*   httpCdes="GET   POST  \0";   // commandes traitées par le serveur
   char          strHisto[RECCHAR]={0};       // buffer enregistrement histo SD
   const char*   strHistoEnd="<br>\r\n\0";
   char          buf[12];

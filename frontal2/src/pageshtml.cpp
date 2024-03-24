@@ -68,12 +68,15 @@ extern uint8_t*   periSwSta;                    // ptr ds buffer : état des swi
 
 extern byte       periMacBuf[MACADDRLENGTH]; 
 
-//File32 fhisto;            // fichier histo sd card
-SdFile fhisto;            // fichier histo sd card
+//extern File32 fhisto;            // fichier histo sd card
+//extern SdFile fhisto;            // fichier histo sd card
+extern FsFile fhisto;            // fichier histo sd card
 //File32 fimg;              // fichier image
-SdFile fimg;              // fichier image
+//SdFile fimg;              // fichier image
+FsFile fimg;              // fichier image
 //File32 fhtml;             // fichiers pages html
-SdFile fhtml;             // fichiers pages html
+//SdFile fhtml;             // fichiers pages html
+FsFile fhtml;             // fichiers pages html
 
 extern uint16_t   perrefr;
 extern long       fhsize;           // remplissage fhisto
@@ -201,7 +204,7 @@ void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,u
   uint32_t linePeri=0;
   char* linePeriPtr;
   uint16_t linePtr=0;
-  long totalRead=0;
+  long  totalRead=0;
 
   fhisto.seek(pos);
 
@@ -356,7 +359,7 @@ void shDicDateHist(char* dhasc,long* but)
   bool fini=FAUX;
   uint8_t pt,v;
   uint8_t ldate=LDATEA-2;
-  int miniL=50; // ???
+  long miniL=50; // ???
 
 /* recherche dichotomique de la date */
 
@@ -1396,7 +1399,7 @@ int scalcTh(const char* endDate,char* dhasc,const char* prev)           // maj t
   trigwd();
   fhisto.seek(ptr);
   Serial.print("--- fin recherche état ");Serial.print(etat);
-  if(etat=='4'){buf[15]='\0';Serial.print(" cur date=");Serial.print(buf);}
+  if(etat=='4' || etat=='2'){buf[15]='\0';Serial.print(" cur date=");Serial.print(buf);}
   Serial.print(" ptr=");Serial.print(ptr);Serial.print(" millis=");Serial.println(millis()-t0);
   //char c='\0';while(c!='\n'){c=fhisto.read();Serial.print(c);}
 

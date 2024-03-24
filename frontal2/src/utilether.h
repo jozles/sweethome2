@@ -11,11 +11,14 @@ int  ethWrite(EthernetClient* cli,char* buf,uint16_t* lb,long len);
 void mail(const char* a, const char* mm);
 void mailInit(char* login,char* pass);
 //int  sdOpen(const char* fname,File32* file32);
-int  sdOpen(const char* fname,SdFile* file32);
+//int  sdOpen(const char* fname,SdFile* file);
+int  sdOpen(const char* fname,FsFile* file);
 //int  sdOpen(const char* fname,File32* file32,const char* txt);
-int  sdOpen(const char* fname,SdFile* file32,const char* txt);
+//int  sdOpen(const char* fname,SdFile* file,const char* txt);
+int  sdOpen(const char* fname,FsFile* file,const char* txt);
 //void sdRemove(const char* fname,File32* file32);
-void sdRemove(const char* fname,SdFile* file);
+//void sdRemove(const char* fname,SdFile* file);
+void sdRemove(const char* fname,FsFile* file);
 void sdInit();
 void sdExfatFormat();
 

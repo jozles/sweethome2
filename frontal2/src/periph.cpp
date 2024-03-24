@@ -13,7 +13,8 @@
 /* ---------- config ---------- */
 
 //File32 fconfig;     // fichier config
-SdFile fconfig;     // fichier config
+//SdFile fconfig;     // fichier config
+FsFile fconfig;     // fichier config
 
 extern char configRec[CONFIGRECLEN];
   
@@ -81,7 +82,8 @@ extern byte*      configEndOfRecord;
 /* ---------- périphériques ---------- */
 
 //File32 fperi;       // fichiers perif
-SdFile fperi;       // fichiers perif
+//SdFile fperi;       // fichiers perif
+FsFile fperi;       // fichiers perif
 
 extern char       periRec[PERIRECLEN];          // 1er buffer de l'enregistrement de périphérique
 extern char       periCache[PERIRECLEN*NBPERIF];   // cache des périphériques
@@ -158,7 +160,8 @@ extern char inpact[];                         // libellés actions
 /* ---------- remotes ----------  */
 
 //File32 fremote;     // fichier remotes
-SdFile fremote;     // fichier remotes
+//SdFile fremote;     // fichier remotes
+FsFile fremote;     // fichier remotes
 
 extern struct SwRemote remoteT[MAXREMLI];
 extern char*  remoteTA;
@@ -170,7 +173,8 @@ extern long   remoteNlen;
 /* ---------- Timers ---------- */
 
 //File32 ftimers;     // fichier timers
-SdFile ftimers;     // fichier timers
+//SdFile ftimers;     // fichier timers
+FsFile ftimers;     // fichier timers
 
 extern struct Timers timersN[NBTIMERS];
 extern char*  timersNA;
@@ -179,7 +183,8 @@ extern long   timersNlen;
 /* ------ analog timers -------- */
 
 //File32 fanTimers;   // fichier
-SdFile fanTimers;   // fichier
+//SdFile fanTimers;   // fichier
+FsFile fanTimers;   // fichier
 
 extern struct AnalTimers analTimers[NBANTIMERS];
 extern char*  anTimersA;
@@ -188,7 +193,8 @@ extern unsigned long   anTimersLen;
 /* ---------- Thermos ---------- */
 
 //File32 fthermos;    // fichier thermos
-SdFile fthermos;    // fichier thermos
+//SdFile fthermos;    // fichier thermos
+FsFile fthermos;    // fichier thermos
 
 extern struct Thermo thermos[NBTHERMOS];
 extern char*  thermosA;
@@ -197,7 +203,8 @@ extern long   thermoslen;
 /* ---------- détecteurs serveur ---------- */
 
 //File32 fmemdet;     // fichier détecteurs serveur
-SdFile fmemdet;     // fichier détecteurs serveur
+//SdFile fmemdet;     // fichier détecteurs serveur
+FsFile fmemdet;     // fichier détecteurs serveur
 
 extern char       libDetServ[NBDSRV][LENLIBDETSERV];
 extern uint16_t   sourceDetServ[];       // actionneurs (ssnnnnnn ss type 00, 01 perif, 10 remote, 11 timer / nnnnnn n°)
@@ -208,7 +215,9 @@ extern uint8_t    mDSmaskbit[];
 /* ---------- Memos ---------- */
 
 //File32 fmemos;      // fichier memos
-SdFile fmemos;      // fichier memos
+//SdFile fmemos;      // fichier memos
+FsFile fmemos;      // fichier memos
+
 extern char   memosTable[LMEMO*NBMEMOS];
 
 uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal vs N° conc 
@@ -679,7 +688,8 @@ int configSave(uint8_t addedLength)
         else {
           fconfig.seek(0);
           char a=0x00;
-          for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
+          //for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
+          fconfig.write(configRec,CONFIGRECLEN);
           for(i=0;i<addedLength;i++){fconfig.write(a);}
           fconfig.close();
           Serial.println(" create ok");
@@ -1094,7 +1104,8 @@ void periModification()
         Serial.println(" create failed");}
       else {
         fperi.seek(0);
-        for(int i=0;i<PERIRECLEN_NEW;i++){fperi.write(periRec_New[i]);}
+        //for(int i=0;i<PERIRECLEN_NEW;i++){fperi.write(periRec_New[i]);}
+        fperi.write(periRec_New,PERIRECLEN_NEW);
         fperi.close();
         Serial.println(" create ok");
       }
@@ -1707,7 +1718,8 @@ int remSave(const char* remF,uint16_t remL,const char* remA)
     Serial.print("Save ");Serial.print(remF);delay(10);
     if(sdOpen(remF,&fremote)==SDKO){Serial.println(" KO");return SDKO;}
     fremote.seek(0);
-    for(uint16_t i=0;i<remL;i++){fremote.write(*(remA+i));}
+    //for(uint16_t i=0;i<remL;i++){fremote.write(*(remA+i));}
+    fremote.write(remA,remL);
     fremote.close();Serial.println(" OK");
     return SDOK;
 }
@@ -1945,7 +1957,8 @@ int timersSave()
     Serial.print("Save timers ");
     if(sdOpen(TIMERSNFNAME,&ftimers)==SDKO){Serial.println(" KO");return SDKO;}
     ftimers.seek(0);
-    for(uint16_t i=0;i<timersNlen;i++){ftimers.write(*(timersNA+i));}             
+    //for(uint16_t i=0;i<timersNlen;i++){ftimers.write(*(timersNA+i));}             
+    ftimers.write(timersNA,timersNlen);
     ftimers.close();Serial.println(" OK");
     return SDOK;
 }
@@ -2039,7 +2052,8 @@ int anTimersSave()
     unsigned long antmicros=micros();Serial.print(" Save analog timers ");
     if(sdOpen(ANTIMERSFNAME,&fanTimers)==SDKO){Serial.println(" KO");return SDKO;}
     fanTimers.seek(0);
-    for(uint16_t i=0;i<anTimersLen;i++){fanTimers.write(*(anTimersA+i));}             
+    //for(uint16_t i=0;i<anTimersLen;i++){fanTimers.write(*(anTimersA+i));}             
+    fanTimers.write(anTimersA,anTimersLen);
     fanTimers.close();Serial.print(" OK micros:");Serial.println(micros()-antmicros);
     //dumpstr(anTimersA,anTimersLen);
     return SDOK;
@@ -2139,7 +2153,8 @@ int thermosSave()
     Serial.print("Save thermos ");
     if(sdOpen(THERMOSFNAME,&fthermos)==SDKO){Serial.println(" KO");return SDKO;}
     fthermos.seek(0);
-    for(uint16_t i=0;i<thermoslen;i++){fthermos.write(*(thermosA+i));}             
+    //for(uint16_t i=0;i<thermoslen;i++){fthermos.write(*(thermosA+i));}           
+    fthermos.write(thermosA,thermoslen);
     fthermos.close();Serial.println(" OK");
     return SDOK;
 }
@@ -2169,10 +2184,13 @@ int memDetSave()
     if(sdOpen(MEMDETFNAME,&fmemdet)==SDKO){Serial.println(" KO");return SDKO;}
     
     fmemdet.seek(0);
-    for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(memDetServ[i]);}
-    for(uint8_t i=0;i<NBDSRV;i++){
-      for(uint8_t j=0;j<LENLIBDETSERV;j++){fmemdet.write(libDetServ[i][j]);}}
-    for(uint8_t i=0;i<NBDSRV;i++){fmemdet.write(sourceDetServ[i]);}
+    //for(uint8_t i=0;i<MDSLEN;i++){fmemdet.write(memDetServ[i]);}
+    fmemdet.write(memDetServ,MDSLEN);
+    //for(uint8_t i=0;i<NBDSRV;i++){
+      //for(uint8_t j=0;j<LENLIBDETSERV;j++){fmemdet.write(libDetServ[i][j]);}}
+    fmemdet.write(libDetServ,NBDSRV*LENLIBDETSERV);
+    //for(uint8_t i=0;i<NBDSRV;i++){fmemdet.write(sourceDetServ[i]);}
+    fmemdet.write(sourceDetServ,NBDSRV);
     
     fmemdet.close();Serial.println(" OK");
     return SDOK;  
@@ -2275,17 +2293,20 @@ int memosFind()                 // return -1 full
     return m;
 }
 
-int memosSave(int m)        // si <0 tout le fichier
+int memosSave(int m)        // si m<0 tout le fichier
 {
     Serial.print("Save Memos ");
     if(sdOpen(MEMOSFNAME,&fmemos)==SDKO){Serial.println(" KO");return SDKO;}
     if(m<0){
       fmemos.seek(0);
-      for(uint16_t i=0;i<LMEMO*NBMEMOS;i++){fmemos.write(memosTable[i]);}}
-    //else {fmemos.seek(m*LMEMO);fmemos.write(memosTable+m*LMEMO);}
+      //for(uint16_t i=0;i<LMEMO*NBMEMOS;i++){fmemos.write(memosTable[i]);}}
+      fmemos.write(memosTable,LMEMO*NBMEMOS);}
+    else {fmemos.seek(m*LMEMO);fmemos.write((const void*)(memosTable+m*LMEMO),LMEMO);}
+    /*
     else {fmemos.seek(m*LMEMO);
     uint8_t kk=0;
     while(*(memosTable+m*LMEMO+kk)!='\0' && kk<255){fmemos.write(*(memosTable+m*LMEMO+kk));kk++;}}
+    */
     fmemos.close();Serial.println(" OK");
     return SDOK;  
 }

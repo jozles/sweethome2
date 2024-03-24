@@ -174,7 +174,8 @@
         ajout variable periUdpPortNb pour periReq udp ; scanAnTimers fonctionne : 
         délai moyen 45sec avec refresh 30sec  sur dets ; 100mS pour timeout fin négo ethernet ;
         ajout bit thermostat dans periCfg ; 
-   1.8k SdFile remplace File32, SdFat remplace SdFat32, SDFAT_FILE_TYPE 3 ; debug dumphisto,scalcTh (en cours)
+   1.8k pour compatibilité exfat : FsFile remplace File32, SdFs remplace SdFat32, SDFAT_FILE_TYPE 3 ; 
+        debug dumphisto,scalcTh (en cours)
 
    BUGS : 
      
