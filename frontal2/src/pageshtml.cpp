@@ -228,7 +228,7 @@ void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,u
   }
 }
 
-void getPerif(uint16_t perif,long* pos)   // pos en début de ligne, retour sur le début de ligne du périf 
+void getPerif(uint16_t perif,long* pos,long* oldpos)   // pos en début de ligne, retour sur le début de ligne du périf 
 {
   long localPos=*pos;
   uint16_t localPerif;
@@ -238,28 +238,37 @@ void getPerif(uint16_t perif,long* pos)   // pos en début de ligne, retour sur 
   bool fini=false;
   long fhs=fhsize-1;
   while(!fini){
-    localPos+=25;fhisto.seek(localPos);
-    a='0';
-    while(a!='\n' && a!=';' && localPos<fhs){a=fhisto.read();localPos++;}
-    if(localPos>=fhs){fini=true;*pos=localPos;}
-    else if(a=='\n'){*pos=localPos;}
-    else {
-      a='0';
-      while(a!='\n' && a!='_' && localPos<fhs){a=fhisto.read();localPos++;}
+    if((*oldpos+10000)<*pos){trigwd();*oldpos+=10000;}
+    localPos+=23;fhisto.seek(localPos);
+    a=fhisto.read();localPos++;
+    if(a=='a'){         // port perif only
+      while(a!='\n' && a!=';' && localPos<fhs){a=fhisto.read();localPos++;}
       if(localPos>=fhs){fini=true;*pos=localPos;}
       else if(a=='\n'){*pos=localPos;}
       else {
-        for(uint8_t bb=0;bb<LBB-2;bb++){bbuf[bb]=fhisto.read();localPos++;}
-        bbuf[LBB-2]='!';localPerif=0;conv_atob(bbuf,&localPerif);
-        //Serial.print(perif);Serial.print(' ');Serial.print(bbuf);Serial.print(' ');Serial.println(localPerif);
-        if(localPerif==perif){fini=true;}
+        a='0';
+        while(a!='\n' && a!='_' && localPos<fhs){a=fhisto.read();localPos++;}
+        if(localPos>=fhs){fini=true;*pos=localPos;}
+        else if(a=='\n'){*pos=localPos;}
         else {
-          a='0';
-          while(a!='\n' && localPos<fhs){a=fhisto.read();localPos++;}
-          if(localPos>=fhs){fini=true;}
-          *pos=localPos;
+          for(uint8_t bb=0;bb<LBB-2;bb++){bbuf[bb]=fhisto.read();localPos++;}
+          bbuf[LBB-2]='!';localPerif=0;conv_atob(bbuf,&localPerif);
+          //Serial.print(perif);Serial.print(' ');Serial.print(bbuf);Serial.print(' ');Serial.println(localPerif);
+          if(localPerif==perif){fini=true;}
+          else {          // skipline
+            a='0';
+            while(a!='\n' && localPos<fhs){a=fhisto.read();localPos++;}
+            if(localPos>=fhs){fini=true;}
+            *pos=localPos;
+          }
         }
       }
+    }
+    else {                // skipline
+      a='0';
+      while(a!='\n' && localPos<fhs){a=fhisto.read();localPos++;}
+      if(localPos>=fhs){fini=true;}
+      *pos=localPos;
     }
   }
 }
@@ -273,11 +282,12 @@ void dumpHisto(EthernetClient* cli)
   char jsbuf[16000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf ne fonctionne pas avec dumpHisto0 !!!!!!!!!!!!!!!!!!!!!!!!! 
   uint16_t lb=0,lb0=LBUF4000;
   char buf[lb0];*buf=0x00;
-
+  
   unsigned long begTPage=millis();
 
   //unsigned long begTPage=millis();     // calcul durée envoi page
   long pos=histoPos;
+  long oldpos=pos;
 
   htmlBeg(buf,jsbuf,serverName);     // chargement CSS etc
   
@@ -305,10 +315,7 @@ void dumpHisto(EthernetClient* cli)
   scrDspText(buf,jsbuf," peri=",0,0);
   scrDspNum(buf,jsbuf,'d',&histoPeri,0,0,BRYES);
 
-  if(histoDh[0]=='2'){
-    shDateHist(histoDh,&pos);
-    scrDspText(buf,jsbuf,histoDh,0,0);scrDspText(buf,jsbuf," - ",0,STRING|CONCAT|TDBEG);
-  }
+  if(histoDh[0]=='2'){shDateHist(histoDh,&pos);}
   else {                                  //  positionnement sur début ligne si pas de sélection de date
     fhisto.seek(pos);
     while(pos<fhsize){
@@ -317,25 +324,26 @@ void dumpHisto(EthernetClient* cli)
       if(a=='\n'){break;}
     }
   }
-  if(histoPeri!=0){getPerif(histoPeri,&pos);} // recherche 1ère ligne avec périf ok
+  if(histoPeri!=0){getPerif(histoPeri,&pos,&oldpos);} // recherche 1ère ligne avec périf ok
   Serial.print(" pos=");Serial.println(pos);
 
   ethWrite(cli,buf,&lb);
   
   #define LPP 1000
   char aa[LPP];
-  long oldpos=pos;
+  oldpos=pos;
   
   while(pos<fhsize-1){
     fhisto.seek(pos);
     for(uint16_t pp=0;pp<LPP-1;pp++){
-      aa[pp]=fhisto.read();pos++;Serial.print(aa[pp]);
-      if(aa[pp]=='\n'){Serial.println();aa[pp+1]='\0';break;}
+      aa[pp]=fhisto.read();pos++;
+      if(aa[pp]=='\n'){aa[pp+1]='\0';break;}
     }
+    Serial.print(aa);
     scrDspText(buf,jsbuf,aa,0,0);
     ethWrite(cli,buf,&lb);
+    if(histoPeri!=0){getPerif(histoPeri,&pos,&oldpos);} // recherche 1ère ligne avec périf ok
     if((oldpos+10000)<pos){trigwd();oldpos+=10000;}
-    if(histoPeri!=0){getPerif(histoPeri,&pos);} // recherche 1ère ligne avec périf ok
   }
   //dumpHisto0(cli,buf,jsbuf,pos,lb0,&lb);
   fhisto.close();
