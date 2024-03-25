@@ -137,7 +137,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh___data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___antim_____antim_cb__antim_hh__antim_vv__antimcfg__dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh_p_data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___antim_____antim_cb__antim_hh__antim_vv__antimcfg__dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
   int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0,fthermoshow=0;
@@ -175,8 +175,8 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
 #define HALTREQ "H"                    // Halt request record
 #define TEMP    "M"                    // Temp record
 #define RESET   "R"                    // Reset record
-#define BOOT    "B"                    // Boot record
-#define UBOOT   "u"                    // User Request Boot record
+#define UBOOT   "B"                    // User Request Boot record
+// reservés a,u,b,c pour les serveurs
   unsigned long cxtime=0;              // durée connexion client
   unsigned long remotetime=0;          // mesure scans remote
   unsigned long oneShotRemTime=100;    // last millis pour one_shot_timers des remotes
@@ -2002,16 +2002,15 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
               case 9:  what=99;{byte a=*(libfonctions+2*i+1);
                         if(a=='B'){usrReboot();}
                        }break;                                                                      // si pas 'R' déco donc -> accueil                                             
-              case 10: dumpHisto(cli);break;                                                        // bouton dump_histo
-              case 11: {what=2;byte a=*(libfonctions+2*i);                                          // (en-tete peritable) saisie histo pos/histo dh pour dump
+              case 10: histoHtml(cli);break;                                                        // bouton dump_histo dump_his__ (inutile le bouton n'existe plus)
+              case 11: {what=16;byte a=*(libfonctions+2*i);                                         // (hist_sh_) saisies paramètres dump
                         switch(a){ 
-                          case 'D':memcpy(histoDh,valf,LDATEA-2);if(histoDh[8]==0x2B){histoDh[8]=0x20;}break;  // saisie date/heure au format "AAAAMMDD HHMMSS"
-                          case 'P':histoPeri=0;conv_atob(valf,&histoPeri);                         // saisie péri
-                                   if(histoPeri>NBPERIF){histoPeri=0;}break;
-                          default:histoPos=0;conv_atobl(valf,&histoPos);break;                      // saisie position
+                          case 'D':memcpy(histoDh,valf,LDATEA-2);if(histoDh[8]==0x2B){histoDh[8]=0x20;}break;  // (histohtml) date/heure au format "AAAAMMDD HHMMSS"
+                          case 'P':histoPeri=0;conv_atob(valf,&histoPeri);break;                    // (histohtml) périf
+                          case 'p':histoPos=0;conv_atobl(valf,&histoPos);break;                     // (histohtml) position
+                          default:break;
                         }
-                       }
-                       break;                           
+                       }break;                           
               case 12: if(periPassOk==VRAI){what=1;periDataRead(valf);periPassOk=FAUX;}break;       // data_save
               case 13: if(periPassOk==VRAI){what=3;periDataRead(valf);periPassOk=FAUX;}break;       // data_read
               case 14: {byte a=*(libfonctions+2*i);                                                 // (periLine) - tests de perif serveur
@@ -2560,6 +2559,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                     break;                                                                                                           
             case 14:break;                                                // data_na___
             case 15:anTimersSave();anTimersHtml(cli);break;               // antim___ & anti_ch_
+            case 16:dumpHisto(cli);break;                                 // bouton submit histo show
             default:accueilHtml(cli);break;                               // what=-1
           }
         } // getnv nbreparams>=0  

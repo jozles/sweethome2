@@ -241,7 +241,7 @@ void getPerif(uint16_t perif,long* pos,long* oldpos)   // pos en début de ligne
     if((*oldpos+10000)<*pos){trigwd();*oldpos+=10000;}
     localPos+=23;fhisto.seek(localPos);
     a=fhisto.read();localPos++;
-    if(a=='a'){         // port perif only
+    if(a=='a' || a=='u'){         // port perif only
       while(a!='\n' && a!=';' && localPos<fhs){a=fhisto.read();localPos++;}
       if(localPos>=fhs){fini=true;*pos=localPos;}
       else if(a=='\n'){*pos=localPos;}
@@ -254,7 +254,7 @@ void getPerif(uint16_t perif,long* pos,long* oldpos)   // pos en début de ligne
           for(uint8_t bb=0;bb<LBB-2;bb++){bbuf[bb]=fhisto.read();localPos++;}
           bbuf[LBB-2]='!';localPerif=0;conv_atob(bbuf,&localPerif);
           //Serial.print(perif);Serial.print(' ');Serial.print(bbuf);Serial.print(' ');Serial.println(localPerif);
-          if(localPerif==perif){fini=true;}
+          if(localPerif==perif || perif>NBPERIF){fini=true;}
           else {          // skipline
             a='0';
             while(a!='\n' && localPos<fhs){a=fhisto.read();localPos++;}
@@ -282,10 +282,8 @@ void dumpHisto(EthernetClient* cli)
   char jsbuf[16000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf ne fonctionne pas avec dumpHisto0 !!!!!!!!!!!!!!!!!!!!!!!!! 
   uint16_t lb=0,lb0=LBUF4000;
   char buf[lb0];*buf=0x00;
-  
-  unsigned long begTPage=millis();
 
-  //unsigned long begTPage=millis();     // calcul durée envoi page
+  unsigned long begTPage=millis();     // calcul durée envoi page
   long pos=histoPos;
   long oldpos=pos;
 
@@ -349,6 +347,71 @@ void dumpHisto(EthernetClient* cli)
   fhisto.close();
 
   scrGetButRet(buf,jsbuf,"retour",1);
+  htmlEnd(buf,jsbuf);
+
+  ethWrite(cli,buf,&lb);
+
+  bufLenShow(buf,jsbuf,lb,begTPage);
+}
+
+void histoHtml(EthernetClient* cli)
+{
+  Serial.print(" dump histo ");
+#ifdef DEBUG_ON
+  delay(100);
+#endif
+  char jsbuf[16000];*jsbuf=LF;*(jsbuf+1)=0x00;   // jsbuf ne fonctionne pas avec dumpHisto0 !!!!!!!!!!!!!!!!!!!!!!!!! 
+  uint16_t lb=0,lb0=LBUF4000;
+  char buf[lb0];*buf=0x00;
+
+  unsigned long begTPage=millis();     // calcul durée envoi page
+  
+  htmlBeg(buf,jsbuf,serverName);     // chargement CSS etc
+  
+  formIntro(buf,jsbuf,0,0);         // params pour retours navigateur (n° usr + time usr + pericur)
+                                    // à charger au moins une fois par page ; pour les autres formulaires 
+                                    // de la page formBeg() suffit
+
+  pageLineOne(buf,jsbuf);            // 1ère ligne page
+  scrGetButRet(buf,jsbuf,"retour",0);
+
+  ethWrite(cli,buf,&lb);
+// ------------------------------------------------------------- header end
+setFont(buf,"Arial","10");
+          scrDspText(buf,jsbuf,"ne fonctionne qu'avec un fichier < 2Go !!!! (modifier les variables en int64 et exFat)",0,0,0,BRYES);
+          scrDspText(buf,jsbuf,"la version actuelle sélectionne le type de ligne pour les périfs (a,u)",0,0,0,BRYES);
+tableBeg(buf,jsbuf,"Arial","10",false,"0",0);          
+          scrDspText(buf,jsbuf,"W  Hardware Watchdog",0,0,0,TRBEG|TDBE);
+          scrDspText(buf,jsbuf,"   ",0,0,0,TDBE);
+          scrDspText(buf,jsbuf,"T  TCP watchdog",0,0,0,TDBE|TREND);
+          scrDspText(buf,jsbuf,"U  UDP watchdog",0,0,0,TRBEG|TDBE);
+          scrDspText(buf,jsbuf,"  ",0,0,0,TDBE);          
+          scrDspText(buf,jsbuf,"H  Halt request",0,0,0,TDBE|TREND);
+          scrDspText(buf,jsbuf,"M  Temp record",0,0,0,TRBEG|TDBE);
+          scrDspText(buf,jsbuf," ",0,0,0,TDBE);          
+          scrDspText(buf,jsbuf,"R  Hard Reset",0,0,0,TDBE|TREND);
+          scrDspText(buf,jsbuf,"B  user Request Boot",0,0,0,TRBEG|TDBE);
+          scrDspText(buf,jsbuf," ",0,0,0,TDBE);          
+          scrDspText(buf,jsbuf,"a  TCP périf record",0,0,0,TDBE|TREND);          
+          scrDspText(buf,jsbuf,"u  UDP périf record",0,0,0,TRBEG|TDBE);
+          scrDspText(buf,jsbuf," ",0,0,0,TDBE);          
+          scrDspText(buf,jsbuf,"c  TCP browser record",0,0,0,TDBE|TREND); 
+          scrDspText(buf,jsbuf,"b  TCP remote record",0,0,0,TRBEG|TDBE);
+          scrDspText(buf,jsbuf,"__",0,0,0,TDBE|TREND|BRYES);          
+tableEnd(buf,jsbuf,0);                                                 
+endFont(buf);
+          scrDspText(buf,jsbuf,"pos (",0,0);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,0);scrDspText(buf,jsbuf,")",0,0);
+          scrGetNum(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh_p_",9,0,0,BRYES);
+          scrDspText(buf,jsbuf,"<br>date debut",0,0);
+          scrGetText(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);
+          affSpace(buf,jsbuf);
+          scrDspText(buf,jsbuf,"n° périf ",0,0);
+          scrGetNum(buf,jsbuf,'d',&histoPeri,"hist_sh_P_",4,0,0,0);
+          scrDspText(buf,jsbuf," (si >NBPERIF tous perifs ; si 0 tous types)",0,"Arial",12,BRYES);
+          //scrGetButSub(buf,jsbuf,"ok",0)
+          //scrGetButFn(buf,jsbuf,"dump_his__","","histo",ALICNO,0,BRYES);
+          scrGetButSub(buf,jsbuf,"dump",0);
+
   htmlEnd(buf,jsbuf);
 
   ethWrite(cli,buf,&lb);
@@ -636,7 +699,7 @@ void mailCfg(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0
     
     tableBeg(buf,jsbuf,NOBORDER,0);
     scrDspText(buf,jsbuf,"mailFrom ",2,TRBEG|TDBE);scrGetText(buf,jsbuf,mailFromAddr,"mailcfg__f",16,LMAILADD,0,TDBE);strcat(buf,"\n");
-    scrDspText(buf,jsbuf," ",40,2,TDBE);scrDspText(buf,jsbuf,"password  ",0,TDBE);scrGetText(buf,jsbuf,mailPass,"mailcfg__w",16,LMAILPWD,0,TDBE|TREND);strcat(buf,"\n");
+    scrDspText(buf,jsbuf," ",40,0,TDBE);scrDspText(buf,jsbuf,"password  ",0,TDBE);scrGetText(buf,jsbuf,mailPass,"mailcfg__w",16,LMAILPWD,0,TDBE|TREND);strcat(buf,"\n");
     scrDspText(buf,jsbuf,"mailTo #1 ",0,TRBEG|TDBE);scrGetText(buf,jsbuf,mailToAddr1,"mailcfg__1",16,LMAILADD,0,TDBE);strcat(buf,"\n");
     scrDspText(buf,jsbuf," ",40,2,TDBE);scrDspText(buf,jsbuf,"mailTo #2 ",0,TDBE);scrGetText(buf,jsbuf,mailToAddr2,"mailcfg__2",16,LMAILADD,0,TDBE|TREND);strcat(buf,"\n");
     tableEnd(buf,jsbuf,BRYES);
@@ -676,9 +739,9 @@ void cfgServerHtml(EthernetClient* cli)
             
             /*cli->print(" peripass <input type=\"text\" name=\"peripcfg__\" value=\"");cli->print(peripass);cli->print("\" size=\"5\" maxlength=\"");cli->print(LPWD);cli->println("\" >");*/
 
-fontBeg(buf,jsbuf,2,0);
+polBeg(buf,jsbuf,12,0);
 
-            scrDspText(buf,jsbuf,"nom serveur ",2,TRBEG|TDBE);scrGetText(buf,jsbuf,serverName,"ethcfg___s",16,LNSERV,0,TDBE);strcat(buf,"\n");
+            scrDspText(buf,jsbuf,"nom serveur ",0,TRBEG|TDBE);scrGetText(buf,jsbuf,serverName,"ethcfg___s",16,LNSERV,0,TDBE);strcat(buf,"\n");
             #define LBUFL 16
             char lbuf[LBUFL];*lbuf=0x00;for(uint8_t k=0;k<MACADDRLENGTH;k++){concat1a(lbuf,chexa[mac[k]/16]);concat1a(lbuf,chexa[mac[k]%16]);}
             scrDspText(buf,jsbuf," serverMac ",0,0);scrGetText(buf,jsbuf,lbuf,"ethcfg___m",11,MACADDRLENGTH*2,0,0);
@@ -718,7 +781,7 @@ fontBeg(buf,jsbuf,2,0);
             mailCfg(cli,buf,jsbuf,&lb,lb0);
             ethWrite(cli,buf,&lb);
 
-fontEnd(buf,jsbuf,0);
+polEnd(buf,jsbuf,0);
             htmlEnd(buf,jsbuf);
             
             ethWrite(cli,buf);
@@ -875,7 +938,7 @@ void cfgRemoteHtml(EthernetClient* cli)
               char dm[DML];memset(dm,0x00,DML);
 
               memcpy(nf,"remotecfp_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° périphérique
-              scrGetNum(buf,jsbuf,'b',&remoteT[nb].peri,nf,2,0,2,TDBEG);
+              scrGetNum(buf,jsbuf,'b',&remoteT[nb].peri,nf,2,0,0,TDBEG);
               memset(dm,0x00,DML);
               uint8_t rp=remoteT[nb].peri;
               if(rp!=0){periLoad(rp);periCur=rp;strcat(dm,periNamer);strcat(dm," ");}
@@ -883,7 +946,7 @@ void cfgRemoteHtml(EthernetClient* cli)
               strcat(buf,"\n");
 
               memcpy(nf,"remotecfs_",LENNOM);nf[LENNOM-1]=(char)(nb+PMFNCHAR);              // n° switch
-              scrGetNum(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,2,TDBE);
+              scrGetNum(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,0,TDBE);
               strcat(buf,"\n");
 
               scrGetButSub(buf,jsbuf,"MàJ",TDBE|TREND);
@@ -1157,7 +1220,7 @@ void remoteHtml(EthernetClient* cli)
 
                 if(periCur==0){scrDspText(buf,jsbuf," --- ",0,TDBE);}   // comble la colonne ON/OFF-rond jaune
                 
-                scrDspText(buf,jsbuf,remoteN[nb].nam,7,TDBE);
+                scrDspText(buf,jsbuf,remoteN[nb].nam,0,"Arial",30,TDBE);
 
                 if(remoteN[nb].detec!=0){                                                       // slider/push présent
 
@@ -1192,7 +1255,7 @@ void remoteHtml(EthernetClient* cli)
                 scrDspText(buf,jsbuf,mother,0,TDBE);               
                 strcat(buf,"\n");
                 
-                scrDspText(buf,jsbuf,"",0,TDBEG);
+                //scrDspText(buf,jsbuf,"",0,TDBEG);
                 memcpy(fn,"remote_c__\0",LENNOM+1);fn[LENNOM-1]=(char)(nb+PMFNCHAR);            // transmission n° remote
                 memcpy(fnt,"remote_ct_\0",LENNOM+1);fnt[LENNOM-1]=(char)(nb+PMFNCHAR);          // transmission n° remote pour one_shot_timer
 
@@ -1205,8 +1268,8 @@ void remoteHtml(EthernetClient* cli)
                   if(disjVal%10==i){color=colors[i];} else color=OFFCOLOR;
                   if(disjVal>=10){color+=LIGHTVALUE;}
                   //Serial.print(" disj color=");Serial.println(color);
-                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,0);
-                  uint8_t ctl=0;
+                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,TDBEG);
+                  uint8_t ctl=TDEND;
                   if(i==2){
                     ctl=TDEND|TREND|BRYES;
                     scrDspText(buf,jsbuf," ",0,TDEND);
@@ -1578,7 +1641,7 @@ void thermoShowHtml(EthernetClient* cli)
   char thls[16];memcpy(thls,thermoLastScan,8);thls[8]=' ';memcpy(thls+9,thermoLastScan+8,6);thls[15]='\0';
   scrDspText(buf,jsbuf,"min/max du ",0,0);scrDspText(buf,jsbuf,thermoLastBeg,0,0);scrDspText(buf,jsbuf," au ",0,0);scrDspText(buf,jsbuf,thls,0,BRYES);        // période scan
   
-  tableBeg(buf,jsbuf,courier,BORDER,BRYES|TRBEG);
+  tableBeg(buf,jsbuf,"Arial","24",BORDER,nullptr,BRYES|TRBEG);
   scrDspText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
   strcat(buf,"\n");
               for(int nuth=0;nuth<NBTHERMOS;nuth++){
@@ -1589,14 +1652,14 @@ void thermoShowHtml(EthernetClient* cli)
                   if(periMacr[0]!=0x00){
                     ni++;
                     float th;
-                    scrDspNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,7,TDBE);
-                    th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,7,TDBE);
-                    th=(float)(*periThmin_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
-                    th=(float)(*periThmax_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,5,TDBE);                    
+                    scrDspNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,0,TDBE);
+                    th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,0,TDBE);
+                    th=(float)(*periThmin_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,0,TDBE);                    
+                    th=(float)(*periThmax_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,0,TDBE);                    
                     
                     memset(lith,0x00,LLITH);
                     bufPrintPeriDate(lith,periLastDateIn);
-                    scrDspText(buf,jsbuf,lith,2,TDBE|TREND);
+                    scrDspText(buf,jsbuf,lith,0,TDBE|TREND);
                     strcat(buf,"\n");                      
                     
                     lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
@@ -1695,10 +1758,10 @@ void thermoCfgHtml(EthernetClient* cli)
     if(periCur!=0){
       if(periCur>=NBPERIF){Serial.print("config Thermos");}
       periLoad(periCur);
-      scrDspText(buf,jsbuf,periNamer,2,TDBEG);
-      scrDspText(buf,jsbuf,":",2,0);
+      scrDspText(buf,jsbuf,periNamer,0,TDBEG);
+      scrDspText(buf,jsbuf,":",0,0);
       float pl=(*periLastVal_)/100;
-      scrDspNum(buf,jsbuf,'f',&pl,2,2,TDEND);}
+      scrDspNum(buf,jsbuf,'f',&pl,2,0,TDEND);}
     else {scrDspText(buf,jsbuf,"",0,TDBE);}
     
     subthd(buf,jsbuf,'e',nb,&thermos[nb].lowenable,'e');                              // low enable
@@ -1922,33 +1985,37 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
     formIntro(buf,jsbuf,"dsrv_init_",0,0);         // params pour retours navigateur (n° usr + time usr + pericur + locfonc pour inits)
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
-  
-    scrDspText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>",0,0);
+    
+    //polBeg(buf,jsbuf,10,0);//strcat(buf,"\n");
+    scrDspText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>\n",0,"Arial",12,0);
+    setFont(buf,"Arial","12");
 
     uint8_t ni=0;
     uint16_t lb1=0;
-
+        
+        
         for(int k=NBDSRV-1;k>=0;k--){
             ni++;
+            
             char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
             if(libb[0]=='\0'){convIntToString(libb,k);}
             subDSnBm(buf,jsbuf,"mem_dsrv__\0",mds,k,libb);
-
-            fontBeg(buf,jsbuf,1,0);
             scrDspText(buf,jsbuf,"(",0,0);
             scrDspText(buf,jsbuf,&(mdsSrc[sourceDetServ[k]/256]),0,0);
             if(sourceDetServ[k]/256!=0){
               concatn(buf,jsbuf,sourceDetServ[k]&0x00ff);
               scrDspText(buf,jsbuf,") ",0,0);}
             else{scrDspText(buf,jsbuf,"--) ",0,0);}
-            fontEnd(buf,jsbuf,0);
+            
             strcat(buf,"\n");
             lb1=strlen(buf);if(lb0-lb1<(lb1/ni+100)){ethWrite(cli,buf);ni=0;}
         }
+        //polEnd(buf,jsbuf,0);
     scrGetButSub(buf,jsbuf,"Per Update",0);
           
     formEnd(buf,jsbuf,TITLE,0,0);
-    strcat(buf,"\n"); 
+    //strcat(buf,"\n"); 
+    endFont(buf);
           
     ethWrite(cli,buf,lb);        
   }

@@ -36,7 +36,9 @@ void tdcat(char* buf);
 
 void fnJsIntro(char* jsbuf,const char* fonc,uint8_t pol,const uint8_t ctl);
 
-void fnHtmlIntro(char* buf,const char* fonc,uint8_t pol,const uint8_t ctl);
+void fnHtmlIntro(char* buf,const char* font,uint8_t pol,uint8_t ctl,char* colour);
+void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour);
+void fnHtmlEnd(char* buf,const char* font,uint8_t pol,uint8_t ctl);
 void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl);
 
 void scrStore(char* jsbuf,char name,const char* data);
@@ -82,8 +84,11 @@ void scrGetCheckbox(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int 
 void scrGetCheckbox(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl);
 void sliderBHtml(char* buf,char* jsbuf,uint8_t* val,const char* nf,int sqr,uint8_t ctl);
 
-void fontBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
-void fontEnd(char* buf,char* jsbuf,uint8_t ctl);
+void polBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl);
+void polEnd(char* buf,char* jsbuf,uint8_t ctl);
+
+void setFont(char* buf,const char* font,const char* size);
+void endFont(char* buf);
 
 void setColourB(char* buf,const char* textColour);
 void setColourB(char* buf,char* jsbuf,const char* textColour);
@@ -93,7 +98,8 @@ void setColourE(char* buf,char* jsbuf);
 void tableBeg(char* buf,char* jsbuf,uint8_t ctl);
 void tableBeg(char* buf,char* jsbuf,bool border,uint8_t ctl);
 void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t ctl);
-void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t height,uint8_t ctl);
+void tableBeg(char* buf,char* jsbuf,const char* police,bool border,const char* height,uint8_t ctl);
+void tableBeg(char* buf,char* jsbuf,const char* police,const char* size,bool border,const char* height,uint8_t ctl);
 void tableEnd(char* buf,char* jsbuf,uint8_t ctl);
 
 void scrGetNum(char* buf,char* jsbuf,char type,void* valfonct,const char* nomfonct,int len,uint8_t dec,uint8_t pol,uint8_t ctl);
@@ -123,6 +129,7 @@ void affRondJaune(char* buf,char* jsbuf,uint8_t ctl);
 
 void scrDspText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl);
 void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,uint8_t ctl);
+void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,const char* font,uint8_t pol,uint8_t ctl);
 
 void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t ctl);
 void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t dec,uint8_t ctl);

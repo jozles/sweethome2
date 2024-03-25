@@ -82,8 +82,8 @@ const char* generalSt=
 "table {border-collapse: collapse;border-color: #dddddd;overflow: auto;"
 "white-space:nowrap;}"
 /* check box */
-"#cb1{width:10px; padding:0px; margin:0px; text-align: center};"
-"#cb2{width:20px; text-align: center};"
+"#cb1{width:10px; padding:0px; margin:0px; text-align: center;}"
+"#cb2{width:18px; text-align: center};"
 /* button */
 ".button {background-color: #195B6A; border: none; color: white;"
 " padding: 32px 80px:text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}"
@@ -207,14 +207,24 @@ void tdcat(char* buf)
       strcat(buf,">");
 }
 
-void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour)
+void fnHtmlIntro(char* buf,const char* font,uint8_t pol,uint8_t ctl,char* colour)
 { 
   if(buf!=nullptr){
     if((ctl&TRBEG)!=0 || (ctl&TRMASK)==TRBE){strcat(buf,"<tr>");}
     if((ctl&TDBEG)!=0 || (ctl&TDMASK)==TDBE){tdcat(buf);}
     if(*colour!=0x00){strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");}
-    if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
+    //if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
+    if(font!=nullptr || pol!=0){strcat(buf,"<p style=\"");
+      if(font!=nullptr){strcat(buf,"<p style=\"font-family:");strcat(buf,font);strcat(buf,";");}
+      if(pol!=0){strcat(buf,"font-size:");concatn(buf,pol);strcat(buf,"px;");}    //strcat(buf,"px;");}
+      strcat(buf,"\">");
+    }
   }
+}
+
+void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour)
+{
+  fnHtmlIntro(buf,nullptr,pol,ctl,colour);
 }
 
 void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl)
@@ -223,15 +233,22 @@ void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl)
   fnHtmlIntro(buf,pol,ctl,&nocol);
 }
 
-void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl)
+void fnHtmlEnd(char* buf,const char* font,uint8_t pol,uint8_t ctl)
 {
   if(buf!=nullptr){
     if(pol!=0){strcat(buf,"</font>");}
+    if(font!=nullptr){strcat(buf,"</p>");}
     if((ctl&BRMASK)!=0){strcat(buf,"<br>");}
     if((ctl&TDEND)!=0 || (ctl&TDMASK)==TDBE){strcat(buf,"</td>");}
     if((ctl&TREND)!=0 || (ctl&TRMASK)==TRBE){strcat(buf,"</tr>");}
   }
 }
+
+void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl)
+{
+  fnHtmlEnd(buf,nullptr,pol,ctl);
+}
+
 
 void concat1a(char* buf,char a)
 {
@@ -445,22 +462,44 @@ void setColourB(char* buf,char* jsbuf,const char* textColour)
 #endif // NOJSBUF  
 }
 
-void fontBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
+void polBeg(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
 {
   fnJsIntro(jsbuf,JSFNB,pol,ctl);
   fnHtmlIntro(buf,pol,ctl);
 }
 
-void fontEnd(char* buf,char* jsbuf,uint8_t ctl)
+void polEnd(char* buf,char* jsbuf,uint8_t ctl)
 {
   fnJsIntro(jsbuf,JSFNE,0,ctl&(~TRBEG)&(~TDBEG));
   strcat(buf,"</font>");
   fnHtmlEnd(buf,0,ctl);
 }
 
+void setFont(char* buf,const char* font,const char* size)
+{
+  strcat(buf,"<p ");
+  if(font!=nullptr || size!=nullptr){strcat(buf," style=\"");
+    if(font!=nullptr){strcat(buf,"font-family:");strcat(buf,font);strcat(buf,";");}
+    if(size!=nullptr){strcat(buf,"font-size:");strcat(buf,size);strcat(buf,"px;\"");}
+    strcat(buf,"\">");
+  }
+ /*
+ strcat(buf,"<p><font ");
+ if(font!=nullptr){strcat(buf,"face=\"");strcat(buf,font);strcat(buf,"\"");}
+ if(size!=0){strcat(buf," size=\"");strcat(buf,size);strcat(buf,"\"");}
+ strcat(buf,">");
+  */
+}
+
+void endFont(char* buf)
+{
+  strcat(buf,"</p>");
+  //strcat(buf,"</font></p>");
+}
+
 /* ------------------ affichages (scrDsp....) ---------------------- */
 
-void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,uint8_t ctl)
+void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,const char* font,uint8_t pol,uint8_t ctl)
 // mode STRING :  ne fonctionne que dans une ligne de table
 //                le premier appel comporte TDBEG pour forcer le nom de la commande et BRYES (ignoré dans ctl) ou TDEND 
 //                TDEND est forcé dans le ctl la commande
@@ -498,7 +537,7 @@ void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t p
 
   // -------------------- début traitement html
   styleTdWidth=tdWidth;                     // pour fnHtmlIntro()
-  fnHtmlIntro(buf,pol,ctl);                 // ajoute [<tr>][<td style width="nnnpx"]>]
+  fnHtmlIntro(buf,font,pol,ctl,0);          // ajoute [<tr>][<td style width="nnnpx"]>]
   
   buftxcat(buf,dm0);                        // ajout texte (<br> et </td><td> décodés)
   
@@ -506,12 +545,17 @@ void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t p
   char a[]={JSSCO};
   if(*(dm0+strlen(dm0)-1)==*a){ctl&=~TDEND;}
   if((ctl&STRING)!=0){ctl&=~BRYES;pol=0;}   // évite doublon avec JSSBR de dm0 ; bloque le </font> (ajouter fontEnd à la fin du texte)
-  fnHtmlEnd(buf,pol,ctl);                   // ajoute [<br>][</td>][</tr>]
+  fnHtmlEnd(buf,font,pol,ctl);                   // ajoute [<br>][</td>][</tr>]
+}
+
+void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,uint8_t ctl)
+{
+  scrDspText(buf,jsbuf,txt,0,nullptr,pol,ctl);
 }
 
 void scrDspText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
 {
-  scrDspText(buf,jsbuf,txt,0,pol,ctl);
+  scrDspText(buf,jsbuf,txt,0,nullptr,pol,ctl);
 }
 
 void affSpace(char* buf,char* jsbuf,uint8_t ctl)
@@ -742,21 +786,25 @@ void formEnd(char* buf,char* jsbuf,uint8_t pol,uint8_t ctl)
   formEnd(buf,jsbuf,0,pol,ctl);
 }
 
-void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t height,uint8_t ctl)
+void tableBeg(char* buf,char* jsbuf,const char* police,const char* size,bool border,const char* height,uint8_t ctl)
 {
   char tBorder[]={'0','\"',0x00,'1','\"',0x00};
 
   strcat(buf,"<table border=\"");
   strcat(buf,tBorder+border*3);
 
-  if(height!=0){strcat(buf," height=200");}
+  if(*height!='0'){strcat(buf," height=");strcat(buf,height);}
 
-  if(police!=nullptr){
-    strcat(buf," style=\"font-family: ");
-    strcat(buf,police);
-    strcat(buf,"\"");}
+  if(police!=nullptr || size!=nullptr){strcat(buf," style=\"");
+
+    if(police!=nullptr){
+      strcat(buf,"font-family:");strcat(buf,police);strcat(buf,";");}
   
-  strcat(buf,">");
+    if(size!=nullptr){
+      strcat(buf,"font-size:");strcat(buf,size);strcat(buf,"px;");}
+    
+    strcat(buf,"\">");}
+  
 #ifndef NOJSBUF
   fnJsIntro(jsbuf,JSTB,0,ctl);
   jscat(jsbuf,police,SEP);
@@ -766,19 +814,24 @@ void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t heigh
   //fnHtmlEnd(buf,0,ctl);
 }
 
+void tableBeg(char* buf,char* jsbuf,const char* police,bool border,const char* height,uint8_t ctl)
+{
+  tableBeg(buf,jsbuf,police,nullptr,border,height,ctl);
+}
+
 void tableBeg(char* buf,char* jsbuf,const char* police,bool border,uint8_t ctl)
 {
-  tableBeg(buf,jsbuf,police,border,0,ctl);
+  tableBeg(buf,jsbuf,police,nullptr,border,"0",ctl);
 }
 
 void tableBeg(char* buf,char* jsbuf,bool border,uint8_t ctl)
 {
-  tableBeg(buf,jsbuf,nullptr,border,0,ctl);
+  tableBeg(buf,jsbuf,nullptr,nullptr,border,"0",ctl);
 }
 
 void tableBeg(char* buf,char* jsbuf,uint8_t ctl)
 {
-  tableBeg(buf,jsbuf,nullptr,true,0,ctl);
+  tableBeg(buf,jsbuf,nullptr,nullptr,true,"0",ctl);
 }
 
 void tableEnd(char* buf,char* jsbuf,uint8_t ctl)
@@ -1320,10 +1373,10 @@ void pageLineOne(char* buf,char* jsbuf)
   
   strcat(dm0,VERSION);
   #ifdef DUE
-  strcat(dm0,"DUE ");
+  strcat(dm0," DUE ");
   #endif // DUE
   #ifndef DUE
-  strcat(dm0,"NUC ");
+  strcat(dm0," NUC ");
   #endif // DUE
   #ifdef _MODE_DEVT
   strcat(dm0," DEV ");
@@ -1332,10 +1385,10 @@ void pageLineOne(char* buf,char* jsbuf)
   strcat(dm0," RUN ");
   #endif // DEVT
 
-  scrDspText(buf,jsbuf,serverName,0,0);
+  scrDspText(buf,jsbuf,serverName,0,nullptr,0,0);
   affSpace(buf,jsbuf);
   bufPrintDateHeure(dm0,nullptr,pkdate);
-  scrDspText(buf,jsbuf,dm0,0,0);
+  scrDspText(buf,jsbuf,dm0,0,nullptr,0,0);
   //strcat(buf,"<font size=\"2\">;");
   
   *dm0=0x00;
@@ -1343,7 +1396,7 @@ void pageLineOne(char* buf,char* jsbuf)
   strcat(dm0," ; local IP ");
   charIp(dm0,(char*)&bufIp,nullptr);strcat(dm0," ");
   concatnf(dm0,nullptr,th,2,NOBR,SEPNO);strcat(dm0,"°C ");
-  scrDspText(buf,jsbuf,dm0,2,BRYES);
+  scrDspText(buf,jsbuf,dm0,0,BRYES);
 }
 
 void scrGetCheckbox(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl)

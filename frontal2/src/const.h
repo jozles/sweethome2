@@ -175,7 +175,7 @@
         délai moyen 45sec avec refresh 30sec  sur dets ; 100mS pour timeout fin négo ethernet ;
         ajout bit thermostat dans periCfg ; 
    1.8k pour compatibilité exfat : FsFile remplace File32, SdFs remplace SdFat32, SDFAT_FILE_TYPE 3 ; 
-        debug dumphisto,scalcTh (en cours)
+        debug dumphisto,scalcTh (en cours) ; gestion des polices et des tailles (ajout setFont et endFont)
 
    BUGS : 
      

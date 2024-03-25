@@ -3,6 +3,7 @@
 
 void dumpHisto(EthernetClient* cli);
 void dumpHisto0(EthernetClient *cli,char* buf,char*jsbuf,long pos,uint16_t lb0,uint16_t* lb);
+void histoHtml(EthernetClient* cli);
 void shDateHist(char* dhasc,long* pos);
 void cfgServerHtml(EthernetClient* cli);
 void cfgRemoteHtml(EthernetClient* cli);

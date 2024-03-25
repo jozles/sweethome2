@@ -375,35 +375,28 @@ void periTableHtml(EthernetClient* cli)
   formIntro(buf,jsbuf,0,0);         // (n° usr + time usr + pericur)
 
   pageLineOne(buf,jsbuf);            // 1ère ligne page
+  polBeg(buf,jsbuf,16,0);
   scrGetButRet(buf,jsbuf,"refresh",0);  
   
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
 // ------------------------------------------------------------- header end 
 
-          fontBeg(buf,jsbuf,2,0);
-          scrGetNum(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0,0);
-          scrDspText(buf,jsbuf,"(",0,0);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,0);scrDspText(buf,jsbuf,")",0,0);
           
-          scrGetNum(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh___",9,0,0,0);
-          scrDspText(buf,jsbuf,"date deb",0,0);
-          scrGetText(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);
-          scrDspText(buf,jsbuf,"n° périf",0,0);
-          scrGetNum(buf,jsbuf,'d',&histoPeri,"hist_sh_P_",4,0,0,0);
-          scrGetButSub(buf,jsbuf,"ok",0);
-      
-          scrGetButFn(buf,jsbuf,"dump_his__","","histo",ALICNO,0,BRYES);
-
+          scrDspText(buf,jsbuf,"refresh per=",0,nullptr,0,0);
+          scrGetNum(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0,BRYES);
+          
           //cli->print("<br>");
           scrGetButFn(buf,jsbuf,"deco______","","_  deco  _",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"deco_____B","","_ reboot _",ALICNO,0,0);          
           scrGetButFn(buf,jsbuf,"cfgserv___","","_ config _",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"remote____","","remote_cfg",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"remote_cr_","","remotehtml",ALICNO,0,BRYES);
+          scrGetButFn(buf,jsbuf,"remote_cr_","","remotehtml",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"antimcfg__","","antimcfg__",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"thermoscfg","","thermo_cfg",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"thermoshow","","thermoshow",ALICNO,0,0);
+          scrGetButFn(buf,jsbuf,"dump_his__","","histo show",ALICNO,0,0);
           scrGetButFn(buf,jsbuf,"timershtml","","timershtml",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"dsrvhtml__","","detsrvhtml",ALICNO,0,BRYES);                 
+          scrGetButFn(buf,jsbuf,"dsrvhtml__","","detsrvhtml",ALICNO,0,0);                 
         
           formEnd(buf,jsbuf,0,0);
           strcat(buf,"\n");
@@ -660,14 +653,14 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                       char bc[LIP];memset(bc,'\0',LIP);
                       for(j=0;j<4;j++){concatns(bc,periIpAddr[j]);if(j<3){strcat(bc,".");}}
                       scrDspText(buf,jsbuf,bc,0,TDEND);
-                      fontEnd(buf,jsbuf,TDEND);
+                      polEnd(buf,jsbuf,TDEND);
                       scrDspText(buf,jsbuf,(char*)"",2,TDBEG);   // set police 2
                       char bd[LENVERSION+1];memcpy(bd,periVers,LENVERSION);bd[LENVERSION]='\0';
                       scrDspText(buf,jsbuf,bd,0,0);
                       *bd=*periProtocol;*(bd+1)='\0';
                       scrDspText(buf,jsbuf,bd,0,BRYES);
                       showDates(buf,jsbuf);
-                      fontEnd(buf,jsbuf,TDEND);
+                      polEnd(buf,jsbuf,TDEND);
                       
                 tableEnd(buf,jsbuf,TREND|BRYES);
                 strcat(buf,"\n\n");
