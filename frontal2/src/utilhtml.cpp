@@ -207,16 +207,16 @@ void tdcat(char* buf)
       strcat(buf,">");
 }
 
-void fnHtmlIntro(char* buf,const char* font,uint8_t pol,uint8_t ctl,char* colour)
+void fnHtmlIntro(char* buf,const char* font,uint8_t sizfnt,uint8_t ctl,char* colour)
 { 
   if(buf!=nullptr){
     if((ctl&TRBEG)!=0 || (ctl&TRMASK)==TRBE){strcat(buf,"<tr>");}
     if((ctl&TDBEG)!=0 || (ctl&TDMASK)==TDBE){tdcat(buf);}
     if(*colour!=0x00){strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");}
     //if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
-    if(font!=nullptr || pol!=0){strcat(buf,"<p style=\"");
-      if(font!=nullptr){strcat(buf,"<p style=\"font-family:");strcat(buf,font);strcat(buf,";");}
-      if(pol!=0){strcat(buf,"font-size:");concatn(buf,pol);strcat(buf,"px;");}    //strcat(buf,"px;");}
+    if(font!=nullptr || sizfnt!=0){strcat(buf,"<span style=\"");
+      if(font!=nullptr){strcat(buf,"font-family:");strcat(buf,font);strcat(buf,";");}
+      if(sizfnt!=0){strcat(buf,"font-size:");concatn(buf,sizfnt);strcat(buf,"px;");}    //strcat(buf,"px;");}
       strcat(buf,"\">");
     }
   }
@@ -230,14 +230,14 @@ void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour)
 void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl)
 {
   char nocol='\0';
-  fnHtmlIntro(buf,pol,ctl,&nocol);
+  fnHtmlIntro(buf,nullptr,pol,ctl,&nocol);
 }
 
 void fnHtmlEnd(char* buf,const char* font,uint8_t pol,uint8_t ctl)
 {
   if(buf!=nullptr){
-    if(pol!=0){strcat(buf,"</font>");}
-    if(font!=nullptr){strcat(buf,"</p>");}
+    //if(pol!=0){strcat(buf,"</font>");}
+    if(font!=nullptr){strcat(buf,"</span>");}
     if((ctl&BRMASK)!=0){strcat(buf,"<br>");}
     if((ctl&TDEND)!=0 || (ctl&TDMASK)==TDBE){strcat(buf,"</td>");}
     if((ctl&TREND)!=0 || (ctl&TRMASK)==TRBE){strcat(buf,"</tr>");}
@@ -477,10 +477,10 @@ void polEnd(char* buf,char* jsbuf,uint8_t ctl)
 
 void setFont(char* buf,const char* font,const char* size)
 {
-  strcat(buf,"<p ");
-  if(font!=nullptr || size!=nullptr){strcat(buf," style=\"");
+  
+  if(font!=nullptr || size!=nullptr){strcat(buf,"<span style=\"");
     if(font!=nullptr){strcat(buf,"font-family:");strcat(buf,font);strcat(buf,";");}
-    if(size!=nullptr){strcat(buf,"font-size:");strcat(buf,size);strcat(buf,"px;\"");}
+    if(size!=nullptr){strcat(buf,"font-size:");strcat(buf,size);strcat(buf,"px;");}
     strcat(buf,"\">");
   }
  /*
@@ -493,7 +493,7 @@ void setFont(char* buf,const char* font,const char* size)
 
 void endFont(char* buf)
 {
-  strcat(buf,"</p>");
+  strcat(buf,"</span>");
   //strcat(buf,"</font></p>");
 }
 
@@ -810,7 +810,7 @@ void tableBeg(char* buf,char* jsbuf,const char* police,const char* size,bool bor
   jscat(jsbuf,police,SEP);
   if(border){jscat(jsbuf,"B");}
 #endif // NOJSBUF  
-  fnHtmlIntro(buf,0,ctl);
+  //fnHtmlIntro(buf,0,ctl);
   //fnHtmlEnd(buf,0,ctl);
 }
 
@@ -982,56 +982,37 @@ void optSelHtml(char* jsbuf,char* val,char* name)
 #endif // NOJSBUF
 }
 
-void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t bgcolor,uint8_t fntcolor,uint8_t pol,uint8_t margin,uint8_t round,uint8_t ctl)
-/* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
+void buttonCfg(char* buf,const char* font,char* sizfnt,uint8_t round,uint8_t margin,uint8_t bgcolor,uint8_t butSize)
 {
-#ifndef NOJSBUF
-    //fnJsIntro(jsbuf,JSAC,0,0);
-    fnJsIntro(jsbuf,JSBFB,sizfnt,ctl);
-    jscatch(jsbuf,aligncenter+PMFNCVAL);
-    jscatch(jsbuf,usernum+PMFNCVAL);
-    concatn(jsbuf,usrtime[usernum]);
-    jscat(jsbuf,JSSEP);
-    jscat(jsbuf,nomfonct,SEP);jscat(jsbuf,valfonct,SEP);jscat(jsbuf,lib);
-#endif // NOJSBUF
+  strcat(buf,"<input type=\"button\"");
 
-    fnHtmlIntro(buf,sizfnt,ctl);
-    char b[]={(char)(usernum+PMFNCHAR),'\0'};
-    strcat(buf,"<a href=\"?user_ref_");
-    strcat(buf,b);strcat(buf,"=");concatn(buf,usrtime[usernum]);
-    strcat(buf,"?");
-    //strcat(buf," rel=\"noreferrer\"?");
-    //char* dm=buf+strlen(buf);
-    strcat(buf,nomfonct);strcat(buf,"=");strcat(buf,valfonct);
-    
-    strcat(buf,"\">");
-    if(aligncenter){strcat(buf,"<p align=\"center\">");}
-    strcat(buf,"<input type=\"button\"");
-
-    if(sizfnt==1){strcat(buf," style=\"height:40px;width:80px;");}
-    if(sizfnt==2){strcat(buf," style=\"height:60px;width:300px;");}
-    if(sizfnt==3){strcat(buf," style=\"height:75px;width:150px;");}
-    if(sizfnt==4){strcat(buf," style=\"height:100px;width:220px;");}
-    if(sizfnt==5){strcat(buf," style=\"height:110px;width:350px;");}
-    if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;");}
+  switch(butSize){  
+    case 0:strcat(buf," style=\"height:20px;width:80px;font-size:12px;");break;
+    case 1:strcat(buf," style=\"height:20px;width:80px;font-size:12px;");break;
+    case 2:strcat(buf," style=\"height:25px;width:100px;font-size:15px;");break;
+    case 3:strcat(buf," style=\"height:35px;width:150px;font-size:18px;");break;
+    case 4:strcat(buf," style=\"height:40px;width:200px;font-size:20px;");break;
+    case 5:strcat(buf," style=\"height:50px;width:250px;font-size:30px;");break;
+    case 6:strcat(buf," style=\"height:60px;width:300px;font-size:40px;");break;
+    case 7:strcat(buf," style=\"height:80px;width:400px;font-size:50px;");break;
+    default: strcat(buf," style=\"height:80px;width:400px;font-size:50px;");break;
+  }
+  
     if(round!=0){
       strcat(buf,"  border-radius: ");
       if(round==1){strcat(buf,"5");}
       if(round==2){strcat(buf,"50");}
-      strcat(buf,"px;");}
+      strcat(buf,"px;");
+    }
 
     if(margin!=0){strcat(buf," margin: 16px;");}
 
-    strcat(buf,"font-size:");
-    if(sizfnt==7){strcat(buf,"35px;");}
-    else if(sizfnt==1){strcat(buf,"15px;");}
-    else if(sizfnt==2){strcat(buf,"40px;");}
-    else if(sizfnt==3){strcat(buf,"25px;");}
-    else if(sizfnt==4){strcat(buf,"25px;");}
-    else if(sizfnt==5){strcat(buf,"30px;");}
-    else strcat(buf,"25px;");
+    if(sizfnt!=nullptr){strcat(buf," font-size:");strcat(buf,sizfnt);strcat(buf,"px;");}
     
-    if(pol==0){strcat(buf,"font-family:Courier,sans-serif;");}
+    strcat(buf," font-family:");
+    if(font!=nullptr){strcat(buf,font);}
+    else strcat(buf,"Arial");
+    strcat(buf,";");
 
     const char* colNames[COLNAMENB];
     if(bgcolor<LIGHTVALUE){
@@ -1061,9 +1042,38 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
 
     //Serial.print(" bgcolor=");Serial.println(bgcolor);
 
-    if(sizfnt!=0){
+    if(bgcolor!=0){
       strcat(buf,"background-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");
       strcat(buf,"border-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");} 
+}
+
+void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,const char* font,char* sizfnt,uint8_t butsize,uint8_t bgcolor,uint8_t margin,uint8_t round,uint8_t ctl)
+/* génère user_ref_x=nnnnnnn...?ffffffffff=zzzzzz... */
+{
+#ifndef NOJSBUF
+    //fnJsIntro(jsbuf,JSAC,0,0);
+    fnJsIntro(jsbuf,JSBFB,sizfnt,ctl);
+    jscatch(jsbuf,aligncenter+PMFNCVAL);
+    jscatch(jsbuf,usernum+PMFNCVAL);
+    concatn(jsbuf,usrtime[usernum]);
+    jscat(jsbuf,JSSEP);
+    jscat(jsbuf,nomfonct,SEP);jscat(jsbuf,valfonct,SEP);jscat(jsbuf,lib);
+#endif // NOJSBUF
+
+    fnHtmlIntro(buf,nullptr,0,ctl,0);
+    char b[]={(char)(usernum+PMFNCHAR),'\0'};
+    strcat(buf,"<a href=\"?user_ref_");
+    strcat(buf,b);strcat(buf,"=");concatn(buf,usrtime[usernum]);
+    strcat(buf,"?");
+    //strcat(buf," rel=\"noreferrer\"?");
+    //char* dm=buf+strlen(buf);
+    strcat(buf,nomfonct);strcat(buf,"=");strcat(buf,valfonct);
+    
+    strcat(buf,"\">");
+    if(aligncenter){strcat(buf,"<p align=\"center\">");}
+    //char sizbuf[6];sizbuf[0]='\0';concatn(sizbuf,sizfnt);
+
+    buttonCfg(buf,font,sizfnt,round,margin,bgcolor,butsize);
 /*
     if(sizfnt!=0){
       strcat(buf,"font-size:25px;font-family:Courier,sans-serif;");
@@ -1078,16 +1088,14 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     
     fnHtmlEnd(buf,0,ctl);
 }
-
-void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
+void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t butsize,uint8_t bgcolor,uint8_t fntcolor,uint8_t margin,uint8_t round,uint8_t ctl)
 {
-  uint8_t color=0;if(sizfnt!=0){color=4;}
-  return scrGetButFn(buf,jsbuf,nomfonct,valfonct,lib,aligncenter,sizfnt,color,1,0,0,ctl);
+  scrGetButFn(buf,jsbuf,nomfonct,valfonct,lib,aligncenter,"arial",nullptr,butsize,bgcolor,margin,round,ctl);
 }
 
-void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t bgcolor,uint8_t fntcolor,uint8_t margin,uint8_t round,uint8_t ctl)
+void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,uint8_t butsize,uint8_t ctl)
 {
-  return scrGetButFn(buf,jsbuf,nomfonct,valfonct,lib,aligncenter,sizfnt,bgcolor,0,1,0,0,ctl);
+  scrGetButFn(buf,jsbuf,nomfonct,valfonct,lib,aligncenter,"arial",nullptr,butsize,0,0,0,ctl);
 }
 
 void scrGetButRet(char* buf,char* jsbuf,const char* lib,uint8_t ctl)

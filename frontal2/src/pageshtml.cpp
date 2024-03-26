@@ -697,8 +697,8 @@ void mailCfg(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t lb0
 
     formIntro(buf,jsbuf,nullptr,0,"mails",0,0);
     
-    tableBeg(buf,jsbuf,NOBORDER,0);
-    scrDspText(buf,jsbuf,"mailFrom ",2,TRBEG|TDBE);scrGetText(buf,jsbuf,mailFromAddr,"mailcfg__f",16,LMAILADD,0,TDBE);strcat(buf,"\n");
+    tableBeg(buf,jsbuf,courier,"18",NOBORDER,0,0);
+    scrDspText(buf,jsbuf,"mailFrom ",0,TRBEG|TDBE);scrGetText(buf,jsbuf,mailFromAddr,"mailcfg__f",16,LMAILADD,0,TDBE);strcat(buf,"\n");
     scrDspText(buf,jsbuf," ",40,0,TDBE);scrDspText(buf,jsbuf,"password  ",0,TDBE);scrGetText(buf,jsbuf,mailPass,"mailcfg__w",16,LMAILPWD,0,TDBE|TREND);strcat(buf,"\n");
     scrDspText(buf,jsbuf,"mailTo #1 ",0,TRBEG|TDBE);scrGetText(buf,jsbuf,mailToAddr1,"mailcfg__1",16,LMAILADD,0,TDBE);strcat(buf,"\n");
     scrDspText(buf,jsbuf," ",40,2,TDBE);scrDspText(buf,jsbuf,"mailTo #2 ",0,TDBE);scrGetText(buf,jsbuf,mailToAddr2,"mailcfg__2",16,LMAILADD,0,TDBE|TREND);strcat(buf,"\n");
@@ -1139,8 +1139,8 @@ void remoteHtml(EthernetClient* cli)
             tableBeg(buf,jsbuf,0);
             scrGetButRet(buf,jsbuf,"retour",TRBEG|TDBE);
             scrGetButRef(buf,jsbuf,"remote_cr",0,TDBE|TREND|BRYES);
-            scrGetButFn(buf,jsbuf,"thermoshos","","températures",false,2,7,1,1,0,0,TRBEG|TDBE);
-            scrGetButFn(buf,jsbuf,"timersctl_","","timers",false,2,7,1,1,0,0,TDBE|TREND);
+            scrGetButFn(buf,jsbuf,"thermoshos","","températures",false,6,1,1,0,0,TRBEG|TDBE);
+            scrGetButFn(buf,jsbuf,"timersctl_","","timers",false,6,1,1,0,0,TDBE|TREND);
             tableEnd(buf,jsbuf,BRYES);
             ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
@@ -1627,8 +1627,8 @@ void thermoShowHtml(EthernetClient* cli)
   scrGetButRet(buf,jsbuf,"retour",TDBE);
   scrGetButRef(buf,jsbuf,"thermosho",0,TDBE|TREND);
   //formIntro(buf,jsbuf,0,0);                
-  scrDspText(buf,jsbuf,"prev yyymmddhhmmss",5,TRBEG|TDBEG|BRYES);
-  scrGetText(buf,jsbuf,thermoCurPrev,"thermoshop",12,15,20,0,TDEND);
+  scrDspText(buf,jsbuf,"prev yyymmddhhmmss",18,TRBEG|TDBEG|BRYES);
+  scrGetText(buf,jsbuf,thermoCurPrev,"thermoshop",12,15,18,0,TDEND);
   //scrGetButFn(buf,jsbuf,"thermoshos","","màj min/max",false,2,7,1,1,0,0,TDBE);
   scrGetButSub(buf,jsbuf,"màj min/max",ALICNO,1,TDBE|TREND);
   formEnd(buf,jsbuf,0,0);
@@ -1653,13 +1653,13 @@ void thermoShowHtml(EthernetClient* cli)
                     ni++;
                     float th;
                     scrDspNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,0,TDBE);
-                    th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,0,TDBE);
-                    th=(float)(*periThmin_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,0,TDBE);                    
-                    th=(float)(*periThmax_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,2,0,TDBE);                    
+                    th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,0,TDBE);
+                    th=(float)(*periThmin_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,12,TDBE);                    
+                    th=(float)(*periThmax_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,12,TDBE);                    
                     
                     memset(lith,0x00,LLITH);
                     bufPrintPeriDate(lith,periLastDateIn);
-                    scrDspText(buf,jsbuf,lith,0,TDBE|TREND);
+                    scrDspText(buf,jsbuf,lith,12,TDBE|TREND);
                     strcat(buf,"\n");                      
                     
                     lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}
@@ -1988,7 +1988,7 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
     
     //polBeg(buf,jsbuf,10,0);//strcat(buf,"\n");
     scrDspText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>\n",0,"Arial",12,0);
-    setFont(buf,"Arial","12");
+    setFont(buf,"Arial","10");
 
     uint8_t ni=0;
     uint16_t lb1=0;

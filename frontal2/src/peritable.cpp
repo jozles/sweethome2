@@ -386,17 +386,17 @@ void periTableHtml(EthernetClient* cli)
           scrGetNum(buf,jsbuf,'d',&perrefr,"per_refr__",4,0,0,BRYES);
           
           //cli->print("<br>");
-          scrGetButFn(buf,jsbuf,"deco______","","_  deco  _",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"deco_____B","","_ reboot _",ALICNO,0,0);          
-          scrGetButFn(buf,jsbuf,"cfgserv___","","_ config _",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"remote____","","remote_cfg",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"remote_cr_","","remotehtml",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"antimcfg__","","antimcfg__",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"thermoscfg","","thermo_cfg",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"thermoshow","","thermoshow",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"dump_his__","","histo show",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"timershtml","","timershtml",ALICNO,0,0);
-          scrGetButFn(buf,jsbuf,"dsrvhtml__","","detsrvhtml",ALICNO,0,0);                 
+          scrGetButFn(buf,jsbuf,"deco______","","_  deco  _",ALICNO,1,0);
+          scrGetButFn(buf,jsbuf,"deco_____B","","_ reboot _",ALICNO,1,0);          
+          scrGetButFn(buf,jsbuf,"cfgserv___","","_ config _",ALICNO,1,0);
+          scrGetButFn(buf,jsbuf,"remote____","","remote_cfg",ALICNO,1,0);
+          scrGetButFn(buf,jsbuf,"remote_cr_","","remotehtml",ALICNO,1,0);
+          scrGetButFn(buf,jsbuf,"antimcfg__","","antimcfg__",ALICNO,1,0);
+          scrGetButFn(buf,jsbuf,"thermoscfg","","thermo_cfg",ALICNO,1,0);
+          scrGetButFn(buf,jsbuf,"thermoshow","","thermoshow",ALICNO,1,0);
+          scrGetButFn(buf,jsbuf,"dump_his__","","histo show",ALICNO,1,0);
+          scrGetButFn(buf,jsbuf,"timershtml","","timershtml",ALICNO,1,0);
+          scrGetButFn(buf,jsbuf,"dsrvhtml__","","detsrvhtml",ALICNO,1,0);                 
         
           formEnd(buf,jsbuf,0,0);
           strcat(buf,"\n");
@@ -404,8 +404,8 @@ void periTableHtml(EthernetClient* cli)
           detServHtml(cli,buf,jsbuf,&lb,lb0,memDetServ,&libDetServ[0][0]);  // détecteurs serveur
           
           //strcat(buf,"<table><tr><th></th><th><br>nom_periph</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th><br>D_l<br>i_e<br>s_v</th><th></th><th>Analog<br>_low<br>_high</th><th>mac_addr<br>ip_addr</th><th>vers. prot<br>last out<br>last in</th><th></th></tr>");
-          tableBeg(buf,jsbuf,"Courier, sans-serif\"",BORDER,TRBEG|TDBEG);
-          scrDspText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg||nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|ver ssid prot~last out~last in|",0,TREND|TDEND);
+          tableBeg(buf,jsbuf,"courier","12",BORDER,"0",0);
+          scrDspText(buf,jsbuf,"|~nom_periph|~TH|~  V |per_t~pth~ofs|per_s~ ~pg||nb~sw~det|D_l~i_e~s_v||Analog~_low~_high|mac_addr~ip_addr|ver ssid prot~last out~last in|",0,TRBE|TDBE);
           
           strcat(buf,"\n\n");
 
@@ -581,7 +581,8 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                 if(*periSwNb>MAXSW){periCheck(periCur,"perSW ERR ");*periSwNb=MAXSW;periSave(periCur,PERISAVESD);}
                 if(*periDetNb>MAXDET){periCheck(periCur,"perDET ERR ");*periDetNb=MAXDET;periSave(periCur,PERISAVESD);}
 
-                tableBeg(buf,jsbuf,0);
+                //void tableBeg(char* buf,char* jsbuf,const char* police,const char* size,bool border,const char* height,uint8_t ctl)
+                tableBeg(buf,jsbuf,"arial","15",0,0,0);
                       //strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   
                       scrDspText(buf,jsbuf,"||~periph_name|~TH|~  V |per_t~per_s|pth~ofs|serv~an|nb~sw~det|._D_ _l~._i_ _e~._s_ _v|mac_addr~ip_addr|version Th~last out~last in",0,TRBE);
                       strcat(buf,"\n");
@@ -822,9 +823,9 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
           strcat(buf,"\n");
 // boutons
           char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';                      
-          scrGetButFn(buf,jsbuf,line,"","Periph",ALICNO,0,TDBEG|BRYES);                         // bouton periph
+          scrGetButFn(buf,jsbuf,line,"","Periph",ALICNO,1,TDBEG|BRYES);                         // bouton periph
           if(*periSwNb!=0){char swf[]="switchs_W_";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-            scrGetButFn(buf,jsbuf,swf,"","Switchs",ALICNO,0,TDEND);}                            // bouton switchs
+            scrGetButFn(buf,jsbuf,swf,"","Switchs",ALICNO,1,TDEND);}                            // bouton switchs
           strcat(buf,"\n");                                    
 // fin
           formEnd(buf,jsbuf,0,TREND);
