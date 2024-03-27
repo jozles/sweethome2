@@ -237,7 +237,7 @@ void fnHtmlEnd(char* buf,const char* font,uint8_t pol,uint8_t ctl)
 {
   if(buf!=nullptr){
     //if(pol!=0){strcat(buf,"</font>");}
-    if(font!=nullptr){strcat(buf,"</span>");}
+    if(font!=nullptr||pol!=0){strcat(buf,"</span>");}
     if((ctl&BRMASK)!=0){strcat(buf,"<br>");}
     if((ctl&TDEND)!=0 || (ctl&TDMASK)==TDBE){strcat(buf,"</td>");}
     if((ctl&TREND)!=0 || (ctl&TRMASK)==TRBE){strcat(buf,"</tr>");}
@@ -560,7 +560,9 @@ void scrDspText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
 
 void affSpace(char* buf,char* jsbuf,uint8_t ctl)
 {
+  fnHtmlIntro(buf,0,ctl);
   strcat(buf," ");
+  fnHtmlEnd(buf,0,ctl);
   fnJsIntro(jsbuf,JSSP,0,ctl);
 }
 
@@ -637,7 +639,7 @@ void scrDspNum(char* buf,char* jsbuf,char type,void* value,const void* valmin,co
   if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
   if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0))){fnJsIntro(jsbuf,JSNT,pol,ctlb);} 
   
-  fnHtmlIntro(buf,pol,ctl);
+  fnHtmlIntro(buf,nullptr,pol,ctl,0);
 
   if(minmax){checkColour(buf,jsbuf,type,value,valmin,valmax);} 
 
@@ -793,7 +795,7 @@ void tableBeg(char* buf,char* jsbuf,const char* police,const char* size,bool bor
   strcat(buf,"<table border=\"");
   strcat(buf,tBorder+border*3);
 
-  if(*height!='0'){strcat(buf," height=");strcat(buf,height);}
+  if(*height!='0' && *height!='\0'){strcat(buf," height=\"");strcat(buf,height);strcat(buf,"\"");}
 
   if(police!=nullptr || size!=nullptr){strcat(buf," style=\"");
 
@@ -989,10 +991,10 @@ void buttonCfg(char* buf,const char* font,char* sizfnt,uint8_t round,uint8_t mar
   switch(butSize){  
     case 0:strcat(buf," style=\"height:20px;width:80px;font-size:12px;");break;
     case 1:strcat(buf," style=\"height:20px;width:80px;font-size:12px;");break;
-    case 2:strcat(buf," style=\"height:25px;width:100px;font-size:15px;");break;
-    case 3:strcat(buf," style=\"height:35px;width:150px;font-size:18px;");break;
-    case 4:strcat(buf," style=\"height:40px;width:200px;font-size:20px;");break;
-    case 5:strcat(buf," style=\"height:50px;width:250px;font-size:30px;");break;
+    case 2:strcat(buf," style=\"height:30px;width:100px;font-size:15px;");break;
+    case 3:strcat(buf," style=\"height:40px;width:150px;font-size:18px;");break;
+    case 4:strcat(buf," style=\"height:50px;width:200px;font-size:20px;");break;
+    case 5:strcat(buf," style=\"height:55px;width:250px;font-size:30px;");break;
     case 6:strcat(buf," style=\"height:60px;width:300px;font-size:40px;");break;
     case 7:strcat(buf," style=\"height:80px;width:400px;font-size:50px;");break;
     default: strcat(buf," style=\"height:80px;width:400px;font-size:50px;");break;
@@ -1025,7 +1027,7 @@ void buttonCfg(char* buf,const char* font,char* sizfnt,uint8_t round,uint8_t mar
       colNames[3]="Gold";         // push
       colNames[4]="Grey";         // off
       colNames[5]="Goldenrod";    // selected
-      colNames[6]="";
+      colNames[6]="ForestGreen";  // disj
       colNames[7]="";             // gris par défaut
       colNames[8]="";
       colNames[9]="LightGrey";    // std button
@@ -1044,7 +1046,8 @@ void buttonCfg(char* buf,const char* font,char* sizfnt,uint8_t round,uint8_t mar
 
     if(bgcolor!=0){
       strcat(buf,"background-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");
-      strcat(buf,"border-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");} 
+      strcat(buf,"border-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");
+    } 
 }
 
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,const char* font,char* sizfnt,uint8_t butsize,uint8_t bgcolor,uint8_t margin,uint8_t round,uint8_t ctl)
@@ -1425,7 +1428,7 @@ void scrGetCheckbox(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int 
   strcat(buf,"\" id=\"cb1\" value=\"1\"");
   if((*val & 0x01)!=0){strcat(buf," checked");}
   strcat(buf,">");
-  strcat(buf,lib);
+  if(lib!=nullptr){strcat(buf,lib);}
   
   if(etat!=NO_STATE){concatn(nullptr,jsbuf,(unsigned long)etat);}
   switch(etat){

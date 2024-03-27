@@ -3,7 +3,7 @@
 
 #include <Ethernet.h>
 
-#define DISJCOLOR   0           // Green
+#define DISJCOLOR   6           // Green
 #define ONCOLOR     1           // Blue
 #define FORCEDCOLOR 2           // Red
 #define PUSHCOLOR   3           // Yellow

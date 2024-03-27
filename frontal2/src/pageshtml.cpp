@@ -520,7 +520,7 @@ void accueilHtml(EthernetClient* cli)
             pageIntro0(buf,jsbuf);                       
             //formIntro(buf,jsbuf,0,0);
             
-            scrDspText(buf,jsbuf,VERSION,5,BRYES);
+            scrDspText(buf,jsbuf,VERSION,24,BRYES);
             //strcat(buf,"<h1 class=\"point\">");
             //strcat(buf,VERSION);strcat(buf,"<br>");
 
@@ -1139,8 +1139,8 @@ void remoteHtml(EthernetClient* cli)
             tableBeg(buf,jsbuf,0);
             scrGetButRet(buf,jsbuf,"retour",TRBEG|TDBE);
             scrGetButRef(buf,jsbuf,"remote_cr",0,TDBE|TREND|BRYES);
-            scrGetButFn(buf,jsbuf,"thermoshos","","températures",false,6,1,1,0,0,TRBEG|TDBE);
-            scrGetButFn(buf,jsbuf,"timersctl_","","timers",false,6,1,1,0,0,TDBE|TREND);
+            scrGetButFn(buf,jsbuf,"thermoshos","","températures",false,6,0,0,0,0,TRBEG|TDBE);
+            scrGetButFn(buf,jsbuf,"timersctl_","","timers",false,6,0,0,0,0,TDBE|TREND);
             tableEnd(buf,jsbuf,BRYES);
             ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
@@ -1182,7 +1182,7 @@ void remoteHtml(EthernetClient* cli)
               char fn[LENNOM+1];
               char fnt[LENNOM+1];                                       // bouton '>'
               if(remoteN[nb].nam[0]!='\0'){
-                strcat(buf,"<tr height=100>");                          // patch à intégrer dans le ctl des fonctions d'affichage
+                strcat(buf,"<tr height=90>");                          // patch à intégrer dans le ctl des fonctions d'affichage
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);
                 
                 if(!remoteN[nb].multRem){                               // remote simple
@@ -1248,9 +1248,8 @@ void remoteHtml(EthernetClient* cli)
                     scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,color,1,1,SQR,TDBEG);          // envoie toujours '1'
                   }
                 }
-                else {scrDspText(buf,jsbuf,"- - - - -",0,TDBE);}                                // slider/push absent
+                else {scrDspText(buf,jsbuf,"- - -",0,TDBE);}                                    // slider/push absent
 
-                
                 
                 scrDspText(buf,jsbuf,mother,0,TDBE);               
                 strcat(buf,"\n");
@@ -1268,13 +1267,13 @@ void remoteHtml(EthernetClient* cli)
                   if(disjVal%10==i){color=colors[i];} else color=OFFCOLOR;
                   if(disjVal>=10){color+=LIGHTVALUE;}
                   //Serial.print(" disj color=");Serial.println(color);
-                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,1,color,0,0,1,TDBEG);
+                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,3,color,0,0,0,TDBEG);
                   uint8_t ctl=TDEND;
                   if(i==2){
                     ctl=TDEND|TREND|BRYES;
                     scrDspText(buf,jsbuf," ",0,TDEND);
                     scrDspText(buf,jsbuf," - ",0,TDBEG);
-                    scrGetButFn(buf,jsbuf,fnt,remTNum,">",ALICNO,0,OFFCOLOR,0,0,1,0);
+                    scrGetButFn(buf,jsbuf,fnt,remTNum,">",ALICNO,2,OFFCOLOR,0,0,0,0);
                   }
                   scrDspText(buf,jsbuf,"  ",0,ctl);
                 }
@@ -1641,8 +1640,8 @@ void thermoShowHtml(EthernetClient* cli)
   char thls[16];memcpy(thls,thermoLastScan,8);thls[8]=' ';memcpy(thls+9,thermoLastScan+8,6);thls[15]='\0';
   scrDspText(buf,jsbuf,"min/max du ",0,0);scrDspText(buf,jsbuf,thermoLastBeg,0,0);scrDspText(buf,jsbuf," au ",0,0);scrDspText(buf,jsbuf,thls,0,BRYES);        // période scan
   
-  tableBeg(buf,jsbuf,"Arial","24",BORDER,nullptr,BRYES|TRBEG);
-  scrDspText(buf,jsbuf,"peri||TH|min|max|last in",0,TDBE|TREND);
+  tableBeg(buf,jsbuf,"Courier","30",BORDER,nullptr,BRYES|TRBEG);
+  scrDspText(buf,jsbuf,"peri||_|TH|_|min| max|last in",0,TDBE|TREND);
   strcat(buf,"\n");
               for(int nuth=0;nuth<NBTHERMOS;nuth++){
                 periCur=thermos[nuth].peri;
@@ -1653,7 +1652,9 @@ void thermoShowHtml(EthernetClient* cli)
                     ni++;
                     float th;
                     scrDspNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,0,TDBE);
+                    affSpace(buf,jsbuf,TDBE);
                     th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,0,TDBE);
+                    affSpace(buf,jsbuf,TDBE);
                     th=(float)(*periThmin_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,12,TDBE);                    
                     th=(float)(*periThmax_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,12,TDBE);                    
                     
@@ -1986,36 +1987,36 @@ void detServHtml(EthernetClient* cli,char* buf,char* jsbuf,uint16_t* lb,uint16_t
                                     // à charger au moins une fois par page ; pour les autres formulaires 
                                     // de la page formBeg() suffit
     
-    //polBeg(buf,jsbuf,10,0);//strcat(buf,"\n");
-    scrDspText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>\n",0,"Arial",12,0);
-    setFont(buf,"Arial","10");
+    setFont(buf,"courier","10");
+    scrDspText(buf,jsbuf,"<fieldset><legend>détecteurs serveur (n->0):</legend>\n",0,nullptr,0,0);
+    strcat(buf,"\n");
 
     uint8_t ni=0;
-    uint16_t lb1=0;
-        
+    uint16_t lb1=0;      
         
         for(int k=NBDSRV-1;k>=0;k--){
             ni++;
             
-            char libb[LENLIBDETSERV];memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
-            if(libb[0]=='\0'){convIntToString(libb,k);}
+            char libb[LENLIBDETSERV+40];libb[0]='\0';
+            memcpy(libb,lib+k*LENLIBDETSERV,LENLIBDETSERV);
+            if(libb[0]=='\0'){
+              convIntToString(libb,k);
+              strcat(libb,&(mdsSrc[sourceDetServ[k]/256]));
+              if(sourceDetServ[k]/256!=0){
+                concatn(libb,sourceDetServ[k]&0x00ff);
+                strcat(libb," ");}
+              else{strcat(libb,"-- ");}
+            }
             subDSnBm(buf,jsbuf,"mem_dsrv__\0",mds,k,libb);
-            scrDspText(buf,jsbuf,"(",0,0);
-            scrDspText(buf,jsbuf,&(mdsSrc[sourceDetServ[k]/256]),0,0);
-            if(sourceDetServ[k]/256!=0){
-              concatn(buf,jsbuf,sourceDetServ[k]&0x00ff);
-              scrDspText(buf,jsbuf,") ",0,0);}
-            else{scrDspText(buf,jsbuf,"--) ",0,0);}
             
             strcat(buf,"\n");
             lb1=strlen(buf);if(lb0-lb1<(lb1/ni+100)){ethWrite(cli,buf);ni=0;}
         }
-        //polEnd(buf,jsbuf,0);
     scrGetButSub(buf,jsbuf,"Per Update",0);
-          
+
+    endFont(buf);      
     formEnd(buf,jsbuf,TITLE,0,0);
     //strcat(buf,"\n"); 
-    endFont(buf);
           
     ethWrite(cli,buf,lb);        
   }
