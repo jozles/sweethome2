@@ -373,7 +373,7 @@ void histoHtml(EthernetClient* cli)
                                     // de la page formBeg() suffit
 
   pageLineOne(buf,jsbuf);            // 1ère ligne page
-  scrGetButRet(buf,jsbuf,"retour",0);
+  scrGetButRet(buf,jsbuf,"retour",BRYES);
 
   ethWrite(cli,buf,&lb);
 // ------------------------------------------------------------- header end
@@ -398,19 +398,21 @@ tableBeg(buf,jsbuf,"Arial","10",false,"0",0);
           scrDspText(buf,jsbuf,"c  TCP browser record",0,0,0,TDBE|TREND); 
           scrDspText(buf,jsbuf,"b  TCP remote record",0,0,0,TRBEG|TDBE);
           scrDspText(buf,jsbuf,"__",0,0,0,TDBE|TREND|BRYES);          
-tableEnd(buf,jsbuf,0);                                                 
+tableEnd(buf,jsbuf,BRYES);                                                 
 endFont(buf);
-          scrDspText(buf,jsbuf,"pos (",0,0);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,0);scrDspText(buf,jsbuf,")",0,0);
-          scrGetNum(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh_p_",9,0,0,BRYES);
-          scrDspText(buf,jsbuf,"<br>date debut",0,0);
-          scrGetText(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,0);
+tableBeg(buf,jsbuf,"Arial","18",NOBORDER,"0",0);
+          scrDspText(buf,jsbuf,"pos (",0,TRBEG|TDBEG);scrDspNum(buf,jsbuf,'l',&fhsize,0,0,0);scrDspText(buf,jsbuf,") ",0,TDEND);
+          scrGetNum(buf,jsbuf,'i',(uint32_t*)&histoPos,"hist_sh_p_",9,0,0,TDBE|TREND);
+          scrDspText(buf,jsbuf,"date debut ",0,TRBEG|TDBE);
+          scrGetText(buf,jsbuf,histoDh,"hist_sh_D_",LDATEA-2,0,TDBE|TREND);
           affSpace(buf,jsbuf);
-          scrDspText(buf,jsbuf,"n° périf ",0,0);
-          scrGetNum(buf,jsbuf,'d',&histoPeri,"hist_sh_P_",4,0,0,0);
-          scrDspText(buf,jsbuf," (si >NBPERIF tous perifs ; si 0 tous types)",0,"Arial",12,BRYES);
-          //scrGetButSub(buf,jsbuf,"ok",0)
-          //scrGetButFn(buf,jsbuf,"dump_his__","","histo",ALICNO,0,BRYES);
-          scrGetButSub(buf,jsbuf,"dump",0);
+          scrDspText(buf,jsbuf,"n° périf ",0,TRBEG|TDBE);
+          scrGetNum(buf,jsbuf,'d',&histoPeri,"hist_sh_P_",4,0,0,TDBEG);
+          scrDspText(buf,jsbuf," (si >NBPERIF tous perifs ; si 0 tous types)",0,"Arial",12,TDEND|TREND);
+tableEnd(buf,jsbuf,BRYES);
+
+  fnHtmlEnd(buf,jsbuf,0,BRYES);
+  scrGetButSub(buf,jsbuf,"dump",ALICNO,4,0);
 
   htmlEnd(buf,jsbuf);
 
@@ -420,7 +422,7 @@ endFont(buf);
 }
 
 void shDateHist(char* dhasc,long* pos)
-{ 
+{
   long searchStep=100000;
   long ptr,curpos=fhisto.size();
   fhisto.seek(curpos);
@@ -732,7 +734,7 @@ void cfgServerHtml(EthernetClient* cli)
 
   pageLineOne(buf,jsbuf);            // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
-  scrGetButSub(buf,jsbuf,"MàJ",BRYES);
+  scrGetButSub(buf,jsbuf,"MàJ",ALICNO,2,BRYES);
 
   ethWrite(cli,buf,&lb);            // tfr -> navigateur
 // ------------------------------------------------------------- header end
@@ -857,7 +859,7 @@ void cfgRemoteHtml(EthernetClient* cli)
   ethWrite(cli,buf,&lb);          
 // ------------------------------------------------------------- header end 
 
-  scrGetButSub(buf,jsbuf,"MàJ",BRYES);
+  scrGetButSub(buf,jsbuf,"MàJ",ALICNO,2,BRYES);
   scrDspText(buf,jsbuf,"Les remotes simples sont attachées à un unique périf/switch avec son disjoncteur (décrit dans la 2nde table)",0,BRYES);
   scrDspText(buf,jsbuf,"Les remotes multiples hébergent le disjoncteur qui contrôle tous les switchs associés",0,BRYES);
   scrDspText(buf,jsbuf,"Le push/slider contrôle un bit de MDS dans les 2 cas (aucun si 0)",0,BRYES);
@@ -949,7 +951,7 @@ void cfgRemoteHtml(EthernetClient* cli)
               scrGetNum(buf,jsbuf,'b',&remoteT[nb].sw,nf,2,0,0,TDBE);
               strcat(buf,"\n");
 
-              scrGetButSub(buf,jsbuf,"MàJ",TDBE|TREND);
+              scrGetButSub(buf,jsbuf,"MàJ",ALICNO,0,TDBE|TREND);
               formEnd(buf,jsbuf,0,0);
               strcat(buf,"\n");
                 
@@ -1007,7 +1009,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   // ----------------------- une ligne état initial de la remote hors one_shot_timer
 
   fnHtmlEnd(buf,jsbuf,0,BRYES);
-  scrDspText(buf,jsbuf,"initial state",0,BRYES);
+  scrDspText(buf,jsbuf,"initial state",0,0);
   tableBeg(buf,jsbuf,courier,true,0,0);                                             
   scrDspNum(buf,jsbuf,&rem,&min,&max,0,BRYES|TDBE);
   scrDspText(buf,jsbuf,remoteN[rem-1].nam,0,TDBE);
@@ -1054,7 +1056,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 // ---------------------------- une ligne durées
 
   fnHtmlEnd(buf,jsbuf,0,BRYES);
-  scrDspText(buf,jsbuf,"requested dur",0,BRYES);
+  scrDspText(buf,jsbuf,"requested dur",0,0);
   tableBeg(buf,jsbuf,courier,true,0,0);
   scrDspText(buf,jsbuf,"duration(hhmmss)|rem time|end Time",0,TRBE|TDBE);
   fn[LENNOM-2]='t';
@@ -1073,7 +1075,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 
 // ---------------------------- une ligne état souhaité
 
-  scrDspText(buf,jsbuf,"requested state",0,BRYES);
+  scrDspText(buf,jsbuf,"requested state",0,0);
   tableBeg(buf,jsbuf,courier,true,0,BRYES);
   disjVal=remoteN[rem-1].osEnable;
   for(uint8_t i=0;i<3;i++){                                                       // affichage 3 boutons état one_shot souhaité
@@ -1081,18 +1083,16 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
                   else memcpy(fn,"null_fnct_",LENNOM);                            // si running ou paused pas de changement possible
                   if(disjVal%10==i){color=colors[i]+LIGHTVALUE;} else color=OFFCOLOR;
                   if(disjVal>=10){color+=LIGHTVALUE;}
-                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,2,color,0,0,1,0);
-                  ctl=0;
-                  if(i==2){
-                    ctl=TDEND|TREND|BRYES;
-                    scrDspText(buf,jsbuf," ",0,TDEND);
-                  }
-                  scrDspText(buf,jsbuf,"  ",0,ctl);
+                  ctl=TDBE;if(i==2){ctl=TDBE|TREND;}
+                  scrGetButFn(buf,jsbuf,fn,remTNum,lib[i],ALICNO,2,color,0,0,1,ctl);
   }
+  tableEnd(buf,jsbuf,BRYES);
+  fnHtmlEnd(buf,jsbuf,0,BRYES);
 
 // ----------------------------- une ligne commande STOP/PAUSE/START
 
-  //tableBeg(buf,jsbuf,courier,true,0,0);
+  scrDspText(buf,jsbuf,"action",0,0);
+  tableBeg(buf,jsbuf,courier,true,0,BRYES);
   if(*remTNum!=0){                                                                                  // remTNum doit être valide pour disjValue qui positionnera disjVal
     disjVal=remoteN[rem-1].osStatus;
     char    fnv[LENNOM+1];fnv[LENNOM-1]=(char)(rem-1+PMFNCHAR);fnv[LENNOM]='\0';                    // N° remote
@@ -1631,7 +1631,7 @@ void thermoShowHtml(EthernetClient* cli)
   scrDspText(buf,jsbuf,"prev yyymmddhhmmss",18,TRBEG|TDBEG|BRYES);
   scrGetText(buf,jsbuf,thermoCurPrev,"thermoshop",12,15,18,0,TDEND);
   //scrGetButFn(buf,jsbuf,"thermoshos","","màj min/max",false,2,7,1,1,0,0,TDBE);
-  scrGetButSub(buf,jsbuf,"màj min/max",ALICNO,1,TDBE|TREND);
+  scrGetButSub(buf,jsbuf,"màj min/max",ALICNO,0,TDBE|TREND);
   formEnd(buf,jsbuf,0,0);
   tableEnd(buf,jsbuf,BRYES);
 
@@ -1729,7 +1729,7 @@ void thermoCfgHtml(EthernetClient* cli)
   pageLineOne(buf,jsbuf);                        // 1ère ligne page
   scrGetButRet(buf,jsbuf,"retour",0);strcat(buf," ");    
           
-  scrGetButFn(buf,jsbuf,"thermoscfg","","refresh",0,0,BRYES);
+  scrGetButRef(buf,jsbuf,"thermoscfg",0,BRYES);//scrGetButFn(buf,jsbuf,"thermoscfg","","refresh",ALICNO,0,BRYES);
   
   ethWrite(cli,buf,&lb);          
 // ------------------------------------------------------------- header end 
@@ -2034,3 +2034,4 @@ void testHtml(EthernetClient* cli)
             Serial.println(" page d'essais");
  htmlImg(cli,"sweeth.jpg");            
 }           
+

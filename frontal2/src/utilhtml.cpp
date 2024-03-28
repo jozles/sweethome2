@@ -89,7 +89,9 @@ const char* generalSt=
 " padding: 32px 80px:text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}"
 ".button2 {background-color: #77878A;}"
 "#nt1{width:10px;}"
-"#nt2{width:18px;}";
+"#nt2{width:18px;}"
+/* dialog box */
+"#myDialog {border: 2px solid gray;border-radius: 20px;}";
 
 /* ---- style remote ---- */
 
@@ -207,46 +209,46 @@ void tdcat(char* buf)
       strcat(buf,">");
 }
 
-void fnHtmlIntro(char* buf,const char* font,uint8_t sizfnt,uint8_t ctl,char* colour)
+void fnHtmlIntro(char* buf,const char* font,uint8_t sizpol,uint8_t ctl,char* colour)
 { 
   if(buf!=nullptr){
     if((ctl&TRBEG)!=0 || (ctl&TRMASK)==TRBE){strcat(buf,"<tr>");}
     if((ctl&TDBEG)!=0 || (ctl&TDMASK)==TDBE){tdcat(buf);}
     if(*colour!=0x00){strcat(buf,"<font color=\"");strcat(buf,colour);strcat(buf,"\"> ");}
     //if(pol!=0){strcat(buf,"<font size=\"");concatn(buf,pol);strcat(buf,"\">");}
-    if(font!=nullptr || sizfnt!=0){strcat(buf,"<span style=\"");
+    if(font!=nullptr || sizpol!=0){strcat(buf,"<span style=\"");
       if(font!=nullptr){strcat(buf,"font-family:");strcat(buf,font);strcat(buf,";");}
-      if(sizfnt!=0){strcat(buf,"font-size:");concatn(buf,sizfnt);strcat(buf,"px;");}    //strcat(buf,"px;");}
+      if(sizpol!=0){strcat(buf,"font-size:");concatn(buf,sizpol);strcat(buf,"px;");}    //strcat(buf,"px;");}
       strcat(buf,"\">");
     }
   }
 }
 
-void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl,char* colour)
+void fnHtmlIntro(char* buf,uint8_t sizpol,uint8_t ctl,char* colour)
 {
-  fnHtmlIntro(buf,nullptr,pol,ctl,colour);
+  fnHtmlIntro(buf,nullptr,sizpol,ctl,colour);
 }
 
-void fnHtmlIntro(char* buf,uint8_t pol,uint8_t ctl)
+void fnHtmlIntro(char* buf,uint8_t sizpol,uint8_t ctl)
 {
   char nocol='\0';
-  fnHtmlIntro(buf,nullptr,pol,ctl,&nocol);
+  fnHtmlIntro(buf,nullptr,sizpol,ctl,&nocol);
 }
 
-void fnHtmlEnd(char* buf,const char* font,uint8_t pol,uint8_t ctl)
+void fnHtmlEnd(char* buf,const char* font,uint8_t sizpol,uint8_t ctl)
 {
   if(buf!=nullptr){
     //if(pol!=0){strcat(buf,"</font>");}
-    if(font!=nullptr||pol!=0){strcat(buf,"</span>");}
+    if(font!=nullptr||sizpol!=0){strcat(buf,"</span>");}
     if((ctl&BRMASK)!=0){strcat(buf,"<br>");}
     if((ctl&TDEND)!=0 || (ctl&TDMASK)==TDBE){strcat(buf,"</td>");}
     if((ctl&TREND)!=0 || (ctl&TRMASK)==TRBE){strcat(buf,"</tr>");}
   }
 }
 
-void fnHtmlEnd(char* buf,uint8_t pol,uint8_t ctl)
+void fnHtmlEnd(char* buf,uint8_t sizpol,uint8_t ctl)
 {
-  fnHtmlEnd(buf,nullptr,pol,ctl);
+  fnHtmlEnd(buf,nullptr,sizpol,ctl);
 }
 
 
@@ -499,7 +501,7 @@ void endFont(char* buf)
 
 /* ------------------ affichages (scrDsp....) ---------------------- */
 
-void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,const char* font,uint8_t pol,uint8_t ctl)
+void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,const char* font,uint8_t sizpol,uint8_t ctl)
 // mode STRING :  ne fonctionne que dans une ligne de table
 //                le premier appel comporte TDBEG pour forcer le nom de la commande et BRYES (ignoré dans ctl) ou TDEND 
 //                TDEND est forcé dans le ctl la commande
@@ -537,25 +539,25 @@ void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,const cha
 
   // -------------------- début traitement html
   styleTdWidth=tdWidth;                     // pour fnHtmlIntro()
-  fnHtmlIntro(buf,font,pol,ctl,0);          // ajoute [<tr>][<td style width="nnnpx"]>]
+  fnHtmlIntro(buf,font,sizpol,ctl,0);          // ajoute [<tr>][<td style width="nnnpx"]>]
   
   buftxcat(buf,dm0);                        // ajout texte (<br> et </td><td> décodés)
   
   if(ctl==STRING){ctl|=TDEND;}              // pas de JSSCO en fin de dm0 possible dans ce cas
   char a[]={JSSCO};
   if(*(dm0+strlen(dm0)-1)==*a){ctl&=~TDEND;}
-  if((ctl&STRING)!=0){ctl&=~BRYES;pol=0;}   // évite doublon avec JSSBR de dm0 ; bloque le </font> (ajouter fontEnd à la fin du texte)
-  fnHtmlEnd(buf,font,pol,ctl);                   // ajoute [<br>][</td>][</tr>]
+  if((ctl&STRING)!=0){ctl&=~BRYES;sizpol=0;}   // évite doublon avec JSSBR de dm0 ; bloque le </font> (ajouter fontEnd à la fin du texte)
+  fnHtmlEnd(buf,font,sizpol,ctl);                   // ajoute [<br>][</td>][</tr>]
 }
 
-void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t pol,uint8_t ctl)
+void scrDspText(char* buf,char* jsbuf,const char* txt,uint16_t tdWidth,uint8_t sizpol,uint8_t ctl)
 {
-  scrDspText(buf,jsbuf,txt,0,nullptr,pol,ctl);
+  scrDspText(buf,jsbuf,txt,0,nullptr,sizpol,ctl);
 }
 
-void scrDspText(char* buf,char* jsbuf,const char* txt,uint8_t pol,uint8_t ctl)
+void scrDspText(char* buf,char* jsbuf,const char* txt,uint8_t sizpol,uint8_t ctl)
 {
-  scrDspText(buf,jsbuf,txt,0,nullptr,pol,ctl);
+  scrDspText(buf,jsbuf,txt,0,nullptr,sizpol,ctl);
 }
 
 void affSpace(char* buf,char* jsbuf,uint8_t ctl)
@@ -984,9 +986,10 @@ void optSelHtml(char* jsbuf,char* val,char* name)
 #endif // NOJSBUF
 }
 
-void buttonCfg(char* buf,const char* font,char* sizfnt,uint8_t round,uint8_t margin,uint8_t bgcolor,uint8_t butSize)
+void buttonCfg(char* buf,const char* font,char* sizfnt,uint8_t round,uint8_t margin,uint8_t bgcolor,uint8_t butSize,const char* butType)
 {
-  strcat(buf,"<input type=\"button\"");
+  
+  strcat(buf,"<input type=\"");strcat(buf,butType);strcat(buf,"\"");
 
   switch(butSize){  
     case 0:strcat(buf," style=\"height:20px;width:80px;font-size:12px;");break;
@@ -1008,13 +1011,8 @@ void buttonCfg(char* buf,const char* font,char* sizfnt,uint8_t round,uint8_t mar
     }
 
     if(margin!=0){strcat(buf," margin: 16px;");}
-
     if(sizfnt!=nullptr){strcat(buf," font-size:");strcat(buf,sizfnt);strcat(buf,"px;");}
-    
-    strcat(buf," font-family:");
-    if(font!=nullptr){strcat(buf,font);}
-    else strcat(buf,"Arial");
-    strcat(buf,";");
+    if(font!=nullptr){strcat(buf," font-family:");strcat(buf,font);strcat(buf,";");}
 
     const char* colNames[COLNAMENB];
     if(bgcolor<LIGHTVALUE){
@@ -1048,7 +1046,8 @@ void buttonCfg(char* buf,const char* font,char* sizfnt,uint8_t round,uint8_t mar
     if(bgcolor!=0){
       strcat(buf,"background-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");
       strcat(buf,"border-color:");strcat(buf,colNames[bgcolor]);strcat(buf,";");
-    } 
+    }
+    strcat(buf,"\"");
 }
 
 void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct,const char* lib,bool aligncenter,const char* font,char* sizfnt,uint8_t butsize,uint8_t bgcolor,uint8_t margin,uint8_t round,uint8_t ctl)
@@ -1077,7 +1076,7 @@ void scrGetButFn(char* buf,char* jsbuf,const char* nomfonct,const char* valfonct
     if(aligncenter){strcat(buf,"<p align=\"center\">");}
     //char sizbuf[6];sizbuf[0]='\0';concatn(sizbuf,sizfnt);
 
-    buttonCfg(buf,font,sizfnt,round,margin,bgcolor,butsize);
+    buttonCfg(buf,font,sizfnt,round,margin,bgcolor,butsize,"button");
 /*
     if(sizfnt!=0){
       strcat(buf,"font-size:25px;font-family:Courier,sans-serif;");
@@ -1138,7 +1137,7 @@ void scrGetButRef(char* buf,char* jsbuf,const char* nomfonct,const uint8_t suffn
 }
 
 
-void scrGetButSub(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t sizfnt,uint8_t ctl)
+void scrGetButSub(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t butsize,uint8_t ctl)
 {
 #ifndef NOJSBUF  
   fnJsIntro(jsbuf,JSBMB,0,ctl);
@@ -1146,11 +1145,13 @@ void scrGetButSub(char* buf,char* jsbuf,const char* lib,bool aligncenter,uint8_t
   if(aligncenter){jscat(jsbuf,JSSEP);jscat(jsbuf,"A");}
 #endif // NOJSBUF
 
-  fnHtmlIntro(buf,sizfnt,ctl);
+  fnHtmlIntro(buf,0,ctl);
   if(aligncenter){strcat(buf,"<p align=\"center\">");}
-  strcat(buf,"<input type=\"submit\"");
+  buttonCfg(buf,"nullptr",nullptr,0,0,0,butsize,"submit");
+  /*
   if(sizfnt==1){strcat(buf," text style=\"width:300px;height:60px;font-size:40px\"");}
   if(sizfnt==7){strcat(buf," style=\"height:120px;width:400px;background-color:LightYellow;font-size:40px;font-family:Courier,sans-serif;\" ");}
+  */
   strcat(buf," value=\"");
   strcat(buf,lib);
   strcat(buf,"\">");
@@ -1407,7 +1408,7 @@ void pageLineOne(char* buf,char* jsbuf)
   strcat(dm0," ; local IP ");
   charIp(dm0,(char*)&bufIp,nullptr);strcat(dm0," ");
   concatnf(dm0,nullptr,th,2,NOBR,SEPNO);strcat(dm0,"°C ");
-  scrDspText(buf,jsbuf,dm0,0,BRYES);
+  scrDspText(buf,jsbuf,dm0,10,BRYES);
 }
 
 void scrGetCheckbox(char* buf,char* jsbuf,uint8_t* val,const char* nomfonct,int etat,const char* lib,uint8_t pol,uint8_t ctl)

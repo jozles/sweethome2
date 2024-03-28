@@ -221,15 +221,15 @@ void swCtlTableHtml(EthernetClient* cli)
 /* boutons */
     scrGetButRet(buf,jsbuf,"retour",TDBE);
     affSpace(buf,jsbuf);
-    scrGetButSub(buf,jsbuf," MàJ ",0);
+    scrGetButSub(buf,jsbuf," MàJ ",ALICNO,2,0);
 
     char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
     swf[LENNOM-2]='W';
-    scrGetButFn(buf,jsbuf,swf,"","refresh",ALICNO,0,0);
+    scrGetButFn(buf,jsbuf,swf,"","refresh",ALICNO,2,0);
 
     affSpace(buf,jsbuf);
     swf[LENNOM-2]='X';
-    scrGetButFn(buf,jsbuf,swf,""," erase ",ALICNO,0,BRYES);
+    scrGetButFn(buf,jsbuf,swf,""," erase ",ALICNO,2,BRYES);
 
     ethWrite(cli,buf,&lb);
 
@@ -479,15 +479,16 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
 // mémo 
     const char* mem="\0";
     if(memo[i]>=0 && memo[i]<NBMEMOS){mem=&memosTable[memo[i]*LMEMO];}
-    scrGetText(buf,jsbuf,mem,namfonct,LMEMO-1,0,TDBE|TREND);
+    scrGetText(buf,jsbuf,mem,namfonct,LMEMO-1,0,TDBE);
 
     ethWrite(cli,buf,lb);
   }
+  scrGetButSub(buf,jsbuf,"MàJ",ALICNO,0,TDBE|TREND);
 
-  tableEnd(buf,jsbuf,BRYES);
-  scrGetButSub(buf,jsbuf,"MàJ",0);
-  formEnd(buf,jsbuf,TITLE,0,0);
-  strcat(buf,"\n");
+  tableEnd(buf,jsbuf,0);
+  
+  formEnd(buf,jsbuf,TITLE,0,BRYES);
+  concat1a(buf,'\n');
   //strcat(buf,"<input type=\"submit\" value=\"MàJ\"></fieldset></form>\n"); 
 
   ethWrite(cli,buf,lb);
@@ -548,24 +549,38 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
 
     scrGetButRet(buf,jsbuf,"retour",TRBEG|TDBE);
     affSpace(buf,jsbuf);
-    scrGetButSub(buf,jsbuf,"MàJ",TDBEG);
+    scrGetButSub(buf,jsbuf,"MàJ",ALICNO,2,TDBEG);
 
     char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    scrGetButFn(buf,jsbuf,line,"","refresh",ALICNO,0,0);
+    scrGetButFn(buf,jsbuf,line,"","refresh",ALICNO,2,0);
     
     if(*periSwNb!=0){
       char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
-      scrGetButFn(buf,jsbuf,swf,"","Switchs",ALICNO,0,0);
+      scrGetButFn(buf,jsbuf,swf,"","Switchs",ALICNO,2,0);
     }
     affSpace(buf,jsbuf);
     char raz[]="peri_raz__";raz[LENNOM-1]=periCur+PMFNCHAR;
-    scrGetButFn(buf,jsbuf,raz,"","Raz",ALICNO,0,BRYES);
+    scrGetButFn(buf,jsbuf,raz,"","Raz",ALICNO,2,BRYES); 
+  
+  /*
+  scrDspText(buf,jsbuf,"\n<dialog id=\"myDialog\">",0,nullptr,0,0);
+  //scrDspText(buf,jsbuf,"<dialog open>",0,nullptr,0,0);
+  scrDspText(buf,jsbuf,"<p>validation Raz Perif</p>",0,nullptr,0,0);
+  scrDspText(buf,jsbuf,"<form method=\"dialog\">",0,nullptr,0,0);
+  //scrGetText(buf,jsbuf,"text bidon","retourdial",2,0,0);
+  scrDspText(buf,jsbuf,"<button>Close the dialog</button>",0,nullptr,0,0);
+  scrDspText(buf,jsbuf,"</form></dialog>",0,nullptr,0,0);              
+  //scrDspText(buf,jsbuf,"<h1>Test d'une boite de dialogue en HTML</h1>",0,nullptr,0,0);
+  //char raz[]="periRazValid";
+  scrDspText(buf,jsbuf,"<button onclick=\"myDialog.show();\">Open dialog box</button><br>\n",0,nullptr,0,0);
+  //scrDspText(buf,jsbuf,"<button onclick=\"myDialog.showModal();\">Open dialog box</button><br>",0,nullptr,0,0);
+  */
+    
 
     memcpy (line,"peri_tst__",LENNOM);line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
-    line[LENNOM-2]='0';scrGetButFn(buf,jsbuf,line,"","tst__SW0",ALICNO,0,0);
-    line[LENNOM-2]='1';scrGetButFn(buf,jsbuf,line,"","tst__SW1",ALICNO,0,0);
-    affSpace(buf,jsbuf);
-    line[LENNOM-2]='m';scrGetButFn(buf,jsbuf,line,"","tst_mail",ALICNO,0,TREND|TDEND);
+    line[LENNOM-2]='0';scrGetButFn(buf,jsbuf,line,"","tst__SW0",ALICNO,2,0);
+    line[LENNOM-2]='1';scrGetButFn(buf,jsbuf,line,"","tst__SW1",ALICNO,2,0);
+    line[LENNOM-2]='m';scrGetButFn(buf,jsbuf,line,"","tst_mail",ALICNO,2,TREND|TDEND);
     tableEnd(buf,jsbuf,0);
     //strcat(buf,"</tr></table>\n");
     
@@ -668,7 +683,8 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
 
 // table analogique
                 
-                scrDspText(buf,jsbuf,"Analog Input",18,BRYES);
+                fnHtmlEnd(buf,0,BRYES);
+                scrDspText(buf,jsbuf,"Analog Input",18,0);
                 tableBeg(buf,jsbuf,"courier","18",BORDER,"0",TRBEG);
                 scrDspText(buf,jsbuf,"val~Low~High",18,TDBE);
                 scrDspNum(buf,jsbuf,(int16_t*)periAnal,&valMin,&valMax,BRYES|TDBEG);
@@ -682,7 +698,7 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                 scrGetNum(buf,jsbuf,'F',periAnalOffset2,"peri_anaD_",2,1,0,4,TDEND|TREND);                   
                 tableEnd(buf,jsbuf,BRYES);
 
-                formEnd(buf,jsbuf,0,0);
+                formEnd(buf,jsbuf,0,BRYES);
                 
                 ethWrite(cli,buf,&lb);
   
