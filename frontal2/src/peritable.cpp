@@ -138,7 +138,6 @@ void perifHeader(char* buf,char* jsbuf)
     concatn(buf,nullptr,periCur);strcat(buf,"-");
     strcat(buf,periNamer);strcat(buf," ");
     jscat(jsbuf,dm);
-    strcat(buf,"<font size=\"2\">");
     dm=buf+strlen(buf);
     for(int j=0;j<4;j++){concatn(buf,periIpAddr[j]);if(j<3){strcat(buf,".");}};
     if((*periCfg&PERI_SERV)!=0){strcat(buf," / port=");concatn(buf,*periPort);strcat(buf,"  v");}
@@ -204,7 +203,6 @@ void swCtlTableHtml(EthernetClient* cli)
   unsigned long begTPage=millis();        // calcul durée envoi page
 
   Serial.print("swCtlTableHtml - periCur=");Serial.print(periCur);
-  Serial.print("  free=");Serial.println(freeMemory(), DEC);
 
   htmlBeg(buf,jsbuf,serverName);          // chargement CSS etc
 
@@ -228,6 +226,7 @@ void swCtlTableHtml(EthernetClient* cli)
     char swf[]="switchs___";swf[LENNOM-1]=periCur+PMFNCHAR;swf[LENNOM]='\0';
     swf[LENNOM-2]='W';
     scrGetButFn(buf,jsbuf,swf,"","refresh",ALICNO,0,0);
+
     affSpace(buf,jsbuf);
     swf[LENNOM-2]='X';
     scrGetButFn(buf,jsbuf,swf,""," erase ",ALICNO,0,BRYES);
@@ -437,9 +436,9 @@ void subCbdet(char* buf,char* jsbuf,EthernetClient* cli,uint8_t nbfonc,const cha
 
   char inifonc[LENNOM];memcpy(inifonc,nfonc,4);memcpy(inifonc+4,"init__",LENNOM-4);
 
-  formIntro(buf,jsbuf,inifonc,0,title,2,0);
+  formIntro(buf,jsbuf,inifonc,0,title,10,0);
   
-  tableBeg(buf,jsbuf,0);
+  tableBeg(buf,jsbuf,"courier","18",BORDER,"0",0);
   scrDspText(buf,jsbuf,"|e.l. p.e~n.v. r.s| op |rdet|det",0,TRBE|TDBE);
   
   char bb[libsize+1];
@@ -539,8 +538,6 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
   pageLineOne(buf,jsbuf);             // 1ère ligne page
   perifHeader(buf,jsbuf);             // 2nde ligne page
 
-  
-
   ethWrite(cli,buf,&lb);              // tfr -> navigateur
 // ------------------------------------------------------------- header end 
 
@@ -549,9 +546,10 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
     //strcat(buf,"<table><tr>\n");
     tableBeg(buf,jsbuf,false,0);
 
-    scrGetButRet(buf,jsbuf,"retour",TRBEG|TDBE);strcat(buf," ");
-
+    scrGetButRet(buf,jsbuf,"retour",TRBEG|TDBE);
+    affSpace(buf,jsbuf);
     scrGetButSub(buf,jsbuf,"MàJ",TDBEG);
+
     char line[]="periline__";line[LENNOM-1]=periCur+PMFNCHAR;line[LENNOM]='\0';
     scrGetButFn(buf,jsbuf,line,"","refresh",ALICNO,0,0);
     
@@ -582,7 +580,7 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                 if(*periDetNb>MAXDET){periCheck(periCur,"perDET ERR ");*periDetNb=MAXDET;periSave(periCur,PERISAVESD);}
 
                 //void tableBeg(char* buf,char* jsbuf,const char* police,const char* size,bool border,const char* height,uint8_t ctl)
-                tableBeg(buf,jsbuf,"arial","15",0,0,0);
+                tableBeg(buf,jsbuf,"arial","15",BORDER,0,0);
                       //strcat(buf,"<tr><th></th><th><br>periph_name</th><th><br>TH</th><th><br>  V </th><th>per_t<br>pth<br>ofs</th><th>per_s<br> <br>pg</th><th>nb<br>sw<br>det</th><th>._D_ _l<br>._i_ _e<br>._s_ _v</th><th>mac_addr<br>ip_addr</th><th>version Th<br>last out<br>last in</th></tr><br>");   
                       scrDspText(buf,jsbuf,"||~periph_name|~TH|~  V |per_t~per_s|pth~ofs|serv~an|nb~sw~det|._D_ _l~._i_ _e~._s_ _v|mac_addr~ip_addr|version Th~last out~last in",0,TRBE);
                       strcat(buf,"\n");
@@ -655,7 +653,7 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                       for(j=0;j<4;j++){concatns(bc,periIpAddr[j]);if(j<3){strcat(bc,".");}}
                       scrDspText(buf,jsbuf,bc,0,TDEND);
                       polEnd(buf,jsbuf,TDEND);
-                      scrDspText(buf,jsbuf,(char*)"",2,TDBEG);   // set police 2
+                      scrDspText(buf,jsbuf,nullptr,2,TDBEG);   // set police 2
                       char bd[LENVERSION+1];memcpy(bd,periVers,LENVERSION);bd[LENVERSION]='\0';
                       scrDspText(buf,jsbuf,bd,0,0);
                       *bd=*periProtocol;*(bd+1)='\0';
@@ -670,15 +668,15 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
 
 // table analogique
                 
-                scrDspText(buf,jsbuf,"Analog Input",0,BRYES);
-                tableBeg(buf,jsbuf,TRBEG);
-                scrDspText(buf,jsbuf,"val~Low~High",0,TDBE);
+                scrDspText(buf,jsbuf,"Analog Input",18,BRYES);
+                tableBeg(buf,jsbuf,"courier","18",BORDER,"0",TRBEG);
+                scrDspText(buf,jsbuf,"val~Low~High",18,TDBE);
                 scrDspNum(buf,jsbuf,(int16_t*)periAnal,&valMin,&valMax,BRYES|TDBEG);
                 uint16_t val=*periAnalLow&0x07ff;
                 scrGetNum(buf,jsbuf,'I',&val,"peri_ana@_",5,0,0,BRYES);
                 val=*periAnalHigh&0x07ff;
                 scrGetNum(buf,jsbuf,'I',&val,"peri_anaA_",5,0,0,NOBR|TDEND);
-                scrDspText(buf,jsbuf,"Off1~Fact~Off2",0,TDBE);
+                scrDspText(buf,jsbuf,"Off1~Fact~Off2",18,TDBE);
                 scrGetNum(buf,jsbuf,'I',periAnalOffset1,"peri_anaB_",5,0,0,TDBEG|BRYES);
                 scrGetNum(buf,jsbuf,'F',periAnalFactor,"peri_anaC_",2,1,0,4,BRYES);               
                 scrGetNum(buf,jsbuf,'F',periAnalOffset2,"peri_anaD_",2,1,0,4,TDEND|TREND);                   

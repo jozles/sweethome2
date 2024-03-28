@@ -1006,8 +1006,9 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 
   // ----------------------- une ligne état initial de la remote hors one_shot_timer
 
+  fnHtmlEnd(buf,jsbuf,0,BRYES);
   scrDspText(buf,jsbuf,"initial state",0,BRYES);
-  tableBeg(buf,jsbuf,courier,true,0,BRYES);                                             
+  tableBeg(buf,jsbuf,courier,true,0,0);                                             
   scrDspNum(buf,jsbuf,&rem,&min,&max,0,BRYES|TDBE);
   scrDspText(buf,jsbuf,remoteN[rem-1].nam,0,TDBE);
   //strcat(buf,"\n");            
@@ -1052,6 +1053,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
 
 // ---------------------------- une ligne durées
 
+  fnHtmlEnd(buf,jsbuf,0,BRYES);
   scrDspText(buf,jsbuf,"requested dur",0,BRYES);
   tableBeg(buf,jsbuf,courier,true,0,0);
   scrDspText(buf,jsbuf,"duration(hhmmss)|rem time|end Time",0,TRBE|TDBE);
@@ -1273,7 +1275,7 @@ void remoteHtml(EthernetClient* cli)
                     ctl=TDEND|TREND|BRYES;
                     scrDspText(buf,jsbuf," ",0,TDEND);
                     scrDspText(buf,jsbuf," - ",0,TDBEG);
-                    scrGetButFn(buf,jsbuf,fnt,remTNum,">",ALICNO,2,OFFCOLOR,0,0,0,0);
+                    scrGetButFn(buf,jsbuf,fnt,remTNum,">",ALICNO,3,OFFCOLOR,0,0,0,0);
                   }
                   scrDspText(buf,jsbuf,"  ",0,ctl);
                 }

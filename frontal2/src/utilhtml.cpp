@@ -1039,6 +1039,7 @@ void buttonCfg(char* buf,const char* font,char* sizfnt,uint8_t round,uint8_t mar
       colNames[3]="LightYellow";  // push
       colNames[4]="LightGrey";    // off
       colNames[5]="NavajoWhite";  // selected
+      colNames[6]="PaleGreen";  // disj
     }
     bgcolor%=LIGHTVALUE;
 
@@ -1400,7 +1401,6 @@ void pageLineOne(char* buf,char* jsbuf)
   affSpace(buf,jsbuf);
   bufPrintDateHeure(dm0,nullptr,pkdate);
   scrDspText(buf,jsbuf,dm0,0,nullptr,0,0);
-  //strcat(buf,"<font size=\"2\">;");
   
   *dm0=0x00;
   uint32_t bufIp=Ethernet.localIP();
