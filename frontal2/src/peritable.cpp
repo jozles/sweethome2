@@ -602,13 +602,13 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                       scrDspNum(buf,jsbuf,'d',&periCur,0,0,TDBE);
                       char pLFonc[]="perifonc__\0";
                       pLFonc[LENNOM-2]='N';scrGetText(buf,jsbuf,periNamer,pLFonc,12,PERINAMLEN-1,0,TRNO|TDBE|BRNO);       //scrGetText(buf,jsbuf,periNamer,"peri_nom__",12,PERINAMLEN-1,0,TRNO|TDBE|BRNO);                    
-                      scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,BRYES|TDBEG);            
+                      scrDspNum(buf,jsbuf,periLastVal_,periThmin_,periThmax_,true,2,BRYES|TDBEG);            
                       float ff=((float)*periThmin_)/100;
                       scrDspNum(buf,jsbuf,'f',&ff,2,0,BRYES);     
                       ff=((float)*periThmax_)/100;
                       scrDspNum(buf,jsbuf,'f',&ff,2,0,TDEND);
                       strcat(buf,"\n");
-                      scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,BRYES|TDBEG);
+                      scrDspNum(buf,jsbuf,periAlim_,periVmin_,periVmax_,true,2,BRYES|TDBEG);
                       pLFonc[LENNOM-2]='v';scrGetNum(buf,jsbuf,'I',periVmin_,pLFonc,1,5,0,0,BRYES);                       //scrGetNum(buf,jsbuf,'I',periVmin_,"peri_vmin_",1,5,0,0,BRYES);
                       pLFonc[LENNOM-2]='V';scrGetNum(buf,jsbuf,'I',periVmax_,pLFonc,1,5,0,0,TDEND);                       //scrGetNum(buf,jsbuf,'I',periVmax_,"peri_vmax_",1,5,0,0,TDEND);
                       pLFonc[LENNOM-2]='t';scrGetNum(buf,jsbuf,'d',(uint32_t*)periPerTemp,pLFonc,1,5,0,0,BRYES|TDBEG);    //scrGetNum(buf,jsbuf,'d',(uint32_t*)periPerTemp,"peri_rtemp",1,5,0,0,BRYES|TDBEG);
@@ -687,7 +687,7 @@ void periLineHtml(EthernetClient* cli)              // periCur ok
                 scrDspText(buf,jsbuf,"Analog Input",18,0);
                 tableBeg(buf,jsbuf,"courier","18",BORDER,"0",TRBEG);
                 scrDspText(buf,jsbuf,"val~Low~High",18,TDBE);
-                scrDspNum(buf,jsbuf,(int16_t*)periAnal,&valMin,&valMax,BRYES|TDBEG);
+                scrDspNum(buf,jsbuf,(int16_t*)periAnal,&valMin,&valMax,true,0,BRYES|TDBEG);
                 uint16_t val=*periAnalLow&0x07ff;
                 scrGetNum(buf,jsbuf,'I',&val,"peri_ana@_",5,0,0,BRYES);
                 val=*periAnalHigh&0x07ff;

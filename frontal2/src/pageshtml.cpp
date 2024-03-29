@@ -1011,7 +1011,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
   fnHtmlEnd(buf,jsbuf,0,BRYES);
   scrDspText(buf,jsbuf,"initial state",0,0);
   tableBeg(buf,jsbuf,courier,true,0,0);                                             
-  scrDspNum(buf,jsbuf,&rem,&min,&max,0,BRYES|TDBE);
+  scrDspNum(buf,jsbuf,&rem,&min,&max,true,0,BRYES|TDBE);
   scrDspText(buf,jsbuf,remoteN[rem-1].nam,0,TDBE);
   //strcat(buf,"\n");            
 
@@ -1025,7 +1025,7 @@ void remoteTimHtml(EthernetClient* cli,int16_t rem)
       periLoad(periCur);
       //strcat(buf,"<td width=45>");                                                    // patch à intégrer dans le ctl des fonctions d'affichage
 
-      scrDspNum(buf,jsbuf,&nt,&min,&max,0,TDBE);
+      scrDspNum(buf,jsbuf,&nt,&min,&max,true,0,TDBE);
       scrDspText(buf,jsbuf,remTNum,0,TDBE);
       if(remoteN[rem-1].osStatus==0){
         disjVal=periSwRead(remoteT[nt].sw);
@@ -1250,7 +1250,7 @@ void remoteHtml(EthernetClient* cli)
                     scrGetButFn(buf,jsbuf,fn,val,"PUSH",ALICNO,4,color,1,1,SQR,TDBEG);          // envoie toujours '1'
                   }
                 }
-                else {scrDspText(buf,jsbuf,"- - -",0,TDBE);}                                    // slider/push absent
+                else {scrDspText(buf,jsbuf,"- -",0,TDBE);}                                    // slider/push absent
 
                 
                 scrDspText(buf,jsbuf,mother,0,TDBE);               
@@ -1317,24 +1317,24 @@ void timersCtlHtml(EthernetClient* cli)
 // ------------------------------------------------------------- header end
 
 
-  tableBeg(buf,jsbuf,courier,true,0,0);
-  scrDspText(buf,jsbuf,"|nom|det|h_beg|h_end|OI det|",0,TRBE|TDBE);
+  tableBeg(buf,jsbuf,"courier","30",true,0,0);
+  scrDspText(buf,jsbuf,"nom|det|h_beg|h_end|OI det|",0,TRBE|TDBE);
 
   for(uint8_t nt=0;nt<NBTIMERS;nt++){
     formIntro(buf,jsbuf,0,TRBEG|TDBEG|BRYES);
     
-    scrDspNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
-    scrDspText(buf,jsbuf,timersN[nt].nom,7,TDBE);                 
-    scrDspNum(buf,jsbuf,'D',&timersN[nt].detec,0,0,TDBE);                 
-    scrDspText(buf,jsbuf,timersN[nt].hdeb,0,0,TDBE);
-    scrDspText(buf,jsbuf,timersN[nt].hfin,0,0,TDBE);
+    //scrDspNum(buf,jsbuf,'s',&(++nt),0,0,TDEND);nt--;
+    scrDspText(buf,jsbuf,timersN[nt].nom,0,TDBE);                 
+    scrDspNum(buf,jsbuf,'D',&timersN[nt].detec,0,15,TDBE);                 
+    scrDspText(buf,jsbuf,timersN[nt].hdeb,0,15,TDBE);
+    scrDspText(buf,jsbuf,timersN[nt].hfin,0,15,TDBE);
                     
     char oo[7];memset(oo,'_',6);oo[6]=0x00;
     char oi[]="OI";  
     
     oo[1]=oi[timersN[nt].curstate];
     oo[4]=(PMFNCVAL)+mDSval(timersN[nt].detec);                     
-    scrDspText(buf,jsbuf,oo,0,TDBE);
+    scrDspText(buf,jsbuf,oo,15,TDBE);
 
     char nf[]="tim_ctl___";nf[LENNOM-1]=nt+PMFNCHAR;
     const char* lib[2];
@@ -1628,10 +1628,10 @@ void thermoShowHtml(EthernetClient* cli)
   scrGetButRet(buf,jsbuf,"retour",TDBE);
   scrGetButRef(buf,jsbuf,"thermosho",0,TDBE|TREND);
   //formIntro(buf,jsbuf,0,0);                
-  scrDspText(buf,jsbuf,"prev yyymmddhhmmss",18,TRBEG|TDBEG|BRYES);
+  scrDspText(buf,jsbuf,"prev yyyymmddhhmmss",18,TRBEG|TDBEG|BRYES);
   scrGetText(buf,jsbuf,thermoCurPrev,"thermoshop",12,15,18,0,TDEND);
   //scrGetButFn(buf,jsbuf,"thermoshos","","màj min/max",false,2,7,1,1,0,0,TDBE);
-  scrGetButSub(buf,jsbuf,"màj min/max",ALICNO,0,TDBE|TREND);
+  scrGetButSub(buf,jsbuf,"màj min/max",ALICNO,6,TDBE|TREND);
   formEnd(buf,jsbuf,0,0);
   tableEnd(buf,jsbuf,BRYES);
 
@@ -1657,12 +1657,12 @@ void thermoShowHtml(EthernetClient* cli)
                     affSpace(buf,jsbuf,TDBE);
                     th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,0,TDBE);
                     affSpace(buf,jsbuf,TDBE);
-                    th=(float)(*periThmin_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,12,TDBE);                    
-                    th=(float)(*periThmax_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,12,TDBE);                    
+                    th=(float)(*periThmin_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,15,TDBE);                    
+                    th=(float)(*periThmax_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,15,TDBE);                    
                     
                     memset(lith,0x00,LLITH);
                     bufPrintPeriDate(lith,periLastDateIn);
-                    scrDspText(buf,jsbuf,lith,12,TDBE|TREND);
+                    scrDspText(buf,jsbuf,lith,15,TDBE|TREND);
                     strcat(buf,"\n");                      
                     
                     lb=strlen(buf);if(lb0-lb<(lb/ni+100)){ethWrite(cli,buf);ni=0;}

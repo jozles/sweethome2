@@ -628,7 +628,7 @@ void checkColour(char* buf,char* jsbuf,char type,const void* value,const void* v
     setColourB(buf,jsbuf,colour);
 }
 
-void scrDspNum(char* buf,char* jsbuf,char type,void* value,const void* valmin,const void* valmax,bool minmax,uint8_t dec,uint8_t pol,uint8_t ctl)
+void scrDspNum(char* buf,char* jsbuf,char type,void* value,const void* valmin,const void* valmax,bool minmax,uint8_t dec,uint8_t sizpol,uint8_t ctl)
 // mode STRING :  ne fonctionne que dans une ligne de table
 //                le premier appel comporte TDBEG pour forcer le nom de la commande et BRYES (ignoré dans ctl) ou TDEND 
 //                TDEND est forcé dans le ctl de la commande
@@ -639,9 +639,9 @@ void scrDspNum(char* buf,char* jsbuf,char type,void* value,const void* valmin,co
   uint8_t ctlb=ctl&~STRING;
   if((ctl&STRING)!=0){ctlb&=~BRYES;
   if((ctl&TDBEG)!=0){ctlb|=TDEND;}}
-  if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0))){fnJsIntro(jsbuf,JSNT,pol,ctlb);} 
+  if(((ctl&STRING)==0)||(((ctl&STRING)!=0)&&((ctl&TDBEG)!=0))){fnJsIntro(jsbuf,JSNT,sizpol,ctlb);} 
   
-  fnHtmlIntro(buf,nullptr,pol,ctl,0);
+  fnHtmlIntro(buf,nullptr,sizpol,ctl,0);
 
   if(minmax){checkColour(buf,jsbuf,type,value,valmin,valmax);} 
 
@@ -656,15 +656,15 @@ void scrDspNum(char* buf,char* jsbuf,char type,void* value,const void* valmin,co
   buftxcat(buf,dm);
   if((ctl&STRING)!=0){ctl&=~TDEND;}   // évite le double emploi avec JSSCO déjà dans dm
   if((ctl&STRING)!=0){ctl&=~BRYES;}   // évite le double emploi avec JSSBR déjà dans dm
-  fnHtmlEnd(buf,pol,ctl);
+  fnHtmlEnd(buf,sizpol,ctl);
 
   if(minmax){setColourE(buf,jsbuf);}
 }
 
-void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t pol,uint8_t ctl)
+void scrDspNum(char* buf,char* jsbuf,char type,void* value,uint8_t dec,uint8_t sizpol,uint8_t ctl)
 {
   char valmin[8],valmax[8];
-  scrDspNum(buf,jsbuf,type,value,&valmin,&valmax,false,dec,pol,ctl);
+  scrDspNum(buf,jsbuf,type,value,&valmin,&valmax,false,dec,sizpol,ctl);
 }
 
 void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,bool check,uint8_t dec,uint8_t ctl)
@@ -682,6 +682,7 @@ void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,con
   setColourE(buf,jsbuf);
 }
 
+/*
 void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,const int16_t* valmax,uint8_t dec,uint8_t ctl)
 {
   scrDspNum(buf,jsbuf,valfonct,valmin,valmax,true,dec,ctl);
@@ -691,6 +692,7 @@ void scrDspNum(char* buf,char* jsbuf,int16_t* valfonct,const int16_t* valmin,con
 {
   scrDspNum(buf,jsbuf,valfonct,valmin,valmax,2,ctl);
 }
+*/
 
 /* ----------------- structures (formulaires/tables) ---------------------- 
 
