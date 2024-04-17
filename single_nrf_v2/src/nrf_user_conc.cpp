@@ -164,6 +164,7 @@ char c;         // pour macros TCP/UDP
   int       lastPeriMess;
   char      indata[LBUFSERVER+1];
   uint8_t   lastEtatImport;
+  extern unsigned long lastUdpCall;
 
 /* cycle functions */
 
@@ -507,6 +508,9 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
                                                                   // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
 
   if(periMess==MESSOK){
+
+        lastUdpCall=millis();
+
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
         nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // nP = numPeri from set message (nb in server table)
         numT=radio.macSearch(fromServerMac,&numPeri);             // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 

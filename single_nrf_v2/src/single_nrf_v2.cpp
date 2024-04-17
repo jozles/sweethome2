@@ -125,6 +125,8 @@ char    bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
 
 unsigned long concTime=millis();    // timer pour export de présence vers le serveur
 unsigned long perConc=60000;        // période pour export de présence
+unsigned long lastUdpCall=millis(); // timer pour TO d'absence de connexion au serveur
+#define UDPTO 1800000 
 uint16_t importCnt=0;
 uint16_t etatImport0=0;
 uint16_t etatImport1=0;
@@ -370,7 +372,7 @@ void setup() {
   initLed(PINLED,LEDOFF,LEDON);
   blink(4);
 
-  //configCreate();while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
+  configCreate();//while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
 
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
@@ -571,6 +573,10 @@ void loop() {
   }
 
   ledblk(TBLK,2000,IBLK,1);
+
+  if((millis()-lastUdpCall)>UDPTO){
+    Serial.println("force WD");delay(1000);
+    forceWd();}
 
   numT=0;                                             // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                       // max length

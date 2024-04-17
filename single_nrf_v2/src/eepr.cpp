@@ -46,11 +46,12 @@ void Eepr::eeread(byte* data,uint16_t length,uint16_t addr)
     length&=0x00ff; // maxi 256
     for(uint8_t i=0;i<length;i++){
 #ifndef DUE
-        data[i] = EEPROM.read(addr+i);}
+        data[i] = EEPROM.read(addr+i);
 #endif // DUE        
 #ifdef DUE
-        data[i] = dFS.read(addr+i);}
+        data[i] = dFS.read(addr+i);
 #endif // DUE        
+    }
 }
 
 void Eepr::eewrite(byte* data,uint16_t length,uint16_t addr)
@@ -58,17 +59,19 @@ void Eepr::eewrite(byte* data,uint16_t length,uint16_t addr)
     length&=0x00ff; // maxi 256
     for(uint8_t i=0;i<length;i++){
 #ifndef DUE
-        EEPROM.update(addr+i,data[i]);}
+        EEPROM.update(addr+i,data[i]);
 #endif // DUE
 #ifdef DUE      
-        dFS.write(addr+i,data[i]);}
+        dFS.write(addr+i,data[i]);
 #endif // DUE
+    }
 }
 
 void Eepr::store(byte* data,uint16_t length)
 {
     memcpy(data+EEPRCRCLENGTH,&length,EEPRLENGTHLENGTH);
     uint32_t crc=calcCrc32(data+EEPRCRCLENGTH,length-EEPRCRCLENGTH);
+    Serial.print("crc :");Serial.println(crc,HEX);
     memcpy(data,&crc,4);
 
     eewrite(data,length,0);

@@ -156,12 +156,14 @@ uint16_t getServerConfig()
 
 void configCreate()       // valeurs pour concentrateur de test 
 {
-  serverIp[0]=192;serverIp[1]=168;serverIp[2]=0;serverIp[3]=31;
-  *serverTcpPort=1786;
-  *serverUdpPort=8886;
+  /////// !!!!!!!!!!! CONC2 !!!!!!!!!!! //////////
+  serverIp[0]=192;serverIp[1]=168;serverIp[2]=0;serverIp[3]=36;
+  *serverTcpPort=1787;
+  *serverUdpPort=8885;        // CONC1 8886
   memcpy(peripass,"17515A\0\0",8);
-  memcpy(concMac,"\x72\x37\x68\x30\xFD\xFD",6);            
-  concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=216;
+  //memcpy(concMac,"\x72\x37\x68\x30\xFD\xFD",6);
+  memcpy(concMac,"\x74\x65\x73\x74\x78\x32",6);            
+  concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=11;//concIp[3]=216;
   *concPort=55558;
   memcpy(concRx,"SHCO2",RADIO_ADDR_LENGTH);
   *concChannel=100;
@@ -311,14 +313,22 @@ uint16_t getServerConfig()
 
 bool configLoad()
 {
-    if(!eeprom.load((byte*)configRec,(uint16_t)CONFIGRECLEN)){Serial.println("**EEPROM KO**");ledblink(BCODESDCARDKO);} // ledblink bloque
+    if(!eeprom.load((byte*)configRec,(uint16_t)CONFIGRECLEN)){
+      dumpstr((char*)configRec,200);
+      Serial.println("**EEPROM KO**");ledblink(BCODESDCARDKO);} // ledblink bloque
     Serial.println(" eeprom ok");
     return 1;    
 }
 
 void configSave()
 {
+  Serial.println("configSave mofifié");delay(100);
+  dumpstr((char*)configRec,200);
     eeprom.store((byte*)configRec,CONFIGRECLEN);
+  dumpstr((char*)configRec,200);  
+  memset(configRec,0xff,200);
+    if(eeprom.load(configRec,200)){Serial.println("true");}
+  dumpstr((char*)configRec,200);
 }
 
 bool syncServerConfig(char* message,char* syncMess,uint16_t* rcvl)
