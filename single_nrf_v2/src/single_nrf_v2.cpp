@@ -235,7 +235,7 @@ void getEchoNum();
 
 unsigned long radioWd;
 uint32_t radioInitCnt=0;
-#define NO_RADIO_CX_TO 125000 // millis() TO for radio cx
+#define NO_RADIO_CX_TO 1250000 // millis() TO for radio cx
 
 void radioInit()
 {
@@ -349,7 +349,7 @@ void setup() {
 
   PP4_INIT
   
-  delay(100);
+  delay(1000);
   Serial.begin(115200);Serial1.begin(115200);
 
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);
@@ -372,7 +372,11 @@ void setup() {
   initLed(PINLED,LEDOFF,LEDON);
   blink(4);
 
-  configCreate();//while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
+  //Serial.print("serv tcp");Serial.println((uint32_t)serverTcpPort);
+
+  //configCreate();while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
+
+  Serial.print("serv tcp");Serial.println((uint32_t)serverTcpPort);
 
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
@@ -396,6 +400,7 @@ void setup() {
 #endif // TXRX_MODE T
 
   configPrint();
+  trigwd(0);
 
   userResetSetup(serverIp);             // doit être avant les inits radio (le spi.begin vient de la lib ethernet)
 
@@ -411,6 +416,7 @@ void setup() {
   testExport();
   Serial.println();
 
+  lastUdpCall=millis();
 #endif // NRF_MODE == 'C'
 
 
@@ -575,7 +581,8 @@ void loop() {
   ledblk(TBLK,2000,IBLK,1);
 
   if((millis()-lastUdpCall)>UDPTO){
-    Serial.println("force WD");delay(1000);
+    lastUdpCall=millis();
+    Serial.print("pas reçu de cx udp depuis ");Serial.print(UDPTO/1000);Serial.println("sec - reset ");
     forceWd();}
 
   numT=0;                                             // will stay 0 if no registration
@@ -694,7 +701,8 @@ void loop() {
   // ====== menu choice ======  
   
   if((millis()-radioWd)>NO_RADIO_CX_TO){    // wd radio
-    Serial.print('$');
+
+    Serial.print("pas de cx radio depuis ");Serial.print(NO_RADIO_CX_TO/1000);Serial.println("sec - re_init ");
     configLoad();
     Serial.print('@');
     userResetSetup(serverIp);

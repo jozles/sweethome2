@@ -325,10 +325,14 @@ void configSave()
   Serial.println("configSave mofifié");delay(100);
   dumpstr((char*)configRec,200);
     eeprom.store((byte*)configRec,CONFIGRECLEN);
+  trigwd(0);    
   dumpstr((char*)configRec,200);  
   memset(configRec,0xff,200);
+  dumpstr((char*)configRec,200);
+  trigwd(0);
     if(eeprom.load(configRec,200)){Serial.println("true");}
   dumpstr((char*)configRec,200);
+  trigwd(0);
 }
 
 bool syncServerConfig(char* message,char* syncMess,uint16_t* rcvl)

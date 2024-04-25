@@ -472,9 +472,9 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     Serial.print(" mic: buildmess=");Serial.print(t3_0-t3);
     Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
     Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);delay(1);
-    //Serial.print("    ");Serial.println(bufServer);
+    //Serial.print("    ");Serial.print(bufServer);
     //}
-
+    Serial.println();
     return periMess;
 }
 
