@@ -186,20 +186,24 @@ void userResetSetup(byte* serverIp)
   unsigned long t_beg=millis();
  
   Serial.print(" Ethernet begin mac=");serialPrintMac(concMac,0);
+  trigwd(0);
   
   if(Ethernet.begin(concMac) == 0){
     Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(concIp);Serial.println();
     for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.print((IPAddress)localIp);Serial.println();
+    trigwd(0);
     Ethernet.begin (concMac, localIp); 
   }
   
+  trigwd(0);
   Serial.print(" localIP=");
   for(uint8_t i=0;i<4;i++){localIp[i]=Ethernet.localIP()[i];}Serial.print((IPAddress)localIp);Serial.println();
    
 #if TXRX_MODE == 'U'
   Serial.print(" Udp.begin (");Serial.print(*concPort);Serial.print(")");
+  trigwd(0);
   if(!Udp.begin(*concPort)){Serial.println(" ko");while(1){trigwd(1000);}}
-
+  trigwd(0);
   Serial.print(" ok ");Serial.print(millis()-t_beg);Serial.println("mS");
 #endif
 
@@ -364,10 +368,8 @@ int getHData(char* data,uint16_t* len)
   return MESSLEN;
 }
 
-int exportData(uint8_t numT,char* modelName)                            // formatting periBuf data in bufServer 
-                                                        // sending bufServer to server 
-{
-
+int exportData(uint8_t numT,char* modelName,char* mailData)             // formatting periBuf data in bufServer 
+{                                                                       // sending bufServer to server 
   Serial.print("  <<< export ");
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
@@ -425,6 +427,8 @@ int exportData(uint8_t numT,char* modelName)                            // forma
       memcpy(message+sb+MAXDET+1,"_\0",2);         
       sb+=MAXDET+2;
 
+      //if(mailData!=nullptr){strcat(message,mailData);strcat(message,"_\0");sb+=(strlen(mailData)+1);}
+
       for(i=0;i<NBPULSE;i++){message[sb+i]='0';} //chexa[staPulse[i]];}
       memcpy(message+sb+NBPULSE,"_\0",2);                               // clock pulse status          - 5
       sb+=NBPULSE+1; 
@@ -449,7 +453,8 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
 
     char fonctName[]={"data_read_"};
     if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);} // data_save_ -> ack
-    buildMess(fonctName,message,"");                                    // buld message for server
+    //if(mailData!=nullptr){memcpy(fonctName,"data_mail_",LENNOM);}
+    buildMess(fonctName,message,"");                                    // build message for server
 
     Serial.println(bufServer);
     t3_0=micros();                                                      // fin buildMess
@@ -480,7 +485,12 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
 
 void exportData(uint8_t numT)
 {
-  exportData(numT,nullptr);
+  exportData(numT,nullptr,nullptr);
+}
+
+int exportData(uint8_t numT,char* modelName)
+{
+  return exportData(numT,modelName,nullptr);
 }
 
 int  importData(uint32_t* tLast) // reçoit un message du serveur
@@ -568,7 +578,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   return periMess;
 }
 
-void testExport()
+void testExport(const char* messName)
 {
   char concName[LENMODEL+1]={'C','O','N','C','_','\0','\0'};concName[LENMODEL-1]=*concNb+48;
   uint8_t testPeri=1;
@@ -579,7 +589,22 @@ void testExport()
   memcpy(tableC[testPeri].periBuf+6+LENVERSION,"x",1);
   memcpy(tableC[testPeri].periBuf+6+LENVERSION+1,"0.00",4);       // volts
   memcpy(tableC[testPeri].periBuf+6+LENVERSION+1+4,"+00.00",6);   // température
-  exportData(testPeri,concName);  // test présence serveur avec périf virtuel des broadcast
+  char* concTxt=nullptr;
+  if(messName!=nullptr){
+    char concData[100];concData[0]='\0';strcat(concData,concName);strcat(concData,"|");strcat(concData,messName);concTxt=concData;
+    char* v=concTxt;
+    //char* vf=concTxt+strlen(concTxt);
+    char a=*v;
+    while(a!='\0'){if(a=='_'){
+//        for(char* vv=vf;vv>v;vv--){*vv=*(vv-1);}
+//        *v='\\';v++;
+//      }
+      *v='-';}
+      a=*(++v);
+//      vf++;*vf='\0';
+    }
+  exportData(testPeri,concName,concTxt);  // test présence serveur avec périf virtuel des broadcast
+  }
 }
 
 #endif // DETS

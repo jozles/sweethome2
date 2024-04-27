@@ -252,9 +252,9 @@ void radioInit()
   radio.powerOn(channel,speed);
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
   
-  unsigned long mic=micros();
+  //unsigned long mic=micros();
   Serial.print(" --- radioInit()#");Serial.print(radioInitCnt);Serial.print(' ');Serial.print(millis()-radioWd);Serial.println("ms");
-  
+
   /*
   #define LBINIT 40
   char binit[LBINIT];*binit='\0';
@@ -262,7 +262,7 @@ void radioInit()
   sprintf(binit+lb,"%4u",(uint16_t)radioInitCnt);binit[lb+4]=' ';
   sprintf(binit+lb+4+1,"%4u",(uint16_t)(millis()-radioWd));Serial.print(binit);
   */
- Serial.println(micros()-mic);
+  //Serial.println(micros()-mic);// en principe 51uS
 }
 #endif // NRF_MODE == 'C'
 
@@ -376,7 +376,7 @@ void setup() {
 
   //configCreate();while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
 
-  Serial.print("serv tcp");Serial.println((uint32_t)serverTcpPort);
+  //Serial.print(" serv tcp");Serial.println((uint32_t)serverTcpPort);
 
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
@@ -384,7 +384,7 @@ void setup() {
       blink(4);
       Serial.print(getServerConfig());Serial.print(" ");
       configSave();
-      while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
+      while(digitalRead(STOPREQ)==LOW){blink(1);delay(4000);}
   }
 
   t_on=millis();
@@ -400,6 +400,9 @@ void setup() {
 #endif // TXRX_MODE T
 
   configPrint();
+  
+  //while(1){trigwd(0);delay(5000);}
+
   trigwd(0);
 
   userResetSetup(serverIp);             // doit être avant les inits radio (le spi.begin vient de la lib ethernet)
@@ -413,7 +416,7 @@ void setup() {
   time_beg=millis();  
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
 
-  testExport();
+  testExport("START");
   Serial.println();
 
   lastUdpCall=millis();
@@ -676,7 +679,7 @@ void loop() {
 
   int dt=MESSCX;
     dt=importData(&tLast);importCnt++;
-    if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');} 
+    if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
     
     //if(dt!=MESSLEN){Serial.print(" ----------------- importData ");Serial.println(dt);}
 #ifdef DIAG
@@ -687,7 +690,7 @@ void loop() {
 
   if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
     
-    if((millis()-concTime)>=perConc){concTime=millis();testExport();
+    if((millis()-concTime)>=perConc){concTime=millis();testExport(nullptr);
     Serial.print('%'); 
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");

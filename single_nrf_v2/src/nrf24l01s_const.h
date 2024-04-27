@@ -59,7 +59,7 @@ v1.b  le concentrateur transfère les consignes analogiques et envoit des messag
       dev en cours du controle des radiateurs
 v1.c  la variable globale beginP_done indique que importData a été effectué dans beginP ; 
       donc inutile de faire radio.txRx( et importData ensuite ; 
-v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD
+v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD ; ajout data_mail_ START
 
 */
 
