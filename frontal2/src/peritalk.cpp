@@ -460,11 +460,14 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       if(numfonc==fdatamail){
         mailData=k;
         char* v=k+255;
-        for(k;k<v;k++){
-          if(*k=='\\'){k+=2;}
-          if(*k=='_'){*k='\0';k++;break;}
+        for(k=k;k<v;k++){
+          if(*k=='_'){
+            *k='\0';k++;break;}
+          if(*k=='\\'){k++;}
         }
         messLen-=(k-mailData);
+        delay(10);
+        Serial.println(mailData);
       }
       //Serial.println();
       // les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être initialisé à 0 
