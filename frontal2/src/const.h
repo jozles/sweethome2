@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8k"
+#define NVERS ".8m"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -176,6 +176,7 @@
         ajout bit thermostat dans periCfg ; 
    1.8k pour compatibilité exfat : FsFile remplace File32, SdFs remplace SdFat32, SDFAT_FILE_TYPE 3 ; 
         debug dumphisto,scalcTh (en cours) ; gestion des polices et des tailles (ajout setFont et endFont)
+   1.9m ajout fonction data_mail_ ;        
 
    BUGS : 
      

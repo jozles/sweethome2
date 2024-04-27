@@ -137,10 +137,11 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh_p_data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedispo_____dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___antim_____antim_cb__antim_hh__antim_vv__antimcfg__dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh_p_data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedata_mail_dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___antim_____antim_cb__antim_hh__antim_vv__antimcfg__dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
-  int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0,fthermoshow=0;
+  int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0,fthermoshow=0,fdatamail=0;
+  int8_t  numfonc;                     // copie numfonct[i]
   char    valeurs[LENVALEURS];         // les valeurs associées à chaque fonction trouvée
   uint16_t nvalf[NBVAL];               // offset dans valeurs[] des valeurs trouvées (séparées par '\0')
   char*   valf;                        // pointeur dans valeurs en cours de décodage
@@ -149,6 +150,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
   int     what=0;                      // ce qui doit être fait après traitement des fonctions (0=rien)
   uint32_t loopCnt=0;
   uint8_t scanCnt=0;
+  char*   mailData;                    // pointeur chaine à transmettre en provenance d'un périf
 
 #define HTTPCDLENGTH 6
   const char*   httpCdes="GET   POST  \0";   // commandes traitées par le serveur
@@ -1399,18 +1401,18 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                     if(i==0){nvalf[1]=0;}                                       // permet de stocker le tout premier car dans valeurs[0]
                     else {nvalf[i]++;}                                          // skip l'intervalle entre 2 valeurs           
                     
-                    long numfonc=(strstr(fonctions,noms)-fonctions)/LENNOM;     // acquisition nom terminée récup N° fonction
+                    long numfn=(strstr(fonctions,noms)-fonctions)/LENNOM;     // acquisition nom terminée récup N° fonction
                     memcpy(libfonctions+2*i,noms+LENNOM-2,2);                   // les 2 derniers car du nom de fonction si nom court
-//Serial.print("nom=");Serial.print(nom);Serial.print("val=");Serial.print(val);Serial.print(" numfonc long=");Serial.println(numfonc);
-                    if(numfonc<0 || numfonc>=nbfonct){
+//Serial.print("nom=");Serial.print(nom);Serial.print("val=");Serial.print(val);Serial.print(" numfn long=");Serial.println(numfn);
+                    if(numfn<0 || numfn>=nbfonct){
                       memcpy(nomsc,noms,LENNOM-2);nomsc[LENNOM-2]=0x00;
-                      numfonc=(strstr(fonctions,nomsc)-fonctions)/LENNOM;       // si nom long pas trouvé, recherche nom court (complété par nn)
-                      if(numfonc<0 || numfonc>=nbfonct){
-//Serial.print(" numfonc court=");Serial.println(numfonc);
+                      numfn=(strstr(fonctions,nomsc)-fonctions)/LENNOM;       // si nom long pas trouvé, recherche nom court (complété par nn)
+                      if(numfn<0 || numfn>=nbfonct){
+//Serial.print(" numfn court=");Serial.println(numfn);
                         termine=VRAI;nom=FAUX;val=FAUX;i=GETNV_INVALID_FN1;}    // fonction inconnue -> erreur
-                      else {numfonct[i]=numfonc;}
+                      else {numfonct[i]=numfn;}
                     }
-                    else {numfonct[i]=numfonc;}                                 // une fonction est reçue avec = ou :    
+                    else {numfonct[i]=numfn;}                                 // une fonction est reçue avec = ou :    
                   }
                   else {
 //Serial.println();Serial.print((char)c);Serial.print(" ");Serial.print(noms);Serial.print(" ");Serial.print(numfonct[i]);Serial.print(" ");Serial.println(j);
@@ -1924,7 +1926,8 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
       delay(60); // pour permettre l'affichage des Serial.print en debug
 #endif
 
-            switch (numfonct[i])
+            numfonc=numfonct[i];
+            switch (numfonc)
               {
               case 0:  pertemp=0;conv_atobl(valf,&pertemp);break;                                    // pertemp serveur
               case 1:  periMess=checkData(valf);                                                     // peri_pass_
@@ -2064,7 +2067,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
               case 19: accueilHtml(cli);break;                                                      // accueil
               case 20: periTableHtml(cli);break;                                                    // peri table
               case 21: what=0;break;                                                                // data_store
-              case 22: break;                                                                       // dispo  <
+              case 22: if(periPassOk==VRAI){what=17;periDataRead(valf);periPassOk=FAUX;}break;      // data_mail_ idem data_save_ + texte mail ; pas de réponse à faire
               case 23: break;                                                                       // dispo  
               case 24: {what=4;                                                                     // (lignes-regles) submit peri_inp__ set periCur raz cb
                        getPeriCurValf(PERILOAD);                                                    // periCur à jour via formIntro/peri_cur__
@@ -2560,6 +2563,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
             case 14:break;                                                // data_na___
             case 15:anTimersSave();anTimersHtml(cli);break;               // antim___ & anti_ch_
             case 16:dumpHisto(cli);break;                                 // bouton submit histo show
+            case 17:if(periMess==MESSOK){mail("PERIF ",mailData);}break;  // data_mail_
             default:accueilHtml(cli);break;                               // what=-1
           }
         } // getnv nbreparams>=0  
@@ -2640,6 +2644,7 @@ void udpPeriServer()
       memcpy(remote_IP,(char*)&rip+4,4);
       remote_Port_Udp = (uint16_t) udp[uu]->remotePort();
       if(remote_IP[0]!=192 || remote_IP[1]!=168 || remote_IP[2]!=0 || (remote_IP[3]!=11 && remote_IP[3]!=31)){
+        // ************ conc1 : 31 *** conc2 : 11 ************* DHCP/baux statiques
         udpError(udp[uu],"UDP_IP_KO IP/port/len:",udpPacketLen);
         }
       else {

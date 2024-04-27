@@ -91,8 +91,10 @@ extern char      bufServer[LBUFSERVER];
 extern char*     chexa;
 
 extern  char*    fonctions;
-extern int       nbfonct,faccueil,fdatasave,fdatana,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
+extern int8_t    numfonc;                    // fonction courante (copie numfonct[i])
+extern int       nbfonct,faccueil,fdatasave,fdatana,fdatamail,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
 
+extern char*     mailData;                    // pointeur chaine à transmettre en provenance d'un périf
 
 void assySet(char* message,int periCur,const char* diag,char* date14,const char* fonct)     
 // assemblage datas pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
@@ -360,7 +362,7 @@ void checkdate(uint8_t num)                               // détection des date
   }
 }
 
-void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRead" en provenance d'un periphérique 
+void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRead" ou "data_mail_" en provenance d'un periphérique 
                                 // periInitVar() a été effectué
                                 // controle len,CRC, charge periCur (N° périf du message), effectue periLoad()
                                 // gère les différentes situations présence/absence/création de l'entrée dans la table des périf
@@ -454,10 +456,20 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
         k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){                                                   // détecteurs
         *periDetVal=(*periDetVal)<<1;*periDetVal |= (*(k+i)-PMFNCVAL);}
       }
+      messLen-=(1+MAXSW+1+1+MAXDET+1);k+=MAXDET+1;
+      if(numfonc==fdatamail){
+        mailData=k;
+        char* v=k+255;
+        for(k;k<v;k++){
+          if(*k=='\\'){k+=2;}
+          if(*k=='_'){*k='\0';k++;break;}
+        }
+        messLen-=(k-mailData);
+      }
       //Serial.println();
       // les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être initialisé à 0 
-      messLen-=(1+MAXSW+1+1+MAXDET+1);if(messLen>0){
-        k+=MAXDET+1;
+      
+        if(messLen>0){                                                        // messlen>0 => pulse data présente
         for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
       }
       messLen-=(NBPULSE+1);if(messLen>0){

@@ -232,7 +232,7 @@ extern char strdate[33];
 extern char temp[3],temp0[3],humid[3];
 
 extern  char* fonctions;
-extern  int   nbfonct,faccueil,fdatasave,fdatana,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fperitst,ffavicon,fthermoshow;
+extern  int   nbfonct,faccueil,fdatasave,fdatana,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fperitst,ffavicon,fthermoshow,fdatamail;
 
 /* ---------- configuration ---------- */
 
@@ -458,6 +458,7 @@ byte* temp=(byte*)configRec;
   fperitst=(strstr(fonctions,"peri_tst__")-fonctions)/LENNOM;
   ffavicon=(strstr(fonctions,"favicon___")-fonctions)/LENNOM;
   fthermoshow=(strstr(fonctions,"thermoshow")-fonctions)/LENNOM;
+  fdatamail=(strstr(fonctions,"data_mail_")-fonctions)/LENNOM;
   
   Serial.print("  nbfonct=");Serial.println(nbfonct);
   Serial.print("RECCHAR=");Serial.print(RECCHAR);Serial.print(" LBUFSERVER=");Serial.println(LBUFSERVER);

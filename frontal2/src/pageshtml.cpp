@@ -1184,7 +1184,7 @@ void remoteHtml(EthernetClient* cli)
               char fn[LENNOM+1];
               char fnt[LENNOM+1];                                       // bouton '>'
               if(remoteN[nb].nam[0]!='\0'){
-                strcat(buf,"<tr height=90>");                          // patch à intégrer dans le ctl des fonctions d'affichage
+                strcat(buf,"<tr height=80>");                          // patch à intégrer dans le ctl des fonctions d'affichage
                 scrDspNum(buf,jsbuf,'s',&nb1,0,0,TDBE);
                 
                 if(!remoteN[nb].multRem){                               // remote simple
@@ -1653,7 +1653,8 @@ void thermoShowHtml(EthernetClient* cli)
                   if(periMacr[0]!=0x00){
                     ni++;
                     float th;
-                    scrDspNum(buf,jsbuf,'I',&periCur,0,0,TRBEG|TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,0,TDBE);
+                    strcat(buf,"<tr height=80>");
+                    scrDspNum(buf,jsbuf,'I',&periCur,0,0,TDBE);scrDspText(buf,jsbuf,thermos[nuth].nom,0,"arial",30,TDBE);
                     affSpace(buf,jsbuf,TDBE);
                     th=(float)(*periLastVal_+*periThOffset_)/100;scrDspNum(buf,jsbuf,'f',&th,0,0,TDBE);
                     affSpace(buf,jsbuf,TDBE);
