@@ -427,7 +427,7 @@ int exportData(uint8_t numT,char* modelName,char* mailData)             // forma
       memcpy(message+sb+MAXDET+1,"_\0",2);         
       sb+=MAXDET+2;
 
-      //if(mailData!=nullptr){strcat(message,mailData);strcat(message,"_\0");sb+=(strlen(mailData)+1);}
+      if(mailData!=nullptr){strcat(message,mailData);strcat(message,"_\0");sb+=(strlen(mailData)+1);}
 
       for(i=0;i<NBPULSE;i++){message[sb+i]='0';} //chexa[staPulse[i]];}
       memcpy(message+sb+NBPULSE,"_\0",2);                               // clock pulse status          - 5
@@ -453,7 +453,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
 
     char fonctName[]={"data_read_"};
     if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);} // data_save_ -> ack
-    //if(mailData!=nullptr){memcpy(fonctName,"data_mail_",LENNOM);}
+    if(mailData!=nullptr){memcpy(fonctName,"data_mail_",LENNOM);}
     buildMess(fonctName,message,"");                                    // build message for server
 
     Serial.println(bufServer);
