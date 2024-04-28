@@ -1489,7 +1489,9 @@ int getnv(EthernetClient* cli,const char* data,uint16_t dataLen)        // déco
               numfonct[0]=ffavicon;
               cliPurge(cli);
               return 0;}
-            else if(bufli[pbli-1]=='?'){uint8_t k=analyse(cli,data,dataLen,&dataCharNb);if(k<0){cliPurge(cli);}return k;}
+            else if(bufli[pbli-1]=='?'){
+              //if(ab=='u'){dumpstr((char*)data,128);}
+              uint8_t k=analyse(cli,data,dataLen,&dataCharNb);if(k<0){cliPurge(cli);}return k;}
             else if(ab=='c' || ab=='b'){numfonct[0]=faccueil;cliPurge(cli);return 0;}  // pas de '?' = commande invalide -> faccueil
             else {cliPurge(cli);return-1;}
         case 2:                                                               // POST  
@@ -2645,11 +2647,12 @@ void udpPeriServer()
       remote_Port_Udp = (uint16_t) udp[uu]->remotePort();
       if(remote_IP[0]!=192 || remote_IP[1]!=168 || remote_IP[2]!=0 || (remote_IP[3]!=11 && remote_IP[3]!=31)){
         // ************ conc1 : 31 *** conc2 : 11 ************* DHCP/baux statiques
-        udpError(udp[uu],"UDP_IP_KO IP/port/len:",udpPacketLen);
+        udpError(udp[uu],"\nUDP_IP_KO IP/port/len:",udpPacketLen);
         }
       else {
         if(udpPacketLen<UDPBUFLEN){
           udp[uu]->read(udpData,udpDataLen);udpData[udpDataLen]='\0';
+          Serial.println(udpPacketLen);dumpstr((char*)udpData,128);
           packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
           lastcxu=millis();     // trig watchdog
           udpNb=uu;

@@ -460,7 +460,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       if(numfonc==fdatamail){
         mailData=k;
         char* v=k+255;
-        for(k=k;k<v;k++){
+        for(k=k;k<v && *k!='\0';k++){
           if(*k=='_'){
             *k='\0';k++;break;}
           if(*k=='\\'){k++;}
