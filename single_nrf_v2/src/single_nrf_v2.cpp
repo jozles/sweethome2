@@ -416,7 +416,7 @@ void setup() {
   time_beg=millis();  
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
 
-  testExport("START");
+  concExport("START");
   Serial.println();
 
   lastUdpCall=millis();
@@ -690,14 +690,14 @@ void loop() {
 
   if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
     
-    if((millis()-concTime)>=perConc){concTime=millis();testExport(nullptr);
+    if((millis()-concTime)>=perConc){concTime=millis();concExport(nullptr);
     Serial.print('%'); 
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
       Serial.print(" etatImport0:");Serial.print(etatImport0);etatImport0=0;Serial.print(" ");
       Serial.print(" etatImport1:");Serial.print(etatImport1);etatImport1=0;Serial.print(" ");
       Serial.print(" etatImport2:");Serial.print(etatImport2);etatImport2=0;Serial.print(" ");
-      Serial.print(concTime-lastRead);Serial.println(" Exp_conc");testExport();}
+      Serial.print(concTime-lastRead);Serial.println(" Exp_conc");concExport();}
       */
     }
   }

@@ -60,7 +60,8 @@ v1.b  le concentrateur transfère les consignes analogiques et envoit des messag
 v1.c  la variable globale beginP_done indique que importData a été effectué dans beginP ; 
       donc inutile de faire radio.txRx( et importData ensuite ; 
 v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD ; ajout data_mail_ START
-
+      pbs de transmission UDP : il semblerait que le concentrateur ait des difficultés avec W5500 à 30MHz 
+      ça peut être un pb hard sur les caryes utilisées (DUE/W5500) les transmissions avec le concentrateur 1 semblent ok
 */
 
 /************* config ****************/

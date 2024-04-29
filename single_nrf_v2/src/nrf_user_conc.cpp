@@ -578,7 +578,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   return periMess;
 }
 
-void testExport(const char* messName)
+void concExport(const char* messName)
 {
   char concName[LENMODEL+1]={'C','O','N','C','_','\0','\0'};concName[LENMODEL-1]=*concNb+48;
   uint8_t testPeri=1;
@@ -589,21 +589,20 @@ void testExport(const char* messName)
   memcpy(tableC[testPeri].periBuf+6+LENVERSION,"x",1);
   memcpy(tableC[testPeri].periBuf+6+LENVERSION+1,"0.00",4);       // volts
   memcpy(tableC[testPeri].periBuf+6+LENVERSION+1+4,"+00.00",6);   // température
-  char* concTxt=nullptr;
+
+  char* concData=nullptr;
+  char concMail[100];
   if(messName!=nullptr){
-    char concData[100];concData[0]='\0';strcat(concData,concName);strcat(concData,"|");strcat(concData,messName);concTxt=concData;
-    char* v=concTxt;
-    //char* vf=concTxt+strlen(concTxt);
+    char* v=concMail;
+    concData=concMail;
+    v[0]='\0';strcat(v,concName);strcat(v,"|");strcat(v,messName);
     char a=*v;
-    while(a!='\0'){if(a=='_'){
-//        for(char* vv=vf;vv>v;vv--){*vv=*(vv-1);}
-//        *v='\\';v++;
-//      }
-      *v='-';}
+    while(a!='\0'){
+      if(a=='_'){*v='-';}
       a=*(++v);
-//      vf++;*vf='\0';
     }
-  exportData(testPeri,concName,concTxt);  // test présence serveur avec périf virtuel des broadcast
+
+  exportData(testPeri,concName,concData);  // test présence serveur avec périf virtuel des broadcast
   }
 }
 
