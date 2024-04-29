@@ -683,7 +683,6 @@ pinMode(16,OUTPUT);pinMode(17,OUTPUT); // timing spi sd et w5100 voir spi.cpp
   mailEnable=VRAI;
 
   if(mailFromAddr!=nullptr && mailPass!=nullptr){
-    Serial.print("Init  Mail ");mailInit(mailFromAddr,mailPass);
     Serial.print("START Mail ");mail("START","");
   }
   else Serial.println(" no mail config");
@@ -2586,8 +2585,12 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
         Serial.print(millis());
         Serial.print(" pM=");Serial.print(periDiag(periMess));
         if(what==0){Serial.print(" w0 ");}
-        if(ab=='u'){Serial.print(" *** end udp - ");}
-        else {Serial.print(" *** end tcp - ");}
+        #define LENDM 17
+        char endMessage[LENDM];
+        memcpy(endMessage," *** end tcp  - ",LENDM-1);endMessage[LENDM-1]='\0';
+        if(ab=='u'){memcpy(endMessage+9,"udp",3);endMessage[12]=udpNb+48;}                      // Serial.print(" *** end udp");Serial.print(udpNb+48);Serial.print(" - ");}
+        else {endMessage[12]=ab;}                                                               //Serial.print(" *** end tcp");Serial.print(ab);Serial.print(" - ");}
+        Serial.print(endMessage);
 #ifdef SOCK_DEBUG        
         Serial.println();
         showSocketsStatus(false,true,true,"");
