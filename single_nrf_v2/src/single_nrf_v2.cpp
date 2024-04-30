@@ -390,7 +390,7 @@ void setup() {
   t_on=millis();
   diags=diagSetup(t_on);
 
-  configLoad();//*serverUdpPort=8885;configSave();
+  configLoad();//concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=108;configSave();
 
 #if TXRX_MODE == 'U' 
     hostPort=*serverUdpPort;
@@ -669,7 +669,7 @@ void loop() {
     if(rdSta>=0){// if(rdSta!=AV_EMPTY){          // pas d'erreur, un cycle complet a été effectué
       //Serial.print("rd=");Serial.print(rdSta);Serial.print(" tr=");Serial.print(trSta);
       if(numT==0){Serial.print(" rx+tx+export=");Serial.println(micros()-time_beg);}
-      else {Serial.print(" rx+tx=");Serial.println(micros()-time_beg);}
+      else {Serial.print("nrf com err=");Serial.println(micros()-time_beg);}
     }
   //}
 

@@ -601,9 +601,8 @@ void concExport(const char* messName)
       if(a=='_'){*v='-';}
       a=*(++v);
     }
-
-  exportData(testPeri,concName,concData);  // test présence serveur avec périf virtuel des broadcast
   }
+  exportData(testPeri,concName,concData);  // test présence serveur avec périf virtuel des broadcast
 }
 
 #endif // DETS

@@ -37,7 +37,7 @@
 #define CSN_OFF   pinMode(CSN_PIN,INPUT);
 #endif // CSN_HIGH
 
-#ifdef SPI_MODE
+#ifdef SPI_MODE      
 #if NRF_MODE == 'P'
 #define SPI_INIT    SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
 #endif //
