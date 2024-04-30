@@ -16,6 +16,8 @@ extern Ds3231 ds3231;
 
 extern bool mailEnable;
 
+extern char* mailFromAddr;
+extern char* mailPass;
 extern char  pass[];
 extern char* usrnames;
 extern char* usrpass;
@@ -130,23 +132,25 @@ int ethWrite(EthernetClient* cli,char* buf,uint16_t* lb)
   return ethWrite(cli,buf,lb,strlen(buf));
 }
 
-void mailInit(char* login,char* pass)
+void mailInit()
 {
-  if(mailEnable){
+   if(mailEnable){
     
+    Serial.print("Init  Mail ");
     trigwd();
     char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
 
-    strcat(ms,login);strcat(ms,"==");strcat(ms,pass);
+    strcat(ms,mailFromAddr);strcat(ms,"==");strcat(ms,mailPass);
     periReq(&cliext,*periMail1,"mail_init_",ms);
-  }
+   }
 }
 
 void mail(const char* a, const char* mm)
 {
-  
+
   if(mailEnable){
     
+      mailInit();
       trigwd();
       char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
 

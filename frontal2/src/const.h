@@ -176,7 +176,8 @@
         ajout bit thermostat dans periCfg ; 
    1.8k pour compatibilité exfat : FsFile remplace File32, SdFs remplace SdFat32, SDFAT_FILE_TYPE 3 ; 
         debug dumphisto,scalcTh (en cours) ; gestion des polices et des tailles (ajout setFont et endFont)
-   1.9m ajout fonction data_mail_ ;        
+   1.8m ajout fonction data_mail_ ;  integration mailInit() dans mail() : le périf mail perd la config s'il redémarre
+
 
    BUGS : 
      

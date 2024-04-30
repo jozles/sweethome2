@@ -2616,10 +2616,11 @@ void udpError(EthernetUDP* uu,const char* message,uint16_t udpPacketLen)
       //serialPrintIp(remote_IP);Serial.print("/");Serial.print(remote_Port_Udp);Serial.print('/');Serial.println(udpPacketLen);
       //Serial.println(udpData);
       //Udp.stop();
-      if(udpPacketLen>=UDPBUFLEN-1){udpPacketLen=UDPBUFLEN-2;}
+      uint16_t recLen=udpPacketLen;
+      if(recLen>=UDPBUFLEN-1){recLen=UDPBUFLEN-2;}
       uu->read(udpData,udpPacketLen);udpData[udpPacketLen]='\0';
       Serial.print("udpData ko:");Serial.println(udpData);delay(10);
-      
+
       #define RPULEN 40
       char rpu[RPULEN];memset(rpu,'\0',RPULEN);
       for(uint8_t ii=0;ii<4;ii++){sprintf(rpu+strlen(rpu),"%u",remote_IP[ii]);if(ii<3){*(rpu+strlen(rpu))='.';}}
@@ -2627,10 +2628,14 @@ void udpError(EthernetUDP* uu,const char* message,uint16_t udpPacketLen)
       *(rpu+strlen(rpu))='/';sprintf(rpu+strlen(rpu),"%u",udpPacketLen);
       *(rpu+strlen(rpu))='\0';
       Serial.println(rpu);
-#ifdef DEBUG_ON
-      Serial.println(udpData);
-#endif  
-      mail(message,rpu);
+        
+        udpPacketLen = uu->parsePacket();
+        while(udpPacketLen){
+          uu->read(udpData,udpPacketLen);
+          udpPacketLen = uu->parsePacket();
+        }
+      
+      //mail(message,rpu);
 }
 
 void udpPeriServer()
@@ -2648,21 +2653,21 @@ void udpPeriServer()
       rip = (uint32_t) udp[uu]->remoteIP();
       memcpy(remote_IP,(char*)&rip+4,4);
       remote_Port_Udp = (uint16_t) udp[uu]->remotePort();
-      if(remote_IP[0]!=192 || remote_IP[1]!=168 || remote_IP[2]!=0 || (remote_IP[3]!=11 && remote_IP[3]!=31)){
+      if(remote_IP[0]!=192 || remote_IP[1]!=168 || remote_IP[2]!=0 || (remote_IP[3]!=108 && remote_IP[3]!=31)){
         // ************ conc1 : 31 *** conc2 : 11 ************* DHCP/baux statiques
-        udpError(udp[uu],"\nUDP_IP_KO IP/port/len:",udpPacketLen);
+        udpError(udp[uu],"\nUDP_IP_KO IP/port:",udpPacketLen);
         }
       else {
         if(udpPacketLen<UDPBUFLEN){
           udp[uu]->read(udpData,udpDataLen);udpData[udpDataLen]='\0';
-          Serial.println(udpPacketLen);dumpstr((char*)udpData,128);
+          //Serial.println(udpPacketLen);dumpstr((char*)udpData,128);
           packMac((byte*)remote_MAC,(char*)(udpData+MPOSMAC+33));   // 33= "GET /cx?peri_pass_=0011_17515A29?"
           lastcxu=millis();     // trig watchdog
           udpNb=uu;
           commonserver(nullptr,udp[uu],udpData,udpDataLen);              
         }
         else{
-          udpError(udp[uu],"UDP_OVERFLOW IP/port/len:",udpPacketLen);
+          udpError(udp[uu],"UDP_OVERFLOW IP/len:",udpPacketLen);
         }
       }
     }

@@ -9,7 +9,7 @@ int  ethWrite(EthernetClient* cli,char* buf,long len);
 int  ethWrite(EthernetClient* cli,char* buf,uint16_t* lb);
 int  ethWrite(EthernetClient* cli,char* buf,uint16_t* lb,long len);
 void mail(const char* a, const char* mm);
-void mailInit(char* login,char* pass);
+void mailInit();
 //int  sdOpen(const char* fname,File32* file32);
 //int  sdOpen(const char* fname,SdFile* file);
 int  sdOpen(const char* fname,FsFile* file);
