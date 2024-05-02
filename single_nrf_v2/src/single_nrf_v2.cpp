@@ -117,16 +117,19 @@ extern byte*  configVers;
   extern uint16_t* concRfSpeed;      // RF_Speed concentrateur
   extern uint8_t*  concNb;
 
-extern uint16_t hostPort;               // server Port (TCP/UDP selon TXRX_MODE)
+extern uint16_t hostPort;            // server Port (TCP/UDP selon TXRX_MODE)
 extern struct NrfConTable tableC[NBPERIF+1]; // teble périf
 bool menu=true;
 
-char    bufServer[BUF_SERVER_LENGTH];     // to/from server buffer
+char    bufServer[BUF_SERVER_LENGTH]; // to/from server buffer
 
-unsigned long concTime=millis();    // timer pour export de présence vers le serveur
-unsigned long perConc=60000;        // période pour export de présence
-unsigned long lastUdpCall=millis(); // timer pour TO d'absence de connexion au serveur
-#define UDPTO 1800000 
+#define UDPREF 60000                  // période par défaut concExpport
+#define CONCTO 3                      // nbre concExport sans réponse avant autoreset
+
+unsigned long concTime=millis();      // timer pour export de présence vers le serveur
+unsigned long perConc=UDPREF;         // période pour export de présence
+unsigned long lastUdpCall=millis();   // timer pour TO d'absence de connexion au serveur
+
 uint16_t importCnt=0;
 uint16_t etatImport0=0;
 uint16_t etatImport1=0;
@@ -583,10 +586,9 @@ void loop() {
 
   ledblk(TBLK,2000,IBLK,1);
 
-  if((millis()-lastUdpCall)>UDPTO){
-    lastUdpCall=millis();
-    Serial.print("pas reçu de cx udp depuis ");Serial.print(UDPTO/1000);Serial.println("sec - reset ");
-    forceWd();}
+  if((millis()-lastUdpCall)>(CONCTO*perConc)){
+    Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print((CONCTO*perConc)/1000);Serial.println("sec - reset ");
+    concExport("UDPTO");forceWd();}
 
   numT=0;                                             // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                       // max length
@@ -688,7 +690,7 @@ void loop() {
 
   // ====== si rien reçu des périfs et rien du serveur, éventuel message de présence ====
 
-  if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
+  //if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
     
     if((millis()-concTime)>=perConc){concTime=millis();concExport(nullptr);
     Serial.print('%'); 
@@ -700,7 +702,7 @@ void loop() {
       Serial.print(concTime-lastRead);Serial.println(" Exp_conc");concExport();}
       */
     }
-  }
+  //}
   // ====== menu choice ======  
   
   if((millis()-radioWd)>NO_RADIO_CX_TO){    // wd radio
