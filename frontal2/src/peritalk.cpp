@@ -118,7 +118,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
 
     unsigned int v1,v2=0;
     if(periCur>0){                                        // periCur>0 tfr params
-                v2=*periPerRefr;
+                v2=*((uint16_t*)periPerRefr);
                 sprintf((message+strlen(message)),"%05d",v2);     // periPerRefr
                 strcat(message,"_");
 
@@ -298,7 +298,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)   // foncti
       packDate(periLastDateOut,date14+2);
       periMess=MESSOK;
     }
-
+    trigwd();
     //Serial.print(millis());
     cli->stop();                              // cliext
     Serial.print(" periMess=");Serial.print(periMess);Serial.print(" periReq dur=");Serial.println(millis()-dur);
