@@ -140,6 +140,7 @@ void mailInit()
     char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
 
     strcat(ms,mailFromAddr);strcat(ms,"==");strcat(ms,mailPass);
+    Serial.println(ms);
     periReq(&cliext,*periMail1,"mail_init_",ms);
    }
 }
@@ -150,7 +151,7 @@ void mail(const char* a, const char* mm)
   if(mailEnable){
 
       uint16_t saveperiCur=periCur;
-      mailInit();
+      mailInit();                                               // à supprimer pour version peripherique2 >=2.8
       trigwd();
       char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
 
@@ -168,7 +169,8 @@ void mail(const char* a, const char* mm)
       strcat(ms,VERSION);
 
       sprintf(ms+strlen(ms)," p=%d",*periMail1);
-// supprimer mail init ; ajouter l'init strcat(ms,mailFromAddr);strcat(ms,"==");strcat(ms,mailPass);      
+      strcat(ms," ##");strcat(ms,mailFromAddr);strcat(ms,"==");strcat(ms,mailPass);strcat(ms,"##");   // init values
+     
       periReq(&cliext,*periMail1,"mail______",ms);  
       periCur=saveperiCur;if(periCur!=0){periLoad(periCur);}
   }
