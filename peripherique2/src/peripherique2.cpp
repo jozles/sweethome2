@@ -375,7 +375,7 @@ delay(1);
 #endif
 
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et sauver */
-initConstant();             // à supprimer en production
+//initConstant();             // à supprimer en production
   if(!readConstant()){   
     Serial.println("KO -> init ");
     initConstant();
@@ -978,7 +978,19 @@ void mail(char* subj,char* dest,char* msg)
 unsigned long beg=millis();
 
     Serial.print("---mail--- ");
-    if(emailSend==nullptr){Serial.println(">>>>>>>>>>>> no conf for mail");}
+
+    char* m1=strstr(msg,"##");      // login
+    char* m2=strstr(m1,"==");       // pswd
+    char* m3=strstr(m2,"##");       // fin pswd
+    if(m1!=0 && m2!=0 && m3!=0){*m2='\0';m3='\0';mailInit(m1+2,m2+2);}
+
+      #define LMLOC 16
+      char a[LMLOC];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
+      strcat(a,"°C ");strcat(a,VERSION);
+      if(strlen(a)>=LMLOC){ledblink(BCODESHOWLINE);}
+      a[LMLOC-1]='\0';strcat(msg,a);    // écrase les params d'init
+
+    if(emailSend==nullptr){Serial.println(">>>>>>>>>>>> no conf for mail - restart server for mailInit");}
     else {
       wifiConnexion(ssid,ssidPwd);
 
@@ -998,6 +1010,7 @@ Serial.print(" resp.desc ");Serial.print(resp.desc);
       Serial.print(" millis()=");Serial.println(millis()-beg);
     }
 }
+
 #endif // MAIL_SENDER
 
 void talkClient(char* mess) // réponse à une requête
@@ -1181,11 +1194,7 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
                           httpMess[v1]='\0';
                           uint16_t v2=strstr(httpMess+v1+1,"==")-httpMess;
                           httpMess[v2]='\0';
-                          #define LMLOC 16
-                          char a[LMLOC];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
-                          strcat(a,"°C ");strcat(a,VERSION);
-                          if(strlen(a)>=LMLOC){ledblink(BCODESHOWLINE);}
-                          a[LMLOC-1]='\0';strcat(httpMess+v2+2,a);
+
                           answer("mail______");                   
                           mail(httpMess+v0,httpMess+v1+2,httpMess+v2+2);
                         }
@@ -1256,8 +1265,8 @@ void readAnalog()
 void thermostat()
 {
   if((cstRec.periCfg&=PERI_STA)!=0){
-    if(temp/100>(cstRec.periAnal+1)){locmem&=~LOCMEM_STA_BIT;}
-    else if(temp/100<(cstRec.periAnal-1)){
+    if(temp/100>(cstRec.periAnal+0.5)){locmem&=~LOCMEM_STA_BIT;}
+    else if(temp/100<(cstRec.periAnal-0.5)){
       locmem|=LOCMEM_STA_BIT;
       if(diags){
         Serial.print(temp/100);Serial.print(' ');Serial.print(cstRec.periAnal);Serial.print(' ');showMD();

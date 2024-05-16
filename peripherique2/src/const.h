@@ -7,7 +7,7 @@
 // !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
 
 
-#define VERSION "2.7_"
+#define VERSION "2.8_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -94,6 +94,7 @@
  * 2.6 le compte gmail et le pswd associé sont configurables depuis le frontal (fmail_init_)  
  * 2.7 ajout periAnal (consigne analogique) et periCfg (config périf) dans message reçu peri_ans__ peri_set__ etc
  *     gestion thermostat en local via locmem et LOCMEM_STA_BIT
+ * 2.8 login/password mail dans fonction mail______
  * 
 Modifier : 
 
