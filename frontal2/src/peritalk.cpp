@@ -99,7 +99,7 @@ extern char*     mailData;                    // pointeur chaine à transmettre 
 void assySet(char* message,int periCur,const char* diag,char* date14,const char* fonct)     
 // assemblage datas pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
 {
-  Serial.print(" assySet ");Serial.print(fonct);Serial.print(' ');
+  Serial.print(" assySet ");Serial.print(fonct);Serial.print(' ');delay(2);
   
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
@@ -323,15 +323,18 @@ int periAns(EthernetClient* cli,EthernetUDP* udpCli,const char* nfonct)   // ré
   char date14[LNOW];ds3231.alphaNow(date14);
 
   Serial.print("periAns(");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
-  Serial.print(" ");serialPrintIp(periIpAddr);Serial.print("/");Serial.print(*periPort);     
+  Serial.print(" ");serialPrintIp(periIpAddr);Serial.print("/");Serial.print(*periPort);delay(3);     
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
     assySet(message,periCur,periDiag(periMess),date14,nfonct);
+    Serial.print(" // ");delay(1);
     }  // assemblage datas 
 
   memcpy(bufServer,"<body>\0",7);
   //Serial.print("\n a0=");Serial.println(millis());
   buildMess(nfonct,message,"\0");                           // bufServer complété 
+  Serial.print(" == ");delay(1);
   strcat(bufServer,"</body>");
+  Serial.print(" ## ");delay(1);
   //Serial.println(bufServer);
           if(*periProtocol=='T'){
             cli->write(bufServer);
@@ -340,6 +343,7 @@ int periAns(EthernetClient* cli,EthernetUDP* udpCli,const char* nfonct)   // ré
             //Serial.print(" a2=");Serial.println(millis());
           }
           if(*periProtocol=='U' && udpCli!=nullptr){
+            Serial.print("udp periAns beg ");delay(2);
             IPAddress udpAddress;
             memcpy((char*)(&udpAddress)+4,periIpAddr,4);
             udpCli->beginPacket(udpAddress,*periPort);
@@ -347,6 +351,7 @@ int periAns(EthernetClient* cli,EthernetUDP* udpCli,const char* nfonct)   // ré
             //Serial.print("< to ");serialPrintIp(periIpAddr);Serial.print(":");Serial.println(*periPort);
             udpCli->write(bufServer,strlen(bufServer));
             udpCli->endPacket();
+            Serial.println("... end");delay(2);
           }
           packDate(periLastDateOut,date14+2);
           *periErr=MESSOK;                                  // assySet, buildMess, envoi ne génèrent pas d'erreur

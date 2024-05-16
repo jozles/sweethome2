@@ -2565,7 +2565,8 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
             case 15:anTimersSave();anTimersHtml(cli);break;               // antim___ & anti_ch_
             case 16:dumpHisto(cli);break;                                 // bouton submit histo show
             case 17:if(periMess==MESSOK){mail("PERIF ",mailData);         // data_mail_
-                    periMess=periAns(cli,udpCli,"set_______");}break;
+                    periMess=periAns(cli,udpCli,"set_______");}
+                    break;
             default:accueilHtml(cli);break;                               // what=-1
           }
         } // getnv nbreparams>=0  

@@ -21,7 +21,7 @@ extern char* mailPass;
 extern char  pass[];
 extern char* usrnames;
 extern char* usrpass;
-
+extern uint16_t periCur;
 
 //SdFat32 sd;
 //SdFat sd;
@@ -135,7 +135,6 @@ int ethWrite(EthernetClient* cli,char* buf,uint16_t* lb)
 void mailInit()
 {
    if(mailEnable){
-    
     Serial.print("Init  Mail ");
     trigwd();
     char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
@@ -149,7 +148,8 @@ void mail(const char* a, const char* mm)
 {
 
   if(mailEnable){
-    
+
+      uint16_t saveperiCur=periCur;
       mailInit();
       trigwd();
       char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
@@ -168,7 +168,9 @@ void mail(const char* a, const char* mm)
       strcat(ms,VERSION);
 
       sprintf(ms+strlen(ms)," p=%d",*periMail1);
+// supprimer mail init ; ajouter l'init strcat(ms,mailFromAddr);strcat(ms,"==");strcat(ms,mailPass);      
       periReq(&cliext,*periMail1,"mail______",ms);  
+      periCur=saveperiCur;if(periCur!=0){periLoad(periCur);}
   }
 }
 
