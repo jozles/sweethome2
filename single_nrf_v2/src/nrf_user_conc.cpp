@@ -541,7 +541,6 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           }
           else {                                                                // version périf <= 1.c
             radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16);                // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
             radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9);                // min/max analogique '_hhhhhhhh'
           }
           if(numT==1){                                                          // entrée 1 de tableC pour concentrateur

@@ -123,7 +123,7 @@ bool menu=true;
 
 char    bufServer[BUF_SERVER_LENGTH]; // to/from server buffer
 
-#define UDPREF 60000                  // période par défaut concExpport
+#define UDPREF 60000                  // période par défaut concExport
 #define CONCTO 3                      // nbre concExport sans réponse avant autoreset
 
 unsigned long concTime=millis();      // timer pour export de présence vers le serveur
@@ -680,9 +680,11 @@ void loop() {
   //            update tLast (last unix date)
 
   int dt=MESSCX;
+    
     dt=importData(&tLast);importCnt++;
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
-    
+    if(diags && dt!=-3){Serial.print(" test import:");Serial.println(dt);}
+
     //if(dt!=MESSLEN){Serial.print(" ----------------- importData ");Serial.println(dt);}
 #ifdef DIAG
   if((dt==MESSMAC)||(dt==MESSNUMP)){Serial.print(" importData=");Serial.print(dt);Serial.print(" bS=");Serial.println(bufServer);}
