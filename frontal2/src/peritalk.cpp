@@ -147,7 +147,8 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
                 memcpy(message+v1,"_\0",2);         
                 v1+=1;
 
-      if(((*periCfg)&PERI_SERV)!=0){
+      if(((*periCfg)&PERI_SERV && *periProtocol!='U')!=0){        // en mode UDP, "pour l'instant" pas de pulses ni rules...
+                                                                  // il faudra gérer un bit de periCfg pour ça quand ce sera nécessaire
 
           if(fonct!=nullptr && memcmp(fonct,"sw",2)!=0 && memcmp(fonct,"mds_______",LENNOM)!=0)
           {
@@ -244,7 +245,6 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)   // foncti
   char host[16];memset(host,'\0',16);
 
   //periPrint(periCur);
-  Serial.println(msg);
 
   int ret=MESSCX; // pas de port pas de connexion
   if(((*periCfg)&PERI_SERV)!=0 && *periPort!=0){
