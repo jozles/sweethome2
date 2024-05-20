@@ -275,12 +275,16 @@ int intro_Udp()
     if(cliav<LBUFUDP-1){
       Udp.read(udpData,cliav);udpData[cliav]='\0';}
     else {
+      if(diags){Serial.print(cliav);Serial.print(" udpPacketovf ");}
       while (cliav>0){
         if(cliav>LBUFUDP-1){
           Udp.read(udpData,LBUFUDP-1);cliav-=LBUFUDP-1;}
         else {
           Udp.read(udpData,cliav);cliav=0;}
+        
+        if(diags){udpData[LBUFUDP-1]='\0';Serial.print(udpData);}
       }
+      if(diags){Serial.println();}
       cliav=0;
     }
     t1_01=micros();
@@ -304,6 +308,11 @@ int getHData(char* data,uint16_t* len)
   mode_attente_longueur >= longueur message+7 (7 '</body>')
     charger 
     contrôles </body> et crc si ko retour au mode_attente_<
+
+  aussi longtemps que des packets trop courts pour l'étape en cours sont reçus, la procédure de réception est ré-initialisée :
+  etatImport=0, vidage buffer etc... 
+  En principe, un packet contient au moins les caractères de l'étape en cours sinon c'est un défaut de transmission
+  (pratiquement un packet devrait contenir la totalité du message)
 */
 /*    retour MESSCX not connected ; MESSLEN en cours selon etatImport ; MESSOK messLength in data  */
 
@@ -312,8 +321,30 @@ int getHData(char* data,uint16_t* len)
 
 #if TXRX_MODE == 'U'
   if(cliav<=clipt){cliav=0;intro_Udp();}     // intro_Udp() charge un éventuel packet si cliav <= clipt
+
+  /*
+  if(etatImport==0){                           // charger un éventuel packet et controler sa validité
+    intro_Udp();
+    uint16_t packetLen=introLength1+introLength2+crcLength+suffixLength;
+    uint16_t lmess=0;
+    if(cliav>=packetLen){                
+      for(k=4;k>0;k--){
+      lmess*=10;lmess+=data[introLength1+introLength2-k]-'0';}
+      packetLen+=lmess;
+      if(cliav>=packetLen){
+        crcAsc=0;crcCal=0;conv_atoh(&data[packetLen-suffixLength-crcLength],&crcAsc);    // récup crc
+        crcCal=calcCrc((char*)(data+introLength1+introLength2-4),lmess);
+            if(crcCal!=crcAsc){cliav=0;return MESSCRC;}
+      }
+      else cliav=0;return MESSLEN;
+    }
+    else cliav=0;return MESSLEN;                        // rien reçu
+  }
+  */
+
 #endif // 
   
+  if(diags && cliav!=0){Serial.print("cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
   if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected (does not happen in Udp mode)
   
   switch(etatImport){

@@ -123,7 +123,7 @@ bool menu=true;
 
 char    bufServer[BUF_SERVER_LENGTH]; // to/from server buffer
 
-#define UDPREF 60000                  // période par défaut concExport
+#define UDPREF 600000                 // période par défaut concExport
 #define CONCTO 3                      // nbre concExport sans réponse avant autoreset
 
 unsigned long concTime=millis();      // timer pour export de présence vers le serveur
@@ -668,11 +668,8 @@ void loop() {
   // peripheral must re-do registration so no answer to lead to rx error
 
   //if(diags){
-    if(rdSta>=0){// if(rdSta!=AV_EMPTY){          // pas d'erreur, un cycle complet a été effectué
-      //Serial.print("rd=");Serial.print(rdSta);Serial.print(" tr=");Serial.print(trSta);
-      if(numT==0){Serial.print(" rx+tx+export=");Serial.println(micros()-time_beg);}
-      else {Serial.print("nrf com err=");Serial.println(micros()-time_beg);}
-    }
+    if(rdSta>=0){Serial.print(" rx+tx+export=");Serial.println(micros()-time_beg);}  // pas d'erreur, un cycle complet a été effectué
+    else if(rdSta!=AV_EMPTY){Serial.print(" nrf com err ");Serial.print(rdSta);Serial.print('=');Serial.println(micros()-time_beg);}
   //}
 
   // ====== RX from server ? ====  
@@ -683,7 +680,7 @@ void loop() {
     
     dt=importData(&tLast);importCnt++;
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
-    if(diags && dt!=-3){Serial.print(" test import:");Serial.println(dt);}
+    if(diags && dt!=MESSLEN && dt!=MESSOK){Serial.print(" importData:");Serial.println(dt);}    // MESSLEN until 
 
     //if(dt!=MESSLEN){Serial.print(" ----------------- importData ");Serial.println(dt);}
 #ifdef DIAG
