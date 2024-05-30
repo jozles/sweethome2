@@ -96,7 +96,7 @@ char  udpData[LBUFSERVER+1];
 #define CLIST memcpy(data+k2,udpData+clipt,k1-k2);clipt+=(k1-k2);data[k1]='\0'
 #define CLIZER etatImport=0;cliav=0
 #define ELSECLIZER else{CLIZER;}
-#define ELSECLIZER2 else{CLIZER;Serial.println('*');}
+#define ELSECLIZER2 else{CLIZER;Serial.print(cliav);Serial.println(" CLIZER2");}
 
 #endif //  TXRX_MODE == 'U' 
 
@@ -166,9 +166,20 @@ char c;         // pour macros TCP/UDP
   uint8_t   lastEtatImport;
   extern unsigned long lastUdpCall;
 
+  unsigned long blkwd=0;
+  #define TBLKCTL 2000
+
 /* cycle functions */
 
 int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data);    // connecte au serveur et transfère la data
+
+void blkCtl(char where)
+{
+  //if((millis()-blkwd)>TBLKCTL){
+    //char a[8]={'#','#',' ',where,' ','\0'};
+    //Serial.print(a);Serial.print(millis());Serial.print(' ');Serial.println(lastUdpCall);
+  //}
+}
 
 void userResetSetup(byte* serverIp)
 {
@@ -208,6 +219,10 @@ void userResetSetup(byte* serverIp)
 #endif
 
   for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];}
+
+  blkwd=millis();
+
+  cliav=0;
 }
 
 int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)    // connecte au serveur et transfère la data{
@@ -267,22 +282,27 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
 
 int intro_Udp()
 {
+  blkCtl('g');
   cliav=Udp.parsePacket();
+  blkCtl('h');
   if(cliav>0){
+    blkCtl('j');
     clipt=0;
     rxIpAddr = (uint32_t) Udp.remoteIP();
     rxPort = (unsigned int) Udp.remotePort();
-    if(cliav<LBUFUDP-1){
+    if(cliav<LBUFSERVER-1){
+      blkCtl('k');
       Udp.read(udpData,cliav);udpData[cliav]='\0';}
     else {
+      blkCtl('m');
       if(diags){Serial.print(cliav);Serial.print(" udpPacketovf ");}
       while (cliav>0){
-        if(cliav>LBUFUDP-1){
-          Udp.read(udpData,LBUFUDP-1);cliav-=LBUFUDP-1;}
+        if(cliav>LBUFSERVER-1){
+          Udp.read(udpData,LBUFSERVER-1);cliav-=(LBUFSERVER-1);}
         else {
           Udp.read(udpData,cliav);cliav=0;}
         
-        if(diags){udpData[LBUFUDP-1]='\0';Serial.print(udpData);}
+        if(diags){udpData[LBUFSERVER-1]='\0';Serial.print(udpData);}
       }
       if(diags){Serial.println();}
       cliav=0;
@@ -296,7 +316,10 @@ int intro_Udp()
 int getHData(char* data,uint16_t* len)
 {
 /*
-  !!!!!!!!!! fonctionne en Udp ; pas testé en TCP !!!!!!!!
+  !!!!!!!!!! fonctionne en Udp ; incomplet en TCP !!!!!!!!
+  !!!!!!!!!! CLIRD ne contient pas cli.read()     !!!!!!!!
+  !!!!!!!!!! CLIST idem           
+  !!!!!!!!!! et cliav n'est pas valorisé
 
   mode_attente_<
     attendre le caractère '<'
@@ -320,7 +343,12 @@ int getHData(char* data,uint16_t* len)
   if(etatImport==0){messLength=0;data[0]='\0';}
 
 #if TXRX_MODE == 'U'
-  if(cliav<=clipt){cliav=0;intro_Udp();}     // intro_Udp() charge un éventuel packet si cliav <= clipt
+  //if(cliav<=clipt ){
+  if(cliav==0){                 // on suppose que les packets arrivent complets ; si il y a un morceau de paquet, il sera traité en erreur
+    blkCtl('f');
+    //cliav=0;intro_Udp();}     // intro_Udp() charge un éventuel packet si cliav <= clipt
+    intro_Udp();}     // intro_Udp() charge un éventuel packet et met cliav à jour
+    blkCtl('F');
 
   /*
   if(etatImport==0){                           // charger un éventuel packet et controler sa validité
@@ -341,10 +369,11 @@ int getHData(char* data,uint16_t* len)
     else cliav=0;return MESSLEN;                        // rien reçu
   }
   */
+  if(diags && cliav!=0){Serial.print("eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
 
-#endif // 
+#endif // UDP
   
-  if(diags && cliav!=0){Serial.print("cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
+ 
   if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected (does not happen in Udp mode)
   
   switch(etatImport){
@@ -374,25 +403,19 @@ int getHData(char* data,uint16_t* len)
                   CLIZER;break;}
               }                                                                         // controle suffixe              
               if(k>=suffixLength){etatImport++;}                          
-              else {CLIZER;}                                                            // trop petit -> attente du prochain paquet
+              ELSECLIZER                                                                // trop petit -> attente du prochain paquet
             }
             ELSECLIZER2                                                                 // UDP : cliav trop petit -> attente du prochain paquet
             t1_3=micros()-t1;
             break;
     case 3: crcAsc=0;crcCal=0;conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // récup crc
             crcCal=calcCrc((char*)(data+introLength2-4),messLength-suffixLength);
-            if(crcCal==crcAsc){                                                        // contrôle crc
+            if(crcCal==crcAsc){                                                         // contrôle crc
               t1_4=micros()-t1;
-              etatImport=0;                                                            // si cliav > clipt un 2nd paquet est probablement dispo dans udpData()
-#if TXRX_MODE == 'U'
-              if(cliav>clipt){cliav-=clipt;clipt=0;                                    // un éventuel packet déjà chargé dans udpData ?
-                Serial.println(udpData);  // les 2(?) paquets
-                Serial.println("multiples paquets udp");
-                //while(1){trigwd();}
-              }
-#endif // MODE U
-              return MESSOK;}                                                          // crc ok
-            CLIZER;return MESSCRC;                                                     // crc ko
+              etatImport=0;                                                             // si cliav > clipt un 2nd paquet est probablement dispo dans udpData()
+              CLIZER;return MESSOK;                                                     // crc ok
+            }                                                          
+            CLIZER;return MESSCRC;                                                      // crc ko
             break;            
     default:CLIZER;break;
   }
@@ -500,12 +523,13 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
       periMess=mess2Server(&cli,host,hostPort,bufServer);                          // send message to server
       
       if(periMess!=-7){cnt=MAXRST;t3_02=micros();}
-      else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup(serverIp);t3_2=micros();}}}       // si connecté fin sinon redémarrer ethernet
+      else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup(serverIp);t3_2=micros();}}       // si connecté fin sinon redémarrer ethernet
+    }
 
     //if(diags){
     Serial.print(millis());
     Serial.print(" periMess=");Serial.print(periMess);
-    Serial.print(" mic: buildmess=");Serial.print(t3_0-t3);
+    Serial.print(" buildmess=");Serial.print(t3_0-t3);
     Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
     Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);delay(1);
     //Serial.print("    ");Serial.print(bufServer);
@@ -545,8 +569,9 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   int  dataLen=LBUFSERVER;
   
   t1=micros();
-  periMess=getHData(indata,(uint16_t*)&dataLen);                  // la longueur du message est messLength-suffixLength (si periMess=MESSOK)
-                                                                  // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
+  periMess=getHData(indata,(uint16_t*)&dataLen);                  // la longueur du message est messLength-suffixLength (si periMess=MESSOK)                                                                // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
+
+  blkCtl('e');
 
   if(periMess==MESSOK){
 
@@ -590,7 +615,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);          //Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
           //Serial.print(" perConc=");Serial.println(perConc);
           //Serial.print(" print diag=");Serial.print(micros()-t2_1);
-          Serial.print(" mic: import=");
+          Serial.print(" import=");
           Serial.println(micros()-t1);        
         //}
   }
@@ -608,7 +633,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   return periMess;
 }
 
-void concExport(const char* messName)
+void exportDataMail(const char* messName)
 {
   char concName[LENMODEL+1]={'C','O','N','C','_','\0','\0'};concName[LENMODEL-1]=*concNb+48;
   uint8_t testPeri=1;

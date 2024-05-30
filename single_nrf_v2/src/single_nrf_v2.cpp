@@ -38,7 +38,7 @@ Nrfp radio;
 
 /*** LED ***/
 uint16_t      blkdelay=0;
-unsigned long blktime=0;
+unsigned long blktime=millis();
 uint8_t       bcnt=0;
 #define TBLK    1
 #define DBLK    2000
@@ -123,8 +123,8 @@ bool menu=true;
 
 char    bufServer[BUF_SERVER_LENGTH]; // to/from server buffer
 
-#define UDPREF 600000                 // période par défaut concExport
-#define CONCTO 3                      // nbre concExport sans réponse avant autoreset
+#define UDPREF 600000                 // période par défaut exportData concentrateur
+#define CONCTO 3                      // nbre exportData sans réponse avant autoreset
 
 unsigned long concTime=millis();      // timer pour export de présence vers le serveur
 unsigned long perConc=UDPREF;         // période pour export de présence
@@ -229,7 +229,7 @@ void ledblk(int dur,int bdelay,int bint,uint8_t bnb);
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
 int  rxMessage(unsigned long to);
-void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
+//void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
 #if NRF_MODE == 'C'
 char getch();
 void echo();
@@ -407,8 +407,11 @@ void setup() {
   //while(1){trigwd(0);delay(5000);}
 
   trigwd(0);
+  blktime=millis();
 
   userResetSetup(serverIp);             // doit être avant les inits radio (le spi.begin vient de la lib ethernet)
+
+  trigwd(0);
 
   radioInit();
 
@@ -416,15 +419,26 @@ void setup() {
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.println(" ");
 #endif //  
 
-  time_beg=millis();  
+  time_beg=millis();
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
 
-  concExport("START");
+  bool noResponseTo=true;
+  uint8_t cnt=0;
+  #define MAXCNT 5  
+  while(noResponseTo && cnt<MAXCNT){
+    cnt++;
+    exportDataMail("START");
+    #define RWTO 5000
+    unsigned long responseWait=millis();
+    while((millis()-responseWait)<RWTO){
+      if(importData(&tLast)==MESSOK){noResponseTo=false;responseWait=millis()-RWTO-1;}
+    }
+  }
+
   Serial.println();
 
   lastUdpCall=millis();
 #endif // NRF_MODE == 'C'
-
 
   Serial.println("end setup\n");delay(1);
  
@@ -584,18 +598,21 @@ void loop() {
     menu=false;
   }
 
+  //blkCtl('A');
+
   ledblk(TBLK,2000,IBLK,1);
 
   if((millis()-lastUdpCall)>(CONCTO*perConc)){
     Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print((CONCTO*perConc)/1000);Serial.println("sec - reset ");
-    concExport("UDPTO");forceWd();}
+    exportDataMail("UDPTO");forceWd();}
 
   numT=0;                                             // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                       // max length
   memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
   rdSta=radio.read(messageIn,&pipe,&pldLength,NBPERIF);  // get message from perif (<0 err ; 0 et pipe==1 reg to do ; 0 et pipe==2 conc radio Addr req ; >0 entry nb)
 
-  time_beg=micros();  
+  time_beg=micros();
+  //blkCtl('B');  
 
   //if(rdSta!=AV_EMPTY){lastRead=millis();}
 
@@ -631,6 +648,8 @@ void loop() {
       }                                                                   // rdSta=0 so ... end of loop
   }
 
+  //blkCtl('C');
+
   // numT=0 si pipe==2 sinon pipe==1 : registration
   // ====== no error && valid entry (rdSta=n° de perif fourni par le perif ou à l'issue de cRegister) ======         
   
@@ -653,8 +672,8 @@ void loop() {
         // ******************************* réponse passée **********************************
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
       /* ======= formatting & tx to server ====== */
-        if(numT==0){exportData(rdSta);}               // if not registration (no valid data), tx to server (rdSta table entry nb)
-      }
+        if(numT==0){exportData(rdSta);}               // numT==0 if perif already had registration nb
+      }                                               // numT!=0 if perif only made registration request (no data)
       else {                                          
       /* echo pending  :                         // echoOn flag d'attente de réponse 
         if(!echoOn){sendEchoReq();echoOn=true;}  // sendEchoReq gère la tempo
@@ -663,12 +682,17 @@ void loop() {
         echo();
       }
   }
+
+  blkCtl('D');
   
   // ====== error, full or empty -> ignore ======
   // peripheral must re-do registration so no answer to lead to rx error
 
   //if(diags){
-    if(rdSta>=0){Serial.print(" rx+tx+export=");Serial.println(micros()-time_beg);}  // pas d'erreur, un cycle complet a été effectué
+    if(rdSta>=0){
+      Serial.print(" rx+tx");if(numT==0){Serial.print("+export");}
+      Serial.print(" (");
+      Serial.print(rdSta);Serial.print(")=");Serial.println(micros()-time_beg);}  // pas d'erreur, un cycle complet a été effectué
     else if(rdSta!=AV_EMPTY){Serial.print(" nrf com err ");Serial.print(rdSta);Serial.print('=');Serial.println(micros()-time_beg);}
   //}
 
@@ -679,8 +703,10 @@ void loop() {
   int dt=MESSCX;
     
     dt=importData(&tLast);importCnt++;
+blkCtl('E');
+
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
-    if(diags && dt!=MESSLEN && dt!=MESSOK){Serial.print(" importData:");Serial.println(dt);}    // MESSLEN until 
+    if(dt!=MESSLEN && dt!=MESSOK){Serial.print(" importData failure:");Serial.println(dt);}    // MESSLEN until well completed
 
     //if(dt!=MESSLEN){Serial.print(" ----------------- importData ");Serial.println(dt);}
 #ifdef DIAG
@@ -691,14 +717,14 @@ void loop() {
 
   //if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
     
-    if((millis()-concTime)>=perConc){concTime=millis();concExport(nullptr);
-    Serial.print('%'); 
+    if((millis()-concTime)>=perConc){
+      concTime=millis();exportDataMail(nullptr);
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
       Serial.print(" etatImport0:");Serial.print(etatImport0);etatImport0=0;Serial.print(" ");
       Serial.print(" etatImport1:");Serial.print(etatImport1);etatImport1=0;Serial.print(" ");
       Serial.print(" etatImport2:");Serial.print(etatImport2);etatImport2=0;Serial.print(" ");
-      Serial.print(concTime-lastRead);Serial.println(" Exp_conc");concExport();}
+      Serial.print(concTime-lastRead);Serial.println(" Exp_conc");exportDataMail();}
       */
     }
   //}
@@ -706,11 +732,12 @@ void loop() {
   
   if((millis()-radioWd)>NO_RADIO_CX_TO){    // wd radio
 
-    Serial.print("pas de cx radio depuis ");Serial.print(NO_RADIO_CX_TO/1000);Serial.println("sec - re_init ");
+    Serial.print("pas de cx radio depuis ");Serial.print(NO_RADIO_CX_TO/1000);Serial.println("sec - re_init ");delay(10);
     configLoad();
     Serial.print('@');
     userResetSetup(serverIp);
     radioInit();
+    blkCtl('G');
   }
 
   char a=getch();
@@ -1059,6 +1086,8 @@ void showRx(byte* message,bool crlf)
 { 
   if(diags){
     Serial.print(millis());
+    Serial.print(' ');
+    Serial.print(rdSta);
     Serial.print(" reçu l=");Serial.print(pldLength);
     Serial.print(" p=");Serial.print(pipe);
     Serial.print(" ");
@@ -1233,9 +1262,12 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,unsigned long dly)
 
 void ledblk(int dur,int bdelay,int bint,uint8_t bnb)
 {   // dur = durée on ; bdelay = delay entre séquences ; bint = intervalle entre blinks ; bnb = nbre blinks
-  if((millis()-blktime)>blkdelay){
+  uint16_t blkdur=millis()-blktime;
+  if(blkdur>blkdelay){
     if(digitalRead(PLED)==LOW){
-      digitalWrite(PLED,HIGH);blkdelay=dur;}
+      digitalWrite(PLED,HIGH);
+      if(blkdur>(blkdelay+1000)){Serial.print("================== blink overrun ");Serial.println(blkdur);}
+      blkdelay=dur;}
     else{digitalWrite(PLED,LOW);
       if(bcnt<bnb){blkdelay=bint;bcnt++;}
       else{blkdelay=bdelay;bcnt=1;}}

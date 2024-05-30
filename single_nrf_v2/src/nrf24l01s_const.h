@@ -61,8 +61,8 @@ v1.c  la variable globale beginP_done indique que importData a été effectué d
       donc inutile de faire radio.txRx( et importData ensuite ; 
 v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD ; ajout data_mail_ START
       pbs de transmission UDP : il semblerait que le concentrateur ait des difficultés avec W5500 à 30MHz 
-      ça peut être un pb hard sur les caryes utilisées (DUE/W5500) les transmissions avec le concentrateur 1 semblent ok
-      la spec du nrf dit "max sck freq)=10MHz" !!! donc w5500 et nrf @8MHZ
+      ça peut être un pb hard sur les cartes utilisées (DUE/W5500) les transmissions avec le concentrateur 1 semblent ok
+      la spec du nrf dit "max sck freq=10MHz" !!! donc w5500 et nrf @8MHZ
 */
 
 /************* config ****************/
