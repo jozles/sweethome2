@@ -82,8 +82,8 @@ IPAddress host;
 
 IPAddress     rxIpAddr;   // IPAddress from received message
 unsigned int  rxPort;     // port      from received message
-int   cliav=0;      // len reçue dans le dernier paquet
-int   clipt=0;      // prochain car à sortir du dernier paquet;
+uint32_t   cliav=0;       // len reçue dans le dernier paquet
+uint32_t   clipt=0;       // prochain car à sortir du dernier paquet;
 char  udpData[LBUFSERVER+1];
 
 #define INTROLENGTH1 6  // <body>
@@ -280,7 +280,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
 
 #if TXRX_MODE == 'U'
 
-int intro_Udp()
+int get_Udp()
 {
   blkCtl('g');
   cliav=Udp.parsePacket();
@@ -295,17 +295,21 @@ int intro_Udp()
       Udp.read(udpData,cliav);udpData[cliav]='\0';}
     else {
       blkCtl('m');
-      Serial.print(cliav);Serial.print(" udpPacketovf ");
+      Serial.print("\nudpPacketovf =");Serial.print(cliav);Serial.print(' ');
       while (cliav>0){
-        if(cliav>LBUFSERVER-1){
-          Udp.read(udpData,LBUFSERVER-1);cliav-=(LBUFSERVER-1);}
-        else {
-          Udp.read(udpData,cliav);cliav=0;}
-        
-        udpData[LBUFSERVER-1]='\0';Serial.print(udpData);
+        while (cliav>0){
+          if(cliav>LBUFSERVER-1){
+            Udp.read(udpData,LBUFSERVER-1);
+            cliav-=(LBUFSERVER-1);
+          }
+          else {
+            Udp.read(udpData,cliav);cliav=0;}
+    
+          udpData[LBUFSERVER-1]='\0';Serial.print(udpData);
+        }
+        Serial.println();
+        cliav=Udp.parsePacket();  
       }
-      Serial.println();
-      cliav=0;
     }
     t1_01=micros();
   }
@@ -345,10 +349,10 @@ int getHData(char* data,uint16_t* len)
 
   if(cliav==0){                 // on suppose que les packets arrivent complets ; si il y a un morceau de paquet, il sera traité en erreur
     blkCtl('f');
-    intro_Udp();                 // intro_Udp() charge un éventuel packet et met cliav à jour
+    get_Udp();                  // get_Udp() charge un éventuel packet et met cliav à jour
     blkCtl('F');
+    if(diags && cliav!=0){Serial.print("eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
   }
-  if(diags && cliav!=0){Serial.print("eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
 
   /*
   if(etatImport==0){                           // charger un éventuel packet et controler sa validité
@@ -607,7 +611,9 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           if(!diags){Serial.print(indata);}
           Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);
           Serial.print(" import=");
-          t2_2=micros()-t1;Serial.println(t2_2);        
+          t2_2=micros()-t1;Serial.print(t2_2);
+          if(diags){Serial.print(' ');}
+          else Serial.println();
           
                     //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
                     //Serial.print("/");Serial.print(messLength);

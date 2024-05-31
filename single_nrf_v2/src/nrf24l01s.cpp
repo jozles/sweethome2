@@ -231,12 +231,12 @@ void Nrfp::powerUp()
     SPI_START;
 #endif // SPI_MODE
 
-/*
+
 #if NRF_MODE == 'C'
    SPI.beginTransaction(SPISettings(8000000,MSBFIRST,SPI_MODE0));
    SPI.begin();
 #endif 
-*/
+
     conf=CONFREG;                         // powerUP/CRC 1 byte/PRX
     regWrite(CONFIG,&conf);
     regWrite(CONFIG,&conf);               // twice !!!
