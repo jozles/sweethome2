@@ -131,9 +131,11 @@ char c;         // pour macros TCP/UDP
   unsigned long t1_2;   // MESSLEN got len
   unsigned long t1_03;  // MESSLEN got '</body>'
   unsigned long t1_3;   // MESSLEN got '</body>' + check it
-  unsigned long t1_4;   // MESSOK
+  unsigned long t1_4;   // MESSOK (crc checked)
   unsigned long t2;     // 
+  unsigned long t2_0;   // 
   unsigned long t2_1;   // 
+  unsigned long t2_2;   // 
 
 /* exportDSata & mess2Server times */
 
@@ -216,7 +218,7 @@ void userResetSetup(byte* serverIp)
   if(!Udp.begin(*concPort)){Serial.println(" ko");while(1){trigwd(1000);}}
   trigwd(0);
   Serial.print(" ok ");Serial.print(millis()-t_beg);Serial.println("mS");
-#endif
+#endif // TXRX_MODE == 'U'
 
   for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];}
 
@@ -228,11 +230,9 @@ void userResetSetup(byte* serverIp)
 int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)    // connecte au serveur et transfère la data{
 {
 #ifdef DIAG
-  
   Serial.print(TXRX_MODE);Serial.print(" to ");
   for(int i=0;i<4;i++){Serial.print((uint8_t)host[i]);Serial.print(" ");}
   Serial.print(":");Serial.print(hostPort);Serial.print("...");
-
 #endif //  DIAG
 
 #if TXRX_MODE == 'U'
@@ -295,16 +295,16 @@ int intro_Udp()
       Udp.read(udpData,cliav);udpData[cliav]='\0';}
     else {
       blkCtl('m');
-      if(diags){Serial.print(cliav);Serial.print(" udpPacketovf ");}
+      Serial.print(cliav);Serial.print(" udpPacketovf ");
       while (cliav>0){
         if(cliav>LBUFSERVER-1){
           Udp.read(udpData,LBUFSERVER-1);cliav-=(LBUFSERVER-1);}
         else {
           Udp.read(udpData,cliav);cliav=0;}
         
-        if(diags){udpData[LBUFSERVER-1]='\0';Serial.print(udpData);}
+        udpData[LBUFSERVER-1]='\0';Serial.print(udpData);
       }
-      if(diags){Serial.println();}
+      Serial.println();
       cliav=0;
     }
     t1_01=micros();
@@ -336,19 +336,19 @@ int getHData(char* data,uint16_t* len)
   etatImport=0, vidage buffer etc... 
   En principe, un packet contient au moins les caractères de l'étape en cours sinon c'est un défaut de transmission
   (pratiquement un packet devrait contenir la totalité du message)
+  En UDP, si plusieurs paquets concatènés devraient être traiés normalement (clipt n'est remis à 0 que lorsque cliav==0)
 */
 /*    retour MESSCX not connected ; MESSLEN en cours selon etatImport ; MESSOK messLength in data  */
 
   hDataCnt++;
   if(etatImport==0){messLength=0;data[0]='\0';}
 
-#if TXRX_MODE == 'U'
-  //if(cliav<=clipt ){
   if(cliav==0){                 // on suppose que les packets arrivent complets ; si il y a un morceau de paquet, il sera traité en erreur
     blkCtl('f');
-    //cliav=0;intro_Udp();}     // intro_Udp() charge un éventuel packet si cliav <= clipt
-    intro_Udp();}     // intro_Udp() charge un éventuel packet et met cliav à jour
+    intro_Udp();                 // intro_Udp() charge un éventuel packet et met cliav à jour
     blkCtl('F');
+  }
+  if(diags && cliav!=0){Serial.print("eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
 
   /*
   if(etatImport==0){                           // charger un éventuel packet et controler sa validité
@@ -368,11 +368,7 @@ int getHData(char* data,uint16_t* len)
     }
     else cliav=0;return MESSLEN;                        // rien reçu
   }
-  */
-  if(diags && cliav!=0){Serial.print("eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
-
-#endif // UDP
-  
+  */  
  
   if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected (does not happen in Udp mode)
   
@@ -411,9 +407,10 @@ int getHData(char* data,uint16_t* len)
     case 3: crcAsc=0;crcCal=0;conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // récup crc
             crcCal=calcCrc((char*)(data+introLength2-4),messLength-suffixLength);
             if(crcCal==crcAsc){                                                         // contrôle crc
-              t1_4=micros()-t1;
-              etatImport=0;                                                             // si cliav > clipt un 2nd paquet est probablement dispo dans udpData()
-              CLIZER;return MESSOK;                                                     // crc ok
+              t1_4=micros()-t1;                                                           
+              etatImport=0;                                                             
+              if(cliav<=clipt){cliav=0;}                                                // s'il reste à lire ça peut être un paquet suivant
+              return MESSOK;                                                            // crc ok
             }                                                          
             CLIZER;return MESSCRC;                                                      // crc ko
             break;            
@@ -510,7 +507,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     if(mailData!=nullptr){memcpy(fonctName,"data_mail_",LENNOM);}
     buildMess(fonctName,message,"");                                    // build message for server
 
-    Serial.println(bufServer);
+    //////////////////Serial.println(bufServer);
     t3_0=micros();                                                      // fin buildMess
 
 /* send to server */
@@ -528,13 +525,13 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
 
     //if(diags){
     Serial.print(millis());
-    Serial.print(" periMess=");Serial.print(periMess);
-    Serial.print(" buildmess=");Serial.print(t3_0-t3);
-    Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
-    Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);delay(1);
+    Serial.print(" pM=");Serial.print(periMess);
+    //Serial.print(" buildmess=");Serial.print(t3_0-t3);
+    //Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
+    //Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);delay(1);
     //Serial.print("    ");Serial.print(bufServer);
     //}
-    Serial.println();
+    //Serial.println();
     return periMess;
 }
 
@@ -575,6 +572,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
 
   if(periMess==MESSOK){
 
+        t2_0=micros();
         lastUdpCall=millis();
 
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
@@ -604,19 +602,24 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           }
         }                                                  
         t2_1=micros();
-        //if(diags){                
+        
           Serial.print("  >>> getHD ");
-          //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
-          //Serial.print("/");Serial.print(messLength);Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
-          //Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
-          //Serial.print(" ok=");Serial.println(t1_4);
-          Serial.print(indata);
-          //Serial.print("    importData ok=");Serial.print(t2_1-t1);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
-          Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);          //Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
-          //Serial.print(" perConc=");Serial.println(perConc);
-          //Serial.print(" print diag=");Serial.print(micros()-t2_1);
+          if(!diags){Serial.print(indata);}
+          Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);
           Serial.print(" import=");
-          Serial.println(micros()-t1);        
+          t2_2=micros()-t1;Serial.println(t2_2);        
+          
+                    //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
+                    //Serial.print("/");Serial.print(messLength);
+                    //Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
+                    //Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
+          
+          //Serial.print(" last getHData =");Serial.print(t2_0-t1);
+          //Serial.print("    data mngt =");Serial.print(t2_1-t2_0);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
+                    //Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
+                    //Serial.print(" perConc=");Serial.println(perConc);
+          //:::::::::::Serial.print(" print diags=");Serial.println(micros()-t2_1);
+        
         //}
   }
 

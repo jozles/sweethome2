@@ -1093,7 +1093,7 @@ void showRx(byte* message,bool crlf)
     Serial.print(" ");
     if(message!=nullptr){Serial.print((char*)message);}
     if(crlf){Serial.println();}
-    delay(2);
+    //delay(2);
   }
 }
 
