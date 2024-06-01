@@ -96,13 +96,16 @@ v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD ; ajout
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
   #define PORT_PP    7          // pin pour pulse de debug analyseur logique (macro PP4)
   //#define REDV1                 // modèle carte red
+
+  #define LRAMREM 16
+
 #endif // NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'             /* voltage and temp acquisition params */
    // param carte DETS (sinon ?) dans platformo.ini
   #define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
   #define PER_PO    'P'           // 'N' no powoff 'P' powoff
-  #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe)
+  #define SPI_MODE                // SPI initialisé par la lib (ifndef -> lib externe) 
   #define DEF_ADDR  "peri_"
   
   #define MCP9700                 //#define TMP36 //#define LM335 //#define DS18X20 // modèle thermomètre

@@ -144,6 +144,10 @@ unsigned long tLast=0;              // date unix dernier message reçu
 char    diagMessT[LDIAGMESS];             // buffer texte diag Tx
 char    diagMessR[LDIAGMESS];             // buffer texte diag Tx
 
+char bid;
+
+uint32_t ram_remanente __attribute__((section(".bss")));     //.noinit")));
+
 #endif // NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'
@@ -356,6 +360,7 @@ void setup() {
   Serial.begin(115200);Serial1.begin(115200);
 
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);
+  
   //Serial.print(" PP=");Serial.print(PP);
   Serial.print(" ");Serial.print(TXRX_MODE);Serial.print(" ");
 
@@ -414,6 +419,14 @@ void setup() {
   trigwd(0);
 
   radioInit();
+/*
+  dumpstr(ram_remanente,16);
+  ram_remanente[LRAMREM-1]='\0';
+  memset(ram_remanente,'x',LRAMREM-1);
+*/  
+  Serial.println(ram_remanente);
+  ram_remanente=1111;
+
 
 #ifdef DUE
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.println(" ");
@@ -603,6 +616,7 @@ void loop() {
   ledblk(TBLK,2000,IBLK,1);
 
   if((millis()-lastUdpCall)>(CONCTO*perConc)){
+blkCtl('B');    
     Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print((CONCTO*perConc)/1000);Serial.println("sec - reset ");
     exportDataMail("UDPTO");forceWd();}
 
@@ -611,8 +625,7 @@ void loop() {
   memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
   rdSta=radio.read(messageIn,&pipe,&pldLength,NBPERIF);  // get message from perif (<0 err ; 0 et pipe==1 reg to do ; 0 et pipe==2 conc radio Addr req ; >0 entry nb)
 
-  time_beg=micros();
-  //blkCtl('B');  
+  time_beg=micros();  
 
   //if(rdSta!=AV_EMPTY){lastRead=millis();}
 
@@ -648,7 +661,7 @@ void loop() {
       }                                                                   // rdSta=0 so ... end of loop
   }
 
-  //blkCtl('C');
+blkCtl('C');
 
   // numT=0 si pipe==2 sinon pipe==1 : registration
   // ====== no error && valid entry (rdSta=n° de perif fourni par le perif ou à l'issue de cRegister) ======         
@@ -683,7 +696,7 @@ void loop() {
       }
   }
 
-  blkCtl('D');
+blkCtl('D');
   
   // ====== error, full or empty -> ignore ======
   // peripheral must re-do registration so no answer to lead to rx error
@@ -718,7 +731,9 @@ blkCtl('E');
   //if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
     
     if((millis()-concTime)>=perConc){
+blkCtl('H'); 
       concTime=millis();exportDataMail(nullptr);
+     
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
       Serial.print(" etatImport0:");Serial.print(etatImport0);etatImport0=0;Serial.print(" ");

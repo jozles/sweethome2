@@ -122,6 +122,8 @@ char c;         // pour macros TCP/UDP
 
   char getHDmess[1000];
 
+  extern char ram_remanente;
+
 /* importData & getHData times */
 
   unsigned long t1;     // beg importData()
@@ -158,7 +160,7 @@ char c;         // pour macros TCP/UDP
   uint8_t   prevLength=PREVLENGTH;
   const char*     suffix="</body>";
   uint8_t   suffixLength=7;
-  uint16_t  messLength=0;
+  uint32_t  messLength=0;
   uint16_t  l;
   uint8_t   crcAsc;
   uint8_t   crcCal;
@@ -177,6 +179,8 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
 
 void blkCtl(char where)
 {
+  ram_remanente=where;
+  Serial.println(where);
   //if((millis()-blkwd)>TBLKCTL){
     //char a[8]={'#','#',' ',where,' ','\0'};
     //Serial.print(a);Serial.print(millis());Serial.print(' ');Serial.println(lastUdpCall);
@@ -297,16 +301,17 @@ int get_Udp()
       blkCtl('m');
       Serial.print("\nudpPacketovf =");Serial.print(cliav);Serial.print(' ');
       while (cliav>0){
-        while (cliav>0){
+        //while (cliav>0){
           if(cliav>LBUFSERVER-1){
             Udp.read(udpData,LBUFSERVER-1);
-            cliav-=(LBUFSERVER-1);
+            //cliav-=(LBUFSERVER-1);
           }
           else {
-            Udp.read(udpData,cliav);cliav=0;}
+            Udp.read(udpData,cliav);cliav=0;
+          }
     
           udpData[LBUFSERVER-1]='\0';Serial.print(udpData);
-        }
+        //}
         Serial.println();
         cliav=Udp.parsePacket();  
       }
@@ -348,9 +353,9 @@ int getHData(char* data,uint16_t* len)
   if(etatImport==0){messLength=0;data[0]='\0';}
 
   if(cliav==0){                 // on suppose que les packets arrivent complets ; si il y a un morceau de paquet, il sera traité en erreur
-    blkCtl('f');
+    //blkCtl('f');
     get_Udp();                  // get_Udp() charge un éventuel packet et met cliav à jour
-    blkCtl('F');
+    //blkCtl('F');
     if(diags && cliav!=0){Serial.print("eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
   }
 
@@ -394,7 +399,7 @@ int getHData(char* data,uint16_t* len)
             ELSECLIZER                                                                // UDP : cliav trop petit -> attente du prochain paquet
             t1_2=micros()-t1;
             break;
-    case 2: if(CLIAV>=messLength-2){                                                  // attente message
+    case 2: if(CLIAV>=(messLength-2)){                                                  // attente message
               k2=introLength2;k1=(messLength-crcLength)+k2;CLIST;                     // load message+ctle suffixe
               t1_03=micros()-t1;
               k1=messLength-suffixLength+introLength2-crcLength;
