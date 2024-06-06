@@ -146,7 +146,7 @@ char    diagMessR[LDIAGMESS];             // buffer texte diag Tx
 
 char bid;
 
-uint32_t ram_remanente __attribute__((section(".bss")));     //.noinit")));
+uint32_t ram_remanente __attribute__((section(".noinit")));
 
 #endif // NRF_MODE == 'C'
 
@@ -355,6 +355,18 @@ void setup() {
 #if NRF_MODE == 'C'
 
   PP4_INIT
+
+/*
+  dumpstr(ram_remanente,16);
+  ram_remanente[LRAMREM-1]='\0';
+  memset(ram_remanente,'x',LRAMREM-1);
+  
+  Serial.println(ram_remanente);
+  ram_remanente=1111;
+*/
+
+  pinMode(15,OUTPUT);pinMode(16,OUTPUT);pinMode(17,OUTPUT);
+  blkCtl('a');
   
   delay(1000);
   Serial.begin(115200);Serial1.begin(115200);
@@ -370,6 +382,8 @@ void setup() {
   digitalWrite(POWCD,POWON);
   trigwd(1000000);                      // uS
 #endif // REDV1
+
+blkCtl('b');
 
 /* version avec params de réseau/radio en eeprom */
 
@@ -408,6 +422,8 @@ void setup() {
 #endif // TXRX_MODE T
 
   configPrint();
+
+  blkCtl('c');
   
   //while(1){trigwd(0);delay(5000);}
 
@@ -419,18 +435,12 @@ void setup() {
   trigwd(0);
 
   radioInit();
-/*
-  dumpstr(ram_remanente,16);
-  ram_remanente[LRAMREM-1]='\0';
-  memset(ram_remanente,'x',LRAMREM-1);
-*/  
-  Serial.println(ram_remanente);
-  ram_remanente=1111;
-
 
 #ifdef DUE
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.println(" ");
 #endif //  
+
+  blkCtl('d');
 
   time_beg=millis();
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
@@ -454,7 +464,7 @@ void setup() {
 #endif // NRF_MODE == 'C'
 
   Serial.println("end setup\n");delay(1);
- 
+
 }
 
 void loop() {
@@ -603,6 +613,8 @@ void loop() {
 
 #if NRF_MODE == 'C'
 
+  blkCtl('g');
+
   if(menu){
     Serial.print("     ");
     radio.printAddr((char*)radio.locAddr,0);
@@ -611,12 +623,9 @@ void loop() {
     menu=false;
   }
 
-  //blkCtl('A');
-
   ledblk(TBLK,2000,IBLK,1);
 
   if((millis()-lastUdpCall)>(CONCTO*perConc)){
-blkCtl('B');    
     Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print((CONCTO*perConc)/1000);Serial.println("sec - reset ");
     exportDataMail("UDPTO");forceWd();}
 
@@ -626,6 +635,8 @@ blkCtl('B');
   rdSta=radio.read(messageIn,&pipe,&pldLength,NBPERIF);  // get message from perif (<0 err ; 0 et pipe==1 reg to do ; 0 et pipe==2 conc radio Addr req ; >0 entry nb)
 
   time_beg=micros();  
+
+blkCtl('d');
 
   //if(rdSta!=AV_EMPTY){lastRead=millis();}
 
@@ -660,9 +671,7 @@ blkCtl('B');
         txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                        // end of transaction so auto ACK
       }                                                                   // rdSta=0 so ... end of loop
   }
-
-blkCtl('C');
-
+blkCtl('f');
   // numT=0 si pipe==2 sinon pipe==1 : registration
   // ====== no error && valid entry (rdSta=n° de perif fourni par le perif ou à l'issue de cRegister) ======         
   
@@ -685,7 +694,8 @@ blkCtl('C');
         // ******************************* réponse passée **********************************
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
       /* ======= formatting & tx to server ====== */
-        if(numT==0){exportData(rdSta);}               // numT==0 if perif already had registration nb
+        if(numT==0){
+          exportData(rdSta);}                         // numT==0 if perif already had registration nb
       }                                               // numT!=0 if perif only made registration request (no data)
       else {                                          
       /* echo pending  :                         // echoOn flag d'attente de réponse 
@@ -695,8 +705,6 @@ blkCtl('C');
         echo();
       }
   }
-
-blkCtl('D');
   
   // ====== error, full or empty -> ignore ======
   // peripheral must re-do registration so no answer to lead to rx error
@@ -714,9 +722,8 @@ blkCtl('D');
   //            update tLast (last unix date)
 
   int dt=MESSCX;
-    
+
     dt=importData(&tLast);importCnt++;
-blkCtl('E');
 
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
     if(dt!=MESSLEN && dt!=MESSOK){Serial.print(" importData failure:");Serial.println(dt);}    // MESSLEN until well completed
@@ -731,7 +738,7 @@ blkCtl('E');
   //if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
     
     if((millis()-concTime)>=perConc){
-blkCtl('H'); 
+      
       concTime=millis();exportDataMail(nullptr);
      
       /*
@@ -752,7 +759,6 @@ blkCtl('H');
     Serial.print('@');
     userResetSetup(serverIp);
     radioInit();
-    blkCtl('G');
   }
 
   char a=getch();

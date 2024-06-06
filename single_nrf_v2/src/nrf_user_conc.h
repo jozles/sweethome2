@@ -9,7 +9,7 @@ int  exportData(uint8_t numT,char* modelName,char* mailData);
 void exportDataMail(const char* messName);
 int  importData(uint32_t* tLast);
 void userResetSetup(byte* serverIp);
-void blkCtl(char where);
+void blkCtl(uint8_t where);
 
 #endif // NRF_MODE == 'C'
 

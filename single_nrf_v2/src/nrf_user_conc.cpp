@@ -177,10 +177,11 @@ char c;         // pour macros TCP/UDP
 
 int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data);    // connecte au serveur et transfère la data
 
-void blkCtl(char where)
+void blkCtl(uint8_t where)
 {
   ram_remanente=where;
-  Serial.println(where);
+  digitalWrite(15,!(where&0x01));digitalWrite(16,!((where>>1)&0x01));digitalWrite(17,!((where>>2)&0x01));
+  //Serial.println(where);
   //if((millis()-blkwd)>TBLKCTL){
     //char a[8]={'#','#',' ',where,' ','\0'};
     //Serial.print(a);Serial.print(millis());Serial.print(' ');Serial.println(lastUdpCall);
@@ -286,19 +287,18 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
 
 int get_Udp()
 {
-  blkCtl('g');
+  blkCtl('@');
   cliav=Udp.parsePacket();
-  blkCtl('h');
+  blkCtl('a');
   if(cliav>0){
-    blkCtl('j');
     clipt=0;
     rxIpAddr = (uint32_t) Udp.remoteIP();
     rxPort = (unsigned int) Udp.remotePort();
     if(cliav<LBUFSERVER-1){
-      blkCtl('k');
+      blkCtl('b');
       Udp.read(udpData,cliav);udpData[cliav]='\0';}
     else {
-      blkCtl('m');
+      blkCtl('c');
       Serial.print("\nudpPacketovf =");Serial.print(cliav);Serial.print(' ');
       while (cliav>0){
         //while (cliav>0){
@@ -353,9 +353,7 @@ int getHData(char* data,uint16_t* len)
   if(etatImport==0){messLength=0;data[0]='\0';}
 
   if(cliav==0){                 // on suppose que les packets arrivent complets ; si il y a un morceau de paquet, il sera traité en erreur
-    //blkCtl('f');
     get_Udp();                  // get_Udp() charge un éventuel packet et met cliav à jour
-    //blkCtl('F');
     if(diags && cliav!=0){Serial.print("eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
   }
 
@@ -430,7 +428,8 @@ int getHData(char* data,uint16_t* len)
 
 int exportData(uint8_t numT,char* modelName,char* mailData)             // formatting periBuf data in bufServer 
 {                                                                       // sending bufServer to server 
-  Serial.print("  <<< export ");
+  if(*mailData=='\0'){Serial.print("  <<< export ");}
+  else Serial.print("  <<< mail   ");
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
   strcpy(bufServer,"GET /cx?\0");
@@ -535,6 +534,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     //if(diags){
     Serial.print(millis());
     Serial.print(" pM=");Serial.print(periMess);
+    if(*mailData!='\0'){Serial.println();}
     //Serial.print(" buildmess=");Serial.print(t3_0-t3);
     //Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
     //Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);delay(1);
@@ -575,10 +575,11 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   int  dataLen=LBUFSERVER;
   
   t1=micros();
-  periMess=getHData(indata,(uint16_t*)&dataLen);                  // la longueur du message est messLength-suffixLength (si periMess=MESSOK)                                                                // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
+  periMess=getHData(indata,(uint16_t*)&dataLen);                  // la longueur du message est messLength-suffixLength (si periMess=MESSOK)                                                                
+                                                                  // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
 
   blkCtl('e');
-
+  
   if(periMess==MESSOK){
 
         t2_0=micros();
@@ -611,14 +612,23 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           }
         }                                                  
         t2_1=micros();
-        
-          Serial.print("  >>> getHD ");
-          if(!diags){Serial.print(indata);}
-          Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);
-          Serial.print(" import=");
-          t2_2=micros()-t1;Serial.print(t2_2);
-          if(diags){Serial.print(' ');}
-          else Serial.println();
+
+        if(diags){ 
+          if(prevEtatImport!=etatImport){
+            prevEtatImport=etatImport;
+            Serial.print(millis());
+      //Serial.print(" hDataCnt");Serial.print(hDataCnt);
+            Serial.print(" eI:");Serial.print(etatImport);
+            Serial.print(" av:");Serial.print(cliav);
+            Serial.print(" pt:");Serial.print(clipt);
+            Serial.print(" pM:");Serial.println(periMess);}
+        }
+
+        Serial.print("  >>> getHD ");
+        if(!diags){Serial.print(indata);}
+        Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);
+        Serial.print(" import=");
+        t2_2=micros()-t1;Serial.println(t2_2);
           
                     //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
                     //Serial.print("/");Serial.print(messLength);
@@ -634,16 +644,6 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         //}
   }
 
-  if(diags){ 
-    if(prevEtatImport!=etatImport){
-      prevEtatImport=etatImport;
-      Serial.print(millis());
-      //Serial.print(" hDataCnt");Serial.print(hDataCnt);
-      Serial.print(" eI:");Serial.print(etatImport);
-      Serial.print(" av:");Serial.print(cliav);
-      Serial.print(" pt:");Serial.print(clipt);
-      Serial.print(" pM:");Serial.println(periMess);}
-  }
   return periMess;
 }
 
