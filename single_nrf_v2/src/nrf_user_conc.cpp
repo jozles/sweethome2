@@ -85,6 +85,7 @@ unsigned int  rxPort;     // port      from received message
 uint32_t   cliav=0;       // len reçue dans le dernier paquet
 uint32_t   clipt=0;       // prochain car à sortir du dernier paquet;
 char  udpData[LBUFSERVER+1];
+uint32_t   getUdp_cnt=0;
 
 #define INTROLENGTH1 6  // <body>
 #define INTROLENGTH2 15 // nom_fonct_=llll
@@ -286,37 +287,35 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
 #if TXRX_MODE == 'U'
 
 int get_Udp()
-{
-  blkCtl('@');
+{ 
+  getUdp_cnt++;
+  clipt=0;
   cliav=Udp.parsePacket();
-  blkCtl('a');
+  blkCtl('@');
   if(cliav>0){
-    clipt=0;
+    blkCtl('a');
     rxIpAddr = (uint32_t) Udp.remoteIP();
     rxPort = (unsigned int) Udp.remotePort();
     if(cliav<LBUFSERVER-1){
-      blkCtl('b');
       Udp.read(udpData,cliav);udpData[cliav]='\0';}
     else {
-      blkCtl('c');
-      Serial.print("\nudpPacketovf =");Serial.print(cliav);Serial.print(' ');
+      blkCtl('b');
+      Serial.print("\nudpPacketovf=");Serial.print(cliav);Serial.print(' ');Serial.print(getUdp_cnt);Serial.print(' ');
       while (cliav>0){
-        //while (cliav>0){
           if(cliav>LBUFSERVER-1){
             Udp.read(udpData,LBUFSERVER-1);
-            //cliav-=(LBUFSERVER-1);
+            udpData[LBUFSERVER-1]='\0';
+            cliav-=(LBUFSERVER-1);
           }
           else {
             Udp.read(udpData,cliav);cliav=0;
+            udpData[cliav]='\0';
           }
-    
-          udpData[LBUFSERVER-1]='\0';Serial.print(udpData);
-        //}
-        Serial.println();
-        cliav=Udp.parsePacket();  
+          Serial.println(udpData);
       }
     }
     t1_01=micros();
+    blkCtl('c');
   }
   return cliav;
 }
@@ -354,7 +353,10 @@ int getHData(char* data,uint16_t* len)
 
   if(cliav==0){                 // on suppose que les packets arrivent complets ; si il y a un morceau de paquet, il sera traité en erreur
     get_Udp();                  // get_Udp() charge un éventuel packet et met cliav à jour
-    if(diags && cliav!=0){Serial.print("eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);}
+
+    if(diags && cliav!=0){
+      Serial.print("*eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);
+      delay(1);}
   }
 
   /*
@@ -387,6 +389,7 @@ int getHData(char* data,uint16_t* len)
               if(k>=introLength1){etatImport++;}}                                     // si l'intro est ok -> suite (cliav=len data available, clipt=len1)
             ELSECLIZER                                                                // UDP : cliav trop petit -> attente du prochain paquet
             t1_1=micros()-t1;
+            blkCtl('d');
             break;
     case 1: if(CLIAV>=introLength2){                                                  // longueur minimum nécessaire à ce stade
               k1=introLength2;k2=0;CLIST;                                             // load fonction+len
@@ -426,9 +429,106 @@ int getHData(char* data,uint16_t* len)
   return MESSLEN;
 }
 
+
+int  importData(uint32_t* tLast) // reçoit un message du serveur
+                                 // update tLast
+                                 // retour MESSOK   ok  
+                                 //        MESSCX   pas connecté
+                                 //        MESSLEN  vide
+                                 //        MESSNUMP numPeri invalide
+                                 //        MESSMAC  macaddr pas trouvée dans tableC
+
+                                        // transfert contenu de set ou ack dans variables locales selon contrôles
+                                        // déclenché par rxServ qui indique que bufServer est valide
+                                        //    contrôle mac addr et numPeriph ;
+                                        //    si ok -> tfr params
+                                        // retour periMess
+{
+  int  numT=-99,nP,numPeri;
+  char fromServerMac[6];
+  int  periMess;
+
+  int  dataLen=LBUFSERVER;
+  
+  t1=micros();
+  periMess=getHData(indata,(uint16_t*)&dataLen);                  // la longueur du message est messLength-suffixLength (si periMess=MESSOK)                                                                
+                                                                  // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
+
+  
+
+        if(diags){ 
+          if(prevEtatImport!=etatImport){
+            prevEtatImport=etatImport;
+            Serial.print(millis());
+            Serial.print(" gu:");Serial.print(getUdp_cnt);
+      //Serial.print(" hDataCnt");Serial.print(hDataCnt);
+            Serial.print(" eI:");Serial.print(etatImport);
+            Serial.print(" av:");Serial.print(cliav);
+            Serial.print(" pt:");Serial.print(clipt);
+            Serial.print(" pM:");Serial.println(periMess);
+          }
+        }
+
+  if(periMess==MESSOK){
+
+        t2_0=micros();
+        lastUdpCall=millis();
+
+        packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
+        nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // nP = numPeri from set message (nb in server table)
+        numT=radio.macSearch(fromServerMac,&numPeri);             // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 
+                                                                  // numPeri should be == nP (if !=0 && mac found)
+        conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
+        t2=micros();
+        
+        if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
+        else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}    // if numPeri doesnt match message -> error
+        else {
+          if(memcmp(tableC[numT].periBuf+NRF_ADDR_LENGTH+1,"1.c",3)>0){         // version périf > 1.c
+            radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,5);                 // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+            radio.extDataStore(nP,numT,5,indata+MPOSPERREFR+6,5);               // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+            radio.extDataStore(nP,numT,10,indata+MPOSPERREFR+12,4);             // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+            radio.extDataStore(nP,numT,14,indata+MPOSANALH,8);                  // min/max analogique '_hhhhhhhh'
+            radio.extDataStore(nP,numT,22,indata+messLength-5,2);               // periAnalOut consigne analogique 0-FF
+            radio.extDataStore(nP,numT,24,indata+messLength-2,2);               // periCfg '_hh' 
+          }
+          else {                                                                // version périf <= 1.c
+            radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16);                // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+            radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9);                // min/max analogique '_hhhhhhhh'
+          }
+          if(numT==1){                                                          // entrée 1 de tableC pour concentrateur
+            uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
+          }
+        }                                                  
+        t2_1=micros();
+
+        Serial.print("  >>> getHD ");
+        if(!diags){Serial.print(indata);}
+        Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);
+        Serial.print(" import=");
+        t2_2=micros()-t1;Serial.println(t2_2);
+          
+                    //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
+                    //Serial.print("/");Serial.print(messLength);
+                    //Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
+                    //Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
+          
+          //Serial.print(" last getHData =");Serial.print(t2_0-t1);
+          //Serial.print("    data mngt =");Serial.print(t2_1-t2_0);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
+                    //Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
+                    //Serial.print(" perConc=");Serial.println(perConc);
+          //:::::::::::Serial.print(" print diags=");Serial.println(micros()-t2_1);
+        
+        //}
+  }
+
+  return periMess;
+}
+
+
 int exportData(uint8_t numT,char* modelName,char* mailData)             // formatting periBuf data in bufServer 
 {                                                                       // sending bufServer to server 
-  if(*mailData=='\0'){Serial.print("  <<< export ");}
+  if(mailData==nullptr){Serial.print("  <<< export ");}
   else Serial.print("  <<< mail   ");
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
@@ -534,7 +634,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     //if(diags){
     Serial.print(millis());
     Serial.print(" pM=");Serial.print(periMess);
-    if(*mailData!='\0'){Serial.println();}
+    if(mailData!=nullptr){Serial.println();}
     //Serial.print(" buildmess=");Serial.print(t3_0-t3);
     //Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
     //Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);delay(1);
@@ -552,99 +652,6 @@ void exportData(uint8_t numT)
 int exportData(uint8_t numT,char* modelName)
 {
   return exportData(numT,modelName,nullptr);
-}
-
-int  importData(uint32_t* tLast) // reçoit un message du serveur
-                                 // update tLast
-                                 // retour MESSOK   ok  
-                                 //        MESSCX   pas connecté
-                                 //        MESSLEN  vide
-                                 //        MESSNUMP numPeri invalide
-                                 //        MESSMAC  macaddr pas trouvée dans tableC
-
-                                        // transfert contenu de set ou ack dans variables locales selon contrôles
-                                        // déclenché par rxServ qui indique que bufServer est valide
-                                        //    contrôle mac addr et numPeriph ;
-                                        //    si ok -> tfr params
-                                        // retour periMess
-{
-  int  numT=-99,nP,numPeri;
-  char fromServerMac[6];
-  int  periMess;
-
-  int  dataLen=LBUFSERVER;
-  
-  t1=micros();
-  periMess=getHData(indata,(uint16_t*)&dataLen);                  // la longueur du message est messLength-suffixLength (si periMess=MESSOK)                                                                
-                                                                  // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
-
-  blkCtl('e');
-  
-  if(periMess==MESSOK){
-
-        t2_0=micros();
-        lastUdpCall=millis();
-
-        packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
-        nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // nP = numPeri from set message (nb in server table)
-        numT=radio.macSearch(fromServerMac,&numPeri);             // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 
-                                                                  // numPeri should be == nP (if !=0 && mac found)
-        conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
-        t2=micros();
-        
-        if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
-        else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}    // if numPeri doesnt match message -> error
-        else {
-          if(memcmp(tableC[numT].periBuf+NRF_ADDR_LENGTH+1,"1.c",3)>0){         // version périf > 1.c
-            radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,5);                 // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            radio.extDataStore(nP,numT,5,indata+MPOSPERREFR+6,5);               // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            radio.extDataStore(nP,numT,10,indata+MPOSPERREFR+12,4);             // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            radio.extDataStore(nP,numT,14,indata+MPOSANALH,8);                  // min/max analogique '_hhhhhhhh'
-            radio.extDataStore(nP,numT,22,indata+messLength-5,2);               // periAnalOut consigne analogique 0-FF
-            radio.extDataStore(nP,numT,24,indata+messLength-2,2);               // periCfg '_hh' 
-          }
-          else {                                                                // version périf <= 1.c
-            radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16);                // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9);                // min/max analogique '_hhhhhhhh'
-          }
-          if(numT==1){                                                          // entrée 1 de tableC pour concentrateur
-            uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
-          }
-        }                                                  
-        t2_1=micros();
-
-        if(diags){ 
-          if(prevEtatImport!=etatImport){
-            prevEtatImport=etatImport;
-            Serial.print(millis());
-      //Serial.print(" hDataCnt");Serial.print(hDataCnt);
-            Serial.print(" eI:");Serial.print(etatImport);
-            Serial.print(" av:");Serial.print(cliav);
-            Serial.print(" pt:");Serial.print(clipt);
-            Serial.print(" pM:");Serial.println(periMess);}
-        }
-
-        Serial.print("  >>> getHD ");
-        if(!diags){Serial.print(indata);}
-        Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);
-        Serial.print(" import=");
-        t2_2=micros()-t1;Serial.println(t2_2);
-          
-                    //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
-                    //Serial.print("/");Serial.print(messLength);
-                    //Serial.print(" noCX=");Serial.print(t1_0);Serial.print(" intro=");Serial.print(t1_1);Serial.print(" len=");Serial.print(t1_2);
-                    //Serial.print(" suffix=");Serial.print(t1_03);Serial.print(" s+chk=");Serial.print(t1_3);
-          
-          //Serial.print(" last getHData =");Serial.print(t2_0-t1);
-          //Serial.print("    data mngt =");Serial.print(t2_1-t2_0);Serial.print(" (extDataStore=");Serial.print(t2_1-t2);Serial.print(")");
-                    //Serial.print(" fromServerMac"); Serial.print(" :");for(int x=0;x<5;x++){Serial.print(fromServerMac[x]);}
-                    //Serial.print(" perConc=");Serial.println(perConc);
-          //:::::::::::Serial.print(" print diags=");Serial.println(micros()-t2_1);
-        
-        //}
-  }
-
-  return periMess;
 }
 
 void exportDataMail(const char* messName)
@@ -672,7 +679,9 @@ void exportDataMail(const char* messName)
     }
   }
   exportData(testPeri,concName,concData);  // test présence serveur avec périf virtuel des broadcast
+  if(concData==nullptr){Serial.print(' ');Serial.println(testPeri);}
 }
+
 
 #endif // DETS
 #endif //  NRF_MODE == 'C'

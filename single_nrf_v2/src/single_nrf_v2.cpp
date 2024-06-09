@@ -636,8 +636,6 @@ void loop() {
 
   time_beg=micros();  
 
-blkCtl('d');
-
   //if(rdSta!=AV_EMPTY){lastRead=millis();}
 
   if((rdSta<0 && rdSta!=AV_EMPTY) || rdSta>=0){                    
@@ -671,7 +669,7 @@ blkCtl('d');
         txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                        // end of transaction so auto ACK
       }                                                                   // rdSta=0 so ... end of loop
   }
-blkCtl('f');
+
   // numT=0 si pipe==2 sinon pipe==1 : registration
   // ====== no error && valid entry (rdSta=n° de perif fourni par le perif ou à l'issue de cRegister) ======         
   
@@ -724,6 +722,7 @@ blkCtl('f');
   int dt=MESSCX;
 
     dt=importData(&tLast);importCnt++;
+    blkCtl('f');
 
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
     if(dt!=MESSLEN && dt!=MESSOK){Serial.print(" importData failure:");Serial.println(dt);}    // MESSLEN until well completed
@@ -738,7 +737,7 @@ blkCtl('f');
   //if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
     
     if((millis()-concTime)>=perConc){
-      
+      if(perConc<600000){Serial.println("perConc");while(1){};}
       concTime=millis();exportDataMail(nullptr);
      
       /*
