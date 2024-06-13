@@ -613,7 +613,7 @@ void loop() {
 
 #if NRF_MODE == 'C'
 
-  blkCtl('g');
+  //blkCtl('g');
 
   if(menu){
     Serial.print("     ");
@@ -673,6 +673,8 @@ void loop() {
   // numT=0 si pipe==2 sinon pipe==1 : registration
   // ====== no error && valid entry (rdSta=n° de perif fourni par le perif ou à l'issue de cRegister) ======         
   
+
+
   if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,NRF_ADDR_LENGTH)==0)){    // verif de l'adresse mac
                                                       // rdSta is table entry nb
       if(numT==0 && (echoNb!=rdSta || !echoOn)){      // numT=0 means : that is not a registration, and message is not an echo answer 
@@ -712,7 +714,7 @@ void loop() {
       Serial.print(" rx+tx");if(numT==0){Serial.print("+export");}
       Serial.print(" (");
       Serial.print(rdSta);Serial.print(")=");Serial.println(micros()-time_beg);}  // pas d'erreur, un cycle complet a été effectué
-    else if(rdSta!=AV_EMPTY){Serial.print(" nrf com err ");Serial.print(rdSta);Serial.print('=');Serial.println(micros()-time_beg);}
+    else if(rdSta!=AV_EMPTY){Serial.print(" radio err ");Serial.print(rdSta);Serial.print('=');Serial.println(micros()-time_beg);}
   //}
 
   // ====== RX from server ? ====  
@@ -721,8 +723,9 @@ void loop() {
 
   int dt=MESSCX;
 
+    blkCtl('g');
     dt=importData(&tLast);importCnt++;
-    blkCtl('f');
+    
 
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
     if(dt!=MESSLEN && dt!=MESSOK){Serial.print(" importData failure:");Serial.println(dt);}    // MESSLEN until well completed
@@ -739,7 +742,7 @@ void loop() {
     if((millis()-concTime)>=perConc){
       if(perConc<600000){Serial.println("perConc");while(1){};}
       concTime=millis();exportDataMail(nullptr);
-     
+blkCtl('e');     
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
       Serial.print(" etatImport0:");Serial.print(etatImport0);etatImport0=0;Serial.print(" ");

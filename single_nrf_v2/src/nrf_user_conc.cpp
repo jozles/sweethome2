@@ -15,7 +15,8 @@ extern Nrfp radio;
 /* user includes */
 
 #include <SPI.h>
-#include <Ethernet.h> 
+#include <Ethernet.h>
+#include <EthernetUdp.h> 
 #include <shconst2.h>
 #include <shutil2.h>
 #include <shmess2.h>
@@ -86,6 +87,7 @@ uint32_t   cliav=0;       // len reçue dans le dernier paquet
 uint32_t   clipt=0;       // prochain car à sortir du dernier paquet;
 char  udpData[LBUFSERVER+1];
 uint32_t   getUdp_cnt=0;
+uint32_t   uRScnt=0;
 
 #define INTROLENGTH1 6  // <body>
 #define INTROLENGTH2 15 // nom_fonct_=llll
@@ -191,6 +193,7 @@ void blkCtl(uint8_t where)
 
 void userResetSetup(byte* serverIp)
 {
+  uRScnt++;
   nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;  
   fset_______=(strstr(fonctions,"set_______")-fonctions)/LENNOM;
   fack_______=(strstr(fonctions,"ack_______")-fonctions)/LENNOM;
@@ -203,16 +206,28 @@ void userResetSetup(byte* serverIp)
   ftestb_on__=(strstr(fonctions,"testb_on__")-fonctions)/LENNOM;
      
   unsigned long t_beg=millis();
+
+  /* params conc1 
+  memcpy(concMac,"\xDE\xAD\xBE\xEF\xFE\xED",6);
+  concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=31;
+  *concPort=8887;
+  */
+ *concPort=8888;
  
-  Serial.print(" Ethernet begin mac=");serialPrintMac(concMac,0);
+  Serial.print(" Ethernet begin mac/Ip=");serialPrintMac(concMac,0);Serial.print('/');
+  for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.println((IPAddress)localIp);
   trigwd(0);
   
-  if(Ethernet.begin(concMac) == 0){
+  
+  Ethernet.begin (concMac,localIp);
+  /*
+  if(Ethernet.begin (concMac) == 0){
     Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(concIp);Serial.println();
     for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.print((IPAddress)localIp);Serial.println();
     trigwd(0);
     Ethernet.begin (concMac, localIp); 
   }
+  */
   
   trigwd(0);
   Serial.print(" localIP=");
@@ -246,7 +261,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
   t3_01=micros();
   Udp.write(data,strlen(data));
   Udp.endPacket();
-  return 1;
+  return MESSOK;
 #endif //  TXRX_MODE == 'U'
 
 #if TXRX_MODE == 'T'  
@@ -275,11 +290,11 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
     if(cxStatus){
       cli->write(data);
       //cli->print("\r\n HTTP/1.1\r\n Connection:close\r\n\r\n");
-      return 1;
+      return MESSOK;
     }
     delay(CXDLY);
   }
-  return 0;
+  return MESSTO;
  
 #endif //  TXRX_MODE == 'T'
 }       // messToServer
@@ -300,7 +315,10 @@ int get_Udp()
       Udp.read(udpData,cliav);udpData[cliav]='\0';}
     else {
       blkCtl('b');
-      Serial.print("\nudpPacketovf=");Serial.print(cliav);Serial.print(' ');Serial.print(getUdp_cnt);Serial.print(' ');
+      Serial.print("\nudpPacketovf=");Serial.print(cliav);Serial.print(' ');Serial.print(getUdp_cnt);Serial.print(" uRScnt=");Serial.print(uRScnt);Serial.print(' ');
+      Serial.println(" Udp ko... restart");userResetSetup(serverIp);
+      //if(!Udp.begin(*concPort)){Serial.println(" Udp ko");while(1){trigwd(1000);}}
+      /*
       while (cliav>0){
           if(cliav>LBUFSERVER-1){
             Udp.read(udpData,LBUFSERVER-1);
@@ -313,6 +331,7 @@ int get_Udp()
           }
           Serial.println(udpData);
       }
+      */
     }
     t1_01=micros();
     blkCtl('c');
@@ -615,7 +634,6 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     if(mailData!=nullptr){memcpy(fonctName,"data_mail_",LENNOM);}
     buildMess(fonctName,message,"");                                    // build message for server
 
-    //////////////////Serial.println(bufServer);
     t3_0=micros();                                                      // fin buildMess
 
 /* send to server */
@@ -623,11 +641,12 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     int periMess=-1;
     int cnt=0;
     #define MAXRST 2      // nombre de redémarrages ethernet si pas de connexion
-    
+blkCtl('f');    
+if(diags){Serial.print(bufServer);Serial.print(' ');}
     while(cnt<MAXRST){
       periMess=mess2Server(&cli,host,hostPort,bufServer);                          // send message to server
       
-      if(periMess!=-7){cnt=MAXRST;t3_02=micros();}
+      if(periMess!=MESSCX){cnt=MAXRST;t3_02=micros();}
       else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup(serverIp);t3_2=micros();}}       // si connecté fin sinon redémarrer ethernet
     }
 
