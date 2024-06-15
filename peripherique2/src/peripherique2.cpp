@@ -173,6 +173,8 @@ char* cstRecA=(char*)&cstRec.cstlen;
 
   uint8_t cntMTS=0;  // compteur pour blocage de l'IP de frontal... outil de debug
 
+  uint8_t messageCnt=0;
+
    /* prototypes */
 
 bool wifiAssign();
@@ -753,6 +755,13 @@ int buildData(const char* nomfonction,const char* data)               // assembl
 
       strcpy(message+sb+LENMODEL,"_\0");                                                      //      - 7
       sb+=LENMODEL+1;
+
+      messageCnt++;
+      if(messageCnt>99){messageCnt=0;}
+      sprintf(message+sb,"%02d",messageCnt);                 // N° ordre du message (00-99)
+      memcpy(message+sb+2,"_\0",2);
+      sb+=3;
+
       bool noZero=false;            // si aucun compteur n'est utilisé ET qu'ils sont tous à 0, pas de transmission
       for(i=0;i<NBPULSE;i++){
         if(cntPulseOne[i]!=0 || cntPulseTwo[i]!=0){ //noZero=true;break;}
