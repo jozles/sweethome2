@@ -65,11 +65,6 @@
 
 /***** config *****/
 
-#if NRF_MODE == 'C'
-extern struct ConTable tableC[NBPERIF+1];
-#endif // NRF_MODE == 'C'
-
-
 Nrfp::Nrfp()    // constructeur
 {
 }
