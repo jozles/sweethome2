@@ -81,12 +81,14 @@
 #define NRF_MAX_PAYLOAD_LENGTH 32
 #define NRF_ADDR_LENGTH 5
 
+/*
 #define CHANNEL0    120         // def radio channel
 #define CHANNEL1    110        
 #define CHANNEL2    100        
 #define CHANNEL3    90         
 
 #define CC_SPEED    0           // RF_SPEED_1Mb (voir nrf24l01s.h)
+*/
 
 #define TO_AVAILABLE 20   // millis()
 #define TO_REGISTER  20   // millis()

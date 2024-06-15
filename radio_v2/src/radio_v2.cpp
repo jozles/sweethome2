@@ -120,7 +120,7 @@ extern byte*  configVers;
   extern uint8_t*  concNb;
 
 extern uint16_t hostPort;             // server Port (TCP/UDP selon TXRX_MODE)
-extern struct ConTable tableC[NBPERIF+1];    // teble périf
+extern struct ConTable tableC[];      // teble périf
 bool menu=true;
 
 char    bufServer[BUF_SERVER_LENGTH]; // to/from server buffer
@@ -435,13 +435,11 @@ blkCtl('b');
 
   WDTRIG //trigwd(0);
 
-  radioInit();
+  radioInit();                          // inclu : tableCInit()
 
 #ifdef DUE
   Serial.print("free=");Serial.print(freeMemory(), DEC);Serial.println(" ");
 #endif //  
-
-  blkCtl('d');
 
   time_beg=millis();
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
@@ -450,12 +448,13 @@ blkCtl('b');
   uint8_t cnt=0;
   #define MAXCNT 5  
   while(noResponseTo && cnt<MAXCNT){
-    cnt++;
-    exportDataMail("START");
+    cnt++;    
+blkCtl('d');    
+    exportDataMail("START");delay(10);    
     #define RWTO 5000
     unsigned long responseWait=millis();
     while((millis()-responseWait)<RWTO){
-      WDTRIG //trigwd(0);
+      WDTRIG //trigwd(0);      
       if(importData(&tLast)==MESSOK){noResponseTo=false;responseWait=millis()-RWTO-1;}
     }
   }

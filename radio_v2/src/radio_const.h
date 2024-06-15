@@ -1,7 +1,7 @@
 #ifndef _RADIO_CONST_INCLUDED
 #define _RADIO_CONST_INCLUDED
 
-#define VERSION "1.d "
+#define VERSION "2.9 "
 #define LENVERSION 4
 
 #include <Arduino.h>
@@ -65,7 +65,7 @@ v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD ; ajout
       ça peut être un pb hard sur les cartes utilisées (DUE/W5500) les transmissions avec le concentrateur 1 semblent ok
       la spec du nrf dit "max sck freq=10MHz" !!! donc w5500 @16Mhz et nrf @8MHZ 
       (mais W5500 @30Mhz bloque tout ...???)
-v2.0  prépa pour paramétrage du hard (LoRa is comming)
+v2.9  prépa pour paramétrage du hard (LoRa is comming) ; ajout messageCnt ;
 */
 
 /************* config ****************/
@@ -89,7 +89,9 @@ v2.0  prépa pour paramétrage du hard (LoRa is comming)
   #define BUF_SERVER_LENGTH LBUFSERVER    // to/from server buffer length
 
 #if NRF_MODE == 'C'
-  //#define DUE                   // DUE OU STM32... provient de platformio.ini
+  //#define DUE                   // DUE OU STM32... provient de platformio.ini  
+
+  #define MODEL "REDV2_"
 
   #define WDTRIG trigwd();blktime=millis();
   
@@ -104,7 +106,7 @@ v2.0  prépa pour paramétrage du hard (LoRa is comming)
 
   struct ConTable
   {
-    uint8_t numPeri;                  // numéro périphérique dans la table du serveur
+    uint8_t numPeri;                        // numéro périphérique dans la table du serveur
     byte    periMac[RADIO_ADDR_LENGTH+2];   // macAddr (ajout 1 car=num entrée de la table pour former une addr mac pour l'extérieur)
     char    servBuf[MAX_PAYLOAD_LENGTH+1];
     uint8_t servBufLength;

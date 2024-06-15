@@ -153,6 +153,8 @@ char c;         // pour macros TCP/UDP
   unsigned long t3_1=0;   // 
   unsigned long t3_2=0;   //  
 
+  uint8_t messageCnt=0;
+
 /* réception/decodage messages serveur */
 
   uint32_t  hDataCnt=0;
@@ -426,8 +428,8 @@ int getHData(char* data,uint16_t* len)
             t1_1=micros()-t1;
             blkCtl('c');
             }break;
-    case 1: if(CLIAV>=introLength2){                                                  // get message length
-              k1=introLength2;k2=0;CLIST;                                             // load fonction+len
+    case 1: if(CLIAV>=introLength2){                                                  // get message length 
+              k1=introLength2;k2=0;CLIST;                                             // load fonction+len (15 car)
               for(k=4;k>0;k--){
                 messLength*=10;messLength+=data[introLength2-k]-'0';}                 // conv len message atob
               messLength+=suffixLength;etatImport++;                                  // ajout len suffixe -> suite 
@@ -514,17 +516,19 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         lastUdpCall=millis();
 
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
-        int dataNp=2;
-        nP=convStrToNum(indata+MPOSNUMPER,&dataNp);               // nP = numPeri from ack/set message (nb in server table)
-        numT=macSearch(fromServerMac,&nP);                        // numT mac reg nb in conc table
+        int dataNpLen=0;
+        nP=convStrToNum(indata+MPOSNUMPER,&dataNpLen);            // nP = numPeri from ack/set message (nb in server table)
+        int nPfromTableC=0;
+        numT=macSearch(fromServerMac,&nPfromTableC);              // numT mac reg nb in conc table
                                                                   // tableC[numT].numPeri should be == nP (if !=0 && mac found)
-        Serial.print("nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);                                                                  
+        //Serial.print(" nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);                                                                  
         conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
         t2=micros();
         
         if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
-        else if(numT!=0 && tableC[numT].numPeri!=nP){periMess=MESSNUMP;}        // iftableC[numT].numPeri doesnt match message -> error
+        else if(numT!=0 && nPfromTableC!=0 && nPfromTableC!=nP){periMess=MESSNUMP;}  // iftableC[numT].numPeri doesnt match message -> error
         else {
+          if(nPfromTableC==0){tableC[numT].numPeri=nP;}
           if(memcmp(tableC[numT].periBuf+NRF_ADDR_LENGTH+1,"1.c",3)>0){         // version périf > 1.c
             extDataStore(nP,numT,0,indata+MPOSPERREFR,5);                 // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
             extDataStore(nP,numT,5,indata+MPOSPERREFR+6,5);               // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
@@ -567,12 +571,13 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
 }
 
 
-int exportData(uint8_t numT,char* modelName,char* mailData)             // formatting periBuf data in bufServer 
+int exportData(uint8_t numT,char* mailData)                             // formatting periBuf data in bufServer 
 {                                                                       // sending bufServer to server 
   if(mailData==nullptr){Serial.print("  <<< export ");}
   else Serial.print("  <<< mail   ");
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
+
   strcpy(bufServer,"GET /cx?\0");
   if(buildMess("peri_pass_",peripass,"?")<=0){
     Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(peripass);return MESSDEC;};
@@ -608,7 +613,8 @@ int exportData(uint8_t numT,char* modelName,char* mailData)             // forma
       sb+=4;
       memcpy(message+sb,"_\0",2);                             
       sb+=1;
-      memcpy(message+sb,perVersAd,LENVERSION);                      // VERSION
+     // memcpy(message+sb,perVersAd,LENVERSION);                      // VERSION
+      memcpy(message+sb,"2.9 ",LENVERSION);                      // VERSION provisoire pour tests et debug
       sb+=LENVERSION;
       memcpy(message+sb-1,perThModAd,1);                            // thermo model take place of 4th version char
       memcpy(message+sb,"_\0",2);                             
@@ -633,21 +639,15 @@ int exportData(uint8_t numT,char* modelName,char* mailData)             // forma
       memcpy(message+sb+NBPULSE,"_\0",2);                               // clock pulse status          - 5
       sb+=NBPULSE+1; 
 
-char model[LENMODEL+1];
-
-  model[0]='D'; //CARTE;
-  model[1]='D'; //POWER_MODE;
-  model[2]='_'; //CONSTANT;
-  model[3]='1';
-  model[4]=(char)(NBSW+48);
-  model[5]=(char)(NBDET+48);
-  model[LENMODEL]='\0'; 
-
-char* mm=model;if(modelName!=nullptr){mm=modelName;}
-
-      memcpy(message+sb,mm,LENMODEL);
+      memcpy(message+sb,MODEL,LENMODEL-1);*(message+sb+LENMODEL-1)=*concNb+48;
       memcpy(message+sb+LENMODEL,"_\0",2);
       sb+=LENMODEL+1;
+
+      messageCnt++;
+      if(messageCnt>99){messageCnt=0;}
+      sprintf(message+sb,"%02d",messageCnt);                 // N° ordre du message (00-99)
+      memcpy(message+sb+2,"_\0",2);
+      sb+=3;
 
 if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}
 
@@ -662,9 +662,12 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     
     int periMess=-1;
     int cnt=0;
-    #define MAXRST 2      // nombre de redémarrages ethernet si pas de connexion
+    
 blkCtl('f');    
-if(diags){Serial.print(bufServer);Serial.print(' ');}
+    if(diags){Serial.print(bufServer);Serial.print(' ');}
+    else{Serial.print(tableC[numT].numPeri);Serial.print(' ');Serial.print(numT);Serial.print(' ');}
+    
+    #define MAXRST 2      // nombre de redémarrages ethernet si pas de connexion
     while(cnt<MAXRST){
       periMess=mess2Server(&cli,host,hostPort,bufServer);                          // send message to server
       
@@ -688,17 +691,13 @@ if(diags){Serial.print(bufServer);Serial.print(' ');}
 
 void exportData(uint8_t numT)
 {
-  exportData(numT,nullptr,nullptr);
-}
-
-int exportData(uint8_t numT,char* modelName)
-{
-  return exportData(numT,modelName,nullptr);
+  exportData(numT,nullptr);
 }
 
 void exportDataMail(const char* messName)
 {
-  char concName[LENMODEL+1]={'C','O','N','C','_','\0','\0'};concName[LENMODEL-1]=*concNb+48;
+  char concName[LENMODEL+1]={'C','O','N','C','_','\0','\0'};
+  concName[LENMODEL-1]=*concNb+48;
   uint8_t testPeri=1;
   tableC[testPeri].periBufLength=MAX_PAYLOAD_LENGTH;
   memset(tableC[testPeri].periBuf,' ',MAX_PAYLOAD_LENGTH-1);
@@ -720,7 +719,7 @@ void exportDataMail(const char* messName)
       a=*(++v);
     }
   }
-  exportData(testPeri,concName,concData);  // test présence serveur avec périf virtuel des broadcast
+  exportData(testPeri,concData);  // test présence serveur avec périf virtuel des broadcast
   if(concData==nullptr){Serial.print(' ');Serial.println(testPeri);}
 }
 

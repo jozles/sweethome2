@@ -7,14 +7,14 @@
 #if NRF_MODE =='C'
 
 extern Nrfp radio;
-extern ConTable tableC[NBPERIF];
-
+extern ConTable tableC[];
 
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper)
 {
   int sta=radio.read(messageIn,pipe,pldLength,nbper);
+  if(sta>=0){}
 
-      if(sta>0){
+      if(sta>=0){
         sta=messageIn[NRF_ADDR_LENGTH]-'0';                       // sender numP
         if(sta!=0 && memcmp(messageIn,tableC[sta].periMac,NRF_ADDR_LENGTH)!=0){  // macAddr ko ?
             sta=AV_MCADD;radio.rxError();}                              // if numP==0 registration to do
