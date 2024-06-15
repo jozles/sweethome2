@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8m"
+#define NVERS ".8n"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -179,6 +179,7 @@
    1.8m ajout fonction data_mail_ ;  integration mailInit() dans mail() : le périf mail perd la config s'il redémarre
         backup periCur/periLoad dans mail ; intégration inits dans la fonction mail pour 1 seul periReq !
         ni pulses ni rules en UDP (gérer un bit de periCfg si ça devient nécessaire)
+   1.8n ajout periMessCnt
 
 
    BUGS : 

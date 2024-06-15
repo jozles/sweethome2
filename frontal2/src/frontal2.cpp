@@ -321,6 +321,7 @@ void iniDetServ()
   uint8_t*  periDigitRefDet;                // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
   int8_t*   periDigitMemo;                  // ptr ds buffer : 5 x n° mémo dans table mémos
   char*     periSsidNb;                     // ptr ds buffer : n° dernier ssid utilisé
+  uint8_t*  periMessCnt;                    // ptr ds buffer : compteur d'exports du périf (après v2.9)
 
   int8_t    periMess;                       // code diag réception message (voir MESSxxx shconst.h)
   byte      periMacBuf[6]; 
@@ -420,7 +421,7 @@ char histoDh[LDATEA]={'\0'};   // SD dh pour dump
 int   i=0,j=0;
 char  c=' ';
 char  b[2]={0,0};
-const char* chexa="0123456789ABCDEFabcdef\0";
+extern const char* chexa; //="0123456789ABCDEFabcdef\0";
 const byte  maskbit[]={0xfe,0x01,0xfd,0x02,0xfb,0x04,0xf7,0x08,0xef,0x10,0xdf,0x20,0xbf,0x40,0x7f,0x80};
 const byte mask[]={0x00,0x01,0x03,0x07,0x0F};
 

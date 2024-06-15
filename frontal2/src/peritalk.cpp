@@ -74,6 +74,7 @@ extern float*    periAnalFactor;                // ptr ds buffer : factor to flo
 extern float*    periAnalOffset2;               // ptr ds buffer : offset on float value
 extern uint16_t* periAnalOut;                   // ptr ds buffer :
 extern byte*     periSsidNb;                    // ptr ds buffer : 
+extern uint8_t*  periMessCnt;                   // ptr ds buffer : compteur d'exports du périf (après v2.9)
       
 extern byte*     periBegOfRecord;
 extern byte*     periEndOfRecord;
@@ -188,6 +189,9 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
          et le suivant sera à l'adresse message-longueur-3-longueur du champ ajouté ;
          voir exemple dans (single_nrf_v2/sweet_home/nrf_user_conc.cpp-importData() )
       */
+      sprintf((message+v1),"%02d",*periMessCnt);
+      v1+=2;*(message+v1)='_';
+      v1++;
 
       for(int k=0;k<2;k++){conv_htoa(&message[v1+k*2],(byte*)((byte*)periAnalOut+1-k));}   // consigne analog 2 bytes msb first
       memcpy(message+v1+4,"_\0",2);
@@ -481,8 +485,15 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
         if(periCur==perizer){for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}}         // model
       }
       messLen-=(LENMODEL+1);
+      k+=LENMODEL+1;
+      if(messLen>0 && memcmp(periVers,"2.9",3)>=0){
+        *periMessCnt=convStrToInt(k,&i);                      // compteur d'export des périphériques
+        Serial.print(*periVers);Serial.print(' ');Serial.println(*periMessCnt);
+        messLen-=(i+1);       
+        k+=(i+1);
+      }
+
       if(messLen>(int)(NBPULSE*sizeof(uint32_t)*2)){
-        k+=LENMODEL+1;
         for(uint16_t i=0;i<2*NBPULSE*sizeof(uint32_t);i++){conv_atoh(k+2*i,(byte*)periSwPulseCurrOne+i);}   // valeur courante pulses
         //if(*periSwPulseCurrOne>*periSwPulseOne){dumpstr((char*)periSwPulseCurrOne,16);}
         //if(*periSwPulseCurrTwo>*periSwPulseTwo){dumpstr((char*)periSwPulseCurrTwo,16);}

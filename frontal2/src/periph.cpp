@@ -143,8 +143,9 @@ extern uint8_t*   periDigitCb;                  // ptr ds buffer : 5 x 4 bits po
 extern uint8_t*   periDigitDestDet;             // ptr ds buffer : 5 x n° détect serveur
 extern uint8_t*   periDigitRefDet;              // ptr ds buffer : 4 x n° détect serveur pour op logique (0xff si rien)
 extern int8_t*    periDigitMemo;                // ptr ds buffer : 5 x n° mémo dans table mémos
-extern byte*      periSsidNb;                     // ptr ds buffer : n° dernier ssid utilisé
-      
+extern byte*      periSsidNb;                   // ptr ds buffer : n° dernier ssid utilisé
+extern uint8_t*   periMessCnt;                  // ptr ds buffer : compteur d'exports du périf (après v2.9)
+
 extern byte*      periBegOfRecord;
 extern byte*      periEndOfRecord;
 
@@ -1273,7 +1274,9 @@ void periInit()                 // pointeurs de l'enregistrement de table couran
   temp +=sizeof(uint16_t);
   periUdpPortNb=(uint8_t*)temp;
   temp +=sizeof(uint8_t);
-  temp +=39;                        // dispo
+  periMessCnt=(uint8_t*)temp;
+  temp +=sizeof(uint8_t);
+  temp +=38;                        // dispo
   periEndOfRecord=(byte*)temp;      // doit être le dernier !!!
   temp ++;
 
