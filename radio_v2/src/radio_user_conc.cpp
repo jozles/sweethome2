@@ -1,15 +1,17 @@
 #include <Arduino.h>
-#include "nrf24l01s_const.h"
-#include "nrf_user_conc.h"
+#include "radio_const.h"
+#include "radio_util.h"
+#include "radio_user_conc.h"
 #include "nrf24l01s.h"
-#include "nrf_powerSleep.h"
+#include "radio_powerSleep.h"
 
 /* gestion user data du concentrateur */
 
 #if NRF_MODE == 'C'
 #ifndef DETS
 
-extern struct NrfConTable tableC[NBPERIF+1];
+struct ConTable tableC[NBPERIF+1];
+
 extern Nrfp radio;
 
 /* user includes */
@@ -22,6 +24,7 @@ extern Nrfp radio;
 #include <shmess2.h>
 
 extern bool diags;
+extern unsigned long blktime;
 
 #if TXRX_MODE == 'T'
 
@@ -98,8 +101,7 @@ uint32_t   uRScnt=0;
 #define CLIRD udpData[clipt];clipt++
 #define CLIST memcpy(data+k2,udpData+clipt,k1-k2);clipt+=(k1-k2);data[k1]='\0'
 #define CLIZER etatImport=0;cliav=0
-#define ELSECLIZER else{CLIZER;}
-#define ELSECLIZER2 else{CLIZER;Serial.print(cliav);Serial.println(" CLIZER2");}
+#define CLIZER2 CLIZER;Serial.print(cliav);Serial.println(" CLIZER2")
 
 #endif //  TXRX_MODE == 'U' 
 
@@ -121,7 +123,7 @@ char c;         // pour macros TCP/UDP
   uint8_t fset_______,fack_______,fetat______,freset_____,fsleep_____,ftestaoff__,ftesta_on__,ftestboff__,ftestb_on__;;
   int     nbfonct;
 
-  const char* chexa="0123456789ABCDEFabcdef\0";
+  //const char* chexa="0123456789ABCDEFabcdef\0";
 
   char getHDmess[1000];
 
@@ -176,6 +178,8 @@ char c;         // pour macros TCP/UDP
   unsigned long blkwd=0;
   #define TBLKCTL 2000
 
+  extern uint8_t exportCnt;
+
 /* cycle functions */
 
 int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data);    // connecte au serveur et transfère la data
@@ -194,6 +198,8 @@ void blkCtl(uint8_t where)
 void userResetSetup(byte* serverIp)
 {
   uRScnt++;
+  exportCnt=0;
+
   nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;  
   fset_______=(strstr(fonctions,"set_______")-fonctions)/LENNOM;
   fack_______=(strstr(fonctions,"ack_______")-fonctions)/LENNOM;
@@ -212,12 +218,11 @@ void userResetSetup(byte* serverIp)
   concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=31;
   *concPort=8887;
   */
- *concPort=8888;
+ //*concPort=8888;
  
   Serial.print(" Ethernet begin mac/Ip=");serialPrintMac(concMac,0);Serial.print('/');
   for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.println((IPAddress)localIp);
-  trigwd(0);
-  
+  WDTRIG //trigwd(0);
   
   Ethernet.begin (concMac,localIp);
   /*
@@ -229,15 +234,15 @@ void userResetSetup(byte* serverIp)
   }
   */
   
-  trigwd(0);
+  WDTRIG //trigwd(0);
   Serial.print(" localIP=");
   for(uint8_t i=0;i<4;i++){localIp[i]=Ethernet.localIP()[i];}Serial.print((IPAddress)localIp);Serial.println();
    
 #if TXRX_MODE == 'U'
   Serial.print(" Udp.begin (");Serial.print(*concPort);Serial.print(")");
-  trigwd(0);
+  WDTRIG //trigwd(0);
   if(!Udp.begin(*concPort)){Serial.println(" ko");while(1){trigwd(1000);}}
-  trigwd(0);
+  WDTRIG //trigwd(0);
   Serial.print(" ok ");Serial.print(millis()-t_beg);Serial.println("mS");
 #endif // TXRX_MODE == 'U'
 
@@ -308,13 +313,15 @@ int get_Udp()
   cliav=Udp.parsePacket();
   blkCtl('@');
   if(cliav>0){
-    blkCtl('a');
+    if(diags){
+      Serial.print("*eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);
+      delay(1);}
     rxIpAddr = (uint32_t) Udp.remoteIP();
     rxPort = (unsigned int) Udp.remotePort();
     if(cliav<LBUFSERVER-1){
-      Udp.read(udpData,cliav);udpData[cliav]='\0';}
+      Udp.read(udpData,cliav);udpData[cliav]='\0';
+      blkCtl('a');}
     else {
-      blkCtl('b');
       Serial.print("\nudpPacketovf=");Serial.print(cliav);Serial.print(' ');Serial.print(getUdp_cnt);Serial.print(" uRScnt=");Serial.print(uRScnt);Serial.print(' ');
       Serial.println(" Udp ko... restart");userResetSetup(serverIp);
       //if(!Udp.begin(*concPort)){Serial.println(" Udp ko");while(1){trigwd(1000);}}
@@ -334,7 +341,7 @@ int get_Udp()
       */
     }
     t1_01=micros();
-    blkCtl('c');
+    blkCtl('b');
   }
   return cliav;
 }
@@ -372,10 +379,6 @@ int getHData(char* data,uint16_t* len)
 
   if(cliav==0){                 // on suppose que les packets arrivent complets ; si il y a un morceau de paquet, il sera traité en erreur
     get_Udp();                  // get_Udp() charge un éventuel packet et met cliav à jour
-
-    if(diags && cliav!=0){
-      Serial.print("*eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);
-      delay(1);}
   }
 
   /*
@@ -401,47 +404,62 @@ int getHData(char* data,uint16_t* len)
   if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected (does not happen in Udp mode)
   
   switch(etatImport){
-    case 0: if(CLIAV>=introLength1){                                                  // attente intro et contrôle     
-              for(k=0;k<introLength1;k++){char c=CLIRD;if(c!=intro[k]){break;}}       // si l'intro est hs etatImport reste 0
-                                                                                      // tout ce qui vient est lu jusqu'à une intro correcte
-                                                                                      // si clipt devient > cliav, intro_Udp() est refait et clipt=0
-              if(k>=introLength1){etatImport++;}}                                     // si l'intro est ok -> suite (cliav=len data available, clipt=len1)
-            ELSECLIZER                                                                // UDP : cliav trop petit -> attente du prochain paquet
+    case 0: {bool one_time_dump=false;
+            uint32_t save_clipt=clipt;
+            while(CLIAV>=introLength1 && etatImport==0){                              // search packet for valid intro (would be long : cliav*introLength1)
+              for(k=0;k<introLength1;k++){
+                char c=CLIRD;                                                         // clipt++
+                if(c!=intro[k]){
+                  if(!one_time_dump){
+                    one_time_dump=true;
+                    Serial.print("clipt=");Serial.print(clipt);Serial.print(" getUdp_cnt=");Serial.println(getUdp_cnt);
+                    dumpstr(udpData,cliav);}
+                  save_clipt++;clipt=save_clipt;
+                  break;
+                }
+              }
+              if(k>=introLength1){etatImport++;}                                      // si l'intro est hs etatImport reste 0, cliav inchangé jusqu'à ce que clipt rejoigne clizav
+            }                                                                         // tout ce qui vient est lu jusqu'à une intro correcte
+                                                                                      // si (cliav-clipt)<introLength1, intro_Udp() est refait et clipt=0
+                                                                                      // si l'intro est ok -> suite (cliav=packet len, clipt=len1)
+            if(etatImport==0) {CLIZER;}                                               // UDP : cliav trop petit ou intro ko -> attente du prochain paquet
             t1_1=micros()-t1;
-            blkCtl('d');
-            break;
-    case 1: if(CLIAV>=introLength2){                                                  // longueur minimum nécessaire à ce stade
+            blkCtl('c');
+            }break;
+    case 1: if(CLIAV>=introLength2){                                                  // get message length
               k1=introLength2;k2=0;CLIST;                                             // load fonction+len
               for(k=4;k>0;k--){
                 messLength*=10;messLength+=data[introLength2-k]-'0';}                 // conv len message atob
               messLength+=suffixLength;etatImport++;                                  // ajout len suffixe -> suite 
             }                                                                         
-            ELSECLIZER                                                                // UDP : cliav trop petit -> attente du prochain paquet
+            else {CLIZER;}                                                            // UDP : cliav trop petit -> attente du prochain paquet
             t1_2=micros()-t1;
             break;
-    case 2: if(CLIAV>=(messLength-2)){                                                  // attente message
+    case 2: if(CLIAV>=(messLength-2)){                                                // get message
               k2=introLength2;k1=(messLength-crcLength)+k2;CLIST;                     // load message+ctle suffixe
               t1_03=micros()-t1;
               k1=messLength-suffixLength+introLength2-crcLength;
               for(k=0;k<suffixLength;k++){
                 if(data[k+k1]!=suffix[k]){
+                  dumpstr(udpData,cliav);
                   CLIZER;break;}
-              }                                                                         // controle suffixe              
+              }                                                                       // controle suffixe              
               if(k>=suffixLength){etatImport++;}                          
-              ELSECLIZER                                                                // trop petit -> attente du prochain paquet
+              else {CLIZER;}                                                          // trop petit -> attente du prochain paquet
             }
-            ELSECLIZER2                                                                 // UDP : cliav trop petit -> attente du prochain paquet
+            else {CLIZER2;}                                                           // UDP : cliav trop petit -> attente du prochain paquet
             t1_3=micros()-t1;
             break;
-    case 3: crcAsc=0;crcCal=0;conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // récup crc
+    case 3: crcAsc=0;crcCal=0;conv_atoh(&data[messLength-suffixLength+introLength2-crcLength-crcLength],&crcAsc);    // get crc
             crcCal=calcCrc((char*)(data+introLength2-4),messLength-suffixLength);
-            if(crcCal==crcAsc){                                                         // contrôle crc
+            if(crcCal==crcAsc){                                                       // contrôle crc
               t1_4=micros()-t1;                                                           
               etatImport=0;                                                             
-              if(cliav<=clipt){cliav=0;}                                                // s'il reste à lire ça peut être un paquet suivant
-              return MESSOK;                                                            // crc ok
-            }                                                          
-            CLIZER;return MESSCRC;                                                      // crc ko
+              if(cliav<=clipt){cliav=0;}                                              // s'il reste à lire ça peut être un paquet suivant
+              return MESSOK;                                                          // crc ok
+            }
+            dumpstr(udpData,cliav);                                                          
+            CLIZER;return MESSCRC;                                                    // crc ko
             break;            
     default:CLIZER;break;
   }
@@ -463,7 +481,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
                                         //    si ok -> tfr params
                                         // retour periMess
 {
-  int  numT=-99,nP,numPeri;
+  int  numT=-99,nP;
   char fromServerMac[6];
   int  periMess;
 
@@ -488,32 +506,36 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
           }
         }
 
-  if(periMess==MESSOK){
+  if(periMess==MESSOK){                                           // indata valide crc ok (ei=0)
+
+        exportCnt=0;
 
         t2_0=micros();
         lastUdpCall=millis();
 
         packMac((byte*)fromServerMac,(char*)(indata+MPOSMAC));    // macaddr from set message (LBODY pour "<body>")
-        nP=convStrToNum(indata+MPOSNUMPER,&dataLen);              // nP = numPeri from set message (nb in server table)
-        numT=radio.macSearch(fromServerMac,&numPeri);             // numT mac reg nb in conc table ; numPeri nb in server table allready recorded in conc table 
-                                                                  // numPeri should be == nP (if !=0 && mac found)
+        int dataNp=2;
+        nP=convStrToNum(indata+MPOSNUMPER,&dataNp);               // nP = numPeri from ack/set message (nb in server table)
+        numT=macSearch(fromServerMac,&nP);                        // numT mac reg nb in conc table
+                                                                  // tableC[numT].numPeri should be == nP (if !=0 && mac found)
+        Serial.print("nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);                                                                  
         conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
         t2=micros();
         
         if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
-        else if(numPeri!=0 && numPeri!=nP){periMess=MESSNUMP;}    // if numPeri doesnt match message -> error
+        else if(numT!=0 && tableC[numT].numPeri!=nP){periMess=MESSNUMP;}        // iftableC[numT].numPeri doesnt match message -> error
         else {
           if(memcmp(tableC[numT].periBuf+NRF_ADDR_LENGTH+1,"1.c",3)>0){         // version périf > 1.c
-            radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,5);                 // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            radio.extDataStore(nP,numT,5,indata+MPOSPERREFR+6,5);               // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            radio.extDataStore(nP,numT,10,indata+MPOSPERREFR+12,4);             // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            radio.extDataStore(nP,numT,14,indata+MPOSANALH,8);                  // min/max analogique '_hhhhhhhh'
-            radio.extDataStore(nP,numT,22,indata+messLength-5,2);               // periAnalOut consigne analogique 0-FF
-            radio.extDataStore(nP,numT,24,indata+messLength-2,2);               // periCfg '_hh' 
+            extDataStore(nP,numT,0,indata+MPOSPERREFR,5);                 // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+            extDataStore(nP,numT,5,indata+MPOSPERREFR+6,5);               // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+            extDataStore(nP,numT,10,indata+MPOSPERREFR+12,4);             // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+            extDataStore(nP,numT,14,indata+MPOSANALH,8);                  // min/max analogique '_hhhhhhhh'
+            extDataStore(nP,numT,22,indata+messLength-5,2);               // periAnalOut consigne analogique 0-FF
+            extDataStore(nP,numT,24,indata+messLength-2,2);               // periCfg '_hh' 
           }
           else {                                                                // version périf <= 1.c
-            radio.extDataStore(nP,numT,0,indata+MPOSPERREFR,16);                // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-            radio.extDataStore(nP,numT,16,indata+MPOSANALH-1,9);                // min/max analogique '_hhhhhhhh'
+            extDataStore(nP,numT,0,indata+MPOSPERREFR,16);                // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+            extDataStore(nP,numT,16,indata+MPOSANALH-1,9);                // min/max analogique '_hhhhhhhh'
           }
           if(numT==1){                                                          // entrée 1 de tableC pour concentrateur
             uint32_t pp=0;conv_atobl(tableC[numT].servBuf,&pp,5);perConc=pp*1000;
@@ -523,7 +545,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
 
         Serial.print("  >>> getHD ");
         if(!diags){Serial.print(indata);}
-        Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(numPeri);Serial.print(" numT=");Serial.print(numT);
+        Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(tableC[numT].numPeri);Serial.print(" numT=");Serial.print(numT);
         Serial.print(" import=");
         t2_2=micros()-t1;Serial.println(t2_2);
           
@@ -653,6 +675,7 @@ if(diags){Serial.print(bufServer);Serial.print(' ');}
     //if(diags){
     Serial.print(millis());
     Serial.print(" pM=");Serial.print(periMess);
+    if(periMess==MESSOK){exportCnt++;}
     if(mailData!=nullptr){Serial.println();}
     //Serial.print(" buildmess=");Serial.print(t3_0-t3);
     //Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
