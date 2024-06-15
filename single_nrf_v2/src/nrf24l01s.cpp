@@ -66,7 +66,7 @@
 /***** config *****/
 
 #if NRF_MODE == 'C'
-struct NrfConTable tableC[NBPERIF+1];
+extern struct NrfConTable tableC[NBPERIF+1];
 #endif // NRF_MODE == 'C'
 
 

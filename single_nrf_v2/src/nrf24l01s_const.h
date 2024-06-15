@@ -99,6 +99,8 @@ v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD ; ajout
 
   #define LRAMREM 16
 
+  #define WDTRIG trigwd();blktime=millis();
+
 #endif // NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'             /* voltage and temp acquisition params */

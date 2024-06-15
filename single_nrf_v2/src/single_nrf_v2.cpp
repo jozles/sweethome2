@@ -135,6 +135,7 @@ uint16_t etatImport0=0;
 uint16_t etatImport1=0;
 uint16_t etatImport2=0;
 extern uint8_t etatImport;
+uint8_t  exportCnt=0;
 
 unsigned long timeImport=0;         // timer pour Import (si trop fréquent, buffer pas plein         
 unsigned long tLast=0;              // date unix dernier message reçu 
@@ -380,7 +381,7 @@ void setup() {
 #ifdef REDV1
   pinMode(POWCD,OUTPUT);                // power ON shield
   digitalWrite(POWCD,POWON);
-  trigwd(1000000);                      // uS
+  WDTRIG //trigwd(1000000);                      // uS
 #endif // REDV1
 
 blkCtl('b');
@@ -402,7 +403,7 @@ blkCtl('b');
 
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
-      trigwd();
+      WDTRIG //trigwd();
       blink(4);
       Serial.print(getServerConfig());Serial.print(" ");
       configSave();
@@ -427,12 +428,12 @@ blkCtl('b');
   
   //while(1){trigwd(0);delay(5000);}
 
-  trigwd(0);
+  WDTRIG // trigwd(0);
   blktime=millis();
 
   userResetSetup(serverIp);             // doit être avant les inits radio (le spi.begin vient de la lib ethernet)
 
-  trigwd(0);
+  WDTRIG // trigwd(0);
 
   radioInit();
 
@@ -625,10 +626,12 @@ void loop() {
 
   ledblk(TBLK,2000,IBLK,1);
 
-  if((millis()-lastUdpCall)>(CONCTO*perConc)){
-    Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print((CONCTO*perConc)/1000);Serial.println("sec - reset ");
-    exportDataMail("UDPTO");forceWd();}
 
+  if((millis()-lastUdpCall)>UDPREF && exportCnt>=3){//CONCTO*perConc)){
+    Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print(UDPREF/1000); //(CONCTO*perConc)/1000);
+    Serial.println("sec - reset ");
+    userResetSetup(serverIp);exportDataMail("UDPTO");}  //forceWd();}
+  
   numT=0;                                             // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                       // max length
   memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
