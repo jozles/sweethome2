@@ -697,7 +697,7 @@ void loop() {
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
       /* ======= formatting & tx to server ====== */
         if(numT==0){
-          blkCtl('d');
+blkCtl('e');
           exportData(rdSta);}                         // numT==0 if perif already had registration nb
       }                                               // numT!=0 if perif only made registration request (no data)
       else {                                          
@@ -724,11 +724,8 @@ void loop() {
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
   //            update tLast (last unix date)
 
-  int dt=MESSCX;
-
-    blkCtl('g');
-    dt=importData(&tLast);importCnt++;
-    
+blkCtl('f');
+    int dt=importData(&tLast);importCnt++;
 
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
     if(dt!=MESSLEN && dt!=MESSOK){Serial.print(" importData failure:");Serial.println(dt);}    // MESSLEN until well completed
@@ -745,7 +742,7 @@ void loop() {
     if((millis()-concTime)>=perConc){
       //if(perConc<600000){Serial.println("perConc");while(1){};}
       concTime=millis();exportDataMail(nullptr);
-blkCtl('e');     
+blkCtl('g');     
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
       Serial.print(" etatImport0:");Serial.print(etatImport0);etatImport0=0;Serial.print(" ");
