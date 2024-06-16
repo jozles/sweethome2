@@ -2573,8 +2573,9 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
         } // getnv nbreparams>=0  
       
         valeurs[0]='\0';                                                            
-        Serial.print(millis());Serial.print(' ');
+        
         if(ab!='u'){
+          Serial.print(millis());Serial.print(' ');
           Serial.print("-sock stop ");Serial.print(cli->sockindex);Serial.print(" ");                                                              
           if(cli!=cli_debug){Serial.print("cli hs");while(1){trigwd();}}
           cli->stop();            // tcp only ********* !!!!!!!! stop géré en instances multiples pour cli_a 

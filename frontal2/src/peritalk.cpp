@@ -100,7 +100,7 @@ extern char*     mailData;                    // pointeur chaine à transmettre 
 void assySet(char* message,int periCur,const char* diag,char* date14,const char* fonct)     
 // assemblage datas pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
 {
-  Serial.print(" assySet ");Serial.print(fonct);Serial.print(' ');delay(2);
+  Serial.print(" assySet ");Serial.print(fonct);Serial.print(' ');delay(1);
   
   sprintf(message,"%02i",periCur);message[2]='\0';periMess=MESSOK;
   strcat(message,"_");
@@ -116,6 +116,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
 
     memcpy(message+strlen(message),date14,14);
     strcat(message,"_");
+    if(*periProtocol=='U'){Serial.print(message+strlen(message)-15);Serial.print(*periMessCnt);Serial.print(' ');}    // periMessCnt valide si >= v2.9
 
     unsigned int v1,v2=0;
     if(periCur>0){                                        // periCur>0 tfr params
@@ -189,7 +190,7 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
          et le suivant sera à l'adresse message-longueur-3-longueur du champ ajouté ;
          voir exemple dans (single_nrf_v2/sweet_home/nrf_user_conc.cpp-importData() )
       */
-      sprintf((message+v1),"%02d",*periMessCnt);
+      sprintf((message+v1),"%02d",*periMessCnt);                  // periMessCnt
       v1+=2;*(message+v1)='_';
       v1++;
 
@@ -198,9 +199,9 @@ void assySet(char* message,int periCur,const char* diag,char* date14,const char*
       v1+=4+1;
       
       conv_htoa(&message[v1],(byte*)periCfg);
-      //unpackHexa((uint16_t)*periCfg,message+v1,2);                        // periCfg
+      //unpackHexa((uint16_t)*periCfg,message+v1,2);              // periCfg
       memcpy(message+v1+2,"\0",2);
-      strcat(message,diag);                                 // periMess length=LPERIMESS
+      strcat(message,diag);                                       // periMess length=LPERIMESS
     }  // pericur != 0            
 }
 
@@ -488,7 +489,8 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
       k+=LENMODEL+1;
       if(messLen>0 && memcmp(periVers,"2.9",3)>=0){
         *periMessCnt=convStrToInt(k,&i);                      // compteur d'export des périphériques
-        Serial.print(*periVers);Serial.print(' ');Serial.println(*periMessCnt);
+        char aaa[4];memcpy(aaa,periVers,3);periVers[3]='\0';
+        Serial.print(aaa);Serial.print(' ');Serial.print(*periMessCnt);
         messLen-=(i+1);       
         k+=(i+1);
       }
