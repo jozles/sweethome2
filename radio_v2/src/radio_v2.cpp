@@ -151,6 +151,8 @@ char bid;
 
 uint32_t ram_remanente __attribute__((section(".noinit")));
 
+extern uint32_t uRScnt;
+
 #endif // NRF_MODE == 'C'
 
 #if NRF_MODE == 'P'
@@ -620,7 +622,7 @@ void loop() {
     Serial.print("     ");
     radio.printAddr((char*)radio.locAddr,0);
     Serial.print(" init#");Serial.print(radioInitCnt);
-    Serial.println(" (e)cho (b)roadcast (t)ableC (q)uit");
+    Serial.println(" (e)cho (b)roadcast (t)ableC (s)erver (q)uit");
     menu=false;
   }
 
@@ -630,6 +632,8 @@ void loop() {
     Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print(UDPREF/1000); //(CONCTO*perConc)/1000);
     Serial.println("sec - reset ");
     userResetSetup(serverIp);exportDataMail("UDPTO");}  //forceWd();}
+
+blkCtl('c');
 
   numT=0;                                             // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                       // max length
@@ -697,7 +701,7 @@ void loop() {
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
       /* ======= formatting & tx to server ====== */
         if(numT==0){
-blkCtl('e');
+blkCtl('d');
           exportData(rdSta);}                         // numT==0 if perif already had registration nb
       }                                               // numT!=0 if perif only made registration request (no data)
       else {                                          
@@ -724,7 +728,7 @@ blkCtl('e');
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
   //            update tLast (last unix date)
 
-blkCtl('f');
+blkCtl('e');
     int dt=importData(&tLast);importCnt++;
 
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
@@ -741,8 +745,8 @@ blkCtl('f');
     
     if((millis()-concTime)>=perConc){
       //if(perConc<600000){Serial.println("perConc");while(1){};}
-      concTime=millis();exportDataMail(nullptr);
-blkCtl('g');     
+blkCtl('f');       
+      concTime=millis();exportDataMail(nullptr);    
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
       Serial.print(" etatImport0:");Serial.print(etatImport0);etatImport0=0;Serial.print(" ");
@@ -751,23 +755,24 @@ blkCtl('g');
       Serial.print(concTime-lastRead);Serial.println(" Exp_conc");exportDataMail();}
       */
     }
-  //}
-  // ====== menu choice ======  
+  //} 
   
-  if((millis()-radioWd)>NO_RADIO_CX_TO){    // wd radio
+    if((millis()-radioWd)>NO_RADIO_CX_TO){    // wd radio
+blkCtl('g');
+      Serial.print("pas de cx radio depuis ");Serial.print(NO_RADIO_CX_TO/1000);Serial.println("sec - re_init ");delay(10);
+      configLoad();
+      Serial.print('@');
+      userResetSetup(serverIp);
+      radioInit();
+    }
 
-    Serial.print("pas de cx radio depuis ");Serial.print(NO_RADIO_CX_TO/1000);Serial.println("sec - re_init ");delay(10);
-    configLoad();
-    Serial.print('@');
-    userResetSetup(serverIp);
-    radioInit();
-  }
-
+// ====== menu choice ====== 
   char a=getch();
   switch(a){
     case 'e':getEchoNum();menu=true;break;
     case 'b':broadcast('b');menu=true;break;
     case 't':Serial.println((char)a);tableCPrint();menu=true;break;
+    case 's':Serial.println((char)a);exportDataMail(nullptr);break;
     case 'q':Serial.print((char)a);echoNb=0;echoOn=false;menu=true;break;
     default:break;
   }

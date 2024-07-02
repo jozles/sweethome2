@@ -17,8 +17,8 @@ extern Nrfp radio;
 /* user includes */
 
 #include <SPI.h>
-#include <Ethernet.h>
-#include <EthernetUdp.h> 
+#include <Ethernet2.h>
+#include <EthernetUdp2.h> 
 #include <shconst2.h>
 #include <shutil2.h>
 #include <shmess2.h>
@@ -51,7 +51,7 @@ extern unsigned long blktime;
 
 #if TXRX_MODE == 'U'
 
-#include <EthernetUdp.h>
+#include <EthernetUdp2.h>
 
 /*
 #define INTERIEUR       // concentrateur intérieur
@@ -224,8 +224,10 @@ void userResetSetup(byte* serverIp)
  
   Serial.print(" Ethernet begin mac/Ip=");serialPrintMac(concMac,0);Serial.print('/');
   for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.println((IPAddress)localIp);
-  WDTRIG //trigwd(0);
   
+  WDTRIG //trigwd(0);
+  digitalWrite(A8,HIGH);pinMode(A8,OUTPUT);digitalWrite(A8,LOW);delay(1000);digitalWrite(A8,HIGH);    // hard Reset
+  WDTRIG //trigwd(0);
   Ethernet.begin (concMac,localIp);
   /*
   if(Ethernet.begin (concMac) == 0){
@@ -238,17 +240,17 @@ void userResetSetup(byte* serverIp)
   
   WDTRIG //trigwd(0);
   Serial.print(" localIP=");
-  for(uint8_t i=0;i<4;i++){localIp[i]=Ethernet.localIP()[i];}Serial.print((IPAddress)localIp);Serial.println();
-   
+  for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];localIp[i]=Ethernet.localIP()[i];}Serial.print((IPAddress)localIp);Serial.println();
+
 #if TXRX_MODE == 'U'
   Serial.print(" Udp.begin (");Serial.print(*concPort);Serial.print(")");
   WDTRIG //trigwd(0);
   if(!Udp.begin(*concPort)){Serial.println(" ko");while(1){trigwd(1000);}}
+  //uint32_t udpKoCnt=0;
+  //while(!Udp.begin(*concPort)){Serial.print(" ");Serial.print(udpKoCnt++);delay(1000);WDTRIG}
   WDTRIG //trigwd(0);
   Serial.print(" ok ");Serial.print(millis()-t_beg);Serial.println("mS");
 #endif // TXRX_MODE == 'U'
-
-  for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];}
 
   blkwd=millis();
 
@@ -268,6 +270,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
   t3_01=micros();
   Udp.write(data,strlen(data));
   Udp.endPacket();
+  delayMicroseconds(100);   // protect again concurrent SPI usage ? (@16Mhz 100uS=200 bytes sent)
   return MESSOK;
 #endif //  TXRX_MODE == 'U'
 
@@ -312,17 +315,18 @@ int get_Udp()
 { 
   getUdp_cnt++;
   clipt=0;
+blkCtl('@');  
   cliav=Udp.parsePacket();
-  blkCtl('@');
   if(cliav>0){
-    if(diags){
-      Serial.print("*eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);
-      delay(1);}
     rxIpAddr = (uint32_t) Udp.remoteIP();
     rxPort = (unsigned int) Udp.remotePort();
     if(cliav<LBUFSERVER-1){
+blkCtl('a');
       Udp.read(udpData,cliav);udpData[cliav]='\0';
-      blkCtl('a');}
+      if(diags){
+      Serial.print("*eI=");Serial.print(etatImport);Serial.print(" cliav=");Serial.print(cliav);Serial.print(" ");udpData[cliav]='\0';Serial.println(udpData);
+      }
+    }
     else {
       Serial.print("\nudpPacketovf=");Serial.print(cliav);Serial.print(' ');Serial.print(getUdp_cnt);Serial.print(" uRScnt=");Serial.print(uRScnt);Serial.print(' ');
       Serial.println(" Udp ko... restart");userResetSetup(serverIp);
@@ -343,7 +347,6 @@ int get_Udp()
       */
     }
     t1_01=micros();
-    blkCtl('b');
   }
   return cliav;
 }
@@ -402,7 +405,7 @@ int getHData(char* data,uint16_t* len)
     else cliav=0;return MESSLEN;                        // rien reçu
   }
   */  
- 
+
   if(!CLICX){t1_0=micros()-t1;return MESSCX;}                                         // not connected (does not happen in Udp mode)
   
   switch(etatImport){
@@ -426,7 +429,6 @@ int getHData(char* data,uint16_t* len)
                                                                                       // si l'intro est ok -> suite (cliav=packet len, clipt=len1)
             if(etatImport==0) {CLIZER;}                                               // UDP : cliav trop petit ou intro ko -> attente du prochain paquet
             t1_1=micros()-t1;
-            blkCtl('c');
             }break;
     case 1: if(CLIAV>=introLength2){                                                  // get message length 
               k1=introLength2;k2=0;CLIST;                                             // load fonction+len (15 car)
@@ -492,8 +494,6 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
   t1=micros();
   periMess=getHData(indata,(uint16_t*)&dataLen);                  // la longueur du message est messLength-suffixLength (si periMess=MESSOK)                                                                
                                                                   // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
-
-  
 
         if(diags){ 
           if(prevEtatImport!=etatImport){
@@ -566,7 +566,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         
         //}
   }
-
+blkCtl('b');
   return periMess;
 }
 
@@ -662,8 +662,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     
     int periMess=-1;
     int cnt=0;
-    
-blkCtl('f');    
+        
     if(diags){Serial.print(bufServer);Serial.print(' ');}
     else{Serial.print(tableC[numT].numPeri);Serial.print(' ');Serial.print(numT);Serial.print(' ');}
     

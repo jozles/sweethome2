@@ -23,7 +23,7 @@ build_flags = -DDUE -DREDV1
 
 LIB_EXTRA_DIRS = 
  D:/data/arduino/libraries/shlib2/
- D:/data/arduino/libraries/ethernet/
+ D:/data/arduino/libraries/ethernet2/
  D:/data/arduino/libraries/pgmStrToRAM/
  D:/data/arduino/libraries/SdFat/
  D:/data/arduino/libraries/DueFlashStorage/
