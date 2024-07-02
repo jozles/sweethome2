@@ -573,7 +573,7 @@ blkCtl('b');
 
 int exportData(uint8_t numT,char* mailData)                             // formatting periBuf data in bufServer 
 {                                                                       // sending bufServer to server 
-  if(mailData==nullptr){Serial.print("  <<< export ");}
+  if(mailData==nullptr){Serial.print("  <<< export uRS:");Serial.print(uRScnt));Serial.print(' ');}
   else Serial.print("  <<< mail   ");
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
