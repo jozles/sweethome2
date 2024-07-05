@@ -1,7 +1,7 @@
 #ifndef _RADIO_CONST_INCLUDED
 #define _RADIO_CONST_INCLUDED
 
-#define VERSION "2.9 "
+#define VERSION "2.a "
 #define LENVERSION 4
 
 #include <Arduino.h>
@@ -66,6 +66,7 @@ v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD ; ajout
       la spec du nrf dit "max sck freq=10MHz" !!! donc w5500 @16Mhz et nrf @8MHZ 
       (mais W5500 @30Mhz bloque tout ...???)
 v2.9  prépa pour paramétrage du hard (LoRa is comming) ; ajout messageCnt ;
+v2.a  utilisation lib ethernet2 ; delay après Udp.endPacket() ; reset hard du w5500 ; uRScnt
 */
 
 /************* config ****************/

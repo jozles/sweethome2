@@ -51,8 +51,6 @@ extern unsigned long blktime;
 
 #if TXRX_MODE == 'U'
 
-#include <EthernetUdp2.h>
-
 /*
 #define INTERIEUR       // concentrateur intérieur
 //#define EXTERIEUR       // concentrateur extérieur
@@ -175,6 +173,7 @@ char c;         // pour macros TCP/UDP
   int       lastPeriMess;
   char      indata[LBUFSERVER+1];
   uint8_t   lastEtatImport;
+  uint32_t  tLastImport=0;
   extern unsigned long lastUdpCall;
 
   unsigned long blkwd=0;
@@ -197,7 +196,7 @@ void blkCtl(uint8_t where)
   //}
 }
 
-void userResetSetup(byte* serverIp)
+void userResetSetup(byte* serverIp,const char* mailMessage)
 {
   uRScnt++;
   exportCnt=0;
@@ -245,9 +244,12 @@ void userResetSetup(byte* serverIp)
 #if TXRX_MODE == 'U'
   Serial.print(" Udp.begin (");Serial.print(*concPort);Serial.print(")");
   WDTRIG //trigwd(0);
-  if(!Udp.begin(*concPort)){Serial.println(" ko");while(1){trigwd(1000);}}
-  //uint32_t udpKoCnt=0;
-  //while(!Udp.begin(*concPort)){Serial.print(" ");Serial.print(udpKoCnt++);delay(1000);WDTRIG}
+  //if(!Udp.begin(*concPort)){Serial.println(" ko");while(1){trigwd(1000);}}
+  uint32_t udpKoCnt=0;
+  while(!Udp.begin(*concPort)){Serial.print(" ");Serial.print(udpKoCnt++);
+    if(udpKoCnt<10){delay(1000);WDTRIG}
+    else while(1){};      // après un reset de la carte, ça ne fonctionne toujours pas... reboot // après un reset de la carte, ça ne fonctionne toujours pas... reboot
+  }
   WDTRIG //trigwd(0);
   Serial.print(" ok ");Serial.print(millis()-t_beg);Serial.println("mS");
 #endif // TXRX_MODE == 'U'
@@ -255,6 +257,18 @@ void userResetSetup(byte* serverIp)
   blkwd=millis();
 
   cliav=0;
+
+  if(mailMessage!=nullptr && uRScnt<19){
+    char uRSMessage[16];uRSMessage[0]='\0';strcat(uRSMessage,mailMessage);
+    char* v=uRSMessage+strlen(uRSMessage);
+    sprintf(v,"%02d",(int)uRScnt);*(v+6)='\0';
+    exportDataMail(uRSMessage,5);delay(10);
+  }
+}
+
+void userResetSetup(byte* serverIp)
+{
+  userResetSetup(serverIp,nullptr);
 }
 
 int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)    // connecte au serveur et transfère la data{
@@ -329,7 +343,7 @@ blkCtl('a');
     }
     else {
       Serial.print("\nudpPacketovf=");Serial.print(cliav);Serial.print(' ');Serial.print(getUdp_cnt);Serial.print(" uRScnt=");Serial.print(uRScnt);Serial.print(' ');
-      Serial.println(" Udp ko... restart");userResetSetup(serverIp);
+      Serial.println(" Udp ko... restart");userResetSetup(serverIp,"UDP OVF ");
       //if(!Udp.begin(*concPort)){Serial.println(" Udp ko");while(1){trigwd(1000);}}
       /*
       while (cliav>0){
@@ -471,7 +485,7 @@ int getHData(char* data,uint16_t* len)
 }
 
 
-int  importData(uint32_t* tLast) // reçoit un message du serveur
+int  importData()                // reçoit un message du serveur
                                  // update tLast
                                  // retour MESSOK   ok  
                                  //        MESSCX   pas connecté
@@ -522,7 +536,7 @@ int  importData(uint32_t* tLast) // reçoit un message du serveur
         numT=macSearch(fromServerMac,&nPfromTableC);              // numT mac reg nb in conc table
                                                                   // tableC[numT].numPeri should be == nP (if !=0 && mac found)
         //Serial.print(" nP=");Serial.print(nP);Serial.print(" numT=");Serial.print(numT);                                                                  
-        conv_atobl(indata+MPOSDH,tLast,UNIXDATELEN);                  
+        conv_atobl(indata+MPOSDH,&tLastImport,UNIXDATELEN);       
         t2=micros();
         
         if(numT>=NBPERIF){periMess=MESSMAC;}                      // if mac doesnt exist -> error
@@ -573,7 +587,7 @@ blkCtl('b');
 
 int exportData(uint8_t numT,char* mailData)                             // formatting periBuf data in bufServer 
 {                                                                       // sending bufServer to server 
-  if(mailData==nullptr){Serial.print("  <<< export uRS:");Serial.print(uRScnt));Serial.print(' ');}
+  if(mailData==nullptr){Serial.print("  <<< export uRS:");Serial.print(uRScnt);Serial.print(' ');}
   else Serial.print("  <<< mail   ");
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
@@ -671,7 +685,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
       periMess=mess2Server(&cli,host,hostPort,bufServer);                          // send message to server
       
       if(periMess!=MESSCX){cnt=MAXRST;t3_02=micros();}
-      else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup(serverIp);t3_2=micros();}}       // si connecté fin sinon redémarrer ethernet
+      else {cnt++;if(cnt<MAXRST){t3_1=micros();userResetSetup(serverIp,"SERV CX ");t3_2=micros();}}       // si connecté fin sinon redémarrer ethernet
     }
 
     //if(diags){
@@ -720,6 +734,29 @@ void exportDataMail(const char* messName)
   }
   exportData(testPeri,concData);  // test présence serveur avec périf virtuel des broadcast
   if(concData==nullptr){Serial.print(' ');Serial.println(testPeri);}
+}
+
+void exportDataMail(const char* messName,uint8_t maxRetry)    // wait for server response
+{
+  bool noResponseTo=true;
+  uint8_t cnt=0; 
+  while(noResponseTo){   
+    while(noResponseTo && cnt<maxRetry+1){
+      cnt++;       
+      exportDataMail(messName);delay(10);    
+      #define RWTO 5000
+      unsigned long responseWait=millis();
+      while((millis()-responseWait)<RWTO){
+        WDTRIG //trigwd(0);      
+        if(importData()==MESSOK){noResponseTo=false;responseWait=millis()-RWTO-1;}
+      }
+    }
+    if(cnt==maxRetry){
+      userResetSetup(serverIp);   // ici pas de message !
+      WDTRIG //trigwd(0);
+    }
+    if(cnt>=maxRetry+2){while(1){}}     // après un reset de la carte, ça ne fonctionne toujours pas... reboot général
+  }
 }
 
 

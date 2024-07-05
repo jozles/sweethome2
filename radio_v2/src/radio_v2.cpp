@@ -140,7 +140,6 @@ extern uint8_t etatImport;
 uint8_t  exportCnt=0;
 
 unsigned long timeImport=0;         // timer pour Import (si trop fréquent, buffer pas plein         
-unsigned long tLast=0;              // date unix dernier message reçu 
 #define PERIMPORT 100
 
 #define LDIAGMESS 80
@@ -433,7 +432,7 @@ blkCtl('b');
 
   WDTRIG //trigwd(0);blktime=millis();
 
-  userResetSetup(serverIp);             // doit être avant les inits radio (le spi.begin vient de la lib ethernet)
+  userResetSetup(serverIp);             // doit être avant les inits radio (le spi.begin vient de la lib ethernet ?)
 
   WDTRIG //trigwd(0);
 
@@ -445,21 +444,9 @@ blkCtl('b');
 
   time_beg=millis();
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
-
-  bool noResponseTo=true;
-  uint8_t cnt=0;
-  #define MAXCNT 5  
-  while(noResponseTo && cnt<MAXCNT){
-    cnt++;    
+  
 blkCtl('d');    
-    exportDataMail("START");delay(10);    
-    #define RWTO 5000
-    unsigned long responseWait=millis();
-    while((millis()-responseWait)<RWTO){
-      WDTRIG //trigwd(0);      
-      if(importData(&tLast)==MESSOK){noResponseTo=false;responseWait=millis()-RWTO-1;}
-    }
-  }
+  exportDataMail("START",5);
 
   Serial.println();
 
@@ -626,12 +613,12 @@ void loop() {
     menu=false;
   }
 
-  ledblk(TBLK,2000,IBLK,1);
+  ledblk(TBLK,3000,IBLK,1);
 
   if((millis()-lastUdpCall)>UDPREF && exportCnt>=3){//CONCTO*perConc)){
     Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print(UDPREF/1000); //(CONCTO*perConc)/1000);
     Serial.println("sec - reset ");
-    userResetSetup(serverIp);exportDataMail("UDPTO");}  //forceWd();}
+    userResetSetup(serverIp,(char*)"UDP TO");}  //forceWd();}
 
 blkCtl('c');
 
@@ -726,10 +713,9 @@ blkCtl('d');
 
   // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
-  //            update tLast (last unix date)
 
 blkCtl('e');
-    int dt=importData(&tLast);importCnt++;
+    int dt=importData();importCnt++;
 
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
     if(dt!=MESSLEN && dt!=MESSOK){Serial.print(" importData failure:");Serial.println(dt);}    // MESSLEN until well completed
@@ -762,7 +748,6 @@ blkCtl('g');
       Serial.print("pas de cx radio depuis ");Serial.print(NO_RADIO_CX_TO/1000);Serial.println("sec - re_init ");delay(10);
       configLoad();
       Serial.print('@');
-      userResetSetup(serverIp);
       radioInit();
     }
 
