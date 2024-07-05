@@ -363,9 +363,17 @@ Modifier :
 #define PINSWD PINSWB   // pin sortie switch D
 #define CLOSD  CLOSB    
 #define OPEND  OPENB
-#ifndef  CAPATOUCH
+
+#define IRQPIN PINXDT   // pin entrée impulsions à compter
+#ifndef CAPATOUCH
+#ifndef IRQPIN
 #define NBDET  3        //  3 det et non 4
 #endif
+#ifdef  IRQPIN
+#define NBDET  2        //  2 det et non 4
+#endif
+#endif
+  
 #define PINDTA 12       // pin entrée détect bit 0 
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3

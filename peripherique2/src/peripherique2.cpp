@@ -146,6 +146,8 @@ bool serverStarted=false;
   unsigned long    impDetTime[NBPULSE];                     // timer pour gestion commandes impulsionnelles     
   uint8_t pinDet[MAXDET]={PINDTA,PINDTB,PINDTC,PINDTD};     // les détecteurs
 
+  uint32_t irqCnt=0;
+
   int   i=0,j=0,k=0;
   //uint8_t oldswa[]={0,0,0,0};                 // 1 par switch
 
@@ -198,6 +200,11 @@ uint16_t  getServerConfig();
 void  ordreExt0();
 void  showBS(char* buf);
 void  thermostat();
+#ifdef IRQPIN
+void  irqCntUpdate();
+#endif // IRQPIN
+
+
 
 #ifdef MAIL_SENDER
 void mail(char* subj,char* dest,char* msg);
@@ -447,6 +454,11 @@ delay(1);
   pinMode(ANPIN2,OUTPUT);
 #endif // ANALYZE  
   clkTime=millis();
+
+#ifdef IRQPIN
+  attachInterrupt(digitalPinToInterrupt(IRQPIN), irqCntUpdate, FALLING);
+#endif  // IRQPIN
+
   }    // fin setup NO_MODE
 
   void loop(){  //=== NO_MODE =================================      
@@ -602,6 +614,7 @@ talkClient() réponse à un message reçu en mode serveur
 wifiConnexion()
 
 readAnalog() (pour NO_MODE seul : les autres modes utilisent l'ADC pour lire l'alim)
+la valeur analogique est soit la tension lue sur le pin A0, soit le compteur d'impulsions sur IRQPIN (GPIO13)
 
 readTemp() gestion communications cycliques (déclenche talkServer)
 
@@ -1266,7 +1279,12 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
 
 void readAnalog()
 {
+ #ifndef IRQPIN
  cstRec.analVal=analogRead(A0); 
+ #endif
+ #ifdef IRQPIN
+ cstRec.analVal=(irqCnt&0x003fffff); // 2^22/1000=33554 ok pour 16 bits
+ #endif
 }
 
 /* Thermostat ------------------------ */
@@ -1406,6 +1424,9 @@ void getTemp()
 #endif // PM!=DS_MODE
 
       checkVoltage();
+#ifdef IRQPIN
+      Serial.print(irqCnt);Serial.print(' ');
+#endif      
 }
 
 bool wifiAssign()
@@ -1478,3 +1499,10 @@ uint16_t getServerConfig()
   else {Serial.print(" ko ");Serial.println(rcvl);ledblink(BCODESDCARDKO);}
   return rcvl;
 }
+
+#ifdef IRQPIN
+ICACHE_RAM_ATTR void irqCntUpdate()
+{
+  irqCnt++;
+}
+#endif // IRQPIN
