@@ -7,7 +7,7 @@
 
 /* gestion user data du concentrateur */
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 #ifndef DETS
 
 struct ConTable tableC[NBPERIF+1];
@@ -51,6 +51,9 @@ extern unsigned long blktime;
 
 #if TXRX_MODE == 'U'
 
+//EthernetUDP* ethernetUdp=nullptr;
+EthernetUDP Udp;
+
 /*
 #define INTERIEUR       // concentrateur intérieur
 //#define EXTERIEUR       // concentrateur extérieur
@@ -66,7 +69,6 @@ extern unsigned long blktime;
   #define MACADDRUDP    MACADDRUDP2
 #endif //  EXTERIEUR  
 */
-  EthernetUDP Udp;
 
 //uint16_t          port     = 8888;    // conc udp port                          // PORTUDPCONC;         // (8887 intérieur ; 8888 ext)
 //byte              mac[]    = {0xDE,0xAD,0xBE,0xEF,0xFE,0xEF};                   // MACADDRUDP2;         //{0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00
@@ -225,33 +227,37 @@ void userResetSetup(byte* serverIp,const char* mailMessage)
   for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.println((IPAddress)localIp);
   
   WDTRIG //trigwd(0);
-  digitalWrite(A8,HIGH);pinMode(A8,OUTPUT);digitalWrite(A8,LOW);delay(1000);digitalWrite(A8,HIGH);    // hard Reset
+  digitalWrite(A8,HIGH);pinMode(A8,OUTPUT);digitalWrite(A8,LOW);delay(1000);digitalWrite(A8,HIGH);delay(1000);    // hard Reset
   WDTRIG //trigwd(0);
+  
   Ethernet.begin (concMac,localIp);
   /*
   if(Ethernet.begin (concMac) == 0){
     Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(concIp);Serial.println();
     for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.print((IPAddress)localIp);Serial.println();
-    trigwd(0);
+    WDTRIG //trigwd(0);
     Ethernet.begin (concMac, localIp); 
+    Serial.print(" localIP=");
   }
   */
-  
+  for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];localIp[i]=Ethernet.localIP()[i];}Serial.print((IPAddress)host);Serial.println();
+
   WDTRIG //trigwd(0);
-  Serial.print(" localIP=");
-  for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];localIp[i]=Ethernet.localIP()[i];}Serial.print((IPAddress)localIp);Serial.println();
 
 #if TXRX_MODE == 'U'
-  Serial.print(" Udp.begin (");Serial.print(*concPort);Serial.print(")");
-  WDTRIG //trigwd(0);
-  //if(!Udp.begin(*concPort)){Serial.println(" ko");while(1){trigwd(1000);}}
-  uint32_t udpKoCnt=0;
-  while(!Udp.begin(*concPort)){Serial.print(" ");Serial.print(udpKoCnt++);
-    if(udpKoCnt<10){delay(1000);WDTRIG}
-    else while(1){};      // après un reset de la carte, ça ne fonctionne toujours pas... reboot // après un reset de la carte, ça ne fonctionne toujours pas... reboot
+  /*if(ethernetUdp!=nullptr){
+    delete ethernetUdp;ethernetUdp=nullptr;
   }
+  if(ethernetUdp==nullptr){
+    ethernetUdp = new  EthernetUDP ;}
+  */
+  Serial.print(" Udp.begin (");Serial.print(*concPort);Serial.print(")");
+
+  Udp.stop();
+  if(Udp.begin(*concPort)){Serial.print(" ok ");Serial.print(millis()-t_beg);Serial.println("mS");}
+    else while(1){};      // après un reset de la carte, ça ne fonctionne toujours pas... reboot 
+
   WDTRIG //trigwd(0);
-  Serial.print(" ok ");Serial.print(millis()-t_beg);Serial.println("mS");
 #endif // TXRX_MODE == 'U'
 
   blkwd=millis();
@@ -274,9 +280,11 @@ void userResetSetup(byte* serverIp)
 int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)    // connecte au serveur et transfère la data{
 {
 #ifdef DIAG
+//if(diags){  
   Serial.print(TXRX_MODE);Serial.print(" to ");
   for(int i=0;i<4;i++){Serial.print((uint8_t)host[i]);Serial.print(" ");}
   Serial.print(":");Serial.print(hostPort);Serial.print("...");
+//}
 #endif //  DIAG
 
 #if TXRX_MODE == 'U'
@@ -284,7 +292,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
   t3_01=micros();
   Udp.write(data,strlen(data));
   Udp.endPacket();
-  delayMicroseconds(100);   // protect again concurrent SPI usage ? (@16Mhz 100uS=200 bytes sent)
+  delayMicroseconds(200);   // protect again concurrent SPI usage ? (@16Mhz 100uS=200 bytes sent)
   return MESSOK;
 #endif //  TXRX_MODE == 'U'
 
@@ -761,4 +769,4 @@ void exportDataMail(const char* messName,uint8_t maxRetry)    // wait for server
 
 
 #endif // DETS
-#endif //  NRF_MODE == 'C'
+#endif //  MACHINE == 'C'

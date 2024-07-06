@@ -1,7 +1,7 @@
 #ifndef _RADIO_PWRSLP_H_INCLUDED
 #define _RADIO_PWRSLP_H_INCLUDED
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
 #ifdef ATMEGA8
 #define WDTCSR WDTCR
@@ -37,6 +37,6 @@ void getVolts();
 uint16_t adcRead0(uint8_t admuxval,uint8_t dly);
 float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_t dly);
 
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
 #endif // _RADIO_PWRSLP_H_INCLUDED

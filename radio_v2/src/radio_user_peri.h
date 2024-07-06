@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "radio_const.h"
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
 /**** insertion du code utilisateur ****
   
@@ -42,6 +42,6 @@ void radSetup();
 void radUpdate(uint16_t value);
 
 
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
 #endif // NRFUSER_H_INCLUDED

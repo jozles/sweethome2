@@ -15,7 +15,7 @@ extern bool diags;
 
 /* gestion user data du périphérique */
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
 /* user includes */
 
@@ -279,4 +279,4 @@ void radUpdate(uint16_t value)
 
 }
 
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'

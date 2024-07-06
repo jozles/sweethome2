@@ -165,7 +165,7 @@ char* cstRecA=(char*)&cstRec.cstlen;
   ADC_MODE(ADC_VCC);
 #endif
 
-  const char*  chexa="0123456789ABCDEFabcdef\0";
+  extern const char*  chexa; //="0123456789ABCDEFabcdef\0";
   uint8_t      bitMsk[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80};
   //const byte      mask[]={0x00,0x01,0x03,0x07,0x0F};
   //uint32_t  memDetServ=0x00000000;    // image mémoire NBDSRV détecteurs (32)  

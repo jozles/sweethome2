@@ -123,9 +123,9 @@
 #endif // ndef DETS
 
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
 
 class Nrfp
@@ -156,11 +156,11 @@ class Nrfp
     uint8_t lastSta=0;
     byte*   locAddr;          // local Addr        
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
     byte*   ccAddr; 
     int     pRegister(byte* message,uint8_t* pldLength);
     int     txRx(byte* message,uint8_t* pldLength);
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
   private:
 
@@ -182,9 +182,9 @@ class Nrfp
 
     uint8_t regw,statu,fstatu,conf;
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
     void allPinsLow();
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 };
 
 #endif // NRF24L01P INCLUDED

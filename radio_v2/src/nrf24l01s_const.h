@@ -7,7 +7,7 @@
   #define ARD_VALUE  0          // ((0-15)+1) x 250uS delay before repeat
   #define ARC_VALUE  4          // (0-15) repetitions
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
          
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
@@ -16,9 +16,9 @@
 
   #define LRAMREM 16
 
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
-#if NRF_MODE == 'P'             /* voltage and temp acquisition params */
+#if MACHINE_DET328             /* voltage and temp acquisition params */
    // param carte DETS (sinon ?) dans platformo.ini
   #define ATMEGA328                 // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
   #define PER_PO    'P'           // 'N' no powoff 'P' powoff
@@ -141,6 +141,6 @@
 
 #define VOLTMIN 3.2             // minimal value to run
 
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
 #endif // _NRF_CONST_INCLUDED

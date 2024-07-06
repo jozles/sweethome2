@@ -3,13 +3,13 @@
 
 #include "radio_const.h"
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 #define CONFIGRECLEN 200
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 #define CONFIGRECLEN 76                      // len maxi paramètres de config en Eeprom (37 v01 ; 38 v02 ; 75 v03)
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
 #define CONCRECADDR 0
 

@@ -1,7 +1,7 @@
 #ifndef NRFUSER_CONC_H_INCLUDED
 #define NRFUSER_CONC_H_INCLUDED
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 
 void exportData(uint8_t numT);
 int  exportData(uint8_t numT,char* mailData);
@@ -12,6 +12,6 @@ void userResetSetup(byte* serverIp,const char* uRSMessage);
 void userResetSetup(byte* serverIp);
 void blkCtl(uint8_t where);
 
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
 #endif // NRFUSER_CONC_H_INCLUDED

@@ -120,7 +120,7 @@ Modifier :
 #include <ESP8266WiFi.h>
 #include <shconst2.h>
 
-//#define PERIF       // pour compatibilité avec shconst etc
+//#define MACHINE 'E'       // ESP   
 
 /* Modes de fonctionnement  */
 /*

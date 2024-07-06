@@ -1,7 +1,7 @@
 #include "radio_const.h"
 
 
-#if NRF_MODE =='C'
+#if MACHINE_CONCENTRATEUR
 
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper);
 
@@ -14,4 +14,4 @@ int tableCLoad();
 int tableCSave();
 
 
-#endif // NRF_MODE=='C'
+#endif // MACHINE=='C'

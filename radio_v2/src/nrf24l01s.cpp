@@ -38,11 +38,11 @@
 #endif // CSN_HIGH
 
 #ifdef SPI_MODE      
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 #define SPI_INIT    SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
 #endif //
-#if NRF_MODE == 'C'
-#define SPI_INIT    SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
+#if MACHINE_CONCENTRATEUR
+#define SPI_INIT    SPI.beginTransaction(SPISettings(8000000,MSBFIRST,SPI_MODE0));
 #endif //
 #define SPI_START   SPI.begin();
 #define SPI_OFF     SPI.end();pinMode(MOSI_PIN,INPUT);pinMode(CLK_PIN,INPUT);
@@ -147,7 +147,7 @@ void Nrfp::addrWrite(uint8_t reg,byte* data)
     CSN_HIGH
 }
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 void Nrfp::allPinsLow()                     /* all radio/SPI pins low */
 {
   bitClear(PORT_CE,BIT_CE);       //digitalWrite(CE_PIN,LOW);
@@ -162,11 +162,11 @@ void Nrfp::allPinsLow()                     /* all radio/SPI pins low */
   bitClear(PORT_MOSI,BIT_MOSI);   //digitalWrite(MOSI_PIN,LOW);
   bitSet(DDR_MOSI,BIT_MOSI);      //pinMode(MOSI_PIN,OUTPUT);  
 }
-#endif // NRF_MODE='P'  
+#endif // MACHINE='P'  
 
 void Nrfp::powerOn(uint8_t channel,uint8_t speed)
 {
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 #if PER_PO == 'P'
 
   allPinsLow();                   // in order to minimize power during POWONDLY
@@ -179,8 +179,8 @@ void Nrfp::powerOn(uint8_t channel,uint8_t speed)
   bitSet(PORT_CSN,BIT_CSN);       //digitalWrite(CSN_PIN,HIGH);
 
 #endif // PER_PO
-#endif // NRF_MODE == 'P'
-#if ((NRF_MODE == 'C') || (PER_PO == 'N'))
+#endif // MACHINE == 'P'
+#if ((MACHINE_CONCENTRATEUR) || (PER_PO == 'N'))
 
   digitalWrite(CSN_PIN,HIGH);
   pinMode(CSN_PIN,OUTPUT);
@@ -196,7 +196,7 @@ void Nrfp::powerOn(uint8_t channel,uint8_t speed)
   digitalWrite(MOSI_PIN,HIGH);  
 #endif //
   
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
   powerUp();
   setup(channel,speed);                        // registry inits 
@@ -209,14 +209,14 @@ void Nrfp::powerOn(uint8_t channel,uint8_t speed)
 
 void Nrfp::powerOff()
 {
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
   
   allPinsLow();
 
   digitalWrite(RPOW_PIN,HIGH);    // power off
   pinMode(RPOW_PIN,OUTPUT);
 
-#endif // NRF_MODE='P'  
+#endif // MACHINE='P'  
 }
 
 void Nrfp::powerUp()
@@ -311,15 +311,15 @@ void Nrfp::write(byte* data,bool ack,uint8_t len,byte* macTableAddr)  // write d
     prxMode=false;
     CE_LOW
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
     addrWrite(TX_ADDR,macTableAddr);    // PER_ADDR);       
     addrWrite(RX_ADDR_P0,macTableAddr); // PER_ADDR);
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
     addrWrite(TX_ADDR,ccAddr);
     addrWrite(RX_ADDR_P0,ccAddr);
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
     setTx();
     flushTx();
@@ -432,7 +432,7 @@ void Nrfp::readStop()
   prxMode=false;
 }
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 int Nrfp::pRegister(byte* message,uint8_t* pldLength)  // peripheral registration to get pipeAddr
 {                      // ER_MAXRT ; AV_errors codes ; >=0 numP ok
 
@@ -547,7 +547,7 @@ int Nrfp::txRx(byte* message,uint8_t* pldLength)
     
     return numP;                              // or AV error 
 }
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
 void Nrfp::printAddr(char* addr,char n)
 {

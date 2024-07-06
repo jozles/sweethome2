@@ -1,6 +1,6 @@
 #include "radio_const.h"
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
 #include "nrf24l01s.h"
 #include "nrf_powerSleep.h"
@@ -272,4 +272,4 @@ void sleepPwrDown(uint8_t durat)  /* *** WARNING *** no hardware PowerUp()/down 
    
 }
 
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'

@@ -97,7 +97,7 @@ uint8_t channel;
 uint8_t speed=RF_SPD_1MB;
 extern byte*  configVers;
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 
 /* >>>> config concentrateur <<<<<< */
 
@@ -152,11 +152,11 @@ uint32_t ram_remanente __attribute__((section(".noinit")));
 
 extern uint32_t uRScnt;
 
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
-const char*  chexa="0123456789ABCDEFabcdef\0";
+extern const char*  chexa; //="0123456789ABCDEFabcdef\0";
 
 extern float*    thFactor;
 extern float*    thOffset;
@@ -225,7 +225,7 @@ void int_ISR()
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(2);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);}
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
 void ini_t_on();
 void iniTemp();
@@ -238,7 +238,7 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
 int  rxMessage(unsigned long to);
 //void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 char getch();
 void echo();
 void broadcast(char a);
@@ -275,12 +275,12 @@ void radioInit()
   */
   //Serial.println(micros()-mic);// en principe 51uS
 }
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
 
 void setup() {
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
   Serial.begin(115200);
   Serial.println("\n+");
@@ -354,9 +354,9 @@ void setup() {
 //diagT("sleepNoPower à suivre",10);
 //sleepNoPwr(T8000);
 
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 
   PP4_INIT
 
@@ -428,7 +428,7 @@ blkCtl('b');
 
   configPrint();
 
-  blkCtl('c');
+blkCtl('c');
 
   WDTRIG //trigwd(0);blktime=millis();
 
@@ -451,7 +451,7 @@ blkCtl('d');
   Serial.println();
 
   lastUdpCall=millis();
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
   Serial.println("end setup\n");delay(1);
 
@@ -459,7 +459,7 @@ blkCtl('d');
 
 void loop() {
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
   if(diags){  
     t_on4=micros();
@@ -599,9 +599,9 @@ void loop() {
     awakeCnt=1;
     awakeMinCnt=1;            
   }
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 
   //blkCtl('g');
 
@@ -762,11 +762,11 @@ blkCtl('g');
     default:break;
   }
   
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
 } /******************** loop end  *******************/
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 
 void getEchoNum()
 {
@@ -883,9 +883,9 @@ char getch()
 }
 
 
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
 int beginP()                        // manage registration ; output value >0 is numT else error with radio.powerOff()
 {
@@ -1016,17 +1016,17 @@ int txRxMessage()
   else return rdSta;
 }
 
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
 int txMessage(bool ack,uint8_t len,const uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2 registration ko
 {
-#if NRF_MODE=='P'  
+#if MACHINE_DET328  
   if(numT==0){
     numT=beginP();
     if(numT<=0){trSta=-2;return trSta;}           // beginP n'a pas fonctionné
   }
   message[NRF_ADDR_LENGTH]=numT+48;
-#endif // NRF_MODE=='P'
+#endif // MACHINE=='P'
 
   radio.write(message,ack,len,tableC[numP].periMac);               // send message
   trSta=1;
@@ -1036,7 +1036,7 @@ int txMessage(bool ack,uint8_t len,const uint8_t numP)  // retour 0 ok ; -1 maxR
 
   time_end=micros();
 
-  #if NRF_MODE=='C'
+  #if MACHINE_CONCENTRATEUR
   if(diags){
   #define LBUFCV 7
     char    bufCv[LBUFCV];                    // buffer conversion sprintf
@@ -1055,7 +1055,7 @@ int txMessage(bool ack,uint8_t len,const uint8_t numP)  // retour 0 ok ; -1 maxR
     strcat(diagMessT,bufCv);
     strcat(diagMessT,"uS");
   }
-  #endif // NRF_MODE=='C'
+  #endif // MACHINE=='C'
   
   return trSta;
 }
@@ -1077,7 +1077,7 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
   messageIn[pldLength]=0x00;
   time_end=micros();
 
-  #if NRF_MODE=='C'
+  #if MACHINE_CONCENTRATEUR
   if(diags){
   #define LBUFCV 7
     char    bufCv[LBUFCV];                    // buffer conversion sprintf
@@ -1093,7 +1093,7 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
     strcat(diagMessR,bufCv);
     strcat(diagMessR,"uS");
   }
-  #endif // NRF_MODE=='C'
+  #endif // MACHINE=='C'
   return rdSta;
 }
 
@@ -1119,14 +1119,14 @@ void showRx(bool crlf){
 void showErr(bool crlf)
 {
 if(diags){
-#if  NRF_MODE == 'P'
+#if  MACHINE_DET328
   Serial.println();
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
   Serial.print("€ tx=");Serial.print(trSta);Serial.print(" rx=");Serial.print(rdSta);
-#if  NRF_MODE == 'P'
+#if  MACHINE_DET328
   Serial.print(" message ");Serial.print((char*)message);
   Serial.print(" lastSta ");if(radio.lastSta<0x10){Serial.print("0");}Serial.print(radio.lastSta,HEX);
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
   Serial.print(" ");Serial.print((char*)kk+(rdSta+6)*LMERR);Serial.print(" €");
   if(crlf){Serial.println();}
 }  
@@ -1143,7 +1143,7 @@ void ini_t_on()
   t_on4=t_on;  
 }
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
 void iniTemp()
 {
@@ -1260,10 +1260,10 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
   }
 }
 
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,unsigned long dly)
 /*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 
@@ -1273,7 +1273,7 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,unsigned long dly)
   blktime=0;bcnt=1;blkdelay=0;
   while((millis()-tt)<dly){ledblk(dur,bdelay,bint,bnb);dly-=((dur+bint)*bnb+bdelay);}
 }
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
 void ledblk(int dur,int bdelay,int bint,uint8_t bnb)
 {   // dur = durée on ; bdelay = delay entre séquences ; bint = intervalle entre blinks ; bnb = nbre blinks

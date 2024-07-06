@@ -13,7 +13,7 @@ extern Eepr eeprom;
 byte  configRec[CONFIGRECLEN];
 byte*     configVers;
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
 
 /* >>>> config concentrateur <<<<<< */
 
@@ -173,9 +173,9 @@ void configCreate()       // valeurs pour concentrateur de test
   configSave();
 }
 
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
-#if NRF_MODE == 'P'
+#if MACHINE_DET328
 
 extern byte message[];
 
@@ -309,7 +309,7 @@ uint16_t getServerConfig()
   #endif // NOCONFSER
 }
 
-#endif // NRF_MODE == 'P'
+#endif // MACHINE == 'P'
 
 bool configLoad()
 {

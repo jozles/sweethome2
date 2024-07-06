@@ -4,7 +4,7 @@
 #include "nrf24l01s.h"
 
 
-#if NRF_MODE =='C'
+#if MACHINE_CONCENTRATEUR
 
 extern Nrfp radio;
 extern ConTable tableC[];
@@ -117,4 +117,4 @@ int tableCSave()
 {
   return 1;
 }
-#endif // NRF_MODE=='C'
+#endif // MACHINE=='C'

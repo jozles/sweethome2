@@ -73,9 +73,9 @@ v2.a  utilisation lib ethernet2 ; delay après Udp.endPacket() ; reset hard du w
 
 //#define NOCONFSER
   
-  //#define NRF_MODE 'P'            //  P périphérique
-  #define NRF_MODE 'C'            //  C concentrateur  
-/* !!!!!! changer de platformio.ini selon le NRF_MODE ('C'=due ou stm32 ; 'P' =328 !!!!! */
+  //#define MACHINE 'P'            //  P périphérique
+  //#define MACHINE 'C'            //  C concentrateur  
+/* !!!!!! changer de platformio.ini selon la MACHINE ('C'=due ou stm32 ; 'P' =328 !!!!! */
 
   #define TXRX_MODE 'U'           // TCP / UDP
 
@@ -89,7 +89,7 @@ v2.a  utilisation lib ethernet2 ; delay après Udp.endPacket() ; reset hard du w
   #define NBPERIF 12                      // dim table
   #define BUF_SERVER_LENGTH LBUFSERVER    // to/from server buffer length
 
-#if NRF_MODE == 'C'
+#if MACHINE_CONCENTRATEUR
   //#define DUE                   // DUE OU STM32... provient de platformio.ini  
 
   #define MODEL "REDV2_"
@@ -120,6 +120,6 @@ v2.a  utilisation lib ethernet2 ; delay après Udp.endPacket() ; reset hard du w
   #define SBVINIT "00072_00024_0025_00000000"  // server buffer init value
   #define SBLINIT 25                           // server buffer init length (MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1)
          
-#endif // NRF_MODE == 'C'
+#endif // MACHINE == 'C'
 
 #endif // _RADIO_CONST_INCLUDED

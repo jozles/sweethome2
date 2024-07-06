@@ -26,9 +26,8 @@ board_hardware.oscillator = internal
 upload_speed = 38400
 
 ;build_type = debug
-build_flags = -DDETS -DPERIF 
+build_flags = -DDETS -DPERIF -DMACHINE_DET328
 
 LIB_EXTRA_DIRS = 
-;D:/data/arduino/libraries/shlib2/
  D:/data/arduino/libraries/shlib2/
 ;D:/data/arduino/libraries/eepr/
