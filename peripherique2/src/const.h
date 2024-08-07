@@ -217,6 +217,7 @@ Modifier :
 #define PINREAD(pin) capaKeys.keyVal[pin]
 #endif  // CAPATOUCH
 
+//#define IRQCNT
 
 /* >>> MODES d'ALIM <<< */
 
@@ -229,7 +230,7 @@ Modifier :
 #define VR      'V'  // 2 triacs
 #define VRR     'W'  // 2 relais
 #define VRDEV   'D'  // carte dev avec 2 leds
-#define SFRFR2  'S'  // carte sonoff_rf_r2 
+#define SFRFR2  'S'  // carte sonoff_rf_r2 ------ configurer platformio.ini pour 8285 -----
 //#define RELAY   
 #define THESP01 '1'
 #define THESP12 '2'
@@ -241,9 +242,8 @@ Modifier :
 //                                 
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRR            // <------------- modèle carte
+#define CARTE SFRFR2            // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation 
-//#define PININT_MODE             // <------------- avec/sans pin d'interruption
 
 /* ds18x20 */
 #define MODEL_S 0x10
@@ -334,9 +334,6 @@ Modifier :
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
 #define PINDTD PINXDT   // pin entrée détect bit 3  sur la même entrée.
-#define PININTA 12      // in interupt
-#define PININTB 14      // in interupt
-#define PININTC PINXDT  // in interupt
 #define MEMDINIT 0x1111 // bits enable
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
@@ -364,7 +361,10 @@ Modifier :
 #define CLOSD  CLOSB    
 #define OPEND  OPENB
 
+#ifdef IRQCNT
 #define IRQPIN PINXDT   // pin entrée impulsions à compter
+#endif // IRQCNT
+
 #ifndef CAPATOUCH
 #ifndef IRQPIN
 #define NBDET  3        //  3 det et non 4
@@ -372,15 +372,12 @@ Modifier :
 #ifdef  IRQPIN
 #define NBDET  2        //  2 det et non 4
 #endif
-#endif
-  
+#endif  // CAPATOUCH
+
 #define PINDTA 12       // pin entrée détect bit 0 
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC PINXDT   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
 #define PINDTD PINXDT   // pin entrée détect bit 3  sur la même entrée. --> génère un bug dans le traitement des règles (2 det changent au lieu d'un)
-//#define PININTA 12      // in interupt
-//#define PININTB 14      // in interupt
-//#define PININTC PINXDT  // in interupt
 #define MEMDINIT 0x1111 // bits enable
 //#define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
@@ -395,7 +392,7 @@ Modifier :
 #endif // CARTE==VRR
 
 #if CARTE==SFRFR2
-
+// ------------------------ configurer platformio.ini pour 8285 -----------------------------
 #define PINLED 13
 #define LEDON LOW
 #define LEDOFF HIGH
@@ -420,9 +417,6 @@ Modifier :
 #define PINDTB PINDTA   // pin entrée détect bit 1 
 #define PINDTC PINDTA   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
 #define PINDTD PINDTA   // pin entrée détect bit 3  sur la même entrée. --> génère un bug dans le traitement des règles (2 det changent au lieu d'un)
-//#define PININTA 12      // in interupt
-//#define PININTB 14      // in interupt
-//#define PININTC PINXDT  // in interupt
 #define MEMDINIT 0x1111 // bits enable
 //#define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
@@ -452,8 +446,6 @@ Modifier :
 #define PINDTB 5        // pin entrée détect bit 1 
 #define PINDTC 5        // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
 #define PINDTD 5        // pin entrée détect bit 3  sur la même entrée.
-#define PININTA 5       // in interupt
-#define PININTB 5       // in interupt
 #define MEMDINIT 0x0000 // bits enable memDetec
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 170     // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
@@ -482,8 +474,6 @@ Modifier :
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC 13       // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
 #define PINDTD 13       // pin entrée détect bit 3  sur la même entrée.
-#define PININTA 12      // in interupt
-#define PININTB 14      // in interupt
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #endif // CARTE==THESP12
@@ -514,8 +504,6 @@ Modifier :
 #define PINDTB 14       // pin entrée détect bit 1 
 #define PINDTC 13       // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
 #define PINDTD 13       // pin entrée détect bit 3  sur la même entrée.
-#define PININTA 12      // in interupt
-#define PININTB 14      // in interupt
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
 #ifdef CAPATOUCH

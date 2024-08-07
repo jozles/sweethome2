@@ -200,9 +200,9 @@ uint16_t  getServerConfig();
 void  ordreExt0();
 void  showBS(char* buf);
 void  thermostat();
-#ifdef IRQPIN
+#ifdef IRQCNT
 void  irqCntUpdate();
-#endif // IRQPIN
+#endif // IRQCNT
 
 
 
@@ -234,6 +234,8 @@ void tmarker()
 
 void setup() 
 { 
+
+//pinMode(PINLED,OUTPUT);while(1){yield();digitalWrite(PINLED,HIGH);delay(500);digitalWrite(PINLED,LOW);delay(500);}
 
 /* >>>>>> pins Init <<<<<< */
 
@@ -279,7 +281,7 @@ delay(1);
 
   initLed(PINLED,LEDOFF,LEDON);
 
-#if CARTE==VR || CARTE==VRR || CARTE==VRDEV || CARTE==SFRFR2
+#if CARTE==VR || CARTE==VRR || CARTE==VRDEV || CARTE==SFRFR2 || CARTE==SFPOW
   for(uint8_t sw=0;sw<MAXSW;sw++){
     digitalWrite(pinSw[sw],openSw[sw]);
     pinMode(pinSw[sw],OUTPUT);}
@@ -290,18 +292,6 @@ delay(1);
   pinMode(PINDTC,INPUT_PULLUP);  
 #endif // CAPATOUCH
 #endif // VR||VRR
-
-#ifdef PININT_MODE 
-  pinMode(PININTA,INPUT_PULLUP);
-  pinMode(PININTB,INPUT_PULLUP); 
-  
-  //if(digitalRead(PINDTA==0) || digitalRead(PININTA)==0 || (digitalRead(PININTA)!=0 && digitalRead(PININTB)!=0)){cntIntA=1;}
-// fonctions d'interruption
-// isrD[0]=isrD0;
-// isrD[1]=isrD1;
-// isrD[2]=isrD2;
-// isrD[3]=isrD3;
-#endif // PININT_MODE
 
 /* >>>>>> inits variables <<<<<< */
 
@@ -455,9 +445,11 @@ delay(1);
 #endif // ANALYZE  
   clkTime=millis();
 
-#ifdef IRQPIN
+#ifdef IRQCNT
   attachInterrupt(digitalPinToInterrupt(IRQPIN), irqCntUpdate, FALLING);
-#endif  // IRQPIN
+#endif  // IRQCNT
+
+
 
   }    // fin setup NO_MODE
 
@@ -1279,10 +1271,10 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
 
 void readAnalog()
 {
- #ifndef IRQPIN
+ #ifndef IRQCNT
  cstRec.analVal=analogRead(A0); 
  #endif
- #ifdef IRQPIN
+ #ifdef IRQCNT
  cstRec.analVal=(irqCnt&0x003fffff); // 2^22/1000=33554 ok pour 16 bits
  #endif
 }
@@ -1424,7 +1416,7 @@ void getTemp()
 #endif // PM!=DS_MODE
 
       checkVoltage();
-#ifdef IRQPIN
+#ifdef IRQCNT
       Serial.print(irqCnt);Serial.print(' ');
 #endif      
 }
@@ -1500,9 +1492,9 @@ uint16_t getServerConfig()
   return rcvl;
 }
 
-#ifdef IRQPIN
+#ifdef IRQCNT
 ICACHE_RAM_ATTR void irqCntUpdate()
 {
   irqCnt++;
 }
-#endif // IRQPIN
+#endif // IRQCNT
