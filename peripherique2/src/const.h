@@ -4,6 +4,7 @@
 #include "Arduino.h"
 #include <shconst2.h>
 
+
 //#define ANALYZE -> flag dans platformio.ini
 // le pin GPIO13 est utilisé comme entrée pour passer en mode config au reset -> pas de conflit avec l'analyseur
 // en fonctionnement normal GPIO13 est une entrée et son usage en sortie pour l'analyseur ne crée pas de conflit

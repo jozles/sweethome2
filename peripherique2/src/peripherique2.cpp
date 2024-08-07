@@ -1,5 +1,10 @@
 
+#ifndef ESP32
 #include <ESP8266WiFi.h>
+#endif
+#ifdef ESP32
+#include <WiFi.h>
+#endif
 #include <shconst2.h>
 #include <shutil2.h>
 #include <shmess2.h>
@@ -31,9 +36,11 @@ char* fromPass={"bncfuobkxmhnbwgi"};  // old="uuunclajxtrabnpj"
 
 #endif // MAIL_SENDER
 
+#ifndef ESP32
 extern "C" {                  
 #include <user_interface.h>                 // pour struct rst_info, system_deep_sleep_set_option(), rtc_mem
 }
+#endif
 
 #if CONSTANT==EEPROMSAVED
 #include <EEPROM.h>
@@ -810,7 +817,7 @@ int buildReadSave(const char* nomFonction,const char* data)   // construit et en
 {
   //Serial.print(nomFonction);Serial.print(' ');
   strcpy(bufServer,"GET /cx?\0");
-  if(!buildMess("peri_pass_",cstRec.peripass,"?",diags,true)==MESSOK){
+  if(buildMess("peri_pass_",cstRec.peripass,"?",diags,true)!=MESSOK){
     if(diags){Serial.print("decap bufServer ");Serial.print(bufServer);Serial.print(" ");Serial.println(cstRec.peripass);return MESSDEC;};}
 
   buildData(nomFonction,data);
@@ -996,7 +1003,7 @@ unsigned long beg=millis();
     char* m1=strstr(msg,"##");      // login
     char* m2=strstr(m1,"==");       // pswd
     char* m3=strstr(m2,"##");       // fin pswd
-    if(m1!=0 && m2!=0 && m3!=0){*m2='\0';m3='\0';mailInit(m1+2,m2+2);}
+    if(m1!=0 && m2!=0 && m3!=0){*m2='\0';*m3='\0';mailInit(m1+2,m2+2);}
 
       #define LMLOC 16
       char a[LMLOC];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';

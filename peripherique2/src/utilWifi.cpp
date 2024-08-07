@@ -1,8 +1,13 @@
 
-#include "const.h"
-#include <ESP8266WiFi.h>
 #include <shconst2.h>
 #include <shutil2.h>
+#ifndef ESP32
+#include <ESP8266WiFi.h>
+#endif
+#ifdef ESP32
+#include <Wifi.h>
+#endif
+#include "const.h"
 
 extern constantValues cstRec;
 
@@ -96,7 +101,9 @@ bool wifiConnexion(const char* ssid,const char* password)
 void modemsleep()
 {
   WiFi.disconnect();
+#ifndef ESP32  
   WiFi.forceSleepBegin();
+#endif
   delay(100);
 }
 

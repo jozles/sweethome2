@@ -1,7 +1,12 @@
 
 #include "Arduino.h"
 #include "const.h"
+#ifndef ESP32
 #include <ESP8266WiFi.h>
+#endif
+#ifdef ESP32
+#include <Wifi.h>
+#endif
 #include "ds18x20.h"
 #include "shconst2.h"
 #include "shutil2.h"
@@ -9,9 +14,11 @@
 #include <EEPROM.h>
 #endif
 
+#ifndef ESP32
 extern "C" {                  
 #include <user_interface.h>     // pour struct rst_info, system_deep_sleep_set_option(), rtc_mem
 }
+#endif
 
 extern Ds1820 ds1820;
 
@@ -173,7 +180,8 @@ void initConstant()  // inits mise sous tension
 
 // **************** à supprimer en production ; doit être chargé depuis le frontal ***************
 
-  memcpy(cstRec.peripass,"17515A",LPWD+1);
+  memset(cstRec.peripass,'\0',LPWD+1);
+  memcpy(cstRec.peripass,"17515A\0",7);
   strcat(cstRec.ssid2,SSID2);     //"pinks");
   strcat(cstRec.pwd2,PWDSSID2);   //"cain ne dormant pas songeait au pied des monts");
   strcat(cstRec.ssid1,SSID1);     //"devolo-5d3");
