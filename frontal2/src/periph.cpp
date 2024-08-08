@@ -971,7 +971,10 @@ void periTableLoad()                            // au démarrage du systeme ; ch
 
   for(int h=1;h<=NBPERIF;h++){
     Serial.print(" ");Serial.print(h);
-    if(periCacheLoad(h)==SDKO){Serial.println(" KO");mail("PERITABLE_LOAD_HALT","");while(1){trigwd();delay(1000);}};}
+    if(periCacheLoad(h)==SDKO){Serial.println(" KO");mail("PERITABLE_LOAD_HALT","");while(1){trigwd();delay(1000);}};
+    // insérer ici une éventuelle initialisation de periRec (puis rebooter le serveur 2 fois)
+    // exemple : periLoad(h);if(*periPerTemp==0){*periPerTemp=60;}periSave(h,PERISAVELOCAL);
+  }
   Serial.println(" ALL OK");
 }  
 
