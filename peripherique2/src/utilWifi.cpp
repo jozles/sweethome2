@@ -71,6 +71,7 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
 */
       ledblink(BCODEONBLINK);
       Serial.print("\n WIFI connecting to ");Serial.print(ssid);
+      yield();
       WiFi.begin(ssid,password);
       
       while(WiFi.status() != WL_CONNECTED){     // try to connect

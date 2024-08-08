@@ -428,13 +428,16 @@ Modifier :
 #define PINLED 5
 #define LEDON LOW
 #define LEDOFF HIGH
+#define PINLEDR 18      // led etat relais séparée
+#define LEDRON LOW
+#define LEDROFF HIGH
 #define MAIL_SENDER
 //#define PINXDT 13
 #define WPIN   2        // 1 wire ds1820
 #define NBSW   1        // nbre switchs
 #define PINSWA 13       // pin sortie switch A
-#define CLOSA  HIGH     // relais ON
-#define OPENA  LOW      // relais off
+#define CLOSA  LOW      // relais ON
+#define OPENA  HIGH     // relais off
 #define PINSWB 4   // pin sortie switch B
 #define CLOSB  CLOSA    // relais ON sortie haute
 #define OPENB  OPENA    // relais OFF
@@ -444,7 +447,7 @@ Modifier :
 #define PINSWD 4   // pin sortie switch D
 #define CLOSD  CLOSA
 #define OPEND  OPENA
-#define NBDET  1        //  3 det et non 4
+#define NBDET  1        //  1 pushbutton
 #define PINDTA 0        // pin entrée détect bit 0
 #define PINDTB PINDTA   // pin entrée détect bit 1
 #define PINDTC PINDTA   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
@@ -452,6 +455,9 @@ Modifier :
 #define MEMDINIT 0x1111 // bits enable
 //#define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define TOOGBT PINDTA   // toogle pushbutton local
+#define TOOGLV 0        // toogle active edge
+#define TOOGSW PINSWA   // toogled output
 #endif // CARTE==SFPOW
 
 

@@ -11,7 +11,11 @@ extern const char* chexa;
 extern uint8_t bitMsk[];
 
 //#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
+#ifndef DEBUG_ACTIONS
+#define PUV2 
+#endif 
 #ifdef DEBUG_ACTIONS
+#define PUV2 puv[2]=chexa[staPulse[ndest]];
 #define LDA 1000
 extern char inptyps[]; //="52meexphpu??";
 extern char inptypd[]; //="52meexswpu??";
@@ -63,6 +67,7 @@ extern uint8_t outSw;           // état à appliquer aux switchs (produit par "
 extern constantValues cstRec;
 
 extern  uint8_t pinSw[MAXSW];                                  // les switchs
+extern  uint8_t toogSw;                                        // n° du sw en toogle dans pinSw[]
 extern  byte    staPulse[NBPULSE];                             // état clock pulses
 uint32_t  cntPulseOne[NBPULSE]; // 16   temps debut pulse 1
 uint32_t  cntPulseTwo[NBPULSE]; // 16   temps debut pulse 2
@@ -202,9 +207,9 @@ void actions()          // pour chaque input, test enable,
   /* pour actions OR/NOR/AND/NAND */
   uint8_t curSw[MAXSW];memset(curSw,0x00,MAXSW);     // valeur courante des SW pendant la lecture des règles (0 au départ)
   uint8_t usdSw[MAXSW];memset(usdSw,0x00,MAXSW);     // devient 1 si le SW est modifié par une règle
-
-  char puv[4]={0x00,0x00,0x00,0x00};       
+       
 #ifdef DEBUG_ACTIONS
+  char puv[4]={0x00,0x00,0x00,0x00};
   memset(curDebugAction,0x00,LDA);
   char lmb[2]={0x00,0x00};
   strcat(curDebugAction,"(");
@@ -491,7 +496,7 @@ void actions()          // pour chaque input, test enable,
                       staPulse[ndest]=PM_IDLE;
                       impDetTime[ndest]=0;
                     }
-                    puv[2]=chexa[staPulse[ndest]];
+                    PUV2
                   }
                   break;
                case PMDCA_START: 
@@ -506,7 +511,7 @@ void actions()          // pour chaque input, test enable,
                       staPulse[ndest]=PM_RUN2;}
                     else {staPulse[ndest]=PM_RUN1;cntPulseOne[ndest]=millis();}
                     impDetTime[ndest]=millis();
-                    puv[2]=chexa[staPulse[ndest]];
+                    PUV2
                   }
                   break;
                case PMDCA_SHORT: 
@@ -517,7 +522,7 @@ void actions()          // pour chaque input, test enable,
                       cntPulseOne[ndest]=0;cntPulse[ndest*2]=0;}     // cstRec.durPulseOne[ndest]*10;}
                     else if(staPulse[ndest]==PM_RUN2 || cntPulseTwo[ndest]!=0){cntPulseTwo[ndest]=0;} // cstRec.durPulseTwo[ndest]*10;}
                     impDetTime[ndest]=0;
-                    puv[2]=chexa[staPulse[ndest]];
+                    PUV2
                   }
                   break;                 
                case PMDCA_RAZ: 
@@ -530,7 +535,7 @@ void actions()          // pour chaque input, test enable,
                     impDetTime[ndest]=0;
                     cntPulse[ndest*2]=0;
                     cntPulse[(ndest*2)+1]=0;
-                    puv[2]=chexa[staPulse[ndest]];
+                    PUV2
                   }
                   break;               
                case PMDCA_RESET: 
@@ -543,7 +548,7 @@ void actions()          // pour chaque input, test enable,
                     impDetTime[ndest]=0;
                     cntPulse[ndest*2]=0;
                     cntPulse[(ndest*2)+1]=0;
-                    puv[2]=chexa[staPulse[ndest]];
+                    PUV2
                   }
                   break;                 
                case PMDCA_IMP: 
@@ -556,7 +561,7 @@ void actions()          // pour chaque input, test enable,
                       cntPulseTwo[ndest]=0;}
                     Serial.print("Time=");Serial.print(millis()-impDetTime[ndest]);Serial.print(" ");
                     impDetTime[ndest]=0;
-                    puv[2]=chexa[staPulse[ndest]];
+                    PUV2
                   }
                   break;
                case PMDCA_END: 
@@ -572,7 +577,7 @@ void actions()          // pour chaque input, test enable,
                       cntPulse[(ndest*2)+1]=0;
                       setPulseChg(ndest,'T');}
                     impDetTime[ndest]=0;
-                    puv[2]=chexa[staPulse[ndest]];
+                    PUV2
                   }
                   break;
                default:actionSysErr(action,inp);
@@ -721,8 +726,9 @@ void memdetinit()                         // init détecteurs physiques à la mi
 void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur det (polDx masqué par tempo debounce) 
                                      // memDetec met le débounce en commun si plusieurs inputs
                                      // utilisent le même détecteur (seul bit utilisé : LH)
+                                     // si le détecteur pilote un switch en toogle et flanc actif => maj outSw
 {    
-    byte lev=PINREAD(det); //digitalRead(pinDet[det]);
+    byte lev=PINREAD(pinDet[det]); //digitalRead(pinDet[det]);
     if( ((byte)(cstRec.memDetec[det]>>DETBITLH_PB)&0x01) != lev ){    // niveau lu != niveau actuel de memDetec ?
       // level change -> update memDetec
       cstRec.memDetec[det] &= ~DETBITLH_VB;                           // raz bits LH
@@ -730,9 +736,21 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
       detTime[det]=millis();                                          // arme debounce
       talkReq();                                                      // talkServer
       cstRec.serverTime=0;
-      delay(1);Serial.print("  >>>>>>>>> det ");Serial.print(det);Serial.print(" change to ");Serial.println(lev);
       delay(1);
-  }
+      Serial.print("  >>>>>>>>> det ");Serial.print(det);
+      Serial.print(" pin ");Serial.print(pinDet[det]);
+      Serial.print(" change to ");Serial.print(lev);
+      delay(1);
+      #ifdef TOOGBT
+      if(pinDet[det]==TOOGBT && lev==TOOGLV){
+        uint8_t msktoogle=0x01<<toogSw;
+        outSw^=msktoogle;
+        Serial.print(" toogle sw ");Serial.print(toogSw);
+        Serial.print('/');Serial.print((outSw>>toogSw)&0x01);
+      }
+      #endif // TOOGBT
+      Serial.println();
+    }
 }
 
 void polAllDet()                                        // maj de memDetec (via polDx) pour tous les détecteurs locaux

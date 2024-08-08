@@ -152,6 +152,9 @@ bool serverStarted=false;
 
   unsigned long    impDetTime[NBPULSE];                     // timer pour gestion commandes impulsionnelles     
   uint8_t pinDet[MAXDET]={PINDTA,PINDTB,PINDTC,PINDTD};     // les détecteurs
+  #ifdef TOOGBT
+  uint8_t toogSw=0;                                         // sortie en toogle depuis TOOGBT
+  #endif  // TOOGBT
 
   uint32_t irqCnt=0;
 
@@ -288,16 +291,23 @@ delay(1);
 
   initLed(PINLED,LEDOFF,LEDON);
 
+#ifdef PINLEDR
+  pinMode(PINLEDR,OUTPUT);
+#endif // PINLEDR
+
 #if CARTE==VR || CARTE==VRR || CARTE==VRDEV || CARTE==SFRFR2 || CARTE==SFPOW
   for(uint8_t sw=0;sw<MAXSW;sw++){
     digitalWrite(pinSw[sw],openSw[sw]);
     pinMode(pinSw[sw],OUTPUT);}
 
+#ifdef TOOGBT
+for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==TOOGSW){toogSw=i;break;}}
+#endif // TOOGBT
+
 #ifndef CAPATOUCH
-  pinMode(PINDTA,INPUT_PULLUP);
-  pinMode(PINDTB,INPUT_PULLUP);  
-  pinMode(PINDTC,INPUT_PULLUP);  
+  for(uint8_t i=0;i<NBDET;i++){pinMode(pinDet[i],INPUT_PULLUP);}
 #endif // CAPATOUCH
+
 #endif // VR||VRR
 
 /* >>>>>> inits variables <<<<<< */
@@ -586,6 +596,7 @@ delay(1);
   } //  fin setup si != NO_MODE
 void loop() {
 #endif // PM!=NO_MODE
+
 }  // fin loop pour toutes les options
 
 /* =================== communications ========================
@@ -668,12 +679,6 @@ if(diags){Serial.println(" dataTransfer() ");}
           cstRec.serverPer=(long)convStrToNum(data+MPOSPERREFR,&sizeRead);    // per refresh server
           cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
           cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure (100x)
-            
-          /*uint8_t mskSw[] = {0xfd,0xf7,0xdf,0x7f};                            
-          for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte état/cdes serveur + 4 bytes par switch (voir const.h du frontal)
-            cstRec.swCde &= mskSw[i];
-            cstRec.swCde |= (*(data+MPOSSWCDE+i)-48)<<((2*(MAXSW-i))-1);}     // bit cde (bits 8,6,4,2 pour switchs 3,2,1,0)  
-          */
 
           for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte disjoncteurs : 2 bits / switch (voir const.h du frontal) 
             cstRec.swCde=(cstRec.swCde)<<2;
@@ -1318,7 +1323,10 @@ void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0
             if(digitalRead(pinSw[sw])==cloSw[sw]){          // évite les switchs déjà "open"
               isOpenSw=true;
               outPutDly=OUTPUTDLY;}
-              digitalWrite(pinSw[sw],openSw[sw]);              
+              digitalWrite(pinSw[sw],openSw[sw]);
+              #ifdef PINLEDR
+              if(sw==0){digitalWrite(PINLEDR,LEDROFF);}                            
+              #endif // PINLEDR
         }
       }
     if(!isOpenSw && (outPutDly-millis()>=OUTPUTDLY)){       // les fermetures quand pas d'ouvertures et délai terminé
@@ -1326,6 +1334,9 @@ void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0
         if(((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){  
           isOpenSw=true;
           digitalWrite(pinSw[sw],cloSw[sw]);
+          #ifdef PINLEDR
+          if(sw==0){digitalWrite(PINLEDR,LEDRON);}                            
+          #endif // PINLEDR
         }
       }
     }
