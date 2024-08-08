@@ -227,7 +227,7 @@ void userResetSetup(byte* serverIp,const char* mailMessage)
   for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.println((IPAddress)localIp);
   
   WDTRIG //trigwd(0);
-  digitalWrite(A8,HIGH);pinMode(A8,OUTPUT);digitalWrite(A8,LOW);delay(1000);digitalWrite(A8,HIGH);delay(1000);    // hard Reset
+  digitalWrite(A8,HIGH);pinMode(A8,OUTPUT);digitalWrite(A8,LOW);delay(2000);digitalWrite(A8,HIGH);delay(1000);    // hard Reset
   WDTRIG //trigwd(0);
   
   Ethernet.begin (concMac,localIp);
@@ -240,7 +240,9 @@ void userResetSetup(byte* serverIp,const char* mailMessage)
     Serial.print(" localIP=");
   }
   */
-  for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];localIp[i]=Ethernet.localIP()[i];}Serial.print((IPAddress)host);Serial.println();
+  Serial.print(" host:");
+  for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];localIp[i]=Ethernet.localIP()[i];}
+  Serial.print((IPAddress)host);Serial.print("/");Serial.println(hostPort);
 
   WDTRIG //trigwd(0);
 
@@ -752,7 +754,7 @@ void exportDataMail(const char* messName,uint8_t maxRetry)    // wait for server
     while(noResponseTo && cnt<maxRetry+1){
       cnt++;       
       exportDataMail(messName);delay(10);    
-      #define RWTO 5000
+      #define RWTO 7000
       unsigned long responseWait=millis();
       while((millis()-responseWait)<RWTO){
         WDTRIG //trigwd(0);      

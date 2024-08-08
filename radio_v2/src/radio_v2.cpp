@@ -446,7 +446,7 @@ blkCtl('c');
   while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
   
 blkCtl('d');    
-  exportDataMail("START",5);
+  exportDataMail("START",4);
 
   Serial.println();
 
