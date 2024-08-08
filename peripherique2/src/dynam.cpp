@@ -51,7 +51,7 @@ char* cdx(uint8_t val)
 #endif
 
 #ifdef CAPATOUCH
-#include <capaTouch.h>
+#include <capaTouch.h>          // décommenter le path dans platformio.ini
 extern Capat capaKeys;
 #endif // CAPATOUCH
 

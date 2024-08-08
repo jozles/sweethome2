@@ -47,7 +47,7 @@ extern "C" {
 #endif
 
 #ifdef CAPATOUCH
-#include <capaTouch.h>
+#include <capaTouch.h>          // décommenter le path dans platformio.ini
 uint8_t keys[]={KEY2,KEY1};
 Capat capaKeys;
 #endif
