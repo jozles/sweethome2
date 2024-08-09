@@ -85,17 +85,18 @@ extern byte      periMacBuf[6];
 
 extern uint8_t   memDetServ[];
 
-extern int8_t    periMess;                     // code diag réception message (voir MESSxxx shconst.h)
+extern int8_t    periMess;                  // code diag réception message (voir MESSxxx shconst.h)
 
 extern char      bufServer[LBUFSERVER];
 
 extern char*     chexa;
 
 extern  char*    fonctions;
-extern int8_t    numfonc;                    // fonction courante (copie numfonct[i])
-extern int       nbfonct,faccueil,fdatasave,fdatana,fdatamail,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref;
+extern int8_t    numfonc;                   // fonction courante (copie numfonct[i])
+extern int       nbfonct,faccueil,fdatasave,fdatana,fperiSwVal,fperiDetSs,fdone,fpericur,fperipass,fpassword,fusername,fuserref,fdatamail,fdatapar;
 
-extern char*     mailData;                    // pointeur chaine à transmettre en provenance d'un périf
+extern char*     mailData;                  // pointeur chaine à transmettre en provenance d'un périf
+extern char*     jsonData;                  // pointeur json params data_par__
 
 void assySet(char* message,int periCur,const char* diag,char* date14,const char* fonct)     
 // assemblage datas pour périphérique ; format pp_mm.mm.mm.mm.mm_AAMMJJHHMMSS_nn..._
@@ -368,7 +369,35 @@ void checkdate(uint8_t num)                               // détection des date
   }
 }
 
-void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRead" ou "data_mail_" en provenance d'un periphérique 
+uint8_t jsonParams(char* data,uint8_t len)
+{
+  uint8_t cntPar=0;
+  #define LENPAR 5
+  long nbPar=1;
+  const char* jsPar="swcde";
+  char* dataPt=data;
+  char* sepPt=data;
+  long numPar;
+
+  while(dataPt<data+len){
+    if(*dataPt=='>' && dataPt>sepPt){
+      dataPt++;
+      numPar=(strstr(jsPar,sepPt+1)-jsPar)/LENPAR;if(numPar<0 || numPar>nbPar){return cntPar;}
+      switch (numPar){
+        case 0: if(*(dataPt+3)!=';'){return cntPar;}
+                conv_atoh(dataPt,periSwCde);          // HH cstRec.swcde value
+                cntPar++;dataPt+=3;sepPt=dataPt;
+                break;
+        default: break;
+      break;
+      }
+    }
+    else {dataPt++;}
+  }
+  return cntPar;
+}
+
+void periDataRead(char* valf)   // traitement d'une chaine "data_save_","data_read_","data_na_","data_mail_","data_par__" en provenance d'un periphérique 
                                 // periInitVar() a été effectué
                                 // controle len,CRC, charge periCur (N° périf du message), effectue periLoad()
                                 // gère les différentes situations présence/absence/création de l'entrée dans la table des périf
@@ -463,30 +492,54 @@ void periDataRead(char* valf)   // traitement d'une chaine "dataSave" ou "dataRe
         *periDetVal=(*periDetVal)<<1;*periDetVal |= (*(k+i)-PMFNCVAL);}
       }
       messLen-=(1+MAXSW+1+1+MAXDET+1);k+=MAXDET+1;
+      
       if(numfonc==fdatamail){
         mailData=k;
         char* v=k+255;
         for(k=k;k<v && *k!='\0';k++){
           if(*k=='_'){
             *k='\0';k++;break;}
-          if(*k=='\\'){k++;}
+          if(*k=='\\'){k+=2;}
         }
         messLen-=(k-mailData);
-        delay(10);
         Serial.println(mailData);
+        delay(4);
       }
       //Serial.println();
       // les pulses ne sont pas transmis si ils sont à 0 ; periSwPulseSta devrait être initialisé à 0 
       
-        if(messLen>0){                                                        // messlen>0 => pulse data présente
-        for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}           // pulse clk status 
+      if(messLen>0){                                                                                  // messlen>0 => pulses status 
+        for(int i=0;i<NBPULSE;i++){periSwPulseSta[i]=(uint8_t)(strchr(chexa,(int)*(k+i))-chexa);}     // pulse clk status 
       }
-      messLen-=(NBPULSE+1);if(messLen>0){
-        k+=NBPULSE+1;
-        if(periCur==perizer){for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}}         // model
+      messLen-=(NBPULSE+1);
+      k+=NBPULSE+1;
+      
+      if(messLen>0){                                                                                  // messlen>0 => model name
+        if(periCur==perizer){for(int i=0;i<LENMODEL;i++){periModel[i]=*(k+i);periNamer[i]=*(k+i);}}   // model
       }
       messLen-=(LENMODEL+1);
       k+=LENMODEL+1;
+
+      Serial.print("\n numfonc=");Serial.print(numfonc);Serial.print("/");Serial.println(fdatapar);
+
+      if(numfonc==fdatapar){
+        jsonData=k;
+        char* v=k+255;
+        for(k=k;k<v;k++){
+          // liste params "nom>value;" fin avec ;;
+          if(*k=='\\'){k+=2;}
+          if(*k==';' && *(k+1)==';'){k+=2;break;}
+          k++;
+        }
+        messLen-=(k-jsonData);
+        Serial.println();dumpstr(valf,100);
+        //Serial.println(jsonData);
+        //jsonParams(jsonData,k-jsonData);
+        //delay(4);
+      }
+      messLen-=k-jsonData+1;
+      k++;      // '_'
+
       if(messLen>0 && memcmp(periVers,"2.9",3)>=0){
         *periMessCnt=convStrToInt(k,&i);                      // compteur d'export des périphériques
         char aaa[4];memcpy(aaa,periVers,3);periVers[3]='\0';

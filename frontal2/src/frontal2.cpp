@@ -137,10 +137,10 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
 
   int8_t  numfonct[NBVAL];                    // les fonctions trouvées  (au max version 1.1k 23+4*57=251)
   
-  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh_p_data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedata_mail_dispo_____peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___antim_____antim_cb__antim_hh__antim_vv__antimcfg__dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
+  const char*   fonctions="per_temp__peri_pass_username__password__user_ref__to_passwd_per_refr__peri_tofs_switchs___deco______dump_his__hist_sh_p_data_save_data_read_peri_tst__peri_cur__peri_raz__perifonc__data_na___accueil___peri_tabledata_storedata_mail_data_par__peri_inp__dispo_____dispo_____dispo_____remote____testhtml__timersctl_peri_t_sw_peri_otf__p_inp1____p_inp2____peri_sw___antim_____antim_cb__antim_hh__antim_vv__antimcfg__dsrv_init_mem_dsrv__ssid______passssid__usrname___usrpass___cfgserv___null_fnct_percocfg__peripcfg__ethcfg____remotecfg_remote_c__remote_o__dispo_____mailcfg___thparams__thermoshowthermoscfgtim_ctl___tim_name__tim_det___tim_hdf___tim_chkb__timershtmldsrvhtml__libdsrv___periline__done______peri_ana__rul_ana___rul_dig___rul_init__favicon___last_fonc_";
   
   /*  nombre fonctions, valeur pour accueil, data_save_ fonctions multiples etc */
-  int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0,fthermoshow=0,fdatamail=0;
+  int     nbfonct=0,faccueil=0,fdatasave=0,fdatana=0,fperiSwVal=0,fperiDetSs=0,fdone=0,fpericur=0,fperipass=0,fpassword=0,fusername=0,fuserref=0,fperitst=0,ffavicon=0,fthermoshow=0,fdatamail=0,fdatapar=0;
   int8_t  numfonc;                     // copie numfonct[i]
   char    valeurs[LENVALEURS];         // les valeurs associées à chaque fonction trouvée
   uint16_t nvalf[NBVAL];               // offset dans valeurs[] des valeurs trouvées (séparées par '\0')
@@ -151,6 +151,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
   uint32_t loopCnt=0;
   uint8_t scanCnt=0;
   char*   mailData;                    // pointeur chaine à transmettre en provenance d'un périf
+  char*   jsonData;
 
 #define HTTPCDLENGTH 6
   const char*   httpCdes="GET   POST  \0";   // commandes traitées par le serveur
@@ -2065,12 +2066,13 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                           default :break;
                         }
                        }break;
-              case 18: if(periPassOk==VRAI){what=14;periDataRead(valf);periPassOk=FAUX;}break;      // data_na___ pas de réponse à faire
+              case 18: if(periPassOk==VRAI){what=14;periDataRead(valf);periPassOk=FAUX;}break;      // data_na___ pas de réponse à faire ; (idem data_save sans réponse serveur)
               case 19: accueilHtml(cli);break;                                                      // accueil
               case 20: periTableHtml(cli);break;                                                    // peri table
               case 21: what=0;break;                                                                // data_store
               case 22: if(periPassOk==VRAI){what=17;periDataRead(valf);periPassOk=FAUX;}break;      // data_mail_ idem data_save_ + texte mail ; pas de réponse à faire
-              case 23: break;                                                                       // dispo  
+              case 23: if(periPassOk==VRAI){what=1;periDataRead(valf);                              // data_par__ idem data_save_ + json params ; réponse idem data_save_
+                       periPassOk=FAUX;}break;
               case 24: {what=4;                                                                     // (lignes-regles) submit peri_inp__ set periCur raz cb
                        getPeriCurValf(PERILOAD);                                                    // periCur à jour via formIntro/peri_cur__
                        uint8_t nuinp=*(libfonctions+2*i+1)-PMFNCVAL;
@@ -2562,7 +2564,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                     periSave(periCur,PERISAVESD);                         // bouton submit periLine (MàJ/analog/digital)                                             
                     periLineHtml(cli);
                     break;                                                                                                           
-            case 14:break;                                                // data_na___
+            case 14:break;                                                // data_na___ (idem data_save sans réponse serveur)
             case 15:anTimersSave();anTimersHtml(cli);break;               // antim___ & anti_ch_
             case 16:dumpHisto(cli);break;                                 // bouton submit histo show
             case 17:if(periMess==MESSOK){mail("PERIF ",mailData);         // data_mail_

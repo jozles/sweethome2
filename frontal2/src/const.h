@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8n"
+#define NVERS ".8o"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -180,6 +180,9 @@
         backup periCur/periLoad dans mail ; intégration inits dans la fonction mail pour 1 seul periReq !
         ni pulses ni rules en UDP (gérer un bit de periCfg si ça devient nécessaire)
    1.8n ajout periMessCnt
+   1.8o ajout data_par__ pour forcer des valeurs de params dans le serveur ; idem data_save_ + json 'nom=valeur;'
+        réponse idem data_save_
+        1er usage : forcer swcde d'un perif depuis le périf swcde=HH ; nécessaire pour le tooglepushbutton 
 
 
    BUGS : 
