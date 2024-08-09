@@ -9,6 +9,7 @@
 
 
 void    talkReq();
+void    talkReq(uint8_t bit);
 uint8_t talkSta();
 
 

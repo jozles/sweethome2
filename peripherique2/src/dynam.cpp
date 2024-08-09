@@ -64,6 +64,9 @@ extern Capat capaKeys;
 extern uint32_t locmem;         // mémoire = valeurs locales pour partiels
 extern uint8_t outSw;           // état à appliquer aux switchs (produit par "actions()")
 
+extern bool oneShow;
+extern bool toogleEvent;
+
 extern constantValues cstRec;
 
 extern  uint8_t pinSw[MAXSW];                                  // les switchs
@@ -743,10 +746,19 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
       delay(1);
       #ifdef TOOGBT
       if(pinDet[det]==TOOGBT && lev==TOOGLV){
-        uint8_t msktoogle=0x01<<toogSw;
-        outSw^=msktoogle;
+        oneShow=true;
+        // faire toogle sur le pinSw[toogSw] : 
+        const char* open  ="disj\0";
+        const char* close ="force\0";
+        const char* swState = open;
+        cstRec.swCde&=0xfc<<(toogSw*2);         // si pas open -> disjoncté 
+        if(digitalRead(pinSw[toogSw])==openSw[toogSw]){
+          swState = close;
+          cstRec.swCde|=0x02<<(toogSw*2);}      // si open -> forcé
         Serial.print(" toogle sw ");Serial.print(toogSw);
-        Serial.print('/');Serial.print((outSw>>toogSw)&0x01);
+        Serial.print('/');Serial.print(swState);
+        Serial.print(" swCde ");Serial.print(cstRec.swCde,HEX);
+        toogleEvent=true;
       }
       #endif // TOOGBT
       Serial.println();

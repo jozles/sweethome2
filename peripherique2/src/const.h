@@ -100,7 +100,7 @@
  *     gestion thermostat en local via locmem et LOCMEM_STA_BIT
  * 2.8 login/password mail dans fonction mail______
  * 2.9 ajout messageCnt dans le message au serveur
- * 2.a ajout sonoff POWR sans CSE7766
+ * 2.a ajout sonoff POWR sans CSE7766 ; ajout tooglepushbutton ;
 Modifier :
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ;
