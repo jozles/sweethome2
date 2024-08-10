@@ -371,22 +371,28 @@ void checkdate(uint8_t num)                               // détection des date
 
 uint8_t jsonParams(char* data,uint8_t len)
 {
+  //Serial.print(len);Serial.print(" - ");Serial.println(data);
   uint8_t cntPar=0;
   #define LENPAR 5
   long nbPar=1;
   const char* jsPar="swcde";
   char* dataPt=data;
-  char* sepPt=data;
+  char* sepPt=data-1;
   long numPar;
 
   while(dataPt<data+len){
     if(*dataPt=='>' && dataPt>sepPt){
+      *dataPt='\0';
       dataPt++;
-      numPar=(strstr(jsPar,sepPt+1)-jsPar)/LENPAR;if(numPar<0 || numPar>nbPar){return cntPar;}
+      numPar=(strstr(jsPar,sepPt+1)-jsPar)/LENPAR;
+      //Serial.print(numPar);Serial.print(" - ");
+      if(numPar<0 || numPar>nbPar){return cntPar;}
       switch (numPar){
-        case 0: if(*(dataPt+3)!=';'){return cntPar;}
+        case 0: sepPt=dataPt+2;
+                if(*sepPt!=';'){return cntPar;}
                 conv_atoh(dataPt,periSwCde);          // HH cstRec.swcde value
-                cntPar++;dataPt+=3;sepPt=dataPt;
+                cntPar++;dataPt+=3;
+                //Serial.println(*periSwCde);
                 break;
         default: break;
       break;
@@ -520,8 +526,6 @@ void periDataRead(char* valf)   // traitement d'une chaine "data_save_","data_re
       messLen-=(LENMODEL+1);
       k+=LENMODEL+1;
 
-      Serial.print("\n numfonc=");Serial.print(numfonc);Serial.print("/");Serial.println(fdatapar);
-
       if(numfonc==fdatapar){
         jsonData=k;
         char* v=k+255;
@@ -532,10 +536,9 @@ void periDataRead(char* valf)   // traitement d'une chaine "data_save_","data_re
           k++;
         }
         messLen-=(k-jsonData);
-        Serial.println();dumpstr(valf,100);
+        //Serial.println();dumpstr(valf,100);
         //Serial.println(jsonData);
-        //jsonParams(jsonData,k-jsonData);
-        //delay(4);
+        jsonParams(jsonData,k-jsonData);
       }
       messLen-=k-jsonData+1;
       k++;      // '_'

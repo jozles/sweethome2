@@ -2071,8 +2071,8 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
               case 20: periTableHtml(cli);break;                                                    // peri table
               case 21: what=0;break;                                                                // data_store
               case 22: if(periPassOk==VRAI){what=17;periDataRead(valf);periPassOk=FAUX;}break;      // data_mail_ idem data_save_ + texte mail ; pas de réponse à faire
-              case 23: if(periPassOk==VRAI){what=1;periDataRead(valf);                              // data_par__ idem data_save_ + json params ; réponse idem data_save_
-                       periPassOk=FAUX;}break;
+              case 23: if(periPassOk==VRAI){what=1;                                                 // data_par__ idem data_save_ + json params ; réponse idem data_save_
+                       periDataRead(valf);periPassOk=FAUX;}break;
               case 24: {what=4;                                                                     // (lignes-regles) submit peri_inp__ set periCur raz cb
                        getPeriCurValf(PERILOAD);                                                    // periCur à jour via formIntro/peri_cur__
                        uint8_t nuinp=*(libfonctions+2*i+1)-PMFNCVAL;
@@ -2564,7 +2564,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                     periSave(periCur,PERISAVESD);                         // bouton submit periLine (MàJ/analog/digital)                                             
                     periLineHtml(cli);
                     break;                                                                                                           
-            case 14:break;                                                // data_na___ (idem data_save sans réponse serveur)
+            case 14:break;                                                // data_na___ (data_save na=no answer)
             case 15:anTimersSave();anTimersHtml(cli);break;               // antim___ & anti_ch_
             case 16:dumpHisto(cli);break;                                 // bouton submit histo show
             case 17:if(periMess==MESSOK){mail("PERIF ",mailData);         // data_mail_
