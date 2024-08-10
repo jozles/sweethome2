@@ -64,7 +64,7 @@ extern Capat capaKeys;
 extern uint32_t locmem;         // mémoire = valeurs locales pour partiels
 extern uint8_t outSw;           // état à appliquer aux switchs (produit par "actions()")
 
-extern bool oneShow;
+//extern bool oneShow;
 extern bool toogleEvent;
 
 extern constantValues cstRec;
@@ -746,7 +746,7 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
       delay(1);
       #ifdef TOOGBT
       if(pinDet[det]==TOOGBT && lev==TOOGLV){
-        oneShow=true;
+        //oneShow=true;
         // faire toogle sur le pinSw[toogSw] : 
         const char* open  ="disj\0";
         const char* close ="force\0";

@@ -137,7 +137,7 @@ bool serverStarted=false;
 
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
-  bool oneShow=false;
+  //bool oneShow=false;
   bool toogleEvent=false;
 
   uint8_t outSw=0;                            // image mémoire des switchs (1 bit par switch)
@@ -510,7 +510,7 @@ for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==TOOGSW){toogSw=i;break;}}
   
       if(millis()>(clkTime)){        // période 5mS/step
 
-      if(oneShow){Serial.print("\nloop swCde ");Serial.print(cstRec.swCde);Serial.print(" step ");Serial.println(clkFastStep);}
+      //if(oneShow){Serial.print("\nloop swCde ");Serial.print(cstRec.swCde);Serial.print(" step ");Serial.println(clkFastStep);}
         clkTime+=PERFASTCLK;
         switch(clkFastStep++){
 
@@ -520,7 +520,8 @@ for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==TOOGSW){toogSw=i;break;}}
  * Puis talkstep pour le forçage de communication d'acquisition du port au reset 
  * clkFastStep et cstRec.talkStep == 1 
 */
-          case 1:   if(cstRec.talkStep!=0){talkServer();}oneShow=false;break;
+          case 1:   if(cstRec.talkStep!=0){talkServer();}//oneShow=false;
+                    break;
           case 2:   break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
           case 4:   pulseClk();break;
@@ -648,7 +649,7 @@ int fServer(uint8_t fwaited)          // réception du message réponse du serve
           Serial.print("fserver (OK=");Serial.print(MESSOK);Serial.print(") periMess=");Serial.print(periMess);
           Serial.print(" fwaited=");Serial.print(fwaited);Serial.print(" recu=");Serial.print(fonction);} 
         if(periMess==MESSOK){
-          
+          //Serial.println(bufServer);
           if(fonction==fwaited){dataTransfer(bufServer);}
           else {periMess=MESSFON;}
         }
@@ -840,7 +841,7 @@ int buildReadSave(const char* nomFonction,const char* data)   // construit et en
   if(diags){//showBS(bufServer);
   }
 
-  dumpstr(bufServer,144);
+//dumpstr(bufServer,144);
 
 // frontal devient inaccessible ce qui permet de tester l'interruption de messToServer par un ordreExt()
   return messToServer(&cli,textFrontalIp,cstRec.serverPort,bufServer,server,&cliext); 
@@ -963,11 +964,12 @@ switch(cstRec.talkStep&=TALKCNTBIT){
   case TALKDATA:        // connecté au wifi
                         // si le numéro de périphérique est 00 ---> récup (dataread), ctle réponse et maj params
       {int v=0;
+      uint8_t f=0;
         talkGrt();
         if(memcmp(cstRec.numPeriph,"00",2)==0){
-          v=dataRead();
+          if(!toogleEvent){f=fset_______;v=dataRead();} else {toogleEvent=false;f=fack_______;v=dataPar();}   // v=dataRead();
           //Serial.print("outofDR v=");Serial.println(v);
-          if(v==MESSOK && fServer(fset_______)==MESSOK){
+          if(v==MESSOK && fServer(f)==MESSOK){
             talkSet(TALKDATASAVE);}
           else {talkKo(v);}    // pb com -> recommencer
           break;
@@ -979,9 +981,7 @@ switch(cstRec.talkStep&=TALKCNTBIT){
       { int v;
         if(!toogleEvent){v=dataSave();} else {toogleEvent=false;v=dataPar();}
         //Serial.print("outofDS v=");Serial.println(v);
-        if(v!=MESSOK){talkKo(v);}
-                  
-        else if(fServer(fack_______)!=MESSOK){talkKo();}   // si ko recommencer au prochain timing             
+        if(v!=MESSOK || fServer(fack_______)!=MESSOK){talkKo(v);}   // si ko recommencer au prochain timing             
         
         else {
           talkClr();  // terminé ; tout s'est bien passé les 2 côtés sont à jour 
@@ -1330,7 +1330,7 @@ void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0
 {
     if(diags){if(outSw!=old_outSw){Serial.print("outputCtl() ; outSw=");Serial.println(outSw);old_outSw=outSw;}}
 
-    if(oneShow){Serial.print("outputCtl swCde ");Serial.print(cstRec.swCde,HEX);}
+    //if(oneShow){Serial.print("outputCtl swCde ");Serial.print(cstRec.swCde,HEX);}
     bool isOpenSw=false;
       for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à ouvrir
         if(!((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){       // ni forcé ni (pas disjoncté et devenant on)
@@ -1338,7 +1338,7 @@ void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0
             if(digitalRead(pinSw[sw])==cloSw[sw]){          // ignore les switchs déjà "open"
               isOpenSw=true;
               outPutDly=OUTPUTDLY;}
-              if(oneShow){Serial.print(" open:");Serial.println(talkSta());}
+              //if(oneShow){Serial.print(" open:");Serial.println(talkSta());}
               digitalWrite(pinSw[sw],openSw[sw]);
               #ifdef PINLEDR
               if(sw==toogSw){digitalWrite(PINLEDR,LEDROFF);}                            
@@ -1349,7 +1349,7 @@ void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0
       for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à fermer
         if(((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){        // forcé ou (pas disjoncté et devenant on)
           isOpenSw=true;
-          if(oneShow){Serial.print(" close:");Serial.println(talkSta());}
+          //if(oneShow){Serial.print(" close:");Serial.println(talkSta());}
           digitalWrite(pinSw[sw],cloSw[sw]);
           #ifdef PINLEDR
           if(sw==toogSw){digitalWrite(PINLEDR,LEDRON);}                            
