@@ -432,6 +432,7 @@ Modifier :
 #define LEDRON LOW
 #define LEDROFF HIGH
 #define MAIL_SENDER
+#define PWR_CSE7766
 //#define PINXDT 13
 #define WPIN   2        // 1 wire ds1820
 #define NBSW   1        // nbre switchs
@@ -458,6 +459,8 @@ Modifier :
 #define TOOGBT PINDTA   // toogle pushbutton local
 #define TOOGLV 0        // toogle active edge
 #define TOOGSW PINSWA   // toogled output
+#define PINSRX 16       // UART IN
+#define PINSTX 17       // UART OUT
 #endif // CARTE==SFPOW
 
 

@@ -15,6 +15,13 @@
 #include "dynam.h"
 #include "peripherique2.h"
 
+#ifdef PWR_CSE7766
+#include <CSE7766.h>
+CSE7766 myCSE7766;
+#define CSEUPDATE 2000
+unsigned long lastCseUpdate=millis();
+#endif // CSE7766
+
 
 #ifdef MAIL_SENDER
 #define MAIL_CONFIG
@@ -190,6 +197,8 @@ char* cstRecA=(char*)&cstRec.cstlen;
 
   uint8_t messageCnt=0;
 
+  uint8_t sercnt=0;
+
    /* prototypes */
 
 bool wifiAssign();
@@ -243,6 +252,33 @@ void tmarker()
 {
   pinMode(WPIN,OUTPUT);for(int t=0;t<6;t++){digitalWrite(WPIN,LOW);delayMicroseconds(100);digitalWrite(WPIN,HIGH);delayMicroseconds(100);}
 }
+
+#ifdef PWR_CSE7766
+void getCSE7766()
+{
+    if(millis()-lastCseUpdate>CSEUPDATE){
+        lastCseUpdate=millis();      
+        myCSE7766.handle();   // read CSE7766
+        int periph=(cstRec.numPeriph[0]-'0')*10+(cstRec.numPeriph[1]-'0');
+    
+        char mailData[64];
+        sprintf(mailData,"Peri=%2d CV=%.4f I=%.4f P=%.4f E=%.4f",periph,myCSE7766.getVoltage(),myCSE7766.getCurrent(),myCSE7766.getActivePower(),myCSE7766.getEnergy());
+        dataMail(mailData);
+        
+/*        #if TEL_DEBUG
+        DEBUG_MSG("Voltage %.4f V\n", myCSE7766.getVoltage());
+        DEBUG_MSG("Current %.4f A\n", myCSE7766.getCurrent());
+        DEBUG_MSG("ActivePower %.4f W\n", myCSE7766.getActivePower());
+        DEBUG_MSG("ApparentPower %.4f VA\n", myCSE7766.getApparentPower());
+        DEBUG_MSG("ReactivePower %.4f VAR\n", myCSE7766.getReactivePower());
+        DEBUG_MSG("PowerFactor %.4f %\n", myCSE7766.getPowerFactor());
+        DEBUG_MSG("Energy %.4f Ws\n", myCSE7766.getEnergy());
+        #endif
+*/
+    }
+}
+#endif // SFPOW
+                      
 
 
 void setup() 
@@ -470,6 +506,11 @@ for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==TOOGSW){toogSw=i;break;}}
 #endif  // IRQCNT
 
 
+#ifdef PWR_CSE7766
+    myCSE7766.setRX(PINSRX);
+    myCSE7766.begin(); // will initialize serial to 4800 bps
+#endif // CSE7766
+
 
   }    // fin setup NO_MODE
 
@@ -504,6 +545,28 @@ for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==TOOGSW){toogSw=i;break;}}
 
   //pinMode(2,OUTPUT);while(1){digitalWrite(2,0);delay(1000);digitalWrite(2,1);delay(1000);} 
 
+/*
+if(sercnt<10){
+
+// test Serial2 
+  
+  Serial2.begin(4800, SERIAL_8E1, PINSRX, PINSTX);
+  #define LBUFSER2 128
+  char inbufser2[LBUFSER2];
+  uint8_t inbufptr=0;
+  unsigned long ser2start=millis();
+
+    while (Serial2.available() && inbufptr<128 && (millis()-ser2start)<60000) {
+    inbufser2[inbufptr]=Serial2.read();
+    inbufptr++;}
+
+  dumpstr(inbufser2,LBUFSER2);
+
+  Serial.println();
+  sercnt++;
+}
+*/
+
   #ifdef  _SERVER_MODE
   
       ordreExt();
@@ -533,7 +596,11 @@ for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==TOOGSW){toogSw=i;break;}}
           case 10:  clkFastStep=0;              // période 50mS/step                         
                     switch(clkSlowStep++){
                       case 1:   break;
-                      case 2:   break;
+                      case 2:   
+#ifdef PWR_CSE7766
+                                  getCSE7766();
+#endif // CSE7766
+                                break;
                       case 3:   break;
                       case 4:   break;
                       case 5:   break;
@@ -736,7 +803,8 @@ if(diags){Serial.println(" dataTransfer() ");}
         }
 }
 
-int buildData(const char* nomfonction,const char* data)               // assemble une fonction data_read_ ou data_save_
+int buildData(const char* nomfonction,const char* data,const char* mailData)               
+                                                                      // assemble une fonction data_read_ ou data_save_ ou data_par__ ou data_mail_
 {                                                                     // et concatène dans bufServer - retour longueur totale
   char message[LENVAL];
   int sb=0,i=0;
@@ -768,8 +836,10 @@ int buildData(const char* nomfonction,const char* data)               // assembl
       for(i=(NBDET-1);i>=0;i--){message[sb+1+(NBDET-1)-i]=(char)(chexa[cstRec.memDetec[i]]);} // état -6 
       if(NBDET<MAXDET){for(i=NBDET;i<MAXDET;i++){message[sb+1+i]='x';}}                              
       strcpy(message+sb+1+MAXDET,"_\0");
-
       sb+=MAXDET+2;
+
+      if(mailData!=nullptr){strcat(message,mailData);strcat(message,"_\0");sb+=(strlen(mailData)+1);}
+
       for(i=0;i<NBPULSE;i++){message[sb+i]=chexa[staPulse[i]];}
       strcpy(message+sb+NBPULSE,"_\0");                               // clock pulse status          - 5
 
@@ -825,7 +895,12 @@ int buildData(const char* nomfonction,const char* data)               // assembl
   return buildMess(nomfonction,message,"",diags);        // concatène et complète dans bufserver
 }
 
-int buildReadSave(const char* nomFonction,const char* data)   // construit et envoie une commande GET complète
+int buildData(const char* nomfonction,const char* data)               // assemble une fonction data_read_ ou data_save_ ou data_par__ ou data_mail_
+{                                                      
+  return buildData(nomfonction,data,nullptr);
+}
+
+int buildReadSave(const char* nomFonction,const char* data,const char* mailData)   // construit et envoie une commande GET complète
                                                   //   avec fonction peri_pass_ + dataRead ou dataSave
                                                   //   peri_pass_=nnnnpppppp..cc?
                                                   //   data_rs.._=nnnnppmm.mm.mm.mm.mm.mm_[-xx.xx_aaaaaaa_v.vv]_r.r_siiii_diiii_ffff_cc
@@ -846,6 +921,11 @@ int buildReadSave(const char* nomFonction,const char* data)   // construit et en
 // frontal devient inaccessible ce qui permet de tester l'interruption de messToServer par un ordreExt()
   return messToServer(&cli,textFrontalIp,cstRec.serverPort,bufServer,server,&cliext); 
 
+}
+
+int buildReadSave(const char* nomFonction,const char* data)
+{
+  return buildReadSave(nomFonction,data,nullptr);
 }
 
 char* tempStr()
@@ -874,6 +954,12 @@ int dataPar()
 {
   return buildReadSave("data_par__",tempStr());
 }
+
+int dataMail(char* mailData)
+{
+  return buildReadSave("data_mail_",tempStr(),mailData);
+}
+
 
 /* ----------------- talkServer ------------------ */
 
