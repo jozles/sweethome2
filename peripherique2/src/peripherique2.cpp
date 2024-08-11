@@ -19,7 +19,7 @@
 #include <CSE7766.h>
 CSE7766 myCSE7766;
 #define CSEUPDATE 2000
-unsigned long lastCseUpdate=millis();
+uint8_t powSw;
 #endif // CSE7766
 
 
@@ -145,7 +145,7 @@ bool serverStarted=false;
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
   //bool oneShow=false;
-  bool toogleEvent=false;
+  bool dataParFlag=false;
 
   uint8_t outSw=0;                            // image mémoire des switchs (1 bit par switch)
   uint8_t old_outSw=0x0F;                     // pour debug outSw
@@ -209,10 +209,12 @@ int act2sw(int sw1,int sw2);
 uint8_t runPulse(uint8_t sw);
 
 void  getTemp();
+void  getTempEtc();
 char* tempStr();
 int   buildData(const char* nomfonction,const char* data);
 int   dataSave();
 int   dataRead();
+int   dataMail(char* mailData);
 void  dataTransfer(char* data);
 void  readTemp();
 void  ordreExt();
@@ -254,18 +256,28 @@ void tmarker()
 }
 
 #ifdef PWR_CSE7766
+
 void getCSE7766()
 {
-    if(millis()-lastCseUpdate>CSEUPDATE){
-        lastCseUpdate=millis();      
+    if(pinSw[powSw]==cloSw[powSw]){               // ? utile ?
+
         myCSE7766.handle();   // read CSE7766
+
+        Serial.print("volts:");Serial.print(myCSE7766.getVoltage());Serial.print(" current:");Serial.print(myCSE7766.getCurrent());
+        Serial.print(" power:");Serial.print(myCSE7766.getActivePower());Serial.print(" energy:");Serial.println(myCSE7766.getEnergy());
+        
+        cstRec.powVolt=(float)myCSE7766.getVoltage();
+        if(myCSE7766.cse_status!=0){cstRec.powVolt=myCSE7766.cse_status;}
+        cstRec.powCurr=(float) myCSE7766.getCurrent();
+        cstRec.powPower=(float) myCSE7766.getActivePower();
+        cstRec.powEnergy=(float) myCSE7766.getEnergy();
+/*        
         int periph=(cstRec.numPeriph[0]-'0')*10+(cstRec.numPeriph[1]-'0');
-    
         char mailData[64];
         sprintf(mailData,"Peri=%2d CV=%.4f I=%.4f P=%.4f E=%.4f",periph,myCSE7766.getVoltage(),myCSE7766.getCurrent(),myCSE7766.getActivePower(),myCSE7766.getEnergy());
         dataMail(mailData);
-        
-/*        #if TEL_DEBUG
+
+        #if TEL_DEBUG
         DEBUG_MSG("Voltage %.4f V\n", myCSE7766.getVoltage());
         DEBUG_MSG("Current %.4f A\n", myCSE7766.getCurrent());
         DEBUG_MSG("ActivePower %.4f W\n", myCSE7766.getActivePower());
@@ -274,11 +286,10 @@ void getCSE7766()
         DEBUG_MSG("PowerFactor %.4f %\n", myCSE7766.getPowerFactor());
         DEBUG_MSG("Energy %.4f Ws\n", myCSE7766.getEnergy());
         #endif
-*/
+*/    
     }
 }
-#endif // SFPOW
-                      
+#endif // PWR         
 
 
 void setup() 
@@ -342,6 +353,10 @@ delay(1);
 #ifdef TOOGBT
 for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==TOOGSW){toogSw=i;break;}}
 #endif // TOOGBT
+
+#ifdef PWR_CSE7766
+for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==POWSW){powSw=i;break;}}
+#endif // PWR_CSE7766
 
 #ifndef CAPATOUCH
   for(uint8_t i=0;i<NBDET;i++){pinMode(pinDet[i],INPUT_PULLUP);}
@@ -596,11 +611,7 @@ if(sercnt<10){
           case 10:  clkFastStep=0;              // période 50mS/step                         
                     switch(clkSlowStep++){
                       case 1:   break;
-                      case 2:   
-#ifdef PWR_CSE7766
-                                  getCSE7766();
-#endif // CSE7766
-                                break;
+                      case 2:   break;
                       case 3:   break;
                       case 4:   break;
                       case 5:   break;
@@ -853,6 +864,16 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
         strcpy(message+sb,"swcde>");conv_htoa(message+sb+6,&cstRec.swCde);
         strcpy(message+sb+8,";;_");
         sb+=11;
+        #ifdef PWR_CSE7766
+        #define LPM 64
+        char powMessage[LPM];memset(powMessage,'\0',LPM);
+        sprintf(powMessage,"s-%02d v-%03.1f c-%02.4f p-%04.4f e-%08.4f;;_",myCSE7766.cse_status,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        
+        uint8_t powMessageLen=strlen(powMessage);
+        memcpy(message+sb,"power>",6);
+        memcpy(message+sb+6,powMessage,powMessageLen);
+        sb+=(6+powMessageLen);
+        #endif
       }
 
       messageCnt++;
@@ -1053,7 +1074,7 @@ switch(cstRec.talkStep&=TALKCNTBIT){
       uint8_t f=0;
         talkGrt();
         if(memcmp(cstRec.numPeriph,"00",2)==0){
-          if(!toogleEvent){f=fset_______;v=dataRead();} else {toogleEvent=false;f=fack_______;v=dataPar();}   // v=dataRead();
+          if(!dataParFlag){f=fset_______;v=dataRead();} else {dataParFlag=false;f=fack_______;v=dataPar();}   // v=dataRead();
           //Serial.print("outofDR v=");Serial.println(v);
           if(v==MESSOK && fServer(f)==MESSOK){
             talkSet(TALKDATASAVE);}
@@ -1065,7 +1086,7 @@ switch(cstRec.talkStep&=TALKCNTBIT){
   case TALKDATASAVE:          // (6) si numPeriph !=0 ou réponse au dataread ok -> datasave
                               // sinon recommencer au prochain timing                              
       { int v;
-        if(!toogleEvent){v=dataSave();} else {toogleEvent=false;v=dataPar();}
+        if(!dataParFlag){v=dataSave();} else {dataParFlag=false;v=dataPar();}
         //Serial.print("outofDS v=");Serial.println(v);
         if(v!=MESSOK || fServer(fack_______)!=MESSOK){talkKo(v);}   // si ko recommencer au prochain timing             
         
@@ -1468,7 +1489,7 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
 #endif // PM==PO_MODE
 #if POWER_MODE==NO_MODE
 
-  if(chkTrigTemp()){
+    if(chkTrigTemp()){
       uint16_t tempPeriod0=(millis()-tempTime)/1000;   // (sec) durée depuis dernier check température
       trigTemp();
 #endif // PM==NO_MODE
@@ -1479,13 +1500,13 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
       /* si temps maxi atteint depuis dernière cx, forçage cx */
       if(cstRec.serverTime>cstRec.serverPer){     // serverTime temps écoulé depuis dernier talkReq()
                                                   // serverPer max période programmée depuis le serveur entre 2 talkReq
-        getTemp();
+        getTempEtc();
         cstRec.serverTime=0;
-        talkReq(); 
+        talkReq();
       }
       /* si pas de ko en cours, getTemp() au cas où elle soit changée */
       else if (cstRec.serverPer!=PERSERVKO){  // si dernière cx wifi ko, pas de comm jusqu'à fin de tempo    
-        getTemp();
+        getTempEtc();
         /* temp (suffisament) changée ? */
         if(temp>cstRec.oldtemp+cstRec.tempPitch){
           cstRec.oldtemp=(int16_t)temp-cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp-tempPitch/2)
@@ -1540,6 +1561,15 @@ void getTemp()
 #ifdef IRQCNT
       Serial.print(irqCnt);Serial.print(' ');
 #endif      
+}
+
+void getTempEtc()
+{
+  getTemp();
+  #ifdef PWR_CSE7766
+  getCSE7766();
+  dataParFlag=true;
+  #endif // CSE7766
 }
 
 bool wifiAssign()

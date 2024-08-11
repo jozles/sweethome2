@@ -11,7 +11,6 @@
 void    talkReq();
 void    talkReq(uint8_t bit);
 uint8_t talkSta();
-int     dataMail(char* mailData);
 
 
 #endif // PERIPHERIQUE2_H_INCLUDED

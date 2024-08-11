@@ -100,7 +100,7 @@
  *     gestion thermostat en local via locmem et LOCMEM_STA_BIT
  * 2.8 login/password mail dans fonction mail______
  * 2.9 ajout messageCnt dans le message au serveur
- * 2.a ajout sonoff POWR sans CSE7766 ; ajout tooglepushbutton ;
+ * 2.a ajout tooglepushbutton ; ajout sonoff CSE7766 ; 
 Modifier :
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ;
@@ -437,9 +437,9 @@ Modifier :
 #define WPIN   2        // 1 wire ds1820
 #define NBSW   1        // nbre switchs
 #define PINSWA 13       // pin sortie switch A
-#define CLOSA  LOW      // relais ON
-#define OPENA  HIGH     // relais off
-#define PINSWB 4   // pin sortie switch B
+#define CLOSA  HIGH     // relais ON
+#define OPENA  LOW      // relais off
+#define PINSWB 4        // pin sortie switch B
 #define CLOSB  CLOSA    // relais ON sortie haute
 #define OPENB  OPENA    // relais OFF
 #define PINSWC 4   // pin sortie switch C
@@ -459,6 +459,7 @@ Modifier :
 #define TOOGBT PINDTA   // toogle pushbutton local
 #define TOOGLV 0        // toogle active edge
 #define TOOGSW PINSWA   // toogled output
+#define POWSW  PINSWA   // CSE OUTPUT
 #define PINSRX 16       // UART IN
 #define PINSTX 17       // UART OUT
 #endif // CARTE==SFPOW
@@ -614,8 +615,12 @@ union {
   char      peripass[LPWD+1];     //  8+1 server passwd
   uint16_t  periAnal;             //  2   consigne analogique
   uint8_t   periCfg;              //  1   config périf
+  float     powVolt;
+  float     powCurr;
+  float     powPower;
+  float     powEnergy;
 
-#define LENFILLERCST 42
+#define LENFILLERCST 42-4*sizeof(float)
 //#define LENFILLERCST 142  // VERSION "1.y_"
 
   byte      filler[LENFILLERCST];

@@ -70,6 +70,7 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
       WL_DISCONNECTED if module is not configured in station mode
 */
       ledblink(BCODEONBLINK);
+      
       Serial.print("\n WIFI connecting to ");Serial.print(ssid);
       yield();
       WiFi.begin(ssid,password);

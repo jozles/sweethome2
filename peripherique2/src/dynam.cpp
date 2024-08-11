@@ -65,7 +65,7 @@ extern uint32_t locmem;         // mémoire = valeurs locales pour partiels
 extern uint8_t outSw;           // état à appliquer aux switchs (produit par "actions()")
 
 //extern bool oneShow;
-extern bool toogleEvent;
+extern bool dataParFlag;
 
 extern constantValues cstRec;
 
@@ -758,7 +758,7 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
         Serial.print(" toogle sw ");Serial.print(toogSw);
         Serial.print('/');Serial.print(swState);
         Serial.print(" swCde ");Serial.print(cstRec.swCde,HEX);
-        toogleEvent=true;
+        dataParFlag=true;
       }
       #endif // TOOGBT
       Serial.println();
