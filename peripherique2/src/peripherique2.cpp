@@ -445,7 +445,7 @@ for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==POWSW){powSw=i;break;}}
 #endif
 
 /* si erreur sur les variables permanentes (len ou crc faux), initialiser et sauver */
-//initConstant();             // à supprimer en production
+initConstant();             // à supprimer en production
   if(!readConstant()){   
     Serial.println("KO -> init ");
     initConstant();
@@ -861,19 +861,22 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
       sb+=LENMODEL+1;
 
       if(memcmp(nomfonction,"data_par__",LENNOM)==0){
-        strcpy(message+sb,"swcde>");conv_htoa(message+sb+6,&cstRec.swCde);
-        strcpy(message+sb+8,";;_");
-        sb+=11;
+        strcpy(message+sb,"swcde=");conv_htoa(message+sb+6,&cstRec.swCde);
+        strcpy(message+sb+8,";\0");
+        sb+=9;
         #ifdef PWR_CSE7766
-        #define LPM 64
+        #define LPM 128
         char powMessage[LPM];memset(powMessage,'\0',LPM);
-        sprintf(powMessage,"s-%02d v-%03.1f c-%02.4f p-%04.4f e-%08.4f;;_",myCSE7766.cse_status,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        sprintf(powMessage,"s:%02d,v:%03.1f,c:%02.4f,p:%04.3f,e:%08.3f;",myCSE7766.cse_status,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
         
         uint8_t powMessageLen=strlen(powMessage);
-        memcpy(message+sb,"power>",6);
+        memcpy(message+sb,"power=",6);
         memcpy(message+sb+6,powMessage,powMessageLen);
         sb+=(6+powMessageLen);
         #endif
+
+        strcpy(message+sb,";_\0");    
+        sb+=2;
       }
 
       messageCnt++;

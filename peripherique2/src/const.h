@@ -232,6 +232,7 @@ Modifier :
 #define VRDEV   'D'  // carte dev avec 2 leds
 #define SFRFR2  'S'  // carte sonoff_rf_r2 ------ configurer platformio.ini pour 8285 -----
 #define SFPOW   'P'  // carte sonoff_pow   ------ configurer platformio.ini pour esp32 ----
+#define DEVKITC 'D'  // carte nodemcu devkitc ------ configurer platformio.ini pour esp32 ----
 //#define RELAY
 #define THESP01 '1'
 #define THESP12 '2'
@@ -464,6 +465,47 @@ Modifier :
 #define PINSTX 17       // UART OUT
 #endif // CARTE==SFPOW
 
+#if CARTE==DEVKITC
+// ------------------------ configurer platformio.ini pour ESP32 -----------------------------
+#define PINLED 5
+#define LEDON LOW
+#define LEDOFF HIGH
+#define PINLEDR 18      // led etat relais séparée
+#define LEDRON LOW
+#define LEDROFF HIGH
+#define MAIL_SENDER
+//#define PWR_CSE7766
+//#define PINXDT 13
+#define WPIN   2        // 1 wire ds1820
+#define NBSW   1        // nbre switchs
+#define PINSWA 13       // pin sortie switch A
+#define CLOSA  HIGH     // relais ON
+#define OPENA  LOW      // relais off
+#define PINSWB 4        // pin sortie switch B
+#define CLOSB  CLOSA    // relais ON sortie haute
+#define OPENB  OPENA    // relais OFF
+#define PINSWC 4   // pin sortie switch C
+#define CLOSC  CLOSA
+#define OPENC  OPENA
+#define PINSWD 4   // pin sortie switch D
+#define CLOSD  CLOSA
+#define OPEND  OPENA
+#define NBDET  1        //  1 pushbutton
+#define PINDTA 0        // pin entrée détect bit 0
+#define PINDTB PINDTA   // pin entrée détect bit 1
+#define PINDTC PINDTA   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
+#define PINDTD PINDTA   // pin entrée détect bit 3  sur la même entrée. --> génère un bug dans le traitement des règles (2 det changent au lieu d'un)
+#define MEMDINIT 0x1111 // bits enable
+//#define PINPOFF 3       // power off TPL5111 (RX ESP01)
+#define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define TOOGBT PINDTA   // toogle pushbutton local
+#define TOOGLV 0        // toogle active edge
+#define TOOGSW PINSWA   // toogled output
+#define POWSW  PINSWA   // CSE OUTPUT
+#define PINSRX 16       // UART IN
+#define PINSTX 17       // UART OUT
+#endif // CARTE==DEVKITC
+
 
 #if CARTE==THESP01
 #define PINLED 0
@@ -620,8 +662,8 @@ union {
   float     powPower;
   float     powEnergy;
 
-#define LENFILLERCST 42-4*sizeof(float)
-//#define LENFILLERCST 142  // VERSION "1.y_"
+#define LENFILLERCST 23 // v2.a
+//#define LENFILLERCST 42 // v2.9
 
   byte      filler[LENFILLERCST];
   uint8_t   cstcrc;               //  1   doit toujours être le dernier : utilisé pour calculer la longueur

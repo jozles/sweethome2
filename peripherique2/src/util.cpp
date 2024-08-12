@@ -178,9 +178,9 @@ void initConstant()  // inits mise sous tension
   memset(cstRec.pwd2,'\0',LPWSSID);
   //memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
   cstRec.powVolt=999;
-  cstRec.powCurr=999;
-  cstRec.powPower=999;
-  cstRec.powEnergy=999;
+  cstRec.powCurr=99;
+  cstRec.powPower=9999;
+  cstRec.powEnergy=99999999;
 
 // **************** à supprimer en production ; doit être chargé depuis le frontal ***************
 
