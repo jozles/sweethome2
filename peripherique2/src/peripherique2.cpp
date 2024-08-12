@@ -250,10 +250,12 @@ void mailInit(char* login,char* pass)
 #endif // MAIL_CONFIG
 #endif // MAILSENDER
 
+#ifdef WPIN
 void tmarker()
 {
   pinMode(WPIN,OUTPUT);for(int t=0;t<6;t++){digitalWrite(WPIN,LOW);delayMicroseconds(100);digitalWrite(WPIN,HIGH);delayMicroseconds(100);}
 }
+#endif // WPIN
 
 #ifdef PWR_CSE7766
 
@@ -402,7 +404,7 @@ for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==POWSW){powSw=i;break;}}
 
 
 /* >>>>>> gestion ds18x00 <<<<<< */
-
+#ifdef WPIN
  byte setds[4]={0,0x7f,0x80,TBITS},readds[8];    // fonction, high alarm, low alarm, config conversion 
  int v=ds1820.setDs(WPIN,setds,readds); // init & read rom
  tconversion=TCONVERSIONB;if(readds[0]==0X10 || TBITS==T12BITS){tconversion=TCONVERSIONS;}
@@ -433,6 +435,7 @@ for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==POWSW){powSw=i;break;}}
     //initConstant();
     }
 #endif // PM==DS_MODE
+#endif // WPIN
 
 /* >>>>>> gestion variables permanentes <<<<<< */
 
@@ -1548,6 +1551,7 @@ void getTemp()
       Serial.print(" temp ");Serial.print(temp/100);
 #endif // PM!=NO_MODE
 #if POWER_MODE==NO_MODE
+#ifdef WPIN
       if(((long)ms-(long)debConv)>tconversion){
         temp=ds1820.readDs(WPIN);
         temp*=100;                  // tempPitch 100x
@@ -1555,6 +1559,7 @@ void getTemp()
         debConv=millis();          
         Serial.print(" temp ");Serial.print(temp/100);Serial.print(" ");Serial.print(debConv);
       }
+#endif // WPIN      
 #endif // PM==NO_MODE
 #if POWER_MODE==DS_MODE
       ds1820.convertDs(WPIN);     // conversion pendant deep/sleep ou pendant attente prochain accès

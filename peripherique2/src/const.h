@@ -3,6 +3,7 @@
 
 #include "Arduino.h"
 #include <shconst2.h>
+#include <ESP8266WiFi.h>
 
 
 //#define ANALYZE -> flag dans platformio.ini
@@ -244,7 +245,7 @@ Modifier :
 //
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE SFPOW             // <------------- modèle carte
+#define CARTE SFRFR2             // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation
 
 /* ds18x20 */
@@ -422,7 +423,10 @@ Modifier :
 #define MEMDINIT 0x1111 // bits enable
 //#define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
-#endif // CARTE==SFRFR2
+#define TOOGBT PINDTA   // toogle pushbutton local
+#define TOOGLV 0        // toogle active edge
+#define TOOGSW PINSWA   // toogled output
+#endif // CARTE==SFRFR2(8285) ou smart_plug S26(8266)
 
 #if CARTE==SFPOW
 // ------------------------ configurer platformio.ini pour ESP32 -----------------------------
