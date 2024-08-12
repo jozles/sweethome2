@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8o"
+#define NVERS ".8p"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -182,7 +182,9 @@
    1.8n ajout periMessCnt
    1.8o ajout data_par__ pour forcer des valeurs de params dans le serveur ; idem data_save_ + json 'nom=valeur;'
         réponse idem data_save_
-        1er usage : forcer swcde d'un perif depuis le périf swcde=HH ; nécessaire pour le tooglepushbutton 
+        1er param : 'swcde' -> forcer swcde d'un perif depuis le périf swcde=HH ; nécessaire pour le tooglepushbutton
+   1.8p modif analyse() '=' et ':' autorisés dans valeur '\' pris en compte et filtré (ne devrait pas ?) 
+        ajout param 'power' -> résultat lecture CSE7766
 
 
    BUGS : 

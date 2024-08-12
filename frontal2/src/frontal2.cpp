@@ -1362,6 +1362,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
   bool nom=VRAI,val=FAUX,termine=FAUX;
   int i=0,j=0;
   uint8_t c,cpc=0;                            // cpc pour convertir les séquences %hh 
+  bool cdbl=false;                            // trouvé '\' dans valeur
   char noms[LENNOM+1]={0},nomsc[LENNOM-1];noms[LENNOM]='\0';nomsc[LENNOM-2]='\0';
   memset(libfonctions,0x00,sizeof(libfonctions));
 
@@ -1372,6 +1373,8 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
 
       while (cliAv(cli,dataLen,dataCharNb)){
         c=(uint8_t)cliRead(cli,data,dataLen,dataCharNb);
+
+        if (c=='\\' && val && !cdbl){cdbl=true;continue;}
 
         if(c=='%'){cpc=c;}                              // %
         else {
@@ -1388,11 +1391,11 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
 //if(c=='&'){Serial.println();Serial.print(i);Serial.print("/");Serial.print(j);Serial.print(" ");Serial.print(noms);Serial.print(" ");Serial.print(nom);Serial.println(val);}            
 //Serial.println();Serial.print(i);Serial.print("/");Serial.print(j);Serial.print(":");Serial.print((char)c);Serial.print(" ");Serial.print(nom);Serial.print(" ");Serial.print(val);Serial.print(" ");Serial.println(termine);            
             if (!termine){
-              if (nom==FAUX && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,0x00,LENNOM);
+              if (!nom && (c=='?' || c=='&')){nom=VRAI;val=FAUX;j=0;memset(noms,0x00,LENNOM);
                                                   if(i<(NBVAL-1)){i++;}
                                                   else {nom=FAUX;termine=VRAI;i=GETNV_FNNB_OVF;}     // tableaux saturés -> erreur
                                                   Serial.println(libfonctions+2*(i-1));}  // fonction suivante ; i indice fonction courante ; numfonct[i] N° fonction trouvée
-              else if (nom==VRAI){
+              else if (nom){
                 if(j==LENNOM){
 //Serial.println();Serial.println(c);                  
                   if(c==':' || c=='='){                                         // séparateur trouvé, ctle validité nom fonction
@@ -1429,9 +1432,10 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
               } // les 2 derniers car codent avec PMFNCVAL et PMFNCHAR ils peuvent prendre toutes les valeurs sauf les caractères spéciaux
                 // la commande est de la forme : GET /[cx]?ffffffffff=aaaa..aaa&ffff... etc
         
-              else if (val==VRAI){
+              else if (val){
 //Serial.print(" ");Serial.println((char)c);                
-                if (c!='&' && c!=':' && c!='=' && c>' '){
+                if ((c!='&' && c>=' ') || cdbl){             // si cdbl ignorer les contrôles ... retiré "&& c!='=' && c!=':'"
+                  cdbl=false;
                   valeurs[nvalf[i+1]]=c;
                   if(nvalf[i+1]<(LENVALEURS-2)){nvalf[i+1]++;}                  // contrôle decap !
                   else {val=FAUX;termine=VRAI;i=GETNV_RCD_OVF;}}                // valeurs saturé -> erreur

@@ -374,19 +374,20 @@ uint8_t jsonParams(char* data,uint8_t len)
   //Serial.print(len);Serial.print(" - ");Serial.println(data);
   uint8_t cntPar=0;
   #define LENPAR 5
-  long nbPar=1;
-  const char* jsPar="swcde";
+  long nbPar=2;
+  const char* jsPar="swcdepower";
   char* dataPt=data;
   char* sepPt=data-1;
   long numPar;
 
   while(dataPt<data+len){
-    if(*dataPt=='>' && dataPt>sepPt){
+    if(*dataPt=='=' && dataPt>sepPt){
       *dataPt='\0';
       dataPt++;
       numPar=(strstr(jsPar,sepPt+1)-jsPar)/LENPAR;
       //Serial.print(numPar);Serial.print(" - ");
       if(numPar<0 || numPar>nbPar){return cntPar;}
+      cntPar++;
       switch (numPar){
         case 0: sepPt=dataPt+2;
                 if(*sepPt!=';'){return cntPar;}
@@ -394,6 +395,7 @@ uint8_t jsonParams(char* data,uint8_t len)
                 cntPar++;dataPt+=3;
                 //Serial.println(*periSwCde);
                 break;
+        case 1: while(*dataPt!=';' && dataPt<data+len){dataPt++;};sepPt=dataPt;break;
         default: break;
       break;
       }
@@ -530,8 +532,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "data_save_","data_re
         jsonData=k;
         char* v=k+255;
         for(k=k;k<v;k++){
-          // liste params "nom>value;" fin avec ;;
-          if(*k=='\\'){k+=2;}
+          // liste params "nom=value;" fin avec ;; !!!! DONC ';' interdit dans value ('\;' inutilisable : '\' filtré dans analyse)
           if(*k==';' && *(k+1)==';'){k+=2;break;}
           k++;
         }
