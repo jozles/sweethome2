@@ -75,6 +75,8 @@ Capat capaKeys;
 #define STOPALL digitalWrite(AN0,HIGH);digitalWrite(AN1,HIGH);digitalWrite(AN2,HIGH); // end
 #endif // ANALYZE
 
+uint8_t debug_cse=0;
+unsigned long lastRefr=0;
 uint8_t answerCnt=0;
 
 Ds1820 ds1820;
@@ -261,7 +263,7 @@ void tmarker()
 
 void getCSE7766()
 {
-    if(pinSw[powSw]==cloSw[powSw]){               // ? utile ?
+    //if(pinSw[powSw]==cloSw[powSw]){               // ? utile ?
 
         myCSE7766.handle();   // read CSE7766
 
@@ -289,7 +291,7 @@ void getCSE7766()
         DEBUG_MSG("Energy %.4f Ws\n", myCSE7766.getEnergy());
         #endif
 */    
-    }
+    //}
 }
 #endif // PWR         
 
@@ -587,12 +589,12 @@ if(sercnt<10){
 */
 
   #ifdef  _SERVER_MODE
-  
+      //if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
       ordreExt();
-  
+      
       if(millis()>(clkTime)){        // période 5mS/step
-
-      //if(oneShow){Serial.print("\nloop swCde ");Serial.print(cstRec.swCde);Serial.print(" step ");Serial.println(clkFastStep);}
+        //if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
+        
         clkTime+=PERFASTCLK;
         switch(clkFastStep++){
 
@@ -602,7 +604,10 @@ if(sercnt<10){
  * Puis talkstep pour le forçage de communication d'acquisition du port au reset 
  * clkFastStep et cstRec.talkStep == 1 
 */
-          case 1:   if(cstRec.talkStep!=0){talkServer();}//oneShow=false;
+          case 1:   if(cstRec.talkStep!=0){                     
+                      talkServer();
+                      if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
+                      }//oneShow=false;
                     break;
           case 2:   break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
@@ -611,7 +616,7 @@ if(sercnt<10){
           case 6:   actions();break;
           case 7:   polAllDet();break;          // polDx doit être après swDebounce et dernier avant outputCtl pour que le tooglepushbutton soit maitre de tout
           case 8:   outputCtl();break;          // quand toutes les opérations sont terminées
-          case 9:   ledblink(-1);break;
+          case 9:   ledblink(-1,PULSEBLINK);break;
           case 10:  clkFastStep=0;              // période 50mS/step                         
                     switch(clkSlowStep++){
                       case 1:   break;
@@ -723,8 +728,8 @@ wifiAssign() positionne le wifi par défaut
 /* ----------------- gestion données ------------------ */
 
 int fServer(uint8_t fwaited)          // réception du message réponse du serveur pour DataRead/Save;
-                                       // contrôles et transfert 
-                                       // retour periMess  
+                                      // contrôles et transfert 
+                                      // retour periMess  
 {      
         periMess=getHttpResponse(&cli,bufServer,LBUFSERVER,&fonction,diags);
         if(diags){
@@ -869,14 +874,15 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
         strcpy(message+sb+8,";\0");
         sb+=9;
         #ifdef PWR_CSE7766
-        #define LPM 128
-        char powMessage[LPM];memset(powMessage,'\0',LPM);
-        sprintf(powMessage,"s:%02d,v:%03.1f,c:%02.4f,p:%04.3f,e:%08.3f;",myCSE7766.cse_status,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        //#define LPM 128
+        //char powMessage[LPM];memset(powMessage,'\0',LPM);
+        //myCSE7766.handle();
+        sprintf(message+sb,"power=s:%02d,v:%03.1f,c:%02.4f,p:%04.3f,e:%08.3f;\0",debug_cse,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
         
-        uint8_t powMessageLen=strlen(powMessage);
-        memcpy(message+sb,"power=",6);
-        memcpy(message+sb+6,powMessage,powMessageLen);
-        sb+=(6+powMessageLen);
+        //uint8_t powMessageLen=strlen(powMessage);
+        //memcpy(message+sb,"power=",6);
+        //memcpy(message+sb+6,powMessage,powMessageLen);
+        sb=strlen(message); //6+powMessageLen);
         #endif
 
         strcpy(message+sb,";_\0");    
@@ -918,7 +924,7 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
       *(message+sb)=(char)(ssidNb+0x30);
       memcpy(message+sb+1,"_\0",2);
 
-  if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}      
+  if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL,PULSEBLINK);}      
   
   return buildMess(nomfonction,message,"",diags);        // concatène et complète dans bufserver
 }
@@ -1065,6 +1071,8 @@ void talkServer()   // si numPeriph est à 0, dataRead pour se faire reconnaitre
 
 dateOn=millis();
 
+//if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
+
 if((cstRec.talkStep && TALKREQBIT)!=0 && (cstRec.talkStep&TALKCNTBIT)==0){cstRec.talkStep+=TALKWIFI1;}
 
 switch(cstRec.talkStep&=TALKCNTBIT){
@@ -1139,7 +1147,7 @@ unsigned long beg=millis();
       #define LMLOC 16
       char a[LMLOC];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
       strcat(a,"°C ");strcat(a,VERSION);
-      if(strlen(a)>=LMLOC){ledblink(BCODESHOWLINE);}
+      if(strlen(a)>=LMLOC){ledblink(BCODESHOWLINE,PULSEBLINK);}
       a[LMLOC-1]='\0';strcat(msg,a);    // écrase les params d'init
 
     if(emailSend==nullptr){Serial.println(">>>>>>>>>>>> no conf for mail - restart server for mailInit");}
@@ -1228,7 +1236,7 @@ void answer(const char* what)
   talkClient(bufServer);
   Serial.print(' ');Serial.println(millis());
   cliext.stop();
-  ledblink(4);                        // connexion réussie 
+  ledblink(4,PULSEBLINK);                        // connexion réussie 
 #ifdef ANALYZE
   ANSWE
 #endif // ANALYZE  
@@ -1482,7 +1490,21 @@ void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0
 }
 
 /* Read temp ------------------------- */
- 
+
+#if POWER_MODE==NO_MODE
+void readTemp()
+{
+  if((((millis()-lastRefr)/1000)>cstRec.serverPer) && (talkSta()==0)){
+    Serial.print(millis());Serial.print(" T ");Serial.print(lastRefr);Serial.print(" P ");Serial.println(cstRec.serverPer);
+    lastRefr=millis();
+    getTempEtc();
+    //if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
+    talkReq();
+  }
+}
+#endif
+
+#if POWER_MODE!=NO_MODE
 void readTemp()
 {
   if(talkSta() == 0){     // !=0 ne peut se produire qu'en NO_MODE 
@@ -1501,20 +1523,20 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
       trigTemp();
 #endif // PM==NO_MODE
 
-/* avance timer server ------------------- */
+///* avance timer server ------------------- */
       cstRec.serverTime+=tempPeriod0;             // tempPeriod0 temps écoulé depuis dernier réveil/passage par readTemp
       
-      /* si temps maxi atteint depuis dernière cx, forçage cx */
+      ///* si temps maxi atteint depuis dernière cx, forçage cx */
       if(cstRec.serverTime>cstRec.serverPer){     // serverTime temps écoulé depuis dernier talkReq()
-                                                  // serverPer max période programmée depuis le serveur entre 2 talkReq
+                                                  // serverPer max entre 2 talkReq
         getTempEtc();
         cstRec.serverTime=0;
         talkReq();
       }
-      /* si pas de ko en cours, getTemp() au cas où elle soit changée */
+      ///* si pas de ko en cours, getTemp() au cas où elle soit changée */
       else if (cstRec.serverPer!=PERSERVKO){  // si dernière cx wifi ko, pas de comm jusqu'à fin de tempo    
         getTempEtc();
-        /* temp (suffisament) changée ? */
+        ///* temp (suffisament) changée ? */
         if(temp>cstRec.oldtemp+cstRec.tempPitch){
           cstRec.oldtemp=(int16_t)temp-cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp-tempPitch/2)
           cstRec.serverTime=0;
@@ -1525,15 +1547,17 @@ uint16_t tempPeriod0=PERTEMP;  // (sec) durée depuis dernier check température
           cstRec.serverTime=0;
           talkReq(); 
         }
-        /* si pas de changt suffisant rien */
+        ///* si pas de changt suffisant rien */
       }
 
 #if POWER_MODE==NO_MODE
     }   // chkTigTemp
 #endif // PM==NO_MODE
-  }     // talkStep = 0
+
+  }     // talkSta == 0
 /* writeConstant avant sleep ou power off */
 }
+#endif
 
 void getTemp()
 {  
@@ -1569,7 +1593,7 @@ void getTemp()
       checkVoltage();
 #ifdef IRQCNT
       Serial.print(irqCnt);Serial.print(' ');
-#endif      
+#endif 
 }
 
 void getTempEtc()
@@ -1577,6 +1601,7 @@ void getTempEtc()
   getTemp();
   #ifdef PWR_CSE7766
   getCSE7766();
+  //if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
   dataParFlag=true;
   #endif // CSE7766
 }
@@ -1648,7 +1673,7 @@ uint16_t getServerConfig()
     temp=0;a=' ';while(a!=';' && a!='\0' && b<(bf+rcvl)){a=b[temp];cstRec.pwd2[temp]=a;temp++;}
     cstRec.pwd2[temp]='\0';b+=temp;
   }
-  else {Serial.print(" ko ");Serial.println(rcvl);ledblink(BCODESDCARDKO);}
+  else {Serial.print(" ko ");Serial.println(rcvl);ledblink(BCODESDCARDKO,PULSEBLINK);}
   return rcvl;
 }
 

@@ -69,7 +69,7 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
       WL_IDLE_STATUS when Wi-Fi is in process of changing between statuses
       WL_DISCONNECTED if module is not configured in station mode
 */
-      ledblink(BCODEONBLINK);
+      ledblink(BCODEONBLINK,PULSEBLINK);
       
       Serial.print("\n WIFI connecting to ");Serial.print(ssid);
       yield();
@@ -81,14 +81,14 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
       }                                         // cxstatus ok or ko
     }
     if(cxstatus){                               // ok
-      ledblink(-1);
+      ledblink(-1,PULSEBLINK);
       if(print){Serial.print(" local IP : ");Serial.print(WiFi.localIP());}
       cstRec.IpLocal=WiFi.localIP();        
       WiFi.macAddress(mac);
       if(print){Serial.print(" ");serialPrintMac(mac,0);}
-      cstRec.serverPer=PERSERV;
+      //cstRec.serverPer=PERSERV;
       }
-    else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI);}}
+    else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI,PULSEBLINK);}}
     if(print){Serial.print(" cxst=");Serial.print(cxstatus);Serial.print(" uS=");Serial.println(micros()-beg);}
   
     return cxstatus;

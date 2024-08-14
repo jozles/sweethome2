@@ -343,10 +343,10 @@ Modifier :
 #define MEMDINIT 0x1111 // bits enable
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PULSEBLINK 4    // durée pulse led
 #endif // CARTE==VR
 
 #if CARTE==VRR
-
 #define PINLED 0
 #define LEDON LOW
 #define LEDOFF HIGH
@@ -387,6 +387,7 @@ Modifier :
 #define MEMDINIT 0x1111 // bits enable
 //#define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PULSEBLINK 4    // durée pulse led
 #ifdef  CAPATOUCH
 #define NBDET   2
 #define COMMON  PINDTC
@@ -429,6 +430,7 @@ Modifier :
 #define TOOGBT PINDTA   // toogle pushbutton local
 #define TOOGLV 0        // toogle active edge
 #define TOOGSW PINSWA   // toogled output
+#define PULSEBLINK 10   // durée pulse led
 #endif // CARTE==SFRFR2(8285) ou smart_plug S26(8266)
 
 #if CARTE==SFPOW
@@ -440,7 +442,7 @@ Modifier :
 #define LEDRON LOW
 #define LEDROFF HIGH
 #define MAIL_SENDER
-//#define PWR_CSE7766
+#define PWR_CSE7766
 //#define PINXDT 13
 #define WPIN   2        // 1 wire ds1820
 #define NBSW   1        // nbre switchs
@@ -470,6 +472,7 @@ Modifier :
 #define POWSW  PINSWA   // CSE OUTPUT
 #define PINSRX 16       // UART IN
 #define PINSTX 17       // UART OUT
+#define PULSEBLINK 20   // durée pulse led
 #endif // CARTE==SFPOW
 
 #if CARTE==DEVKITC
@@ -511,6 +514,7 @@ Modifier :
 #define POWSW  PINSWA   // CSE OUTPUT
 #define PINSRX 16       // UART IN
 #define PINSTX 17       // UART OUT
+#define PULSEBLINK 10   // durée pulse led
 #endif // CARTE==DEVKITC
 
 
@@ -540,6 +544,7 @@ Modifier :
 #define MEMDINIT 0x0000 // bits enable memDetec
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 170     // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PULSEBLINK 4    // durée pulse led
 #endif // CARTE==THESP01
 
 #if CARTE==THESP12
@@ -567,6 +572,7 @@ Modifier :
 #define PINDTD 13       // pin entrée détect bit 3  sur la même entrée.
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PULSEBLINK 4    // durée pulse led
 #endif // CARTE==THESP12
 
 #if CARTE==VRDEV
@@ -597,6 +603,7 @@ Modifier :
 #define PINDTD 13       // pin entrée détect bit 3  sur la même entrée.
 #define PINPOFF 3       // power off TPL5111 (RX ESP01)
 #define PERTEMP 60      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define PULSEBLINK 4    // durée pulse led
 #ifdef CAPATOUCH
 #define NBDET 2
 #define COMMON  PINDTC
@@ -610,8 +617,8 @@ Modifier :
 
 // timings
 
-#define PERSERVKO 7200/PERTEMP    // secondes période par défaut accès serveur si connexion server ko
-#define PERSERV   120/PERTEMP     // secondes période max entre 2 accès server (modifié par le serveur dès la prmeière connexion)g
+#define PERSERVKO 7200            // secondes période par défaut accès serveur si connexion server ko
+#define PERSERV   20              // secondes période max entre 2 accès server (modifié par le serveur dès la prmeière connexion)g
 
 //#define TOINCHCLI         4000    // msec max attente car server
 #define WIFI_TO_CONNEXION 8000    // msec
