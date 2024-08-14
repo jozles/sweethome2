@@ -104,8 +104,8 @@ bool serverStarted=false;
   char   httpMess[LHTTPMESS];             // buffer d'entrée en mode serveur
 #endif // _SERVER
 
-  #define LSRVTEXTIP TEXTIPADDRLENGTH+1
-  char textFrontalIp[LSRVTEXTIP];                  // sweethome server alpha IpAddr
+  //#define LSRVTEXTIP TEXTIPADDRLENGTH+1
+  //char textFrontalIp[LSRVTEXTIP];                  // sweethome server alpha IpAddr
 
 // enregistrement pour serveur externe
 
@@ -462,10 +462,11 @@ initConstant();             // à supprimer en production
   
   // Ip au format texte pour MessToServer
   // charIp ne fonctionne pas avec le format IPAddress ; changer pour byte* modifie cstRec
-  char buf[TEXTIPADDRLENGTH+1];memset(buf,0X00,TEXTIPADDRLENGTH+1);
-  for(uint8_t i=0;i<4;i++){
-    sprintf(buf+strlen(buf),"%d",cstRec.serverIp[i]);if(i<3){strcat(buf,".");}}
-  memcpy(textFrontalIp,buf,LSRVTEXTIP);
+  // Ip au format IPAddress (v2.a synchrone avec frontal2 1.8p)
+  //char buf[TEXTIPADDRLENGTH+1];memset(buf,0X00,TEXTIPADDRLENGTH+1);
+  //for(uint8_t i=0;i<4;i++){
+    //sprintf(buf+strlen(buf),"%d",cstRec.serverIp[i]);if(i<3){strcat(buf,".");}}
+  //memcpy(textFrontalIp,buf,LSRVTEXTIP);
 
 /* config via serial from server */
   #define FRDLY 5  // sec
@@ -477,7 +478,7 @@ initConstant();             // à supprimer en production
     if(getServerConfig()>0){writeConstant();while(1){blink(1);delay(1000);}} // getServerConfig bloque si ko
   }
 #endif // != THESP01
-  Serial.print("cstRec.serverIp ");Serial.print((IPAddress)cstRec.serverIp);//Serial.print(" textFrontalIp ");Serial.println(textFrontalIp);
+  Serial.print("cstRec.serverIp ");Serial.print(cstRec.serverIp);//Serial.print(" textFrontalIp ");Serial.println(textFrontalIp);
   Serial.print(" time=");Serial.println(millis()-debTime);
   Serial.print("ssid=");Serial.print(cstRec.ssid1);Serial.print(" - ");Serial.println(cstRec.ssid2);
   Serial.println();
@@ -946,7 +947,7 @@ int buildReadSave(const char* nomFonction,const char* data,const char* mailData)
 //dumpstr(bufServer,144);
 
 // frontal devient inaccessible ce qui permet de tester l'interruption de messToServer par un ordreExt()
-  return messToServer(&cli,textFrontalIp,cstRec.serverPort,bufServer,server,&cliext); 
+  return messToServer(&cli,&cstRec.serverIp,cstRec.serverPort,bufServer,server,&cliext); 
 
 }
 

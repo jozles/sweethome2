@@ -3,7 +3,9 @@
 
 #include "Arduino.h"
 #include <shconst2.h>
+#ifndef ESP32
 #include <ESP8266WiFi.h>
+#endif  // ESP32
 
 
 //#define ANALYZE -> flag dans platformio.ini
@@ -12,7 +14,7 @@
 // !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
 
 
-#define VERSION "2.a_"
+#define VERSION "2.b_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -102,6 +104,7 @@
  * 2.8 login/password mail dans fonction mail______
  * 2.9 ajout messageCnt dans le message au serveur
  * 2.a ajout tooglepushbutton ; ajout sonoff CSE7766 ; 
+ * 2.b format IPAddress pour adresses IP (voir commentaires dans shconst2.h)
 Modifier :
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ;
@@ -233,7 +236,7 @@ Modifier :
 #define VRDEV   'D'  // carte dev avec 2 leds
 #define SFRFR2  'S'  // carte sonoff_rf_r2 ------ configurer platformio.ini pour 8285 -----
 #define SFPOW   'P'  // carte sonoff_pow   ------ configurer platformio.ini pour esp32 ----
-#define DEVKITC 'D'  // carte nodemcu devkitc ------ configurer platformio.ini pour esp32 ----
+#define DEVKITC 'D'  // carte nodemcu devkitc ------ configurer platformio.ini pour esp32 ---- sonoff_pow et devkitc compatibles sauf absence CSE7766
 //#define RELAY
 #define THESP01 '1'
 #define THESP12 '2'
@@ -245,7 +248,7 @@ Modifier :
 //
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE SFRFR2             // <------------- modèle carte
+#define CARTE SFPOW             // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation
 
 /* ds18x20 */
@@ -437,7 +440,7 @@ Modifier :
 #define LEDRON LOW
 #define LEDROFF HIGH
 #define MAIL_SENDER
-#define PWR_CSE7766
+//#define PWR_CSE7766
 //#define PINXDT 13
 #define WPIN   2        // 1 wire ds1820
 #define NBSW   1        // nbre switchs
