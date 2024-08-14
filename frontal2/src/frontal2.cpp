@@ -227,7 +227,7 @@ EthernetServer* remoteserv=nullptr;           // serveur remote
 
 void iniDetServ()
 {
-  if(MDSLEN*8 != NBDSRV){Serial.print("MDSLEN invalide");while(1){ledblink(BCODESYSERR);}}
+  if(MDSLEN*8 != NBDSRV){Serial.print("MDSLEN invalide");while(1){ledblink(BCODESYSERR,PULSEBLINK);}}
   memset(memDetServ,0x00,MDSLEN);
   memset(mDSmaskbit,0x00,NBDSRV*MDSLEN);
   memset(libDetServ,0x00,LENLIBDETSERV*NBDSRV);
@@ -724,7 +724,7 @@ void loop()
 //Serial.print("pil=");Serial.println(millis());            
             remoteServer();      // *** remotes
 //Serial.print("led=");Serial.println(millis());
-            ledblink(0);
+            ledblink(0,PULSEBLINK);
 //Serial.print("ser=");Serial.println(millis());            
             serialServer();
 
@@ -1445,7 +1445,7 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
                 else if (c<=' '){termine=VRAI;Serial.println();}                // ' ' interdit dans valeur : indique fin données
                 else {val=FAUX;termine=VRAI;i=GETNV_INVALID_VAL;Serial.println();}                       
               }
-              else {Serial.print("getnv ni nom ni val");while(1){ledblink(BCODESYSERR);}}   // ni nom ni val ... system error                                                                                      
+              else {Serial.print("getnv ni nom ni val");while(1){ledblink(BCODESYSERR,PULSEBLINK);}}   // ni nom ni val ... system error                                                                                      
             }//Serial.println(libfonctions+2*(i-1));
           }                                                                                             
         }
