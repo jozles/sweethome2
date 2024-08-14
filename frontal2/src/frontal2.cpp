@@ -440,9 +440,9 @@ uint16_t rcvcnt=0;              // cnt requetes
 
 int  getnv(EthernetClient* cli);
 void xcrypt();
-void frecupptr(char* nomfonct,uint8_t* v,uint8_t* b,uint8_t lenpersw);
+//void frecupptr(char* nomfonct,uint8_t* v,uint8_t* b,uint8_t lenpersw);
 void bitvSwCtl(byte* data,uint8_t sw,uint8_t datalen,uint8_t shift,byte msk);
-void test2Switchs();
+//void test2Switchs();
 void tcpPeriServer();
 void browserServer();
 void remoteServer();
@@ -463,7 +463,7 @@ void stoprequest();
 void wdReboot(const char* msg,unsigned long maxCx);
 void usrReboot();
 void periDetecUpdate(const char* src);
-void testSwitch(const char* command,char* perihost,int periport);
+//void testSwitch(const char* command,char* perihost,int periport);
 void serialServer();
 uint16_t serialRcv(char* rcv,uint16_t maxl);
 void disjValue(uint8_t val,uint8_t rem,uint8_t remTNum);
@@ -1513,7 +1513,7 @@ void xcrypt()
 }
 #endif // _AVEC_AES
 
-
+/*
 void test2Switchs()
 {
 
@@ -1550,7 +1550,7 @@ void testSwitch(const char* command,char* perihost,int periport)
             cliext.stop();        // en principe iniutile (purge fait stop)
             delay(1);
 }
-
+*/
 
 /* ================================ utilitaires serveur ================================= */
 

@@ -921,7 +921,6 @@ int periCacheSave(uint16_t num)                                     // sauve les
         fperi.sync();
         fperi.close();
         periCacheStatus[num]=CACHEISFILE;                           // le fichier est à l'image du cache
-        //for(int x=0;x<4;x++){lastIpAddr[x]=periIpAddr[x];}
       }
       else{Serial.print(periFile);Serial.println(" ko");sta=SDKO;}
     }

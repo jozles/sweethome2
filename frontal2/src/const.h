@@ -184,7 +184,8 @@
         réponse idem data_save_
         1er param : 'swcde' -> forcer swcde d'un perif depuis le périf swcde=HH ; nécessaire pour le tooglepushbutton
    1.8p modif analyse() '=' et ':' autorisés dans valeur '\' pris en compte et filtré (ne devrait pas ?) 
-        ajout param 'power' -> résultat lecture CSE7766
+        ajout param 'power' -> résultat lecture CSE7766 
+        format IPAddress pour messToServer (voir comments dans shlib2.h)
 
 
    BUGS : 

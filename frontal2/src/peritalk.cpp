@@ -248,17 +248,19 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)   // foncti
   unsigned long dur=millis();
   char message[LENMESS]={'\0'};
   char date14[LNOW];ds3231.alphaNow(date14);
-  char host[16];memset(host,'\0',16);
+  //char host[16];memset(host,'\0',16);
+  IPAddress hostIp;
 
   //periPrint(periCur);
 
   int ret=MESSCX; // pas de port pas de connexion
   if(((*periCfg)&PERI_SERV)!=0 && *periPort!=0){
-    charIp(host,(char*)periIpAddr);
+    //charIp(host,(char*)periIpAddr);
+    hostIp=periIpAddr;
   
     Serial.print(" periReq(");Serial.print((char)*periProtocol);
     Serial.print(" peri=");Serial.print(periCur);
-    Serial.print(" Ip=");serialPrintIp(periIpAddr);
+    Serial.print(" Ip=");Serial.print(hostIp); //serialPrintIp(periIpAddr);
     Serial.print(" port=");Serial.print(*periPort);Serial.print(") ");
 
     if(memcmp(nfonct,"mds_______",LENNOM)==0 || memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0 || memcmp(nfonct,"sw",2)==0 ){
@@ -275,7 +277,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)   // foncti
 
     if(*periProtocol=='T'){                                       // UDP à développer (sortie ret=MESSCX)
           showSocketsStatus(false,true,true,"periReq ");
-          periMess=messToServer(cli,host,*periPort,bufServer);
+          periMess=messToServer(cli,&hostIp,*periPort,bufServer);
           //Serial.print("(");Serial.print(MESSOK);Serial.print(" si ok) periMess(messToServer)=");Serial.println(periMess);
           //Serial.print(periMess);Serial.print("-");Serial.print(millis());Serial.print(" ");
           uint8_t fonct;
@@ -330,7 +332,7 @@ int periAns(EthernetClient* cli,EthernetUDP* udpCli,const char* nfonct)   // ré
   char date14[LNOW];ds3231.alphaNow(date14);
 
   Serial.print("periAns(");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
-  Serial.print(" ");serialPrintIp(periIpAddr);Serial.print("/");Serial.print(*periPort);delay(3);     
+  Serial.print(" ");serialPrintIp(periIpAddr);Serial.print(":");Serial.print(*periPort);delay(3);     
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
     assySet(message,periCur,periDiag(periMess),date14,nfonct);
     }  // assemblage datas 
