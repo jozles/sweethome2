@@ -1,3 +1,4 @@
+//#define TEST_CSE
 
 #ifndef ESP32
 #include <ESP8266WiFi.h>
@@ -270,11 +271,10 @@ void getCSE7766()
         Serial.print("volts:");Serial.print(myCSE7766.getVoltage());Serial.print(" current:");Serial.print(myCSE7766.getCurrent());
         Serial.print(" power:");Serial.print(myCSE7766.getActivePower());Serial.print(" energy:");Serial.println(myCSE7766.getEnergy());
         
-        cstRec.powVolt=(float)myCSE7766.getVoltage();
-        if(myCSE7766.cse_status!=0){cstRec.powVolt=myCSE7766.cse_status;}
-        cstRec.powCurr=(float) myCSE7766.getCurrent();
-        cstRec.powPower=(float) myCSE7766.getActivePower();
-        cstRec.powEnergy=(float) myCSE7766.getEnergy();
+        double volts=myCSE7766.getVoltage();cstRec.powVolt=(uint16_t)(volts*10);
+        double current=myCSE7766.getCurrent();cstRec.powCurr=(uint16_t)(current*1000);
+        double power=myCSE7766.getActivePower();cstRec.powPower=(uint16_t)(power*10);
+        double energy=myCSE7766.getEnergy();cstRec.powEnergy=(uint32_t)energy;
 /*        
         int periph=(cstRec.numPeriph[0]-'0')*10+(cstRec.numPeriph[1]-'0');
         char mailData[64];
@@ -330,6 +330,34 @@ delay(1);
   Serial.print("\nstart setup ");Serial.print(VERSION);
   Serial.print(" power_mode=");Serial.print(POWER_MODE);
   Serial.print(" carte=");Serial.print(CARTE);
+
+
+#ifdef TEST_CSE
+  Serial.print(" ; une touche pour start ");
+  #define MAXW 50
+  uint8_t ss=0;while(ss<MAXW){
+    ss++;Serial.print(".");delay(500);if(Serial.available()){Serial.read();break;}}
+  Serial.println();
+  if(ss>=MAXW){while(1){yield();}}
+
+  Serial2.begin(4800,SERIAL_8E1,16,-1);
+  uint16_t cnt=0;
+  char c;
+  #define LDATA 1024
+  char data[LDATA];memset(data,'\0',LDATA);
+  while(cnt<(LDATA-1)){
+    while(Serial2.available() && cnt<(LDATA-1)){
+      c=Serial2.read();data[cnt]=c;
+      if((c&0xf0)==0){Serial.print('0');}Serial.print(c,HEX);Serial.print(' ');
+      cnt++;
+    }
+  }
+  dumpstr(data,LDATA);
+  while(1){}
+#endif
+
+
+
 #ifdef ANALYZE
   Serial.print(" ANALYZE ");
 #endif // ANALYZE
@@ -532,7 +560,6 @@ initConstant();             // à supprimer en production
     myCSE7766.begin(); // will initialize serial to 4800 bps
 #endif // CSE7766
 
-
   }    // fin setup NO_MODE
 
   void loop(){  //=== NO_MODE =================================      
@@ -606,7 +633,9 @@ if(sercnt<10){
 */
           case 1:   if(cstRec.talkStep!=0){                     
                       talkServer();
+                      #ifdef PWR_CSE7766
                       if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
+                      #endif
                       }//oneShow=false;
                     break;
           case 2:   break;
@@ -877,7 +906,12 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
         //#define LPM 128
         //char powMessage[LPM];memset(powMessage,'\0',LPM);
         //myCSE7766.handle();
-        sprintf(message+sb,"power=s:%02d,v:%03.1f,c:%02.4f,p:%04.3f,e:%08.3f;\0",debug_cse,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        //sprintf(message+sb,"power=s:%02d,v:%04d,c:%05d,p:%05d,e:%09d;\0",debug_cse,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        #define LCSEDATA 24
+        char cse_data[LCSEDATA*2];
+        for(uint8_t cd=0;cd<LCSEDATA;cd++){
+          conv_htoa(&cse_data[2*cd],&myCSE7766._data[cd]);}
+        sprintf(message+sb,"power=s:%02d,d:%s;\0",myCSE7766.cse_status,cse_data);
         
         //uint8_t powMessageLen=strlen(powMessage);
         //memcpy(message+sb,"power=",6);

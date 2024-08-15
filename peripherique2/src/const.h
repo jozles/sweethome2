@@ -671,12 +671,12 @@ union {
   char      peripass[LPWD+1];     //  8+1 server passwd
   uint16_t  periAnal;             //  2   consigne analogique
   uint8_t   periCfg;              //  1   config périf
-  float     powVolt;
-  float     powCurr;
-  float     powPower;
-  float     powEnergy;
+  uint16_t  powVolt;
+  uint16_t  powCurr;
+  uint16_t  powPower;
+  uint32_t  powEnergy;
 
-#define LENFILLERCST 23 // v2.a
+#define LENFILLERCST 31 // v2.a
 //#define LENFILLERCST 42 // v2.9
 
   byte      filler[LENFILLERCST];
