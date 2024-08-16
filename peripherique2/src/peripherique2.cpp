@@ -76,7 +76,6 @@ Capat capaKeys;
 #define STOPALL digitalWrite(AN0,HIGH);digitalWrite(AN1,HIGH);digitalWrite(AN2,HIGH); // end
 #endif // ANALYZE
 
-uint8_t debug_cse=0;
 unsigned long lastRefr=0;
 uint8_t answerCnt=0;
 
@@ -274,23 +273,8 @@ void getCSE7766()
         double volts=myCSE7766.getVoltage();cstRec.powVolt=(uint16_t)(volts*10);
         double current=myCSE7766.getCurrent();cstRec.powCurr=(uint16_t)(current*1000);
         double power=myCSE7766.getActivePower();cstRec.powPower=(uint16_t)(power*10);
-        double energy=myCSE7766.getEnergy();cstRec.powEnergy=(uint32_t)energy;
-/*        
-        int periph=(cstRec.numPeriph[0]-'0')*10+(cstRec.numPeriph[1]-'0');
-        char mailData[64];
-        sprintf(mailData,"Peri=%2d CV=%.4f I=%.4f P=%.4f E=%.4f",periph,myCSE7766.getVoltage(),myCSE7766.getCurrent(),myCSE7766.getActivePower(),myCSE7766.getEnergy());
-        dataMail(mailData);
-
-        #if TEL_DEBUG
-        DEBUG_MSG("Voltage %.4f V\n", myCSE7766.getVoltage());
-        DEBUG_MSG("Current %.4f A\n", myCSE7766.getCurrent());
-        DEBUG_MSG("ActivePower %.4f W\n", myCSE7766.getActivePower());
-        DEBUG_MSG("ApparentPower %.4f VA\n", myCSE7766.getApparentPower());
-        DEBUG_MSG("ReactivePower %.4f VAR\n", myCSE7766.getReactivePower());
-        DEBUG_MSG("PowerFactor %.4f %\n", myCSE7766.getPowerFactor());
-        DEBUG_MSG("Energy %.4f Ws\n", myCSE7766.getEnergy());
-        #endif
-*/    
+        double energy=myCSE7766.getEnergy();cstRec.powEnergy=(uint32_t)energy;        
+    
     //}
 }
 #endif // PWR         
@@ -591,37 +575,12 @@ initConstant();             // à supprimer en production
   //
   // la période est allongée par les communications avec le serveur (appel ou réception d'ordre)
 
-  //pinMode(2,OUTPUT);while(1){digitalWrite(2,0);delay(1000);digitalWrite(2,1);delay(1000);} 
-
-/*
-if(sercnt<10){
-
-// test Serial2 
-  
-  Serial2.begin(4800, SERIAL_8E1, PINSRX, PINSTX);
-  #define LBUFSER2 128
-  char inbufser2[LBUFSER2];
-  uint8_t inbufptr=0;
-  unsigned long ser2start=millis();
-
-    while (Serial2.available() && inbufptr<128 && (millis()-ser2start)<60000) {
-    inbufser2[inbufptr]=Serial2.read();
-    inbufptr++;}
-
-  dumpstr(inbufser2,LBUFSER2);
-
-  Serial.println();
-  sercnt++;
-}
-*/
-
   #ifdef  _SERVER_MODE
-      //if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
+
       ordreExt();
       
       if(millis()>(clkTime)){        // période 5mS/step
-        //if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
-        
+
         clkTime+=PERFASTCLK;
         switch(clkFastStep++){
 
@@ -631,12 +590,7 @@ if(sercnt<10){
  * Puis talkstep pour le forçage de communication d'acquisition du port au reset 
  * clkFastStep et cstRec.talkStep == 1 
 */
-          case 1:   if(cstRec.talkStep!=0){                     
-                      talkServer();
-                      #ifdef PWR_CSE7766
-                      if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
-                      #endif
-                      }//oneShow=false;
+          case 1:   if(cstRec.talkStep!=0){talkServer();}//oneShow=false;
                     break;
           case 2:   break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
@@ -662,10 +616,9 @@ if(sercnt<10){
                     }
                     break;
                    
-          default:  //if(clkFastStep==0){Serial.print(" cFS0 ");}
+          default: 
           break;
         }
-        //clkTime=millis();
       }
   #endif // def_SERVER_MODE  
 
@@ -903,19 +856,15 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
         strcpy(message+sb+8,";\0");
         sb+=9;
         #ifdef PWR_CSE7766
-        //#define LPM 128
-        //char powMessage[LPM];memset(powMessage,'\0',LPM);
-        //myCSE7766.handle();
-        //sprintf(message+sb,"power=s:%02d,v:%04d,c:%05d,p:%05d,e:%09d;\0",debug_cse,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        /* cse_values */
+        //sprintf(message+sb,"power=s:%02d,v:%04d,c:%05d,p:%05d,e:%09d;\0",myCSE7766.cse_status,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        /* cse_data */
         #define LCSEDATA 24
         char cse_data[LCSEDATA*2];
         for(uint8_t cd=0;cd<LCSEDATA;cd++){
           conv_htoa(&cse_data[2*cd],&myCSE7766._data[cd]);}
         sprintf(message+sb,"power=s:%02d,d:%s;\0",myCSE7766.cse_status,cse_data);
         
-        //uint8_t powMessageLen=strlen(powMessage);
-        //memcpy(message+sb,"power=",6);
-        //memcpy(message+sb+6,powMessage,powMessageLen);
         sb=strlen(message); //6+powMessageLen);
         #endif
 
@@ -1104,8 +1053,6 @@ void talkServer()   // si numPeriph est à 0, dataRead pour se faire reconnaitre
 {
 
 dateOn=millis();
-
-//if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
 
 if((cstRec.talkStep && TALKREQBIT)!=0 && (cstRec.talkStep&TALKCNTBIT)==0){cstRec.talkStep+=TALKWIFI1;}
 
@@ -1532,7 +1479,6 @@ void readTemp()
     Serial.print(millis());Serial.print(" T ");Serial.print(lastRefr);Serial.print(" P ");Serial.println(cstRec.serverPer);
     lastRefr=millis();
     getTempEtc();
-    //if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
     talkReq();
   }
 }
@@ -1635,7 +1581,6 @@ void getTempEtc()
   getTemp();
   #ifdef PWR_CSE7766
   getCSE7766();
-  //if(debug_cse==0){debug_cse=myCSE7766.cse_status;}
   dataParFlag=true;
   #endif // CSE7766
 }
