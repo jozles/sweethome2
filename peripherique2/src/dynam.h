@@ -38,6 +38,9 @@ void pulseClk();             // interrupt ou poling clk @10Hz
 void polDx(uint8_t det);
 void polAllDet();
 void swDebounce();
+void toogleBreaker(uint8_t sw);
+void openBreaker(uint8_t sw);
+void closeBreaker(uint8_t sw);
 void memdetinit();
 void pulsesinit();
 void actions();

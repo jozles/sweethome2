@@ -726,6 +726,41 @@ void memdetinit()                         // init détecteurs physiques à la mi
   }
 }
 
+void toogleBreaker(uint8_t sw)
+{
+    const char* open  ="disj\0";
+    const char* close ="force\0";
+    const char* swState = open;
+    cstRec.swCde&=0xfc<<(sw*2);         // si pas open -> disjoncté 
+    if(digitalRead(pinSw[sw])==openSw[sw]){
+      swState = close;
+      cstRec.swCde|=0x02<<(sw*2);}      // force close
+    dataParFlag=true;
+    Serial.print(" toogle sw ");Serial.print(sw);
+    Serial.print('/');Serial.print(swState);
+    Serial.print(" swCde ");Serial.print(cstRec.swCde,HEX);
+}
+
+void closeBreaker(uint8_t sw)
+{
+    if(digitalRead(pinSw[sw])==cloSw[sw]){
+      cstRec.swCde|=0x02<<(sw*2);       // force close (02)
+      dataParFlag=true;
+      Serial.print(" close sw ");Serial.print(sw);
+      Serial.print(" swCde ");Serial.print(cstRec.swCde,HEX);
+    }
+}
+
+void openBreaker(uint8_t sw)
+{
+    if(digitalRead(pinSw[sw])==openSw[sw]){
+      cstRec.swCde&=0xfc<<(sw*2);       // force open (00)
+      dataParFlag=true;
+      Serial.print(" open sw ");Serial.print(sw);
+      Serial.print(" swCde ");Serial.print(cstRec.swCde,HEX);
+    }
+}
+
 void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur det (polDx masqué par tempo debounce) 
                                      // memDetec met le débounce en commun si plusieurs inputs
                                      // utilisent le même détecteur (seul bit utilisé : LH)
@@ -746,19 +781,7 @@ void polDx(uint8_t det)              // maj memDetec selon l'état du détecteur
       delay(1);
       #ifdef TOOGBT
       if(pinDet[det]==TOOGBT && lev==TOOGLV){
-        //oneShow=true;
-        // faire toogle sur le pinSw[toogSw] : 
-        const char* open  ="disj\0";
-        const char* close ="force\0";
-        const char* swState = open;
-        cstRec.swCde&=0xfc<<(toogSw*2);         // si pas open -> disjoncté 
-        if(digitalRead(pinSw[toogSw])==openSw[toogSw]){
-          swState = close;
-          cstRec.swCde|=0x02<<(toogSw*2);}      // si open -> forcé
-        Serial.print(" toogle sw ");Serial.print(toogSw);
-        Serial.print('/');Serial.print(swState);
-        Serial.print(" swCde ");Serial.print(cstRec.swCde,HEX);
-        dataParFlag=true;
+        toogleBreaker(toogSw);
       }
       #endif // TOOGBT
       Serial.println();

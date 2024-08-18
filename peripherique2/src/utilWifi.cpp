@@ -27,12 +27,15 @@ void wifiStatusValues()
 int printWifiStatus(const char* ssid,bool print)
 {
   const char* wifiSta="WL_IDLE_STATUS\0  \0WL_NO_SSID_AVAIL \0WL_UKN\0          \0WL_CONNECTED\0    \0WL_CONNECT_FAILED\0WL_UKN\0          \0WL_DISCONNECTED  \0";
+  const char* wifiSta255="NO_SHIELD\0";
   int ws=WiFi.status();
   if(print){
-    Serial.println();Serial.print(millis()/1000);
+    Serial.println();Serial.print(millis());
     //Serial.print(" WiFiStatus=");
     Serial.print(" ");
-    Serial.print(ws);Serial.print(" ");Serial.print((char*)(wifiSta+18*ws));
+    Serial.print(ws);Serial.print(" ");
+    if(ws!=255){Serial.print((char*)(wifiSta+18*ws));}
+    else Serial.print((char*)wifiSta255);
     if(ssid!=nullptr){Serial.print(" to ");Serial.print(ssid);}
   }
   return ws;

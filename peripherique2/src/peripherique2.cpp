@@ -16,11 +16,16 @@
 #include "dynam.h"
 #include "peripherique2.h"
 
+
 #ifdef PWR_CSE7766
 #include <CSE7766.h>
 CSE7766 myCSE7766;
-#define CSEUPDATE 2000
+bool    cse_ok=false;
 uint8_t powSw;
+#define MINPOWER 1              // 1W  valeur valide mini pour cstRec.periAnal
+#define MLPTIME 30000           // mS durée du lowPower avant openBreaker
+unsigned long firstLowPower=0;  // mS time du premier lowPower
+bool powerChg=false;            // openBreaker occurs
 #endif // CSE7766
 
 
@@ -265,16 +270,16 @@ void getCSE7766()
 {
     //if(pinSw[powSw]==cloSw[powSw]){               // ? utile ?
 
-        myCSE7766.handle();   // read CSE7766
+        cse_ok=myCSE7766.handle();   // read CSE7766
 
-        Serial.print("volts:");Serial.print(myCSE7766.getVoltage());Serial.print(" current:");Serial.print(myCSE7766.getCurrent());
+        Serial.print("status:");Serial.print(myCSE7766.cse_status);
+        Serial.print(" volts:");Serial.print(myCSE7766.getVoltage());Serial.print(" current:");Serial.print(myCSE7766.getCurrent());
         Serial.print(" power:");Serial.print(myCSE7766.getActivePower());Serial.print(" energy:");Serial.println(myCSE7766.getEnergy());
         
         double volts=myCSE7766.getVoltage();cstRec.powVolt=(uint16_t)(volts*10);
         double current=myCSE7766.getCurrent();cstRec.powCurr=(uint16_t)(current*1000);
         double power=myCSE7766.getActivePower();cstRec.powPower=(uint16_t)(power*10);
         double energy=myCSE7766.getEnergy();cstRec.powEnergy=(uint32_t)energy;        
-    
     //}
 }
 #endif // PWR         
@@ -592,11 +597,11 @@ initConstant();             // à supprimer en production
 */
           case 1:   if(cstRec.talkStep!=0){talkServer();}//oneShow=false;
                     break;
-          case 2:   break;
+          case 2:   actions();break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
           case 4:   pulseClk();break;
-          case 5:   swDebounce();break;         // doit être avant polDx              
-          case 6:   actions();break;
+          case 5:   break;
+          case 6:   swDebounce();break;         // doit être avant polDx              
           case 7:   polAllDet();break;          // polDx doit être après swDebounce et dernier avant outputCtl pour que le tooglepushbutton soit maitre de tout
           case 8:   outputCtl();break;          // quand toutes les opérations sont terminées
           case 9:   ledblink(-1,PULSEBLINK);break;
@@ -796,7 +801,7 @@ if(diags){Serial.println(" dataTransfer() ");}
             if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);Serial.println("newS");}
           #endif
 
-          cstRec.periAnal=packHexa(data+messLength-7-6,4);                // periAnalOut consigne analogique 0-FF
+          cstRec.periAnal=packHexa(data+messLength-7-6,4);                // periAnalOut consigne analogique 0-FFFF
           cstRec.periCfg=packHexa(data+messLength-2-6,2);                 // periCfg '_hh'         
 
         } // periMess==MESSOK
@@ -858,13 +863,15 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
         #ifdef PWR_CSE7766
         /* cse_values */
         //sprintf(message+sb,"power=s:%02d,v:%04d,c:%05d,p:%05d,e:%09d;\0",myCSE7766.cse_status,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        //sb=strlen(message);
         /* cse_data */
         #define LCSEDATA 24
-        char cse_data[LCSEDATA*2];
+        char cse_data[LCSEDATA*2+8];
         for(uint8_t cd=0;cd<LCSEDATA;cd++){
           conv_htoa(&cse_data[2*cd],&myCSE7766._data[cd]);}
+        cse_data[LCSEDATA*2]='\0';
+        //Serial.print("cse_data ");Serial.print(cse_data);  
         sprintf(message+sb,"power=s:%02d,d:%s;\0",myCSE7766.cse_status,cse_data);
-        
         sb=strlen(message); //6+powMessageLen);
         #endif
 
@@ -1481,6 +1488,29 @@ void readTemp()
     getTempEtc();
     talkReq();
   }
+  /*
+  else if((((millis()-lastRefr)/1000)>cstRec.tempPer) && (talkSta()==0)){
+    getTempEtc();
+    // temp (suffisament) changée ? 
+    if(temp>cstRec.oldtemp+cstRec.tempPitch){
+      cstRec.oldtemp=(int16_t)temp-cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp-tempPitch/2)
+      lastRefr=millis();
+      talkReq(); 
+    }
+    else if(temp<cstRec.oldtemp-cstRec.tempPitch){
+      cstRec.oldtemp=(int16_t)temp+cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp+tempPitch/2)
+      lastRefr=millis();
+      talkReq(); 
+    }
+    #ifdef PWR_CSE7766
+    // puissance consommée changée ?
+    else if(powerChg){
+      lastRefr=millis();
+      powerChg=false;
+      talkReq();
+    }
+    #endif   
+  }*/
 }
 #endif
 
@@ -1581,6 +1611,18 @@ void getTempEtc()
   getTemp();
   #ifdef PWR_CSE7766
   getCSE7766();
+  /*
+  if(cse_ok && cstRec.powPower!=0 && cstRec.analVal>=MINPOWER && cstRec.powPower<cstRec.analVal*10){
+    powerChg=true;
+    if(firstLowPower!=0){
+      if((millis()-firstLowPower)>MLPTIME){
+        firstLowPower=0;
+        openBreaker(powSw);
+      }
+    }
+    else {firstLowPower=millis();}
+  }
+  */
   dataParFlag=true;
   #endif // CSE7766
 }

@@ -14,7 +14,7 @@
 // !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
 
 
-#define VERSION "2.b_"
+#define VERSION "2.c_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -103,8 +103,10 @@
  *     gestion thermostat en local via locmem et LOCMEM_STA_BIT
  * 2.8 login/password mail dans fonction mail______
  * 2.9 ajout messageCnt dans le message au serveur
- * 2.a ajout tooglepushbutton ; ajout sonoff CSE7766 ; 
+ * 2.a ajout tooglePushButton ; ajout sonoff CSE7766 ; 
  * 2.b format IPAddress pour adresses IP (voir commentaires dans shconst2.h)
+ * 2.c CSE7759b (équiv CES7766) opérationnel ; lu simultanément à la température (env 52mS) ; 
+ *     si power<anal pendant MLPTIME openBreaker (idem tooglePushButton)
 Modifier :
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ;
