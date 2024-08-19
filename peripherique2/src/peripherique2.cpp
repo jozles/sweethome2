@@ -81,7 +81,8 @@ Capat capaKeys;
 #define STOPALL digitalWrite(AN0,HIGH);digitalWrite(AN1,HIGH);digitalWrite(AN2,HIGH); // end
 #endif // ANALYZE
 
-unsigned long lastRefr=0;
+unsigned long lastServerRefr=0;
+unsigned long lastTempRefr=0;
 uint8_t answerCnt=0;
 
 Ds1820 ds1820;
@@ -272,7 +273,7 @@ void getCSE7766()
 
         cse_ok=myCSE7766.handle();   // read CSE7766
 
-        Serial.print("status:");Serial.print(myCSE7766.cse_status);
+        Serial.print("CSEstatus:");Serial.print(myCSE7766.cse_status);
         Serial.print(" volts:");Serial.print(myCSE7766.getVoltage());Serial.print(" current:");Serial.print(myCSE7766.getCurrent());
         Serial.print(" power:");Serial.print(myCSE7766.getActivePower());Serial.print(" energy:");Serial.println(myCSE7766.getEnergy());
         
@@ -798,7 +799,7 @@ if(diags){Serial.println(" dataTransfer() ");}
           cstRec.periPort=(uint16_t)convStrToNum(data+posMds+mdsl*2+1,&sizeRead); // port server
           
           #ifdef _SERVER_MODE
-            if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);Serial.println("newS");}
+            if(server==nullptr && cstRec.periPort!=0){server=new WiFiServer(cstRec.periPort);Serial.println("newServer");}
           #endif
 
           cstRec.periAnal=packHexa(data+messLength-7-6,4);                // periAnalOut consigne analogique 0-FFFF
@@ -862,8 +863,8 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
         sb+=9;
         #ifdef PWR_CSE7766
         /* cse_values */
-        //sprintf(message+sb,"power=s:%02d,v:%04d,c:%05d,p:%05d,e:%09d;\0",myCSE7766.cse_status,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
-        //sb=strlen(message);
+        sprintf(message+sb,"power=s:%02d,v:%04d,c:%05d,p:%05d,e:%09d;\0",myCSE7766.cse_status,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        sb=strlen(message);
         /* cse_data */
         #define LCSEDATA 24
         char cse_data[LCSEDATA*2+8];
@@ -1482,35 +1483,34 @@ void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0
 #if POWER_MODE==NO_MODE
 void readTemp()
 {
-  if((((millis()-lastRefr)/1000)>cstRec.serverPer) && (talkSta()==0)){
-    Serial.print(millis());Serial.print(" T ");Serial.print(lastRefr);Serial.print(" P ");Serial.println(cstRec.serverPer);
-    lastRefr=millis();
+  if((((millis()-lastServerRefr)/1000)>cstRec.serverPer) && (talkSta()==0)){
+    Serial.print(millis());//Serial.print(" T ");Serial.print(lastRefr);Serial.print(" P ");Serial.println(cstRec.serverPer);
+    lastServerRefr=millis();
+    lastTempRefr=millis();
     getTempEtc();
     talkReq();
   }
-  /*
-  else if((((millis()-lastRefr)/1000)>cstRec.tempPer) && (talkSta()==0)){
+  else if((((millis()-lastTempRefr)/1000)>cstRec.tempPer) && (talkSta()==0)){
+    Serial.print(millis());
+    lastTempRefr=millis();
     getTempEtc();
     // temp (suffisament) changée ? 
     if(temp>cstRec.oldtemp+cstRec.tempPitch){
       cstRec.oldtemp=(int16_t)temp-cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp-tempPitch/2)
-      lastRefr=millis();
       talkReq(); 
     }
     else if(temp<cstRec.oldtemp-cstRec.tempPitch){
       cstRec.oldtemp=(int16_t)temp+cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp+tempPitch/2)
-      lastRefr=millis();
       talkReq(); 
     }
     #ifdef PWR_CSE7766
     // puissance consommée changée ?
     else if(powerChg){
-      lastRefr=millis();
       powerChg=false;
       talkReq();
     }
     #endif   
-  }*/
+  }
 }
 #endif
 
@@ -1592,7 +1592,7 @@ void getTemp()
         temp*=100;                  // tempPitch 100x
         ds1820.convertDs(WPIN);     // conversion pendant attente prochain accès
         debConv=millis();          
-        Serial.print(" temp ");Serial.print(temp/100);Serial.print(" ");Serial.print(debConv);
+        Serial.print(" temp ");Serial.print(temp/100);//Serial.print(" ");Serial.print(debConv);
       }
 #endif // WPIN      
 #endif // PM==NO_MODE
@@ -1611,7 +1611,8 @@ void getTempEtc()
   getTemp();
   #ifdef PWR_CSE7766
   getCSE7766();
-  /*
+  Serial.print("cse_ok=");Serial.print(cse_ok);Serial.print(" cse_p=");Serial.print(cstRec.powPower);
+  Serial.print(" anal=");Serial.println(cstRec.analVal);
   if(cse_ok && cstRec.powPower!=0 && cstRec.analVal>=MINPOWER && cstRec.powPower<cstRec.analVal*10){
     powerChg=true;
     if(firstLowPower!=0){
@@ -1622,7 +1623,7 @@ void getTempEtc()
     }
     else {firstLowPower=millis();}
   }
-  */
+  
   dataParFlag=true;
   #endif // CSE7766
 }

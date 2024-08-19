@@ -743,7 +743,7 @@ void toogleBreaker(uint8_t sw)
 
 void closeBreaker(uint8_t sw)
 {
-    if(digitalRead(pinSw[sw])==cloSw[sw]){
+    if(digitalRead(pinSw[sw])==openSw[sw]){
       cstRec.swCde|=0x02<<(sw*2);       // force close (02)
       dataParFlag=true;
       Serial.print(" close sw ");Serial.print(sw);
@@ -753,7 +753,7 @@ void closeBreaker(uint8_t sw)
 
 void openBreaker(uint8_t sw)
 {
-    if(digitalRead(pinSw[sw])==openSw[sw]){
+    if(digitalRead(pinSw[sw])==cloSw[sw]){
       cstRec.swCde&=0xfc<<(sw*2);       // force open (00)
       dataParFlag=true;
       Serial.print(" open sw ");Serial.print(sw);

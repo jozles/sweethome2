@@ -15,6 +15,10 @@ extern uint8_t  nbreBlink;
 
 extern byte     mac[6];
 
+#define LWIFIST 18
+const char* wifiSta="WL_IDLE_STATUS\0  \0WL_NO_SSID_AVAIL \0WL_UKN\0          \0WL_CONNECTED\0    \0WL_CONNECT_FAILED\0WL_UKN\0          \0WL_DISCONNECTED  \0";
+const char* wifiSta255="NO_SHIELD\0";
+
 void wifiStatusValues()
 {
   Serial.print(WL_CONNECTED);Serial.println(" WL_CONNECTED ");
@@ -26,15 +30,15 @@ void wifiStatusValues()
 
 int printWifiStatus(const char* ssid,bool print)
 {
-  const char* wifiSta="WL_IDLE_STATUS\0  \0WL_NO_SSID_AVAIL \0WL_UKN\0          \0WL_CONNECTED\0    \0WL_CONNECT_FAILED\0WL_UKN\0          \0WL_DISCONNECTED  \0";
-  const char* wifiSta255="NO_SHIELD\0";
-  int ws=WiFi.status();
+  int ws=WiFi.status();       // (ESP32)~120uS
+  
   if(print){
-    Serial.println();Serial.print(millis());
+    //Serial.println();
+    Serial.print(millis());
     //Serial.print(" WiFiStatus=");
     Serial.print(" ");
     Serial.print(ws);Serial.print(" ");
-    if(ws!=255){Serial.print((char*)(wifiSta+18*ws));}
+    if(ws!=255){Serial.print((char*)(wifiSta+LWIFIST*ws));}
     else Serial.print((char*)wifiSta255);
     if(ssid!=nullptr){Serial.print(" to ");Serial.print(ssid);}
   }
@@ -55,6 +59,7 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
 {
 
   unsigned long beg=micros();
+  //unsigned long bg0,bg1,bg2,bg3;
   bool cxstatus=VRAI;
 
     //WiFi.forceSleepWake();delay(1);
@@ -65,7 +70,8 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
     int wifistatus=printWifiStatus(ssid,print);
 
     if(wifistatus!=WL_CONNECTED){    
-/*
+/*    
+      NOSHIELD par défaut au reset
       WL_CONNECTED after successful connection is established
       WL_NO_SSID_AVAIL in case configured SSID cannot be reached
       WL_CONNECT_FAILED if password is incorrect
@@ -74,7 +80,7 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
 */
       ledblink(BCODEONBLINK,PULSEBLINK);
       
-      Serial.print("\n WIFI connecting to ");Serial.print(ssid);
+      Serial.print("\n WIFI connecting to ");Serial.println(ssid);
       yield();
       WiFi.begin(ssid,password);
       
@@ -85,14 +91,30 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
     }
     if(cxstatus){                               // ok
       ledblink(-1,PULSEBLINK);
-      if(print){Serial.print(" local IP : ");Serial.print(WiFi.localIP());}
-      cstRec.IpLocal=WiFi.localIP();        
+      cstRec.IpLocal=WiFi.localIP();
       WiFi.macAddress(mac);
-      if(print){Serial.print(" ");serialPrintMac(mac,0);}
-      //cstRec.serverPer=PERSERV;
+      if(print){
+        //Serial.print(" local IP : ");delay(10);
+        Serial.print(" ");
+        //bg0=micros();
+        Serial.print(cstRec.IpLocal);
+        //bg1=micros();
+        Serial.print(" ");
+        //bg2=micros();
+        serialPrintMac(mac,0);}
+        //bg3=micros();
       }
     else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI,PULSEBLINK);}}
-    if(print){Serial.print(" cxst=");Serial.print(cxstatus);Serial.print(" uS=");Serial.println(micros()-beg);}
+    if(print){
+      unsigned long v=micros()-beg;
+      //unsigned long v0=micros()-bg0;
+      //unsigned long v1=micros()-bg1;
+      //unsigned long v2=micros()-bg2;
+      //unsigned long v3=micros()-bg3;
+      Serial.print(" cxst=");Serial.print(cxstatus);
+      Serial.print(" uS=");Serial.print(v);
+      //Serial.print(' ');Serial.print(v0);Serial.print(' ');Serial.print(v1);Serial.print(' ');Serial.print(v2);Serial.print(' ');Serial.print(v3);Serial.print(' ');
+      }
   
     return cxstatus;
 }
