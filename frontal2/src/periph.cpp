@@ -443,7 +443,7 @@ byte* temp=(byte*)configRec;
   long configRecLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
   Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configRecLength);Serial.print("  ");
   Serial.print("MLMSET/LENMESS=");Serial.print(MLMSET);Serial.print("/");Serial.print(LENMESS);
-  delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN);}
+  delay(10);if((configRecLength!=CONFIGRECLEN) || MLMSET>LENMESS) {ledblink(BCODECONFIGRECLEN,PULSEBLINK);}
   
   nbfonct=(strstr(fonctions,"last_fonc_")-fonctions)/LENNOM;
   faccueil=(strstr(fonctions,"accueil___")-fonctions)/LENNOM;
@@ -697,7 +697,7 @@ int configSave(uint8_t addedLength)
           fconfig.close();
           Serial.println(" create ok");
         }
-        while(1){ledblink(1);}
+        while(1){ledblink(1,PULSEBLINK);}
       }  
   
   //for(i=0;i<CONFIGRECLEN;i++){fconfig.write(configRec[i]);}
@@ -929,7 +929,7 @@ int periCacheSave(uint16_t num)                                     // sauve les
 
 int periLoad(uint16_t num)                                          // charge le cache dans les variables (periRec)
 {
-if(num<=0 || num>NBPERIF){Serial.print(" periLoad ");Serial.println(num);delay(5);ledblink(BCODENUMPER);} 
+if(num<=0 || num>NBPERIF){Serial.print(" periLoad ");Serial.println(num);delay(5);ledblink(BCODENUMPER,PULSEBLINK);} 
   int i=0;
   int sta=SDOK;
   
@@ -967,7 +967,7 @@ void periTableLoad()                            // au démarrage du systeme ; ch
   periInit();
   long periRecLength=(long)periEndOfRecord-(long)periBegOfRecord+1;
   Serial.print("PERIRECLEN=");Serial.print(PERIRECLEN);Serial.print("/");Serial.print(periRecLength);
-  delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN);}
+  delay(10);if(periRecLength!=PERIRECLEN){ledblink(BCODEPERIRECLEN,PULSEBLINK);}
 
   for(int h=1;h<=NBPERIF;h++){
     Serial.print(" ");Serial.print(h);
@@ -1996,7 +1996,7 @@ int timersConvert()
     ftimers.remove();    
 
     if (!ftimers.open(TIMERSNFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
-        Serial.print(TIMERSNFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO);}
+        Serial.print(TIMERSNFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO,PULSEBLINK);}
     else {ftimers.close();Serial.println(" create OK");}
 
     timersSave();
@@ -2092,7 +2092,7 @@ int anTimersConvert()
     fanTimers.remove();   
 
     if (!fanTimers.open(ANTIMERSFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
-        Serial.print(ANTIMERSFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO);}
+        Serial.print(ANTIMERSFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO,PULSEBLINK);}
     else {fanTimers.close();Serial.println(" create OK");}
 
     anTimersSave();
@@ -2266,7 +2266,7 @@ int memDetConvert()
     fmemdet.remove();    
 
     if (!fmemdet.open(MEMDETFNAME, O_RDWR | O_CREAT | O_TRUNC)) {
-        Serial.print(MEMDETFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO);}
+        Serial.print(MEMDETFNAME);Serial.println(" create failed");ledblink(BCODESDCARDKO,PULSEBLINK);}
     else {fmemdet.close();Serial.println(" create OK");}
 
     memDetSave();
