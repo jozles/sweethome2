@@ -269,19 +269,25 @@ void tmarker()
 
 void getCSE7766()
 {
-    //if(pinSw[powSw]==cloSw[powSw]){               // ? utile ?
-
+    if(digitalRead(pinSw[powSw])==cloSw[powSw]){      
         cse_ok=myCSE7766.handle();   // read CSE7766
 
-        Serial.print("CSEstatus:");Serial.print(myCSE7766.cse_status);
-        Serial.print(" volts:");Serial.print(myCSE7766.getVoltage());Serial.print(" current:");Serial.print(myCSE7766.getCurrent());
-        Serial.print(" power:");Serial.print(myCSE7766.getActivePower());Serial.print(" energy:");Serial.println(myCSE7766.getEnergy());
+        //Serial.print("CSEstatus:");Serial.print(myCSE7766.cse_status);
+        //Serial.print(" volts:");Serial.print(myCSE7766.getVoltage());Serial.print(" current:");Serial.print(myCSE7766.getCurrent());
+        //Serial.print(" power:");Serial.print(myCSE7766.getActivePower());Serial.print(" energy:");Serial.println(myCSE7766.getEnergy());
         
-        double volts=myCSE7766.getVoltage();cstRec.powVolt=(uint16_t)(volts*10);
-        double current=myCSE7766.getCurrent();cstRec.powCurr=(uint16_t)(current*1000);
-        double power=myCSE7766.getActivePower();cstRec.powPower=(uint16_t)(power*10);
-        double energy=myCSE7766.getEnergy();cstRec.powEnergy=(uint32_t)energy;        
-    //}
+        double volts=myCSE7766.getVoltage();cstRec.cseVolt=(uint16_t)(volts*10);
+        double current=myCSE7766.getCurrent();cstRec.cseCurr=(uint16_t)(current*1000);
+        double power=myCSE7766.getActivePower();cstRec.csePower=(uint16_t)(power*10);
+        double energy=myCSE7766.getEnergy();cstRec.cseEnergy=(uint32_t)energy;        
+    }
+    else{
+        cse_ok=0;
+        cstRec.cseVolt=0;
+        cstRec.cseCurr=0;
+        cstRec.csePower=0;
+        cstRec.cseEnergy=0;              
+    }    
 }
 #endif // PWR         
 
@@ -744,6 +750,8 @@ void dataTransfer(char* data)   // transfert contenu de set ou ack dans variable
     messLength+=(11+2);                                     // + 'fonction__=' + 'nn' crc
   if(strlen(data)!=messLength){Serial.print("dataTransfer invalid length ");Serial.print(strlen(data));Serial.print('/');Serial.println(messLength);}
   
+//Serial.println(data);
+
   byte fromServerMac[6];
   
         periMess=MESSOK;
@@ -863,7 +871,7 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
         sb+=9;
         #ifdef PWR_CSE7766
         /* cse_values */
-        sprintf(message+sb,"power=s:%02d,v:%04d,c:%05d,p:%05d,e:%09d;\0",myCSE7766.cse_status,cstRec.powVolt,cstRec.powCurr,cstRec.powPower,cstRec.powEnergy);
+        sprintf(message+sb,"power=s:%02d,v:%04d,c:%05d,p:%05d,e:%09d;\0",myCSE7766.cse_status,cstRec.cseVolt,cstRec.cseCurr,cstRec.csePower,cstRec.cseEnergy);
         sb=strlen(message);
         /* cse_data */
         #define LCSEDATA 24
@@ -1611,12 +1619,14 @@ void getTempEtc()
   getTemp();
   #ifdef PWR_CSE7766
   getCSE7766();
-  Serial.print("cse_ok=");Serial.print(cse_ok);Serial.print(" cse_p=");Serial.print(cstRec.powPower);
-  Serial.print(" anal=");Serial.println(cstRec.analVal);
-  if(cse_ok && cstRec.powPower!=0 && cstRec.analVal>=MINPOWER && cstRec.powPower<cstRec.analVal*10){
-    powerChg=true;
+  //cstRec.csePower=200;cse_ok=1;    // forcage valeurs pour test sans sonde
+  //Serial.print(powSw);Serial.print(' ');Serial.print(pinSw[powSw]);Serial.print(" cse_ok=");Serial.print(cse_ok);Serial.print(" cse_p=");Serial.print(cstRec.csePower);
+  //Serial.print(" anal=");Serial.println(cstRec.periAnal);
+  if(cse_ok && cstRec.csePower!=0 && cstRec.periAnal>=MINPOWER && cstRec.csePower<cstRec.periAnal*10){
+    //Serial.print("fLP=");Serial.print(firstLowPower);Serial.print(" millis ");Serial.println(millis());
     if(firstLowPower!=0){
       if((millis()-firstLowPower)>MLPTIME){
+        powerChg=true;
         firstLowPower=0;
         openBreaker(powSw);
       }

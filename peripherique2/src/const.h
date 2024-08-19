@@ -673,10 +673,10 @@ union {
   char      peripass[LPWD+1];     //  8+1 server passwd
   uint16_t  periAnal;             //  2   consigne analogique
   uint8_t   periCfg;              //  1   config périf
-  uint16_t  powVolt;
-  uint16_t  powCurr;
-  uint16_t  powPower;
-  uint32_t  powEnergy;
+  uint16_t  cseVolt;
+  uint16_t  cseCurr;
+  uint16_t  csePower;
+  uint32_t  cseEnergy;
 
 #define LENFILLERCST 31 // v2.a
 //#define LENFILLERCST 42 // v2.9

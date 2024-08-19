@@ -177,10 +177,10 @@ void initConstant()  // inits mise sous tension
   memset(cstRec.pwd1,'\0',LPWSSID);
   memset(cstRec.pwd2,'\0',LPWSSID);
   //memcpy(cstRec.filler,"AA550123456755AA557654321055A",LENFILLERCST);
-  cstRec.powVolt=999;
-  cstRec.powCurr=99;
-  cstRec.powPower=9999;
-  cstRec.powEnergy=99999999;
+  cstRec.cseVolt=999;
+  cstRec.cseCurr=99;
+  cstRec.csePower=9999;
+  cstRec.cseEnergy=99999999;
 
 // **************** à supprimer en production ; doit être chargé depuis le frontal ***************
 
@@ -295,7 +295,7 @@ if(diags){
   periDetServPrint(cstRec.extDetec);  
   periPulsePrint((uint16_t*)&cstRec.pulseMode,(uint32_t*)&cstRec.durPulseOne,(uint32_t*)&cstRec.durPulseTwo,(uint32_t*)&cntPulseOne,(uint32_t*)&cntPulseTwo);
   periInputPrint((byte*)&cstRec.perInput);
-  Serial.print("v:");Serial.print(cstRec.powVolt);Serial.print("c:");Serial.print(cstRec.powCurr);Serial.print("p:");Serial.print(cstRec.powPower);Serial.print("e:");Serial.println(cstRec.powEnergy);
+  Serial.print("v:");Serial.print(cstRec.cseVolt);Serial.print("c:");Serial.print(cstRec.cseCurr);Serial.print("p:");Serial.print(cstRec.csePower);Serial.print("e:");Serial.println(cstRec.cseEnergy);
 #endif // NO_MODE  
 } // diags
 }

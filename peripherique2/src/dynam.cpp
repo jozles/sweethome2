@@ -753,11 +753,12 @@ void closeBreaker(uint8_t sw)
 
 void openBreaker(uint8_t sw)
 {
+  //Serial.print("pinSw[");Serial.print(sw);Serial.print("]=");Serial.print(pinSw[sw]);Serial.print(" dR ");Serial.print(digitalRead(pinSw[sw]));Serial.print(' ');
     if(digitalRead(pinSw[sw])==cloSw[sw]){
       cstRec.swCde&=0xfc<<(sw*2);       // force open (00)
       dataParFlag=true;
       Serial.print(" open sw ");Serial.print(sw);
-      Serial.print(" swCde ");Serial.print(cstRec.swCde,HEX);
+      Serial.print(" swCde ");Serial.println(cstRec.swCde,HEX);
     }
 }
 
