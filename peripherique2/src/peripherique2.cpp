@@ -26,6 +26,8 @@ uint8_t powSw;
 #define MLPTIME 30000           // mS durée du lowPower avant openBreaker
 unsigned long firstLowPower=0;  // mS time du premier lowPower
 bool powerChg=false;            // openBreaker occurs
+#define SLOWPOWERPER 5000       // ms fréquence lecture CSE7759b quand la lecture précédente est ok
+#define FASTPOWERPER 100        // mS fréquence lecture CSE7759b quand la lecture précédente est ko
 #endif // CSE7766
 
 
@@ -83,6 +85,7 @@ Capat capaKeys;
 
 unsigned long lastServerRefr=0;
 unsigned long lastTempRefr=0;
+unsigned long lastPowerRefr=0;
 uint8_t answerCnt=0;
 
 Ds1820 ds1820;
@@ -266,6 +269,8 @@ void tmarker()
 #endif // WPIN
 
 #ifdef PWR_CSE7766
+
+void readPower();
 
 void getCSE7766()
 {
@@ -607,7 +612,7 @@ initConstant();             // à supprimer en production
           case 2:   actions();break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
           case 4:   pulseClk();break;
-          case 5:   break;
+          case 5:   readPower();
           case 6:   swDebounce();break;         // doit être avant polDx              
           case 7:   polAllDet();break;          // polDx doit être après swDebounce et dernier avant outputCtl pour que le tooglepushbutton soit maitre de tout
           case 8:   outputCtl();break;          // quand toutes les opérations sont terminées
@@ -1495,13 +1500,13 @@ void readTemp()
     Serial.print(millis());//Serial.print(" T ");Serial.print(lastRefr);Serial.print(" P ");Serial.println(cstRec.serverPer);
     lastServerRefr=millis();
     lastTempRefr=millis();
-    getTempEtc();
+    getTemp();
     talkReq();
   }
   else if((((millis()-lastTempRefr)/1000)>cstRec.tempPer) && (talkSta()==0)){
     Serial.print(millis());
     lastTempRefr=millis();
-    getTempEtc();
+    getTemp();
     // temp (suffisament) changée ? 
     if(temp>cstRec.oldtemp+cstRec.tempPitch){
       cstRec.oldtemp=(int16_t)temp-cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp-tempPitch/2)
@@ -1614,11 +1619,14 @@ void getTemp()
 #endif 
 }
 
-void getTempEtc()
+/*void getTempEtc()
 {
   getTemp();
   #ifdef PWR_CSE7766
   getCSE7766();
+  if(!cse_ok){
+
+  }
   //cstRec.csePower=200;cse_ok=1;    // forcage valeurs pour test sans sonde
   //Serial.print(powSw);Serial.print(' ');Serial.print(pinSw[powSw]);Serial.print(" cse_ok=");Serial.print(cse_ok);Serial.print(" cse_p=");Serial.print(cstRec.csePower);
   //Serial.print(" anal=");Serial.println(cstRec.periAnal);
@@ -1636,7 +1644,34 @@ void getTempEtc()
   
   dataParFlag=true;
   #endif // CSE7766
+}*/
+
+#ifdef PWR_CSE7766
+void readPower()
+{
+  if((((millis()-lastPowerRefr))>SLOWPOWERPER) && (talkSta()==0)){
+    getCSE7766();
+  //cstRec.csePower=200;cse_ok=1;    // forcage valeurs pour test sans sonde
+  //Serial.print(powSw);Serial.print(' ');Serial.print(pinSw[powSw]);Serial.print(" cse_ok=");Serial.print(cse_ok);Serial.print(" cse_p=");Serial.print(cstRec.csePower);
+  //Serial.print(" anal=");Serial.println(cstRec.periAnal);
+
+    if(cse_ok && cstRec.csePower!=0 && cstRec.periAnal>=MINPOWER && cstRec.csePower<cstRec.periAnal*10){
+    //Serial.print("fLP=");Serial.print(firstLowPower);Serial.print(" millis ");Serial.println(millis());
+      lastPowerRefr=millis();
+      if(firstLowPower!=0){
+        if((millis()-firstLowPower)>MLPTIME){
+          powerChg=true;
+          firstLowPower=0;
+          openBreaker(powSw);
+        }
+      }
+      else {firstLowPower=millis();}
+    }
+    else {lastPowerRefr=millis()-SLOWPOWERPER+FASTPOWERPER;}
+    dataParFlag=true;
+  }
 }
+#endif // CSE7766
 
 bool wifiAssign()
 {
