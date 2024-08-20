@@ -98,7 +98,7 @@ void configInit()
 
   long configLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
   Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configLength);
-  delay(10);if(configLength>CONFIGRECLEN) {ledblink(BCODECONFIGRECLEN);}
+  delay(10);if(configLength>CONFIGRECLEN) {ledblink(BCODECONFIGRECLEN,PULSEBLINK);}
 
   configInitVar();
 }
@@ -315,7 +315,7 @@ bool configLoad()
 {
     if(!eeprom.load((byte*)configRec,(uint16_t)CONFIGRECLEN)){
       dumpstr((char*)configRec,200);
-      Serial.println("**EEPROM KO**");ledblink(BCODESDCARDKO);} // ledblink bloque
+      Serial.println("**EEPROM KO**");ledblink(BCODESDCARDKO,PULSEBLINK);} // ledblink bloque
     Serial.println(" eeprom ok");
     return 1;    
 }

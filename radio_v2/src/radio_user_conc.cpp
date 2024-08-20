@@ -673,7 +673,7 @@ int exportData(uint8_t numT,char* mailData)                             // forma
       memcpy(message+sb+2,"_\0",2);
       sb+=3;
 
-if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL);}
+if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******");ledblink(BCODELENVAL,PULSEBLINK);}
 
     char fonctName[]={"data_read_"};
     if(tableC[numT].numPeri!=0){memcpy(fonctName,"data_save_",LENNOM);} // data_save_ -> ack
