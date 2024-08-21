@@ -25,9 +25,11 @@ uint8_t powSw;
 #define MINPOWER 1              // 1W  valeur valide mini pour cstRec.periAnal
 #define MLPTIME 30000           // mS durée du lowPower avant openBreaker
 unsigned long firstLowPower=0;  // mS time du premier lowPower
-bool powerChg=false;            // openBreaker occurs
-#define SLOWPOWERPER 5000       // ms fréquence lecture CSE7759b quand la lecture précédente est ok
+uint16_t prevPower=0;           
+#define SLOWPOWERPER 10000      // ms fréquence lecture CSE7759b quand la lecture précédente est ok
 #define FASTPOWERPER 200        // mS fréquence lecture CSE7759b quand la lecture précédente est ko
+#define TRESHPOWER 20           // variation mini pour envoi data_par__
+long _debug;
 #endif // CSE7766
 
 
@@ -287,7 +289,7 @@ void getCSE7766()
         double energy=myCSE7766.getEnergy();cstRec.cseEnergy=(uint32_t)energy;        
     }
     else{
-        cse_ok=0;
+        cse_ok=true;            // ! true : le relais est off les valeurs à 0 sont ok
         cstRec.cseVolt=0;
         cstRec.cseCurr=0;
         cstRec.csePower=0;
@@ -612,7 +614,7 @@ initConstant();             // à supprimer en production
           case 2:   actions();break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
           case 4:   pulseClk();break;
-          case 5:   readPower();
+          case 5:   break;
           case 6:   swDebounce();break;         // doit être avant polDx              
           case 7:   polAllDet();break;          // polDx doit être après swDebounce et dernier avant outputCtl pour que le tooglepushbutton soit maitre de tout
           case 8:   outputCtl();break;          // quand toutes les opérations sont terminées
@@ -624,7 +626,7 @@ initConstant();             // à supprimer en production
                       case 3:   break;
                       case 4:   break;
                       case 5:   break;
-                      case 6:   break;
+                      case 6:   readPower();break;        // si dans la boucle rapide, plus rien ne marche...
                       case 7:   readAnalog();break;
                       case 8:   readTemp();break;
                       case 9:   thermostat();break;
@@ -885,7 +887,7 @@ int buildData(const char* nomfonction,const char* data,const char* mailData)
           conv_htoa(&cse_data[2*cd],&myCSE7766._data[cd]);}
         cse_data[LCSEDATA*2]='\0';
         //Serial.print("cse_data ");Serial.print(cse_data);  
-        sprintf(message+sb,"power=s:%02d,d:%s;\0",myCSE7766.cse_status,cse_data);
+        sprintf(message+sb,"power=s:%02d,x:%d,d:%s;\0",myCSE7766.cse_status,_debug,cse_data);
         sb=strlen(message); //6+powMessageLen);
         #endif
 
@@ -1643,27 +1645,36 @@ void getTemp()
 void readPower()
 {
   if((((millis()-lastPowerRefr))>SLOWPOWERPER) && (talkSta()==0)){
+    lastPowerRefr=millis();
     getCSE7766();
     dataParFlag=true;
     talkReq();
   //cstRec.csePower=200;cse_ok=1;    // forcage valeurs pour test sans sonde
   //Serial.print(powSw);Serial.print(' ');Serial.print(pinSw[powSw]);Serial.print(" cse_ok=");Serial.print(cse_ok);Serial.print(" cse_p=");Serial.print(cstRec.csePower);
   //Serial.print(" anal=");Serial.println(cstRec.periAnal);
-    if(cse_ok && cstRec.csePower!=0 && cstRec.periAnal>=MINPOWER && cstRec.csePower<cstRec.periAnal*10){
-    //Serial.print("fLP=");Serial.print(firstLowPower);Serial.print(" millis ");Serial.println(millis());
-      lastPowerRefr=millis();
-      dataParFlag=true;
-      talkReq();
-      if(firstLowPower!=0){
-        if((millis()-firstLowPower)>MLPTIME){
-          //powerChg=true;
-          firstLowPower=0;
-          openBreaker(powSw);
-        }
+    if(cse_ok){
+      _debug=prevPower-cstRec.csePower;
+      if(abs(_debug)>TRESHPOWER){ 
+        prevPower=cstRec.csePower;
+        dataParFlag=true;
+        talkReq();
       }
-      else {firstLowPower=millis();}
+      if(cstRec.csePower!=0 && cstRec.periAnal>=MINPOWER && cstRec.csePower<cstRec.periAnal*10){
+        _debug=88;
+        lastPowerRefr=millis();
+        if(firstLowPower!=0){
+          if((millis()-firstLowPower)>MLPTIME){
+            firstLowPower=0;
+            openBreaker(powSw);
+            dataParFlag=true;
+            talkReq();
+          }
+        }
+        else {firstLowPower=millis();}
+      }
+      else {firstLowPower=0;}
     }
-    else {lastPowerRefr=millis();}//-SLOWPOWERPER}+FASTPOWERPER;}
+    else {lastPowerRefr=millis()-SLOWPOWERPER+FASTPOWERPER;}
   }
 }
 #endif // CSE7766
