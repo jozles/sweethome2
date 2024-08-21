@@ -27,7 +27,7 @@ uint8_t powSw;
 unsigned long firstLowPower=0;  // mS time du premier lowPower
 bool powerChg=false;            // openBreaker occurs
 #define SLOWPOWERPER 5000       // ms fréquence lecture CSE7759b quand la lecture précédente est ok
-#define FASTPOWERPER 100        // mS fréquence lecture CSE7759b quand la lecture précédente est ko
+#define FASTPOWERPER 200        // mS fréquence lecture CSE7759b quand la lecture précédente est ko
 #endif // CSE7766
 
 
@@ -1515,14 +1515,7 @@ void readTemp()
     else if(temp<cstRec.oldtemp-cstRec.tempPitch){
       cstRec.oldtemp=(int16_t)temp+cstRec.tempPitch/2; // new oldtemp décalé pour effet trigger (temp+tempPitch/2)
       talkReq(); 
-    }
-    #ifdef PWR_CSE7766
-    // puissance consommée changée ?
-    else if(powerChg){
-      powerChg=false;
-      talkReq();
-    }
-    #endif   
+    }   
   }
 }
 #endif
@@ -1651,24 +1644,26 @@ void readPower()
 {
   if((((millis()-lastPowerRefr))>SLOWPOWERPER) && (talkSta()==0)){
     getCSE7766();
+    dataParFlag=true;
+    talkReq();
   //cstRec.csePower=200;cse_ok=1;    // forcage valeurs pour test sans sonde
   //Serial.print(powSw);Serial.print(' ');Serial.print(pinSw[powSw]);Serial.print(" cse_ok=");Serial.print(cse_ok);Serial.print(" cse_p=");Serial.print(cstRec.csePower);
   //Serial.print(" anal=");Serial.println(cstRec.periAnal);
-
     if(cse_ok && cstRec.csePower!=0 && cstRec.periAnal>=MINPOWER && cstRec.csePower<cstRec.periAnal*10){
     //Serial.print("fLP=");Serial.print(firstLowPower);Serial.print(" millis ");Serial.println(millis());
       lastPowerRefr=millis();
+      dataParFlag=true;
+      talkReq();
       if(firstLowPower!=0){
         if((millis()-firstLowPower)>MLPTIME){
-          powerChg=true;
+          //powerChg=true;
           firstLowPower=0;
           openBreaker(powSw);
         }
       }
       else {firstLowPower=millis();}
     }
-    else {lastPowerRefr=millis()-SLOWPOWERPER+FASTPOWERPER;}
-    dataParFlag=true;
+    else {lastPowerRefr=millis();}//-SLOWPOWERPER}+FASTPOWERPER;}
   }
 }
 #endif // CSE7766
