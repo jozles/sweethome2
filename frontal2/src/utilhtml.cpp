@@ -305,7 +305,7 @@ void concatns(char* buf,char* jsbuf,long val,bool sep)
   #define LSPR 22
   char bb[LSPR];
   s=sprintf(bb,"%lu",val);
-  if(s>LSPR){ledblink(BCODESYSERR);}
+  if(s>LSPR){ledblink(BCODESYSERR,PULSEBLINK);}
   bb[s]='\0';
   if(jsbuf!=nullptr){       // jscat ne copie pas si NOJSBUF
     strcat(jsbuf,bb);if(sep){strcat(jsbuf,JSSEP);}
@@ -356,7 +356,7 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br,bool sep)
 
   if(int(val)>pdix[9] || dec>9){        // 19+'-'+'.'=21
     Serial.print("concatnf ovf ");Serial.print(val);Serial.print(" ");Serial.println(dec);
-    ledblink(BCODESYSERR);
+    ledblink(BCODESYSERR,PULSEBLINK);
   } 
 
 /*
@@ -370,7 +370,7 @@ void concatnf(char* buf,char* jsbuf,float val,uint8_t dec,bool br,bool sep)
   int s=sprintf(bb,d,val);
   if(s<0 || s>LSPR){
     Serial.print("concatnf ovf ");Serial.print(val);Serial.print(" ");Serial.println(dec);
-    ledblink(BCODESYSERR);
+    ledblink(BCODESYSERR,PULSEBLINK);
   } 
   bb[s]='\0';
 
@@ -1232,7 +1232,7 @@ void jpgIntro0(char* dm)
   char* dm0=dm;
   strcat(dm,"HTTP/1.1 200 OK\n");
   strcat(dm,"CONTENT-Type: image/png\n");
-  if(strlen(dm0)>JPGINTROLEN){ledblink(BCODEPERIRECLEN);}
+  if(strlen(dm0)>JPGINTROLEN){ledblink(BCODEPERIRECLEN,PULSEBLINK);}
 }
 
 void htmlEnd(char* buf,char* jsbuf)

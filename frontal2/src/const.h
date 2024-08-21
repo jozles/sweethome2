@@ -195,6 +195,8 @@
 
    à faire :
 
+      archiver la dernière chaine de data_par__ et date/heure pour chaque périph et l'afficher dans periLine()
+
       Accélérateur de lecture des lignes d'histo qui utilise la longueur de ligne plutôt que l'acquisition par caractère
       Accélérateur de positionnement (temps et état) des timers cyclic par calcul de modulo
       Ajouter une check box dans la ligne des rules pour faire envoyer data_upd__ (data_na___) au serveur quand la condition est validée
