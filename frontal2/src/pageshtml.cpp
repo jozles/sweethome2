@@ -1528,7 +1528,7 @@ int scalcTh(const char* endDate,char* dhasc,const char* prev)           // maj t
   unsigned long t1=millis();
   char strfds[3];memset(strfds,0x00,3);
   if(convIntToString(strfds,fdatasave)>2){
-    Serial.print("fdatasave>99!! ");Serial.print("fdatasave=");Serial.print(fdatasave);Serial.print(" strfds=");Serial.println(strfds);ledblink(BCODESYSERR);
+    Serial.print("fdatasave>99!! ");Serial.print("fdatasave=");Serial.print(fdatasave);Serial.print(" strfds=");Serial.println(strfds);ledblink(BCODESYSERR,PULSEBLINK);
   }
 
   byte* periMac[NBPERIF];         // pointeurs mac addr dans cache

@@ -270,7 +270,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)   // foncti
     *bufServer='\0';
     memcpy(bufServer,"GET /\0",6);                                // commande directe de périphérique en mode serveur
     int lbs=buildMess(nfonct,message,"",NODIAGS);
-    if(lbs==0 || (lbs+2)>LBUFSERVER){ledblink(BCODEPERIRECLEN);}  // bufServer complété
+    if(lbs==0 || (lbs+2)>LBUFSERVER){ledblink(BCODEPERIRECLEN,PULSEBLINK);}  // bufServer complété
     strcat(bufServer,"\n\n");                                     // fin de message pour le périf
     
     Serial.print(" dur=");Serial.println(millis()-dur);Serial.println(bufServer);

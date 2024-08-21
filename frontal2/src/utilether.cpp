@@ -718,7 +718,7 @@ int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
 void initDate()
 {
   Serial.print("date ");
-  if(!getUDPdate(&hms,&amj,&js)){Serial.println("pb NTP");ledblink(BCODEPBNTP);} // pas de service date externe 
+  if(!getUDPdate(&hms,&amj,&js)){Serial.println("pb NTP");ledblink(BCODEPBNTP,PULSEBLINK);} // pas de service date externe 
   else {
     Serial.print(js);Serial.print(" ");Serial.print(amj);Serial.print(" ");Serial.print(hms);Serial.println(" GMT");
     ds3231.getDate(&hms2,&amj2,&js2,strdate);               // read DS3231
