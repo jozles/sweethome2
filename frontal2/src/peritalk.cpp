@@ -332,7 +332,7 @@ int periAns(EthernetClient* cli,EthernetUDP* udpCli,const char* nfonct)   // ré
   char date14[LNOW];ds3231.alphaNow(date14);
 
   Serial.print("periAns(");Serial.print(periCur);Serial.print(") ");Serial.print((char)*periProtocol);
-  Serial.print(" ");serialPrintIp(periIpAddr);Serial.print(":");Serial.print(*periPort);delay(3);     
+  Serial.print(" ");serialPrintIp(periIpAddr);Serial.print(":");Serial.print(*periPort);//Serial.print(" swCde=");Serial.print(*periSwCde,HEX);delay(3);     
   if(memcmp(nfonct,"set_______",LENNOM)==0 || memcmp(nfonct,"ack_______",LENNOM)==0){
     assySet(message,periCur,periDiag(periMess),date14,nfonct);
     }  // assemblage datas 
@@ -371,7 +371,7 @@ void checkdate(uint8_t num)                               // détection des date
   }
 }
 
-uint8_t jsonParams(char* data,uint8_t len)
+uint8_t jsonParams(char* data,uint16_t len)
 {
   //Serial.print(len);Serial.print(" - ");Serial.println(data);
   uint8_t cntPar=0;
@@ -395,7 +395,7 @@ uint8_t jsonParams(char* data,uint8_t len)
                 if(*sepPt!=';'){return cntPar;}
                 conv_atoh(dataPt,periSwCde);          // HH cstRec.swcde value
                 cntPar++;dataPt+=3;
-                //Serial.println(*periSwCde);
+                //Serial.print(" reçu swCde=");Serial.println(*periSwCde);
                 break;
         case 1: while(*dataPt!=';' && dataPt<data+len){dataPt++;};sepPt=dataPt;break;
         default: break;
@@ -533,14 +533,18 @@ void periDataRead(char* valf)   // traitement d'une chaine "data_save_","data_re
       if(numfonc==fdatapar){
         jsonData=k;
         char* v=k+255;
-        for(k=k;k<v;k++){
+        /*for(k=jsonData;k<v;k++){
           // liste params "nom=value;" fin avec ;; !!!! DONC ';' interdit dans value ('\;' inutilisable : '\' filtré dans analyse)
+          if(*k==';' && *(k+1)==';'){k+=2;break;}
+          k++;
+        }*/
+       // liste params "nom=value;" fin avec ;; !!!! DONC ';' interdit dans value ('\;' inutilisable : '\' filtré dans analyse)
+        while(k<v){
           if(*k==';' && *(k+1)==';'){k+=2;break;}
           k++;
         }
         messLen-=(k-jsonData);
-        //Serial.println();dumpstr(valf,100);
-        //Serial.println(jsonData);
+        //Serial.println();dumpstr(k,16);Serial.println(jsonData);
         jsonParams(jsonData,k-jsonData);
       }
       messLen-=k-jsonData+1;
