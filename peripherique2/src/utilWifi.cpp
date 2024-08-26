@@ -121,7 +121,7 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
 
 bool wifiConnexion(const char* ssid,const char* password)
 {
-  return wifiConnexion(ssid,password,PRINT);
+  return wifiConnexion(ssid,password,NOPRINT);
 }
 
 

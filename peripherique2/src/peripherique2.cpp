@@ -23,8 +23,10 @@ CSE7766 myCSE7766;
 bool    cse_ok=false;
 uint8_t powSw;
 #define MINPOWER 1              // 1W  valeur valide mini pour cstRec.periAnal
-#define MLPTIME 30000           // mS durée du lowPower avant openBreaker
+#define MLPTIME 60000           // mS durée du lowPower avant openBreaker
 unsigned long firstLowPower=0;  // mS time du premier lowPower
+unsigned long powonDly[NBSW]; // cse startup delay
+#define POWONDLY 60000          // cse startup delay
 uint16_t prevPower=0;           
 #define SLOWPOWERPER 10000      // ms fréquence lecture CSE7759b quand la lecture précédente est ok
 #define FASTPOWERPER 200        // mS fréquence lecture CSE7759b quand la lecture précédente est ko
@@ -157,7 +159,7 @@ bool serverStarted=false;
 
   /* paramètres switchs (les états et disjoncteurs sont dans cstRec.SWcde) */
 
-  //bool oneShow=false;
+  bool oneShow=false;
   bool dataParFlag=false;
 
   uint8_t outSw=0;                            // image mémoire des switchs (1 bit par switch)
@@ -262,6 +264,12 @@ void mailInit(char* login,char* pass)
 }
 #endif // MAIL_CONFIG
 #endif // MAILSENDER
+
+void oneShowDebug(uint8_t step)
+{
+  if(oneShow){Serial.print(step);Serial.print(' ');Serial.print("swCde ");Serial.println(cstRec.swCde,HEX);}
+}
+
 
 #ifdef WPIN
 void tmarker()
@@ -391,6 +399,7 @@ for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==TOOGSW){toogSw=i;break;}}
 
 #ifdef PWR_CSE7766
 for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==POWSW){powSw=i;break;}}
+for(uint8_t i=0;i<NBSW;i++){powonDly[i]=0;}
 #endif // PWR_CSE7766
 
 #ifndef CAPATOUCH
@@ -609,8 +618,7 @@ initConstant();             // à supprimer en production
  * Puis talkstep pour le forçage de communication d'acquisition du port au reset 
  * clkFastStep et cstRec.talkStep == 1 
 */
-          case 1:   if(cstRec.talkStep!=0){talkServer();}//oneShow=false;
-                    break;
+          case 1:   if(cstRec.talkStep!=0){talkServer();}break;
           case 2:   actions();break;
           case 3:   wifiConnexion(ssid,ssidPwd,NOPRINT);break;
           case 4:   pulseClk();break;
@@ -775,12 +783,10 @@ if(diags){Serial.println(" dataTransfer() ");}
           cstRec.serverPer=(long)convStrToNum(data+MPOSPERREFR,&sizeRead);    // per refresh server
           cstRec.tempPer=(uint16_t)convStrToNum(data+MPOSTEMPPER,&sizeRead);  // per check température (invalide/sans effet en PO_MODE)
           cstRec.tempPitch=(long)convStrToNum(data+MPOSPITCH,&sizeRead);      // pitch mesure (100x)
-
           for(uint8_t i=0;i<MAXSW;i++){                                       // 1 byte disjoncteurs : 2 bits / switch (voir const.h du frontal) 
             cstRec.swCde=(cstRec.swCde)<<2;
             cstRec.swCde |= (*(data+MPOSSWCDE+i)-PMFNCVAL);
           }                                                                   // valeurs disjoncteur (0/1/2)x4
-
           conv_atoh(data+MPOSANALH,(byte*)&cstRec.analLow);conv_atoh(data+MPOSANALH+2,(byte*)&cstRec.analLow+1);      // analogLow
           conv_atoh(data+MPOSANALH+4,(byte*)&cstRec.analHigh);conv_atoh(data+MPOSANALH+6,(byte*)&cstRec.analHigh+1);  // analogHigh
 
@@ -1222,7 +1228,7 @@ void answer(const char* what)
 #ifdef ANALYZE
   ANSW
 #endif // ANALYZE  
-  Serial.print(" answer:");Serial.println(what);
+  Serial.print(" answer:");Serial.print(what);Serial.print(" powonDly=");Serial.print(powonDly[powSw]);Serial.print(" flp=");Serial.println(firstLowPower);
   bufServer[0]='\0';
   #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
   if(memcmp(what,"data_save_",LENNOM)==0 || memcmp(what,"data_na___",LENNOM)==0){
@@ -1456,27 +1462,28 @@ void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0
 {
     if(diags){if(outSw!=old_outSw){Serial.print("outputCtl() ; outSw=");Serial.println(outSw);old_outSw=outSw;}}
 
-    //if(oneShow){Serial.print("outputCtl swCde ");Serial.print(cstRec.swCde,HEX);}
     bool isOpenSw=false;
-      for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à ouvrir
-        if(!((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){       // ni forcé ni (pas disjoncté et devenant on)
+    for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à ouvrir
+      if(!((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){       // ni forcé ni (pas disjoncté et devenant on)
                                                                                                                         // ignorer restant fermé ou à fermer
             if(digitalRead(pinSw[sw])==cloSw[sw]){          // ignore les switchs déjà "open"
               isOpenSw=true;
               outPutDly=OUTPUTDLY;}
-              //if(oneShow){Serial.print(" open:");Serial.println(talkSta());}
               digitalWrite(pinSw[sw],openSw[sw]);
               #ifdef PINLEDR
               if(sw==toogSw){digitalWrite(PINLEDR,LEDROFF);}                            
               #endif // PINLEDR
-        }
       }
-    if(!isOpenSw && (outPutDly-millis()>=OUTPUTDLY)){       // les fermetures quand pas d'ouvertures et délai terminé
+    }
+    if(!isOpenSw && (outPutDly-millis()>=OUTPUTDLY)){       // les fermetures quand pas d'ouvertures et délai terminé -> dans un autre cycle
       for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à fermer
         if(((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){        // forcé ou (pas disjoncté et devenant on)
           isOpenSw=true;
-          //if(oneShow){Serial.print(" close:");Serial.println(talkSta());}
           digitalWrite(pinSw[sw],cloSw[sw]);
+          #ifdef PWR_CSE7766
+          powonDly[sw]=POWONDLY;
+          #endif // CSEPOWER
+
           #ifdef PINLEDR
           if(sw==toogSw){digitalWrite(PINLEDR,LEDRON);}                            
           #endif // PINLEDR
@@ -1614,44 +1621,17 @@ void getTemp()
 #endif 
 }
 
-/*void getTempEtc()
-{
-  getTemp();
-  #ifdef PWR_CSE7766
-  getCSE7766();
-  if(!cse_ok){
-
-  }
-  //cstRec.csePower=200;cse_ok=1;    // forcage valeurs pour test sans sonde
-  //Serial.print(powSw);Serial.print(' ');Serial.print(pinSw[powSw]);Serial.print(" cse_ok=");Serial.print(cse_ok);Serial.print(" cse_p=");Serial.print(cstRec.csePower);
-  //Serial.print(" anal=");Serial.println(cstRec.periAnal);
-  if(cse_ok && cstRec.csePower!=0 && cstRec.periAnal>=MINPOWER && cstRec.csePower<cstRec.periAnal*10){
-    //Serial.print("fLP=");Serial.print(firstLowPower);Serial.print(" millis ");Serial.println(millis());
-    if(firstLowPower!=0){
-      if((millis()-firstLowPower)>MLPTIME){
-        powerChg=true;
-        firstLowPower=0;
-        openBreaker(powSw);
-      }
-    }
-    else {firstLowPower=millis();}
-  }
-  
-  dataParFlag=true;
-  #endif // CSE7766
-}*/
-
 #ifdef PWR_CSE7766
 void readPower()
 {
   if((((millis()-lastPowerRefr))>SLOWPOWERPER) && (talkSta()==0)){
     lastPowerRefr=millis();
     getCSE7766();
+
+//cse_ok=true;cstRec.csePower=200; // pour test sur devkit
+
     dataParFlag=true;
     talkReq();
-  //cstRec.csePower=200;cse_ok=1;    // forcage valeurs pour test sans sonde
-  //Serial.print(powSw);Serial.print(' ');Serial.print(pinSw[powSw]);Serial.print(" cse_ok=");Serial.print(cse_ok);Serial.print(" cse_p=");Serial.print(cstRec.csePower);
-  //Serial.print(" anal=");Serial.println(cstRec.periAnal);
     if(cse_ok){
       _debug=prevPower-cstRec.csePower;
       if(abs(_debug)>TRESHPOWER){ 
@@ -1663,14 +1643,20 @@ void readPower()
         _debug=88;
         lastPowerRefr=millis();
         if(firstLowPower!=0){
-          if((millis()-firstLowPower)>MLPTIME){
+          if((millis()-firstLowPower)>(MLPTIME+powonDly[powSw])){
             firstLowPower=0;
+            powonDly[powSw]=0;
             openBreaker(powSw);
+            oneShow=true;
             dataParFlag=true;
             talkReq();
           }
         }
-        else {firstLowPower=millis();}
+        else {firstLowPower=millis();} //+powonDly[powSw];powonDly[powSw]=0;}
+      }
+      else if(cstRec.csePower!=0 && cstRec.periAnal>=MINPOWER && cstRec.csePower>=cstRec.periAnal*10){
+        powonDly[powSw]=0;
+        firstLowPower=0;
       }
       else {firstLowPower=0;}
     }

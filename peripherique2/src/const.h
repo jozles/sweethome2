@@ -472,6 +472,7 @@ Modifier :
 #define TOOGLV 0        // toogle active edge
 #define TOOGSW PINSWA   // toogled output
 #define POWSW  PINSWA   // CSE OUTPUT
+#define POWONDLY 60000  // cse startup delay
 #define PINSRX 16       // UART IN
 #define PINSTX 17       // UART OUT
 #define PULSEBLINK 20   // durée pulse led
@@ -514,6 +515,7 @@ Modifier :
 #define TOOGLV 0        // toogle active edge
 #define TOOGSW PINSWA   // toogled output
 #define POWSW  PINSWA   // CSE OUTPUT
+#define POWONDLY 60000  // cse startup delay
 #define PINSRX 16       // UART IN
 #define PINSTX 17       // UART OUT
 #define PULSEBLINK 10   // durée pulse led

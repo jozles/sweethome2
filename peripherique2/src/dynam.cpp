@@ -10,6 +10,10 @@
 extern const char* chexa;
 extern uint8_t bitMsk[];
 
+#ifdef PWR_CSE7766
+extern unsigned long powonDly[NBSW];
+#endif // CSEPOWER
+
 //#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
 #ifndef DEBUG_ACTIONS
 #define PUV2 
@@ -735,6 +739,9 @@ void toogleBreaker(uint8_t sw)
     if(digitalRead(pinSw[sw])==openSw[sw]){
       swState = close;
       cstRec.swCde|=0x02<<(sw*2);}      // force close
+      #ifdef PWR_CSE7766
+      powonDly[sw]=POWONDLY;
+      #endif // CSEPOWER
     dataParFlag=true;
     Serial.print(" toogle sw ");Serial.print(sw);
     Serial.print('/');Serial.print(swState);
@@ -746,6 +753,9 @@ void closeBreaker(uint8_t sw)
     if(digitalRead(pinSw[sw])==openSw[sw]){
       cstRec.swCde|=0x02<<(sw*2);       // force close (02)
       dataParFlag=true;
+      #ifdef PWR_CSE7766
+      powonDly[sw]=POWONDLY;
+      #endif // CSEPOWER
       Serial.print(" close sw ");Serial.print(sw);
       Serial.print(" swCde ");Serial.print(cstRec.swCde,HEX);
     }
