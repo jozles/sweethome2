@@ -25,8 +25,8 @@ uint8_t powSw;
 #define MINPOWER 1              // 1W  valeur valide mini pour cstRec.periAnal
 #define MLPTIME 60000           // mS durée du lowPower avant openBreaker
 unsigned long firstLowPower=0;  // mS time du premier lowPower
-unsigned long powonDly[NBSW]; // cse startup delay
-#define POWONDLY 60000          // cse startup delay
+unsigned long powonDly[NBSW];   // cse startup delay
+//#define POWONDLY 60000          // cse startup delay
 uint16_t prevPower=0;           
 #define SLOWPOWERPER 10000      // ms fréquence lecture CSE7759b quand la lecture précédente est ok
 #define FASTPOWERPER 200        // mS fréquence lecture CSE7759b quand la lecture précédente est ko
@@ -285,16 +285,14 @@ void readPower();
 void getCSE7766()
 {
     if(digitalRead(pinSw[powSw])==cloSw[powSw]){      
-        cse_ok=myCSE7766.handle();   // read CSE7766
+      cse_ok=myCSE7766.handle();   // read CSE7766
 
-        //Serial.print("CSEstatus:");Serial.print(myCSE7766.cse_status);
-        //Serial.print(" volts:");Serial.print(myCSE7766.getVoltage());Serial.print(" current:");Serial.print(myCSE7766.getCurrent());
-        //Serial.print(" power:");Serial.print(myCSE7766.getActivePower());Serial.print(" energy:");Serial.println(myCSE7766.getEnergy());
-        
+      if(cse_ok){       
         double volts=myCSE7766.getVoltage();cstRec.cseVolt=(uint16_t)(volts*10);
         double current=myCSE7766.getCurrent();cstRec.cseCurr=(uint16_t)(current*1000);
         double power=myCSE7766.getActivePower();cstRec.csePower=(uint16_t)(power*10);
         double energy=myCSE7766.getEnergy();cstRec.cseEnergy=(uint32_t)energy;        
+      }
     }
     else{
         cse_ok=true;            // ! true : le relais est off les valeurs à 0 sont ok
