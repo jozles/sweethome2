@@ -1434,19 +1434,20 @@ int analyse(EthernetClient* cli,const char* data,uint16_t dataLen,uint16_t* data
         
               else if (val){
 //Serial.print(" ");Serial.println((char)c);                
-                if ((c!='&' && c>=' ') || cdbl){             // si cdbl ignorer les contrôles ... retiré "&& c!='=' && c!=':'"
+                if ((c!='&' && c>' ') || cdbl){             // si cdbl ignorer les contrôles ; '&' fonction suivante, ' ' fin ; ... retiré "&& c!='=' && c!=':'"
                   cdbl=false;
                   valeurs[nvalf[i+1]]=c;
                   if(nvalf[i+1]<(LENVALEURS-2)){nvalf[i+1]++;}                  // contrôle decap !
                   else {val=FAUX;termine=VRAI;i=GETNV_RCD_OVF;}}                // valeurs saturé -> erreur
                 
-                else if (c=='&'){nom=VRAI;val=FAUX;j=0;                         // acquisition valeur terminée ... fonction suivante
-                  Serial.println();}
+                else if (c=='&'){nom=VRAI;val=FAUX;j=0;Serial.println();}       // acquisition valeur terminée ... fonction suivante                  
+                
                 else if (c<=' '){termine=VRAI;Serial.println();}                // ' ' interdit dans valeur : indique fin données
+                
                 else {val=FAUX;termine=VRAI;i=GETNV_INVALID_VAL;Serial.println();}                       
               }
               else {Serial.print("getnv ni nom ni val");while(1){ledblink(BCODESYSERR,PULSEBLINK);}}   // ni nom ni val ... system error                                                                                      
-            }//Serial.println(libfonctions+2*(i-1));
+            }
           }                                                                                             
         }
       }
@@ -1570,7 +1571,7 @@ byte inpsub(byte* ptr,byte mask,byte lshift,char* libel,uint8_t len)    // entre
   uint8_t lreel=0;
   char typ[8];
   for(int i=0;i<8;i++){if(*(valf+i)==0x00){lreel=i;i=8;}}
-  
+
   byte v=0;
   byte num=0xff;
   
@@ -1947,7 +1948,7 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                          else {memcpy(remote_IP_cur,(byte*)&remote_IP,4);}
                        }break;
               case 2:  usernum=searchusr(valf);if(usernum<0){                                        // username__
-                          what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;}
+                         what=-1;nbreparams=-1;i=0;numfonct[i]=faccueil;}
                        Serial.print("username:");Serial.print(valf);Serial.print(" usernum=");
                        Serial.print(usernum);Serial.print("/");Serial.print(usrnames+usernum*LENUSRNAME);
                        Serial.print(" usrtime=");Serial.print(usrtime[usernum]);
