@@ -216,7 +216,7 @@ Modifier :
 
 #ifndef CAPATOUCH
 #define PINCHK
-#define PINREAD(pin) digitalRead(pinDet[pin])
+#define PINREAD(pin) digitalRead(pin)
 #endif  // CAPATOUCH
 #ifdef  CAPATOUCH
 #define PINCHK capaKeys.capaKeysCheck()        // charge l'état des touches capacitives
@@ -250,7 +250,7 @@ Modifier :
 //
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE SFPOW             // <------------- modèle carte
+#define CARTE VRR             // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation
 
 /* ds18x20 */

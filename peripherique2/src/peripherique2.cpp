@@ -390,6 +390,8 @@ delay(1);
   for(uint8_t sw=0;sw<MAXSW;sw++){
     digitalWrite(pinSw[sw],openSw[sw]);
     pinMode(pinSw[sw],OUTPUT);}
+  for(uint8_t det=0;det<MAXDET;det++){
+    pinMode(pinDet[det],INPUT_PULLUP);}
 
 #ifdef TOOGBT
 for(uint8_t i=0;i<NBSW;i++){if(pinSw[i]==TOOGSW){toogSw=i;break;}}
@@ -632,7 +634,11 @@ initConstant();             // à supprimer en production
                       case 3:   break;
                       case 4:   break;
                       case 5:   break;
-                      case 6:   readPower();break;        // si dans la boucle rapide, plus rien ne marche...
+                      case 6:   
+                      #ifdef PWR_CSE7766
+                      readPower();
+                      #endif
+                      break;        // si dans la boucle rapide, plus rien ne marche...
                       case 7:   readAnalog();break;
                       case 8:   readTemp();break;
                       case 9:   thermostat();break;
@@ -1226,7 +1232,10 @@ void answer(const char* what)
 #ifdef ANALYZE
   ANSW
 #endif // ANALYZE  
-  Serial.print(" answer:");Serial.print(what);Serial.print(" powonDly=");Serial.print(powonDly[powSw]);Serial.print(" flp=");Serial.println(firstLowPower);
+  Serial.print(" answer:");Serial.print(what);
+  #ifdef PWR_CSE7766
+  Serial.print(" powonDly=");Serial.print(powonDly[powSw]);Serial.print(" flp=");Serial.println(firstLowPower);
+  #endif
   bufServer[0]='\0';
   #define FILL   9    // 9 = 4 len + 2 crc + 1 '=' + 1 '_' + 1 '\0'
   if(memcmp(what,"data_save_",LENNOM)==0 || memcmp(what,"data_na___",LENNOM)==0){
