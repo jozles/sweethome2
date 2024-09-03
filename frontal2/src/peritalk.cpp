@@ -498,9 +498,10 @@ void periDataRead(char* valf)   // traitement d'une chaine "data_save_","data_re
         k+=1;*periSwSta=0;for(int i=nbSw-1;i>=0;i--){*periSwSta=(*periSwSta<<1);*periSwSta|=*(k+MAXSW-i-1)-PMFNCVAL;}
         //Serial.print(" periSwSta=");if(*periSwSta<16){Serial.print('0');}Serial.print(*periSwSta,HEX);
         k+=MAXSW+1; *periDetNb=*k-PMFNCVAL;                                                                 // nbre detec
-        k+=1; *periDetVal=0;for(int i=MAXDET-1;i>=0;i--){                                                   // détecteurs
-        *periDetVal=(*periDetVal)<<1;*periDetVal |= (*(k+i)-PMFNCVAL);}
+        k+=1; *periDetVal=0;for(int i=*periDetNb-1;i>=0;i--){                                                   // détecteurs
+        *periDetVal=(*periDetVal)<<2;*periDetVal |= (*(k+i)-PMFNCVAL);}
       }
+      //if(periCur==8){Serial.print((char*)(k-1));Serial.print(' ');Serial.print(*periDetNb);Serial.print(' ');if(*periDetVal<16){Serial.print('0');};Serial.println(*periDetVal,HEX);}
       messLen-=(1+MAXSW+1+1+MAXDET+1);k+=MAXDET+1;
       
       if(numfonc==fdatamail){

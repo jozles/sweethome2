@@ -784,7 +784,9 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
                       else {lctl=STRING|TDEND;}
                       scrDspText(buf,jsbuf,tt,0,lctl);
           }
-          if(*periSwNb==0){scrDspText(buf,jsbuf," ",0,STRING|TDEND);}          
+          if(*periSwNb==0){scrDspText(buf,jsbuf," ",0,STRING|TDEND);} 
+
+          //Serial.print(numline);Serial.print(' ');if(*periDetVal<16){Serial.print('0');}Serial.println(*periDetVal,HEX);         
           for(uint8_t k=0;k<*periDetNb;k++){
             if(k<*periDetNb-1){lctl=STRING|BRYES;}
             else lctl=STRING|TDEND;
