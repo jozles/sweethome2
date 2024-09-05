@@ -14,6 +14,7 @@ extern uint8_t bitMsk[];
 extern unsigned long powonDly[NBSW];
 #endif // CSEPOWER
 
+bool oneTime=true;
 //#define DEBUG_ACTIONS       // construction d'une chaine qui décrit chaque action et son résultat
 #ifndef DEBUG_ACTIONS
 #define PUV2 
@@ -212,8 +213,9 @@ void actions()          // pour chaque input, test enable,
   uint32_t lmbit1;          // valeur locmem modifiée par 1  
 
   /* pour actions OR/NOR/AND/NAND */
-  uint8_t curSw[MAXSW];memset(curSw,0x00,MAXSW);     // valeur courante des SW pendant la lecture des règles (0 au départ)
-  uint8_t usdSw[MAXSW];memset(usdSw,0x00,MAXSW);     // devient 1 si le SW est modifié par une règle
+  uint8_t curSw[MAXSW];memset(curSw,0x00,MAXSW);                                   // valeur courante des SW pendant la lecture des règles (0 au départ)
+  for(uint8_t s=0;s<MAXSW;s++){if(digitalRead(pinSw[s])==cloSw[s]){curSw[s]=1;}}   // initialise l'état des switchs
+  uint8_t usdSw[MAXSW];memset(usdSw,0x00,MAXSW);                                   // devient 1 si le SW est modifié par une règle
        
 #ifdef DEBUG_ACTIONS
   char puv[4]={0x00,0x00,0x00,0x00};
@@ -317,6 +319,11 @@ void actions()          // pour chaque input, test enable,
           {
 
             /* if edge update detecState et curinp(oldlev) ; detecState ==1 if active edge only */
+            if(oneTime){
+              oneTime=false;
+              Serial.print("state=");Serial.print(detecState);Serial.print(" curinp=");if(*(curinp+2)<16){Serial.print('0');}Serial.print(*(curinp+2),HEX);
+              Serial.print(" ndest=");Serial.print(ndest);Serial.print(" tdest=");Serial.print(tdest);Serial.print(" action=");Serial.println(action);
+              }
             if( (detecState!=(((*(curinp+2))>>(PERINPOLDLEV_PB))&0x01)) )         // if level chge (curr!=old)
               {
                 *(curinp+2) &= ~PERINPOLDLEV_VB;                                  // raz bit oldlev
@@ -326,10 +333,14 @@ void actions()          // pour chaque input, test enable,
                   {detecState=1;}                                                 // active edge detected 
                 else 
                   {detecState=0;}                                                 // wrong edge
+                Serial.print("state=");Serial.print(detecState);Serial.print(" curinp=");if(*(curinp+2)<16){Serial.print('0');}Serial.print(*(curinp+2),HEX);
+                Serial.print(" ndest=");Serial.print(ndest);Serial.print(" tdest=");Serial.print(tdest);Serial.print(" action=");Serial.println(action);
+                oneTime=true;
               }
             else
-                  {detecState=0;}                                                 // no chge            
-          }                                                                       // if edge
+              {detecState=0;}                                                     // no chge            
+          }
+          
 
 #ifdef DEBUG_ACTIONS
     lmb[0]=(char)(detecState+0x30);strcat(curDebugAction,lmb);
@@ -347,7 +358,7 @@ void actions()          // pour chaque input, test enable,
                                             }break;                               // transfert vers detServ à développer    
                               case DETYMEM: locmem=lmbit0;                        // locmem=0
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[0];            // 0 -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[0];            // action '1' donc openClose(0)
                                             usdSw[ndest]=1;   
                                             break;                                         
                               default:break;
@@ -363,7 +374,7 @@ void actions()          // pour chaque input, test enable,
                                             }break;                               // transfert vers detServ à développer    
                               case DETYMEM: locmem=lmbit1;                        // locmem=1
                                             break;
-                              case DETYSW:  curSw[ndest]=openClose[1];            // 1 -> curSw
+                              case DETYSW:  curSw[ndest]=openClose[1];            // action '1' donc openClose(1)
                                             usdSw[ndest]=1;                                 
                                             break;                                         
                               default:break;
@@ -622,7 +633,7 @@ void actions()          // pour chaque input, test enable,
   // cursw résultat des actions
   for(uint8_t i=0;i<NBSW;i++){if(curSw[i]!=0){outSw|=mskSw[i];}}
  
-
+if(oneTime){Serial.print("curSw=");Serial.print(curSw[0],HEX);Serial.print("usdSw=");Serial.print(usdSw[0],HEX);Serial.print(" outSw=");Serial.println(outSw);}
 #ifdef DEBUG_ACTIONS  
   strcat(curDebugAction," ");
   lmb[0]=chexa[cstRec.swCde>>4];strcat(curDebugAction,lmb);

@@ -1472,7 +1472,7 @@ void outputCtl()        // cstRec.swCde contient 4 paires de bits disjoncteurs 0
     bool isOpenSw=false;
     for(uint8_t sw=0;sw<NBSW;sw++){                       // recherche de switch à ouvrir
       if(!((((cstRec.swCde>>(sw*2))&0x03)==2) || (((cstRec.swCde>>(sw*2))&0x03)!=0 && ((outSw>>sw)&0x01)!=0))){       // ni forcé ni (pas disjoncté et devenant on)
-                                                                                                                        // ignorer restant fermé ou à fermer
+                                                                                                                      // ignorer restant fermé ou à fermer
             if(digitalRead(pinSw[sw])==cloSw[sw]){          // ignore les switchs déjà "open"
               isOpenSw=true;
               outPutDly=OUTPUTDLY;}
