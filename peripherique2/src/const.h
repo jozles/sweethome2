@@ -14,7 +14,7 @@
 // !!!!! seul l'analyseur doit y être raccordé dans ce cas !!!!!
 
 
-#define VERSION "2.d_"
+#define VERSION "2.e_"
 /* 1.1 allumage/extinction modem
  * 1.2 ajout voltage (n.nn) dans message ; modif unpackMac
  * 1.3 deep sleep (PERTEMP) ; gestion EEPROM ; conversion temp pendant sleep
@@ -107,7 +107,8 @@
  * 2.b format IPAddress pour adresses IP (voir commentaires dans shconst2.h)
  * 2.c CSE7759b (équiv CES7766) opérationnel ; lu simultanément à la température (env 52mS) ; 
  *     si power<anal pendant MLPTIME openBreaker (idem tooglePushButton)
- * 2.d correction dynam
+ * 2.d correction dynam 
+ * 2.e NO_MODE reboot après 10s quand wifi connexion échouée
 Modifier :
 
   en deepsleep 10uA+1uA ds18x20 = 11uA de consommation de fond ;

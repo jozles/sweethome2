@@ -101,10 +101,18 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
         //bg1=micros();
         Serial.print(" ");
         //bg2=micros();
-        serialPrintMac(mac,0);}
+        serialPrintMac(mac,0);
         //bg3=micros();
       }
-    else {Serial.print(" failed");if(nbreBlink==0){ledblink(BCODEWAITWIFI,PULSEBLINK);}}
+    }
+    else {Serial.print(" failed");
+    #if POWER_MODE==NO_MODE
+    delay(10000);while(1){};
+    #endif  // NO_MODE
+    #if POWER_MODE!=NO_MODE
+    if(nbreBlink==0){ledblink(BCODEWAITWIFI,PULSEBLINK);}
+    #endif // != NO_MODE
+    }
     if(print){
       unsigned long v=micros()-beg;
       //unsigned long v0=micros()-bg0;
@@ -114,7 +122,7 @@ bool wifiConnexion(const char* ssid,const char* password,bool print)
       Serial.print(" cxst=");Serial.print(cxstatus);
       Serial.print(" uS=");Serial.print(v);
       //Serial.print(' ');Serial.print(v0);Serial.print(' ');Serial.print(v1);Serial.print(' ');Serial.print(v2);Serial.print(' ');Serial.print(v3);Serial.print(' ');
-      }
+    }
   
     return cxstatus;
 }

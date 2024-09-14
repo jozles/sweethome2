@@ -633,7 +633,7 @@ void actions()          // pour chaque input, test enable,
   // cursw résultat des actions
   for(uint8_t i=0;i<NBSW;i++){if(curSw[i]!=0){outSw|=mskSw[i];}}
  
-if(oneTime){Serial.print("curSw=");Serial.print(curSw[0],HEX);Serial.print("usdSw=");Serial.print(usdSw[0],HEX);Serial.print(" outSw=");Serial.println(outSw);}
+//if(oneTime){Serial.print("curSw=");Serial.print(curSw[0],HEX);Serial.print("usdSw=");Serial.print(usdSw[0],HEX);Serial.print(" outSw=");Serial.println(outSw);}
 #ifdef DEBUG_ACTIONS  
   strcat(curDebugAction," ");
   lmb[0]=chexa[cstRec.swCde>>4];strcat(curDebugAction,lmb);
