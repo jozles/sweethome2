@@ -227,7 +227,7 @@ void userResetSetup(byte* serverIp,const char* mailMessage)
   for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.println((IPAddress)localIp);
   
   WDTRIG //trigwd(0);
-  digitalWrite(A8,HIGH);pinMode(A8,OUTPUT);digitalWrite(A8,LOW);delay(2000);digitalWrite(A8,HIGH);delay(1000);    // hard Reset
+  digitalWrite(A8,HIGH);pinMode(A8,OUTPUT);digitalWrite(A8,LOW);delay(10000);digitalWrite(A8,HIGH);delay(10000);    // hard Reset
   WDTRIG //trigwd(0);
   
   Ethernet.begin (concMac,localIp);
@@ -749,18 +749,37 @@ void exportDataMail(const char* messName)
 void exportDataMail(const char* messName,uint8_t maxRetry)    // wait for server response
 {
   bool noResponseTo=true;
+  #define RWTO 30000  // 30 secondes d'attente 
+
+/*
+  unsigned long responseWait=millis();
+  exportDataMail(messName);
+  while((millis()-responseWait)<RWTO && noResponseTo){
+    WDTRIG //trigwd(0);      
+    if(importData()==MESSOK){noResponseTo=false;}
+  }
+  if(noResponseTo){
+    userResetSetup(serverIp);
+    WDTRIG //trigwd(0);
+    exportDataMail(messName);
+    responseWait=millis();
+    while((millis()-responseWait)<RWTO && noResponseTo){
+      WDTRIG //trigwd(0);      
+      if(importData()==MESSOK){noResponseTo=false;}
+    }
+  }
+  if(noResponseTo){while(1){}}
+*/
+
   uint8_t cnt=0; 
-  while(noResponseTo){   
-    while(noResponseTo && cnt<maxRetry+1){
+  while(noResponseTo && cnt<maxRetry+1){
       cnt++;       
       exportDataMail(messName);delay(10);    
-      #define RWTO 7000
       unsigned long responseWait=millis();
       while((millis()-responseWait)<RWTO){
         WDTRIG //trigwd(0);      
         if(importData()==MESSOK){noResponseTo=false;responseWait=millis()-RWTO-1;}
       }
-    }
     if(cnt==maxRetry){
       userResetSetup(serverIp);   // ici pas de message !
       WDTRIG //trigwd(0);
