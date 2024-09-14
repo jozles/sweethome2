@@ -490,6 +490,8 @@ void periDataRead(char* valf)   // traitement d'une chaine "data_save_","data_re
         k+=i;strncpy(periVers,k,LENVERSION);                        // version
         i=strchr(k,'_')-k+1;                                        // ????? LENVERSION variable ?
       }
+//Serial.print(" periVers ");for(uint8_t i=0;i<LENVERSION;i++){Serial.print(*(periVers+i));}
+//Serial.print(" k ");for(uint8_t i=0;i<LENVERSION;i++){Serial.print(*(k+i));}
 
       messLen-=i;
       if(messLen>0){      
@@ -547,14 +549,16 @@ void periDataRead(char* valf)   // traitement d'une chaine "data_save_","data_re
         messLen-=(k-jsonData);
         //Serial.println();dumpstr(k,16);Serial.println(jsonData);
         jsonParams(jsonData,k-jsonData);
+        messLen--;
+        k++;  // '_'
       }
-      messLen-=k-jsonData+1;
-      k++;      // '_'
-
+//Serial.print(" messLen ");Serial.print(messLen);
       if(messLen>0 && memcmp(periVers,"2.9",3)>=0){
+//Serial.print(" k ");Serial.print(k);        
         *periMessCnt=convStrToInt(k,&i);                      // compteur d'export des périphériques
-        char aaa[4];memcpy(aaa,periVers,3);periVers[3]='\0';
-        Serial.print(aaa);Serial.print(' ');Serial.print(*periMessCnt);
+//#define LAAA 7
+//char aaa[LAAA];memset(aaa,' ',LAAA);memcpy(aaa+1,periVers,4);aaa[LAAA-1]='\0';
+//Serial.print(aaa);Serial.print(*periMessCnt); //if(*periMessCnt<16){Serial.print('0');}Serial.print(*periMessCnt,HEX);
         messLen-=(i+1);       
         k+=(i+1);
       }
@@ -573,6 +577,7 @@ void periDataRead(char* valf)   // traitement d'une chaine "data_save_","data_re
       if(ab=='u'){*periProtocol='U';}else *periProtocol='T';                              // last access protocol type
       *periSsidNb='?';                                                                
       if(*(valf+oriMessLen-8)=='*'){*periSsidNb=*(valf+oriMessLen-7);}
+//Serial.print(" periSsiNb ");Serial.print((char)*periSsidNb);Serial.print(" valf ");Serial.println((char*)(valf+oriMessLen-7));
 
       memcpy(periIpAddr,remote_IP_cur,4);                                                 // Ip addr
       *periUdpPortNb=udpNb;                                                               // n° instance udp

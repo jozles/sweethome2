@@ -791,7 +791,7 @@ void showLine(char* buf,char* jsbuf,EthernetClient* cli,int numline,char* pkdate
             if(k<*periDetNb-1){lctl=STRING|BRYES;}
             else lctl=STRING|TDEND;
             char tt[2]={oi[(*periDetVal>>(k*2))&DETBITLH_VB],0x00};
-            scrDspText(buf,jsbuf,tt,0,lctl);   
+            scrDspText(buf,jsbuf,tt,0,lctl);
           }
           if(*periDetNb==0){scrDspText(buf,jsbuf," ",0,STRING|TDEND);}
 // analog
