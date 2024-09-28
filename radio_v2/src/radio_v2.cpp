@@ -401,7 +401,7 @@ blkCtl('b');
 
   //Serial.print("serv tcp");Serial.println((uint32_t)serverTcpPort);
 
-  //configCreate();while(digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
+  configCreate();//while(1){}; //digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
 
   //Serial.print(" serv tcp");Serial.println((uint32_t)serverTcpPort);
 

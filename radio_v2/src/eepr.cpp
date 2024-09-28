@@ -62,6 +62,7 @@ void Eepr::eewrite(byte* data,uint16_t length,uint16_t addr)
         EEPROM.update(addr+i,data[i]);
 #endif // DUE
 #ifdef DUE      
+        //if(i==0){dFS.write(addr,data,length);}break;
         dFS.write(addr+i,data[i]);
 #endif // DUE
     }

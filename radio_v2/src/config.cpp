@@ -163,7 +163,7 @@ void configCreate()       // valeurs pour concentrateur de test
   memcpy(peripass,"17515A\0\0",8);
   //memcpy(concMac,"\x72\x37\x68\x30\xFD\xFD",6);
   memcpy(concMac,"\x74\x65\x73\x74\x78\x32",6);            
-  concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=11;//concIp[3]=216;
+  concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=108;//11;//concIp[3]=216;
   *concPort=55558;
   memcpy(concRx,"SHCO2",RADIO_ADDR_LENGTH);
   *concChannel=100;
@@ -313,7 +313,8 @@ uint16_t getServerConfig()
 
 bool configLoad()
 {
-    if(!eeprom.load((byte*)configRec,(uint16_t)CONFIGRECLEN)){
+//    if(!eeprom.load((byte*)configRec,(uint16_t)CONFIGRECLEN)){
+    if(!eeprom.load(configRec,CONFIGRECLEN)){
       dumpstr((char*)configRec,200);
       Serial.println("**EEPROM KO**");ledblink(BCODESDCARDKO,PULSEBLINK);} // ledblink bloque
     Serial.println(" eeprom ok");
@@ -322,7 +323,7 @@ bool configLoad()
 
 void configSave()
 {
-  Serial.println("configSave mofifié");delay(100);
+  Serial.println(" configSave mofifié");delay(100);
   dumpstr((char*)configRec,200);
     eeprom.store((byte*)configRec,CONFIGRECLEN);
   trigwd(0);    

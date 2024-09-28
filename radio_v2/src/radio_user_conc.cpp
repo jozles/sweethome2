@@ -223,12 +223,14 @@ void userResetSetup(byte* serverIp,const char* mailMessage)
   */
  //*concPort=8888;
  
+  uint32_t w5500hr=5000;
+  uint32_t w5500st=100;
+  Serial.print(" w5500 hard Reset ");Serial.print(w5500hr+w5500st);Serial.println("mS ");
+  digitalWrite(A8,HIGH);pinMode(A8,OUTPUT);digitalWrite(A8,LOW);trigDly(w5500hr);
+  digitalWrite(A8,HIGH);trigDly(100);    // w5500 hard Reset
+
   Serial.print(" Ethernet begin mac/Ip=");serialPrintMac(concMac,0);Serial.print('/');
   for(uint8_t i=0;i<4;i++){localIp[i]=concIp[i];}Serial.println((IPAddress)localIp);
-  
-  WDTRIG //trigwd(0);
-  digitalWrite(A8,HIGH);pinMode(A8,OUTPUT);digitalWrite(A8,LOW);delay(10000);digitalWrite(A8,HIGH);delay(10000);    // hard Reset
-  WDTRIG //trigwd(0);
   
   Ethernet.begin (concMac,localIp);
   /*
