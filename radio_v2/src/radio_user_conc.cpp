@@ -259,7 +259,7 @@ void userResetSetup(byte* serverIp,const char* mailMessage)
 
   Udp.stop();
   if(Udp.begin(*concPort)){Serial.print(" ok ");Serial.print(millis()-t_beg);Serial.println("mS");}
-    else while(1){};      // après un reset de la carte, ça ne fonctionne toujours pas... reboot 
+    else while(1){};      // si udp ko... reboot 
 
   WDTRIG //trigwd(0);
 #endif // TXRX_MODE == 'U'
@@ -355,7 +355,7 @@ blkCtl('a');
     }
     else {
       Serial.print("\nudpPacketovf=");Serial.print(cliav);Serial.print(' ');Serial.print(getUdp_cnt);Serial.print(" uRScnt=");Serial.print(uRScnt);Serial.print(' ');
-      Serial.println(" Udp ko... restart");userResetSetup(serverIp,"UDP OVF ");
+      Serial.println(" Udp ko... restart");userResetSetup(serverIp,"UDP OVF ");     // reset W5500 + mail OVF
       //if(!Udp.begin(*concPort)){Serial.println(" Udp ko");while(1){trigwd(1000);}}
       /*
       while (cliav>0){
@@ -774,19 +774,19 @@ void exportDataMail(const char* messName,uint8_t maxRetry)    // wait for server
 */
 
   uint8_t cnt=0; 
-  while(noResponseTo && cnt<maxRetry+1){
+  while(noResponseTo){    // && cnt<maxRetry+1
       cnt++;       
-      exportDataMail(messName);delay(10);    
+      exportDataMail(messName);delay(10);           // exportDataMail until noResponseTo false
       unsigned long responseWait=millis();
-      while((millis()-responseWait)<RWTO){
+      while((millis()-responseWait)<RWTO){          // et attente réponse RWTO mS 
         WDTRIG //trigwd(0);      
         if(importData()==MESSOK){noResponseTo=false;responseWait=millis()-RWTO-1;}
       }
-    if(cnt==maxRetry){
+    if(cnt==maxRetry && noResponseTo){              // lors du maxRetry export si pas de réponse reset ethernet
       userResetSetup(serverIp);   // ici pas de message !
       WDTRIG //trigwd(0);
     }
-    if(cnt>=maxRetry+2){while(1){}}     // après un reset de la carte, ça ne fonctionne toujours pas... reboot général
+    if(cnt>=maxRetry+2){while(1){}}     // après un reset de la carte et 2 export, ça ne fonctionne toujours pas... reboot général
   }
 }
 

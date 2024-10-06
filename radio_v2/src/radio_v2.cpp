@@ -401,6 +401,7 @@ blkCtl('b');
 
   //Serial.print("serv tcp");Serial.println((uint32_t)serverTcpPort);
 
+  // !!!!!!!!!!!!!!!!!!! soit l'écriture, soit la lecture de la flash ne fonctionne plus sur la carte due en cours !!!!!!!!!!!!!!!!!!!
   configCreate();//while(1){}; //digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
 
   //Serial.print(" serv tcp");Serial.println((uint32_t)serverTcpPort);

@@ -67,6 +67,9 @@ v1.d  passage de consigne rad et exécution ; recup periCfg pour bit RAD ; ajout
       (mais W5500 @30Mhz bloque tout ...???)
 v2.9  prépa pour paramétrage du hard (LoRa is comming) ; ajout messageCnt ;
 v2.a  utilisation lib ethernet2 ; delay après Udp.endPacket() ; reset hard du w5500 ; uRScnt
+      à cette version, reboot si Udp ne démarre pas ou si exportDataMail reste sans réponse 
+      après les retry définis dans userResetSetup, puis le reset hard du w5500 puis 2 essais
+      entre 15/09 et 6/10 17 reboot avec journées de 7,3,2,2,1,1,1,0...0
 */
 
 /************* config ****************/
