@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8p"
+#define NVERS ".8q"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -186,6 +186,7 @@
    1.8p modif analyse() '=' et ':' autorisés dans valeur '\' pris en compte et filtré (ne devrait pas ?) 
         ajout param 'power' -> résultat lecture CSE7766 
         format IPAddress pour messToServer (voir comments dans shlib2.h)
+   1.8q corrections testmail des périphériques, mail()
 
 
    BUGS : 

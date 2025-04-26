@@ -252,12 +252,13 @@ Modifier :
 //
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRR             // <------------- modèle carte
+#define CARTE VRR              // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation
 
 /* ds18x20 */
-#define MODEL_S 0x10
-#define MODEL_B 0x28
+//#define MODEL_S 0x10
+//#define MODEL_B 0x28
+
 
 #define TCONVERSIONB       300    // millis délai conversion temp 187mS 10 bits accu 0,25°
 #define TCONVERSIONS       800    // millis délai conversion temp
@@ -274,7 +275,7 @@ Modifier :
 #if POWER_MODE==NO_MODE
   #define _SERVER_MODE          /* Mode server */
   #define TBITS T12BITS       // résolution DSX20
-//  #define CONSTANT RTCSAVED // !!!!!!!!!!!!!!!!!!!!!!!!!!! ne fonctionne plus i la RTC fait moins de 512
+//  #define CONSTANT RTCSAVED // !!!!!!!!!!!!!!!!!!!!!!!!!!! ne fonctionne plus si la RTC fait moins de 512
   #define CONSTANT EEPROMSAVED
   #define CONSTANTADDR 0      // adresse des constantes dans la mémoire des constantes (mots 4 octets)
 #endif // PM==NO_MODE

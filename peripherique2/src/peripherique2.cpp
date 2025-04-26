@@ -1153,26 +1153,44 @@ unsigned long beg=millis();
 
     Serial.print("---mail--- ");
 
-    char* m1=strstr(msg,"##");      // login
-    char* m2=strstr(m1,"==");       // pswd
-    char* m3=strstr(m2,"##");       // fin pswd
-    if(m1!=0 && m2!=0 && m3!=0){*m2='\0';*m3='\0';mailInit(m1+2,m2+2);}
+    msg[LMAILMESS]=0x00;
 
-      #define LMLOC 16
-      char a[LMLOC];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
-      strcat(a,"°C ");strcat(a,VERSION);
-      if(strlen(a)>=LMLOC){ledblink(BCODESHOWLINE,PULSEBLINK);}
-      a[LMLOC-1]='\0';strcat(msg,a);    // écrase les params d'init
+dumpstr(msg,LMAILMESS);
+
+    char* m1=strstr(msg,"##");    // login
+    char* m2=0;
+    char* m3=0;
+    
+    if(m1>0){
+      m2=strstr(m1,"==");         // pswd
+      if(m2>0){
+        m3=strstr(m2,"##");       // fin pswd
+        *m2='\0';*m3='\0';
+        mailInit(m1+2,m2+2);
+      }
+    }
+    
+    Serial.print(".");delay(2);
+
+    #define LMLOC 16
+    char a[LMLOC];a[0]=' ';sprintf(a+1,"%+02.2f",temp/100);a[7]='\0';
+    strcat(a,"°C ");strcat(a,VERSION);
+    if(strlen(a)>=LMLOC){ledblink(BCODESHOWLINE,PULSEBLINK);}
+    a[LMLOC-1]='\0';strcat(msg,a);    // écrase les params d'init
+
 
     if(emailSend==nullptr){Serial.println(">>>>>>>>>>>> no conf for mail - restart server for mailInit");}
     else {
+      Serial.print(".");delay(2);
       wifiConnexion(ssid,ssidPwd);
+      Serial.print(".");delay(2);
 
       char s[64]={"sh "};strcat(s,subj);
       message.subject = s;
       message.message = msg ;
 
       EMailSender::Response resp = emailSend->send(dest, message);
+      Serial.print(".");delay(1);
       resp.code[1]=0;resp.desc[16]=0; // 0 sent ; 1 SMTP time out ; 2 not connect to server
       Serial.print(">>> email ");
 
@@ -1362,8 +1380,10 @@ void ordreExt0()  // 'cliext = server->available()' déjà testé
             
             case  9: // mail
               #ifdef MAIL_SENDER                      
-                      if(diags){Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);}
-                      v0+=21;
+                      if(diags){
+                        Serial.print(">>>>>>>>>>> len=");Serial.print(ii);Serial.print(" data=");Serial.println(httpMess+v0);
+                      }
+                        v0+=21;
                       {uint16_t vx=strlen(httpMess);
                         if(vx<LBUFSERVER){
                           httpMess[vx-2]='\0';             // erase CRC                   

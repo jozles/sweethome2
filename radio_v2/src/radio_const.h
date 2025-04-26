@@ -70,6 +70,7 @@ v2.a  utilisation lib ethernet2 ; delay après Udp.endPacket() ; reset hard du w
       à cette version, reboot si Udp ne démarre pas ou si exportDataMail reste sans réponse 
       après les retry définis dans userResetSetup, puis le reset hard du w5500 puis 2 essais
       entre 15/09 et 6/10 17 reboot avec journées de 7,3,2,2,1,1,1,0...0
+      Des soucis avec l'écriture lecture de la config après power off sur Due... la carte marquée "TEST_CFG" fonctionne
 */
 
 /************* config ****************/

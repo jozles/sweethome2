@@ -170,6 +170,7 @@ void configCreate()       // valeurs pour concentrateur de test
   *concRfSpeed=0;
   *concNb=2;
 
+  memcpy(cfgCrc-8,"end_cfg\0",8);
   configSave();
 }
 
@@ -317,6 +318,7 @@ bool configLoad()
     if(!eeprom.load(configRec,CONFIGRECLEN)){
       dumpstr((char*)configRec,200);
       Serial.println("**EEPROM KO**");ledblink(BCODESDCARDKO,PULSEBLINK);} // ledblink bloque
+    dumpstr((char*)configRec,200);
     Serial.println(" eeprom ok");
     return 1;    
 }

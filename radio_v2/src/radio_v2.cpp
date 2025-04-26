@@ -260,7 +260,7 @@ void radioInit()
   radio.locAddr=concRx;                 // première init à faire !!
   tableCInit();
   memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH+1);     // pour broadcast & test
-  radio.powerOn(channel,speed);
+  radio.powerOn(channel,speed,NBPERIF);
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
   
   //unsigned long mic=micros();
@@ -402,7 +402,8 @@ blkCtl('b');
   //Serial.print("serv tcp");Serial.println((uint32_t)serverTcpPort);
 
   // !!!!!!!!!!!!!!!!!!! soit l'écriture, soit la lecture de la flash ne fonctionne plus sur la carte due en cours !!!!!!!!!!!!!!!!!!!
-  configCreate();//while(1){}; //digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
+  //configCreate();//while(1){}; //digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
+  // ===== test avec la carte marquée TEST_CFG ... ce qui est écrit se relit bien après un power off ===== (jlink branché)
 
   //Serial.print(" serv tcp");Serial.println((uint32_t)serverTcpPort);
 

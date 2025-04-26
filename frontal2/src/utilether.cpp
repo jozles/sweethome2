@@ -135,7 +135,7 @@ int ethWrite(EthernetClient* cli,char* buf,uint16_t* lb)
 void mailInit()
 {
    if(mailEnable){
-    Serial.print("Init  Mail ");
+    Serial.print("Init-Mail: ");
     trigwd();
     char ms[LMAILMESS];memset(ms,0x00,LMAILMESS);
 
@@ -162,7 +162,7 @@ void mail(const char* a, const char* mm)
       strcat(ms," ");
       strcat(ms,a);strcat(ms,"==");
       strcat(ms,mailToAddr1);strcat(ms,"==");
-      if(strlen(mm)+2<=(LMAILMESS-strlen(ms))){
+      if((strlen(mm)+2<=(LMAILMESS-strlen(ms)))&& *mm!='\0'){
         strcat(ms,mm);strcat(ms," ");}
       if(LDATEB+3<=(LMAILMESS-strlen(ms))){
         strcat(ms,alphaDate());strcat(ms," ");}
@@ -170,6 +170,8 @@ void mail(const char* a, const char* mm)
 
       sprintf(ms+strlen(ms)," p=%d",*periMail1);
       strcat(ms," ##");strcat(ms,mailFromAddr);strcat(ms,"==");strcat(ms,mailPass);strcat(ms,"##");   // init values
+
+      dumpstr(ms,LMAILMESS);
      
       periReq(&cliext,*periMail1,"mail______",ms);  
       periCur=saveperiCur;if(periCur!=0){periLoad(periCur);}

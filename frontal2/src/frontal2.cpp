@@ -2022,17 +2022,22 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                           default:break;
                         }
                        }break;                           
-              case 12: if(periPassOk==VRAI){what=1;periDataRead(valf);periPassOk=FAUX;}break;       // data_save
-              case 13: if(periPassOk==VRAI){what=3;periDataRead(valf);periPassOk=FAUX;}break;       // data_read
-              case 14: {byte a=*(libfonctions+2*i);                                                 // (periLine) - tests de perif serveur
+              case 12: if(periPassOk==VRAI){what=1;periDataRead(valf);periPassOk=FAUX;}break;       // data_save_
+              case 13: if(periPassOk==VRAI){what=3;periDataRead(valf);periPassOk=FAUX;}break;       // data_read_
+              case 14: {byte a=*(libfonctions+2*i);                                                 // (periLine) - peri_tst__ tests de perif serveur
                         getPeriCurLibf(PERILOAD);                                                   // a cde (N°sw/mail) ; k etat à sortir 
                         char fptst[LENNOM+1];                                                        
                         char swcd[]={"sw0__ON___sw0__OFF__sw1__ON___sw1__OFF__mail______"};
-                        char msg[64];msg[0]='\0';
-                        if(a=='m'){a=2;strcat(msg,"TEST==");strcat(msg,mailToAddr1);strcat(msg,"==test peri ");concatn(msg,periCur);strcat(msg," ");strcat(msg,alphaDate());}
-                        else {a-=PMFNCVAL;}
-                        memcpy(fptst,swcd+LENNOM*a*2,LENNOM);
-                        cliext.stop();periReq(&cliext,periCur,fptst,msg);
+                        char msg[LMAILMESS];msg[0]='\0';
+                        if(a=='m'){
+                          strcat(msg,"TEST_PERI ");
+                          concatn(msg,periCur);
+                          mail(msg,"\0");
+                        }
+                        else {a-=PMFNCVAL;
+                          memcpy(fptst,swcd+LENNOM*a*2,LENNOM);fptst[LENNOM]='\0';
+                          cliext.stop();periReq(&cliext,periCur,fptst,msg);
+                        }
                         periLineHtml(cli);                        
                        }break;                                                                       
               case 15: what=5;getPeriCurValf(PERILOAD);break;                                             // (periLine) - peri_cur__ bouton submit
