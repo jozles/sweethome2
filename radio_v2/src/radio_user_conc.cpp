@@ -2,8 +2,18 @@
 #include "radio_const.h"
 #include "radio_util.h"
 #include "radio_user_conc.h"
-#include "nrf24l01s.h"
 #include "radio_powerSleep.h"
+
+#ifdef  NRF
+#include "nrf24l01s.h"
+extern Nrfp radio;
+#endif
+
+#ifdef LORA
+#include "LoRa.h"
+#include "LoRa_const.h"
+extern LoRaClass radio;
+#endif
 
 /* gestion user data du concentrateur */
 
@@ -11,8 +21,6 @@
 #ifndef DETS
 
 struct ConTable tableC[NBPERIF+1];
-
-extern Nrfp radio;
 
 /* user includes */
 
@@ -555,7 +563,7 @@ int  importData()                // reçoit un message du serveur
         else if(numT!=0 && nPfromTableC!=0 && nPfromTableC!=nP){periMess=MESSNUMP;}  // iftableC[numT].numPeri doesnt match message -> error
         else {
           if(nPfromTableC==0){tableC[numT].numPeri=nP;}
-          if(memcmp(tableC[numT].periBuf+NRF_ADDR_LENGTH+1,"1.c",3)>0){         // version périf > 1.c
+          if(memcmp(tableC[numT].periBuf+RADIO_ADDR_LENGTH+1,"1.c",3)>0){         // version périf > 1.c
             extDataStore(nP,numT,0,indata+MPOSPERREFR,5);                 // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
             extDataStore(nP,numT,5,indata+MPOSPERREFR+6,5);               // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
             extDataStore(nP,numT,10,indata+MPOSPERREFR+12,4);             // format MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x

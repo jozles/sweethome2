@@ -1,7 +1,6 @@
 #include <shconst2.h>
 #include <shutil2.h>
 #include "radio_user_peri.h"
-#include "nrf24l01s.h"
 #include "radio_const.h"
 #include "radio_powerSleep.h"
 

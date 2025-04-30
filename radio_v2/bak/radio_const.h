@@ -1,7 +1,7 @@
 #ifndef _RADIO_CONST_INCLUDED
 #define _RADIO_CONST_INCLUDED
 
-#define VERSION "2.a "
+#define VERSION "2.b "
 #define LENVERSION 4
 
 #include <Arduino.h>
@@ -56,7 +56,7 @@ v1.9  configs concentrateurs et périfs nrf chargées via Serial1 depuis le serv
       Les paramètres des périfs sont chargés ou non dans la config du serveur selon keep/new.
       La totalité des paramètres de toutes les machines sont définis dans la config du serveur. v1.57 finale de frontal2
 v1.a
-v1.b  le concentrateur transfère les consignes analogiques et envoit des messages de présence au serveur (apparait dans periTable)
+v1.b  le concentrateur transfère les consignes analogiques et envoie des messages de présence au serveur (apparait dans periTable)
       dev en cours du controle des radiateurs
 v1.c  la variable globale beginP_done indique que importData a été effectué dans beginP ; 
       donc inutile de faire radio.txRx( et importData ensuite ; 
@@ -71,6 +71,11 @@ v2.a  utilisation lib ethernet2 ; delay après Udp.endPacket() ; reset hard du w
       après les retry définis dans userResetSetup, puis le reset hard du w5500 puis 2 essais
       entre 15/09 et 6/10 17 reboot avec journées de 7,3,2,2,1,1,1,0...0
       Des soucis avec l'écriture lecture de la config après power off sur Due... la carte marquée "TEST_CFG" fonctionne
+v2.b  Pour la compatibilté avec LoRa les codes erreur sont dans radio_const.h
+      Structure packets :
+        Nrf   l'adresse de destination est stockée dans les données de gestion du block
+        LoRa  l'adresse de destination est stockée dans les données du packet
+
 */
 
 /************* config ****************/
@@ -125,5 +130,18 @@ v2.a  utilisation lib ethernet2 ; delay après Udp.endPacket() ; reset hard du w
   #define SBLINIT 25                           // server buffer init length (MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1)
          
 #endif // MACHINE == 'C'
+
+/*** return (error) codes ***/
+#define AV_NBPIP -1
+#define AV_LMERR -2
+#define AV_MCADD -3 // read output (need message upload)
+#define AV_EMPTY -4
+#define AV_MAXAV AV_EMPTY
+#define ER_MAXRT (AV_MAXAV)-1 // code erreur MAX_RT
+#define ER_RDYTO (ER_MAXRT)-1 // code erreur Time Out attente réception
+#define ER_CRC   (ER_RDYTO)-1
+#define ER_OVF   (ER_CRC)-1
+#define ER_MAXER (ER_OVF)
+#define ER_TEXT "ov\0cc\0to\0rt\0em\0mc\0le\0pi\0--\0ok\0" // 2 char libs for codes
 
 #endif // _RADIO_CONST_INCLUDED

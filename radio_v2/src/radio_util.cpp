@@ -1,12 +1,21 @@
 #include <shconst2.h>
 #include <shutil2.h>
 #include "radio_const.h"
+
+#ifdef  NRF
 #include "nrf24l01s.h"
+extern Nrfp radio;
+#endif
+
+#ifdef LORA
+#include "LoRa.h"
+#include "LoRa_const.h"
+extern LoRaClass radio;
+#endif
 
 
 #if MACHINE_CONCENTRATEUR
 
-extern Nrfp radio;
 extern ConTable tableC[];
 
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper)
@@ -15,33 +24,37 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper
   if(sta>=0){}
 
       if(sta>=0){
-        sta=messageIn[NRF_ADDR_LENGTH]-'0';                       // sender numP
-        if(sta!=0 && memcmp(messageIn,tableC[sta].periMac,NRF_ADDR_LENGTH)!=0){  // macAddr ko ?
-            sta=AV_MCADD;radio.rxError();}                              // if numP==0 registration to do
+        sta=messageIn[RADIO_ADDR_LENGTH]-'0';                                       // sender numP
+        if(sta!=0 && memcmp(messageIn,tableC[sta].periMac,RADIO_ADDR_LENGTH)!=0){   // macAddr ko ?
+            sta=AV_MCADD;
+            #ifdef NRF
+            radio.rxError();                                                        // if numP==0 registration to do
+            #endif
+        }
       }
   return sta;
 }
 
 uint8_t cRegister(char* message)      // search free line or existing macAddr
-{                                           // retour NBPERIF -> full else numP
+{                                     // retour NBPERIF -> full else numP
 
           uint8_t i,freeLine=0;
           bool exist=false;
 
           for(i=1;i<NBPERIF;i++){
-            if(memcmp(tableC[i].periMac,message,NRF_ADDR_LENGTH)==0){exist=true;break;}   // already exist at i
+            if(memcmp(tableC[i].periMac,message,RADIO_ADDR_LENGTH)==0){exist=true;break;}   // already exist at i
             else if(freeLine==0 && tableC[i].periMac[0]=='0'){freeLine=i;}                // store free line nb
           }
 
           if(!exist && freeLine!=0){
             i=freeLine;                                                               // i = free line
             exist=true;
-            memcpy(tableC[i].periMac,message,NRF_ADDR_LENGTH);                        // record macAddr
-            tableC[i].periMac[NRF_ADDR_LENGTH]=i+48;                                  // add numT as 6th char
+            memcpy(tableC[i].periMac,message,RADIO_ADDR_LENGTH);                        // record macAddr
+            tableC[i].periMac[RADIO_ADDR_LENGTH]=i+48;                                  // add numT as 6th char
           }
 
           if(exist){
-            message[NRF_ADDR_LENGTH]=i+48;}
+            message[RADIO_ADDR_LENGTH]=i+48;}
 
           return i;
 }
@@ -51,7 +64,7 @@ uint8_t macSearch(char* mac,int* numPer)    // search mac in tableC ; out 1->n ;
   int i,j;
 
   for(i=1;i<NBPERIF;i++){
-    for(j=NRF_ADDR_LENGTH-1;j>=0;j--){
+    for(j=RADIO_ADDR_LENGTH-1;j>=0;j--){
       if(mac[j]!=tableC[i].periMac[j]){j=-2;}
     }
     if(j>-2){*numPer=tableC[i].numPeri;break;}
@@ -65,12 +78,12 @@ uint8_t extDataStore(uint8_t numPer,uint8_t numT,uint8_t offset,char* data,uint8
   if(len>BUF_SERVER_LENGTH || len>MAX_PAYLOAD_LENGTH){return EDS_STAT_LEN;}
 
   tableC[numT].numPeri=numPer;
-  if((len+offset)>MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1){len=MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1;}
+  if((len+offset)>MAX_PAYLOAD_LENGTH-RADIO_ADDR_LENGTH-1){len=MAX_PAYLOAD_LENGTH-RADIO_ADDR_LENGTH-1;}
   if(len!=0){
     tableC[numT].servBufLength=len+offset;
     memcpy(tableC[numT].servBuf+offset,data,len);}
   else{
-    tableC[numT].servBufLength=MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1;
+    tableC[numT].servBufLength=MAX_PAYLOAD_LENGTH-RADIO_ADDR_LENGTH-1;
     memcpy(tableC[numT].servBuf+offset,SBVINIT,SBLINIT);}
 
   return EDS_STAT_OK;
@@ -96,10 +109,10 @@ void tableCPrint()
 
 void tableCInit()
 {
-  memcpy(tableC[0].periMac,(char*)radio.locAddr,NRF_ADDR_LENGTH);
+  memcpy(tableC[0].periMac,(char*)radio.locAddr,RADIO_ADDR_LENGTH);
   for(int i=1;i<=NBPERIF;i++){                      // entry #NBPERIF for BR_ADDR requester
     tableC[i].numPeri=0;
-    memcpy(tableC[i].periMac,"00000",NRF_ADDR_LENGTH);
+    memcpy(tableC[i].periMac,"00000",RADIO_ADDR_LENGTH);
     tableC[i].servBufLength=SBLINIT;
     memcpy(tableC[i].servBuf,SBVINIT,SBLINIT);
     memset(tableC[i].periBuf,'\0',MAX_PAYLOAD_LENGTH+1);

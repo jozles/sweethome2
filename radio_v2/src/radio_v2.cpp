@@ -3,9 +3,8 @@
 #include <shutil2.h>
 #include "radio_const.h"
 #include "radio_util.h"
-#include "nRF24L01.h"
-#include "nrf24l01s.h"
 #include "config.h"
+#include "radio_const.h"
 #include "radio_powerSleep.h"
 #include "radio_user_peri.h"
 #include "radio_user_conc.h"
@@ -23,6 +22,18 @@ Eepr eeprom;
 #include <MemoryFree.h>
 #endif // def DUE 
 
+#ifdef NRF
+#include "nRF24L01.h"
+#include "nrf24l01s.h"
+Nrfp radio;
+#endif
+
+#ifdef LORA
+#include "LoRa.h"
+#include "LoRa_const.h"
+LoRaClass radio;
+#endif
+
 #ifdef DS18X20
 #include <ds18x20.h>
 Ds1820 ds1820;
@@ -31,11 +42,10 @@ byte     setds[]={0,0x7f,0x80,0x3f},readds[8];   // 1f=93mS 9 bits accu 0,5° ; 
 #define  TCONVDS2 T125  // sleep PwrDown mS !!
 #endif // DS18X20 
 
-#if NRF_ADDR_LENGTH != RADIO_ADDR_LENGTH
+#if RADIO_ADDR_LENGTH != RADIO_ADDR_LENGTH
   fail // RADIO_ADDR_LENTH
 #endif
 
-Nrfp radio;
 
 /*** LED ***/
 uint16_t      blkdelay=0;
@@ -94,7 +104,12 @@ bool    echoOn=false;                     // fonction echo en cours (sur l'entr�
                                           // le concentrateur est bloqué pendant la maneuvre
  
 uint8_t channel;
+#ifdef NRF
 uint8_t speed=RF_SPD_1MB;
+#endif
+#ifndef NRF
+uint8_t speed=0;
+#endif
 extern byte*  configVers;
 
 #if MACHINE_CONCENTRATEUR
@@ -259,10 +274,11 @@ void radioInit()
   speed=*concRfSpeed;
   radio.locAddr=concRx;                 // première init à faire !!
   tableCInit();
-  memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH+1);     // pour broadcast & test
+  memcpy(tableC[1].periMac,testAd,RADIO_ADDR_LENGTH+1);     // pour broadcast & test
   radio.powerOn(channel,speed,NBPERIF);
+  #ifdef NRF
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
-  
+  #endif
   //unsigned long mic=micros();
   Serial.print(" --- radioInit()#");Serial.print(radioInitCnt);Serial.print(' ');Serial.print(millis()-radioWd);Serial.println("ms");
 
@@ -358,7 +374,7 @@ void setup() {
 
 #if MACHINE_CONCENTRATEUR
 
-  PP4_INIT
+  //PP4_INIT
 
 /*
   dumpstr(ram_remanente,16);
@@ -522,20 +538,20 @@ void loop() {
     }
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
-    memset(message,0x00,MAX_PAYLOAD_LENGTH+1);memset(message,0x20,NRF_ADDR_LENGTH+1);
+    memset(message,0x00,MAX_PAYLOAD_LENGTH+1);memset(message,0x20,RADIO_ADDR_LENGTH+1);
 
-    uint8_t outLength=NRF_ADDR_LENGTH+1;                              // perinx     - 6
+    uint8_t outLength=RADIO_ADDR_LENGTH+1;                              // perinx     - 6
     memcpy(message+outLength,VERSION,LENVERSION);                     // version    - 4
     outLength+=LENVERSION;
     memcpy(message+outLength,&thN,1);                                 // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
-    outLength++;
-                                                                      //            - 1
+    outLength++;                                                      //            - 1
+
     //sprintf((char*)(message+outLength+1),"%08lu",(uint32_t)tBeg);     // first connection unix time
     //outLength+=9;                                                     //            - 9
  
     messageBuild((char*)message,&outLength);                          // add user data 
-    memcpy(message,periRxAddr,NRF_ADDR_LENGTH);                       // macAddr
-    message[NRF_ADDR_LENGTH]=numT+48;                                 // numéro du périphérique
+    memcpy(message,periRxAddr,RADIO_ADDR_LENGTH);                       // macAddr
+    message[RADIO_ADDR_LENGTH]=numT+48;                                 // numéro du périphérique
     message[outLength]='\0';
 
     if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR);}
@@ -555,7 +571,7 @@ void loop() {
     if(rdSta>=0){                                                 // no error
       
       /* echo request ? (address field is 0x5555555555) */
-      if(memcmp(messageIn,ECHO_MAC_REQ,NRF_ADDR_LENGTH)==0){prtCom(" ok");echo();}
+      if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){prtCom(" ok");echo();}
       else if(!beginP_done){                                      // si begin_P a été effectué dans txRxMessage importData aussi
         prtCom(" ok");                                      
         importData(messageIn,pldLength);                          // user data
@@ -658,9 +674,9 @@ blkCtl('c');
         else {if(diags){Serial.println(" full");}}                        // numT = NBPERIF   ; rdSta=0
       }
       if(pipe==2){                                                        // conc macAddr request
-        memcpy(tableC[NBPERIF].periMac,messageIn,NRF_ADDR_LENGTH+1);      // peri addr in table last entry
-        memcpy(message,messageIn,NRF_ADDR_LENGTH+1);
-        memcpy(message+NRF_ADDR_LENGTH+1,radio.locAddr,NRF_ADDR_LENGTH);  // build message to perif with conc macAddr
+        memcpy(tableC[NBPERIF].periMac,messageIn,RADIO_ADDR_LENGTH+1);      // peri addr in table last entry
+        memcpy(message,messageIn,RADIO_ADDR_LENGTH+1);
+        memcpy(message+RADIO_ADDR_LENGTH+1,radio.locAddr,RADIO_ADDR_LENGTH);  // build message to perif with conc macAddr
         txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                        // end of transaction so auto ACK
       }                                                                   // rdSta=0 so ... end of loop
   }
@@ -670,7 +686,7 @@ blkCtl('c');
   
 
 
-  if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,NRF_ADDR_LENGTH)==0)){    // verif de l'adresse mac
+  if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,RADIO_ADDR_LENGTH)==0)){    // verif de l'adresse mac
                                                       // rdSta is table entry nb
       if(numT==0 && (echoNb!=rdSta || !echoOn)){      // numT=0 means : that is not a registration, and message is not an echo answer 
                                                       // so -> incoming message storage
@@ -680,8 +696,8 @@ blkCtl('c');
       
       if(echoNb!=rdSta){                              // if no echo pending on this table entry
       /* build config */
-        memcpy(message,messageIn,NRF_ADDR_LENGTH+1);
-        memcpy(message+NRF_ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-NRF_ADDR_LENGTH-1);    // build message to perif with server data
+        memcpy(message,messageIn,RADIO_ADDR_LENGTH+1);
+        memcpy(message+RADIO_ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-RADIO_ADDR_LENGTH-1);    // build message to perif with server data
                                                                                                  // server data is MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
                                                                                                  // see importData()
       /* send it to perif */    
@@ -789,8 +805,8 @@ void echo()
   
   while (getch()!='q'){
     cnt++;
-    memcpy(message,ECHO_MAC_REQ,NRF_ADDR_LENGTH);
-    sprintf((char*)message+NRF_ADDR_LENGTH,"%05d",cnt);
+    memcpy(message,ECHO_MAC_REQ,RADIO_ADDR_LENGTH);
+    sprintf((char*)message+RADIO_ADDR_LENGTH,"%05d",cnt);
     message[ECHO_LEN]='\0';
     Serial.print("sent ");Serial.print((char*)message);
 
@@ -861,13 +877,13 @@ void broadcast(char a)
       case 'q':return;
       default:
         if(b!=' '){
-          testAd[0]=b;delay(10);for(int i=1;i<NRF_ADDR_LENGTH;i++){testAd[i]=getch();}
+          testAd[0]=b;delay(10);for(int i=1;i<RADIO_ADDR_LENGTH;i++){testAd[i]=getch();}
           Serial.println((char*)testAd);
-          memcpy(tableC[1].periMac,testAd,NRF_ADDR_LENGTH);
+          memcpy(tableC[1].periMac,testAd,RADIO_ADDR_LENGTH);
           tableCPrint();}
-        memcpy(message,testAd,NRF_ADDR_LENGTH);
-        message[NRF_ADDR_LENGTH]='0';
-        sprintf((char*)(message+NRF_ADDR_LENGTH+1),"%08lu",millis());
+        memcpy(message,testAd,RADIO_ADDR_LENGTH);
+        message[RADIO_ADDR_LENGTH]='0';
+        sprintf((char*)(message+RADIO_ADDR_LENGTH+1),"%08lu",millis());
         echo0(ack,8,1);
         titre=true;
         break; 
@@ -953,9 +969,9 @@ void echo()
 
   uint8_t cntErr=0;
   unsigned long to=ECHOTO;
-  char echoRef[NRF_ADDR_LENGTH+1];
-  memcpy(echoRef,radio.locAddr,NRF_ADDR_LENGTH);
-  echoRef[NRF_ADDR_LENGTH]='0'+numT;
+  char echoRef[RADIO_ADDR_LENGTH+1];
+  memcpy(echoRef,radio.locAddr,RADIO_ADDR_LENGTH);
+  echoRef[RADIO_ADDR_LENGTH]='0'+numT;
   byte echoMess[ECHO_LEN+1];
   
  // Serial.println("start echo");
@@ -964,7 +980,7 @@ void echo()
 
     /* send echo */
     memcpy(echoMess,messageIn,ECHO_LEN);
-    memcpy(echoMess,echoRef,NRF_ADDR_LENGTH+1);
+    memcpy(echoMess,echoRef,RADIO_ADDR_LENGTH+1);
     echoMess[ECHO_LEN]='\0';
     radio.write(echoMess,NO_ACK,ECHO_LEN,nullptr);
     trSta=1;
@@ -1011,7 +1027,7 @@ int txRxMessage()
     numT=rdSta;
     beginP_done=true;
   }
-  message[NRF_ADDR_LENGTH]=numT+48;
+  message[RADIO_ADDR_LENGTH]=numT+48;
   memcpy(messageIn,message,pldLength);
 
   if(!beginP_done){nbS++;return radio.txRx(messageIn,&pldLength);}
@@ -1027,7 +1043,7 @@ int txMessage(bool ack,uint8_t len,const uint8_t numP)  // retour 0 ok ; -1 maxR
     numT=beginP();
     if(numT<=0){trSta=-2;return trSta;}           // beginP n'a pas fonctionné
   }
-  message[NRF_ADDR_LENGTH]=numT+48;
+  message[RADIO_ADDR_LENGTH]=numT+48;
 #endif // MACHINE=='P'
 
   radio.write(message,ack,len,tableC[numP].periMac);               // send message

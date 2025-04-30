@@ -284,9 +284,9 @@ uint16_t getServerConfig()
     message[mm]=';';mm++;
     message[mm]='\0';
 
-    setExpEnd((char*)message);                                           // len + crc
+    setExpEnd((char*)message);                                            // len + crc
     uint16_t rcvl=0;
-    if(!syncServerConfig((char*)message,(char*)PERICFG,&rcvl)){return 0;}
+    if(!syncServerConfig((char*)message,(char*)PERICFG,&rcvl)){return 0;} // send peri message/receive conc message
 
     uint16_t cnt=0;
     uint16_t tmp=0;
