@@ -174,7 +174,7 @@ void configCreate()       // valeurs pour concentrateur de test
   configSave();
 }
 
-#endif // MACHINE == 'C'
+#endif // MACHINE_CONCENTRATEUR
 
 #if MACHINE_DET328
 
@@ -227,7 +227,7 @@ void configInit()
   long configLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
   
   Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configLength);
-  delay(10);if(configLength>CONFIGRECLEN) {ledblink(BCODECONFIGRECLEN);}
+  delay(10);if(configLength>CONFIGRECLEN) {ledblink(BCODECONFIGRECLEN,PULSEBLINK);}
 
 /*
   memcpy(configVers,VERSION,2);
@@ -310,7 +310,7 @@ uint16_t getServerConfig()
   #endif // NOCONFSER
 }
 
-#endif // MACHINE == 'P'
+#endif // MACHINE_DET328
 
 bool configLoad()
 {

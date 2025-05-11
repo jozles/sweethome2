@@ -2,9 +2,8 @@
 
 #if MACHINE_DET328
 
-#include "nrf24l01s.h"
-#include "nrf_powerSleep.h"
-#include "nrf_user_peri.h"
+#include "radio_powerSleep.h"
+#include "radio_user_peri.h"
 
 /* mécanisme
  *  
@@ -32,13 +31,25 @@
 #include <avr/power.h>
 #include <avr/wdt.h>
 
+#ifdef NRF
+#include "nRF24L01.h"
+#include "nrf24l01s.h"
+extern Nrfp radio;
+#endif
+
+#ifdef LORA
+#include "LoRa.h"
+#include "LoRa_const.h"
+extern LoRaClass radio;
+#endif
+
 float         volts=0;                           // tension alim (VCC)
 extern bool   lowPower;                          
 extern float  lowPowerValue;                      
 extern float  temp;
 uint8_t       cntTest=0;                         // test watchdog
 
-extern Nrfp nrfp;
+//extern Nrfp nrfp;
 
 extern uint32_t nbS;
 

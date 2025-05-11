@@ -104,12 +104,13 @@ bool    echoOn=false;                     // fonction echo en cours (sur l'entr�
                                           // le concentrateur est bloqué pendant la maneuvre
  
 uint8_t channel;
-#ifdef NRF
+/*#ifdef NRF
 uint8_t speed=RF_SPD_1MB;
 #endif
 #ifndef NRF
 uint8_t speed=0;
 #endif
+*/
 extern byte*  configVers;
 
 #if MACHINE_CONCENTRATEUR
@@ -167,7 +168,7 @@ uint32_t ram_remanente __attribute__((section(".noinit")));
 
 extern uint32_t uRScnt;
 
-#endif // MACHINE == 'C'
+#endif // MACHINE_CONCENTRATEUR
 
 #if MACHINE_DET328
 
@@ -240,7 +241,7 @@ void int_ISR()
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(2);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);}
-#endif // MACHINE == 'P'
+#endif // MACHINE_DET328
 
 void ini_t_on();
 void iniTemp();
@@ -271,27 +272,22 @@ void radioInit()
   radio.powerDown();
   channel=*concChannel;
   if(memcmp(configVers,"01",2)==0){*concNb=1;}
-  speed=*concRfSpeed;
+  
   radio.locAddr=concRx;                 // première init à faire !!
   tableCInit();
   memcpy(tableC[1].periMac,testAd,RADIO_ADDR_LENGTH+1);     // pour broadcast & test
-  radio.powerOn(channel,speed,NBPERIF);
-  #ifdef NRF
+  uint8_t speed=*concRfSpeed;
+  radio.powerOn(channel,speed,NBPERIF); 
+  /*#ifdef NRF
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
   #endif
-  //unsigned long mic=micros();
+  // déplacé dans radio.setup()
+  */
+
   Serial.print(" --- radioInit()#");Serial.print(radioInitCnt);Serial.print(' ');Serial.print(millis()-radioWd);Serial.println("ms");
 
-  /*
-  #define LBINIT 40
-  char binit[LBINIT];*binit='\0';
-  strcpy(binit," --- radioInit()#         ms\n\0");uint8_t lb=17;
-  sprintf(binit+lb,"%4u",(uint16_t)radioInitCnt);binit[lb+4]=' ';
-  sprintf(binit+lb+4+1,"%4u",(uint16_t)(millis()-radioWd));Serial.print(binit);
-  */
-  //Serial.println(micros()-mic);// en principe 51uS
 }
-#endif // MACHINE == 'C'
+#endif // MACHINE_CONCENTRATEUR
 
 
 void setup() {
@@ -310,7 +306,7 @@ void setup() {
   radio.locAddr=periRxAddr;
   radio.ccAddr=concAddr;
   channel=*concChannel;
-  speed=*concSpeed;
+  //speed=*concSpeed;
 
   /* external timer calibration sequence */
   t_on=millis();
@@ -322,7 +318,7 @@ void setup() {
   Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");
   radio.printAddr((char*)periRxAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);
   Serial.print('(');Serial.print(*concNb);Serial.print('-');Serial.print(channel);
-  Serial.print('/');Serial.print(speed);Serial.print(")");
+  Serial.print('/');Serial.print(*concSpeed);Serial.print(")");
   
 #ifndef NOCONFSER
   pinMode(STOPREQ,INPUT_PULLUP);
@@ -554,7 +550,7 @@ void loop() {
     message[RADIO_ADDR_LENGTH]=numT+48;                                 // numéro du périphérique
     message[outLength]='\0';
 
-    if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR);}
+    if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR,PULSEBLINK);}
     if(diags){Serial.print(" (");Serial.print(outLength);Serial.print(") -> ");Serial.println((char*)message);}
     
     /* One transaction is tx+rx ; if both ok reset counters else retry management*/  
@@ -563,7 +559,7 @@ void loop() {
     //nbS++;
 
     t_on2=micros();                   // message build ... send   
-    radio.powerOn(channel,speed);
+    radio.powerOn(channel,*concSpeed,0);
     trSta=0;
     rdSta=txRxMessage();
     t_on21=micros();
@@ -928,7 +924,7 @@ int beginP()                        // manage registration ; output value >0 is 
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
       delayBlk(32,0,125,4,1);           // 4 blinks
-      radio.powerOn(channel,speed);     // txRx or other running
+      radio.powerOn(channel,*concSpeed,0);     // txRx or other running
       beginP_retryCnt=0;
       //break;                            // ok -> out of while(beginP_retryCnt>0)
     }
@@ -952,7 +948,7 @@ int beginP()                        // manage registration ; output value >0 is 
     if(beginP_retryCnt>0){
       sleepNoPwr(0);                    
       delayBlk(1,0,125,2,1);          // 2 blinks
-      radio.powerOn(channel,speed);}   
+      radio.powerOn(channel,*concSpeed,0);}   
   }                                   // next attempt
 
   if(diags){
@@ -1034,7 +1030,7 @@ int txRxMessage()
   else return rdSta;
 }
 
-#endif // MACHINE == 'P'
+#endif // MACHINE_DET328
 
 int txMessage(bool ack,uint8_t len,const uint8_t numP)  // retour 0 ok ; -1 maxRt ; -2 registration ko
 {
@@ -1044,9 +1040,13 @@ int txMessage(bool ack,uint8_t len,const uint8_t numP)  // retour 0 ok ; -1 maxR
     if(numT<=0){trSta=-2;return trSta;}           // beginP n'a pas fonctionné
   }
   message[RADIO_ADDR_LENGTH]=numT+48;
-#endif // MACHINE=='P'
+  radio.write(message,ack,len,(byte*)&numP);              // send message
+#endif // MACHINE_DET328
 
+#if MACHINE_CONCENTRATEUR
   radio.write(message,ack,len,tableC[numP].periMac);               // send message
+#endif // MACHINE_CONCENTRATEUR
+
   trSta=1;
   time_beg = micros();
   while(trSta==1){
@@ -1073,7 +1073,7 @@ int txMessage(bool ack,uint8_t len,const uint8_t numP)  // retour 0 ok ; -1 maxR
     strcat(diagMessT,bufCv);
     strcat(diagMessT,"uS");
   }
-  #endif // MACHINE=='C'
+  #endif // MACHINE_CONCENTRATEUR
   
   return trSta;
 }

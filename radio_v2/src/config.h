@@ -5,11 +5,11 @@
 
 #if MACHINE_CONCENTRATEUR
 #define CONFIGRECLEN 200
-#endif // MACHINE == 'C'
+#endif // MACHINE_CONCENTRATEUR
 
 #if MACHINE_DET328
 #define CONFIGRECLEN 76                      // len maxi paramètres de config en Eeprom (37 v01 ; 38 v02 ; 75 v03)
-#endif // MACHINE == 'C'
+#endif // MACHINE_DET328
 
 #define CONCRECADDR 0
 

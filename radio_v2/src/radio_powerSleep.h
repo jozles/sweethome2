@@ -37,6 +37,6 @@ void getVolts();
 uint16_t adcRead0(uint8_t admuxval,uint8_t dly);
 float adcRead(uint8_t admuxval,float factor, uint16_t offset, uint8_t ref,uint8_t dly);
 
-#endif // MACHINE == 'P'
+#endif // MACHINE_DET328
 
 #endif // _RADIO_PWRSLP_H_INCLUDED
