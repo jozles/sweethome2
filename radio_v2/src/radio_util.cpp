@@ -14,9 +14,9 @@ extern LoRaClass radio;
 #endif
 
 #ifdef MACHINE_DET328
-int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper)
+int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
 {
-  return radio.read(messageIn,pipe,pldLength,nbper);         // MACHINE_DET328 returns 0:pld_ok <0:err 
+  return radio.read(messageIn,pipe,pldLength,NBPERIF);         // MACHINE_DET328 returns 0:pld_ok <0:err 
 }
 #endif // MACHINE_DET328
 
@@ -24,9 +24,9 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper
 
 extern ConTable tableC[];
 
-int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper)
+int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
 {
-  int sta=radio.read(messageIn,pipe,pldLength,nbper);         // MACHINE_CONCENTRATEUR returns 0:reg_to_do <0:err >0:numPer
+  int sta=radio.read(messageIn,pipe,pldLength,NBPERIF);         // MACHINE_CONCENTRATEUR returns 0:reg_to_do <0:err >0:numPer
 
       if(sta>=0){
         sta=messageIn[RADIO_ADDR_LENGTH]-'0';                                       // sender numP 0=registration_req

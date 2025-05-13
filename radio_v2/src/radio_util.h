@@ -1,9 +1,9 @@
 #include "radio_const.h"
 
 
-#ifdef MACHINE_CONCENTRATEUR
+int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength);
 
-int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper);
+#ifdef MACHINE_CONCENTRATEUR
 
 uint8_t cRegister(char* message);
 uint8_t macSearch(char* mac,int* numPer);
@@ -15,8 +15,3 @@ int tableCSave();
 
 #endif // MACHINE_CONCENTRATEUR
 
-#ifdef MACHINE_DET328
-
-int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper);
-
-#endif // MACHINE_DET328

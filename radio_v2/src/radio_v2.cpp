@@ -536,7 +536,7 @@ void loop() {
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);memset(message,0x20,RADIO_ADDR_LENGTH+1);
 
-    uint8_t outLength=RADIO_ADDR_LENGTH+1;                              // perinx     - 6
+    uint8_t outLength=RADIO_ADDR_LENGTH+1;                            // perinx     - 6
     memcpy(message+outLength,VERSION,LENVERSION);                     // version    - 4
     outLength+=LENVERSION;
     memcpy(message+outLength,&thN,1);                                 // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
@@ -546,8 +546,8 @@ void loop() {
     //outLength+=9;                                                     //            - 9
  
     messageBuild((char*)message,&outLength);                          // add user data 
-    memcpy(message,periRxAddr,RADIO_ADDR_LENGTH);                       // macAddr
-    message[RADIO_ADDR_LENGTH]=numT+48;                                 // numéro du périphérique
+    memcpy(message,periRxAddr,RADIO_ADDR_LENGTH);                     // macAddr
+    message[RADIO_ADDR_LENGTH]=numT+48;                               // numéro du périphérique
     message[outLength]='\0';
 
     if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR,PULSEBLINK);}
@@ -559,7 +559,7 @@ void loop() {
     //nbS++;
 
     t_on2=micros();                   // message build ... send   
-    radio.powerOn(channel,*concSpeed,0);
+    radio.powerOn(channel,*concSpeed,NBPERIF);
     trSta=0;
     rdSta=txRxMessage();
     t_on21=micros();
@@ -636,10 +636,10 @@ void loop() {
 
 blkCtl('c');
 
-  numT=0;                                             // will stay 0 if no registration
-  pldLength=MAX_PAYLOAD_LENGTH;                       // max length
+  numT=0;                                               // will stay 0 if no registration
+  pldLength=MAX_PAYLOAD_LENGTH;                         // max length
   memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
-  rdSta=get_radio_message(messageIn,&pipe,&pldLength,NBPERIF);  // get message from perif (<0 err ; 0 et pipe==1 reg to do ; 0 et pipe==2 conc radio Addr req ; >0 entry nb)
+  rdSta=get_radio_message(messageIn,&pipe,&pldLength);  // get message from perif (<0 err ; 0 et pipe==1 reg to do ; 0 et pipe==2 conc radio Addr req ; >0 entry nb)
 
   time_beg=micros();  
 
@@ -662,18 +662,19 @@ blkCtl('c');
       //showRx(messageIn,false);                                        
       
       if(pipe==1){                                      // registration request 
-        numT=cRegister((char*)messageIn);         // retour NBPERIF full sinon N° perif dans tableC (1-n)
+        numT=cRegister((char*)messageIn);               // retour NBPERIF full sinon N° perif dans tableC (1-n)
         if(numT<(NBPERIF)){                             // registration ok
           rdSta=numT;                                   // entry is valid -> rdSta >0              
-          if(diags){Serial.print(" reg as ");Serial.print(numT);}       // numT = 0-(NBPERIF-1) ; rdSta=numT
+          if(diags){Serial.print(" reg as ");Serial.print(numT);}         // numT = 0-(NBPERIF-1) ; rdSta=numT
         }
         else {if(diags){Serial.println(" full");}}                        // numT = NBPERIF   ; rdSta=0
       }
       if(pipe==2){                                                        // conc macAddr request
-        memcpy(tableC[NBPERIF].periMac,messageIn,RADIO_ADDR_LENGTH+1);      // peri addr in table last entry
+        memcpy(tableC[NBPERIF].periMac,messageIn,RADIO_ADDR_LENGTH+1);    // peri addr in table last entry
         memcpy(message,messageIn,RADIO_ADDR_LENGTH+1);
         memcpy(message+RADIO_ADDR_LENGTH+1,radio.locAddr,RADIO_ADDR_LENGTH);  // build message to perif with conc macAddr
         txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                        // end of transaction so auto ACK
+        // le numéro de périf est NBPERIF car son adresse mac (pour read) est copiée dans la dernière entrée de table
       }                                                                   // rdSta=0 so ... end of loop
   }
 
@@ -820,7 +821,7 @@ void echo()
     rdSta=AV_EMPTY; 
            
     while(rdSta==AV_EMPTY && (micros()-time_end)<ECHOTO){
-      rdSta=get_radio_message(messageIn,&pipe,&pldLength,NBPERIF);
+      rdSta=get_radio_message(messageIn,&pipe,&pldLength);
 
       if(rdSta>=0){Serial.print(" rcv ");Serial.print((char*)messageIn);}
       else if(rdSta<0 && rdSta!=AV_EMPTY){
@@ -897,20 +898,22 @@ char getch()
 }
 
 
-#endif // MACHINE == 'C'
+#endif // MACHINE_CONCENTRATEUR
 
 #if MACHINE_DET328
 
 int beginP()                        // manage registration ; output value >0 is numT else error with radio.powerOff()
-{
+{                                   // modifier la gestion powerOn/Off : 
+                                    // à l'entrée dans beginP le power est On ; ne pas faire de powerOff
+                                    // juste CE_LOW par sécurité au début de la tempo de répétition
   nbS++;
   int confSta=-1;
-  int8_t beginP_retryCnt=1; // 2; // ================================================= version sans retry 
+  int8_t beginP_retryCnt=2; // 1; // ================================================= version avec retry 
   while(beginP_retryCnt>0){                         // confsta>=1 or -5 or wait     
     beginP_retryCnt--;
     confSta=radio.pRegister(messageIn,&pldLength);  // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
                                                     // 0 na ; >=1 ok numT
-    radio.powerOff();                    
+    //radio.powerOff();                    
 
     if(diags){          
       unsigned long localTdiag=micros();
@@ -924,13 +927,17 @@ int beginP()                        // manage registration ; output value >0 is 
       importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
       delayBlk(32,0,125,4,1);           // 4 blinks
-      radio.powerOn(channel,*concSpeed,0);     // txRx or other running
+      //radio.powerOn(channel,*concSpeed,NBPERIF);     // txRx or other running
       beginP_retryCnt=0;
       //break;                            // ok -> out of while(beginP_retryCnt>0)
     }
 
     if(confSta==-5){
       radio.lastSta=0xFF;               // KO mode : radio missing or HS
+      beginP_retryCnt=0;
+      //break;                            // ko -> out of while(beginP_retryCnt>0)  
+    }
+    if(confSta<0){
       beginP_retryCnt=0;
       //break;                            // ko -> out of while(beginP_retryCnt>0)  
     }
@@ -946,9 +953,10 @@ int beginP()                        // manage registration ; output value >0 is 
     */
 
     if(beginP_retryCnt>0){
-      sleepNoPwr(0);                    
-      delayBlk(1,0,125,2,1);          // 2 blinks
-      radio.powerOn(channel,*concSpeed,0);}   
+      //sleepNoPwr(0);                // fait powerOff
+      delayBlk(1,0,125,2,1);          // 2 blinks = tempo retry
+      //radio.powerOn(channel,*concSpeed,NBPERIF);
+    }   
   }                                   // next attempt
 
   if(diags){
@@ -1087,7 +1095,7 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
   rdSta=AV_EMPTY;
   readTo=0;
   while((rdSta==AV_EMPTY) && (readTo>=0)){
-    rdSta=get_radio_message(messageIn,&pipe,&pldLength,NBPERIF);
+    rdSta=get_radio_message(messageIn,&pipe,&pldLength);
 
     readTo=to-(micros()-time_beg)/1000;}    
   if(readTo<0){rdSta=ER_RDYTO;}
