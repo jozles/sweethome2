@@ -1089,8 +1089,9 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
   while((rdSta==AV_EMPTY) && (readTo>=0)){
     rdSta=get_radio_message(messageIn,&pipe,&pldLength,NBPERIF);
 
-    readTo=to-(micros()-time_beg)/1000;}
+    readTo=to-(micros()-time_beg)/1000;}    
   if(readTo<0){rdSta=ER_RDYTO;}
+  // rdSta=AV_EMPTY ou 0:full ou >0:numPer ou <0:pipe_err,length_err,mac_addr_table_err
   radio.readStop();
   messageIn[pldLength]=0x00;
   time_end=micros();
@@ -1111,7 +1112,7 @@ int rxMessage(unsigned long to) // retour rdSta=ER_RDYTO TO ou sortie de availab
     strcat(diagMessR,bufCv);
     strcat(diagMessR,"uS");
   }
-  #endif // MACHINE=='C'
+  #endif // MACHINE_CONCENTRATEUR
   return rdSta;
 }
 

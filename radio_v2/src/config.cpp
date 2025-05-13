@@ -330,10 +330,10 @@ void configSave()
     eeprom.store((byte*)configRec,CONFIGRECLEN);
   trigwd(0);    
   dumpstr((char*)configRec,200);  
-  memset(configRec,0xff,200);
+  memset(configRec,0xff,CONFIGRECLEN);
   dumpstr((char*)configRec,200);
   trigwd(0);
-    if(eeprom.load(configRec,200)){Serial.println("true");}
+    if(eeprom.load(configRec,CONFIGRECLEN)){Serial.println("true");}
   dumpstr((char*)configRec,200);
   trigwd(0);
 }

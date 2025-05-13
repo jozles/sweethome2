@@ -1,7 +1,7 @@
 #include "radio_const.h"
 
 
-#if MACHINE_CONCENTRATEUR
+#ifdef MACHINE_CONCENTRATEUR
 
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper);
 
@@ -13,5 +13,10 @@ void tableCInit();
 int tableCLoad();
 int tableCSave();
 
+#endif // MACHINE_CONCENTRATEUR
 
-#endif // MACHINE=='C'
+#ifdef MACHINE_DET328
+
+int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength,int nbper);
+
+#endif // MACHINE_DET328
