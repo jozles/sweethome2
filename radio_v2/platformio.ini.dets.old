@@ -11,22 +11,19 @@
 ;[env: pro8MHzatmega328]
 ;[env:328p8m]
 [env:ATmega328P]
-;platform = platformio/atmelavr@3.3.0
 platform = atmelavr
 
 ;pro8MHzatmega328
 ;d:\data\arduino\board_dets328P
 ;board = uno
 board = ATmega328P
-board_hardware.oscillator = internal
 board_build.f_cpu = 8000000L
 framework = arduino
 monitor_port = COM4
 monitor_speed = 115200
 upload_port = COM4
+board_hardware.oscillator = internal
 upload_speed = 38400
-;115200
-upload_protocol = arduino
 
 ;build_type = debug
 build_flags = -DDETS -DPERIF -DMACHINE_DET328

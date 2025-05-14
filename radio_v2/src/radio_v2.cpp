@@ -937,10 +937,6 @@ int beginP()                        // manage registration ; output value >0 is 
       beginP_retryCnt=0;
       //break;                            // ko -> out of while(beginP_retryCnt>0)  
     }
-    if(confSta<0){
-      beginP_retryCnt=0;
-      //break;                            // ko -> out of while(beginP_retryCnt>0)  
-    }
 
     /*
     if(diags){
