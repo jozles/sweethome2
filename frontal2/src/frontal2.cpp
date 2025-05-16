@@ -2669,7 +2669,8 @@ void udpPeriServer()
       rip = (uint32_t) udp[uu]->remoteIP();
       memcpy(remote_IP,(char*)&rip+4,4);
       remote_Port_Udp = (uint16_t) udp[uu]->remotePort();
-      if(remote_IP[0]!=192 || remote_IP[1]!=168 || remote_IP[2]!=0 || (remote_IP[3]!=108 && remote_IP[3]!=31)){
+      if(remote_IP[0]!=192 || remote_IP[1]!=168 || remote_IP[2]!=0 || 
+        (remote_IP[3]!=108 && remote_IP[3]!=31 && remote_IP[3]!=109)){
         // ************ conc1 : 31 *** conc2 : 11 ************* DHCP/baux statiques
         udpError(udp[uu],"\nUDP_IP_KO IP/port:",udpPacketLen);
         }

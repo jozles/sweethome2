@@ -186,7 +186,7 @@
    1.8p modif analyse() '=' et ':' autorisés dans valeur '\' pris en compte et filtré (ne devrait pas ?) 
         ajout param 'power' -> résultat lecture CSE7766 
         format IPAddress pour messToServer (voir comments dans shlib2.h)
-   1.8q corrections testmail des périphériques, mail()
+   1.8q corrections testmail des périphériques, mail() ; ajout ip 109 pour autorisation UDP (frontal2)
 
 
    BUGS : 
