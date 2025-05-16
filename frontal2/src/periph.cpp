@@ -481,11 +481,11 @@ void configExport(char* bec)
     sprintf(bec+ll+pp*4,"%03u",(uint16_t)localIp[pp]);
     if(pp<3){*(bec+ll+(pp+1)*4-1)='.';}}ll+=15;
   *(bec+ll)=';';ll++;
-  sprintf(bec+ll,"%05u",(uint16_t)*perifPort);ll+=5;          // perifPort
+  sprintf(bec+ll,"%05u",(uint16_t)*perifPort);ll+=5;          // perifPort = server port pour perifs
   *(bec+ll)=';';ll++;
   //sprintf(bec+ll,"%05u",(uint16_t)*browserPort);ll+=5;      // browser !!!!!!!!!! modifier la cible de l'export !!!!!!!!!!
   //*(bec+ll)=';';ll++;
-  sprintf(bec+ll,"%05u",(uint16_t)*remotePort);ll+=5;         // remote
+  sprintf(bec+ll,"%05u",(uint16_t)*remotePort);ll+=5;         // remote port
   *(bec+ll)=';';ll++;
   sprintf(bec+ll,"%05u",(uint16_t)udpPort[0]);ll+=5;          // udp1
   *(bec+ll)=';';ll++;
@@ -558,7 +558,7 @@ void periExport(char* bec ,uint8_t concNb)
     value=(uint16_t)(*thOffset);
     sprintf(bec+ll,"%04u",value);ll+=4;                                           // thOffset
     *(bec+ll)=';';ll++;
-    *(bec+ll)=*concPeriParams+PMFNCVAL;ll+=1;                                          // provenance periParams (0=périf 1=saisie server)
+    *(bec+ll)=*concPeriParams+PMFNCVAL;ll+=1;                                     // provenance periParams (0=périf 1=saisie server)
     *(bec+ll)=';';ll++;
     memcpy(bec+ll,periRxAddr,RADIO_ADDR_LENGTH);                                  // perif Rx addr
     ll+=RADIO_ADDR_LENGTH;
