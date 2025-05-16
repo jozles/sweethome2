@@ -135,14 +135,17 @@ uint16_t getServerConfig()
     uint8_t cntpv=0;
     uint16_t temp=0;
 
-    while(cntpv<2 && a!='\0' && b<(message+rcvl)){a=*b++;if(a==';'){cntpv++;}}                // skip len+name+version
+    while(cntpv<2 && a!='\0' && b<(message+rcvl)){a=*b++;if(a==';'){cntpv++;}}   // skip len+name+version
     
-    for(uint8_t i=0;i<4;i++){temp=0;conv_atob(b,&temp);b+=4;serverIp[i]=temp;}           // serverIp  
-    temp=0;conv_atob(b,&temp);b+=6;*serverTcpPort=temp;                                  // server tcp Port
+    for(uint8_t i=0;i<4;i++){temp=0;conv_atob(b,&temp);b+=4;serverIp[i]=temp;}   // serverIp  
+    temp=0;conv_atob(b,&temp);b+=6;*serverTcpPort=temp;                          // server tcp Port pour perifs
+    b+=6;                                                                        // skip remote port
     if(!nextpv(b,&newb,6)){return 0;}b=newb;
-    temp=0;conv_atob(b,&temp);b+=6;*serverUdpPort=temp;                                  // server udp Port 
+    temp=0;conv_atob(b,&temp);b+=6;*serverUdpPort=temp;                          // server udp1 Port 
     temp=0;a=' ';while((a=*b++)!=';' && a!='\0' && b<(message+rcvl) && temp<LPWD){peripass[temp]=a;temp++;}  // peripass
-  
+
+    temp=0;conv_atob(b,&temp);b+=6;*serverUdpPort=temp;                          // server udp2 Port (ecrase udp1)
+
     packMac((byte*)concMac,b);b+=(MACADDRLENGTH*3-1+1);                          // concMac               
     for(uint8_t i=0;i<4;i++){temp=0;conv_atob(b,&temp);b+=4;concIp[i]=temp;}     // concIp  
     temp=0;conv_atob(b,&temp);b+=6;*concPort=temp;                               // concPort
@@ -161,18 +164,18 @@ void configCreate()       // forçage de valeurs pour initialisation carte
   *serverTcpPort=1787;
   *serverUdpPort=8885;                     
   memcpy(peripass,"17515A\0\0",8);
-  //memcpy(concMac,"\x72\x37\x68\x30\xFD\xFD",6);
+  
   memcpy(concMac,"\x74\x65\x73\x74\x79\x33",6);           // 7832 conc2 nrf   // 7933 conc3 test lora
   concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=109;//11;//concIp[3]=216; //108 conc2 nrf;//109 conc3 test lora
   *concPort=55559;                                        // 55558 conc2 nrf  // 55559 conc3 lora
   memcpy(concRx,"SHCO3",RADIO_ADDR_LENGTH);               // SHC02 conc2 nrf  // SHC03 conc3 lora
-  *concChannel=100;
+  *concChannel=90;                                        // 100 conc2 nrf    // 90 conc3 lora
   *concRfSpeed=0;
   *concNb=3;                                              // nb=2 conc2 nrf   // nb=3 conc3 lora
 
   memcpy(cfgCrc-8,"end_cfg\0",8);
   configSave();
-  Serial.println("/nconfigCreate done");
+  Serial.println("\nconfigCreate done");
 }
 
 #endif // MACHINE_CONCENTRATEUR
@@ -245,6 +248,7 @@ void configPrint()
 {
     uint16_t configLen;memcpy(&configLen,configRec+EEPRLENGTH,2);
     char configVers[3];memcpy(configVers,configRec+EEPRVERS,2);configVers[3]='\0';
+    Serial.print("configVers ");Serial.println(configVers);
     Serial.print("crc  ");dumpfield((char*)configRec,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
     char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
     Serial.print("Peri ");dumpstr((char*)periRxAddr,6);Serial.print("Conc ");dumpstr((char*)concAddr,6);

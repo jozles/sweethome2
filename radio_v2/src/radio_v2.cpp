@@ -304,6 +304,14 @@ void setup() {
   configPrint();
 
   radio.locAddr=periRxAddr;
+
+  /* ---- config pour conc 3 ----
+  memcpy(configVers,"02\0",3);
+  memcpy(concAddr,"SHCO3",RADIO_ADDR_LENGTH);*concChannel=90;
+  *concNb=3;*concSpeed=0;
+  configSave();
+  */
+  
   radio.ccAddr=concAddr;
   channel=*concChannel;
   //speed=*concSpeed;
@@ -390,7 +398,7 @@ void setup() {
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);
   
   //Serial.print(" PP=");Serial.print(PP);
-  Serial.print(" ");Serial.print(TXRX_MODE);Serial.print(" ");
+  Serial.print("+ ");Serial.print(TXRX_MODE);Serial.print(" ");
 
   pinMode(PLED,OUTPUT);
 #ifdef REDV1
@@ -431,9 +439,9 @@ blkCtl('b');
   t_on=millis();
   diags=diagSetup(t_on);
 
-  //configCreate();
+  configCreate();
 
-  configLoad();//concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=108;configSave();
+  configLoad();
 
 #if TXRX_MODE == 'U' 
     hostPort=*serverUdpPort;
@@ -779,7 +787,7 @@ blkCtl('g');
     default:break;
   }
   
-#endif // MACHINE == 'C'
+#endif // MACHINE_CONCENTRATEUR
 
 } /******************** loop end  *******************/
 
@@ -919,7 +927,7 @@ int beginP()                        // manage registration ; output value >0 is 
 
     if(diags){          
       unsigned long localTdiag=micros();
-      Serial.print("\nbeginP");
+      Serial.print("\nbeginP");Serial.print(beginP_retryCnt);Serial.print(' ');
       tdiag+=(micros()-localTdiag);}    // après pReg pour que la sortie n'interfère pas avec les tfr SPI
     else {Serial.println();}
     Serial.print("##");Serial.print(confSta);delay(1);                                                        
@@ -952,7 +960,7 @@ int beginP()                        // manage registration ; output value >0 is 
 
     if(beginP_retryCnt>0){
       //sleepNoPwr(0);                // fait powerOff
-      delayBlk(1,0,125,2,1);          // 2 blinks = tempo retry
+      //delayBlk(1,0,125,2,1);          // 2 blinks = tempo retry
       //radio.powerOn(channel,*concSpeed,NBPERIF);
     }   
   }                                   // next attempt

@@ -645,12 +645,13 @@ int exportData(uint8_t numT,char* mailData)                             // forma
       sb+=4;                                                       
       memcpy(message+sb,"_\0",2);                                    
       sb+=1;
-      memcpy(message+sb,perVoltsAd,4);                               // volts                              
+      memcpy(message+sb,perVoltsAd,4);                              // volts                              
       sb+=4;
       memcpy(message+sb,"_\0",2);                             
       sb+=1;
-     // memcpy(message+sb,perVersAd,LENVERSION);                      // VERSION
-      memcpy(message+sb,"2.9 ",LENVERSION);                      // VERSION provisoire pour tests et debug
+      if(numT!=1){memcpy(message+sb,perVersAd,LENVERSION);}         // VERSION perif
+      else {memcpy(message+sb,VERSION,LENVERSION);}                 // VERSION conc
+      //memcpy(message+sb,"2.9 ",LENVERSION);                       // VERSION provisoire pour tests et debug
       sb+=LENVERSION;
       memcpy(message+sb-1,perThModAd,1);                            // thermo model take place of 4th version char
       memcpy(message+sb,"_\0",2);                             
@@ -672,7 +673,7 @@ int exportData(uint8_t numT,char* mailData)                             // forma
       if(mailData!=nullptr){strcat(message,mailData);strcat(message,"_\0");sb+=(strlen(mailData)+1);}
 
       for(i=0;i<NBPULSE;i++){message[sb+i]='0';} //chexa[staPulse[i]];}
-      memcpy(message+sb+NBPULSE,"_\0",2);                               // clock pulse status          - 5
+      memcpy(message+sb+NBPULSE,"_\0",2);                           // clock pulse status          - 5
       sb+=NBPULSE+1; 
 
       memcpy(message+sb,MODEL,LENMODEL-1);*(message+sb+LENMODEL-1)=*concNb+48;
@@ -681,7 +682,7 @@ int exportData(uint8_t numT,char* mailData)                             // forma
 
       messageCnt++;
       if(messageCnt>99){messageCnt=0;}
-      sprintf(message+sb,"%02d",messageCnt);                 // N° ordre du message (00-99)
+      sprintf(message+sb,"%02d",messageCnt);                        // N° ordre du message (00-99)
       memcpy(message+sb+2,"_\0",2);
       sb+=3;
 
@@ -733,7 +734,7 @@ void exportDataMail(const char* messName)
 {
   char concName[LENMODEL+1]={'C','O','N','C','_','\0','\0'};
   concName[LENMODEL-1]=*concNb+48;
-  uint8_t testPeri=1;
+  uint8_t testPeri=1;                                             // peri=1 -> conc
   tableC[testPeri].periBufLength=MAX_PAYLOAD_LENGTH;
   memset(tableC[testPeri].periBuf,' ',MAX_PAYLOAD_LENGTH-1);
   *(tableC[testPeri].periBuf+MAX_PAYLOAD_LENGTH-1)='\0';
