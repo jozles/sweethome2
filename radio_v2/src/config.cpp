@@ -154,24 +154,25 @@ uint16_t getServerConfig()
     return rcvl;
 }
 
-void configCreate()       // valeurs pour concentrateur de test 
+void configCreate()       // forçage de valeurs pour initialisation carte
 {
   /////// !!!!!!!!!!! CONC2 !!!!!!!!!!! //////////
   serverIp[0]=192;serverIp[1]=168;serverIp[2]=0;serverIp[3]=36;
   *serverTcpPort=1787;
-  *serverUdpPort=8885;        // CONC1 8886
+  *serverUdpPort=8885;                     
   memcpy(peripass,"17515A\0\0",8);
   //memcpy(concMac,"\x72\x37\x68\x30\xFD\xFD",6);
-  memcpy(concMac,"\x74\x65\x73\x74\x78\x32",6);            
-  concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=108;//11;//concIp[3]=216;
-  *concPort=55558;
-  memcpy(concRx,"SHCO2",RADIO_ADDR_LENGTH);
+  memcpy(concMac,"\x74\x65\x73\x74\x79\x33",6);           // 7832 conc2 nrf   // 7933 conc3 test lora
+  concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=109;//11;//concIp[3]=216; //108 conc2 nrf;//109 conc3 test lora
+  *concPort=55559;                                        // 55558 conc2 nrf  // 55559 conc3 lora
+  memcpy(concRx,"SHCO3",RADIO_ADDR_LENGTH);               // SHC02 conc2 nrf  // SHC03 conc3 lora
   *concChannel=100;
   *concRfSpeed=0;
-  *concNb=2;
+  *concNb=3;                                              // nb=2 conc2 nrf   // nb=3 conc3 lora
 
   memcpy(cfgCrc-8,"end_cfg\0",8);
   configSave();
+  Serial.println("/nconfigCreate done");
 }
 
 #endif // MACHINE_CONCENTRATEUR
@@ -319,7 +320,7 @@ bool configLoad()
       dumpstr((char*)configRec,200);
       Serial.println("**EEPROM KO**");ledblink(BCODESDCARDKO,PULSEBLINK);} // ledblink bloque
     dumpstr((char*)configRec,200);
-    Serial.println(" eeprom ok");
+    Serial.println(" eeprom OK");
     return 1;    
 }
 

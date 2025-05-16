@@ -250,9 +250,11 @@ void userResetSetup(byte* serverIp,const char* mailMessage)
     Serial.print(" localIP=");
   }
   */
-  Serial.print(" host:");
+  Serial.print(" host :");
   for(uint8_t i=0;i<4;i++){host[i]=serverIp[i];localIp[i]=Ethernet.localIP()[i];}
   Serial.print((IPAddress)host);Serial.print("/");Serial.println(hostPort);
+  Serial.print(" local:");
+  Serial.print((IPAddress)localIp);Serial.print("/");Serial.println();
 
   WDTRIG //trigwd(0);
 

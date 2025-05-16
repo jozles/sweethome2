@@ -431,6 +431,8 @@ blkCtl('b');
   t_on=millis();
   diags=diagSetup(t_on);
 
+  //configCreate();
+
   configLoad();//concIp[0]=192;concIp[1]=168;concIp[2]=0;concIp[3]=108;configSave();
 
 #if TXRX_MODE == 'U' 
