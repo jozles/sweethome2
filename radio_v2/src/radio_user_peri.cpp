@@ -34,6 +34,8 @@ extern float   temp;
 extern float   deltaTemp;
 extern bool    thSta;
 extern float   period;
+extern uint32_t absTime;
+extern unsigned long absMillis;
 extern uint16_t userData[2];
 uint16_t       analOutput=0;
 uint16_t       prevAnalOutput=0;
@@ -139,7 +141,10 @@ void importData(byte* data,uint8_t dataLength)
     else Serial.print(" decap MAX_PAYLOAD_LENGTH ");
     if(prevAnalOutput!=analOutput){radUpdate(analOutput);prevAnalOutput=analOutput;} 
   }
-  else{                                                                           // version > 1.c
+  /*
+  else if(memcmp(VERSION,"2.c",3)<=0){                                                                              // version > 1.c
+    // rrrrrtttttpppphhhhhhhhHHHHHHHHAACC  rrrrr refresh per ; ttttt temp per ; 
+    // pppp pitch temp*100 ; hh... HH... userData 1/2 ; AA anal ouitput ; CC periCfg
     perRefr=0;conv_atob((char*)(data+RADIO_ADDR_LENGTH+1),&perRefr,5);              // per refresh server
     aw_min=perRefr/period;
     srt=1+5;
@@ -164,7 +169,42 @@ void importData(byte* data,uint8_t dataLength)
     Serial.print('-');Serial.print(prevAnalOutput);Serial.print(" cfg:");Serial.println(periCfg,HEX);delay(5);
     
     if(prevAnalOutput!=analOutput && (periCfg&PERI_RAD)!=0){radUpdate(analOutput);prevAnalOutput=analOutput;}                  
-  
+  }
+  */
+  else{
+    // rrrrttttaaappphhhhhhhhHHHHHHHHAACC  rrrr refresh per ; tttt temp per ;
+    // aaa temps absolu {(0-7F)-20 5F=96 96*96*96 mS maxi } ; ppp pitch_temp*100 ;
+    // hh... HH... userData 1/2 ; AA anal output ; CC periCfg
+    perRefr=0;conv_atob((char*)(data+RADIO_ADDR_LENGTH+1),&perRefr,4);              // per refresh server
+    aw_min=perRefr/period;
+    srt=1+4;
+    conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&perTemp,5);                      // per check température
+    aw_ok=perTemp/period;
+    srt+=4;
+    absTime=0;absMillis=millis();                                                   // temp absolu pour cellules
+    Serial.println();
+    for(uint8_t i=0;i<3;i++){Serial.print((char)*(data+RADIO_ADDR_LENGTH+srt+i));absTime=absTime<<6;Serial.print('!');Serial.print(absTime);absTime+=*(data+RADIO_ADDR_LENGTH+srt+i)-0x20;}
+    Serial.println();
+    srt+=3;
+    uint16_t pitch=0;
+    conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&pitch,3);                        // pitch mesure
+    deltaTemp=((float) pitch)/100;
+    srt+=3;
+    userData[0]=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4);                     // forme 'hhhhhhhh' //Serial.println(userData[0]);
+    //Serial.print(" >> ");Serial.println(packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4));
+    srt+=4;
+    userData[1]=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4);                     //Serial.println(userData[1]);
+    //Serial.print(" >> ");Serial.println(packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4));
+    srt+=4;
+    analOutput=0;analOutput=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),2);
+    srt+=2; 
+    periCfg=(uint8_t)packGet((char*)(data+RADIO_ADDR_LENGTH+srt),2);
+
+    Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.print(analOutput);
+    Serial.print('-');Serial.print(prevAnalOutput);Serial.print(" cfg:");Serial.print(periCfg,HEX);
+    Serial.print(" abs:");Serial.println(absTime);delay(5);
+    
+    if(prevAnalOutput!=analOutput && (periCfg&PERI_RAD)!=0){radUpdate(analOutput);prevAnalOutput=analOutput;}                  
   }
 
     if(diags){
@@ -278,4 +318,4 @@ void radUpdate(uint16_t value)
 
 }
 
-#endif // MACHINE == 'P'
+#endif // MACHINE_DET328

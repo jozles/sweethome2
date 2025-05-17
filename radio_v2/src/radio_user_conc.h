@@ -11,6 +11,7 @@ int  importData();
 void userResetSetup(byte* serverIp,const char* uRSMessage);
 void userResetSetup(byte* serverIp);
 void blkCtl(uint8_t where);
+void fillMess(byte* message);
 
 #endif // MACHINE == 'C'
 

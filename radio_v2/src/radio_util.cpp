@@ -40,22 +40,23 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
   return sta;       // returns 0:registration_req <0:err >0:numPer_ok
 }
 
-uint8_t cRegister(char* message)      // search free line or existing macAddr
+uint8_t cRegister(char* message,uint8_t pldL)      // search free line or existing macAddr
 {                                     // retour NBPERIF -> full else numP
-
           uint8_t i,freeLine=0;
           bool exist=false;
 
           for(i=1;i<NBPERIF;i++){
-            if(memcmp(tableC[i].periMac,message,RADIO_ADDR_LENGTH)==0){exist=true;break;}   // already exist at i
+            if(memcmp(tableC[i].periMac,message,RADIO_ADDR_LENGTH)==0){exist=true;break;} // already exist at i
             else if(freeLine==0 && tableC[i].periMac[0]=='0'){freeLine=i;}                // store free line nb
           }
 
           if(!exist && freeLine!=0){
-            i=freeLine;                                                               // i = free line
+            i=freeLine;                                                                   // i = free line
             exist=true;
-            memcpy(tableC[i].periMac,message,RADIO_ADDR_LENGTH);                        // record macAddr
-            tableC[i].periMac[RADIO_ADDR_LENGTH]=i+48;                                  // add numT as 6th char
+            memcpy(tableC[i].periBuf,message,pldL);                                       // record message
+            memcpy(tableC[i].periMac,message,RADIO_ADDR_LENGTH);                          // record mac
+            tableC[i].periMac[RADIO_ADDR_LENGTH]=i+48;                                    // add numT as 6th char
+            tableC[i].periBufLength=pldL;                                                 // record length
           }
 
           if(exist){

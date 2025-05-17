@@ -12,19 +12,23 @@
 platform = atmelsam
 board = due
 framework = arduino
-monitor_port = COM6
+monitor_port = COM11
 monitor_speed = 115200
 
-upload_port = COM6
+upload_port = COM11
 ;upload_protocol = jlink
-debug_tool = jlink
+;debug_tool = jlink
 
-build_flags = -DDUE -DREDV1
+build_flags = -DDUE -DREDV1 -DMACHINE_CONCENTRATEUR
 
 LIB_EXTRA_DIRS = 
  D:/data/arduino/libraries/shlib2/
- D:/data/arduino/libraries/ethernet/
+ D:/data/arduino/Ethernetx/ethernet2/
  D:/data/arduino/libraries/pgmStrToRAM/
  D:/data/arduino/libraries/SdFat/
  D:/data/arduino/libraries/DueFlashStorage/
+ D:/data/arduino/libraries/nrf/
+ D:/data/arduino/libraries/LoRa/
+ D:/data/arduino/libraries/Radio/
+
 

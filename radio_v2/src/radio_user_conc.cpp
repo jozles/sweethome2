@@ -801,6 +801,20 @@ void exportDataMail(const char* messName,uint8_t maxRetry)    // wait for server
   }
 }
 
+void fillMess(byte* message)
+{
+    // rrrrttttaaappphhhhhhhhHHHHHHHHAACC  rrrr refresh per ; tttt temp per ;
+    // aaa temps absolu {(0-7F)-20 5F=96 96*96*96 mS maxi } ; ppp pitch_temp*100 ;
+    // hh... HH... userData 1/2 ; AA anal output ; CC periCfg
+    memcpy(message+RADIO_ADDR_LENGTH+1,message+RADIO_ADDR_LENGTH+2,4);
+    memcpy(message+RADIO_ADDR_LENGTH+1+4,message+RADIO_ADDR_LENGTH+2+4+1,4);
+    uint32_t abstime=millis();
+    abstime&=ABSTIME;*(message+RADIO_ADDR_LENGTH+1+8)=(byte)((abstime>>(ABSTIME_STEP*2))+0x20);
+    abstime&=ABSTIME>>ABSTIME_STEP;*(message+RADIO_ADDR_LENGTH+1+9)=(byte)((abstime>>ABSTIME_STEP)+0x20);
+    abstime&=ABSTIME>>(ABSTIME_STEP*2);*(message+RADIO_ADDR_LENGTH+1+10)=(byte)(abstime+0x20);
+    memcpy(message+RADIO_ADDR_LENGTH+1+11,message+RADIO_ADDR_LENGTH+2+4+1+4+1,3);
+}
+
 
 #endif // DETS
-#endif //  MACHINE == 'C'
+#endif // MACHINE_CONCENTRATEUR
