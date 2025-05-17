@@ -700,7 +700,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     int periMess=-1;
     int cnt=0;
         
-    if(diags){Serial.print(bufServer);Serial.print(' ');}
+    if(diags){Serial.println(bufServer);}
     else{Serial.print(tableC[numT].numPeri);Serial.print(' ');Serial.print(numT);Serial.print(' ');}
     
     #define MAXRST 2      // nombre de redémarrages ethernet si pas de connexion
