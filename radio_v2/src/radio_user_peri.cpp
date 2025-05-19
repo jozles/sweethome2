@@ -34,8 +34,8 @@ extern float   temp;
 extern float   deltaTemp;
 extern bool    thSta;
 extern float   period;
-extern uint32_t absTime;
-extern unsigned long absMillis;
+extern int32_t absTime;
+extern int32_t absMillis;
 extern uint16_t userData[2];
 uint16_t       analOutput=0;
 uint16_t       prevAnalOutput=0;
@@ -181,7 +181,7 @@ void importData(byte* data,uint8_t dataLength)
     conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&perTemp,5);                      // per check température
     aw_ok=perTemp/period;
     srt+=4;
-    absTime=0;absMillis=millis();                                                   // temp absolu pour cellules
+    absTime=0;absMillis=(micros()-t_on)*1000;                                       // temp absolu pour cellules
     Serial.println();
     for(uint8_t i=0;i<3;i++){Serial.print((char)*(data+RADIO_ADDR_LENGTH+srt+i));absTime=absTime<<6;Serial.print('!');Serial.print(absTime);absTime+=*(data+RADIO_ADDR_LENGTH+srt+i)-0x20;}
     Serial.println();

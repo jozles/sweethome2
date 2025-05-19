@@ -207,8 +207,9 @@ float     timer1;
 bool      timer1Ovf;
 bool      extTimer;
 float     period;
-uint32_t  absTime=0;
-unsigned long absMillis;
+int32_t   absTime=0;
+int32_t   absMillis=0;
+int32_t   periodCnt=0; 
 
 #define PRESCALER_RATIO 256           // prescaler ratio clock timer1 clock
 #define TCCR1B_PRESCALER_MASK 0xF8    // prescaler bit mask in TCCR1B
@@ -243,6 +244,7 @@ void int_ISR()
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(2);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);}
+void waitCell();
 #endif // MACHINE_DET328
 
 void ini_t_on();
@@ -488,6 +490,11 @@ void loop() {
 
 #if MACHINE_DET328
 
+  if(lowPower){lethalSleep();}
+
+  ini_t_on();
+  periodCnt++;
+
   if(diags){  
     t_on4=micros();
     Serial.print("$ ");
@@ -504,9 +511,7 @@ void loop() {
     tdiag+=micros()-t_on4+1000;
     Serial.print(tdiag);Serial.println(") $");
     delay(1);
-  }
-  
-  if(lowPower){lethalSleep();}            
+  }            
 
   /* timing to usefull awake */
   while(((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0))){
@@ -518,7 +523,6 @@ void loop() {
   }
 
   /* usefull awake or retry */
-  ini_t_on();
   digitalWrite(PLED,HIGH);
   getVolts();                                 // 1.2 mS include notDS18X20 thermo reading and low voltage check (not blocking)                                   
   digitalWrite(PLED,LOW);
@@ -641,6 +645,9 @@ void loop() {
   }
 
   ledblk(TBLK,3000,IBLK,1);
+  if((millis()&0x1ff)==0){
+    #define MARKER A11
+    pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);}
 
   if((millis()-lastUdpCall)>UDPREF && exportCnt>=3){//CONCTO*perConc)){
     Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print(UDPREF/1000); //(CONCTO*perConc)/1000);
@@ -929,6 +936,7 @@ int beginP(uint8_t pldL)                        // manage registration ; output 
   pldLength=pldL;
   while(beginP_retryCnt>0){                         // confsta>=1 or -5 or wait     
     beginP_retryCnt--;
+    waitCell();
     confSta=radio.pRegister(messageIn,&pldLength);  // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
                                                     // 0 na ; >=1 ok numT
     //radio.powerOff();                    
@@ -1030,15 +1038,29 @@ void echo()
   Serial.println("stop echo");delay(1);
 }
 
-void waitCell()
-{
-    if(numT!=0){                                        // attente cellule temporelle
-      unsigned long absBeg=absMillis-absTime;
-      unsigned long absDelay=numT*period*1000+10+absBeg-millis();
-      delay(absDelay);
-      Serial.print("numT");Serial.print(numT);Serial.print(" per:");
-      Serial.print(period*1000);Serial.print(" absDly:");Serial.println(millis()-absBeg);}
-}
+void waitCell()                             // attente cellule temporelle
+{  
+    int32_t deltaTBeg=0;
+    uint32_t tcur=0;
+    uint32_t tcell=0;
+   
+      // calcul tcur = temps écoulé entre premier début de bloc cellulaire et maintenant
+      if(absTime>absMillis){deltaTBeg=absTime-absMillis;}
+      else{deltaTBeg=-(absMillis-absTime);}
+      tcur=(periodCnt*period*1000)+deltaTBeg+(micros()-t_on)/1000;
+      periodCnt=0;
+      // calcul tcell = temps écoulé entre premier et dernier début de bloc cellulaire 
+      tcell=((tcur>>ABSTIMEPOWER)*ABSTIME)+(CELLDUR*numT); //=tcur/ABSTIME*ABSTIME;
+      if(tcell<tcur){tcell+=ABSTIME;}
+
+      Serial.print("wait:");Serial.println(tcell-tcur);
+
+      #define MARKER 5
+      pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
+
+      //delay(tcell-tcur);
+
+    }
 
 int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] chargé avec au moins adresseMac et version
 {                       // pour que le concentrateur renvoie le bon format de données

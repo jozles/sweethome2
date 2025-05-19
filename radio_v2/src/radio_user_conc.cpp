@@ -808,10 +808,23 @@ void fillMess(byte* message)
     // hh... HH... userData 1/2 ; AA anal output ; CC periCfg
     memcpy(message+RADIO_ADDR_LENGTH+1,message+RADIO_ADDR_LENGTH+2,4);
     memcpy(message+RADIO_ADDR_LENGTH+1+4,message+RADIO_ADDR_LENGTH+2+4+1,4);
+    
+    byte q;    
     uint32_t abstime=millis();
-    abstime&=ABSTIME;*(message+RADIO_ADDR_LENGTH+1+8)=(byte)((abstime>>(ABSTIME_STEP*2))+0x20);
-    abstime&=ABSTIME>>ABSTIME_STEP;*(message+RADIO_ADDR_LENGTH+1+9)=(byte)((abstime>>ABSTIME_STEP)+0x20);
-    abstime&=ABSTIME>>(ABSTIME_STEP*2);*(message+RADIO_ADDR_LENGTH+1+10)=(byte)(abstime+0x20);
+
+  Serial.print(' ');Serial.print(abstime,HEX);
+    abstime=abstime&(ABSTIME-1);
+  Serial.print(" absTime:");Serial.print(abstime,HEX);
+    q=(byte)(((abstime>>(ABSTIME_STEP*2))&ABSMASK)+0x20);
+    *(message+RADIO_ADDR_LENGTH+1+8)=q;
+    Serial.print(":");Serial.print(q,HEX);
+    q=(byte)(((abstime>>ABSTIME_STEP)&ABSMASK)+0x20);
+    *(message+RADIO_ADDR_LENGTH+1+9)=q;
+  Serial.print(":");Serial.print(q,HEX);
+    q=(byte)((abstime&ABSMASK)+0x20);  
+    *(message+RADIO_ADDR_LENGTH+1+10)=q;
+  Serial.print(":");Serial.println(q,HEX);
+    
     memcpy(message+RADIO_ADDR_LENGTH+1+11,message+RADIO_ADDR_LENGTH+2+4+1+4+1,3);
 }
 
