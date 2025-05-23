@@ -586,7 +586,7 @@ void loop() {
 
     waitCell();
     t_on2=micros();                                               // message build ... send   
-    radio.powerOn(channel,*concSpeed,NBPERIF);                    // si waitCell rallonge
+    radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR);                    // si waitCell rallonge
     trSta=0;
     rdSta=txRxMessage(outLength);
     t_on21=micros();
