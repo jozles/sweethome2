@@ -248,7 +248,7 @@ void configPrint()
 {
     uint16_t configLen;memcpy(&configLen,configRec+EEPRLENGTH,2);
     Serial.print("crc  ");dumpfield((char*)configRec,4);Serial.print(" len ");Serial.print(configLen);
-    Serial.print(" eepromVers ");Serial.print((char)(configRec+EEPRVERS));Serial.println((char)(configRec+EEPRVERS+1));
+    Serial.print(" eepromVers ");Serial.print((char)*(configRec+EEPRVERS));Serial.println((char)*(configRec+EEPRVERS+1));
     char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
     Serial.print("Peri ");dumpstr((char*)periRxAddr,6);Serial.print("Conc ");dumpstr((char*)concAddr,6);
     if(memcmp(configVers,"01",2)!=0){
