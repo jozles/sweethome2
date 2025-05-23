@@ -82,7 +82,6 @@ int     rdSta;                            // return status read() / available()
 int     trSta;                            // return status write() / transmitting()
 uint8_t pipe;
 uint8_t pldLength;
-bool    beginP_done;                      // au retour de txRxMessage indique que importData est déjà fait
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
@@ -229,9 +228,8 @@ bool  thSta=true;                     // temp validity
 char  thermo[]={THERMO};              // thermo name text
 char  thN;                            // thermo code for version
 
-void sleepNoPwr(uint8_t durat);
 void configPrint();
-int  beginP();
+int  beginP(uint8_t pldL);
 void echo();
 void hardwarePwrUp();
 int  txRxMessage(uint8_t pldL);
@@ -242,9 +240,25 @@ void int_ISR()
   //Serial.println("int_ISR");
 }
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(2);}
+void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.print(rdSta);}
 void diagT(char* texte,int duree);
-void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.println("°C ");delay(4);}
+void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.print("°C ");delay(4);}
 void waitCell();
+void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
+void getPeriod(){
+  Serial.print("period ");delay(1);
+  unsigned long t_beg;
+  unsigned long t_end;
+  delayBlk(500,0,0,1,1);
+  while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
+  t_beg=micros();
+  delayBlk(500,0,0,1,1);
+  while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
+  t_end=micros();
+  period=(t_end-t_beg);period=period/1000000;
+  delayBlk(500,0,0,1,1);
+  Serial.print(period*1000);Serial.print("ms ");
+}
 #endif // MACHINE_DET328
 
 void ini_t_on();
@@ -309,7 +323,7 @@ void setup() {
 
   radio.locAddr=periRxAddr;
 
-  /* ---- config pour conc 3 ----
+  /*// ---- config pour conc 3 ----
   memcpy(configVers,"02\0",3);
   memcpy(concAddr,"SHCO3",RADIO_ADDR_LENGTH);*concChannel=90;
   *concNb=3;*concSpeed=0;
@@ -320,7 +334,6 @@ void setup() {
   channel=*concChannel;
   //speed=*concSpeed;
 
-  /* external timer calibration sequence */
   t_on=millis();
   hardwarePwrUp();
   
@@ -353,18 +366,7 @@ void setup() {
   delayBlk(500,0,0,1,1);                  // 1 blink 500mS
   sleepNoPwr(0);                          // wait for interrupt from external timer to reach beginning of period
 
-  t_on=millis();
-  delayBlk(500,0,0,1,1);                  // 1 blink 500mS - external timer calibration begin (100mS blink)
-
-  attachInterrupt(0,int_ISR,ISREDGE);     // external timer interrupt
-  EIFR=bit(INTF0);                        // clr flag
-  while(!extTimer){delay(1);}             // évite le blocage à la fin ... ???  
-  detachInterrupt(0);
-  
-  period=(float)(millis()-t_on)/1000;
-  delayBlk(500,0,0,1,1);                  // 1 blink 500mS - external timer calibration end
-
-  if(diags){Serial.print("per ");Serial.print(period);Serial.print("sec ");} // external timer period
+  getPeriod();
 
   getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
 
@@ -375,10 +377,12 @@ void setup() {
 
   userResetSetup();
 
+  Serial.println();
+
 //diagT("sleepNoPower à suivre",10);
 //sleepNoPwr(T8000);
 
-#endif // MACHINE == 'P'
+#endif // MACHINE_DET328
 
 #if MACHINE_CONCENTRATEUR
 
@@ -493,7 +497,6 @@ void loop() {
   if(lowPower){lethalSleep();}
 
   ini_t_on();
-  periodCnt++;
 
   if(diags){  
     t_on4=micros();
@@ -518,8 +521,14 @@ void loop() {
     awakeCnt--;
     awakeMinCnt--;
     sleepNoPwr(0);
-    if(diags){Serial.print("+");delayMicroseconds(200);}
     nbL++;
+    periodCnt++;
+    if(diags){
+      Serial.print("+");delayMicroseconds(200);
+      if(periodCnt==1 && (nbS&0xf)==0){            // update period
+        Serial.println();Serial.print(period*1000);
+        getPeriod();periodCnt+=2;}
+    }
   }
 
   /* usefull awake or retry */
@@ -568,15 +577,16 @@ void loop() {
     message[outLength]='\0';
 
     if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR,PULSEBLINK);}
-    if(diags){Serial.print(" (");Serial.print(outLength);Serial.print(") -> ");Serial.println((char*)message);}
+    if(diags){Serial.print("\n (");Serial.print(outLength);Serial.print(")");Serial.print((char*)message);}delay(5);
     
     /* One transaction is tx+rx ; if both ok reset counters else retry management*/  
 
     rdSta=-1;
     //nbS++;
 
+    waitCell();
     t_on2=micros();                                               // message build ... send   
-    radio.powerOn(channel,*concSpeed,NBPERIF);
+    radio.powerOn(channel,*concSpeed,NBPERIF);                    // si waitCell rallonge
     trSta=0;
     rdSta=txRxMessage(outLength);
     t_on21=micros();
@@ -584,17 +594,18 @@ void loop() {
     if(rdSta>=0){                                                 // no error
       
       /* echo request ? (address field is 0x5555555555) */
-      if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){prtCom(" ok");echo();}
-      else if(!beginP_done){                                      // si begin_P a été effectué dans txRxMessage importData aussi
-        prtCom(" ok");                                      
+      if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){prtCom(" ok",rdSta);echo();}
+      else {
+        prtCom(" ok",rdSta);                                      
         importData(messageIn,pldLength);                          // user data
       }
         
-      /* tx+rx ok -> every counters reset */
+      /* tx+rx ok -> reset every counters */
       forceSend=false;
       retryCnt=0;
       awakeCnt=aw_ok;
-      awakeMinCnt=aw_min;            
+      awakeMinCnt=aw_min;
+
     }
     
     radio.powerOff();
@@ -603,7 +614,7 @@ void loop() {
     if(trSta<0 || rdSta<0){                                           // error
     
       nbK++;
-      prtCom(" ko");
+      prtCom(" ko",rdSta);
       forceSend=true;
       showErr(true);
       trSta=0;rdSta=0;
@@ -630,7 +641,7 @@ void loop() {
     awakeCnt=1;
     awakeMinCnt=1;            
   }
-#endif // MACHINE == 'P'
+#endif // MACHINE_DET328
 
 #if MACHINE_CONCENTRATEUR
 
@@ -936,50 +947,26 @@ int beginP(uint8_t pldL)                        // manage registration ; output 
   pldLength=pldL;
   while(beginP_retryCnt>0){                         // confsta>=1 or -5 or wait     
     beginP_retryCnt--;
-    waitCell();
     confSta=radio.pRegister(messageIn,&pldLength);  // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
-                                                    // 0 na ; >=1 ok numT
-    //radio.powerOff();                    
-
+                                                    // 0 na ; >=1 ok numT                 
     if(diags){          
       unsigned long localTdiag=micros();
-      Serial.print("\nbeginP");Serial.print(beginP_retryCnt);Serial.print(' ');
+      Serial.print("beginP");Serial.print(beginP_retryCnt);Serial.print(' ');
       tdiag+=(micros()-localTdiag);}    // après pReg pour que la sortie n'interfère pas avec les tfr SPI
     else {Serial.println();}
     Serial.print("##");Serial.print(confSta);delay(1);                                                        
     
     if(confSta>0){
-      prtCom(" ok");
-      importData(messageIn,pldLength);  // user data available
       awakeMinCnt=-1;                   // force data upload
       delayBlk(32,0,125,4,1);           // 4 blinks
-      //radio.powerOn(channel,*concSpeed,NBPERIF);     // txRx or other running
-      beginP_retryCnt=0;
-      //break;                            // ok -> out of while(beginP_retryCnt>0)
+      beginP_retryCnt=0;                // ok ... no retry
     }
 
     if(confSta==-5){
       radio.lastSta=0xFF;               // KO mode : radio missing or HS
-      beginP_retryCnt=0;
-      //break;                            // ko -> out of while(beginP_retryCnt>0)  
+      beginP_retryCnt=0;                // ko ... no retry
     }
-
-    /*
-    if(diags){
-      unsigned long localTdiag=micros();    
-      if(confSta==-4){Serial.print(" no answer");}
-      else{Serial.print(" error");}
-      delay(2);
-      tdiag+=(micros()-localTdiag);
-    }
-    */
-
-    if(beginP_retryCnt>0){
-      //sleepNoPwr(0);                // fait powerOff
-      //delayBlk(1,0,125,2,1);          // 2 blinks = tempo retry
-      //radio.powerOn(channel,*concSpeed,NBPERIF);
-    }   
-  }                                   // next attempt
+  }                                     // next attempt
 
   if(diags){
     unsigned long localTdiag=micros();    
@@ -1043,48 +1030,52 @@ void waitCell()                             // attente cellule temporelle
     int32_t deltaTBeg=0;
     uint32_t tcur=0;
     uint32_t tcell=0;
-   
-      // calcul tcur = temps écoulé entre premier début de bloc cellulaire et maintenant
+    int32_t dly=tcell-tcur;
+
+    if(numT!=0 || (absTime!=0 && absMillis!=0)){
+    // calcul tcur = temps écoulé entre premier début de bloc cellulaire et maintenant
       if(absTime>absMillis){deltaTBeg=absTime-absMillis;}
       else{deltaTBeg=-(absMillis-absTime);}
       tcur=(periodCnt*period*1000)+deltaTBeg+(micros()-t_on)/1000;
       periodCnt=0;
       // calcul tcell = temps écoulé entre premier et dernier début de bloc cellulaire 
-      tcell=((tcur>>ABSTIMEPOWER)*ABSTIME)+(CELLDUR*numT); //=tcur/ABSTIME*ABSTIME;
+#define TCELLOFFSET POWONDLY+30
+      tcell=((tcur/ABSTIME)*ABSTIME)+(CELLDUR*numT)-TCELLOFFSET; //=tcur/ABSTIME*ABSTIME;
       if(tcell<tcur){tcell+=ABSTIME;}
 
-      Serial.print("wait:");Serial.println(tcell-tcur);
-
-      #define MARKER 5
-      pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
-
+      dly=tcell-tcur;
+      sleepDly(dly);
       //delay(tcell-tcur);
-
     }
+
+      if(diags){
+        pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
+        Serial.print(" absMillis:");Serial.print(absMillis);Serial.print(" absTime:");Serial.print(absTime);
+        Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);Serial.print(" tcur:");Serial.print(tcur);
+        Serial.print(" tcell:");Serial.print(tcell);
+        Serial.print(" wait:");Serial.print(dly);Serial.print('/');Serial.println(tcell-tcur);
+        delay(2);
+      }
+}
 
 int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] chargé avec au moins adresseMac et version
 {                       // pour que le concentrateur renvoie le bon format de données
-  beginP_done=false;
+
   if(numT==0){
     rdSta=beginP(pldL);
-    if(diags){
-      unsigned long localTdiag=micros();
-      Serial.print("rdSta = ");Serial.print((int)rdSta);
-      Serial.print(" message = ");Serial.println((char*)messageIn);delay(5);
-      tdiag+=(micros()-localTdiag);
-    }
-    if(rdSta<=0){rdSta=-2;return rdSta;}                // numT still 0 ; beginP n'a pas fonctionné
-    numT=rdSta;
-    beginP_done=true;
+    if(rdSta<=0){rdSta=-2;}                // numT still 0 ; beginP n'a pas fonctionné
+    else{
+      numT=rdSta;
+      message[RADIO_ADDR_LENGTH]=numT+48;
+      memcpy(messageIn,message,pldLength);}
+      return rdSta;
   }
+
   message[RADIO_ADDR_LENGTH]=numT+48;
   memcpy(messageIn,message,pldLength);
-
-  if(!beginP_done){
-    nbS++;
-    waitCell();
-    return radio.txRx(messageIn,&pldLength);}
-  else return rdSta;
+  nbS++;
+  rdSta=radio.txRx(messageIn,&pldLength);
+  return rdSta;
 }
 
 #endif // MACHINE_DET328
@@ -1275,34 +1266,6 @@ bool checkTemp()
   return false;
 }
 
-void sleepNoPwr(uint8_t durat)
-{
-  userHardPowerDown();
-  radio.powerOff();
-
-  bitClear(DDR_PP,BIT_PP);                //pinMode(PP,INPUT);
-  bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
-
-  sleepPwrDown(durat);
-  hardwarePwrUp();
-}
-
-void hardwarePwrUp()
-{ 
-  PP4_INIT
-  pinMode(REED,INPUT_PULLUP);
-}
-
-#define DLYSTP (int)32
-void sleepDly(int dly)                    // should be (nx32)
-{
-  if(diags){delay(1);}                    // serial
-
-  dly=dly/DLYSTP*DLYSTP;
-  while(dly>=0){
-    sleepNoPwr(T32);
-    dly-=DLYSTP;}
-}
 
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
 /*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 
@@ -1351,7 +1314,7 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,unsigned long dly)
   blktime=0;bcnt=1;blkdelay=0;
   while((millis()-tt)<dly){ledblk(dur,bdelay,bint,bnb);dly-=((dur+bint)*bnb+bdelay);}
 }
-#endif // MACHINE == 'C'
+#endif // MACHINE_CONCENTRATEUR
 
 void ledblk(int dur,int bdelay,int bint,uint8_t bnb)
 {   // dur = durée on ; bdelay = delay entre séquences ; bint = intervalle entre blinks ; bnb = nbre blinks

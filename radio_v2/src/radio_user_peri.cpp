@@ -34,6 +34,7 @@ extern float   temp;
 extern float   deltaTemp;
 extern bool    thSta;
 extern float   period;
+extern int32_t periodCnt;
 extern int32_t absTime;
 extern int32_t absMillis;
 extern uint16_t userData[2];
@@ -75,10 +76,10 @@ void messageBuild(char* message,uint8_t* messageLength)
     #define LENUINT16_T 2
     adcVal=adcRead0(A1ADMUXVAL,0);conv_htoa((char*)(message+*messageLength),(byte*)&adcVal,LENUINT16_T);
     (*messageLength)+=4;                                            // anal1    - 4
-    if(diags){Serial.print(" adc1 ");Serial.print(adcVal,HEX);}
+    //if(diags){Serial.print(" adc1 ");Serial.print(adcVal,HEX);}
     adcVal=adcRead0(A2ADMUXVAL,0);conv_htoa((char*)(message+*messageLength),(byte*)&adcVal,LENUINT16_T);
     (*messageLength)+=4;                                            // anal2    - 4
-    if(diags){Serial.print(" adc2 ");Serial.println(adcVal,HEX);}
+    //if(diags){Serial.print(" adc2 ");Serial.println(adcVal,HEX);}
     message[*messageLength]='\0';                                   //          - 1
 }
 
@@ -181,10 +182,18 @@ void importData(byte* data,uint8_t dataLength)
     conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&perTemp,5);                      // per check température
     aw_ok=perTemp/period;
     srt+=4;
-    absTime=0;absMillis=(micros()-t_on)*1000;                                       // temp absolu pour cellules
-    Serial.println();
-    for(uint8_t i=0;i<3;i++){Serial.print((char)*(data+RADIO_ADDR_LENGTH+srt+i));absTime=absTime<<6;Serial.print('!');Serial.print(absTime);absTime+=*(data+RADIO_ADDR_LENGTH+srt+i)-0x20;}
-    Serial.println();
+    absTime=0;absMillis=(micros()-t_on)/1000;                                       // temp absolu pour cellules
+    //Serial.println();
+    for(uint8_t i=0;i<3;i++){
+      //Serial.print((char)*(data+RADIO_ADDR_LENGTH+srt+i));
+      absTime=absTime<<6;
+      //Serial.print('!');Serial.print(absTime);
+      absTime+=*(data+RADIO_ADDR_LENGTH+srt+i)-0x20;
+    }
+    //pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
+    Serial.print(" periodCnt:");Serial.print(periodCnt);
+
+    //Serial.println();
     srt+=3;
     uint16_t pitch=0;
     conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&pitch,3);                        // pitch mesure
@@ -199,26 +208,22 @@ void importData(byte* data,uint8_t dataLength)
     analOutput=0;analOutput=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),2);
     srt+=2; 
     periCfg=(uint8_t)packGet((char*)(data+RADIO_ADDR_LENGTH+srt),2);
-
-    Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.print(analOutput);
-    Serial.print('-');Serial.print(prevAnalOutput);Serial.print(" cfg:");Serial.print(periCfg,HEX);
-    Serial.print(" abs:");Serial.println(absTime);delay(5);
     
     if(prevAnalOutput!=analOutput && (periCfg&PERI_RAD)!=0){radUpdate(analOutput);prevAnalOutput=analOutput;}                  
   }
 
-    if(diags){
+  if(diags){
     Serial.print("\n£ ");
     Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS com nb ; nbL loop nb
     for(uint8_t ii=0;ii<dataLength;ii++){Serial.print((char)data[ii]);delayMicroseconds(100);}Serial.print(" ");
-    Serial.print("per_s=");Serial.print(perRefr);Serial.print(" per_t=");Serial.print(perTemp);Serial.print(" period=");Serial.print(period);                                                                                   
+    Serial.print("per_s=");Serial.print(perRefr);Serial.print(" per_t=");Serial.print(perTemp);Serial.print(" period=");Serial.print(period*1000);                                                                                   
     Serial.print(" aw_min=");Serial.print(aw_min);Serial.print(" aw_ok=");Serial.print(aw_ok);Serial.print(" pth=");Serial.print(deltaTemp);
     Serial.print(" usr=");Serial.print(userData[0]);Serial.print(" / ");Serial.print(userData[1]);
-    Serial.print(" anOut=");Serial.print(analOutput);Serial.print(" / ");Serial.print(analOutput,HEX);
+    Serial.print(" anOut=");Serial.print(analOutput);Serial.print(" / ");Serial.print(analOutput,HEX);Serial.print('-');Serial.print(prevAnalOutput);
     Serial.print(" cfg=");Serial.print(periCfg);Serial.print(" / ");Serial.print(periCfg,HEX);
     delay(4);
     Serial.println(" £");                                                                                   
-    }
+  }
 }
 
 
@@ -240,7 +245,7 @@ void radSetup(){
   pinMode(RAD1,INPUT_PULLUP);
   pinMode(RAD2,INPUT_PULLUP);
   delay(10);
-  Serial.print(digitalRead(RAD1));Serial.println(digitalRead(RAD2));delay(10);
+  Serial.print(digitalRead(RAD1));Serial.print(digitalRead(RAD2));delay(10);
   while((digitalRead(RAD1)+digitalRead(RAD2)!=2) && (millis()-t_on)<30000){blink(1);}
 
 /* 

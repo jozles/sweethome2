@@ -247,9 +247,8 @@ void configInit()
 void configPrint()
 {
     uint16_t configLen;memcpy(&configLen,configRec+EEPRLENGTH,2);
-    char configVers[3];memcpy(configVers,configRec+EEPRVERS,2);configVers[3]='\0';
-    Serial.print("configVers ");Serial.println(configVers);
-    Serial.print("crc  ");dumpfield((char*)configRec,4);Serial.print(" len ");Serial.print(configLen);Serial.print(" V ");Serial.print(configVers[0]);Serial.println(configVers[1]);
+    Serial.print("crc  ");dumpfield((char*)configRec,4);Serial.print(" len ");Serial.print(configLen);
+    Serial.print(" eepromVers ");Serial.print((char)(configRec+EEPRVERS));Serial.println((char)(configRec+EEPRVERS+1));
     char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
     Serial.print("Peri ");dumpstr((char*)periRxAddr,6);Serial.print("Conc ");dumpstr((char*)concAddr,6);
     if(memcmp(configVers,"01",2)!=0){
@@ -323,7 +322,7 @@ bool configLoad()
     if(!eeprom.load(configRec,CONFIGRECLEN)){
       dumpstr((char*)configRec,200);
       Serial.println("**EEPROM KO**");ledblink(BCODESDCARDKO,PULSEBLINK);} // ledblink bloque
-    dumpstr((char*)configRec,200);
+    //dumpstr((char*)configRec,200);
     Serial.println(" eeprom OK");
     return 1;    
 }

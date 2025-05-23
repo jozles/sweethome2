@@ -1,6 +1,9 @@
 #include <shconst2.h>
 #include <shutil2.h>
 #include "radio_const.h"
+#include "radio_user_peri.h"
+#include "radio_powerSleep.h"
+#include "radio_util.h"
 
 #ifdef  NRF
 #include "nrf24l01s.h"
@@ -18,6 +21,34 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
 {
   return radio.read(messageIn,pipe,pldLength,NBPERIF);         // MACHINE_DET328 returns 0:pld_ok <0:err 
 }
+
+void sleepDly(int32_t dly)                    // should be (nx32)
+{
+  dly=(dly/DLYSTP)*DLYSTP;
+  while(dly>=0){
+    sleepNoPwr(T32);
+    dly-=DLYSTP;}
+}
+
+void sleepNoPwr(uint8_t durat)
+{
+  userHardPowerDown();
+  radio.powerOff();
+
+  bitClear(DDR_PP,BIT_PP);                //pinMode(PP,INPUT);
+  bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
+
+  sleepPwrDown(durat);
+  hardwarePwrUp();
+}
+
+void hardwarePwrUp()
+{ 
+  PP4_INIT
+  pinMode(REED,INPUT_PULLUP);
+}
+
+
 #endif // MACHINE_DET328
 
 #ifdef MACHINE_CONCENTRATEUR

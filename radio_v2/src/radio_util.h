@@ -3,6 +3,14 @@
 
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength);
 
+#ifdef MACHINE_DET328
+
+void sleepDly(int32_t dly);
+void sleepNoPwr(uint8_t durat);
+void hardwarePwrUp();
+
+#endif // MACHINE_DET328
+
 #ifdef MACHINE_CONCENTRATEUR
 
 uint8_t cRegister(char* message,uint8_t pldL);
