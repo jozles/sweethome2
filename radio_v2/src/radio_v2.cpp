@@ -295,7 +295,7 @@ void radioInit()
   tableCInit();
   memcpy(tableC[1].periMac,testAd,RADIO_ADDR_LENGTH+1);     // pour broadcast & test
   uint8_t speed=*concRfSpeed;
-  radio.powerOn(channel,speed,NBPERIF); 
+  radio.powerOn(channel,speed,NBPERIF,CB_ADDR); 
   /*#ifdef NRF
   radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
   #endif
@@ -525,7 +525,7 @@ void loop() {
     periodCnt++;
     if(diags){
       Serial.print("+");delayMicroseconds(200);
-      if(periodCnt==1 && (nbS&0xf)==0){            // update period
+      if(periodCnt==1 && (nbS&0xfff)==0){                // update period
         Serial.println();Serial.print(period*1000);
         getPeriod();periodCnt+=2;}
     }
@@ -656,8 +656,8 @@ void loop() {
   }
 
   ledblk(TBLK,3000,IBLK,1);
+  
   if((millis()&0x1ff)==0){
-    #define MARKER A11
     pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);}
 
   if((millis()-lastUdpCall)>UDPREF && exportCnt>=3){//CONCTO*perConc)){
@@ -670,7 +670,9 @@ blkCtl('c');
   numT=0;                                               // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                         // max length
   memset(messageIn,0x00,MAX_PAYLOAD_LENGTH+1);
-  rdSta=get_radio_message(messageIn,&pipe,&pldLength);  // get message from perif (<0 err ; 0 et pipe==1 reg to do ; 0 et pipe==2 conc radio Addr req ; >0 entry nb)
+  rdSta=get_radio_message(messageIn,&pipe,&pldLength);  // get message from perif 
+                                                        // <0 err ; 0 et pipe==1 reg to do ;
+                                                        // 0 et pipe==2 conc radio Addr req ; >0 entry nb
 
   time_beg=micros();  
 
@@ -715,7 +717,6 @@ blkCtl('c');
   // ====== no error && valid entry (rdSta=n° de perif fourni par le perif ou à l'issue de cRegister) ======         
   
 
-
   if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,RADIO_ADDR_LENGTH)==0)){    // verif de l'adresse mac
                                                       // rdSta is table entry nb
       if(numT==0 && (echoNb!=rdSta || !echoOn)){      // numT=0 means : that is not a registration, and message is not an echo answer 
@@ -726,17 +727,18 @@ blkCtl('c');
       }
       
       if(echoNb!=rdSta){                              // if no echo pending on this table entry
-      /* build config */
+  /* build config */
         memcpy(message,messageIn,RADIO_ADDR_LENGTH+1);
-        memcpy(message+RADIO_ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-RADIO_ADDR_LENGTH-1);    // build message to perif with server data
-                                                                                                  // server data is MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-                                                                                                  // see importData()
-        if(memcmp(tableC[rdSta].periBuf+RADIO_ADDR_LENGTH+1,"2.c",3)>=0){                         // ajout temps absolu cellules
+        memcpy(message+RADIO_ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-RADIO_ADDR_LENGTH-1);    
+                                                      // build message to perif with server data
+                                                      // server data is MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+                                                      // see importData()
+        if(memcmp(tableC[rdSta].periBuf+RADIO_ADDR_LENGTH+1,"2.c",3)>=0){     // ajout temps absolu cellules
           fillMess(message); 
         }
-                                                                                                  /* send it to perif */    
+  /* send it to perif */    
         txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);      // end of transaction so auto ACK ; rdSta table entry nb
-        message[MAX_PAYLOAD_LENGTH]='\0';Serial.print(" ");Serial.print((char*)message);
+        message[MAX_PAYLOAD_LENGTH]='\0';Serial.print(" ");Serial.println((char*)message);
         // ******************************* réponse passée **********************************
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
       /* ======= formatting & tx to server ====== */
@@ -1027,9 +1029,14 @@ void echo()
 
 void waitCell()                             // attente cellule temporelle
 {  
+      if(diags){
+        pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
+        Serial.print("\nabsMillis:");Serial.print(absMillis);Serial.print(" absTime:");Serial.print(absTime);
+      }
+
     int32_t deltaTBeg=0;
-    uint32_t tcur=0;
-    uint32_t tcell=0;
+    int32_t tcur=0;
+    int32_t tcell=0;
     int32_t dly=tcell-tcur;
 
     if(numT!=0 || (absTime!=0 && absMillis!=0)){
@@ -1037,38 +1044,35 @@ void waitCell()                             // attente cellule temporelle
       if(absTime>absMillis){deltaTBeg=absTime-absMillis;}
       else{deltaTBeg=-(absMillis-absTime);}
       tcur=(periodCnt*period*1000)+deltaTBeg+(micros()-t_on)/1000;
-      periodCnt=0;
       // calcul tcell = temps écoulé entre premier et dernier début de bloc cellulaire 
-#define TCELLOFFSET POWONDLY+30
+#define TCELLOFFSET POWONDLY
       tcell=((tcur/ABSTIME)*ABSTIME)+(CELLDUR*numT)-TCELLOFFSET; //=tcur/ABSTIME*ABSTIME;
       if(tcell<tcur){tcell+=ABSTIME;}
 
       dly=tcell-tcur;
-      sleepDly(dly);
-      //delay(tcell-tcur);
+      //sleepDly(dly);
+      delay(tcell-tcur);
     }
 
       if(diags){
-        pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
-        Serial.print(" absMillis:");Serial.print(absMillis);Serial.print(" absTime:");Serial.print(absTime);
-        Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);Serial.print(" tcur:");Serial.print(tcur);
-        Serial.print(" tcell:");Serial.print(tcell);
+        Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);Serial.print(" periodCnt:");Serial.print(periodCnt);
+        Serial.print(" tcur:");Serial.print(tcur);Serial.print(" tcell:");Serial.print(tcell);
         Serial.print(" wait:");Serial.print(dly);Serial.print('/');Serial.println(tcell-tcur);
         delay(2);
       }
 }
 
 int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] chargé avec au moins adresseMac et version
-{                       // pour que le concentrateur renvoie le bon format de données
-
+{                                   // pour que le concentrateur renvoie le bon format de données
   if(numT==0){
     rdSta=beginP(pldL);
     if(rdSta<=0){rdSta=-2;}                // numT still 0 ; beginP n'a pas fonctionné
     else{
       numT=rdSta;
-      message[RADIO_ADDR_LENGTH]=numT+48;
-      memcpy(messageIn,message,pldLength);}
-      return rdSta;
+      //message[RADIO_ADDR_LENGTH]=numT+48;
+      //memcpy(messageIn,message,pldLength);
+    }
+    return rdSta;
   }
 
   message[RADIO_ADDR_LENGTH]=numT+48;

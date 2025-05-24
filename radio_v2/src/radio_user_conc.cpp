@@ -530,7 +530,7 @@ int  importData()                // reçoit un message du serveur
   t1=micros();
   periMess=getHData(indata,(uint16_t*)&dataLen);                  // la longueur du message est messLength-suffixLength (si periMess=MESSOK)                                                                
                                                                   // donc les champs indexés sur la fin sont dans la position indata+messLength-suffixLength-xx
-
+/*
         if(diags){ 
           if(prevEtatImport!=etatImport){
             prevEtatImport=etatImport;
@@ -543,7 +543,7 @@ int  importData()                // reçoit un message du serveur
             Serial.print(" pM:");Serial.println(periMess);
           }
         }
-
+*/
   if(periMess==MESSOK){                                           // indata valide crc ok (ei=0)
 
         exportCnt=0;
@@ -812,9 +812,11 @@ void fillMess(byte* message)
     byte q;    
     uint32_t abstime=millis();
 
+    //pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
+
   Serial.print(' ');Serial.print(abstime,HEX);
     abstime=abstime&(ABSTIME-1);
-  Serial.print(" absTime:");Serial.print(abstime,HEX);
+  Serial.print(" absTime:");Serial.print(abstime);Serial.print('H');Serial.print(abstime,HEX);
     q=(byte)(((abstime>>(ABSTIME_STEP*2))&ABSMASK)+0x20);
     *(message+RADIO_ADDR_LENGTH+1+8)=q;
     Serial.print(":");Serial.print(q,HEX);
@@ -823,7 +825,7 @@ void fillMess(byte* message)
   Serial.print(":");Serial.print(q,HEX);
     q=(byte)((abstime&ABSMASK)+0x20);  
     *(message+RADIO_ADDR_LENGTH+1+10)=q;
-  Serial.print(":");Serial.println(q,HEX);
+  Serial.print(":");Serial.print(q,HEX);
     
     memcpy(message+RADIO_ADDR_LENGTH+1+11,message+RADIO_ADDR_LENGTH+2+4+1+4+1,3);
 }

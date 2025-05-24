@@ -98,7 +98,8 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
 
   #ifdef NRF
   #define RADIO_ADDR_LENGTH NRF_ADDR_LENGTH           // doit être == NRF_ADDR_LENGTH --- voir shconst
-  #define MAX_PAYLOAD_LENGTH NRF_MAX_PAYLOAD_LENGTH       // doit être == NRF_MAX_PAYLOAD_LENGTH
+  #define MAX_PAYLOAD_LENGTH NRF_MAX_PAYLOAD_LENGTH   // doit être == NRF_MAX_PAYLOAD_LENGTH
+  #define RADIO_TFR_DLY 4                             // mS délai entree tx conc et import sur perif après rx  (mesuré au scope)
   #endif
 
   #define ABSTIME_STEP 6                  // 6 bits par caractère
@@ -109,7 +110,6 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
   #define CELLDUR 0x80                    // durée cellule                !!!!puissance de 2!!!!
   #define ABSTIMEPOWER (NBCELLPOWER+CELLDURPOWER)
   #define ABSTIME (NBCELLS*CELLDUR)       // millis cells size
-  #define MARKER 5
 
   #define DLYSTP (int)32
 
@@ -117,6 +117,8 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
   #define BUF_SERVER_LENGTH LBUFSERVER    // to/from server buffer length
 
 #if MACHINE_CONCENTRATEUR
+
+  #define MARKER    A11
 
   #define MISO_PIN   12
   #define MOSI_PIN   11
@@ -133,6 +135,8 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
 #if MACHINE_DET328             /* voltage and temp acquisition params */
    // param carte DETS (sinon ?) dans platformo.ini
   #define ATMEGA328               // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
+
+  #define MARKER     5
 
   #define CLK_PIN    13                 
   #define MISO_PIN   12
