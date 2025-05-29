@@ -261,7 +261,7 @@ void factoryResetConfig()
   memcpy(concMac,concMacTable,MACADDRLENGTH*MAXCONC);
   memset(concIp,0x00,4*MAXCONC);
   for(uint8_t i=0;i<MAXCONC;i++){
-    memcpy(concRx+i*RADIO_ADDR_LENGTH,CC_NRF_ADDR,RADIO_ADDR_LENGTH); //(MAXCONC-1)*(RADIO_ADDR_LENGTH-1));
+    memcpy(concRx+i*RADIO_ADDR_LENGTH,CB_ADDR,RADIO_ADDR_LENGTH); //(MAXCONC-1)*(RADIO_ADDR_LENGTH-1));
     *(concRx+i*RADIO_ADDR_LENGTH+RADIO_ADDR_LENGTH-1)=PMFNCVAL+i;
     concPort[i]=portTable[i];
     concChannel[i]=channelTable[i];

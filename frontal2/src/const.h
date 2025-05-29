@@ -187,6 +187,7 @@
         ajout param 'power' -> résultat lecture CSE7766 
         format IPAddress pour messToServer (voir comments dans shlib2.h)
    1.8q corrections testmail des périphériques, mail() ; ajout ip 109 pour autorisation UDP (frontal2)
+        modif showline affichage couleurs dates/heures connexions
 
 
    BUGS : 
@@ -309,6 +310,14 @@
 #define MAXCXWU 900000                       // (defaut) time out delay if no UDP connection 
 
 #define LDATEA 17                            // len date alpha
+
+#ifndef RADIO_ADDR_LENGTH
+#define RADIO_ADDR_LENGTH 5
+#endif
+#ifndef CB_ADDR
+#define CB_ADDR (byte*)"SHCC0"
+#endif
+
 
 #define TO_PASSWORD 600                      // (defaut) sec toPassword
 

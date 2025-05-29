@@ -501,6 +501,7 @@ void showDates(char* buf,char* jsbuf)
           char strDate[LSTRD];
           long late;
           late=*periPerRefr+*periPerRefr/10;
+          if(*periPerRefr<60){late=*periPerRefr+60;}
           memcpy(colourbr,"black\0",6);
           if(dateCmp(periLastDateOut,pkdate,*periPerRefr,1,1)<0){memcpy(colourbr,"teal\0",4);}
           if(dateCmp(periLastDateOut,pkdate,late,1,1)<0){memcpy(colourbr,"red\0",4);}setColourB(buf,jsbuf,colourbr);                      
