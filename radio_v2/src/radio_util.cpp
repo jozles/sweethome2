@@ -22,12 +22,20 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
   return radio.read(messageIn,pipe,pldLength,NBPERIF);         // MACHINE_DET328 returns 0:pld_ok <0:err 
 }
 
-void sleepDly(int32_t dly)                    // should be (nx32)
+uint8_t sleepDly(int32_t dly)                    // should be (nx32)
 {
+  uint8_t remainder=dly%32;
   dly=(dly/DLYSTP)*DLYSTP;
   while(dly>=0){
     sleepNoPwr(T32);
     dly-=DLYSTP;}
+  
+  return remainder;
+}
+
+void medSleepDly(int32_t dly)
+{
+  delay(sleepDly(dly));
 }
 
 void sleepNoPwr(uint8_t durat)

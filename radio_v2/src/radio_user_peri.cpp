@@ -3,6 +3,7 @@
 #include "radio_user_peri.h"
 #include "radio_const.h"
 #include "radio_powerSleep.h"
+#include "radio_util.h"
 
 extern uint16_t aw_ok;
 extern uint16_t aw_min;
@@ -182,14 +183,17 @@ void importData(byte* data,uint8_t dataLength)
     conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&perTemp,5);                      // per check température
     aw_ok=perTemp/period;
     srt+=4;
+    
     byte* abst=data+RADIO_ADDR_LENGTH+srt;
     absTime=((((*abst-0x20)<<ABSTIME_STEP)+
       ((*(abst+1)-0x20)))<<(ABSTIME_STEP))+
       (*(abst+2)-0x20)+
       RADIO_TFR_DLY;
+    
     periodCnt=0;
     absMillis=(micros()-t_on)/1000;                                       // temp absolu pour cellules
     /*
+    absTime=0;
       for(uint8_t i=0;i<3;i++){
       //Serial.print((char)*(data+RADIO_ADDR_LENGTH+srt+i));
       absTime=absTime<<6;
@@ -198,7 +202,10 @@ void importData(byte* data,uint8_t dataLength)
     }
       //Serial.println();
     */
-    //pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
+    int32_t dly=512-absTime;
+    if(dly<0){dly=0;}
+    medSleepDly(dly);
+    pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
     
     srt+=3;
     uint16_t pitch=0;

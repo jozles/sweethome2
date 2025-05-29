@@ -665,7 +665,7 @@ void loop() {
     Serial.println("sec - reset ");
     userResetSetup(serverIp,(char*)"UDP TO");}  //forceWd();}
 
-blkCtl('c');
+//blkCtl('c');
 
   numT=0;                                               // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                         // max length
@@ -706,7 +706,7 @@ blkCtl('c');
         memcpy(tableC[NBPERIF].periMac,messageIn,RADIO_ADDR_LENGTH+1);    // peri addr in table last entry
         memcpy(message,messageIn,RADIO_ADDR_LENGTH+1);
         memcpy(message+RADIO_ADDR_LENGTH+1,radio.locAddr,RADIO_ADDR_LENGTH);  // build message to perif with conc macAddr
-        dumpstr((char*)tableC,128);
+        //dumpstr((char*)tableC,128);
         
         txMessage(ACK,MAX_PAYLOAD_LENGTH,NBPERIF);                        // end of transaction so auto ACK
         // le numéro de périf est NBPERIF car son adresse mac (pour read) est copiée dans la dernière entrée de table
@@ -743,7 +743,7 @@ blkCtl('c');
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
       /* ======= formatting & tx to server ====== */
         if(numT==0){
-blkCtl('d');
+//blkCtl('d');
           exportData(rdSta);}                         // numT==0 if perif already had registration nb
       }                                               // numT!=0 if perif only made registration request (no data)
       else {                                          
@@ -769,7 +769,7 @@ blkCtl('d');
   // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
 
-blkCtl('e');
+//blkCtl('e');
     int dt=importData();importCnt++;
 
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
@@ -786,7 +786,7 @@ blkCtl('e');
     
     if((millis()-concTime)>=perConc){
       //if(perConc<600000){Serial.println("perConc");while(1){};}
-blkCtl('f');       
+//blkCtl('f');       
       concTime=millis();exportDataMail(nullptr);    
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
@@ -799,7 +799,7 @@ blkCtl('f');
   //} 
   
     if((millis()-radioWd)>NO_RADIO_CX_TO){    // wd radio
-blkCtl('g');
+//blkCtl('g');
       Serial.print("pas de cx radio depuis ");Serial.print(NO_RADIO_CX_TO/1000);Serial.println("sec - re_init ");delay(10);
       configLoad();
       Serial.print('@');
@@ -1028,9 +1028,11 @@ void echo()
 }
 
 void waitCell()                             // attente cellule temporelle
-{  
+{ 
+    
+///*
       if(diags){
-        pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
+        
         Serial.print("\nabsMillis:");Serial.print(absMillis);Serial.print(" absTime:");Serial.print(absTime);
       }
 
@@ -1038,20 +1040,35 @@ void waitCell()                             // attente cellule temporelle
     int32_t tcur=0;
     int32_t tcell=0;
     int32_t dly=tcell-tcur;
+    unsigned long tmicros;
 
     if(numT!=0 || (absTime!=0 && absMillis!=0)){
     // calcul tcur = temps écoulé entre premier début de bloc cellulaire et maintenant
       if(absTime>absMillis){deltaTBeg=absTime-absMillis;}
       else{deltaTBeg=-(absMillis-absTime);}
-      tcur=(periodCnt*period*1000)+deltaTBeg+(micros()-t_on)/1000;
+      tmicros=micros();
+      if(tmicros>t_on){tmicros-=t_on;}
+      else {tmicros+=(0xffffffff-t_on);}
+      tcur=(periodCnt*period*1000)+deltaTBeg+tmicros/1000+POWONDLY;
+      
       // calcul tcell = temps écoulé entre premier et dernier début de bloc cellulaire 
-#define TCELLOFFSET POWONDLY
-      tcell=((tcur/ABSTIME)*ABSTIME)+(CELLDUR*numT)-TCELLOFFSET; //=tcur/ABSTIME*ABSTIME;
+      tcell=((tcur/ABSTIME)*ABSTIME)+(CELLDUR*numT); //=tcur/ABSTIME*ABSTIME;
       if(tcell<tcur){tcell+=ABSTIME;}
 
+      // delay
       dly=tcell-tcur;
-      //sleepDly(dly);
-      delay(tcell-tcur);
+
+      if(diags){
+        Serial.print(" deltaBeg:");Serial.print(deltaTBeg);delay(1);
+        Serial.print(" tmicros:");Serial.print(tmicros);delay(1);
+        Serial.print(" tcell:");Serial.print(tcell);Serial.print(" tcur:");Serial.print(tcur);
+        Serial.print(" ABSTIME:");Serial.print(ABSTIME);delay(2);
+        Serial.print(" dly:");Serial.println(dly);delay(1);
+      }
+      //delay(tcell-tcur);
+      medSleepDly(dly);
+      //pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW); 
+      
     }
 
       if(diags){
@@ -1060,6 +1077,7 @@ void waitCell()                             // attente cellule temporelle
         Serial.print(" wait:");Serial.print(dly);Serial.print('/');Serial.println(tcell-tcur);
         delay(2);
       }
+//*/      
 }
 
 int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] chargé avec au moins adresseMac et version
@@ -1100,18 +1118,17 @@ int txMessage(bool ack,uint8_t len,const uint8_t numP)  // retour 0 ok ; -1 maxR
   */
 #endif // MACHINE_DET328
 
-  radio.write(message,ack,len,tableC[numP].periMac);               // send message
+  radio.write(message,ack,len,tableC[numP].periMac);    // send message
 
   trSta=1;
   time_beg = micros();
-  while(trSta==1){
-    trSta=radio.transmitting(ack);}      // wait for ack from dest ; trsta=0 if data sent ok ; -1 if maxRt
+  while(trSta==1){trSta=radio.transmitting(ack);}       // wait for ack from dest ; trsta=0 if data sent ok ; -1 if maxRt
 
   time_end=micros();
 
   if(diags){
   #define LBUFCV 7
-    char    bufCv[LBUFCV];                    // buffer conversion sprintf
+    char    bufCv[LBUFCV];                              // buffer conversion sprintf
    
     memset(bufCv,0x00,LBUFCV);
     memcpy(diagMessT,message,len);
