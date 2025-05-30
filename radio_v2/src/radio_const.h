@@ -119,6 +119,8 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
 #if MACHINE_CONCENTRATEUR
 
   #define MARKER    A11
+  #define MARKER2   A10
+
 
   #define MISO_PIN   12
   #define MOSI_PIN   11
@@ -294,10 +296,8 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
 
   #define SBVINIT "00040000400025000000000001"  // server buffer init value
   #define SBLINIT 26                            // server buffer init length (MAX_PAYLOAD_LENGTH-ADDR_LENGTH-1)
-         
+
 #endif // MACHINE_CONCENTRATEUR
-
-
 
 /*** return (error) codes ***/
 #define AV_NBPIP -1

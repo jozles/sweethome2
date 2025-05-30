@@ -16,6 +16,11 @@ extern Nrfp radio;
 extern LoRaClass radio;
 #endif
 
+void marker(uint8_t marker)
+{
+  pinMode(marker,OUTPUT);digitalWrite(marker,HIGH);delay(1);digitalWrite(marker,LOW);
+}
+
 #ifdef MACHINE_DET328
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
 {

@@ -12,6 +12,7 @@ void userResetSetup(byte* serverIp,const char* uRSMessage);
 void userResetSetup(byte* serverIp);
 void blkCtl(uint8_t where);
 void fillMess(byte* message);
+void blkCtlInit(uint8_t blkPin1,uint8_t blkPin2,uint8_t blkPin3);
 
 #endif // MACHINE == 'C'
 

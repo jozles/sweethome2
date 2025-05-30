@@ -2,6 +2,7 @@
 
 
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength);
+void marker(uint8_t marker);
 
 #ifdef MACHINE_DET328
 

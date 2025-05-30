@@ -117,6 +117,7 @@ void importData(byte* data,uint8_t dataLength)
   int      sizeRead,srt=0;
 
   if(memcmp(VERSION,"1.c",3)<=0){                                                 // version <= 1.C
+    Serial.print("version<1.c");
     unsigned long perRefr=(long)convStrToNum((char*)(RADIO_ADDR_LENGTH+1),&sizeRead);          // per refresh server
     aw_min=perRefr/period;
     srt=sizeRead;
@@ -127,11 +128,9 @@ void importData(byte* data,uint8_t dataLength)
                                                                                   // devrait être convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead)/100;
                                                                                   // vérifier srt...   
     srt+=sizeRead;
-    //Serial.print(" ");Serial.print(srt);
+    
     *(data+RADIO_ADDR_LENGTH+1+srt+8)='\0';
-//dumpstr((char*)data,32);
-    Serial.print(":::");Serial.print((char*)(data+RADIO_ADDR_LENGTH+1+srt));
-      
+    Serial.print(":::");Serial.print((char*)(data+RADIO_ADDR_LENGTH+1+srt));  
     userData[0]=packGet((char*)(data+RADIO_ADDR_LENGTH+1+srt),4);                   // forme '_hhhhhhhh' //Serial.println(userData[0]);
     srt+=5;
     userData[1]=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4);
@@ -202,10 +201,10 @@ void importData(byte* data,uint8_t dataLength)
     }
       //Serial.println();
     */
-    int32_t dly=512-absTime;
+    int32_t dly=512-absTime-50;
     if(dly<0){dly=0;}
     medSleepDly(dly);
-    pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
+    marker(MARKER);Serial.print("-marker:");Serial.print(dly);delay(1);
     
     srt+=3;
     uint16_t pitch=0;
@@ -213,10 +212,8 @@ void importData(byte* data,uint8_t dataLength)
     deltaTemp=((float) pitch)/100;
     srt+=3;
     userData[0]=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4);                     // forme 'hhhhhhhh' //Serial.println(userData[0]);
-    //Serial.print(" >> ");Serial.println(packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4));
     srt+=4;
     userData[1]=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4);                     //Serial.println(userData[1]);
-    //Serial.print(" >> ");Serial.println(packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4));
     srt+=4;
     analOutput=0;analOutput=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),2);
     srt+=2; 

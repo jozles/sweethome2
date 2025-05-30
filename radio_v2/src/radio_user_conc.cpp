@@ -191,14 +191,24 @@ char c;         // pour macros TCP/UDP
 
   extern uint8_t exportCnt;
 
+  uint8_t blkCtlPin1;
+  uint8_t blkCtlPin2;
+  uint8_t blkCtlPin3;
+
 /* cycle functions */
 
 int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data);    // connecte au serveur et transfère la data
 
+void blkCtlInit(uint8_t blkPin1,uint8_t blkPin2,uint8_t blkPin3)
+{
+  blkCtlPin1=blkPin1;blkCtlPin2=blkPin2;blkCtlPin3=blkPin3;
+  pinMode(blkCtlPin1,OUTPUT);pinMode(blkCtlPin2,OUTPUT);pinMode(blkCtlPin3,OUTPUT);
+}
+
 void blkCtl(uint8_t where)
 {
   ram_remanente=where;
-  digitalWrite(15,!(where&0x01));digitalWrite(16,!((where>>1)&0x01));digitalWrite(17,!((where>>2)&0x01));
+  digitalWrite(blkCtlPin1,!(where&0x01));digitalWrite(blkCtlPin2,!((where>>1)&0x01));digitalWrite(blkCtlPin3,!((where>>2)&0x01));
   //Serial.println(where);
   //if((millis()-blkwd)>TBLKCTL){
     //char a[8]={'#','#',' ',where,' ','\0'};
@@ -811,21 +821,20 @@ void fillMess(byte* message)
     
     byte q;    
     uint32_t abstime=millis();
-
-    //pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);
+    marker(MARKER2);
 
   Serial.print(' ');Serial.print(abstime,HEX);
     abstime=abstime&(ABSTIME-1);
   Serial.print(" absTime:");Serial.print(abstime);Serial.print('H');Serial.print(abstime,HEX);
     q=(byte)(((abstime>>(ABSTIME_STEP*2))&ABSMASK)+0x20);
     *(message+RADIO_ADDR_LENGTH+1+8)=q;
-    Serial.print(":");Serial.print(q,HEX);
+  //Serial.print(":");Serial.print(q,HEX);
     q=(byte)(((abstime>>ABSTIME_STEP)&ABSMASK)+0x20);
     *(message+RADIO_ADDR_LENGTH+1+9)=q;
-  Serial.print(":");Serial.print(q,HEX);
+  //Serial.print(":");Serial.print(q,HEX);
     q=(byte)((abstime&ABSMASK)+0x20);  
     *(message+RADIO_ADDR_LENGTH+1+10)=q;
-  Serial.print(":");Serial.print(q,HEX);
+  //Serial.print(":");Serial.print(q,HEX);
     
     memcpy(message+RADIO_ADDR_LENGTH+1+11,message+RADIO_ADDR_LENGTH+2+4+1+4+1,3);
 }

@@ -312,6 +312,7 @@ void setup() {
 
 #if MACHINE_DET328
 
+  delay(1000);
   Serial.begin(115200);
   Serial.println("\n+");
 
@@ -397,8 +398,8 @@ void setup() {
   ram_remanente=1111;
 */
 
-  pinMode(15,OUTPUT);pinMode(16,OUTPUT);pinMode(17,OUTPUT);
-  blkCtl('a');
+
+  //blkCtlInit(15,16,17);blkCtl('a');
   
   delay(1000);
   Serial.begin(115200);Serial1.begin(115200);
@@ -588,11 +589,12 @@ void loop() {
     t_on2=micros();                                               // message build ... send   
     radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR);                    // si waitCell rallonge
     trSta=0;
-    rdSta=txRxMessage(outLength);
+    rdSta=txRxMessage(outLength);                                 // retour -2 ko ; >0 ok
     t_on21=micros();
     
+    Serial.print("\nrdSta:");Serial.println(rdSta);
     if(rdSta>=0){                                                 // no error
-      
+      marker(MARKER);
       /* echo request ? (address field is 0x5555555555) */
       if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){prtCom(" ok",rdSta);echo();}
       else {
@@ -657,8 +659,7 @@ void loop() {
 
   ledblk(TBLK,3000,IBLK,1);
   
-  if((millis()&0x1ff)==0){
-    pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW);}
+  if((millis()&0x1ff)==0){marker(MARKER);}
 
   if((millis()-lastUdpCall)>UDPREF && exportCnt>=3){//CONCTO*perConc)){
     Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print(UDPREF/1000); //(CONCTO*perConc)/1000);
@@ -737,11 +738,12 @@ void loop() {
           fillMess(message); 
         }
   /* send it to perif */    
-        txMessage(ACK,MAX_PAYLOAD_LENGTH,rdSta);      // end of transaction so auto ACK ; rdSta table entry nb
+        txMessage(NO_ACK,MAX_PAYLOAD_LENGTH,rdSta);      // end of transaction so auto ACK ; rdSta table entry nb
+                                                      // NO_ACK pour cellules temporelles (pa se répétitions)
         message[MAX_PAYLOAD_LENGTH]='\0';Serial.print(" ");Serial.println((char*)message);
         // ******************************* réponse passée **********************************
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
-      /* ======= formatting & tx to server ====== */
+  /* ======= formatting & tx to server ====== */
         if(numT==0){
 //blkCtl('d');
           exportData(rdSta);}                         // numT==0 if perif already had registration nb
@@ -959,6 +961,7 @@ int beginP(uint8_t pldL)                        // manage registration ; output 
     Serial.print("##");Serial.print(confSta);delay(1);                                                        
     
     if(confSta>0){
+      marker(MARKER);
       awakeMinCnt=-1;                   // force data upload
       delayBlk(32,0,125,4,1);           // 4 blinks
       beginP_retryCnt=0;                // ok ... no retry
@@ -1028,8 +1031,7 @@ void echo()
 }
 
 void waitCell()                             // attente cellule temporelle
-{ 
-    
+{
 ///*
       if(diags){
         
@@ -1065,10 +1067,9 @@ void waitCell()                             // attente cellule temporelle
         Serial.print(" ABSTIME:");Serial.print(ABSTIME);delay(2);
         Serial.print(" dly:");Serial.println(dly);delay(1);
       }
-      //delay(tcell-tcur);
-      medSleepDly(dly);
-      //pinMode(MARKER,OUTPUT);digitalWrite(MARKER,HIGH);delay(1);digitalWrite(MARKER,LOW); 
       
+      medSleepDly(dly);
+      //marker(MARKER);
     }
 
       if(diags){
@@ -1083,6 +1084,7 @@ void waitCell()                             // attente cellule temporelle
 int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] chargé avec au moins adresseMac et version
 {                                   // pour que le concentrateur renvoie le bon format de données
   if(numT==0){
+    /*
     rdSta=beginP(pldL);
     if(rdSta<=0){rdSta=-2;}                // numT still 0 ; beginP n'a pas fonctionné
     else{
@@ -1091,6 +1093,11 @@ int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] cha
       //memcpy(messageIn,message,pldLength);
     }
     return rdSta;
+    */
+    int8_t bp=beginP(pldL);
+    if(bp<=0){return -2;}
+    numT=bp;
+    return bp;
   }
 
   message[RADIO_ADDR_LENGTH]=numT+48;
