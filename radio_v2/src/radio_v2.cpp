@@ -206,9 +206,10 @@ float     timer1;
 bool      timer1Ovf;
 bool      extTimer;
 float     period;
-int32_t   absTime=0;
-int32_t   absMillis=0;
-int32_t   periodCnt=0; 
+unsigned long   absTime=0;
+unsigned long   absMillis=0;
+unsigned long   lastWaitCellDly=0;
+unsigned long   periodCnt=0; 
 
 #define PRESCALER_RATIO 256           // prescaler ratio clock timer1 clock
 #define TCCR1B_PRESCALER_MASK 0xF8    // prescaler bit mask in TCCR1B
@@ -363,9 +364,6 @@ void setup() {
     Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry)");
     Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
   }
-
-  delayBlk(500,0,0,1,1);                  // 1 blink 500mS
-  sleepNoPwr(0);                          // wait for interrupt from external timer to reach beginning of period
 
   getPeriod();
 
@@ -527,7 +525,7 @@ void loop() {
     if(diags){
       Serial.print("+");delayMicroseconds(200);
       if(periodCnt==1 && (nbS&0xfff)==0){                // update period
-        Serial.println();Serial.print(period*1000);
+        Serial.println();Serial.print(period*1000);Serial.print(' ');
         getPeriod();periodCnt+=2;}
     }
   }
@@ -578,28 +576,29 @@ void loop() {
     message[outLength]='\0';
 
     if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR,PULSEBLINK);}
-    if(diags){Serial.print("\n (");Serial.print(outLength);Serial.print(")");Serial.print((char*)message);}delay(5);
+    if(diags){Serial.print("\n (");Serial.print(outLength);Serial.print(")");Serial.println((char*)message);}delay(5);
     
     /* One transaction is tx+rx ; if both ok reset counters else retry management*/  
 
     rdSta=-1;
     //nbS++;
 
-    waitCell();
-    t_on2=micros();                                               // message build ... send   
-    radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR);                    // si waitCell rallonge
+    if(numT!=0 || (absTime!=0 && absMillis!=0)){waitCell();}
+    marker(MARKER);
+    t_on2=micros();                                       // message build ... send   
+    radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR);    // si waitCell rallonge
     trSta=0;
-    rdSta=txRxMessage(outLength);                                 // retour -2 ko ; >0 ok
+    rdSta=txRxMessage(outLength);                         // retour -2 ko ; >0 ok
+    radio.powerOff();
     t_on21=micros();
     
-    Serial.print("\nrdSta:");Serial.println(rdSta);
-    if(rdSta>=0){                                                 // no error
+    if(rdSta>=0){                                         // no error
+      prtCom(" ok",rdSta);
       marker(MARKER);
       /* echo request ? (address field is 0x5555555555) */
-      if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){prtCom(" ok",rdSta);echo();}
-      else {
-        prtCom(" ok",rdSta);                                      
-        importData(messageIn,pldLength);                          // user data
+      if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){echo();}
+      else {                                      
+        importData(messageIn,pldLength);                  // user data
       }
         
       /* tx+rx ok -> reset every counters */
@@ -608,12 +607,12 @@ void loop() {
       awakeCnt=aw_ok;
       awakeMinCnt=aw_min;
 
+      delayBlk(32,0,125,4,1);                             // txRx ok : 4 blinks
     }
     
-    radio.powerOff();
     t_on3=micros();  // message sent / received or error (rdSta)
 
-    if(trSta<0 || rdSta<0){                                           // error
+    if(trSta<0 || rdSta<0){                               // error
     
       nbK++;
       prtCom(" ko",rdSta);
@@ -627,6 +626,7 @@ void loop() {
                retryCnt=0;break;
         default:retryCnt--;break;                         // retryCnt >1  -> retry en cours pas de sleep
       }
+    delayBlk(32,0,0,1,1);                                 // txRx ko : 1 blink
     }
     //================================ version sans retry ===========================
     retryCnt=0;awakeCnt=aw_ok;awakeMinCnt=aw_min;
@@ -637,8 +637,9 @@ void loop() {
     if(diags){
       unsigned long localTdiag=micros();    
       delay(2);Serial.println("radio HS/missing");delay(4);
-      tdiag+=(micros()-localTdiag);}
-    delayBlk(2000,0,0,1,1);            // 1x2sec blink
+      tdiag+=(micros()-localTdiag);
+    }
+    delayBlk(2000,0,0,1,1);                               // hardware ko : 1x2sec blink
     retryCnt=0;
     awakeCnt=1;
     awakeMinCnt=1;            
@@ -958,12 +959,10 @@ int beginP(uint8_t pldL)                        // manage registration ; output 
       Serial.print("beginP");Serial.print(beginP_retryCnt);Serial.print(' ');
       tdiag+=(micros()-localTdiag);}    // après pReg pour que la sortie n'interfère pas avec les tfr SPI
     else {Serial.println();}
-    Serial.print("##");Serial.print(confSta);delay(1);                                                        
+    Serial.print("##");Serial.print(confSta);Serial.print(' ');delay(1);                                                        
     
     if(confSta>0){
-      marker(MARKER);
       awakeMinCnt=-1;                   // force data upload
-      delayBlk(32,0,125,4,1);           // 4 blinks
       beginP_retryCnt=0;                // ok ... no retry
     }
 
@@ -976,7 +975,9 @@ int beginP(uint8_t pldL)                        // manage registration ; output 
   if(diags){
     unsigned long localTdiag=micros();    
     if(confSta<=0){Serial.println();delay(1);}
-    tdiag+=(micros()-localTdiag);}
+    tdiag+=(micros()-localTdiag);
+  }
+  
   return confSta;                     // peripheral registered or radio HS
 }
 
@@ -993,6 +994,8 @@ void echo()
   byte echoMess[ECHO_LEN+1];
   
  // Serial.println("start echo");
+
+  radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR);
   
   while(1){
 
@@ -1027,31 +1030,32 @@ void echo()
     if(cntErr>=MAXECHOERR || memcmp(messageIn,ECHO_MAC_REQ,4)!=0 ){break;}
     else cntErr=0;
   }
+  radio.powerOff();
   Serial.println("stop echo");delay(1);
 }
 
 void waitCell()                             // attente cellule temporelle
 {
 ///*
-      if(diags){
-        
-        Serial.print("\nabsMillis:");Serial.print(absMillis);Serial.print(" absTime:");Serial.print(absTime);
-      }
+    if(diags){      
+      Serial.print("absMillis:");Serial.print(absMillis);
+      Serial.print(" absTime:");Serial.print(absTime);
+      delay(3);
+    }
 
-    int32_t deltaTBeg=0;
-    int32_t tcur=0;
-    int32_t tcell=0;
-    int32_t dly=tcell-tcur;
-    unsigned long tmicros;
+    int32_t   deltaTBeg=0;
+    uint32_t  tcur=0;
+    uint32_t  tcell=0;
+    int32_t   dly=0;
+    unsigned long tmicros=0;
 
-    if(numT!=0 || (absTime!=0 && absMillis!=0)){
+    
     // calcul tcur = temps écoulé entre premier début de bloc cellulaire et maintenant
-      if(absTime>absMillis){deltaTBeg=absTime-absMillis;}
-      else{deltaTBeg=-(absMillis-absTime);}
-      tmicros=micros();
-      if(tmicros>t_on){tmicros-=t_on;}
-      else {tmicros+=(0xffffffff-t_on);}
-      tcur=(periodCnt*period*1000)+deltaTBeg+tmicros/1000+POWONDLY;
+      //if(absTime>absMillis){deltaTBeg=absTime-absMillis;}
+      //else{deltaTBeg=-(absMillis-absTime);}
+      deltaTBeg=absTime-absMillis;
+      tmicros=micros()-t_on;
+      tcur=(periodCnt*period)+deltaTBeg+tmicros/1000+POWONDLY;
       
       // calcul tcell = temps écoulé entre premier et dernier début de bloc cellulaire 
       tcell=((tcur/ABSTIME)*ABSTIME)+(CELLDUR*numT); //=tcur/ABSTIME*ABSTIME;
@@ -1059,25 +1063,22 @@ void waitCell()                             // attente cellule temporelle
 
       // delay
       dly=tcell-tcur;
-
-      if(diags){
-        Serial.print(" deltaBeg:");Serial.print(deltaTBeg);delay(1);
-        Serial.print(" tmicros:");Serial.print(tmicros);delay(1);
-        Serial.print(" tcell:");Serial.print(tcell);Serial.print(" tcur:");Serial.print(tcur);
-        Serial.print(" ABSTIME:");Serial.print(ABSTIME);delay(2);
-        Serial.print(" dly:");Serial.println(dly);delay(1);
-      }
+      if(dly>ABSTIME){dly=0;}
       
-      medSleepDly(dly);
-      //marker(MARKER);
+      medSleepDly(dly);             
+                                    
+      lastWaitCellDly=(dly/DLYSTP)*DLYSTP;          // le compteur est arrêté pendant sleepDly ;                                 
+                                                    // sa valeur est ajoutée à absMillis() dans importData()
+    if(diags){
+      Serial.print(" tmicros:");Serial.print(tmicros);
+      Serial.print(" tcell:");Serial.print(tcell);
+      Serial.print(" ABSTIME:");Serial.print(ABSTIME);
+      delay(2);
+      Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);Serial.print(" periodCnt:");Serial.print(periodCnt);
+      Serial.print(" tcur:");Serial.print(tcur);Serial.print(" tcell:");Serial.print(tcell);
+      Serial.print(" wait:");Serial.println(lastWaitCellDly);
+      delay(2);
     }
-
-      if(diags){
-        Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);Serial.print(" periodCnt:");Serial.print(periodCnt);
-        Serial.print(" tcur:");Serial.print(tcur);Serial.print(" tcell:");Serial.print(tcell);
-        Serial.print(" wait:");Serial.print(dly);Serial.print('/');Serial.println(tcell-tcur);
-        delay(2);
-      }
 //*/      
 }
 
@@ -1094,6 +1095,7 @@ int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] cha
     }
     return rdSta;
     */
+
     int8_t bp=beginP(pldL);
     if(bp<=0){return -2;}
     numT=bp;
@@ -1218,14 +1220,17 @@ void showErr(bool crlf)
 if(diags){
 #if  MACHINE_DET328
   Serial.println();
-#endif // MACHINE == 'P'
+#endif // MACHINE_DET328
   Serial.print("€ tx=");Serial.print(trSta);Serial.print(" rx=");Serial.print(rdSta);
 #if  MACHINE_DET328
   Serial.print(" message ");Serial.print((char*)message);
+  delay(3);
   Serial.print(" lastSta ");if(radio.lastSta<0x10){Serial.print("0");}Serial.print(radio.lastSta,HEX);
-#endif // MACHINE == 'P'
+  delay(2);
+#endif // MACHINE_DET328
   Serial.print(" ");Serial.print((char*)kk+(rdSta+6)*LMERR);Serial.print(" €");
   if(crlf){Serial.println();}
+  delay(2);
 }  
 }
 
@@ -1310,7 +1315,7 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
 
     delayBlk(1,0,250,1,5000);         // 5sec blinking (1/250)
     delayBlk(1,0,250,3,1);            // 3 blinks (1/250)
-    delayBlk(300,0,0,1);              // 1 pulse (300)
+    delayBlk(300,0,0,1,1);            // 1 pulse (300)
     
 */    
 {

@@ -35,9 +35,10 @@ extern float   temp;
 extern float   deltaTemp;
 extern bool    thSta;
 extern float   period;
-extern int32_t periodCnt;
-extern int32_t absTime;
-extern int32_t absMillis;
+extern unsigned long absTime;
+extern unsigned long absMillis;
+extern unsigned long lastWaitCellDly;
+extern unsigned long periodCnt;
 extern uint16_t userData[2];
 uint16_t       analOutput=0;
 uint16_t       prevAnalOutput=0;
@@ -116,22 +117,22 @@ void importData(byte* data,uint8_t dataLength)
   uint16_t perTemp=0;
   int      sizeRead,srt=0;
 
-  if(memcmp(VERSION,"1.c",3)<=0){                                                 // version <= 1.C
+  if(memcmp(VERSION,"1.c",3)<=0){                                                     // version <= 1.C
     Serial.print("version<1.c");
-    unsigned long perRefr=(long)convStrToNum((char*)(RADIO_ADDR_LENGTH+1),&sizeRead);          // per refresh server
+    unsigned long perRefr=(long)convStrToNum((char*)(RADIO_ADDR_LENGTH+1),&sizeRead); // per refresh server
     aw_min=perRefr/period;
     srt=sizeRead;
     perTemp=(uint16_t)convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead);  // per check température
     aw_ok=perTemp/period;
     srt+=sizeRead;
-    deltaTemp=(convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead))/100;  // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
-                                                                                  // devrait être convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead)/100;
-                                                                                  // vérifier srt...   
+    deltaTemp=(convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead))/100;    // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
+                                                                                      // devrait être convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead)/100;
+                                                                                      // vérifier srt...   
     srt+=sizeRead;
     
     *(data+RADIO_ADDR_LENGTH+1+srt+8)='\0';
     Serial.print(":::");Serial.print((char*)(data+RADIO_ADDR_LENGTH+1+srt));  
-    userData[0]=packGet((char*)(data+RADIO_ADDR_LENGTH+1+srt),4);                   // forme '_hhhhhhhh' //Serial.println(userData[0]);
+    userData[0]=packGet((char*)(data+RADIO_ADDR_LENGTH+1+srt),4);                     // forme '_hhhhhhhh' //Serial.println(userData[0]);
     srt+=5;
     userData[1]=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4);
     srt+=4;
@@ -143,7 +144,7 @@ void importData(byte* data,uint8_t dataLength)
     if(prevAnalOutput!=analOutput){radUpdate(analOutput);prevAnalOutput=analOutput;} 
   }
   /*
-  else if(memcmp(VERSION,"2.c",3)<=0){                                                                              // version > 1.c
+  else if(memcmp(VERSION,"2.c",3)<=0){                                                // version > 1.c
     // rrrrrtttttpppphhhhhhhhHHHHHHHHAACC  rrrrr refresh per ; ttttt temp per ; 
     // pppp pitch temp*100 ; hh... HH... userData 1/2 ; AA anal ouitput ; CC periCfg
     perRefr=0;conv_atob((char*)(data+RADIO_ADDR_LENGTH+1),&perRefr,5);              // per refresh server
@@ -184,13 +185,14 @@ void importData(byte* data,uint8_t dataLength)
     srt+=4;
     
     byte* abst=data+RADIO_ADDR_LENGTH+srt;
+    absTime=0;
     absTime=((((*abst-0x20)<<ABSTIME_STEP)+
       ((*(abst+1)-0x20)))<<(ABSTIME_STEP))+
       (*(abst+2)-0x20)+
       RADIO_TFR_DLY;
     
     periodCnt=0;
-    absMillis=(micros()-t_on)/1000;                                       // temp absolu pour cellules
+    absMillis=lastWaitCellDly+(micros()-t_on)/1000;
     /*
     absTime=0;
       for(uint8_t i=0;i<3;i++){
@@ -201,11 +203,11 @@ void importData(byte* data,uint8_t dataLength)
     }
       //Serial.println();
     */
-    int32_t dly=512-absTime-50;
+    /*int32_t dly=512-absTime-50;
     if(dly<0){dly=0;}
     medSleepDly(dly);
     marker(MARKER);Serial.print("-marker:");Serial.print(dly);delay(1);
-    
+    */
     srt+=3;
     uint16_t pitch=0;
     conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&pitch,3);                        // pitch mesure
@@ -226,13 +228,17 @@ void importData(byte* data,uint8_t dataLength)
     Serial.print("\n£ ");
     Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS com nb ; nbL loop nb
     for(uint8_t ii=0;ii<dataLength;ii++){Serial.print((char)data[ii]);delayMicroseconds(100);}Serial.print(" ");
-    Serial.print("per_s=");Serial.print(perRefr);Serial.print(" per_t=");Serial.print(perTemp);Serial.print(" period=");Serial.print(period*1000);                                                                                   
-    Serial.print(" aw_min=");Serial.print(aw_min);Serial.print(" aw_ok=");Serial.print(aw_ok);Serial.print(" pth=");Serial.print(deltaTemp);
-    Serial.print(" usr=");Serial.print(userData[0]);Serial.print(" / ");Serial.print(userData[1]);
-    Serial.print(" anOut=");Serial.print(analOutput);Serial.print(" / ");Serial.print(analOutput,HEX);Serial.print('-');Serial.print(prevAnalOutput);
-    Serial.print(" cfg=");Serial.print(periCfg);Serial.print(" / ");Serial.print(periCfg,HEX);
-    delay(4);
-    Serial.println(" £");                                                                                   
+    Serial.print("per_s=");Serial.print(perRefr);Serial.print(" per_t=");Serial.print(perTemp);
+    Serial.print(" per=");Serial.print((int)(period*1000));                                                                                   
+    Serial.print(" aw_min=");Serial.print(aw_min);Serial.print(" aw_ok=");Serial.print(aw_ok);
+    Serial.print(" pth=");Serial.print(deltaTemp);
+    Serial.print(" usr=");Serial.print(userData[0]);Serial.print("/");Serial.print(userData[1]);
+    delay(3);
+    Serial.print(" anOut=");Serial.print(analOutput);Serial.print("/");Serial.print(analOutput,HEX);
+    Serial.print('-');Serial.print(prevAnalOutput);
+    Serial.print(" cfg=");Serial.print(periCfg);Serial.print("/");Serial.print(periCfg,HEX);
+    Serial.println(" £");
+    delay(2);                                                                                   
   }
 }
 
