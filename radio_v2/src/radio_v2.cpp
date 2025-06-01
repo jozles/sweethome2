@@ -241,14 +241,14 @@ void int_ISR()
   //Serial.println("int_ISR");
 }
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(2);}
-void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.print(rdSta);}
+void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.print(rdSta);delay(2);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.print("°C ");delay(4);}
 void waitCell();
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 void getPeriod(){
   Serial.print("period ");delay(1);
-  unsigned long t_beg;
+  /*unsigned long t_beg;
   unsigned long t_end;
   delayBlk(500,0,0,1,1);
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
@@ -257,7 +257,8 @@ void getPeriod(){
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
   t_end=micros();
   period=(t_end-t_beg);period=period/1000000;
-  delayBlk(500,0,0,1,1);
+  delayBlk(500,0,0,1,1);*/
+  period=9.904;
   Serial.print(period*1000);Serial.print("ms ");
 }
 #endif // MACHINE_DET328
@@ -495,8 +496,6 @@ void loop() {
 
   if(lowPower){lethalSleep();}
 
-  ini_t_on();
-
   if(diags){  
     t_on4=micros();
     Serial.print("$ ");
@@ -520,8 +519,10 @@ void loop() {
     awakeCnt--;
     awakeMinCnt--;
     sleepNoPwr(0);
+    marker(MARKER2);
     nbL++;
     periodCnt++;
+    
     if(diags){
       Serial.print("+");delayMicroseconds(200);
       if(periodCnt==1 && (nbS&0xfff)==0){                // update period
@@ -529,6 +530,9 @@ void loop() {
         getPeriod();periodCnt+=2;}
     }
   }
+
+  marker(MARKER);
+  ini_t_on();
 
   /* usefull awake or retry */
   digitalWrite(PLED,HIGH);
@@ -584,17 +588,18 @@ void loop() {
     //nbS++;
 
     if(numT!=0 || (absTime!=0 && absMillis!=0)){waitCell();}
-    marker(MARKER);
+    
     t_on2=micros();                                       // message build ... send   
     radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR);    // si waitCell rallonge
     trSta=0;
+    marker(MARKER);
     rdSta=txRxMessage(outLength);                         // retour -2 ko ; >0 ok
-    radio.powerOff();
+    radio.powerOff();  
     t_on21=micros();
     
     if(rdSta>=0){                                         // no error
       prtCom(" ok",rdSta);
-      marker(MARKER);
+      
       /* echo request ? (address field is 0x5555555555) */
       if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){echo();}
       else {                                      
@@ -1047,15 +1052,13 @@ void waitCell()                             // attente cellule temporelle
     uint32_t  tcur=0;
     uint32_t  tcell=0;
     int32_t   dly=0;
-    unsigned long tmicros=0;
-
-    
+    unsigned long tcur0=0;
+    unsigned long tdiag=5;
+              
     // calcul tcur = temps écoulé entre premier début de bloc cellulaire et maintenant
-      //if(absTime>absMillis){deltaTBeg=absTime-absMillis;}
-      //else{deltaTBeg=-(absMillis-absTime);}
       deltaTBeg=absTime-absMillis;
-      tmicros=micros()-t_on;
-      tcur=(periodCnt*period)+deltaTBeg+tmicros/1000+POWONDLY;
+      tcur0=(micros()-t_on)/1000;
+      tcur=(periodCnt*period*1000)+deltaTBeg+tcur0+POWONDLY+tdiag;
       
       // calcul tcell = temps écoulé entre premier et dernier début de bloc cellulaire 
       tcell=((tcur/ABSTIME)*ABSTIME)+(CELLDUR*numT); //=tcur/ABSTIME*ABSTIME;
@@ -1064,20 +1067,23 @@ void waitCell()                             // attente cellule temporelle
       // delay
       dly=tcell-tcur;
       if(dly>ABSTIME){dly=0;}
-      
-      medSleepDly(dly);             
-                                    
+
+      delay(dly);
+      lastWaitCellDly=0;
+/*
+      medSleepDly(dly);                          
       lastWaitCellDly=(dly/DLYSTP)*DLYSTP;          // le compteur est arrêté pendant sleepDly ;                                 
-                                                    // sa valeur est ajoutée à absMillis() dans importData()
+*/                                                  // sa valeur est ajoutée à absMillis() dans importData()
     if(diags){
-      Serial.print(" tmicros:");Serial.print(tmicros);
-      Serial.print(" tcell:");Serial.print(tcell);
+      Serial.print(" tcur0:");Serial.print(tcur0);
       Serial.print(" ABSTIME:");Serial.print(ABSTIME);
+      Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);
       delay(2);
-      Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);Serial.print(" periodCnt:");Serial.print(periodCnt);
+      Serial.print(" numT:");Serial.print(numT);
+      Serial.print(" period:");Serial.print(periodCnt);Serial.print('/');Serial.print((int)(period*1000));
       Serial.print(" tcur:");Serial.print(tcur);Serial.print(" tcell:");Serial.print(tcell);
-      Serial.print(" wait:");Serial.println(lastWaitCellDly);
-      delay(2);
+      Serial.print(" wait:");Serial.println(dly);
+      delay(3);
     }
 //*/      
 }

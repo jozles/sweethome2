@@ -193,6 +193,7 @@ void importData(byte* data,uint8_t dataLength)
     
     periodCnt=0;
     absMillis=lastWaitCellDly+(micros()-t_on)/1000;
+    marker(MARKER);
     /*
     absTime=0;
       for(uint8_t i=0;i<3;i++){
