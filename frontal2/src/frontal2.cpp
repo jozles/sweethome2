@@ -2004,7 +2004,11 @@ void commonserver(EthernetClient* cli,EthernetUDP* udpCli,const char* bufData,ui
                                   swCtlTableHtml(cli);break;                                        // + bouton en/dis all    (switchs)
                          case 'W':cliext.stop();periReq(&cliext,periCur,"etat______");
                                   swCtlTableHtml(cli);break;                                        // + bouton refresh switchs/showLine/periLine
-                         case 'U':if(periSrc!=0){                                                   // + bouton copy from (switchs)
+                         case 'U':                                                                  // + bouton copy from (switchs)
+                          Serial.print("periCur=");Serial.print(periCur);Serial.print(" periSrc=");Serial.println(periSrc);
+                          dumpstr((char*)periCache+(periSrc-1)*PERIRECLEN+(periInput-periBegOfRecord),PERINPLEN*NBPERRULES);
+                          dumpstr((char*)periInput,PERINPLEN*NBPERRULES);
+                                    if(periSrc!=0){
                                     memcpy(periInput,periCache+(periSrc-1)*PERIRECLEN+(periInput-periBegOfRecord),PERINPLEN*NBPERRULES);
                                     periSave(periCur,PERISAVESD);periSrc=0;swCtlTableHtml(cli);}
                                   break;

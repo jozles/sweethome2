@@ -80,7 +80,7 @@ v2.b  Compatibilté avec LoRa ; les codes erreur sont dans radio_const.h ;
       le port udp du server auquel s'adresse le concentrateur provient de configCreate ou de getServerConfig
       Le numéro d'UDP qui s'affiche dans periLine correspond à l'instance UDP qui a reçu le message (selon le port de la config du concentrateur)
 v2.c  La structure du message vers le périf change pour faire de la place au temps absolu des cellules (voir radio_user_peri/conc)
-      mise en place cellules temporelles
+      mise en place cellules temporelles ; 
 */
 
 /************* config ****************/

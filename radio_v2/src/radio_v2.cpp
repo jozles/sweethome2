@@ -241,24 +241,25 @@ void int_ISR()
   //Serial.println("int_ISR");
 }
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(2);}
-void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.print(rdSta);delay(2);}
+void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.println(rdSta);delay(2);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.print("°C ");delay(4);}
 void waitCell();
-void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 void getPeriod(){
   Serial.print("period ");delay(1);
-  /*unsigned long t_beg;
+  ///*
+  unsigned long t_beg;
   unsigned long t_end;
-  delayBlk(500,0,0,1,1);
+  blink(1);
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
   t_beg=micros();
-  delayBlk(500,0,0,1,1);
+  blink(1);
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
   t_end=micros();
   period=(t_end-t_beg);period=period/1000000;
-  delayBlk(500,0,0,1,1);*/
-  period=9.904;
+  blink(1);
+  //*/
+  //period=9.90;
   Serial.print(period*1000);Serial.print("ms ");
 }
 #endif // MACHINE_DET328
@@ -322,17 +323,17 @@ void setup() {
   
   configInit();
   configLoad();
-  configPrint();
-
-  radio.locAddr=periRxAddr;
-
-  /*// ---- config pour conc 3 ----
+    /* ---- config pour conc 3 ----
+  memcpy(periRxAddr,"peri8\0",RADIO_ADDR_LENGTH+1);
   memcpy(configVers,"02\0",3);
   memcpy(concAddr,"SHCO3",RADIO_ADDR_LENGTH);*concChannel=90;
   *concNb=3;*concSpeed=0;
   configSave();
-  */
-  
+    //*/
+  configLoad();
+  configPrint();
+
+  radio.locAddr=periRxAddr;
   radio.ccAddr=concAddr;
   channel=*concChannel;
   //speed=*concSpeed;
@@ -343,7 +344,7 @@ void setup() {
   wd();                           // watchdog
   iniTemp();
   
-  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");
+  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");delay(2);
   radio.printAddr((char*)periRxAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);
   Serial.print('(');Serial.print(*concNb);Serial.print('-');Serial.print(channel);
   Serial.print('/');Serial.print(*concSpeed);Serial.print(")");
@@ -386,8 +387,6 @@ void setup() {
 
 #if MACHINE_CONCENTRATEUR
 
-  //PP4_INIT
-
 /*
   dumpstr(ram_remanente,16);
   ram_remanente[LRAMREM-1]='\0';
@@ -396,19 +395,15 @@ void setup() {
   Serial.println(ram_remanente);
   ram_remanente=1111;
 */
-
-
-  //blkCtlInit(15,16,17);blkCtl('a');
   
+  initLed(PINLED,LEDOFF,LEDON);blink(1);  // start WD
+
   delay(1000);
   Serial.begin(115200);Serial1.begin(115200);
 
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);
-  
-  //Serial.print(" PP=");Serial.print(PP);
   Serial.print("+ ");Serial.print(TXRX_MODE);Serial.print(" ");
 
-  pinMode(PLED,OUTPUT);
 #ifdef REDV1
   pinMode(POWCD,OUTPUT);                // power ON shield
   digitalWrite(POWCD,POWON);
@@ -416,24 +411,15 @@ void setup() {
   delay(100);
 #endif // REDV1
 
-blkCtl('b');
-
 /* version avec params de réseau/radio en eeprom */
-
-///* version frontal
 
   configInit();
 
-  initLed(PINLED,LEDOFF,LEDON);
-  blink(4);
-
-  //Serial.print("serv tcp");Serial.println((uint32_t)serverTcpPort);
+  blink(2);   
 
   // !!!!!!!!!!!!!!!!!!! soit l'écriture, soit la lecture de la flash ne fonctionne plus sur la carte due en cours !!!!!!!!!!!!!!!!!!!
   //configCreate();//while(1){}; //digitalRead(STOPREQ)==LOW){blink(1);delay(1000);}
   // ===== test avec la carte marquée TEST_CFG ... ce qui est écrit se relit bien après un power off ===== (jlink branché)
-
-  //Serial.print(" serv tcp");Serial.println((uint32_t)serverTcpPort);
 
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
@@ -447,7 +433,7 @@ blkCtl('b');
   t_on=millis();
   diags=diagSetup(t_on);
 
-  configCreate();
+  configCreate();                       // configSave/configLoad ne fonctionnent pas si poweroff !
 
   configLoad();
 
@@ -459,8 +445,6 @@ blkCtl('b');
 #endif // TXRX_MODE T
 
   configPrint();
-
-blkCtl('c');
 
   WDTRIG //trigwd(0);blktime=millis();
 
@@ -475,10 +459,11 @@ blkCtl('c');
 #endif //  
 
   time_beg=millis();
-  while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
-  
-blkCtl('d');    
+  //while((millis()-time_beg)<800){ledblk(TBLK,1000,80,4);}          // 0,8sec (4 blink)
+  blink(2);
+   
   exportDataMail("START",4);
+  blink(4);
 
   Serial.println();
 
@@ -493,6 +478,9 @@ blkCtl('d');
 void loop() {
 
 #if MACHINE_DET328
+
+  /* un blink environ 1.2 mS lecture volts si réveil avec com (selon awake...Cnt etc)
+     si com ok 4 blinks supplémentaires */
 
   if(lowPower){lethalSleep();}
 
@@ -515,7 +503,7 @@ void loop() {
   }            
 
   /* timing to usefull awake */
-  while(((awakeMinCnt>=0)&&(awakeCnt>=0)&&(retryCnt==0))){
+  while(((awakeMinCnt>0)&&(awakeCnt>0)&&(retryCnt==0))){
     awakeCnt--;
     awakeMinCnt--;
     sleepNoPwr(0);
@@ -525,9 +513,11 @@ void loop() {
     
     if(diags){
       Serial.print("+");delayMicroseconds(200);
-      if(periodCnt==1 && (nbS&0xfff)==0){                // update period
+      /*
+      if(periodCnt==1 && (nbS&0xfff)==0){                // update period every 0xfff com
         Serial.println();Serial.print(period*1000);Serial.print(' ');
         getPeriod();periodCnt+=2;}
+      */
     }
   }
 
@@ -622,8 +612,8 @@ void loop() {
       nbK++;
       prtCom(" ko",rdSta);
       forceSend=true;
-      showErr(true);
       trSta=0;rdSta=0;
+      showErr(true);
       numT=0;                                             // tx or rx error : refaire l'inscription au prochain réveil
       switch(retryCnt){                                   
         case 0:retryCnt=aw_retry;break;                   // retryCnt ==0 -> debut des retry
@@ -631,7 +621,7 @@ void loop() {
                retryCnt=0;break;
         default:retryCnt--;break;                         // retryCnt >1  -> retry en cours pas de sleep
       }
-    delayBlk(32,0,0,1,1);                                 // txRx ko : 1 blink
+                                                          // txRx KO pas de blink
     }
     //================================ version sans retry ===========================
     retryCnt=0;awakeCnt=aw_ok;awakeMinCnt=aw_min;
@@ -653,8 +643,6 @@ void loop() {
 
 #if MACHINE_CONCENTRATEUR
 
-  //blkCtl('g');
-
   if(menu){
     Serial.print("     ");
     radio.printAddr((char*)radio.locAddr,0);
@@ -671,8 +659,6 @@ void loop() {
     Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print(UDPREF/1000); //(CONCTO*perConc)/1000);
     Serial.println("sec - reset ");
     userResetSetup(serverIp,(char*)"UDP TO");}  //forceWd();}
-
-//blkCtl('c');
 
   numT=0;                                               // will stay 0 if no registration
   pldLength=MAX_PAYLOAD_LENGTH;                         // max length
@@ -701,6 +687,8 @@ void loop() {
       //radio.printAddr((char*)messageIn,0);
       //showRx(messageIn,false);                                        
       
+marker(MARKER2);
+
       if(pipe==1){                                      // registration request 
         numT=cRegister((char*)messageIn,pldLength);     // retour NBPERIF full sinon N° perif dans tableC (1-n)
         if(numT<(NBPERIF)){                             // registration ok
@@ -751,7 +739,6 @@ void loop() {
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
   /* ======= formatting & tx to server ====== */
         if(numT==0){
-//blkCtl('d');
           exportData(rdSta);}                         // numT==0 if perif already had registration nb
       }                                               // numT!=0 if perif only made registration request (no data)
       else {                                          
@@ -777,7 +764,6 @@ void loop() {
   // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
 
-//blkCtl('e');
     int dt=importData();importCnt++;
 
     if(dt==MESSNUMP){tableC[rdSta].numPeri=0;Serial.print('+');}
@@ -793,8 +779,7 @@ void loop() {
   //if(rdSta==AV_EMPTY && (dt==MESSCX || dt==MESSLEN)){       // pas de réception valide ni importData
     
     if((millis()-concTime)>=perConc){
-      //if(perConc<600000){Serial.println("perConc");while(1){};}
-//blkCtl('f');       
+      //if(perConc<600000){Serial.println("perConc");while(1){};}   
       concTime=millis();exportDataMail(nullptr);    
       /*
       Serial.print(" importCnt:");Serial.print(importCnt);importCnt=0;Serial.print(" ");
@@ -807,7 +792,6 @@ void loop() {
   //} 
   
     if((millis()-radioWd)>NO_RADIO_CX_TO){    // wd radio
-//blkCtl('g');
       Serial.print("pas de cx radio depuis ");Serial.print(NO_RADIO_CX_TO/1000);Serial.println("sec - re_init ");delay(10);
       configLoad();
       Serial.print('@');
@@ -950,21 +934,25 @@ char getch()
 
 int beginP(uint8_t pldL)                        // manage registration ; output value >0 is numT else error with radio.powerOff()
 {                               
+  if(diags){
+    unsigned long localTdiag=micros();
+    Serial.print("beginP ");
+    tdiag+=(micros()-localTdiag);
+  }
   nbS++;
   int confSta=-1;
   int8_t beginP_retryCnt=2; // 1; // ================================================= version avec retry 
   memcpy(messageIn,message,pldL);
   pldLength=pldL;
+  
   while(beginP_retryCnt>0){                         // confsta>=1 or -5 or wait     
     beginP_retryCnt--;
     confSta=radio.pRegister(messageIn,&pldLength);  // -5 maxRT ; -4 empty ; -3 mac ; -2 len ; -1 pipe ;
                                                     // 0 na ; >=1 ok numT                 
     if(diags){          
       unsigned long localTdiag=micros();
-      Serial.print("beginP");Serial.print(beginP_retryCnt);Serial.print(' ');
-      tdiag+=(micros()-localTdiag);}    // après pReg pour que la sortie n'interfère pas avec les tfr SPI
-    else {Serial.println();}
-    Serial.print("##");Serial.print(confSta);Serial.print(' ');delay(1);                                                        
+      Serial.print('#');Serial.print(beginP_retryCnt);Serial.print(':');Serial.print(confSta);Serial.print(' ');
+      tdiag+=(micros()-localTdiag);}    // après pReg pour que la sortie n'interfère pas avec les tfr SPI                                 
     
     if(confSta>0){
       awakeMinCnt=-1;                   // force data upload
@@ -979,7 +967,7 @@ int beginP(uint8_t pldL)                        // manage registration ; output 
 
   if(diags){
     unsigned long localTdiag=micros();    
-    if(confSta<=0){Serial.println();delay(1);}
+    Serial.println();delay(1);
     tdiag+=(micros()-localTdiag);
   }
   
@@ -1067,20 +1055,23 @@ void waitCell()                             // attente cellule temporelle
       // delay
       dly=tcell-tcur;
       if(dly>ABSTIME){dly=0;}
-
+/*
       delay(dly);
       lastWaitCellDly=0;
-/*
+*/      
+///*
+unsigned long tt=micros();
       medSleepDly(dly);                          
       lastWaitCellDly=(dly/DLYSTP)*DLYSTP;          // le compteur est arrêté pendant sleepDly ;                                 
-*/                                                  // sa valeur est ajoutée à absMillis() dans importData()
+//*/                                                // sa valeur est ajoutée à absMillis() dans importData()
     if(diags){
+      Serial.print(" micr-tt:");Serial.print(micros()-tt);
       Serial.print(" tcur0:");Serial.print(tcur0);
       Serial.print(" ABSTIME:");Serial.print(ABSTIME);
       Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);
       delay(2);
       Serial.print(" numT:");Serial.print(numT);
-      Serial.print(" period:");Serial.print(periodCnt);Serial.print('/');Serial.print((int)(period*1000));
+      Serial.print(" period:");Serial.print(periodCnt);Serial.print('@');Serial.print((int)(period*1000));
       Serial.print(" tcur:");Serial.print(tcur);Serial.print(" tcell:");Serial.print(tcell);
       Serial.print(" wait:");Serial.println(dly);
       delay(3);
@@ -1091,16 +1082,6 @@ void waitCell()                             // attente cellule temporelle
 int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] chargé avec au moins adresseMac et version
 {                                   // pour que le concentrateur renvoie le bon format de données
   if(numT==0){
-    /*
-    rdSta=beginP(pldL);
-    if(rdSta<=0){rdSta=-2;}                // numT still 0 ; beginP n'a pas fonctionné
-    else{
-      numT=rdSta;
-      //message[RADIO_ADDR_LENGTH]=numT+48;
-      //memcpy(messageIn,message,pldLength);
-    }
-    return rdSta;
-    */
 
     int8_t bp=beginP(pldL);
     if(bp<=0){return -2;}
@@ -1111,8 +1092,7 @@ int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] cha
   message[RADIO_ADDR_LENGTH]=numT+48;
   memcpy(messageIn,message,pldLength);
   nbS++;
-  rdSta=radio.txRx(messageIn,&pldLength);
-  return rdSta;
+  return radio.txRx(messageIn,&pldLength);
 }
 
 #endif // MACHINE_DET328

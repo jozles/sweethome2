@@ -188,9 +188,15 @@
         format IPAddress pour messToServer (voir comments dans shlib2.h)
    1.8q corrections testmail des périphériques, mail() ; ajout ip 109 pour autorisation UDP (frontal2)
         modif showline affichage couleurs dates/heures connexions
+        
 
 
    BUGS : 
+
+     switchs : fonction de recopie depuis un autre périf (copy from) ne fonctionne pas directement
+          la variable periSrc n'est pas prise en compte lors de l'appui du bouton "copy from"
+          elle arrive à 0 ; il faut faire entrée sur la variable source puis en seconde étape le bouton "copy from"
+          2nd défaut : les 2 actions arrivent en saisie de login au lieu de réafficher la page courante
      
      cli.stop() différé des périfs semble planter if(ab!='a'){cli.stop();} : 
           interaction possible avec le socket close de showSocketStatus de watchdog()

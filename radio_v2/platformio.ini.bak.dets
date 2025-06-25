@@ -18,16 +18,15 @@ platform = atmelavr
 ;d:\data\arduino\board_dets328P
 ;board = uno
 board = ATmega328P
-board_hardware.oscillator = external
+board_hardware.oscillator = internal
 board_build.f_cpu = 8000000L
 framework = arduino
-monitor_port = COM4
+monitor_port = COM12
 monitor_speed = 115200
-upload_port = COM4
+upload_port = COM12
 upload_speed = 38400
 ;115200
-;upload_protocol = arduino
-upload_protocol = urclock ; miniCore v3.1.1
+upload_protocol = urclock ;usbasp ;urclock ;arduino
 
 ;build_type = debug
 build_flags = -DDETS -DPERIF -DMACHINE_DET328
