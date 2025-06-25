@@ -235,12 +235,14 @@ Modifier :
 
 /* >>> CARTES <<< */
 
-#define VR      'V'  // 2 triacs
-#define VRR     'W'  // 2 relais
-#define VRDEV   'D'  // carte dev avec 2 leds
+#define VR      'V'  // 2 triacs           ------ configurer platformio.ini pour esp12 -----
+#define VRR     'W'  // 2 relais           ------ configurer platformio.ini pour esp12 -----
+#define VRDEV   'D'  // carte dev avec 2 leds --- configurer platformio.ini pour esp12 -----
 #define SFRFR2  'S'  // carte sonoff_rf_r2 ------ configurer platformio.ini pour 8285 -----
+                     // ou SPLUG           ------ configurer platformio.ini pour esp12 -----
+                     // connecter GND,TX,RX tenir le switch enfoncé et connecter V3.3 pour programmer
 #define SFPOW   'P'  // carte sonoff_pow   ------ configurer platformio.ini pour esp32 ----
-#define DEVKITC 'D'  // carte nodemcu devkitc ------ configurer platformio.ini pour esp32 ---- sonoff_pow et devkitc compatibles sauf absence CSE7766
+#define DEVKITC 'D'  // carte nodemcu devkitc --- configurer platformio.ini pour esp32 ---- sonoff_pow et devkitc compatibles sauf absence CSE7766
 //#define RELAY
 #define THESP01 '1'
 #define THESP12 '2'
@@ -252,7 +254,7 @@ Modifier :
 //
 //                                 enlever le cable série pour que ça marche sur THESP01
 //                                 updater la condition de pinMode dansle setup en cas de nouvelle carte
-#define CARTE VRR              // <------------- modèle carte
+#define CARTE SFRFR2              // <------------- modèle carte
 #define POWER_MODE NO_MODE      // <------------- type d'alimentation
 
 /* ds18x20 */
@@ -402,6 +404,41 @@ Modifier :
 #define SAMPLES 5
 #endif // CAPATOUCH
 #endif // CARTE==VRR
+
+#if CARTE==SFRFR2
+// ------------------------ configurer platformio.ini pour 8285 -----------------------------
+#define PINLED 13
+#define LEDON LOW
+#define LEDOFF HIGH
+#define MAIL_SENDER
+//#define PINXDT 13
+//#define WPIN   2        // 1 wire ds1820
+#define NBSW   1        // nbre switchs
+#define PINSWA 12       // pin sortie switch A
+#define CLOSA  HIGH     // relais ON
+#define OPENA  LOW      // relais off
+#define PINSWB 4   // pin sortie switch B
+#define CLOSB  CLOSA    // relais ON sortie haute
+#define OPENB  OPENA    // relais OFF
+#define PINSWC 4   // pin sortie switch C
+#define CLOSC  CLOSA
+#define OPENC  OPENA
+#define PINSWD 4   // pin sortie switch D
+#define CLOSD  CLOSA
+#define OPEND  OPENA
+#define NBDET  1        //  3 det et non 4
+#define PINDTA 0        // pin entrée détect bit 0
+#define PINDTB PINDTA   // pin entrée détect bit 1
+#define PINDTC PINDTA   // pin entrée détect bit 2  sur carte VR 3 entrées donc bit 2 et 3
+#define PINDTD PINDTA   // pin entrée détect bit 3  sur la même entrée. --> génère un bug dans le traitement des règles (2 det changent au lieu d'un)
+#define MEMDINIT 0x1111 // bits enable
+//#define PINPOFF 3       // power off TPL5111 (RX ESP01)
+#define PERTEMP 20      // secondes période par défaut lecture temp (en PO_MODE fixé par la résistance du 511x)
+#define TOOGBT PINDTA   // toogle pushbutton local
+#define TOOGLV 0        // toogle active edge
+#define TOOGSW PINSWA   // toogled output
+#define PULSEBLINK 10   // durée pulse led
+#endif // CARTE==SFRFR2(8285) ou smart_plug S26(8266)
 
 #if CARTE==SFRFR2
 // ------------------------ configurer platformio.ini pour 8285 -----------------------------
