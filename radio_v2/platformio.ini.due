@@ -12,10 +12,10 @@
 platform = atmelsam
 board = due
 framework = arduino
-monitor_port = COM11
+monitor_port = COM3
 monitor_speed = 115200
 
-upload_port = COM11
+upload_port = COM3
 ;upload_protocol = jlink
 ;debug_tool = jlink
 
@@ -27,8 +27,8 @@ LIB_EXTRA_DIRS =
  D:/data/arduino/libraries/pgmStrToRAM/
  D:/data/arduino/libraries/SdFat/
  D:/data/arduino/libraries/DueFlashStorage/
- ;D:/data/arduino/libraries/nrf/
- D:/data/arduino/libraries/LoRa/
+ D:/data/arduino/libraries/nrf/
+ ;D:/data/arduino/libraries/LoRa/
  D:/data/arduino/libraries/Radio/
 
 

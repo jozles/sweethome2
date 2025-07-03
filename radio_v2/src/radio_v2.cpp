@@ -26,6 +26,7 @@ Eepr eeprom;
 #include "nRF24L01.h"
 #include "nrf24l01s.h"
 Nrfp radio;
+uint8_t radioChannel[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};
 #endif
 
 #ifdef LORA
@@ -103,13 +104,7 @@ bool    echoOn=false;                     // fonction echo en cours (sur l'entr�
                                           // le concentrateur est bloqué pendant la maneuvre
  
 uint8_t channel;
-/*#ifdef NRF
-uint8_t speed=RF_SPD_1MB;
-#endif
-#ifndef NRF
-uint8_t speed=0;
-#endif
-*/
+
 extern byte*  configVers;
 
 #if MACHINE_CONCENTRATEUR
@@ -323,14 +318,17 @@ void setup() {
   
   configInit();
   configLoad();
+
     /* ---- config pour conc 3 ----
-  memcpy(periRxAddr,"peri8\0",RADIO_ADDR_LENGTH+1);
+  memcpy(periRxAddr,"peri9\0",RADIO_ADDR_LENGTH+1);
   memcpy(configVers,"02\0",3);
-  memcpy(concAddr,"SHCO3",RADIO_ADDR_LENGTH);*concChannel=90;
-  *concNb=3;*concSpeed=0;
+  memcpy(concAddr,"SHCO3",RADIO_ADDR_LENGTH);
+  *concNb=3;
+  *concChannel=radioChannel[*concNb];
+  *concSpeed=RF_SPD_1MB; 
   configSave();
     //*/
-  configLoad();
+
   configPrint();
 
   radio.locAddr=periRxAddr;
@@ -403,6 +401,8 @@ void setup() {
 
   Serial.println();Serial.print("start setup v");Serial.print(VERSION);
   Serial.print("+ ");Serial.print(TXRX_MODE);Serial.print(" ");
+
+  //while(1){marker(MARKER);delay(2);marker(MARKER2);delay(2);}
 
 #ifdef REDV1
   pinMode(POWCD,OUTPUT);                // power ON shield
@@ -507,7 +507,6 @@ void loop() {
     awakeCnt--;
     awakeMinCnt--;
     sleepNoPwr(0);
-    marker(MARKER2);
     nbL++;
     periodCnt++;
     
@@ -588,6 +587,7 @@ void loop() {
     t_on21=micros();
     
     if(rdSta>=0){                                         // no error
+      marker(MARKER);
       prtCom(" ok",rdSta);
       
       /* echo request ? (address field is 0x5555555555) */
@@ -653,7 +653,9 @@ void loop() {
 
   ledblk(TBLK,3000,IBLK,1);
   
-  if((millis()&0x1ff)==0){marker(MARKER);}
+  if((millis()&0x1ff)==0){
+    marker(MARKER);
+  }
 
   if((millis()-lastUdpCall)>UDPREF && exportCnt>=3){//CONCTO*perConc)){
     Serial.print(millis());Serial.print(" pas reçu de cx udp (valide) depuis plus de ");Serial.print(UDPREF/1000); //(CONCTO*perConc)/1000);
@@ -678,16 +680,17 @@ void loop() {
     else if(rdSta>0){Serial.println();}
   }
 
-  if(rdSta>=0){radioWd=millis();}
+  if(rdSta>=0){
+    //marker(MARKER2);
+    radioWd=millis();
+  }                       // >=0 pas d'erreur
 
-  if(rdSta==0){                                         // >=0 pas d'erreur
+  if(rdSta==0){                                         // ==0 reg to do (pipe==1) or concAddr req (pipe=2)                      
     
   // ====== no error registration request or conc macAddr request (pipe 2) ======
 
       //radio.printAddr((char*)messageIn,0);
       //showRx(messageIn,false);                                        
-      
-marker(MARKER2);
 
       if(pipe==1){                                      // registration request 
         numT=cRegister((char*)messageIn,pldLength);     // retour NBPERIF full sinon N° perif dans tableC (1-n)
@@ -712,22 +715,23 @@ marker(MARKER2);
   // ====== no error && valid entry (rdSta=n° de perif fourni par le perif ou à l'issue de cRegister) ======         
   
 
-  if((rdSta>0) && (memcmp(messageIn,tableC[rdSta].periMac,RADIO_ADDR_LENGTH)==0)){    // verif de l'adresse mac
-                                                      // rdSta is table entry nb
-      if(numT==0 && (echoNb!=rdSta || !echoOn)){      // numT=0 means : that is not a registration, and message is not an echo answer 
-                                                      // so -> incoming message storage
+  if((rdSta>0)                                          // >0 valid entry from registred perif
+    && (memcmp(messageIn,tableC[rdSta].periMac,RADIO_ADDR_LENGTH)==0)){    // verif de l'adresse mac
+                                                        // rdSta is table entry nb
+      if(numT==0 && (echoNb!=rdSta || !echoOn)){        // numT=0 means : that is not a registration, and message is not an echo answer 
+                                                        // so -> incoming message storage
         memcpy(tableC[rdSta].periBuf,messageIn,pldLength);
         memcpy(tableC[rdSta].periMac,messageIn,RADIO_ADDR_LENGTH);    
         tableC[rdSta].periBufLength=pldLength;
       }
       
-      if(echoNb!=rdSta){                              // if no echo pending on this table entry
+      if(echoNb!=rdSta){                                // if no echo pending on this table entry
   /* build config */
         memcpy(message,messageIn,RADIO_ADDR_LENGTH+1);
         memcpy(message+RADIO_ADDR_LENGTH+1,tableC[rdSta].servBuf,MAX_PAYLOAD_LENGTH-RADIO_ADDR_LENGTH-1);    
-                                                      // build message to perif with server data
-                                                      // server data is MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
-                                                      // see importData()
+                                                        // build message to perif with server data
+                                                        // server data is MMMMM_UUUUU_PPPP  MMMMM aw_min value ; UUUUU aw_ok value ; PPPP pitch value 100x
+                                                        // see importData()
         if(memcmp(tableC[rdSta].periBuf+RADIO_ADDR_LENGTH+1,"2.c",3)>=0){     // ajout temps absolu cellules
           fillMess(message); 
         }
@@ -753,13 +757,13 @@ marker(MARKER2);
   // ====== error, full or empty -> ignore ======
   // peripheral must re-do registration so no answer to lead to rx error
 
-  //if(diags){
+  if(diags){
     if(rdSta>=0){
       Serial.print(" rx+tx");if(numT==0){Serial.print("+export");}
       Serial.print(" (");
       Serial.print(rdSta);Serial.print(")=");Serial.println(micros()-time_beg);}  // pas d'erreur, un cycle complet a été effectué
     else if(rdSta!=AV_EMPTY){Serial.print(" radio err ");Serial.print(rdSta);Serial.print('=');Serial.println(micros()-time_beg);}
-  //}
+  }
 
   // ====== RX from server ? ====  
   // importData returns MESSOK(ok)/MESSCX(no cx)/MESSLEN(len=0);MESSNUMP(numPeri HS)/MESSMAC(mac not found)
@@ -1037,45 +1041,60 @@ void waitCell()                             // attente cellule temporelle
     }
 
     int32_t   deltaTBeg=0;
-    uint32_t  tcur=0;
-    uint32_t  tcell=0;
+    int32_t   tcur=0;       // intervalle depuis 1ère cellule jusqu'à waitCell 
+    int32_t   tcell=0;      // intervalle depuis 1ère cellule jusqu'à cellule(numT)
+    uint32_t  blocks=0;
     int32_t   dly=0;
-    unsigned long tcur0=0;
-    unsigned long tdiag=5;
+    int32_t   tcur0=0;
+    int32_t   tdiag=7.5;    // ms ; intervalle entre latch 1ère cellule et latch 1er t_on !! paramétrer
               
-    // calcul tcur = temps écoulé entre premier début de bloc cellulaire et maintenant
-      deltaTBeg=absTime-absMillis;
+      // calcul tcur = temps écoulé entre premier début de bloc cellulaire et maintenant
+      deltaTBeg=absTime-absMillis; // intervalle signé entre la 1ère cellule et le 1er t_on
       tcur0=(micros()-t_on)/1000;
-      tcur=(periodCnt*period*1000)+deltaTBeg+tcur0+POWONDLY+tdiag;
+      tcur=(periodCnt*period*1000)+deltaTBeg+lastWaitCellDly+tcur0+POWONDLY+tdiag;
       
       // calcul tcell = temps écoulé entre premier et dernier début de bloc cellulaire 
-      tcell=((tcur/ABSTIME)*ABSTIME)+(CELLDUR*numT); //=tcur/ABSTIME*ABSTIME;
+      blocks=tcur/ABSTIME;
+      tcell=(blocks*ABSTIME)+(CELLDUR*(numT-2)); // first perif on entry 2
       if(tcell<tcur){tcell+=ABSTIME;}
 
+
+    if(absTime!=0){
+      int32_t persync=period*1000*periodCnt-(512-absTime-4-absMillis);
+      int32_t persync0=persync/512;
+      int32_t persync1=persync-persync0*512;
+      delay(persync1);
+      marker(MARKER2);
+    }
+/*
       // delay
       dly=tcell-tcur;
-      if(dly>ABSTIME){dly=0;}
-/*
+      if(dly>ABSTIME || dly<0){dly=0;}
+*/
+      /*
       delay(dly);
       lastWaitCellDly=0;
 */      
-///*
+/*
 unsigned long tt=micros();
       medSleepDly(dly);                          
       lastWaitCellDly=(dly/DLYSTP)*DLYSTP;          // le compteur est arrêté pendant sleepDly ;                                 
 //*/                                                // sa valeur est ajoutée à absMillis() dans importData()
-    if(diags){
-      Serial.print(" micr-tt:");Serial.print(micros()-tt);
+    //if(diags){
+      unsigned long tt2=micros();
+      //Serial.print(" micr-tt:");Serial.print(micros()-tt);
       Serial.print(" tcur0:");Serial.print(tcur0);
       Serial.print(" ABSTIME:");Serial.print(ABSTIME);
       Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);
       delay(2);
       Serial.print(" numT:");Serial.print(numT);
-      Serial.print(" period:");Serial.print(periodCnt);Serial.print('@');Serial.print((int)(period*1000));
+      Serial.print(" period:");Serial.print(periodCnt);Serial.print('_');Serial.print((int)(period*1000));
       Serial.print(" tcur:");Serial.print(tcur);Serial.print(" tcell:");Serial.print(tcell);
-      Serial.print(" wait:");Serial.println(dly);
+      Serial.print(" wait:");Serial.print(dly);
       delay(3);
-    }
+      Serial.print(" diag dly ms:");delay(2);Serial.println((micros()-tt2)/1000);
+    
+      //}
 //*/      
 }
 

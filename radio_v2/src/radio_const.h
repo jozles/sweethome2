@@ -101,19 +101,17 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
   #define MAX_PAYLOAD_LENGTH NRF_MAX_PAYLOAD_LENGTH   // doit être == NRF_MAX_PAYLOAD_LENGTH
   #define RADIO_TFR_DLY 4                             // mS délai entree tx conc et import sur perif après rx  (mesuré au scope)
   #endif
-
+                 
+  #define NBCELLS 0x8                     // nre de cellules temporelles  !!!!puissance de 2!!!!
+  #define CELLDUR 0x40                    // durée cellule                !!!!puissance de 2!!!! 
+  
+  #define ABSTIME (NBCELLS*CELLDUR)       // millis cells size            !!!!puissance de 2!!!!
   #define ABSTIME_STEP 6                  // 6 bits par caractère
-  #define ABSMASK 0x3f
-  #define NBCELLPOWER 2                   
-  #define NBCELLS 0x4                     // nre de cellules temporelles  !!!!puissance de 2!!!!
-  #define CELLDURPOWER 7
-  #define CELLDUR 0x80                    // durée cellule                !!!!puissance de 2!!!!
-  #define ABSTIMEPOWER (NBCELLPOWER+CELLDURPOWER)
-  #define ABSTIME (NBCELLS*CELLDUR)       // millis cells size
+  #define ABSMASK 0x3f                    // 6 bits par caractère
 
   #define DLYSTP (int)32
 
-  #define NBPERIF 12                      // dim table
+  #define NBPERIF NBCELLS+2               // dim table ; first perif on entry 2 -> see waitCell / radioInit / broadcast
   #define BUF_SERVER_LENGTH LBUFSERVER    // to/from server buffer length
 
 #if MACHINE_CONCENTRATEUR
@@ -127,7 +125,7 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
          
   #define CE_PIN     9          // pin pour CE du nrf
   #define CSN_PIN    8          // pin pour CS du SPI-nrf
-  #define PORT_PP    7          // pin pour pulse de debug analyseur logique (macro PP4)
+  //#define PORT_PP    7          // pin pour pulse de debug analyseur logique (macro PP4)
   //#define REDV1                 // modèle carte red
 
   #define LRAMREM 16
@@ -139,8 +137,8 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
   #define ATMEGA328               // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
 
   #define MARKER     5
-  #define MARKER2    6
-
+  #define MARKER2    A0
+  
   #define CLK_PIN    13                 
   #define MISO_PIN   12
   #define MOSI_PIN   11
@@ -189,10 +187,11 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
   #define PORT_CLK    PORTB
   #define DDR_CLK     DDRB
   #define BIT_CLK     5
-// PP (debug pulse)
+/* PP (debug pulse)
   #define PORT_PP     PORTD
   #define DDR_PP      DDRD
   #define BIT_PP      6
+  */
 // volts
   #define PORT_VCHK   PORTC
   #define DDR_VCHK    DDRC

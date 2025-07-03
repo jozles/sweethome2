@@ -16,9 +16,9 @@ extern Nrfp radio;
 extern LoRaClass radio;
 #endif
 
-void marker(uint8_t marker)
+void marker(uint8_t markerPin)
 {
-  pinMode(marker,OUTPUT);digitalWrite(marker,HIGH);delay(1);digitalWrite(marker,LOW);
+  pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(500);digitalWrite(markerPin,LOW);
 }
 
 #ifdef MACHINE_DET328
@@ -144,7 +144,7 @@ void tableCPrint()
   for(int i=0;i<=NBPERIF;i++){                    // entry #NBPERIF for BR_ADDR requester
     if(i<10){Serial.print(" ");}
     Serial.print(i);Serial.print(" ");
-    Serial.print(tableC[i].numPeri);Serial.print(" ");
+    Serial.print(tableC[i].numPeri);Serial.print(" ");if(tableC[i].numPeri<10){Serial.print(" ");}
     radio.printAddr((char*)tableC[i].periMac,0);Serial.print("  (");
     Serial.print(tableC[i].periBufLength);Serial.print("/");
     Serial.print(tableC[i].periBufSent);Serial.print(") ");

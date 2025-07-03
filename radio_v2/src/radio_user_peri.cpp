@@ -23,7 +23,7 @@ extern bool diags;
 /* user fields */
 
 #define RAD1 5
-#define RAD2 6
+#define RAD2 A6
 #define RADSTEP 25
 
 /* system fields */
@@ -192,8 +192,9 @@ void importData(byte* data,uint8_t dataLength)
       RADIO_TFR_DLY;
     
     periodCnt=0;
-    absMillis=lastWaitCellDly+(micros()-t_on)/1000;
+    absMillis=(micros()-t_on)/1000;
     marker(MARKER);
+    delay(512-absTime-4);//marker(MARKER2);
     /*
     absTime=0;
       for(uint8_t i=0;i<3;i++){

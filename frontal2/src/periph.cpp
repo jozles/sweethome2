@@ -9,6 +9,8 @@
 #include "periph.h"
 #include "utilhtml.h"
 
+#include "nrf24l01s.h"
+
 
 /* ---------- config ---------- */
 

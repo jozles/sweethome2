@@ -821,8 +821,7 @@ void fillMess(byte* message)
     
     byte q;    
     uint32_t abstime=millis();
-    marker(MARKER2);
-
+  marker(MARKER2);
   Serial.print(' ');Serial.print(abstime,HEX);
     abstime=abstime&(ABSTIME-1);
   Serial.print(" absTime:");Serial.print(abstime);Serial.print('H');Serial.print(abstime,HEX);
