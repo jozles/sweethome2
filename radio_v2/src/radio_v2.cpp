@@ -1032,14 +1032,11 @@ void echo()
 }
 
 void waitCell()                             // attente cellule temporelle
-{
-///*
-    if(diags){      
+{     
       Serial.print("absMillis:");Serial.print(absMillis);
       Serial.print(" absTime:");Serial.print(absTime);
       delay(3);
-    }
-
+/*
     int32_t   deltaTBeg=0;
     int32_t   tcur=0;       // intervalle depuis 1ère cellule jusqu'à waitCell 
     int32_t   tcell=0;      // intervalle depuis 1ère cellule jusqu'à cellule(numT)
@@ -1057,15 +1054,20 @@ void waitCell()                             // attente cellule temporelle
       blocks=tcur/ABSTIME;
       tcell=(blocks*ABSTIME)+(CELLDUR*(numT-2)); // first perif on entry 2
       if(tcell<tcur){tcell+=ABSTIME;}
+*/     
+  if(absTime!=0){
+      int32_t delta1=absMillis+(512-absTime-4);
+      int32_t delta2=((int32_t)(period*1000)-delta1)%512+11;
+      delay(512-delta2);
 
-
-    if(absTime!=0){
+/*
       int32_t persync=period*1000*periodCnt-(512-absTime-4-absMillis);
       int32_t persync0=persync/512;
-      int32_t persync1=persync-persync0*512;
+      int32_t persync1=persync-persync0*512-POWONDLY;
       delay(persync1);
+*/
       marker(MARKER2);
-    }
+  }
 /*
       // delay
       dly=tcell-tcur;
@@ -1079,23 +1081,23 @@ void waitCell()                             // attente cellule temporelle
 unsigned long tt=micros();
       medSleepDly(dly);                          
       lastWaitCellDly=(dly/DLYSTP)*DLYSTP;          // le compteur est arrêté pendant sleepDly ;                                 
-//*/                                                // sa valeur est ajoutée à absMillis() dans importData()
+                                             // sa valeur est ajoutée à absMillis() dans importData()
     //if(diags){
       unsigned long tt2=micros();
       //Serial.print(" micr-tt:");Serial.print(micros()-tt);
-      Serial.print(" tcur0:");Serial.print(tcur0);
+      //Serial.print(" tcur0:");Serial.print(tcur0);
       Serial.print(" ABSTIME:");Serial.print(ABSTIME);
-      Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);
+      //Serial.print(" deltaTBeg:");Serial.print(deltaTBeg);
       delay(2);
       Serial.print(" numT:");Serial.print(numT);
       Serial.print(" period:");Serial.print(periodCnt);Serial.print('_');Serial.print((int)(period*1000));
-      Serial.print(" tcur:");Serial.print(tcur);Serial.print(" tcell:");Serial.print(tcell);
-      Serial.print(" wait:");Serial.print(dly);
+      //Serial.print(" tcur:");Serial.print(tcur);Serial.print(" tcell:");Serial.print(tcell);
+      //Serial.print(" wait:");Serial.print(dly);
       delay(3);
       Serial.print(" diag dly ms:");delay(2);Serial.println((micros()-tt2)/1000);
     
       //}
-//*/      
+*/      
 }
 
 int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] chargé avec au moins adresseMac et version
