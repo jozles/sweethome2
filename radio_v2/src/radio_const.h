@@ -137,7 +137,7 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
   #define ATMEGA328               // option ATMEGA8 ... manque de memoire programme (8K dispo et nécessite 17K)
 
   #define MARKER     5
-  #define MARKER2    A0
+  #define MARKER2    5
   
   #define CLK_PIN    13                 
   #define MISO_PIN   12

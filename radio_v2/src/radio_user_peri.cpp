@@ -39,6 +39,7 @@ extern unsigned long absTime;
 extern unsigned long absMillis;
 extern unsigned long lastWaitCellDly;
 extern unsigned long periodCnt;
+extern int32_t sleepTime;
 extern uint16_t userData[2];
 uint16_t       analOutput=0;
 uint16_t       prevAnalOutput=0;
@@ -192,7 +193,7 @@ void importData(byte* data,uint8_t dataLength)
       RADIO_TFR_DLY;
     
     periodCnt=0;
-    absMillis=(micros()-t_on)/1000;
+    absMillis=(micros()-t_on+sleepTime*1000)/1000;
     marker(MARKER);
     delay(512-absTime-4);//marker(MARKER2);
     /*

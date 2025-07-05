@@ -18,6 +18,11 @@ extern LoRaClass radio;
 
 void marker(uint8_t markerPin)
 {
+  pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
+}
+
+void marker2(uint8_t markerPin)
+{
   pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(500);digitalWrite(markerPin,LOW);
 }
 
@@ -27,15 +32,26 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
   return radio.read(messageIn,pipe,pldLength,NBPERIF);         // MACHINE_DET328 returns 0:pld_ok <0:err 
 }
 
-uint8_t sleepDly(int32_t dly)                    // should be (nx32)
+uint8_t sleepDly(int32_t dly,int32_t* slpt)                    // should be (nx32)
 {
-  uint8_t remainder=dly%32;
-  dly=(dly/DLYSTP)*DLYSTP;
-  while(dly>=0){
+  #define DLYVAL 35
+  uint8_t remainder=dly%DLYVAL;                      // sleepNoPwr(T32) vaut 35mS
+  dly=dly-remainder;
+  int32_t slpt0=0;
+  while(dly>0){
     sleepNoPwr(T32);
-    dly-=DLYSTP;}
+    dly-=DLYVAL;
+    slpt0+=3215;
+  }
   
+  *slpt+=slpt0/100;
   return remainder;
+}
+
+uint8_t sleepDly(int32_t dly) 
+{
+  int32_t slpt;
+  return sleepDly(dly,&slpt);
 }
 
 void medSleepDly(int32_t dly)

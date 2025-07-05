@@ -203,8 +203,8 @@ bool      extTimer;
 float     period;
 unsigned long   absTime=0;
 unsigned long   absMillis=0;
-unsigned long   lastWaitCellDly=0;
-unsigned long   periodCnt=0; 
+unsigned long   periodCnt=0;
+int32_t   sleepTime=0;
 
 #define PRESCALER_RATIO 256           // prescaler ratio clock timer1 clock
 #define TCCR1B_PRESCALER_MASK 0xF8    // prescaler bit mask in TCCR1B
@@ -522,6 +522,7 @@ void loop() {
 
   marker(MARKER);
   ini_t_on();
+  sleepTime=0;
 
   /* usefull awake or retry */
   digitalWrite(PLED,HIGH);
@@ -581,7 +582,7 @@ void loop() {
     t_on2=micros();                                       // message build ... send   
     radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR);    // si waitCell rallonge
     trSta=0;
-    marker(MARKER);
+    marker2(MARKER);
     rdSta=txRxMessage(outLength);                         // retour -2 ko ; >0 ok
     radio.powerOff();  
     t_on21=micros();
@@ -1033,9 +1034,7 @@ void echo()
 
 void waitCell()                             // attente cellule temporelle
 {     
-      Serial.print("absMillis:");Serial.print(absMillis);
-      Serial.print(" absTime:");Serial.print(absTime);
-      delay(3);
+      
 /*
     int32_t   deltaTBeg=0;
     int32_t   tcur=0;       // intervalle depuis 1ère cellule jusqu'à waitCell 
@@ -1057,16 +1056,31 @@ void waitCell()                             // attente cellule temporelle
 */     
   if(absTime!=0){
       int32_t delta1=absMillis+(512-absTime-4);
-      int32_t delta2=((int32_t)(period*1000)-delta1)%512+11;
-      delay(512-delta2);
+      int32_t delta2=((int32_t)(periodCnt*period*1000)-delta1)%512+11;
+      int32_t ter=numT; if(ter!=0){ter--;}
+      int32_t dly=512-delta2-POWONDLY-20+ter*64; //+3;
 
+      if(dly<0){dly=0;}
+      Serial.print(" delta2:");Serial.print(delta2);
+      Serial.print(" dly:");Serial.print(dly);delay(2);
+      
+      marker2(MARKER);
+      //Serial.print('_');delay(1);
+      //delay(sleepDly(dly,&sleepTime));
+      delay(dly);
+      //Serial.print('@');delay(1);
 /*
       int32_t persync=period*1000*periodCnt-(512-absTime-4-absMillis);
       int32_t persync0=persync/512;
       int32_t persync1=persync-persync0*512-POWONDLY;
       delay(persync1);
 */
-      marker(MARKER2);
+      //marker2(MARKER);
+      
+      Serial.print("absMillis:");Serial.print(absMillis);
+      Serial.print(" absTime:");Serial.print(absTime);
+      Serial.print(" delta2:");Serial.print(delta2);
+      Serial.print(" dly:");Serial.println(dly);
   }
 /*
       // delay
@@ -1332,12 +1346,12 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
       pinMode(PLED,OUTPUT);
       if(dur<DLYSTP){delay(dur);}       // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
                                         // for 32mS sleep, power saving is greater than 90%
-      else {sleepDly(dur);}
+      else {sleepDly(dur,&sleepTime);}
       digitalWrite(PLED,LOW);
-      if(bint!=0){sleepDly(bint);}    // 1 blink doesnt need bint
+      if(bint!=0){sleepDly(bint,&sleepTime);}    // 1 blink doesnt need bint
       dly-=(dur+bint);
     }
-    if(bdelay!=0){sleepDly(bdelay);dly-=bdelay;}
+    if(bdelay!=0){sleepDly(bdelay,&sleepTime);dly-=bdelay;}
   }
 }
 
