@@ -1043,18 +1043,22 @@ void waitCell()                             // attente cellule temporelle
 
       if(dly<0){dly=0;}
       if(dly>CELLSIZE){dly-=CELLSIZE;}
-      Serial.print(" delta2:");Serial.print(delta2);
-      Serial.print(" dly:");Serial.print(dly);delay(2);
+      if(diags){
+        Serial.print(" delta2:");Serial.print(delta2);
+        Serial.print(" dly:");Serial.print(dly);delay(2);
+      }
       
       marker2(MARKER);
       markerLow(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0  
       delay(sleepDly(dly,&sleepTime));
       markerLow(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0
 
-      Serial.print(" absMillis:");Serial.print(absMillis);
-      Serial.print(" absTime:");Serial.print(absTime);
-      Serial.print(" delta2:");Serial.print(delta2);
-      Serial.print(" dly:");Serial.println(dly);
+      if(diags){
+        Serial.print(" absMillis:");Serial.print(absMillis);
+        Serial.print(" absTime:");Serial.print(absTime);
+        Serial.print(" delta2:");Serial.print(delta2);
+        Serial.print(" dly:");Serial.println(dly);
+      }
   }
   
 }

@@ -16,6 +16,8 @@ extern Nrfp radio;
 extern LoRaClass radio;
 #endif
 
+extern bool diags;
+
 void marker(uint8_t markerPin)
 {
   //pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
@@ -42,7 +44,7 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
 
 uint8_t sleepDly(int32_t dly,int32_t* slpt)                    // should be (nx32)
 {
-  #define DLYVAL 3500
+  #define DLYVAL 3500                     // !!!!!! need computed param
   unsigned long tmicros=micros();
   
   int32_t dly0=dly;
@@ -55,20 +57,22 @@ uint8_t sleepDly(int32_t dly,int32_t* slpt)                    // should be (nx3
 //markerLow(MARKER2);
     sleepNoPwr(T32);                                            // sleepNoPwr(T32) vaut 34.46mS
     dly-=DLYVAL;
-    slpt0+=3505;
+    slpt0+=3505;                          // !!!!!! need computed param
     k++;
 //markerLow(MARKER2); //34.50ms   
   }
 
   *slpt+=slpt0/100;
 
-  unsigned long tmicros2=micros()-tmicros;
-  Serial.print("\ndly ");Serial.print(dly0);
-  Serial.print("__");Serial.print(tmicros2);
-  Serial.print(" + ");Serial.print(slpt0*10);
-  Serial.print(" = ");Serial.print(tmicros2+slpt0*10);
-  Serial.print(" @ ");Serial.println(k);
-  delay(5);
+  if(diags){
+    unsigned long tmicros2=micros()-tmicros;
+    Serial.print("\ndly ");Serial.print(dly0);
+    Serial.print("__");Serial.print(tmicros2);
+    Serial.print(" + ");Serial.print(slpt0*10);
+    Serial.print(" = ");Serial.print(tmicros2+slpt0*10);
+    Serial.print(" @ ");Serial.println(k);
+    delay(5);
+  }
     
   return remainder/100;
 }

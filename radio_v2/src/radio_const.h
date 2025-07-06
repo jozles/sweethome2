@@ -1,7 +1,7 @@
 #ifndef _RADIO_CONST_INCLUDED
 #define _RADIO_CONST_INCLUDED
 
-#define VERSION "2.c "
+#define VERSION "2.d "
 #define LENVERSION 4
 
 #define NRF // LORA //NRF
@@ -81,6 +81,10 @@ v2.b  Compatibilté avec LoRa ; les codes erreur sont dans radio_const.h ;
       Le numéro d'UDP qui s'affiche dans periLine correspond à l'instance UDP qui a reçu le message (selon le port de la config du concentrateur)
 v2.c  La structure du message vers le périf change pour faire de la place au temps absolu des cellules (voir radio_user_peri/conc)
       mise en place cellules temporelles ; 
+      les cartes dets existent en 2 versions de bootloader (arduino ou urclock si minicore 3.3)
+v2.d  sleepDly corrigé -> le délai est juste à 1% ; la variable globale sleepTime est le temps "invisible" pendant le sleep
+      sleepTime repasse à 0 àchaque réveil utile ;
+      implantation des cellules temporelles. implantation des "markers" (PD5/PD6)
 */
 
 /************* config ****************/
