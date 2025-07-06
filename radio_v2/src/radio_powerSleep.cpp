@@ -4,6 +4,7 @@
 
 #include "radio_powerSleep.h"
 #include "radio_user_peri.h"
+#include "radio_util.h"
 
 /* mécanisme
  *  
@@ -244,7 +245,7 @@ void getVolts()                     // get unregulated voltage and reset watchdo
 
 void sleepPwrDown(uint8_t durat)  /* *** WARNING *** no hardware PowerUp()/down included    */
 {                                 /*       durat=0 to enable external timer (INT0)          */
-
+//marker(MARKER2);
     ADCSRA &= ~(1<<ADEN);                   // ADC shutdown
     
     power_all_disable();                    // all bits set in PRR register (I/O modules clock halted)
@@ -280,7 +281,7 @@ void sleepPwrDown(uint8_t durat)  /* *** WARNING *** no hardware PowerUp()/down 
     power_all_enable();                     // all bits clr in PRR register (I/O modules clock running)
 
     if(durat==0){wd();}                     // watchdog
-   
+//marker(MARKER2);
 }
 
 #endif // MACHINE == 'P'

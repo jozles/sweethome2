@@ -18,12 +18,20 @@ extern LoRaClass radio;
 
 void marker(uint8_t markerPin)
 {
-  pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
+  //pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
+  bitSet(DDR_DIG1,markerPin);bitSet(PORT_DIG1,markerPin);delayMicroseconds(100);bitClear(PORT_DIG1,markerPin);
+}
+
+void markerLow(uint8_t markerPin)
+{
+  //pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
+  bitSet(DDR_DIG1,markerPin);bitClear(PORT_DIG1,markerPin);delayMicroseconds(100);bitSet(PORT_DIG1,markerPin);
 }
 
 void marker2(uint8_t markerPin)
 {
-  pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(500);digitalWrite(markerPin,LOW);
+  //pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(500);digitalWrite(markerPin,LOW);
+  bitSet(DDR_DIG1,markerPin);bitSet(PORT_DIG1,markerPin);delayMicroseconds(500);bitClear(PORT_DIG1,markerPin);
 }
 
 #ifdef MACHINE_DET328
@@ -34,18 +42,35 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
 
 uint8_t sleepDly(int32_t dly,int32_t* slpt)                    // should be (nx32)
 {
-  #define DLYVAL 35
-  uint8_t remainder=dly%DLYVAL;                      // sleepNoPwr(T32) vaut 35mS
+  #define DLYVAL 3500
+  unsigned long tmicros=micros();
+  
+  int32_t dly0=dly;
+  dly*=100;
+  int32_t remainder=dly%DLYVAL;                      
   dly=dly-remainder;
   int32_t slpt0=0;
+  uint8_t k=0;
   while(dly>0){
-    sleepNoPwr(T32);
+//markerLow(MARKER2);
+    sleepNoPwr(T32);                                            // sleepNoPwr(T32) vaut 34.46mS
     dly-=DLYVAL;
-    slpt0+=3215;
+    slpt0+=3505;
+    k++;
+//markerLow(MARKER2); //34.50ms   
   }
-  
+
   *slpt+=slpt0/100;
-  return remainder;
+
+  unsigned long tmicros2=micros()-tmicros;
+  Serial.print("\ndly ");Serial.print(dly0);
+  Serial.print("__");Serial.print(tmicros2);
+  Serial.print(" + ");Serial.print(slpt0*10);
+  Serial.print(" = ");Serial.print(tmicros2+slpt0*10);
+  Serial.print(" @ ");Serial.println(k);
+  delay(5);
+    
+  return remainder/100;
 }
 
 uint8_t sleepDly(int32_t dly) 
@@ -67,13 +92,12 @@ void sleepNoPwr(uint8_t durat)
   bitClear(DDR_PP,BIT_PP);                //pinMode(PP,INPUT);
   bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
 
-  sleepPwrDown(durat);
+  sleepPwrDown(durat);                    // @T32 durée 34.47mS
   hardwarePwrUp();
 }
 
 void hardwarePwrUp()
 { 
-  PP4_INIT
   pinMode(REED,INPUT_PULLUP);
 }
 
