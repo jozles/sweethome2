@@ -1,7 +1,7 @@
 #ifndef _RADIO_CONST_INCLUDED
 #define _RADIO_CONST_INCLUDED
 
-#define VERSION "2.d "
+#define VERSION "2.d1"      // 4ème digit pour git
 #define LENVERSION 4
 
 #define NRF // LORA //NRF

@@ -20,20 +20,32 @@ extern bool diags;
 
 void marker(uint8_t markerPin)
 {
-  //pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
+  #ifndef MACHINE_DET328
+  pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
+  #endif
+  #if MACHINE_DET328
   bitSet(DDR_DIG1,markerPin);bitSet(PORT_DIG1,markerPin);delayMicroseconds(100);bitClear(PORT_DIG1,markerPin);
+  #endif
 }
 
 void markerLow(uint8_t markerPin)
 {
-  //pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
+  #ifndef MACHINE_DET328
+  pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
+  #endif
+  #if MACHINE_DET328
   bitSet(DDR_DIG1,markerPin);bitClear(PORT_DIG1,markerPin);delayMicroseconds(100);bitSet(PORT_DIG1,markerPin);
+  #endif
 }
 
 void marker2(uint8_t markerPin)
 {
+  #ifndef MACHINE_DET328
   //pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(500);digitalWrite(markerPin,LOW);
+  #endif
+  #if MACHINE_DET328
   bitSet(DDR_DIG1,markerPin);bitSet(PORT_DIG1,markerPin);delayMicroseconds(500);bitClear(PORT_DIG1,markerPin);
+  #endif
 }
 
 #ifdef MACHINE_DET328
@@ -44,10 +56,13 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
 
 uint8_t sleepDly(int32_t dly,int32_t* slpt)                    // should be (nx32)
 {
-  #define DLYVAL 3500                     // !!!!!! need computed param
-  unsigned long tmicros=micros();
+  #define DLYVAL 3500                     // !!!!!! need computed param // loop dly value
+  #define SLEEPT 3505                     // !!!!!! need computed param // loop sleep value (micros()/millis() loss)
+  // !!!!!!!!!!!!!!!!!!!!! anomalie : le temps de sleep devrait être < temps boucle ?????????????????? 
+
+  //unsigned long tmicros=micros();
   
-  int32_t dly0=dly;
+  //int32_t dly0=dly;
   dly*=100;
   int32_t remainder=dly%DLYVAL;                      
   dly=dly-remainder;
@@ -55,16 +70,16 @@ uint8_t sleepDly(int32_t dly,int32_t* slpt)                    // should be (nx3
   uint8_t k=0;
   while(dly>0){
 //markerLow(MARKER2);
-    sleepNoPwr(T32);                                            // sleepNoPwr(T32) vaut 34.46mS
+    sleepNoPwr(T32);                      // sleepNoPwr(T32) vaut 34.46mS
     dly-=DLYVAL;
-    slpt0+=3505;                          // !!!!!! need computed param
+    slpt0+=SLEEPT;   
     k++;
 //markerLow(MARKER2); //34.50ms   
   }
 
   *slpt+=slpt0/100;
 
-  if(diags){
+  /*if(diags){
     unsigned long tmicros2=micros()-tmicros;
     Serial.print("\ndly ");Serial.print(dly0);
     Serial.print("__");Serial.print(tmicros2);
@@ -72,7 +87,7 @@ uint8_t sleepDly(int32_t dly,int32_t* slpt)                    // should be (nx3
     Serial.print(" = ");Serial.print(tmicros2+slpt0*10);
     Serial.print(" @ ");Serial.println(k);
     delay(5);
-  }
+  }*/
     
   return remainder/100;
 }
