@@ -1,7 +1,7 @@
 #ifndef _RADIO_CONST_INCLUDED
 #define _RADIO_CONST_INCLUDED
 
-#define VERSION "2.d1"      // 4ème digit pour git
+#define VERSION "2.d2"      // 4ème digit pour git
 #define LENVERSION 4
 
 #define NRF // LORA //NRF
@@ -85,6 +85,7 @@ v2.c  La structure du message vers le périf change pour faire de la place au te
 v2.d  sleepDly corrigé -> le délai est juste à 1% ; la variable globale sleepTime est le temps "invisible" pendant le sleep
       sleepTime repasse à 0 àchaque réveil utile ;
       implantation des cellules temporelles. implantation des "markers" (PD5/PD6)
+      .2 correction delayBlk (delay(sleepDly(...)))
 */
 
 /************* config ****************/

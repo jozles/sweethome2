@@ -603,7 +603,7 @@ void loop() {
       awakeCnt=aw_ok;
       awakeMinCnt=aw_min;
 
-      delayBlk(32,0,125,4,1);                             // txRx ok : 4 blinks
+      delayBlk(32,0,96,4,1);                             // txRx ok : 4 blinks
     }
     
     t_on3=micros();  // message sent / received or error (rdSta)
@@ -635,7 +635,7 @@ void loop() {
       delay(2);Serial.println("radio HS/missing");delay(4);
       tdiag+=(micros()-localTdiag);
     }
-    delayBlk(2000,0,0,1,1);                               // hardware ko : 1x2sec blink
+    delayBlk(2016,0,0,1,1);                               // hardware ko : 1x2sec blink
     retryCnt=0;
     awakeCnt=1;
     awakeMinCnt=1;            
@@ -1293,14 +1293,17 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
     for(int i=0;i<bnb;i++){
       digitalWrite(PLED,HIGH);
       pinMode(PLED,OUTPUT);
-      if(dur<DLYSTP){delay(dur);}       // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
+      delay(sleepDly(dur,&sleepTime));
+      /*if(dur<DLYSTP){delay(dur);}       // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
                                         // for 32mS sleep, power saving is greater than 90%
-      else {sleepDly(dur,&sleepTime);}
+      else {sleepDly(dur,&sleepTime);}*/
       digitalWrite(PLED,LOW);
-      if(bint!=0){sleepDly(bint,&sleepTime);}    // 1 blink doesnt need bint
+      if(bint!=0){
+        delay(sleepDly(bint,&sleepTime));}    // 1 blink doesnt need bint
       dly-=(dur+bint);
     }
-    if(bdelay!=0){sleepDly(bdelay,&sleepTime);dly-=bdelay;}
+    if(bdelay!=0){
+      delay(sleepDly(bdelay,&sleepTime));dly-=bdelay;}
   }
 }
 
