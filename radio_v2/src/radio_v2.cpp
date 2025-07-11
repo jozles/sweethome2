@@ -264,6 +264,7 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
 int  rxMessage(unsigned long to);
 //void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
+void blkHS(){delayBlk(2016,0,0,1,1);}                   // hardware ko : 1x2sec blink}
 #if MACHINE_CONCENTRATEUR
 char getch();
 void echo();
@@ -287,7 +288,10 @@ void radioInit()
   tableCInit();
   memcpy(tableC[1].periMac,testAd,RADIO_ADDR_LENGTH+1);     // pour broadcast & test
   uint8_t speed=*concRfSpeed;
-  radio.powerOn(channel,speed,NBPERIF,CB_ADDR); 
+  if(!radio.powerOn(channel,speed,NBPERIF,CB_ADDR)){
+    Serial.println("Starting LoRa failed!");
+    while(1){blkHS()};                             // hardware ko : 1x2sec blinkblink(1); delay(500);};
+  }; 
 
   Serial.print(" --- radioInit()#");Serial.print(radioInitCnt);Serial.print(' ');Serial.print(millis()-radioWd);Serial.println("ms");
 
@@ -569,7 +573,9 @@ void loop() {
     if(numT!=0 || (absTime!=0 && absMillis!=0)){waitCell();}
     
     t_on2=micros();                                       // message build ... send   
-    radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR);    // si waitCell rallonge
+    if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR)){
+      blkHS();                               // hardware ko : 1x2sec blink
+    };    // si waitCell rallonge
     trSta=0;
     marker2(MARKER);
     rdSta=txRxMessage(outLength);                         // retour -2 ko ; >0 ok
@@ -624,7 +630,7 @@ void loop() {
       delay(2);Serial.println("radio HS/missing");delay(4);
       tdiag+=(micros()-localTdiag);
     }
-    delayBlk(2016,0,0,1,1);                               // hardware ko : 1x2sec blink
+    blkHS();                               // hardware ko : 1x2sec blink
     retryCnt=0;
     awakeCnt=1;
     awakeMinCnt=1;            
