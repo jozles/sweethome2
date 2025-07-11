@@ -11,12 +11,6 @@
 
 #include "eepr.h"
 Eepr eeprom;
-
- /* single signifie 1 seul concentrateur avec une seule adresse de réception
- *  l'option P ou C dans const.h définit si compilation du code pour concentrateur ou périphérique
- *  nRF24L01.h les constantes du circuit ; nrf24l01s.h header pour nrf24l01s.cpp la lib du circuit
- *  nrf24l01s_const.h les constantes pour single_nrf
- */
  
 #ifdef DUE
 #include <MemoryFree.h>
@@ -125,7 +119,7 @@ extern byte*  configVers;
   extern byte*     concIp;            // adresse IP concentrateur
   extern uint16_t* concPort;          // port concentrateur
   extern uint8_t*  concRx;            // RX Addr concentrateur
-  extern uint16_t* concChannel;       // n° channel nrf utilisé par le concentrateur
+  extern uint16_t* concChannel;       // n° channel utilisé par le concentrateur
   extern uint16_t* concRfSpeed;       // RF_Speed concentrateur
   extern uint8_t*  concNb;
 
@@ -294,11 +288,6 @@ void radioInit()
   memcpy(tableC[1].periMac,testAd,RADIO_ADDR_LENGTH+1);     // pour broadcast & test
   uint8_t speed=*concRfSpeed;
   radio.powerOn(channel,speed,NBPERIF,CB_ADDR); 
-  /*#ifdef NRF
-  radio.addrWrite(RX_ADDR_P2,CB_ADDR);  // pipe 2 pour recevoir les demandes d'adresse de concentrateur (chargée en EEPROM sur périf)
-  #endif
-  // déplacé dans radio.setup()
-  */
 
   Serial.print(" --- radioInit()#");Serial.print(radioInitCnt);Serial.print(' ');Serial.print(millis()-radioWd);Serial.println("ms");
 

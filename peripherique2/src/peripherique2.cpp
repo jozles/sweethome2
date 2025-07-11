@@ -112,7 +112,7 @@ WiFiClient cli;                           // instance du serveur externe (utilis
 
 #ifdef  _SERVER_MODE
 WiFiClient cliext;                        // instance du serveur local
-WiFiServer* server=nullptr;
+WiFiServer* serverx=nullptr;
 bool serverStarted=false;
 
   #define LHTTPMESS 600

@@ -34,9 +34,9 @@ struct ConTable tableC[NBPERIF+1];
 extern bool diags;
 extern unsigned long blktime;
 
-#if TXRX_MODE == 'T'
+#if TXRX_MODE == 'T'        // TCP
 
-  byte        localIp[] = CONCNRFIPADDR;      // IP fixe pour carte W5x00   (192.168.0.30)
+  byte        localIp[] = CONCTCPIPADDR;      // IP fixe pour carte W5x00   (192.168.0.30)
   int         port      = PORTTCPCONC;     
 //byte        host[]    = HOSTIPADDR2;        // ip server sh devt2
   byte        host[]    = {82,64,32,56};
@@ -59,24 +59,7 @@ extern unsigned long blktime;
 
 #if TXRX_MODE == 'U'
 
-//EthernetUDP* ethernetUdp=nullptr;
 EthernetUDP Udp;
-
-/*
-#define INTERIEUR       // concentrateur intérieur
-//#define EXTERIEUR       // concentrateur extérieur
-
-#ifdef INTERIEUR
-  #define CONCNRFIPADDR CONCNRFIPADDR1
-  #define PORTUDPCONC   PORTUDPCONC1
-  #define MACADDRUDP    MACADDRUDP1
-#endif //  INTERIEUR  
-#ifdef EXTERIEUR
-  #define CONCNRFIPADDR CONCNRFIPADDR2
-  #define PORTUDPCONC   PORTUDPCONC2
-  #define MACADDRUDP    MACADDRUDP2
-#endif //  EXTERIEUR  
-*/
 
 //uint16_t          port     = 8888;    // conc udp port                          // PORTUDPCONC;         // (8887 intérieur ; 8888 ext)
 //byte              mac[]    = {0xDE,0xAD,0xBE,0xEF,0xFE,0xEF};                   // MACADDRUDP2;         //{0xDE,0xAD,0xBE,0xEF,0xFE,0xED};      // mac addr for local ethernet carte W5x00

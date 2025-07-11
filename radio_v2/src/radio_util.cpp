@@ -108,7 +108,6 @@ void sleepNoPwr(uint8_t durat)
   userHardPowerDown();
   radio.powerOff();
 
-  bitClear(DDR_PP,BIT_PP);                //pinMode(PP,INPUT);
   bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
 
   sleepPwrDown(durat);                    // @T32 durée 34.47mS
@@ -134,10 +133,8 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
       if(sta>=0){
         sta=messageIn[RADIO_ADDR_LENGTH]-'0';                                       // sender numP 0=registration_req
         if(sta!=0 && memcmp(messageIn,tableC[sta].periMac,RADIO_ADDR_LENGTH)!=0){   // macAddr ko ?
-            sta=AV_MCADD;
-            #ifdef NRF
+            sta=AV_MCADD; 
             radio.rxError();                                                        // if numP==0 registration to do
-            #endif
         }
       }
   return sta;       // returns 0:registration_req <0:err >0:numPer_ok

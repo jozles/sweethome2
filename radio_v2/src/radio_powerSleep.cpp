@@ -50,8 +50,6 @@ extern float  lowPowerValue;
 extern float  temp;
 uint8_t       cntTest=0;                         // test watchdog
 
-//extern Nrfp nrfp;
-
 extern uint32_t nbS;
 
 void diagT2(char* texte,int duree)
