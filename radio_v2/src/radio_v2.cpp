@@ -312,10 +312,10 @@ void setup() {
   configInit();
   configLoad();
 
-    /* ---- config pour conc 3 ----
-  memcpy(periRxAddr,"peri9\0",RADIO_ADDR_LENGTH+1);
-  memcpy(configVers,"02\0",3);
-  memcpy(concAddr,"SHCO3",RADIO_ADDR_LENGTH);
+    /* ---- config pour conc 2 ----
+  //memcpy(periRxAddr,"peri9\0",RADIO_ADDR_LENGTH+1);
+  //memcpy(configVers,"02\0",3);
+  memcpy(concAddr,"SHCO2",RADIO_ADDR_LENGTH);
   *concNb=3;
   *concChannel=radioChannel[*concNb];
   *concSpeed=RF_SPD_1MB; 
