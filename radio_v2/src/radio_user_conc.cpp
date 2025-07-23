@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "radio_const.h"
+#include <radio_const.h>
 #include "radio_util.h"
 #include "radio_user_conc.h"
 #include "radio_powerSleep.h"
@@ -806,7 +806,7 @@ void fillMess(byte* message)
     uint32_t abstime=millis();
   marker(MARKER2);
   Serial.print(' ');Serial.print(abstime,HEX);
-    abstime=abstime&(ABSTIME-1);
+    abstime=abstime&(CELLSIZE-1);
   Serial.print(" absTime:");Serial.print(abstime);Serial.print('H');Serial.print(abstime,HEX);
     q=(byte)(((abstime>>(ABSTIME_STEP*2))&ABSMASK)+0x20);
     *(message+RADIO_ADDR_LENGTH+1+8)=q;

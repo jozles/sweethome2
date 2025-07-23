@@ -54,7 +54,7 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
   return radio.read(messageIn,pipe,pldLength,NBPERIF);         // MACHINE_DET328 returns 0:pld_ok <0:err 
 }
 
-uint8_t sleepDly(int32_t dly,int32_t* slpt)                    // should be (nx32)
+uint8_t sleepDly_old(int32_t dly,int32_t* slpt)                    // should be (nx32)
 {
   #define DLYVAL 3500                     // !!!!!! need computed param // loop dly value
   #define SLEEPT 3505                     // !!!!!! need computed param // loop sleep value (micros()/millis() loss)
@@ -92,6 +92,36 @@ uint8_t sleepDly(int32_t dly,int32_t* slpt)                    // should be (nx3
   return remainder/100;
 }
 
+uint8_t sleepDly(int32_t dly,int32_t* slpt)                   
+{
+  //#define DLYVAL 3500                     // !!!!!! need computed param // loop dly value
+  //#define SLEEPT 3505                     // !!!!!! need computed param // loop sleep value (micros()/millis() loss)
+  // !!!!!!!!!!!!!!!!!!!!! anomalie : le temps de sleep devrait être < temps boucle ?????????????????? 
+
+  //unsigned long tmicros=micros();
+
+int16_t sleepTimings[]={T8000,T4000,T2000,T1000,T500,T250,T125,T64,T32};
+int32_t realSleepTimings[]={800300,400300,200300,100300,50300,25300,12800,6700,3500};
+int32_t loopSleepTimings[]={800305,400305,200305,100305,50305,25305,12805,6705,3505};
+
+  dly*=100;
+  if(dly>=realSleepTimings[NB_PRESCALER_VALUES-2]){
+
+    int32_t slpt0=0;
+    uint8_t k=0;
+    while(k<NB_PRESCALER_VALUES-1){
+      while(dly>realSleepTimings[k]){
+        sleepNoPwr(sleepTimings[k]);                      
+        dly-=realSleepTimings[k];
+        slpt0+=loopSleepTimings[k];      
+      }
+      k++;
+    }
+    *slpt+=slpt0/100;
+  }  
+  return (uint8_t)(dly/100);
+}
+
 uint8_t sleepDly(int32_t dly) 
 {
   int32_t slpt;
@@ -116,7 +146,7 @@ void sleepNoPwr(uint8_t durat)
 
 void hardwarePwrUp()
 { 
-  pinMode(REED,INPUT_PULLUP);
+  //pinMode(REED,INPUT_PULLUP);
 }
 
 

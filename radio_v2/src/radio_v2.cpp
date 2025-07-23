@@ -264,7 +264,7 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
 int  rxMessage(unsigned long to);
 //void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
-void blkHS(){delayBlk(2016,0,0,1,1);}                   // hardware ko : 1x2sec blink}
+void blkHS(){delayBlk(2004,0,0,1,1);}                   // hardware ko : 1x2sec blink}
 #if MACHINE_CONCENTRATEUR
 char getch();
 void echo();
@@ -290,7 +290,7 @@ void radioInit()
   uint8_t speed=*concRfSpeed;
   if(!radio.powerOn(channel,speed,NBPERIF,CB_ADDR)){
     Serial.println("Starting LoRa failed!");
-    while(1){blkHS()};                             // hardware ko : 1x2sec blinkblink(1); delay(500);};
+    while(1){blkHS();};                             // hardware ko : 1x2sec blinkblink(1); delay(500);};
   }; 
 
   Serial.print(" --- radioInit()#");Serial.print(radioInitCnt);Serial.print(' ');Serial.print(millis()-radioWd);Serial.println("ms");
@@ -305,9 +305,15 @@ void setup() {
 
   delay(1000);
   Serial.begin(115200);
-  Serial.println("\n+");
+  Serial.println("\n+");delay(1);
 
   initLed(PINLED,LEDOFF,LEDON);
+
+  /*while(1){
+     //sleepNoPwr(0);
+     sleepPwrDown(0);
+     blink(1);
+  }*/
   
   configInit();
   configLoad();
@@ -316,7 +322,7 @@ void setup() {
   //memcpy(periRxAddr,"peri9\0",RADIO_ADDR_LENGTH+1);
   //memcpy(configVers,"02\0",3);
   memcpy(concAddr,"SHCO2",RADIO_ADDR_LENGTH);
-  *concNb=3;
+  *concNb=2;
   *concChannel=radioChannel[*concNb];
   *concSpeed=RF_SPD_1MB; 
   configSave();
@@ -332,7 +338,7 @@ void setup() {
   t_on=millis();
   hardwarePwrUp();
   
-  wd();                           // watchdog
+  //wd();                           // watchdog
   iniTemp();
   
   Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");delay(2);
@@ -364,13 +370,12 @@ void setup() {
 
   /* ------------------- */
 
-  if(diags){spvt();}
+  spvt();
   ini_t_on();  
 
-  userResetSetup();
+  //userResetSetup();
 
   Serial.println();
-
 //diagT("sleepNoPower à suivre",10);
 //sleepNoPwr(T8000);
 
@@ -477,7 +482,8 @@ void loop() {
 
   if(lowPower){lethalSleep();}
 
-  if(diags){  
+  if(diags){ 
+    /* 
     t_on4=micros();
     Serial.print("$ ");
     Serial.print(awakeMinCnt);Serial.print(" / ");Serial.print(awakeCnt);Serial.print(" / ");Serial.print(retryCnt);Serial.print(" ; ");
@@ -493,6 +499,7 @@ void loop() {
     tdiag+=micros()-t_on4+1000;
     Serial.print(tdiag);Serial.println(") $");
     delay(1);
+    */
   }            
 
   /* timing to usefull awake */
@@ -533,17 +540,19 @@ void loop() {
         retryCnt!=0 
       )
     ){mustSend=true;}
-  
+
   t_on1=micros();    // end of work... now send or sleep
 
   /* hardware ok, data ready or presence message time or retry -> send */
   if(mustSend){
+    marker(MARKER);
     if(diags){
       unsigned long localTdiag=micros();    
       Serial.print("!");
       for(int nb=retryCnt;nb>0;nb--){Serial.print("*");}
       tdiag+=(micros()-localTdiag);
     }
+
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
     memset(message,0x00,MAX_PAYLOAD_LENGTH+1);memset(message,0x20,RADIO_ADDR_LENGTH+1);
@@ -569,6 +578,7 @@ void loop() {
 
     rdSta=-1;
     //nbS++;
+     marker(MARKER2);
 
     if(numT!=0 || (absTime!=0 && absMillis!=0)){waitCell();}
     
@@ -576,14 +586,18 @@ void loop() {
     if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR)){
       blkHS();                               // hardware ko : 1x2sec blink
     };    // si waitCell rallonge
+
     trSta=0;
-    marker2(MARKER);
+    marker(MARKER2);
+
     rdSta=txRxMessage(outLength);                         // retour -2 ko ; >0 ok
     radio.powerOff();  
     t_on21=micros();
+
+    marker(MARKER2);
     
     if(rdSta>=0){                                         // no error
-      marker(MARKER);
+      marker2(MARKER);
       prtCom(" ok",rdSta);
       
       /* echo request ? (address field is 0x5555555555) */
@@ -635,6 +649,7 @@ void loop() {
     awakeCnt=1;
     awakeMinCnt=1;            
   }
+  marker(MARKER2);
 #endif // MACHINE_DET328
 
 #if MACHINE_CONCENTRATEUR
@@ -738,9 +753,9 @@ void loop() {
         // ******************************* réponse passée **********************************
         if(trSta==0){tableC[rdSta].periBufSent=true;} // trSta status transmission ; si ok le perif est à jour
   /* ======= formatting & tx to server ====== */
-        if(numT==0){
-          exportData(rdSta);}                         // numT==0 if perif already had registration nb
-      }                                               // numT!=0 if perif only made registration request (no data)
+        //if(numT==0){exportData(rdSta);}               // numT==0 if perif already had registration nb
+        exportData(rdSta);                            // numT!=0 if perif only made registration request (no data)
+      }                                               
       else {                                          
       /* echo pending  :                         // echoOn flag d'attente de réponse 
         if(!echoOn){sendEchoReq();echoOn=true;}  // sendEchoReq gère la tempo
@@ -1043,7 +1058,7 @@ void waitCell()                             // attente cellule temporelle
         Serial.print(" dly:");Serial.print(dly);delay(2);
       }
       
-      marker2(MARKER);
+      //marker2(MARKER);
       markerLow(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0  
       delay(sleepDly(dly,&sleepTime));
       markerLow(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0
@@ -1284,22 +1299,30 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
     
 */    
 {
-  while(dly>0){
+  /*
+  Serial.print("delayBlink on:");Serial.print(dur);Serial.print(" off:");Serial.print(bint);
+  Serial.print(" nb:");Serial.print(bnb);Serial.print(" dly inter:");Serial.print(bdelay);Serial.print(" dly:");Serial.print(dly);delay(2);
+  */
+  while(dly>0 && bnb>0){
     for(int i=0;i<bnb;i++){
-      digitalWrite(PLED,HIGH);
       pinMode(PLED,OUTPUT);
+      digitalWrite(PLED,HIGH);
+
       delay(sleepDly(dur,&sleepTime));
       /*if(dur<DLYSTP){delay(dur);}       // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
                                         // for 32mS sleep, power saving is greater than 90%
       else {sleepDly(dur,&sleepTime);}*/
+
       digitalWrite(PLED,LOW);
       if(bint!=0){
         delay(sleepDly(bint,&sleepTime));}    // 1 blink doesnt need bint
       dly-=(dur+bint);
     }
+
     if(bdelay!=0){
       delay(sleepDly(bdelay,&sleepTime));dly-=bdelay;}
   }
+  //Serial.println('_');delay(1);
 }
 
 #endif // MACHINE == 'P'

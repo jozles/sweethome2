@@ -83,7 +83,8 @@ void messageBuild(char* message,uint8_t* messageLength)
     adcVal=adcRead0(A2ADMUXVAL,0);conv_htoa((char*)(message+*messageLength),(byte*)&adcVal,LENUINT16_T);
     (*messageLength)+=4;                                            // anal2    - 4
     //if(diags){Serial.print(" adc2 ");Serial.println(adcVal,HEX);}
-    message[*messageLength]='\0';                                   //          - 1
+    message[*messageLength]='\0';
+    if(*messageLength>MAX_PAYLOAD_LENGTH){Serial.print("!!!! KO messageBuild");while(1){blink(2);delay(500);}}                                  //          - 1
 }
 
 /*

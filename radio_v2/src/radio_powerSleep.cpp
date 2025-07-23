@@ -111,7 +111,7 @@ void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à trai
  */
 
 // WDT prescaler - WDP3-0 bits (msec)
-
+/*
 #define T16   0b00000000
 #define T32   0b00000001
 #define T64   0b00000010
@@ -122,7 +122,7 @@ void wdtSetup(uint8_t durat)  // (0-9) durat>9 for external wdt on INT0 (à trai
 #define T2000 0b00000111
 #define T4000 0b00100000
 #define T8000 0b00100001
-
+*/
     noInterrupts();
     wdt_reset();
 
@@ -240,10 +240,26 @@ void getVolts()                     // get unregulated voltage and reset watchdo
   ADCSRA &= ~(1<<ADEN);                   // ADC shutdown for clean next voltage measurement
 }
 
+void disable_pins()
+{
+  DDRB = B00000000;PORTB = B00000000;
+  DDRC = B00000000;PORTC = B00000000;
+  DDRD = B01110000;PORTD = PORTD & B00010000; // devrait être 1<<PINLED et 1<<MARKER et 1<<MARKER2
+  /*bitClear(PORTB,0);bitClear(PORTB,1);bitClear(PORTB,2);bitClear(PORTB,3);bitClear(PORTB,4);bitClear(PORTB,5);bitClear(PORTB,6);bitClear(PORTB,7);
+  bitClear(DDRB,0);bitClear(DDRB,1);bitSet(DDRB,2);bitSet(DDRB,3);bitClear(DDRB,4);bitClear(DDRB,5);bitClear(DDRB,6);bitClear(DDRB,7);
+  bitClear(PORTC,0);bitClear(PORTC,1);bitClear(PORTC,2);bitClear(PORTC,3);bitClear(PORTC,4);bitClear(PORTC,5);bitClear(PORTC,6);bitClear(PORTC,7);
+  bitClear(DDRC,0);bitClear(DDRC,1);bitSet(DDRC,2);bitSet(DDRC,3);bitClear(DDRC,4);bitClear(DDRC,5);bitClear(DDRC,6);bitClear(DDRC,7);
+  bitClear(PORTD,0);bitClear(PORTD,1);bitClear(PORTD,2);bitClear(PORTD,3);bitClear(PORTD,5);bitClear(PORTD,6);bitClear(PORTD,7);
+  bitClear(DDRD,0);bitClear(DDRD,1);bitSet(DDRD,2);bitSet(DDRD,3);bitSet(DDRD,4);bitClear(DDRD,5);bitClear(DDRD,6);bitClear(DDRD,7);
+*/
+  }
 
 void sleepPwrDown(uint8_t durat)  /* *** WARNING *** no hardware PowerUp()/down included    */
 {                                 /*       durat=0 to enable external timer (INT0)          */
 //marker(MARKER2);
+
+    disable_pins();
+
     ADCSRA &= ~(1<<ADEN);                   // ADC shutdown
     
     power_all_disable();                    // all bits set in PRR register (I/O modules clock halted)

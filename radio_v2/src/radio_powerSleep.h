@@ -11,6 +11,7 @@
 
 
 // prescaler WDT
+#define NB_PRESCALER_VALUES 10
 #define T16   0b00000000
 #define T32   0b00000001
 #define T64   0b00000010
