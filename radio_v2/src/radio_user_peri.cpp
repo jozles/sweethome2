@@ -2,8 +2,8 @@
 #include <shutil2.h>
 #include "radio_user_peri.h"
 #include "radio_const.h"
-#include "radio_powerSleep.h"
-#include "radio_util.h"
+#include "lpavr_powerSleep.h"
+#include "lpavr_util.h"
 
 extern uint16_t aw_ok;
 extern uint16_t aw_min;

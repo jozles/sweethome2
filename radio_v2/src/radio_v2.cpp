@@ -1,11 +1,10 @@
 #include <Arduino.h>
 #include <shconst2.h>
 #include <shutil2.h>
-#include "radio_const.h"
-#include "radio_util.h"
+#include <radio_const.h>
+#include <lpavr_powerSleep.h>
+#include <lpavr_util.h>
 #include "config.h"
-#include "radio_const.h"
-#include "radio_powerSleep.h"
 #include "radio_user_peri.h"
 #include "radio_user_conc.h"
 
@@ -234,6 +233,9 @@ void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.print("°C ");delay(4);}
 void waitCell();
+void medSleepDly(int32_t dly);
+void sleepNoPwr(uint8_t durat);
+uint8_t sleepDly(int32_t dly,int32_t* slpt);
 void getPeriod(){
   Serial.print("period ");delay(1);
   ///*
@@ -251,6 +253,11 @@ void getPeriod(){
   //period=9.90;
   Serial.print(period*1000);Serial.print("ms ");
 }
+int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
+{
+  return radio.read(messageIn,pipe,pldLength,NBPERIF);         // MACHINE_DET328 returns 0:pld_ok <0:err 
+}
+
 #endif // MACHINE_DET328
 
 void ini_t_on();
@@ -1279,6 +1286,57 @@ bool checkTemp()
   return false;
 }
 
+
+void sleepNoPwr(uint8_t durat)
+{
+  userHardPowerDown();
+  bitClear(DDR_RPOW,BIT_RPOW);            //radio.powerOff();
+  bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
+
+  sleepPwrDown(durat);                    // @T32 durée 34.47mS
+  hardwarePwrUp();
+}
+
+uint8_t sleepDly(int32_t dly,int32_t* slpt)                  
+{
+  //#define DLYVAL 3500                     // !!!!!! need computed param // loop dly value
+  //#define SLEEPT 3505                     // !!!!!! need computed param // loop sleep value (micros()/millis() loss)
+  // !!!!!!!!!!!!!!!!!!!!! anomalie : le temps de sleep devrait être < temps boucle ?????????????????? 
+
+  //unsigned long tmicros=micros();
+
+int16_t sleepTimings[]={T8000,T4000,T2000,T1000,T500,T250,T125,T64,T32};
+int32_t realSleepTimings[]={800300,400300,200300,100300,50300,25300,12800,6700,3500};
+int32_t loopSleepTimings[]={800305,400305,200305,100305,50305,25305,12805,6705,3505};
+
+  dly*=100;
+  if(dly>=realSleepTimings[NB_PRESCALER_VALUES-2]){
+
+    int32_t slpt0=0;
+    uint8_t k=0;
+    while(k<NB_PRESCALER_VALUES-1){
+      while(dly>realSleepTimings[k]){
+        sleepNoPwr(sleepTimings[k]);                      
+        dly-=realSleepTimings[k];
+        slpt0+=loopSleepTimings[k];      
+      }
+      k++;
+    }
+    *slpt+=slpt0/100;
+  }  
+  return (uint8_t)(dly/100);
+}
+
+uint8_t sleepDly(int32_t dly) 
+{
+  int32_t slpt;
+  return sleepDly(dly,&slpt);
+}
+
+void medSleepDly(int32_t dly)
+{
+  delay(sleepDly(dly));
+}
 
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
 /*  dur=on state duration ; bdelay=time between blink sequences ; bint=off state duration ; 

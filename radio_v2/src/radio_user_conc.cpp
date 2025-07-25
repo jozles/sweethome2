@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <radio_const.h>
-#include "radio_util.h"
+#include "lpavr_util.h"
 #include "radio_user_conc.h"
-#include "radio_powerSleep.h"
+#include "lpavr_powerSleep.h"
 
 #ifdef  NRF
 #include "nrf24l01s.h"
