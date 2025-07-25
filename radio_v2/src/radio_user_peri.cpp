@@ -195,23 +195,8 @@ void importData(byte* data,uint8_t dataLength)
     
     periodCnt=0;
     absMillis=(micros()-t_on+sleepTime*1000)/1000;
-    marker(MARKER);
-    delay(512-absTime-4);//marker(MARKER2);
-    /*
-    absTime=0;
-      for(uint8_t i=0;i<3;i++){
-      //Serial.print((char)*(data+RADIO_ADDR_LENGTH+srt+i));
-      absTime=absTime<<6;
-      //Serial.print('!');Serial.print(absTime);
-      absTime+=*(data+RADIO_ADDR_LENGTH+srt+i)-0x20;
-    }
-      //Serial.println();
-    */
-    /*int32_t dly=512-absTime-50;
-    if(dly<0){dly=0;}
-    medSleepDly(dly);
-    marker(MARKER);Serial.print("-marker:");Serial.print(dly);delay(1);
-    */
+    //marker(MARKER);
+
     srt+=3;
     uint16_t pitch=0;
     conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&pitch,3);                        // pitch mesure

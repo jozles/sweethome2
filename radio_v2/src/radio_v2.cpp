@@ -228,8 +228,8 @@ void int_ISR()
   extTimer=true;
   //Serial.println("int_ISR");
 }
-void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");delay(2);}
-void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.println(rdSta);delay(2);}
+void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");}
+void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.println(rdSta);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.print("°C ");delay(4);}
 void waitCell();
@@ -585,12 +585,13 @@ void loop() {
 
     rdSta=-1;
     //nbS++;
-     marker(MARKER2);
+    //marker(MARKER2);
 
     if(numT!=0 || (absTime!=0 && absMillis!=0)){waitCell();}
     
-    t_on2=micros();                                       // message build ... send   
-    if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR)){
+    t_on2=micros();                                       // message build ... send 
+    marker(MARKER2);  
+    if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime)){
       blkHS();                               // hardware ko : 1x2sec blink
     };    // si waitCell rallonge
 
@@ -604,7 +605,7 @@ void loop() {
     marker(MARKER2);
     
     if(rdSta>=0){                                         // no error
-      marker2(MARKER);
+      markerL(MARKER);
       prtCom(" ok",rdSta);
       
       /* echo request ? (address field is 0x5555555555) */
@@ -619,7 +620,7 @@ void loop() {
       awakeCnt=aw_ok;
       awakeMinCnt=aw_min;
 
-      delayBlk(32,0,96,4,1);                             // txRx ok : 4 blinks
+      delayBlk(32,0,96,3,1);                             // txRx ok : 3 blinks
     }
     
     t_on3=micros();  // message sent / received or error (rdSta)
@@ -656,7 +657,7 @@ void loop() {
     awakeCnt=1;
     awakeMinCnt=1;            
   }
-  marker(MARKER2);
+  //marker(MARKER2);
 #endif // MACHINE_DET328
 
 #if MACHINE_CONCENTRATEUR
@@ -1065,10 +1066,9 @@ void waitCell()                             // attente cellule temporelle
         Serial.print(" dly:");Serial.print(dly);delay(2);
       }
       
-      //marker2(MARKER);
-      markerLow(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0  
+      marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0  
       delay(sleepDly(dly,&sleepTime));
-      markerLow(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0
+      marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0
 
       if(diags){
         Serial.print(" absMillis:");Serial.print(absMillis);
@@ -1286,56 +1286,14 @@ bool checkTemp()
   return false;
 }
 
-
-void sleepNoPwr(uint8_t durat)
+void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
 {
   userHardPowerDown();
-  bitClear(DDR_RPOW,BIT_RPOW);            //radio.powerOff();
+  radio.powerOff();                       // bitClear(DDR_RPOW,BIT_RPOW);            //radio.powerOff();
   bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
 
   sleepPwrDown(durat);                    // @T32 durée 34.47mS
   hardwarePwrUp();
-}
-
-uint8_t sleepDly(int32_t dly,int32_t* slpt)                  
-{
-  //#define DLYVAL 3500                     // !!!!!! need computed param // loop dly value
-  //#define SLEEPT 3505                     // !!!!!! need computed param // loop sleep value (micros()/millis() loss)
-  // !!!!!!!!!!!!!!!!!!!!! anomalie : le temps de sleep devrait être < temps boucle ?????????????????? 
-
-  //unsigned long tmicros=micros();
-
-int16_t sleepTimings[]={T8000,T4000,T2000,T1000,T500,T250,T125,T64,T32};
-int32_t realSleepTimings[]={800300,400300,200300,100300,50300,25300,12800,6700,3500};
-int32_t loopSleepTimings[]={800305,400305,200305,100305,50305,25305,12805,6705,3505};
-
-  dly*=100;
-  if(dly>=realSleepTimings[NB_PRESCALER_VALUES-2]){
-
-    int32_t slpt0=0;
-    uint8_t k=0;
-    while(k<NB_PRESCALER_VALUES-1){
-      while(dly>realSleepTimings[k]){
-        sleepNoPwr(sleepTimings[k]);                      
-        dly-=realSleepTimings[k];
-        slpt0+=loopSleepTimings[k];      
-      }
-      k++;
-    }
-    *slpt+=slpt0/100;
-  }  
-  return (uint8_t)(dly/100);
-}
-
-uint8_t sleepDly(int32_t dly) 
-{
-  int32_t slpt;
-  return sleepDly(dly,&slpt);
-}
-
-void medSleepDly(int32_t dly)
-{
-  delay(sleepDly(dly));
 }
 
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
