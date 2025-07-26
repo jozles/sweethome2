@@ -1075,6 +1075,7 @@ void waitCell()                             // attente cellule temporelle
         Serial.print(" absTime:");Serial.print(absTime);
         Serial.print(" delta2:");Serial.print(delta2);
         Serial.print(" dly:");Serial.println(dly);
+        delay(1);
       }
   }
   
@@ -1089,6 +1090,8 @@ int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] cha
     numT=bp;
     return bp;
   }
+
+  if(pldL>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR,PULSEBLINK);}
 
   message[RADIO_ADDR_LENGTH]=numT+48;
   memcpy(messageIn,message,pldLength);
