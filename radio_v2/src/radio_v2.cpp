@@ -229,7 +229,7 @@ void int_ISR()
   //Serial.println("int_ISR");
 }
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");}
-void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.println(rdSta);}
+void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.println(rdSta);delay(1);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.print("°C ");delay(4);}
 void waitCell();
@@ -602,7 +602,7 @@ void loop() {
     radio.powerOff();  
     t_on21=micros();
 
-    marker(MARKER2);
+    marker(MARKER2);marker(MARKER);
     
     if(rdSta>=0){                                         // no error
       markerL(MARKER);
@@ -620,7 +620,7 @@ void loop() {
       awakeCnt=aw_ok;
       awakeMinCnt=aw_min;
 
-      delayBlk(32,0,96,3,1);                             // txRx ok : 3 blinks
+      delayBlk(RT16/100,0,RT64/100,2,1);                             // txRx ok : 3 blinks
     }
     
     t_on3=micros();  // message sent / received or error (rdSta)
@@ -1067,7 +1067,7 @@ void waitCell()                             // attente cellule temporelle
       }
       
       marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0  
-      delay(sleepDly(dly,&sleepTime));
+      delay(sleepPwrDownV(dly,&sleepTime));
       marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0
 
       if(diags){
@@ -1327,19 +1327,20 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
       pinMode(PLED,OUTPUT);
       digitalWrite(PLED,HIGH);
 
-      delay(sleepDly(dur,&sleepTime));
+      delay(sleepPwrDownV(dur,&sleepTime));
       /*if(dur<DLYSTP){delay(dur);}       // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
                                         // for 32mS sleep, power saving is greater than 90%
       else {sleepDly(dur,&sleepTime);}*/
 
       digitalWrite(PLED,LOW);
       if(bint!=0){
-        delay(sleepDly(bint,&sleepTime));}    // 1 blink doesnt need bint
+        if(i<bnb-1){delay(sleepPwrDownV(bint,&sleepTime));}    // last blink doesnt bint
+      }
       dly-=(dur+bint);
     }
 
     if(bdelay!=0){
-      delay(sleepDly(bdelay,&sleepTime));dly-=bdelay;}
+      delay(sleepPwrDownV(bdelay,&sleepTime));dly-=bdelay;}
   }
   //Serial.println('_');delay(1);
 }

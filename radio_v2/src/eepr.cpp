@@ -1,4 +1,3 @@
-#include "radio_const.h"
 #include "eepr.h"
 #include <shutil2.h>
 
