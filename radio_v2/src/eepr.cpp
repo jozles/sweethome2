@@ -79,12 +79,12 @@ void Eepr::store(byte* data,uint16_t length)
 
 bool Eepr::load(byte* data,uint16_t length)
 {
-  byte header[EEPRHEADERLENGTH];
+  volatile byte header[EEPRHEADERLENGTH];
     if(length<EEPRHEADERLENGTH) {return false;}
     
-    eeread(header,EEPRHEADERLENGTH,0);                              // lit header
+    eeread((byte*)header,EEPRHEADERLENGTH,0);                              // lit header
     uint16_t usefullLength;
-    memcpy(&usefullLength,header+EEPRCRCLENGTH,EEPRLENGTHLENGTH);   // recup longueur-crc
+    memcpy(&usefullLength,(byte*)header+EEPRCRCLENGTH,EEPRLENGTHLENGTH);   // recup longueur-crc
     usefullLength &= 0x00ff; // 256 bytes max
     if(length<usefullLength) {return false;}
 
