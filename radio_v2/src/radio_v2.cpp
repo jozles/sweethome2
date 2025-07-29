@@ -229,7 +229,7 @@ void int_ISR()
   //Serial.println("int_ISR");
 }
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");}
-void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print("rdSta:");Serial.println(rdSta);delay(1);}
+void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print(":");Serial.println(rdSta);delay(1);}
 void diagT(char* texte,int duree);
 void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.print("°C ");delay(4);}
 void waitCell();
@@ -964,7 +964,7 @@ int beginP(uint8_t pldL)                        // manage registration ; output 
   }
   nbS++;
   int confSta=-1;
-  int8_t beginP_retryCnt=2; // 1; // ================================================= version avec retry 
+  int8_t beginP_retryCnt=1; // 1; // ================================================= version avec retry 
   memcpy(messageIn,message,pldL);
   pldLength=pldL;
   
