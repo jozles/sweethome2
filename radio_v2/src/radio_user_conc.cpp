@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <radio_const.h>
-#include "lpavr_util.h"
 #include "radio_user_conc.h"
-#include "lpavr_powerSleep.h"
+#include "radio_util.h"
 
 #ifdef  NRF
 #include "nrf24l01s.h"
@@ -16,6 +15,12 @@ extern LoRaClass radio;
 #endif
 
 /* gestion user data du concentrateur */
+
+
+#ifdef MACHINE_DET328
+#include <lpavr_powerSleep.h>
+//#include <lpavr_util.h>
+#endif
 
 #if MACHINE_CONCENTRATEUR
 #ifndef DETS

@@ -31,6 +31,7 @@ upload_protocol = urclock ; miniCore v3.1.1
 
 ;build_type = debug
 build_flags = -DDETS -DPERIF -DMACHINE_DET328 -DNRF
+;-DNRF ;-DLORA
 
 LIB_EXTRA_DIRS = 
  D:/data/arduino/libraries/shlib2/
@@ -38,4 +39,5 @@ LIB_EXTRA_DIRS =
  D:/data/arduino/libraries/nrf/
 ;D:/data/arduino/libraries/LoRa/
  D:/data/arduino/libraries/Radio/
+ D:/data/arduino/libraries/low_power_avr/
 

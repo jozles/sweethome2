@@ -2,15 +2,19 @@
 #include <shconst2.h>
 #include <shutil2.h>
 #include <radio_const.h>
-#include <lpavr_powerSleep.h>
-#include <lpavr_util.h>
 #include "config.h"
 #include "radio_user_peri.h"
 #include "radio_user_conc.h"
+#include "radio_util.h"
 
 #include "eepr.h"
 Eepr eeprom;
- 
+
+#ifdef MACHINE_DET328
+#include <lpavr_powerSleep.h>
+//#include <lpavr_util.h>
+#endif
+
 #ifdef DUE
 #include <MemoryFree.h>
 #endif // def DUE 
@@ -236,6 +240,7 @@ void waitCell();
 void medSleepDly(int32_t dly);
 void sleepNoPwr(uint8_t durat);
 uint8_t sleepDly(int32_t dly,int32_t* slpt);
+void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 void getPeriod(){
   Serial.print("period ");delay(1);
   ///*
@@ -267,11 +272,11 @@ void showErr(bool crlf);
 void showRx(bool crlf);
 void showRx(byte* message,bool crlf);
 void ledblk(int dur,int bdelay,int bint,uint8_t bnb);
-void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 int  txMessage(bool ack,uint8_t len,uint8_t numP);
 int  rxMessage(unsigned long to);
 //void echo0(char* message,bool ack,uint8_t len,uint8_t numP);
-void blkHS(){delayBlk(2004,0,0,1,1);}                   // hardware ko : 1x2sec blink}
+void blkHS();                   // hardware ko : 1x2sec blink}
+
 #if MACHINE_CONCENTRATEUR
 char getch();
 void echo();
@@ -1374,6 +1379,9 @@ void ledblk(int dur,int bdelay,int bint,uint8_t bnb)
     blktime=millis();
   }
 }
+
+void blkHS(){
+  delayBlk(2004,0,0,1,1);}                   // hardware ko : 1x2sec blink}
 
 void led(unsigned long dur)
 {

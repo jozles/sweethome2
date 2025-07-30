@@ -2,8 +2,13 @@
 #include <shutil2.h>
 #include "radio_user_peri.h"
 #include "radio_const.h"
+
+/* gestion user data du périphérique */
+
+#if MACHINE_DET328
+
 #include "lpavr_powerSleep.h"
-#include "lpavr_util.h"
+//#include "lpavr_util.h"
 
 extern uint16_t aw_ok;
 extern uint16_t aw_min;
@@ -12,10 +17,6 @@ extern uint32_t nbL;
 extern unsigned long t_on;
 
 extern bool diags;
-
-/* gestion user data du périphérique */
-
-#if MACHINE_DET328
 
 /* user includes */
 
