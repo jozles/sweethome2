@@ -414,6 +414,9 @@ void setup() {
 
   //while(1){marker(MARKER);delay(2);marker(MARKER2);delay(2);}
 
+  WDTRIG //trigwd(0);blktime=millis();
+
+
 #ifdef REDV1
   pinMode(POWCD,OUTPUT);                // power ON shield
   digitalWrite(POWCD,POWON);
