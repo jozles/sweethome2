@@ -233,7 +233,7 @@ void marker(uint8_t markerPin)      // 100uS
   pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
   #endif
   #if MACHINE_DET328
-  bitSet(DDR_DIG1,markerPin);bitSet(PORT_DIG1,markerPin);delayMicroseconds(100);bitClear(PORT_DIG1,markerPin);
+  bitSet(DDR_DIG1,markerPin);bitSet(PORT_DIG1,markerPin);delayMicroseconds(250);bitClear(PORT_DIG1,markerPin);
   #endif
 }
 

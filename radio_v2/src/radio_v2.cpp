@@ -6,6 +6,8 @@
 #include "radio_user_peri.h"
 #include "radio_user_conc.h"
 #include "radio_util.h"
+#include <avr/sleep.h>
+//#include <avr/power.h>
 
 #include "eepr.h"
 Eepr eeprom;
@@ -610,11 +612,13 @@ void loop() {
     radio.powerOff();  
     t_on21=micros();
 
-    marker(MARKER2);marker(MARKER);
+    marker(MARKER2);
     
     if(rdSta>=0){                                         // no error
       markerL(MARKER);
-      prtCom(" ok",rdSta);
+      //if((PORT_RX & BITMSK_RX)!=0){}
+      //Serial.print(PORTD,HEX);Serial.print(' ');
+        prtCom(" ok",rdSta);
       
       /* echo request ? (address field is 0x5555555555) */
       if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){echo();}
@@ -636,6 +640,7 @@ void loop() {
     if(trSta<0 || rdSta<0){                               // error
     
       nbK++;
+      //if(bitRead(PORT_RX,BIT_RX)!=0){}
       prtCom(" ko",rdSta);
       forceSend=true;
       trSta=0;rdSta=0;
@@ -1075,7 +1080,7 @@ void waitCell()                             // attente cellule temporelle
       }
       
       marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0  
-      delay(sleepPwrDownV(dly,&sleepTime));
+      sleepPwrDownV(dly,&sleepTime);
       marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0
 
       if(diags){
@@ -1335,20 +1340,20 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
       pinMode(PLED,OUTPUT);
       digitalWrite(PLED,HIGH);
 
-      delay(sleepPwrDownV(dur,&sleepTime));
+      sleepPwrDownV(dur,&sleepTime);
       /*if(dur<DLYSTP){delay(dur);}       // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
                                         // for 32mS sleep, power saving is greater than 90%
       else {sleepDly(dur,&sleepTime);}*/
 
       digitalWrite(PLED,LOW);
       if(bint!=0){
-        if(i<bnb-1){delay(sleepPwrDownV(bint,&sleepTime));}    // last blink doesnt bint
+        if(i<bnb-1){sleepPwrDownV(bint,&sleepTime);}    // last blink doesnt bint
       }
       dly-=(dur+bint);
     }
 
     if(bdelay!=0){
-      delay(sleepPwrDownV(bdelay,&sleepTime));dly-=bdelay;}
+      sleepPwrDownV(bdelay,&sleepTime);dly-=bdelay;}
   }
   //Serial.println('_');delay(1);
 }
