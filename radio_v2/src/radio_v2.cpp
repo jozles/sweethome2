@@ -317,6 +317,8 @@ void setup() {
 
 #if MACHINE_DET328
 
+  bitSet(DDR_DIG2,BIT_DIG2);bitSet(DDR_DIG1,BIT_DIG1);
+  bitClear(PORT_DIG2,BIT_DIG2);bitClear(PORT_DIG1,BIT_DIG1);
   delay(1000);
   Serial.begin(115200);
   Serial.println("\n+");delay(1);
