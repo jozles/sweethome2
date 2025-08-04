@@ -378,6 +378,8 @@ void setup() {
     Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
   }
 
+  Serial.print("calibration ");
+  calibratePwrDown();if(diags){showTimings();}
   getPeriod();
 
   getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
@@ -1065,7 +1067,7 @@ void echo()
 
 void waitCell()                             // attente cellule temporelle
 {     
-      
+
   if(absTime!=0){
       int32_t delta1=absMillis+(CELLSIZE-absTime-4);
       int32_t delta2=((int32_t)(periodCnt*period*1000)-delta1)%CELLSIZE+11;

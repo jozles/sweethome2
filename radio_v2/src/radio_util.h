@@ -21,11 +21,12 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength);
 
 #ifdef MACHINE_DET328
 
+#define NO_SLEEP false
+
 uint8_t sleepDly(int32_t dly,int32_t* slpt);
 uint8_t sleepDly(int32_t dly);
 void medSleepDly(int32_t dly);
 void hardwarePwrUp();
-
 
 #endif // MACHINE_DET328
 

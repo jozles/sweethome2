@@ -246,3 +246,4 @@ void markerL(uint8_t markerPin)     // 500uS
   bitSet(DDR_DIG1,markerPin);bitSet(PORT_DIG1,markerPin);delayMicroseconds(500);bitClear(PORT_DIG1,markerPin);
   #endif
 }
+
