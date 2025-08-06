@@ -1,6 +1,8 @@
 
 void marker(uint8_t markerPin);
 void markerL(uint8_t markerPin);
+void markerStart();
+void markerSleep();
 
 
 

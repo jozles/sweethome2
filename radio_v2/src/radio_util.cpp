@@ -247,3 +247,14 @@ void markerL(uint8_t markerPin)     // 500uS
   #endif
 }
 
+void markerStart()
+{
+  bitSet(DDR_DIG2,BIT_DIG2);bitSet(DDR_DIG1,BIT_DIG1);
+  bitClear(PORT_DIG2,BIT_DIG2);bitClear(PORT_DIG1,BIT_DIG1);
+}
+
+void markerSleep()
+{
+  bitClear(DDR_DIG2,BIT_DIG2);bitClear(DDR_DIG1,BIT_DIG1);
+  bitClear(PORT_DIG2,BIT_DIG2);bitClear(PORT_DIG1,BIT_DIG1);
+}
