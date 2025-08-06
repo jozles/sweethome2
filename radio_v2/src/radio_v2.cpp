@@ -177,6 +177,7 @@ extern uint8_t*  concNb;
 extern uint8_t*  concChannel;
 extern uint8_t*  concSpeed;
 extern uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
+extern bool wdIntFlag;
 
 /*** gestion sleep ***/
 
@@ -317,8 +318,7 @@ void setup() {
 
 #if MACHINE_DET328
 
-  bitSet(DDR_DIG2,BIT_DIG2);bitSet(DDR_DIG1,BIT_DIG1);
-  bitClear(PORT_DIG2,BIT_DIG2);bitClear(PORT_DIG1,BIT_DIG1);
+  markerStart();
   delay(1000);
   Serial.begin(115200);
   Serial.println("\n+");delay(1);
@@ -380,8 +380,8 @@ void setup() {
     Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
   }
 
-  Serial.print("calibration ");
-  calibratePwrDown();if(diags){showTimings();}
+  //Serial.println("calibration ");
+  //calibratePwrDown();if(diags){showTimings();}
   getPeriod();
 
   getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
@@ -1082,10 +1082,12 @@ void waitCell()                             // attente cellule temporelle
         Serial.print(" delta2:");Serial.print(delta2);
         Serial.print(" dly:");Serial.print(dly);delay(2);
       }
-      
+      //wdIntFlag=false;
+      //Serial.print("waitcell ; wdIntFlag=");Serial.print(wdIntFlag);delay(2);      
       marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0  
       sleepPwrDownV(dly,&sleepTime);
       marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0
+      //Serial.print("/");Serial.println(wdIntFlag);delay(1);
 
       if(diags){
         Serial.print(" absMillis:");Serial.print(absMillis);
@@ -1095,7 +1097,6 @@ void waitCell()                             // attente cellule temporelle
         delay(1);
       }
   }
-  
 }
 
 int txRxMessage(uint8_t pldL)       // utilise beginP : doit avoir message[] chargé avec au moins adresseMac et version
@@ -1311,8 +1312,13 @@ void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
   userHardPowerDown();
   radio.powerOff();                       // bitClear(DDR_RPOW,BIT_RPOW);            //radio.powerOff();
   bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
-
+  bitClear(DDR_LED,BIT_LED);              //pinMode(REED,INPUT);
+  DDRC=0;PORTC=0;
+  //DDRB=0;PORTB=0;
+  markerSleep();
   sleepPwrDown(durat);                    // @T32 durée 34.47mS
+  markerStart();
+  bitSet(DDR_LED,BIT_LED);              //pinMode(REED,INPUT);
   hardwarePwrUp();
 }
 
