@@ -225,7 +225,11 @@ void medSleepDly(int32_t dly)
 
 #endif // MACHINE_DET328
 
-
+void markerInit()
+{
+  bitSet(DDR_DIG2,BIT_DIG2);bitSet(DDR_DIG1,BIT_DIG1);
+  bitClear(PORT_DIG2,BIT_DIG2);bitClear(PORT_DIG1,BIT_DIG1);
+}
 
 void marker(uint8_t markerPin)      // 100uS
 {
@@ -247,3 +251,7 @@ void markerL(uint8_t markerPin)     // 500uS
   #endif
 }
 
+void markerLow(uint8_t markerPin)
+{
+  bitClear(PORT_DIG1,markerPin);
+}

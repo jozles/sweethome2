@@ -205,6 +205,8 @@ unsigned long   absMillis=0;
 unsigned long   periodCnt=0;
 int32_t   sleepTime=0;
 
+extern int32_t realSleepTimings[];
+
 #define PRESCALER_RATIO 256           // prescaler ratio clock timer1 clock
 #define TCCR1B_PRESCALER_MASK 0xF8    // prescaler bit mask in TCCR1B
 #if PRESCALER_RATIO==1024
@@ -317,8 +319,9 @@ void setup() {
 
 #if MACHINE_DET328
 
-  bitSet(DDR_DIG2,BIT_DIG2);bitSet(DDR_DIG1,BIT_DIG1);
-  bitClear(PORT_DIG2,BIT_DIG2);bitClear(PORT_DIG1,BIT_DIG1);
+  markerInit();
+  radio.powerOff();
+
   delay(1000);
   Serial.begin(115200);
   Serial.println("\n+");delay(1);
@@ -380,8 +383,8 @@ void setup() {
     Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
   }
 
-  Serial.print("calibration ");
-  calibratePwrDown();if(diags){showTimings();}
+  calibratePwrDown();  
+ 
   getPeriod();
 
   getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
@@ -602,7 +605,7 @@ void loop() {
     //marker(MARKER2);
 
     if(numT!=0 || (absTime!=0 && absMillis!=0)){waitCell();}
-    
+
     t_on2=micros();                                       // message build ... send 
     marker(MARKER2);  
     if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime)){
@@ -636,7 +639,9 @@ void loop() {
       awakeCnt=aw_ok;
       awakeMinCnt=aw_min;
 
-      delayBlk(RT16/100,0,RT64/100,2,1);                             // txRx ok : 3 blinks
+      marker(MARKER2);
+
+      delayBlk(realSleepTimings[ST16]/100,0,realSleepTimings[ST64]/100,2,1);                             // txRx ok : 2 blinks
     }
     
     t_on3=micros();  // message sent / received or error (rdSta)
@@ -1311,8 +1316,16 @@ void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
   userHardPowerDown();
   radio.powerOff();                       // bitClear(DDR_RPOW,BIT_RPOW);            //radio.powerOff();
   bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
+  bitClear(DDR_LED,BIT_LED);
+  bitClear(DDR_TX,BIT_TX);
+  DDRC=0;                                 // all inputs
+  PORTC=0;                                // no pullup
+  markerLow(MARKER);
+  markerLow(MARKER2);
 
   sleepPwrDown(durat);                    // @T32 durée 34.47mS
+  bitSet(DDR_LED,BIT_LED);
+  bitSet(DDR_TX,BIT_TX);
   hardwarePwrUp();
 }
 
