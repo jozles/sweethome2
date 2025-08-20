@@ -327,21 +327,15 @@ void setup() {
   Serial.println("\n+");delay(1);
 
   initLed(PINLED,LEDOFF,LEDON);
-
-  /*while(1){
-     //sleepNoPwr(0);
-     sleepPwrDown(0);
-     blink(1);
-  }*/
   
   configInit();
   configLoad();
 
-    /* ---- config pour conc 2 ----
-  //memcpy(periRxAddr,"peri9\0",RADIO_ADDR_LENGTH+1);
+    /* ---- config pour conc 3 ----
+  //memcpy(periRxAddr,"peria\0",RADIO_ADDR_LENGTH+1);
   //memcpy(configVers,"02\0",3);
-  memcpy(concAddr,"SHCO2",RADIO_ADDR_LENGTH);
-  *concNb=2;
+  memcpy(concAddr,"SHCO3",RADIO_ADDR_LENGTH);
+  *concNb=3;
   *concChannel=radioChannel[*concNb];
   *concSpeed=RF_SPD_1MB; 
   configSave();
@@ -397,8 +391,6 @@ void setup() {
   //userResetSetup();
 
   Serial.println();
-//diagT("sleepNoPower à suivre",10);
-//sleepNoPwr(T8000);
 
 #endif // MACHINE_DET328
 
@@ -506,8 +498,7 @@ void loop() {
 
   if(lowPower){lethalSleep();}
 
-  if(diags){ 
-    /* 
+  /*if(diags){  
     t_on4=micros();
     Serial.print("$ ");
     Serial.print(awakeMinCnt);Serial.print(" / ");Serial.print(awakeCnt);Serial.print(" / ");Serial.print(retryCnt);Serial.print(" ; ");
@@ -523,8 +514,7 @@ void loop() {
     tdiag+=micros()-t_on4+1000;
     Serial.print(tdiag);Serial.println(") $");
     delay(1);
-    */
-  }            
+  }*/            
 
   /* timing to usefull awake */
   while(((awakeMinCnt>0)&&(awakeCnt>0)&&(retryCnt==0))){
@@ -544,7 +534,6 @@ void loop() {
     }
   }
 
-  marker(MARKER);
   ini_t_on();
   sleepTime=0;
 
@@ -637,7 +626,7 @@ void loop() {
       awakeCnt=aw_ok;
       awakeMinCnt=aw_min;
 
-      delayBlk(realSleepTimings[ST16]/100,0,realSleepTimings[ST64]/100,2,1);                             // txRx ok : 3 blinks
+      delayBlk(realSleepTimings[ST16]/100,0,realSleepTimings[ST64]/100,1,1);                             // txRx ok : 3 blinks
     }
     
     t_on3=micros();  // message sent / received or error (rdSta)
@@ -645,7 +634,6 @@ void loop() {
     if(trSta<0 || rdSta<0){                               // error
     
       nbK++;
-      //if(bitRead(PORT_RX,BIT_RX)!=0){}
       prtCom(" ko",rdSta);
       forceSend=true;
       trSta=0;rdSta=0;
@@ -675,7 +663,7 @@ void loop() {
     awakeCnt=1;
     awakeMinCnt=1;            
   }
-  //marker(MARKER2);
+
 #endif // MACHINE_DET328
 
 #if MACHINE_CONCENTRATEUR
@@ -1314,9 +1302,12 @@ void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
   radio.powerOff();                       // bitClear(DDR_RPOW,BIT_RPOW);            //radio.powerOff();
   bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
   bitClear(DDR_LED,BIT_LED);              //pinMode(REED,INPUT);
-  DDRC=0;PORTC=0;
+  bitClear(DDR_TX,BIT_TX);                // TX input
+  //DDRC=0;PORTC=0;
+  //DDRD=0;PORTD=0;
+
   //DDRB=0;PORTB=0;
-  //markerSleep();
+
   markerLow(MARKER);
   markerLow(MARKER2);
 
@@ -1355,9 +1346,8 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
       digitalWrite(PLED,HIGH);
 
       sleepPwrDownV(dur,&sleepTime);
-      /*if(dur<DLYSTP){delay(dur);}       // sleepPwrDown is about 10mAmS ; awake is about 4mA => no reason to sleep if dur<3mS
-                                        // for 32mS sleep, power saving is greater than 90%
-      else {sleepDly(dur,&sleepTime);}*/
+
+      //marker(MARKER2);
 
       digitalWrite(PLED,LOW);
       if(bint!=0){
@@ -1369,7 +1359,6 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
     if(bdelay!=0){
       sleepPwrDownV(bdelay,&sleepTime);dly-=bdelay;}
   }
-  //Serial.println('_');delay(1);
 }
 
 #endif // MACHINE == 'P'

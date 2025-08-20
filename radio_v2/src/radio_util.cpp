@@ -227,30 +227,36 @@ void medSleepDly(int32_t dly)
 
 
 
-void marker(uint8_t markerPin)      // 100uS
+void marker(uint8_t markerPin)      // 250uS
 {
+  #ifdef MARKERS
   #ifndef MACHINE_DET328
   pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(250);digitalWrite(markerPin,LOW);
   #endif
   #if MACHINE_DET328
   bitSet(DDR_DIG1,markerPin);bitSet(PORT_DIG1,markerPin);delayMicroseconds(250);bitClear(PORT_DIG1,markerPin);
   #endif
+  #endif // MARKERS
 }
 
 void markerL(uint8_t markerPin)     // 500uS
 {
+  #ifdef MARKERS
   #ifndef MACHINE_DET328
   //pinMode(markerPin,OUTPUT);digitalWrite(markerPin,HIGH);delayMicroseconds(500);digitalWrite(markerPin,LOW);
   #endif
   #if MACHINE_DET328
   bitSet(DDR_DIG1,markerPin);bitSet(PORT_DIG1,markerPin);delayMicroseconds(500);bitClear(PORT_DIG1,markerPin);
   #endif
+  #endif // MARKERS
 }
 
 void markerInit()
 {
+  #ifdef MARKERS
   bitSet(DDR_DIG2,BIT_DIG2);bitSet(DDR_DIG1,BIT_DIG1);
   bitClear(PORT_DIG2,BIT_DIG2);bitClear(PORT_DIG1,BIT_DIG1);
+  #endif // MARKERS
 }
 
 void markerLow(uint8_t markerPin)
