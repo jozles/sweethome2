@@ -327,6 +327,7 @@ void setup() {
   Serial.println("\n+");delay(1);
 
   initLed(PINLED,LEDOFF,LEDON);
+  blink(1); 
   
   configInit();
   configLoad();
