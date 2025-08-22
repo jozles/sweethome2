@@ -6,13 +6,13 @@
 #include "radio_user_peri.h"
 #include "radio_user_conc.h"
 #include "radio_util.h"
-#include <avr/sleep.h>
-//#include <avr/power.h>
 
 #include "eepr.h"
 Eepr eeprom;
 
 #ifdef MACHINE_DET328
+//#include <avr/power.h>
+#include <avr/sleep.h>
 #include <lpavr_powerSleep.h>
 //#include <lpavr_util.h>
 #endif
@@ -448,8 +448,9 @@ void setup() {
   t_on=millis();
   diags=diagSetup(t_on);
 
+  blink(1);
   configCreate();                       // configSave/configLoad ne fonctionnent pas si poweroff !
-
+  blink(1);
   configLoad();
 
 #if TXRX_MODE == 'U' 

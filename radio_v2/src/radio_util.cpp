@@ -254,12 +254,16 @@ void markerL(uint8_t markerPin)     // 500uS
 void markerInit()
 {
   #ifdef MARKERS
+  #if MACHINE_DET328
   bitSet(DDR_DIG2,BIT_DIG2);bitSet(DDR_DIG1,BIT_DIG1);
   bitClear(PORT_DIG2,BIT_DIG2);bitClear(PORT_DIG1,BIT_DIG1);
+  #endif // MACHINE_DERTS328
   #endif // MARKERS
 }
 
 void markerLow(uint8_t markerPin)
 {
+  #if MACHINE_DET328
   bitClear(PORT_DIG1,markerPin);
+  #endif // MACHINE_DERTS328
 }
