@@ -86,7 +86,7 @@ uint32_t   cliav=0;       // len reçue dans le dernier paquet
 uint32_t   clipt=0;       // prochain car à sortir du dernier paquet;
 char  udpData[LBUFSERVER+1];
 uint32_t   getUdp_cnt=0;
-uint32_t   uRScnt=0;
+uint32_t   uRScnt=0;      // userResetSetup counter
 
 #define INTROLENGTH1 6  // <body>
 #define INTROLENGTH2 15 // nom_fonct_=llll
@@ -156,6 +156,8 @@ char c;         // pour macros TCP/UDP
   uint32_t  hDataCnt=0;
   uint8_t   prevEtatImport=0;
   uint8_t   etatImport=0;
+  unsigned long hdataTime=0;              // accumule les micros passées dans hData() (horsetatIpôrt=3 déjà compté)
+  uint32_t  hdcnt=0;                      // compte le nbre d'accumulations dans hdataTime
   const char*     intro="<body>";
   uint8_t   introLength1=6;   // <body>
   uint8_t   introLength2=INTROLENGTH2;  // nom_fonct_=llll
@@ -304,7 +306,7 @@ int mess2Server(EthernetClient* cli,IPAddress host,uint16_t hostPort,char* data)
   t3_01=micros();
   Udp.write(data,strlen(data));
   Udp.endPacket();
-  delayMicroseconds(200);   // protect again concurrent SPI usage ? (@16Mhz 100uS=200 bytes sent)
+  //delayMicroseconds(200);   // protect again concurrent SPI usage ? (@16Mhz 100uS=200 bytes sent)
   return MESSOK;
 #endif //  TXRX_MODE == 'U'
 
@@ -414,7 +416,8 @@ int getHData(char* data,uint16_t* len)
 /*    retour MESSCX not connected ; MESSLEN en cours selon etatImport ; MESSOK messLength in data  */
 
   hDataCnt++;
-  if(etatImport==0){messLength=0;data[0]='\0';}
+  unsigned long thd=micros();
+  if(etatImport==0){messLength=0;data[0]='\0';hdataTime=0;hdcnt=0;}
 
   if(cliav==0){                 // on suppose que les packets arrivent complets ; si il y a un morceau de paquet, il sera traité en erreur
     get_Udp();                  // get_Udp() charge un éventuel packet et met cliav à jour
@@ -452,7 +455,8 @@ int getHData(char* data,uint16_t* len)
                   if(!one_time_dump){
                     one_time_dump=true;
                     Serial.print("clipt=");Serial.print(clipt);Serial.print(" getUdp_cnt=");Serial.println(getUdp_cnt);
-                    dumpstr(udpData,cliav);}
+                    dumpstr(udpData,cliav);
+                    }
                   save_clipt++;clipt=save_clipt;
                   break;
                 }
@@ -501,6 +505,7 @@ int getHData(char* data,uint16_t* len)
             break;            
     default:CLIZER;break;
   }
+  hdataTime+=micros()-thd;hdcnt++;
   return MESSLEN;
 }
 
@@ -582,10 +587,11 @@ int  importData()                // reçoit un message du serveur
         t2_1=micros();
 
         Serial.print("  >>> getHD ");
-        if(!diags){Serial.print(indata);}
+        //if(!diags){Serial.print(indata);}
         Serial.print("  nP=");Serial.print(nP);Serial.print('/');Serial.print(tableC[numT].numPeri);Serial.print(" numT=");Serial.print(numT);
         Serial.print(" import=");
-        t2_2=micros()-t1;Serial.println(t2_2);
+        t2_2=micros()-t1;Serial.print(t2_2);Serial.print(" +hdTime=");Serial.print(hdataTime);Serial.print('/');Serial.println(hdcnt);
+        hdataTime=0;hdcnt=0;    // t2_2+hdataTime temps total passé à la réception d'un message du serveur (getUdp() inclus)
           
                     //Serial.print(rxIpAddr);Serial.print(":");Serial.print((int)rxPort);Serial.print(" l=");Serial.print(cliav);
                     //Serial.print("/");Serial.print(messLength);
@@ -607,7 +613,10 @@ blkCtl('b');
 
 int exportData(uint8_t numT,char* mailData)                             // formatting periBuf data in bufServer 
 {                                                                       // sending bufServer to server 
-  if(mailData==nullptr){Serial.print("  <<< export uRS:");Serial.print(uRScnt);Serial.print(' ');}
+  if(mailData==nullptr){Serial.print("  <<< export ");
+    //Serial.print("uRS:");
+    //Serial.print(uRScnt);Serial.print(' ');
+    }
   else Serial.print("  <<< mail   ");
 
   t3=micros();                                          // debut exportData (buildMess+cx+tfr)
@@ -713,7 +722,7 @@ if(strlen(message)>(LENVAL-4)){Serial.print("******* LENVAL ***** MESSAGE ******
     Serial.print(millis());
     Serial.print(" pM=");Serial.print(periMess);
     if(periMess==MESSOK){exportCnt++;}
-    if(mailData!=nullptr){Serial.println();}
+    //if(mailData!=nullptr){Serial.println();}
     //Serial.print(" buildmess=");Serial.print(t3_0-t3);
     //Serial.print(" cx=");Serial.print(t3_01-t3_0);Serial.print(" tfr=");Serial.print(t3_02-t3_01);
     //Serial.print(" userResetSetup=");Serial.print(t3_2-t3_1);delay(1);
@@ -810,9 +819,9 @@ void fillMess(byte* message)
     byte q;    
     uint32_t abstime=millis();
   marker(MARKER2);
-  Serial.print(' ');Serial.print(abstime,HEX);
+  //Serial.print(' ');Serial.print(abstime,HEX);
     abstime=abstime&(CELLSIZE-1);
-  Serial.print(" absTime:");Serial.print(abstime);Serial.print('H');Serial.print(abstime,HEX);
+  //Serial.print(" absTime:");Serial.print(abstime);Serial.print('H');Serial.print(abstime,HEX);
     q=(byte)(((abstime>>(ABSTIME_STEP*2))&ABSMASK)+0x20);
     *(message+RADIO_ADDR_LENGTH+1+8)=q;
   //Serial.print(":");Serial.print(q,HEX);
