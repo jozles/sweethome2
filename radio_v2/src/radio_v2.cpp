@@ -321,7 +321,6 @@ void setup() {
 
   markerInit();
   radio.powerOff();
-
   delay(1000);
   Serial.begin(115200);
   Serial.println("\n+");delay(1);
@@ -520,6 +519,9 @@ void loop() {
 
   /* timing to usefull awake */
   while(((awakeMinCnt>0)&&(awakeCnt>0)&&(retryCnt==0))){
+
+//bitSet(DDRD,5);bitSet(PORTD,5);delayMicroseconds(250);bitClear(PORTD,5);
+
     awakeCnt--;
     awakeMinCnt--;
     sleepNoPwr(0);
@@ -560,7 +562,8 @@ void loop() {
 
   /* hardware ok, data ready or presence message time or retry -> send */
   if(mustSend){
-    marker(MARKER);
+    Serial.print("v=");Serial.print(volts);
+    //marker(MARKER);
     if(diags){
       unsigned long localTdiag=micros();    
       Serial.print("!");
@@ -598,6 +601,7 @@ void loop() {
     if(numT!=0 || (absTime!=0 && absMillis!=0)){waitCell();}
     
     t_on2=micros();                                       // message build ... send 
+    
     marker(MARKER2);  
     if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime)){
       blkHS();                               // hardware ko : 1x2sec blink
@@ -613,7 +617,6 @@ void loop() {
     marker(MARKER2);
     
     if(rdSta>=0){                                         // no error
-      markerL(MARKER);
       prtCom(" ok",rdSta);
       
       /* echo request ? (address field is 0x5555555555) */
@@ -1072,13 +1075,8 @@ void waitCell()                             // attente cellule temporelle
       if(diags){
         Serial.print(" delta2:");Serial.print(delta2);
         Serial.print(" dly:");Serial.print(dly);delay(2);
-      }
-      //wdIntFlag=false;
-      //Serial.print("waitcell ; wdIntFlag=");Serial.print(wdIntFlag);delay(2);      
-      marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0  
+      }      
       sleepPwrDownV(dly,&sleepTime);
-      marker(MARKER2);          // la durée entre les 2 markers doit être == tmicros2+slpt0
-      //Serial.print("/");Serial.println(wdIntFlag);delay(1);
 
       if(diags){
         Serial.print(" absMillis:");Serial.print(absMillis);
@@ -1307,12 +1305,8 @@ void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
   bitClear(DDR_TX,BIT_TX);                // TX input
   //DDRC=0;PORTC=0;
   //DDRD=0;PORTD=0;
-
   //DDRB=0;PORTB=0;
-
-  markerLow(MARKER);
-  markerLow(MARKER2);
-
+bitClear(PORTD,5);
   sleepPwrDown(durat);                    // @T32 durée 34.47mS
   bitSet(DDR_LED,BIT_LED);              //pinMode(REED,INPUT);
   bitSet(DDR_TX,BIT_TX);
@@ -1348,8 +1342,6 @@ void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly)
       digitalWrite(PLED,HIGH);
 
       sleepPwrDownV(dur,&sleepTime);
-
-      //marker(MARKER2);
 
       digitalWrite(PLED,LOW);
       if(bint!=0){
