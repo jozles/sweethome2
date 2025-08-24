@@ -194,14 +194,18 @@ uint8_t*  concNb;
 uint8_t*  concChannel;
 uint8_t*  concSpeed;
 uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
+uint8_t*  powerLevel;
 
 void configInit()
 {
   byte* temp=(byte*)configRec;
 
-  byte* configBegOfRecord=(byte*)temp;         // doit être le premier !!!
+  byte* configBegOfRecord=(byte*)temp;          // doit être le premier !!!
 
   configVers=temp+EEPRVERS;
+  if(memcmp(configVers,"2d",2)>0){
+  powerLevel=(uint8_t*)configVers+2;            
+  }
   temp += EEPRHEADERLENGTH;
   thFactor=(float*)temp;                           
   temp +=sizeof(float);
@@ -254,6 +258,9 @@ void configPrint()
     if(memcmp(configVers,"01",2)!=0){
       Serial.print("concNb ");Serial.print(*concNb);
       Serial.print("  ch ");Serial.print(*concChannel);
+      if(memcmp(configVers,"2d",2)>0){
+      Serial.print("  pwl ");Serial.print(*powerLevel);
+      }
       Serial.print("  sp ");Serial.print(*concSpeed);
       Serial.print("  sce(0 peri ; 1 serv) ");Serial.println(*concPeriParams);
     }

@@ -46,8 +46,8 @@ int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
   return sta;       // returns 0:registration_req <0:err >0:numPer_ok
 }
 
-uint8_t cRegister(char* message,uint8_t pldL)      // search free line or existing macAddr
-{                                     // retour NBPERIF -> full else numP
+uint8_t cRegister(char* message,uint8_t pldL)       // search free line or existing macAddr
+{                                                   // retour NBPERIF -> full else numP
           uint8_t i,freeLine=0;
           bool exist=false;
 

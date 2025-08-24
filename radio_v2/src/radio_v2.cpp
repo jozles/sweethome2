@@ -177,6 +177,7 @@ extern uint8_t*  concNb;
 extern uint8_t*  concChannel;
 extern uint8_t*  concSpeed;
 extern uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
+extern uint8_t*  powerLevel;
 extern bool wdIntFlag;
 
 /*** gestion sleep ***/
@@ -305,7 +306,8 @@ void radioInit()
   tableCInit();
   memcpy(tableC[1].periMac,testAd,RADIO_ADDR_LENGTH+1);     // pour broadcast & test
   uint8_t speed=*concRfSpeed;
-  if(!radio.powerOn(channel,speed,NBPERIF,CB_ADDR)){
+  int32_t bid;
+  if(!radio.powerOn(channel,speed,NBPERIF,CB_ADDR,&bid,RF_POWER_6)){
     Serial.println("Starting LoRa failed!");
     while(1){blkHS();};                             // hardware ko : 1x2sec blinkblink(1); delay(500);};
   }; 
@@ -562,7 +564,7 @@ void loop() {
 
   /* hardware ok, data ready or presence message time or retry -> send */
   if(mustSend){
-    Serial.print("v=");Serial.print(volts);
+    //Serial.print("v=");Serial.print(volts);
     //marker(MARKER);
     if(diags){
       unsigned long localTdiag=micros();    
@@ -577,6 +579,11 @@ void loop() {
 
     uint8_t outLength=RADIO_ADDR_LENGTH+1;                            // perinx     - 6
     memcpy(message+outLength,VERSION,LENVERSION);                     // version    - 4
+    if(memcmp(configVers,"2d",2)>0){
+      *(message+outLength+1)=*(message+outLength+2);
+      uint8_t q=0x30+*powerLevel;if(q>0x39){q+=7;}
+      *(message+outLength+2)=q;
+    }
     outLength+=LENVERSION;
     memcpy(message+outLength,&thN,1);                                 // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
     outLength++;                                                      //            - 1
@@ -603,7 +610,7 @@ void loop() {
     t_on2=micros();                                       // message build ... send 
     
     marker(MARKER2);  
-    if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime)){
+    if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime,RF_POWER_6)){
       blkHS();                               // hardware ko : 1x2sec blink
     };    // si waitCell rallonge
 

@@ -656,9 +656,17 @@ int exportData(uint8_t numT,char* mailData)                             // forma
       sb+=4;
       memcpy(message+sb,"_\0",2);                             
       sb+=1;
-      if(numT!=1){memcpy(message+sb,perVersAd,LENVERSION);}         // VERSION perif
+      if(numT!=1){
+        if(memcmp(perVersAd,"2d",2)>0){
+          *(message+sb)=*perVersAd;
+          *(message+sb+1)='.';
+          *(message+sb+2)=*(perVersAd+1);
+        }
+        else{memcpy(message+sb,perVersAd,LENVERSION);}
+      }                                                             // VERSION perif
       else {memcpy(message+sb,VERSION,LENVERSION);}                 // VERSION conc
-      //memcpy(message+sb,"2.9 ",LENVERSION);                       // VERSION provisoire pour tests et debug
+      
+
       sb+=LENVERSION;
       memcpy(message+sb-1,perThModAd,1);                            // thermo model take place of 4th version char
       memcpy(message+sb,"_\0",2);                             
@@ -818,7 +826,7 @@ void fillMess(byte* message)
     
     byte q;    
     uint32_t abstime=millis();
-  marker(MARKER2);
+  
   //Serial.print(' ');Serial.print(abstime,HEX);
     abstime=abstime&(CELLSIZE-1);
   //Serial.print(" absTime:");Serial.print(abstime);Serial.print('H');Serial.print(abstime,HEX);
