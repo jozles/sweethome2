@@ -383,7 +383,9 @@ void setup() {
 
   getPeriod();
 
-  getVolts();getVolts();                  // read voltage and temperature (1ère conversion ADC ko)
+  delay(10);                            // stab adc et volts
+
+  getVolts();getVolts();                // read voltage and temperature (1ère conversion ADC ko)
 
   /* ------------------- */
 
@@ -564,7 +566,7 @@ void loop() {
 
   /* hardware ok, data ready or presence message time or retry -> send */
   if(mustSend){
-    //Serial.print("v=");Serial.print(volts);
+    Serial.print("v=");Serial.print(volts);
     //marker(MARKER);
     if(diags){
       unsigned long localTdiag=micros();    
@@ -581,8 +583,9 @@ void loop() {
     memcpy(message+outLength,VERSION,LENVERSION);                     // version    - 4
     if(memcmp(configVers,"2d",2)>0){
       *(message+outLength+1)=*(message+outLength+2);
+      *(message+outLength+2)=*(message+outLength+3);
       uint8_t q=0x30+*powerLevel;if(q>0x39){q+=7;}
-      *(message+outLength+2)=q;
+      *(message+outLength+3)=q;
     }
     outLength+=LENVERSION;
     memcpy(message+outLength,&thN,1);                                 // modèle thermo ("B"/"S" DS18X20 "M"CP9700  "L"M335  "T"MP36    
@@ -1310,10 +1313,12 @@ void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
   bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
   bitClear(DDR_LED,BIT_LED);              //pinMode(REED,INPUT);
   bitClear(DDR_TX,BIT_TX);                // TX input
-  //DDRC=0;PORTC=0;
-  //DDRD=0;PORTD=0;
+  if(durat==0){
+    //DDRC=0;PORTC=0;
+    //DDRD=0;PORTD=0;
+  }
   //DDRB=0;PORTB=0;
-bitClear(PORTD,5);
+  bitClear(PORTD,5);
   sleepPwrDown(durat);                    // @T32 durée 34.47mS
   bitSet(DDR_LED,BIT_LED);              //pinMode(REED,INPUT);
   bitSet(DDR_TX,BIT_TX);

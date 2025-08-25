@@ -657,13 +657,9 @@ int exportData(uint8_t numT,char* mailData)                             // forma
       memcpy(message+sb,"_\0",2);                             
       sb+=1;
       if(numT!=1){
-        if(memcmp(perVersAd,"2d",2)>0){
-          *(message+sb)=*perVersAd;
-          *(message+sb+1)='.';
-          *(message+sb+2)=*(perVersAd+1);
-        }
-        else{memcpy(message+sb,perVersAd,LENVERSION);}
-      }                                                             // VERSION perif
+        memcpy(message+sb,perVersAd,LENVERSION);                    // version >2d le point disparait
+                                                                    // le 4ème car est le n° de pwrlev
+      }                                                           
       else {memcpy(message+sb,VERSION,LENVERSION);}                 // VERSION conc
       
 
