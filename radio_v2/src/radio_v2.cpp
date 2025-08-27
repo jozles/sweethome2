@@ -566,7 +566,7 @@ void loop() {
 
   /* hardware ok, data ready or presence message time or retry -> send */
   if(mustSend){
-    Serial.print("v=");Serial.print(volts);
+    //Serial.print("v=");Serial.print(volts);
     //marker(MARKER);
     if(diags){
       unsigned long localTdiag=micros();    
@@ -1310,6 +1310,7 @@ bool checkTemp()
 void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
 {
   userHardPowerDown();
+  radio.powerOff();
 
   if(durat==0){
     uint8_t old_ddrd=DDRD;DDRD=0;
@@ -1323,7 +1324,6 @@ void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
     DDRB=old_ddrb;PORTB=old_portb;
   }
   else{
-    radio.powerOff();
     bitClear(DDR_REED,BIT_REED);
     bitClear(DDR_LED,BIT_LED);
     bitClear(DDR_TX,BIT_TX);
