@@ -627,8 +627,9 @@ void loop() {
     marker(MARKER2);
     
     if(rdSta>=0){                                         // no error
+      bitSet(PORTD,6);
       prtCom(" ok",rdSta);
-      
+      bitClear(PORTD,6);
       /* echo request ? (address field is 0x5555555555) */
       if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){echo();}
       else {                                      
@@ -1309,19 +1310,27 @@ bool checkTemp()
 void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
 {
   userHardPowerDown();
-  radio.powerOff();                       // bitClear(DDR_RPOW,BIT_RPOW);            //radio.powerOff();
-  bitClear(DDR_REED,BIT_REED);            //pinMode(REED,INPUT);
-  bitClear(DDR_LED,BIT_LED);              //pinMode(REED,INPUT);
-  bitClear(DDR_TX,BIT_TX);                // TX input
+
   if(durat==0){
-    //DDRC=0;PORTC=0;
-    //DDRD=0;PORTD=0;
+    uint8_t old_ddrd=DDRD;DDRD=0;
+    uint8_t old_portc=PORTC;
+    uint8_t old_ddrc=DDRC;DDRC=0xff;PORTC=0x00;
+    uint8_t old_portb=PORTB;
+    uint8_t old_ddrb=DDRB;DDRB=0xfe;PORTB=0x00;
+    sleepPwrDown(0);
+    DDRD=old_ddrd;
+    DDRC=old_ddrc;PORTC=old_portc;
+    DDRB=old_ddrb;PORTB=old_portb;
   }
-  //DDRB=0;PORTB=0;
-  bitClear(PORTD,5);
-  sleepPwrDown(durat);                    // @T32 durée 34.47mS
-  bitSet(DDR_LED,BIT_LED);              //pinMode(REED,INPUT);
-  bitSet(DDR_TX,BIT_TX);
+  else{
+    radio.powerOff();
+    bitClear(DDR_REED,BIT_REED);
+    bitClear(DDR_LED,BIT_LED);
+    bitClear(DDR_TX,BIT_TX);
+    sleepPwrDown(durat);                    // @T32 durée 34.47mS
+    bitSet(DDR_LED,BIT_LED);
+    bitSet(DDR_TX,BIT_TX);
+  }
   hardwarePwrUp();
 }
 
