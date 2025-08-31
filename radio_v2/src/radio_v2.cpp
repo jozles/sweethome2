@@ -258,7 +258,7 @@ void getPeriod(){
   blink(1);
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
   t_end=micros();
-  period=(t_end-t_beg);period=period/1000000;
+  period=(t_end-t_beg);period=period/1000000;   // manque temps redémarrage oscilo ~3mS
   blink(1);
   //*/
   //period=9.90;
@@ -1094,7 +1094,7 @@ void waitCell()                             // attente cellule temporelle
         Serial.print(" absTime:");Serial.print(absTime);
         Serial.print(" delta2:");Serial.print(delta2);
         Serial.print(" dly:");Serial.println(dly);
-        delay(1);
+        delay(2);
       }
   }
 }
