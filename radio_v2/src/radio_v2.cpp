@@ -85,7 +85,9 @@ uint8_t pldLength;
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
-extern float   volts;                     // tension alim (VCC)
+extern float  volts;                      // tension alim (VCC)
+float         lastVolts;                  // tension du dernier étalonnage de période
+#define VOLTCHGE 0.1                      
 
 #define NTESTAD '1'                       // numéro testad dans table
 byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
@@ -249,19 +251,18 @@ uint8_t sleepDly(int32_t dly,int32_t* slpt);
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 void getPeriod(){
   Serial.print("period ");delay(1);
-  ///*
   unsigned long t_beg;
   unsigned long t_end;
-  blink(1);
+  blink(10);
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
+  bitSet(PORTD,5);
   t_beg=micros();
-  blink(1);
+  blink(10);
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
+  bitClear(PORTD,5);
   t_end=micros();
-  period=(t_end-t_beg);period=period/1000000;   // manque temps redémarrage oscilo ~3mS
-  blink(1);
-  //*/
-  //period=9.90;
+  period=(t_end-t_beg);period=period/1000000;   // +temps redémarrage oscilo ~3mS
+  blink(10);
   Serial.print(period*1000);Serial.print("ms ");
 }
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
@@ -386,6 +387,7 @@ void setup() {
   delay(10);                            // stab adc et volts
 
   getVolts();getVolts();                // read voltage and temperature (1ère conversion ADC ko)
+  lastVolts=volts;
 
   /* ------------------- */
 
@@ -558,7 +560,8 @@ void loop() {
         checkTemp() || 
         forceSend || 
         awakeMinCnt<=0 || 
-        retryCnt!=0 
+        retryCnt!=0 ||
+        volts<(lastVolts-VOLTCHGE) 
       )
     ){mustSend=true;}
 
@@ -574,6 +577,8 @@ void loop() {
       for(int nb=retryCnt;nb>0;nb--){Serial.print("*");}
       tdiag+=(micros()-localTdiag);
     }
+
+    if(volts<(lastVolts-VOLTCHGE)){getPeriod();}
 
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
@@ -612,8 +617,9 @@ void loop() {
     
     t_on2=micros();                                       // message build ... send 
     
-    marker(MARKER2);  
-    if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime,RF_POWER_6)){
+    marker(MARKER2);
+    uint16_t pwond=(realSleepTimings[ST32]+realSleepTimings[ST64])/100;
+    if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime,RF_POWER_6,pwond)){
       blkHS();                               // hardware ko : 1x2sec blink
     };    // si waitCell rallonge
 
