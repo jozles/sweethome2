@@ -253,16 +253,16 @@ void getPeriod(){
   Serial.print("period ");delay(1);
   unsigned long t_beg;
   unsigned long t_end;
-  blink(10);
+  blink(4);
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
   bitSet(PORTD,5);
   t_beg=micros();
-  blink(10);
+  blink(4);
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
   bitClear(PORTD,5);
   t_end=micros();
   period=(t_end-t_beg);period=period/1000000;   // +temps redémarrage oscilo ~3mS
-  blink(10);
+  blink(4);
   Serial.print(period*1000);Serial.print("ms ");
 }
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
@@ -578,7 +578,9 @@ void loop() {
       tdiag+=(micros()-localTdiag);
     }
 
-    if(volts<(lastVolts-VOLTCHGE)){getPeriod();}
+    if(volts<(lastVolts-VOLTCHGE)){
+      lastVolts=volts;
+      getPeriod();}
 
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
