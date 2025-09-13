@@ -195,6 +195,10 @@ uint8_t*  concChannel;
 uint8_t*  concSpeed;
 uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
 uint8_t*  powerLevel;
+int8_t*  perAdjust;
+
+uint8_t rf_power_v[N_PWR_LEVEL]={RF_POWER_0_VALUE,RF_POWER_6_VALUE,RF_POWER_12_VALUE,RF_POWER_18_VALUE};
+uint8_t rf_power[N_PWR_LEVEL]={RF_POWER_L3,RF_POWER_L2,RF_POWER_L1,RF_POWER_L0};
 
 void configInit()
 {
@@ -203,9 +207,6 @@ void configInit()
   byte* configBegOfRecord=(byte*)temp;          // doit être le premier !!!
 
   configVers=temp+EEPRVERS;
-  if(memcmp(configVers,"2d",2)>0){
-  powerLevel=(uint8_t*)configVers+2;            
-  }
   temp += EEPRHEADERLENGTH;
   thFactor=(float*)temp;                           
   temp +=sizeof(float);
@@ -227,8 +228,12 @@ void configInit()
   temp+=sizeof(uint8_t);
   concPeriParams=(uint8_t*)temp;
   temp+=sizeof(uint8_t);
+  powerLevel=(uint8_t*)temp;
+  temp+=sizeof(uint8_t);
+  perAdjust=(int8_t*)temp;
+  temp+=sizeof(int8_t);
 
-  temp+=31;                   // dispo
+  temp+=29;                   // dispo
 
   byte* configEndOfRecord=(byte*)temp;      // doit être le dernier !!!
 
@@ -266,7 +271,17 @@ void configPrint()
     }
     Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
     Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
-    delay(10);
+    
+    if(memcmp(configVers,"2d",2)==0){
+      Serial.print("   powerLevel=");Serial.print(rf_power[*powerLevel]);
+      uint8_t p=0;
+      for(p=0;p<N_PWR_LEVEL;p++){
+          if(*powerLevel==rf_power_v[p]){break;}}
+      Serial.print(rf_power[p]);Serial.println("db");
+      
+      Serial.print("   perAdjust=");Serial.print(*perAdjust);Serial.println("ms");
+    }
+  delay(10);
 }
 
 uint16_t getServerConfig()

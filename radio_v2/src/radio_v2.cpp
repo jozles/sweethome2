@@ -180,6 +180,7 @@ extern uint8_t*  concChannel;
 extern uint8_t*  concSpeed;
 extern uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
 extern uint8_t*  powerLevel;
+extern int8_t*   perAdjust;
 extern bool wdIntFlag;
 
 /*** gestion sleep ***/
@@ -261,7 +262,8 @@ void getPeriod(){
   while(digitalRead(2)==HIGH){};while(digitalRead(2)==LOW){}; // wait rising edge
   bitClear(PORTD,5);
   t_end=micros();
-  period=(t_end-t_beg);period=period/1000000;   // +temps redémarrage oscilo ~3mS
+  if(*perAdjust==0){*perAdjust=PER_ADJUST;}
+  period=(t_end-t_beg)+*perAdjust;period=period/1000000;   // +temps redémarrage oscilo ~3mS
   blink(4);
   Serial.print(period*1000);Serial.print("ms ");
 }
@@ -366,7 +368,7 @@ void setup() {
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
       Serial.print("Server Config ");
-      getVolts();getVolts();spvt();
+      getVolts(*thFactor);getVolts(*thFactor);spvt();
       blink(4);
       if(getServerConfig()>5){configSave();}
       configPrint();
@@ -386,7 +388,7 @@ void setup() {
 
   delay(10);                            // stab adc et volts
 
-  getVolts();getVolts();                // read voltage and temperature (1ère conversion ADC ko)
+  getVolts(*thFactor);getVolts(*thFactor);                // read voltage and temperature (1ère conversion ADC ko)
   lastVolts=volts;
 
   /* ------------------- */
@@ -549,7 +551,7 @@ void loop() {
 
   /* usefull awake or retry */
   digitalWrite(PLED,HIGH);
-  getVolts();                                 // 1.2 mS include notDS18X20 thermo reading and low voltage check (not blocking)                                   
+  getVolts(*thFactor);                        // include notDS18X20 thermo reading and low voltage check (not blocking)                                   
   digitalWrite(PLED,LOW);
   readTemp();                                 // only for DS18X20
   awakeCnt=aw_ok;
@@ -580,7 +582,7 @@ void loop() {
 
     if(volts<(lastVolts-VOLTCHGE)){
       lastVolts=volts;
-      getPeriod();}
+      calibratePwrDown();getPeriod();}
 
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
     /* MMMMM mac P periNb ssssssss Seconds VVVV version U.UU volts ....... user data */
@@ -621,7 +623,8 @@ void loop() {
     
     marker(MARKER2);
     uint16_t pwond=(realSleepTimings[ST32]+realSleepTimings[ST64])/100;
-    if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime,RF_POWER_6,pwond)){
+    if(*powerLevel==0){*powerLevel=RF_POWER_6;}
+    if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime,*powerLevel,pwond)){
       blkHS();                               // hardware ko : 1x2sec blink
     };    // si waitCell rallonge
 
@@ -1091,19 +1094,19 @@ void waitCell()                             // attente cellule temporelle
 
       if(dly<0){dly=0;}
       if(dly>CELLSIZE){dly-=CELLSIZE;}
-      if(diags){
+      /*if(diags){
         Serial.print(" delta2:");Serial.print(delta2);
-        Serial.print(" dly:");Serial.print(dly);delay(2);
-      }      
+        Serial.print(" dly:");Serial.print(dly);delay(3);
+      }*/      
       sleepPwrDownV(dly,&sleepTime);
 
-      if(diags){
+      /*if(diags){
         Serial.print(" absMillis:");Serial.print(absMillis);
         Serial.print(" absTime:");Serial.print(absTime);
         Serial.print(" delta2:");Serial.print(delta2);
         Serial.print(" dly:");Serial.println(dly);
         delay(2);
-      }
+      }*/
   }
 }
 
