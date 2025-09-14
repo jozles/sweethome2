@@ -241,10 +241,11 @@ void int_ISR()
   extTimer=true;
   //Serial.println("int_ISR");
 }
+void spvt0(){Serial.print(" ");Serial.print(volts);Serial.print("V ");;Serial.print(temp);Serial.print("°C ");delay(1);}
+void spvt(){spvt0();Serial.println(thermo);delay(1);}
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");}
-void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print(":");Serial.println(rdSta);delay(1);}
+void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print(":");Serial.print(rdSta);delay(1);spvt0();}
 void diagT(char* texte,int duree);
-void spvt(){Serial.print(" ");Serial.print(volts);Serial.print("V ");Serial.print(thermo); Serial.print(" ");Serial.print(temp);Serial.print("°C ");delay(4);}
 void waitCell();
 void medSleepDly(int32_t dly);
 void sleepNoPwr(uint8_t durat);
@@ -386,9 +387,9 @@ void setup() {
 
   getPeriod();
 
-  delay(10);                            // stab adc et volts
-
-  getVolts(*thFactor);getVolts(*thFactor);                // read voltage and temperature (1ère conversion ADC ko)
+  ADCSRA |= (1<<ADEN);                                // ADC enable to write ADMUX
+  ADMUX = (1<<REFS1) | (1<<REFS0) ;delay(1000);       // adc ref sel init
+  getVolts(*thFactor);//getVolts(*thFactor);                // read voltage and temperature (1ère conversion ADC ko)
   lastVolts=volts;
 
   /* ------------------- */
