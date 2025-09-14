@@ -580,7 +580,7 @@ void loop() {
       tdiag+=(micros()-localTdiag);
     }
 
-    if(volts<(lastVolts-VOLTCHGE)){
+    if(volts<(lastVolts-VOLTCHGE) && volts<4){
       lastVolts=volts;
       calibratePwrDown();getPeriod();}
 
