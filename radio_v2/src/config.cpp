@@ -269,8 +269,8 @@ void configPrint()
       Serial.print("  sp ");Serial.print(*concSpeed);
       Serial.print("  sce(0 peri ; 1 serv) ");Serial.println(*concPeriParams);
     }
-    Serial.print("thFactor=");Serial.print(*thFactor*10000);Serial.print("  thOffset=");Serial.print(*thOffset);   
-    Serial.print("   vFactor=");Serial.print(*vFactor*10000);Serial.print("   vOffset=");Serial.println(*vOffset);   
+    Serial.print("thFactor=0.");Serial.print(*thFactor*1000000);Serial.print("  thOffset=");Serial.print(*thOffset);   
+    Serial.print("   vFactor=0.00");Serial.print(*vFactor*100000000);Serial.print("   vOffset=");Serial.println(*vOffset);   
     
     if(memcmp(configVers,"2d",2)==0){
       Serial.print("   powerLevel=");//Serial.print(rf_power[*powerLevel]);

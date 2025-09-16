@@ -60,6 +60,7 @@ unsigned long blktime=millis();
 /*** scratch ***/
 
 bool diags=false;
+bool serialHere=false;
 
 #define TO_READ 30                        // mS rxMessage time out 
 long readTo;                              // compteur TO read()
@@ -369,7 +370,7 @@ void setup() {
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
       Serial.print("Server Config ");
-      getVolts(*thFactor);getVolts(*thFactor);spvt();
+      getVolts(*vFactor,*thFactor);getVolts(*vFactor,*thFactor);spvt();
       blink(4);
       if(getServerConfig()>5){configSave();}
       configPrint();
@@ -377,11 +378,14 @@ void setup() {
   }
 #endif // NOCONFSER
 
-  diags=diagSetup(t_on);
+  diags=diagSetup(t_on,4000," une touche pour diags \0");
   if(diags){
     Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry)");
     Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
+    serialHere=true;
   }
+  if(!diags){serialHere=diagSetup(t_on,12000,"   série on ? \0");}
+  Serial.println();
 
   calibratePwrDown();
 
@@ -389,7 +393,7 @@ void setup() {
 
   ADCSRA |= (1<<ADEN);                                // ADC enable to write ADMUX
   ADMUX = (1<<REFS1) | (1<<REFS0) ;delay(1000);       // adc ref sel init
-  getVolts(*thFactor);//getVolts(*thFactor);                // read voltage and temperature (1ère conversion ADC ko)
+  getVolts(*vFactor,*thFactor);                       // read voltage and temperature (1ère conversion ADC ko)
   lastVolts=volts;
 
   /* ------------------- */
@@ -529,8 +533,6 @@ void loop() {
   /* timing to usefull awake */
   while(((awakeMinCnt>0)&&(awakeCnt>0)&&(retryCnt==0))){
 
-//bitSet(DDRD,5);bitSet(PORTD,5);delayMicroseconds(250);bitClear(PORTD,5);
-
     awakeCnt--;
     awakeMinCnt--;
     sleepNoPwr(0);
@@ -552,7 +554,7 @@ void loop() {
 
   /* usefull awake or retry */
   digitalWrite(PLED,HIGH);
-  getVolts(*thFactor);                        // include notDS18X20 thermo reading and low voltage check (not blocking)                                   
+  getVolts(*vFactor,*thFactor);                        // include notDS18X20 thermo reading and low voltage check (not blocking)                                   
   digitalWrite(PLED,LOW);
   readTemp();                                 // only for DS18X20
   awakeCnt=aw_ok;
@@ -573,7 +575,6 @@ void loop() {
   /* hardware ok, data ready or presence message time or retry -> send */
   if(mustSend){
     //Serial.print("v=");Serial.print(volts);
-    //marker(MARKER);
     if(diags){
       unsigned long localTdiag=micros();    
       Serial.print("!");
@@ -604,25 +605,25 @@ void loop() {
     //sprintf((char*)(message+outLength+1),"%08lu",(uint32_t)tBeg);     // first connection unix time
     //outLength+=9;                                                     //            - 9
  
+    bitSet(PORTD,6);
     messageBuild((char*)message,&outLength);                          // add user data 
+    bitClear(PORTD,6);
     memcpy(message,periRxAddr,RADIO_ADDR_LENGTH);                     // macAddr
     message[RADIO_ADDR_LENGTH]=numT+48;                               // numéro du périphérique
     message[outLength]='\0';
 
     if(outLength>MAX_PAYLOAD_LENGTH){ledblink(BCODESYSERR,PULSEBLINK);}
-    if(diags){Serial.print("\n (");Serial.print(outLength);Serial.print(")");Serial.println((char*)message);}delay(5);
+    if(diags){Serial.print("\n (");Serial.print(outLength);Serial.print(")");Serial.println((char*)message);delay(3);}
     
     /* One transaction is tx+rx ; if both ok reset counters else retry management*/  
 
     rdSta=-1;
     //nbS++;
-    //marker(MARKER2);
 
     if(numT!=0 || (absTime!=0 && absMillis!=0)){waitCell();}
     
     t_on2=micros();                                       // message build ... send 
-    
-    marker(MARKER2);
+
     uint16_t pwond=(realSleepTimings[ST32]+realSleepTimings[ST64])/100;
     if(*powerLevel==0){*powerLevel=RF_POWER_6;}
     if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime,*powerLevel,pwond)){
@@ -630,18 +631,13 @@ void loop() {
     };    // si waitCell rallonge
 
     trSta=0;
-    marker(MARKER2);
 
     rdSta=txRxMessage(outLength);                         // retour -2 ko ; >0 ok
     radio.powerOff();  
     t_on21=micros();
-
-    marker(MARKER2);
     
     if(rdSta>=0){                                         // no error
-      bitSet(PORTD,6);
-      prtCom(" ok",rdSta);
-      bitClear(PORTD,6);
+      if(serialHere){prtCom(" ok",rdSta);}
       /* echo request ? (address field is 0x5555555555) */
       if(memcmp(messageIn,ECHO_MAC_REQ,RADIO_ADDR_LENGTH)==0){echo();}
       else {                                      
@@ -662,7 +658,7 @@ void loop() {
     if(trSta<0 || rdSta<0){                               // error
     
       nbK++;
-      prtCom(" ko",rdSta);
+      if(serialHere){prtCom(" ko",rdSta);}
       forceSend=true;
       trSta=0;rdSta=0;
       showErr(true);
@@ -1419,7 +1415,7 @@ void ledblk(int dur,int bdelay,int bint,uint8_t bnb)
 }
 
 void blkHS(){
-  delayBlk(2004,0,0,1,1);}                   // hardware ko : 1x2sec blink}
+  delayBlk(realSleepTimings[ST2000]/100,0,0,1,1);}                   // hardware ko : 1x2sec blink}
 
 void led(unsigned long dur)
 {
