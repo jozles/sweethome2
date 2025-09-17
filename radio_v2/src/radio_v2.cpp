@@ -605,9 +605,7 @@ void loop() {
     //sprintf((char*)(message+outLength+1),"%08lu",(uint32_t)tBeg);     // first connection unix time
     //outLength+=9;                                                     //            - 9
  
-    bitSet(PORTD,6);
     messageBuild((char*)message,&outLength);                          // add user data 
-    bitClear(PORTD,6);
     memcpy(message,periRxAddr,RADIO_ADDR_LENGTH);                     // macAddr
     message[RADIO_ADDR_LENGTH]=numT+48;                               // numéro du périphérique
     message[outLength]='\0';
@@ -624,7 +622,7 @@ void loop() {
     
     t_on2=micros();                                       // message build ... send 
 
-    uint16_t pwond=(realSleepTimings[ST32]+realSleepTimings[ST64])/100;
+    uint16_t pwond=realSleepTimings[ST125]/100; //(realSleepTimings[ST32]+realSleepTimings[ST64])/100; remplace 3mS*1.6mA par30mS*.028mA
     if(*powerLevel==0){*powerLevel=RF_POWER_6;}
     if(!radio.powerOn(channel,*concSpeed,NBPERIF,CB_ADDR,&sleepTime,*powerLevel,pwond)){
       blkHS();                               // hardware ko : 1x2sec blink

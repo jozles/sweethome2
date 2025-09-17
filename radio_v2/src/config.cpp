@@ -273,13 +273,14 @@ void configPrint()
     Serial.print("   vFactor=0.00");Serial.print(*vFactor*100000000);Serial.print("   vOffset=");Serial.println(*vOffset);   
     
     if(memcmp(configVers,"2d",2)==0){
-      Serial.print("   powerLevel=");//Serial.print(rf_power[*powerLevel]);
+      Serial.print("   powerLevel=0x0");Serial.print(*powerLevel);Serial.print(',');
       uint8_t p=0;
       for(p=0;p<N_PWR_LEVEL;p++){
           if(*powerLevel==rf_power_v[p]){break;}}
+      Serial.print(p);Serial.print(':');          
       Serial.print(rf_power[p]);Serial.println("db");
       
-      Serial.print("   perAdjust=");Serial.print(*perAdjust-1);Serial.println("ms");
+      Serial.print("   perAdjust=");Serial.print(*perAdjust);Serial.println("ms");
     }
   delay(10);
 }
