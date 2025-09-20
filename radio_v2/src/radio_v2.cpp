@@ -86,8 +86,10 @@ uint8_t pldLength;
 
 uint8_t numT=0;                           // numéro périphérique dans table concentrateur
 
-extern float  volts;                      // tension alim (VCC)
-float         lastVolts;                  // tension du dernier étalonnage de période
+//extern float  volts;                      // tension alim (VCC)
+//float         lastVolts;                  // tension du dernier étalonnage de période
+extern uint16_t volt;
+uint16_t lastvolt;
 #define VOLTCHGE 0.1                      
 
 #define NTESTAD '1'                       // numéro testad dans table
@@ -223,9 +225,12 @@ extern int32_t realSleepTimings[];
 #endif
 #define CPU_FREQUENCY 8000000
 
-float temp;
-float previousTemp=-99.99;
-float deltaTemp=0.25;
+//float temp;
+int16_t th;
+//float previousTemp=-99.99;
+int16_t prevTh=-9999;
+//float deltaTemp=0.25;
+int16_t deltaTh=25;
 uint16_t  userData[2];
 bool  thSta=true;                     // temp validity
 char  thermo[]={THERMO};              // thermo name text
@@ -242,7 +247,7 @@ void int_ISR()
   extTimer=true;
   //Serial.println("int_ISR");
 }
-void spvt0(){Serial.print(" ");Serial.print(volts);Serial.print("V ");;Serial.print(temp);Serial.print("°C ");delay(1);}
+void spvt0(){Serial.print(" ");Serial.print(volt/100);Serial.print("V ");;Serial.print(th);Serial.print("°C ");delay(1);}
 void spvt(){spvt0();Serial.println(thermo);delay(1);}
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");}
 void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print(":");Serial.print(rdSta);delay(1);spvt0();}
@@ -370,13 +375,15 @@ void setup() {
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
       Serial.print("Server Config ");
-      getVolts(*vFactor,*thFactor,&volts,&temp);spvt();
+      getVolts(*vFactor,*thFactor,&volt,&th);spvt();
       blink(4);
       if(getServerConfig()>5){configSave();}
       configPrint();
       while(1){blink(1);delay(1000);}
   }
 #endif // NOCONFSER
+
+
 
 
   DDRD&=0xfe;PORTD|=0x01; // stabilize RxD input pullup
@@ -390,6 +397,7 @@ void setup() {
   Serial.println();
   */
   char c=menuDly((const char*)"  diags/config/serial ?",(const char*)"dcs",12000);
+
   if(c=='d'){diags=true;}
   if(c=='d' or c=='s'){serialHere=true;}
   if(c=='c'){manualDetsConfig();}
@@ -400,8 +408,9 @@ void setup() {
 
   ADCSRA |= (1<<ADEN);                                // ADC enable to write ADMUX
   ADMUX = (1<<REFS1) | (1<<REFS0) ;delay(1000);       // adc ref sel init
-  getVolts(*vFactor,*thFactor,&volts,&temp);                       // read voltage and temperature (1ère conversion ADC ko)
-  lastVolts=volts;
+
+  getVolts(*vFactor,*thFactor,&volt,&th);                       // read voltage and temperature (1ère conversion ADC ko)
+  lastVolt=volt;
 
   /* ------------------- */
 
@@ -411,6 +420,8 @@ void setup() {
   //userResetSetup();
 
   Serial.println();
+
+Serial.print("\n...ok:");Serial.println(c);delay(10000);//while(1){}
 
 #endif // MACHINE_DET328
 
@@ -561,7 +572,7 @@ void loop() {
 
   /* usefull awake or retry */
   digitalWrite(PLED,HIGH);
-  getVolts(*vFactor,*thFactor,&volts,&temp);                        // include notDS18X20 thermo reading and low voltage check (not blocking)                                   
+  getVolts(*vFactor,*thFactor,&volt,&th);                        // include notDS18X20 thermo reading and low voltage check (not blocking)                                   
   digitalWrite(PLED,LOW);
   readTemp();                                 // only for DS18X20
   awakeCnt=aw_ok;
@@ -573,7 +584,7 @@ void loop() {
         forceSend || 
         awakeMinCnt<=0 || 
         retryCnt!=0 ||
-        volts<(lastVolts-VOLTCHGE) 
+        volt<(lastVolt-VOLTCHGE) 
       )
     ){mustSend=true;}
 
@@ -581,7 +592,6 @@ void loop() {
 
   /* hardware ok, data ready or presence message time or retry -> send */
   if(mustSend){
-    //Serial.print("v=");Serial.print(volts);
     if(diags){
       unsigned long localTdiag=micros();    
       Serial.print("!");
@@ -589,8 +599,8 @@ void loop() {
       tdiag+=(micros()-localTdiag);
     }
 
-    if(volts<(lastVolts-VOLTCHGE) && volts<4){
-      lastVolts=volts;
+    if(volt<(lastVolt-VOLTCHGE) && volt<400){
+      lastVolt=volt;
       calibratePwrDown();getPeriod();}
 
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
@@ -1273,7 +1283,8 @@ void iniTemp()
   //memcpy(thermo,THERMO,LTH);
   thN=THN;
   thSta=true;
-  previousTemp=0;
+  //previousTemp=0;
+  prevTh=0;
   
 #ifdef DS18X20  
   checkOn();
@@ -1302,20 +1313,20 @@ void readTemp()
 
 void prt(const char* d)
 {
-    Serial.print(deltaTemp);Serial.print(":");
-    Serial.print(temp);Serial.print(d);Serial.print(previousTemp);
+    Serial.print(deltaTh/100);Serial.print(":");
+    Serial.print(th);Serial.print(d);Serial.print(prevTh);
     delay(1);
 }
 
 bool checkTemp()
 {
-  if( temp>(previousTemp+deltaTemp) ){                                
+  if( th>(prevTh+deltaTh) ){                                
     //prt(">");
-    previousTemp=temp-(deltaTemp/2);
+    prevTh=th-(deltaTh/2);
     return true;}
-  else if( temp<(previousTemp-deltaTemp) ){
+  else if( th<(prevTh-deltaTh) ){
     //prt("<");
-    previousTemp=temp+(deltaTemp/2);
+    prevTh=th+(deltaTh/2);
     return true;}
   return false;
 }

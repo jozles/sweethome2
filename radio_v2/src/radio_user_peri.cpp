@@ -31,9 +31,12 @@ extern bool diags;
 
 extern char* chexa;
 
-extern float   volts;
-extern float   temp;
-extern float   deltaTemp;
+//extern float   volts;
+extern uint16_t volt;
+//extern float   temp;
+extern int16_t th;
+//extern float   deltaTemp;
+extern int16_t deltaTh;
 extern bool    thSta;
 extern float   period;
 extern unsigned long absTime;
@@ -61,15 +64,17 @@ void messageBuild(char* message,uint8_t* messageLength)
   /* Here add user data >>> be carefull to not override 32 bytes <<< */
   
     //Serial.print(" ");Serial.print(volts);
-    dtostrf(volts,4,2,(char*)(message+*messageLength));             //          - 4                    
+    //dtostrf(volts,4,2,(char*)(message+*messageLength));             //          - 4      
+    convIntToString(message+*messageLength,volt,4);              
     (*messageLength)+=4;                                            // power voltage
 
     //Serial.print("V ");Serial.print(temp);Serial.print("°");
-    char s='+';if(temp<0){s='-';}
+    char s='+';if(th<0){s='-';}
     message[*messageLength]=s;
 
-    dtostrf(temp,5,2,message+*messageLength+1);                     // temp     - 6
-    if(temp<10){message[(*messageLength)+1]='0';}
+    //dtostrf(temp,5,2,message+*messageLength+1);                     // temp     - 6
+    convIntToString(message+*messageLength,th,6);
+    if(th<10){message[(*messageLength)+1]='0';}
     if((strstr(message,"nan")!=0) || !thSta){memcpy((message+*messageLength),"+00.00",6);}
 
     (*messageLength)+=6;   
@@ -128,7 +133,7 @@ void importData(byte* data,uint8_t dataLength)
     perTemp=(uint16_t)convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead);  // per check température
     aw_ok=perTemp/period;
     srt+=sizeRead;
-    deltaTemp=(convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead))/100;    // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
+    deltaTh=(uint16_t)(convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead))/100;    // pitch mesure !!!!!!!!!!!!!!!!!!!!!! bug ??????? deltaTemp est float ; controler data
                                                                                       // devrait être convStrToNum((char*)(data+RADIO_ADDR_LENGTH+1+srt),&sizeRead)/100;
                                                                                       // vérifier srt...   
     srt+=sizeRead;
@@ -200,8 +205,8 @@ void importData(byte* data,uint8_t dataLength)
 
     srt+=3;
     uint16_t pitch=0;
-    conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&pitch,3);                        // pitch mesure
-    deltaTemp=((float) pitch)/100;
+    conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&deltaTh,3);                        // pitch mesure
+    //deltaTemp=((float) pitch)/100;
     srt+=3;
     userData[0]=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4);                     // forme 'hhhhhhhh' //Serial.println(userData[0]);
     srt+=4;

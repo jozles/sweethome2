@@ -192,9 +192,6 @@ void configCreate()       // forçage de valeurs pour initialisation carte
 
 extern byte message[];
 
-float     th;
-float     vt;
-
 float*    thFactor;
 float*    thOffset;
 float*    vFactor;
@@ -350,11 +347,13 @@ uint16_t getServerConfig()
 
 void manualDetsConfig()
 {
+  uint16_t refMiniT=735; 
+  uint16_t refMaxiT=785;                      // référence tension étalonnage th
+  uint16_t refMiniV=320;
+  uint16_t refMaxiV=410;                      // référence tension étalonage volts
 
-  float refMiniT=735; 
-  float refMaxiT=785;                      // référence tension étalonnage th
-  float refMiniV=320;
-  float refMaxiV=410;                      // référence tension étalonage volts
+  uint16_t th;
+  uint16_t vt;
 
 
   Serial.println("\npatienter à chaque saisie ");
@@ -377,7 +376,7 @@ void manualDetsConfig()
       
       Serial.print(" valeur référence (");
       uint8_t v=5;
-      for(int k=0;k<(refMaxiT-refMiniT)/v;k++){
+      for(uint8_t k=0;k<(refMaxiT-refMiniT)/v;k++){
         Serial.print(k);Serial.print("=.");Serial.print((int)(refMiniT+k*v));if(k*v<(refMaxiT-refMiniT-1)){Serial.print(" ");}
       }
       Serial.print(")? ");
@@ -399,13 +398,14 @@ void manualDetsConfig()
       vt=adcRead(VADMUXVAL,1,0,0,20);
       Serial.print(" adcRead() volts ");Serial.println(vt);
 
-      float intThSensor=adcRead(INADMUXVAL,1,0,0,20);     
+      /*float intThSensor=adcRead(INADMUXVAL,1,0,0,20);     
       float intTh=intThSensor*1100/1024-242-45;                               // see datasheet page 247 
       Serial.print(" adcRead(internal th sensor) ");Serial.print(intThSensor);Serial.print(" internal temp =");Serial.println(intTh);
-      
+      */
+
       Serial.print(" valeur référence (");
       uint8_t v=5;
-      for(int k=0;k<(refMaxiV/10-refMiniV/10+1);k++){
+      for(uint8_t k=0;k<(refMaxiV/10-refMiniV/10+1);k++){
         Serial.print(k);Serial.print("=");Serial.print((float)(refMiniV/10+k)/10);if(k*v<(refMaxiV/10-refMiniV/10)){Serial.print(" ");}
       }
       Serial.print(")? ");
@@ -481,7 +481,7 @@ void manualDetsConfig()
             *concSpeed=0;
             *concPeriParams=1;
             //memcpy(configVers,"2d",2);
-;
+
             configPrint();
             eeprom.store(configRec,CONFIGRECLEN);
             break;
