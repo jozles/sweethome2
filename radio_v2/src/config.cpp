@@ -13,6 +13,11 @@ extern Eepr eeprom;
 byte  configRec[CONFIGRECLEN];
 byte*     configVers;
 
+#ifdef NRF
+#include "nrf24l01s.h"
+extern Nrfp radio;
+#endif // NRF
+
 #if MACHINE_CONCENTRATEUR
 
 /* >>>> config concentrateur <<<<<< */
@@ -182,7 +187,13 @@ void configCreate()       // forçage de valeurs pour initialisation carte
 
 #if MACHINE_DET328
 
+
+#include "lpavr_powerSleep.h"
+
 extern byte message[];
+
+float     th;
+float     vt;
 
 float*    thFactor;
 float*    thOffset;
@@ -335,6 +346,156 @@ uint16_t getServerConfig()
   return rcvl;
 
   #endif // NOCONFSER
+}
+
+void manualDetsConfig()
+{
+
+  float refMiniT=735; 
+  float refMaxiT=785;                      // référence tension étalonnage th
+  float refMiniV=320;
+  float refMaxiV=410;                      // référence tension étalonage volts
+
+
+  Serial.println("\npatienter à chaque saisie ");
+  Serial.println("S skip  T calibration thermo  V calibration volts  P perif nb etc   E eprom");
+  while(!Serial.available()){bitSet(PORT_LED,BIT_LED);delay(250);bitClear(PORT_LED,BIT_LED);delay(250);}
+  char c=Serial.read();Serial.println(c);
+
+  switch(c){
+    
+    case 'S': Serial.println("\n faire reset");
+    break;
+
+    case 'T':
+    {
+      bitSet(DDR_VCHK,BIT_VCHK);bitSet(PORT_VCHK,BIT_VCHK);
+      delay(1000);
+
+      th=adcRead(TADMUXVAL,1,0,0,20);
+      Serial.print(" adcRead() Th ");Serial.println(th);
+      
+      Serial.print(" valeur référence (");
+      uint8_t v=5;
+      for(int k=0;k<(refMaxiT-refMiniT)/v;k++){
+        Serial.print(k);Serial.print("=.");Serial.print((int)(refMiniT+k*v));if(k*v<(refMaxiT-refMiniT-1)){Serial.print(" ");}
+      }
+      Serial.print(")? ");
+      uint8_t k=getNumCh();Serial.println(k);
+
+      th=adcRead(TADMUXVAL,1,0,0,20);
+      *thFactor=(float)((float)(refMiniT+k*v)/th)/10;
+      Serial.print(" adcRead() Th ");Serial.print(th);Serial.print("  thFactor=");Serial.print(*thFactor*10000);
+      getVolts(*vFactor,*thFactor,&vt,&th);Serial.print(" temp=");Serial.println(th);
+      bitClear(PORT_VCHK,BIT_VCHK);
+    }
+    break;
+
+    case 'V':
+    {
+      bitSet(DDR_VCHK,BIT_VCHK);bitSet(PORT_VCHK,BIT_VCHK);
+      delay(1000);
+
+      vt=adcRead(VADMUXVAL,1,0,0,20);
+      Serial.print(" adcRead() volts ");Serial.println(vt);
+
+      float intThSensor=adcRead(INADMUXVAL,1,0,0,20);     
+      float intTh=intThSensor*1100/1024-242-45;                               // see datasheet page 247 
+      Serial.print(" adcRead(internal th sensor) ");Serial.print(intThSensor);Serial.print(" internal temp =");Serial.println(intTh);
+      
+      Serial.print(" valeur référence (");
+      uint8_t v=5;
+      for(int k=0;k<(refMaxiV/10-refMiniV/10+1);k++){
+        Serial.print(k);Serial.print("=");Serial.print((float)(refMiniV/10+k)/10);if(k*v<(refMaxiV/10-refMiniV/10)){Serial.print(" ");}
+      }
+      Serial.print(")? ");
+      uint8_t k=getNumCh();Serial.println(k);
+
+      vt=adcRead(VADMUXVAL,1,0,0,20);
+      *vFactor=(float)((float)(((refMiniV/10)+k)*10)/vt)/100;
+      Serial.print(" adcRead() vt ");Serial.print(vt);Serial.print("  vtFactor=0.00");Serial.print(*vFactor*100000000);
+      getVolts(*vFactor,*thFactor,&vt,&th);Serial.print(" volts=");Serial.println(vt);
+      bitClear(PORT_VCHK,BIT_VCHK);
+    }
+    break;
+
+    case 'P':
+    {
+      char cx=getCh();
+      Serial.print(" numéro perif ? ");
+      cx=getNumCh();
+      Serial.print(' ');
+      periRxAddr[4]=(byte)cx;periRxAddr[5]='\0';
+      Serial.println((char*)periRxAddr);
+
+      cx=getCh();
+      Serial.print(" numéro concentrateur (0-3)? ");
+      cx=getNumCh('0','3');
+      Serial.print(' ');
+      *concNb=cx-48;
+      Serial.println(*concNb);
+      *concChannel=radio.channelTable[*concNb];
+
+      if(memcmp(configVers,"2d",2)<0){
+        cx=getCh();
+        Serial.print(" change to v2d (O/N)? ");
+        cx=getCh();Serial.println(cx);
+        if(cx=='O'){memcpy(configVers,"2d",2);}
+      }
+      
+      if(memcmp(configVers,"2d",2)>=0){
+        cx=getCh();
+        Serial.print(" powerLevel (");
+        for(uint8_t i=0;i<N_PWR_LEVEL;i++){
+          Serial.print(i);Serial.print("=");Serial.print(rf_power[i]);if(i<N_PWR_LEVEL-1){Serial.print(' ');}}
+        Serial.print("db)? ");
+        cx=getNumCh('0',N_PWR_LEVEL+48);
+        Serial.print(' ');
+        uint8_t p=cx-48;
+        *powerLevel=rf_power_v[p];
+        Serial.print(rf_power[p]);Serial.print("db (0x0");Serial.print(*powerLevel);Serial.println(')');
+      
+        cx=getCh();
+        Serial.print(" perAdjust (0=-1 1=0 2=+1)? ");
+        cx=getNumCh('0',2);
+        Serial.print(' ');
+        *perAdjust=cx-48-1;
+        Serial.print(*perAdjust);Serial.println("ms");
+      }
+    }
+    break;
+
+    case 'E':
+      {
+      Serial.print("Eeprom ");configPrint();
+      char c1=menuDly("L oad  R ecord  S kip ","LRMS",0);
+
+        switch(c1){
+          case 'L':
+            if(!eeprom.load(configRec,CONFIGRECLEN)){Serial.println("****KO******");}
+            configPrint();
+            break;
+
+          case 'R':
+            *concChannel=radio.channelTable[*concNb];
+            *concSpeed=0;
+            *concPeriParams=1;
+            //memcpy(configVers,"2d",2);
+;
+            configPrint();
+            eeprom.store(configRec,CONFIGRECLEN);
+            break;
+
+          case 'S':
+            break;
+
+          default:break;
+        }
+      }
+      break;
+
+    default:break;
+  }
 }
 
 #endif // MACHINE_DET328

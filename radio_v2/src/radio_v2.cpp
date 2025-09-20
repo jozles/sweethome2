@@ -370,7 +370,7 @@ void setup() {
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
       Serial.print("Server Config ");
-      getVolts(*vFactor,*thFactor);getVolts(*vFactor,*thFactor);spvt();
+      getVolts(*vFactor,*thFactor,&volts,&temp);spvt();
       blink(4);
       if(getServerConfig()>5){configSave();}
       configPrint();
@@ -378,7 +378,9 @@ void setup() {
   }
 #endif // NOCONFSER
 
-  diags=diagSetup(t_on,4000," une touche pour diags \0");
+
+  DDRD&=0xfe;PORTD|=0x01; // stabilize RxD input pullup
+ /* diags=diagSetup(t_on,4000," une touche pour diags \0");
   if(diags){
     Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry)");
     Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
@@ -386,6 +388,11 @@ void setup() {
   }
   if(!diags){serialHere=diagSetup(t_on,12000,"   série on ? \0");}
   Serial.println();
+  */
+  char c=menuDly((const char*)"  diags/config/serial ?",(const char*)"dcs",12000);
+  if(c=='d'){diags=true;}
+  if(c=='d' or c=='s'){serialHere=true;}
+  if(c=='c'){manualDetsConfig();}
 
   calibratePwrDown();
 
@@ -393,7 +400,7 @@ void setup() {
 
   ADCSRA |= (1<<ADEN);                                // ADC enable to write ADMUX
   ADMUX = (1<<REFS1) | (1<<REFS0) ;delay(1000);       // adc ref sel init
-  getVolts(*vFactor,*thFactor);                       // read voltage and temperature (1ère conversion ADC ko)
+  getVolts(*vFactor,*thFactor,&volts,&temp);                       // read voltage and temperature (1ère conversion ADC ko)
   lastVolts=volts;
 
   /* ------------------- */
@@ -554,7 +561,7 @@ void loop() {
 
   /* usefull awake or retry */
   digitalWrite(PLED,HIGH);
-  getVolts(*vFactor,*thFactor);                        // include notDS18X20 thermo reading and low voltage check (not blocking)                                   
+  getVolts(*vFactor,*thFactor,&volts,&temp);                        // include notDS18X20 thermo reading and low voltage check (not blocking)                                   
   digitalWrite(PLED,LOW);
   readTemp();                                 // only for DS18X20
   awakeCnt=aw_ok;
@@ -1319,7 +1326,7 @@ void sleepNoPwr(uint8_t durat)            // durat valeur TXXXX selon wdtsetup
   radio.powerOff();
 
   if(durat==0){
-    uint8_t old_ddrd=DDRD;DDRD=0;
+    uint8_t old_ddrd=DDRD;
     uint8_t old_portc=PORTC;
     uint8_t old_ddrc=DDRC;DDRC=0xff;PORTC=0x00;
     uint8_t old_portb=PORTB;

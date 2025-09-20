@@ -20,5 +20,6 @@ bool configLoad();
 void configSave();
 void configPrint();
 void configCreate();
+void manualDetsConfig();
 
 #endif // CONFIG INCLUDED
