@@ -66,16 +66,20 @@ void messageBuild(char* message,uint8_t* messageLength)
   
     //Serial.print(" ");Serial.print(volts);
     //dtostrf(volts,4,2,(char*)(message+*messageLength));             //          - 4      
-    convIntToString(message+*messageLength,volt,4);              
+    convIntToString(message+*messageLength,volt,4);
+    message[*messageLength]=message[*messageLength+1];
+    message[*messageLength+1]='.';
     (*messageLength)+=4;                                            // power voltage
-
     //Serial.print("V ");Serial.print(temp);Serial.print("°");
+
     char s='+';if(th<0){s='-';}
     message[*messageLength]=s;
-
     //dtostrf(temp,5,2,message+*messageLength+1);                     // temp     - 6
-    convIntToString(message+*messageLength,th,6);
-    if(th<10){message[(*messageLength)+1]='0';}
+    convIntToString(message+*messageLength+1,th,4);
+    message[*messageLength+5]=message[*messageLength+4];
+    message[*messageLength+4]=message[*messageLength+3];
+    message[*messageLength+3]='.';
+    if(abs(th)<10){message[(*messageLength)+1]='0';}
     if((strstr(message,"nan")!=0) || !thSta){memcpy((message+*messageLength),"+00.00",6);}
 
     (*messageLength)+=6;   

@@ -271,7 +271,7 @@ void getPeriod(){
   bitClear(PORTD,5);
   t_end=micros();
   if(*perAdjust==0){*perAdjust=PER_ADJUST;}
-  period=(t_end-t_beg)+*perAdjust;period=period/1000000;   // +temps redémarrage oscilo ~3mS
+  period=(t_end-t_beg)+*perAdjust*10;period=period/1000000;   // including start oscil time ~3mS
   blink(4);
   Serial.print(period*1000);Serial.print(F("ms "));
 }
@@ -384,10 +384,6 @@ void setup() {
   }
 #endif // NOCONFSER
 
-
-
-
-  DDRD&=0xfe;PORTD|=0x01; // stabilize RxD input pullup
  /* diags=diagSetup(t_on,4000," une touche pour diags \0");
   if(diags){
     Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry)");
@@ -397,6 +393,7 @@ void setup() {
   if(!diags){serialHere=diagSetup(t_on,12000,"   série on ? \0");}
   Serial.println();
   */
+ 
   char c=menuDly((const char*)"  diags/config/serial ?",(const char*)"dcs",12000);
 
   if(c=='d'){diags=true;}

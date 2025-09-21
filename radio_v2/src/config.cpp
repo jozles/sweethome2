@@ -457,11 +457,17 @@ void manualDetsConfig()
         Serial.print(rf_power[p]);Serial.print(F("db (0x0"));Serial.print(*powerLevel);Serial.println(')');
       
         cx=getCh();
-        Serial.print(F(" perAdjust (0=-1 1=0 2=+1)? "));
-        cx=getNumCh('0',2);
+        uint8_t tableAdjust[10]={0,25,50,75,100,125,150,175,200,225};
+        Serial.print(F(" perAdjust ("));
+        for(uint8_t i=0;i<10;i++){
+          Serial.print(i);Serial.print(F("=0."));Serial.print(tableAdjust[i]);
+          if(i<9){Serial.print(' ');}
+          else{Serial.print(F(")? "));}
+        }
+        cx=getNumCh('0','9');
         Serial.print(' ');
-        *perAdjust=cx-48-1;
-        Serial.print(*perAdjust);Serial.println("ms");
+        *perAdjust=tableAdjust[cx-48];
+        Serial.print((float)*perAdjust/100);Serial.println("ms");
       }
     }
     break;
