@@ -89,9 +89,11 @@ uint8_t numT=0;                           // numéro périphérique dans table c
 
 //extern float  volts;                      // tension alim (VCC)
 //float         lastVolts;                  // tension du dernier étalonnage de période
-extern uint16_t volt;
+uint16_t volt;
 uint16_t lastvolt;
-#define VOLTCHGE 0.1                      
+bool     lowPower=false;
+uint16_t lowPowerValue=VOLTMIN;
+#define VOLTCHGE 10                      
 
 #define NTESTAD '1'                       // numéro testad dans table
 byte    testAd[]={'t','e','s','t','x',NTESTAD};    // txaddr pour broadcast
@@ -197,8 +199,6 @@ int       retryCnt=0;
 uint32_t  nbS=0;                    // nbre com
 uint32_t  nbK=0;                    // nbre com KO
 uint32_t  nbL=0;                    // nbre loops
-bool      lowPower=false;
-float     lowPowerValue=VOLTMIN;
 
 uint16_t  aw_ok=AWAKE_OK_VALUE;
 uint16_t  aw_min=AWAKE_MIN_VALUE;
@@ -248,7 +248,7 @@ void int_ISR()
   extTimer=true;
   //Serial.println("int_ISR");
 }
-void spvt0(){Serial.print(" ");Serial.print(volt/100);Serial.print("V ");;Serial.print(th);Serial.print("°C ");delay(1);}
+void spvt0(){Serial.print(" ");Serial.print((float)volt/100);Serial.print("V ");;Serial.print(((float)th)/100);Serial.print("°C ");delay(1);}
 void spvt(){spvt0();Serial.println(thermo);delay(1);}
 void prtCom(const char* c){Serial.print(" n°");Serial.print(nbS);Serial.print(c);Serial.print("/");Serial.print(nbK);Serial.print("ko ");}
 void prtCom(const char* c,int8_t rdSta){prtCom(c);Serial.print(":");Serial.print(rdSta);delay(1);spvt0();}
@@ -422,8 +422,6 @@ void setup() {
 
   Serial.println();
 
-Serial.print(F("\n...ok:"));Serial.println(c);delay(10000);//while(1){}
-
 #endif // MACHINE_DET328
 
 #if MACHINE_CONCENTRATEUR
@@ -551,6 +549,8 @@ void loop() {
 
   /* timing to usefull awake */
   while(((awakeMinCnt>0)&&(awakeCnt>0)&&(retryCnt==0))){
+
+    //Serial.print(F("\n...ok:"));delay(10);//while(1){}
 
     awakeCnt--;
     awakeMinCnt--;
