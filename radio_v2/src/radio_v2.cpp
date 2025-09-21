@@ -14,6 +14,7 @@ Eepr eeprom;
 //#include <avr/power.h>
 #include <avr/sleep.h>
 #include <lpavr_powerSleep.h>
+#include <avr/pgmspace.h>
 //#include <lpavr_util.h>
 #endif
 
@@ -230,7 +231,7 @@ int16_t th;
 //float previousTemp=-99.99;
 int16_t prevTh=-9999;
 //float deltaTemp=0.25;
-int16_t deltaTh=25;
+uint16_t deltaTh=25;
 uint16_t  userData[2];
 bool  thSta=true;                     // temp validity
 char  thermo[]={THERMO};              // thermo name text
@@ -258,7 +259,7 @@ void sleepNoPwr(uint8_t durat);
 uint8_t sleepDly(int32_t dly,int32_t* slpt);
 void delayBlk(int dur,int bdelay,int bint,uint8_t bnb,long dly);
 void getPeriod(){
-  Serial.print("period ");delay(1);
+  Serial.print(F("period "));delay(1);
   unsigned long t_beg;
   unsigned long t_end;
   blink(4);
@@ -272,7 +273,7 @@ void getPeriod(){
   if(*perAdjust==0){*perAdjust=PER_ADJUST;}
   period=(t_end-t_beg)+*perAdjust;period=period/1000000;   // +temps redémarrage oscilo ~3mS
   blink(4);
-  Serial.print(period*1000);Serial.print("ms ");
+  Serial.print(period*1000);Serial.print(F("ms "));
 }
 int get_radio_message(byte* messageIn,uint8_t* pipe,uint8_t* pldLength)
 {
@@ -366,7 +367,7 @@ void setup() {
   //wd();                           // watchdog
   iniTemp();
   
-  Serial.print("\nStart setup v");Serial.print(VERSION);Serial.print(" ");delay(2);
+  Serial.print(F("\nStart setup v"));Serial.print(VERSION);Serial.print(" ");delay(2);
   radio.printAddr((char*)periRxAddr,0);Serial.print(" to ");radio.printAddr((char*)concAddr,0);
   Serial.print('(');Serial.print(*concNb);Serial.print('-');Serial.print(channel);
   Serial.print('/');Serial.print(*concSpeed);Serial.print(")");
@@ -374,7 +375,7 @@ void setup() {
 #ifndef NOCONFSER
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
-      Serial.print("Server Config ");
+      Serial.print(F("Server Config "));
       getVolts(*vFactor,*thFactor,&volt,&th);spvt();
       blink(4);
       if(getServerConfig()>5){configSave();}
@@ -410,7 +411,7 @@ void setup() {
   ADMUX = (1<<REFS1) | (1<<REFS0) ;delay(1000);       // adc ref sel init
 
   getVolts(*vFactor,*thFactor,&volt,&th);                       // read voltage and temperature (1ère conversion ADC ko)
-  lastVolt=volt;
+  lastvolt=volt;
 
   /* ------------------- */
 
@@ -421,7 +422,7 @@ void setup() {
 
   Serial.println();
 
-Serial.print("\n...ok:");Serial.println(c);delay(10000);//while(1){}
+Serial.print(F("\n...ok:"));Serial.println(c);delay(10000);//while(1){}
 
 #endif // MACHINE_DET328
 
@@ -584,7 +585,7 @@ void loop() {
         forceSend || 
         awakeMinCnt<=0 || 
         retryCnt!=0 ||
-        volt<(lastVolt-VOLTCHGE) 
+        volt<(lastvolt-VOLTCHGE) 
       )
     ){mustSend=true;}
 
@@ -599,8 +600,8 @@ void loop() {
       tdiag+=(micros()-localTdiag);
     }
 
-    if(volt<(lastVolt-VOLTCHGE) && volt<400){
-      lastVolt=volt;
+    if(volt<(lastvolt-VOLTCHGE) && volt<400){
+      lastvolt=volt;
       calibratePwrDown();getPeriod();}
 
     /* building message MMMMMPssssssssVVVVU.UU....... MMMMMP should not be changed */
@@ -694,7 +695,7 @@ void loop() {
   if(radio.lastSta==0xFF){
     if(diags){
       unsigned long localTdiag=micros();    
-      delay(2);Serial.println("radio HS/missing");delay(4);
+      delay(2);Serial.println(F("radio HS/missing"));delay(4);
       tdiag+=(micros()-localTdiag);
     }
     blkHS();                               // hardware ko : 1x2sec blink
@@ -1004,7 +1005,7 @@ int beginP(uint8_t pldL)                        // manage registration ; output 
 {                               
   if(diags){
     unsigned long localTdiag=micros();
-    Serial.print("beginP ");
+    Serial.print(F("beginP "));
     tdiag+=(micros()-localTdiag);
   }
   nbS++;
@@ -1071,9 +1072,9 @@ void echo()
 
     time_end=micros();
 
-    Serial.print(" rcv ");Serial.print((char*)messageIn);
-    Serial.print(" sent ");Serial.print((char*)echoMess);      
-    Serial.print(" wait ");Serial.print((time_end-time_beg)/1000);Serial.println("mS");
+    Serial.print(F(" rcv "));Serial.print((char*)messageIn);
+    Serial.print(F(" sent "));Serial.print((char*)echoMess);      
+    Serial.print(F(" wait "));Serial.print((time_end-time_beg)/1000);Serial.println("mS");
     delay(4);
 
     time_beg=micros();
@@ -1092,7 +1093,7 @@ void echo()
     else cntErr=0;
   }
   radio.powerOff();
-  Serial.println("stop echo");delay(1);
+  Serial.println(F("stop echo"));delay(1);
 }
 
 void waitCell()                             // attente cellule temporelle
@@ -1233,8 +1234,8 @@ void showRx(byte* message,bool crlf)
     Serial.print(millis());
     Serial.print(' ');
     Serial.print(rdSta);
-    Serial.print(" reçu l=");Serial.print(pldLength);
-    Serial.print(" p=");Serial.print(pipe);
+    Serial.print(F(" reçu l="));Serial.print(pldLength);
+    Serial.print(F(" p="));Serial.print(pipe);
     Serial.print(" ");
     if(message!=nullptr){Serial.print((char*)message);}
     if(crlf){Serial.println();}
@@ -1252,11 +1253,11 @@ if(diags){
 #if  MACHINE_DET328
   Serial.println();
 #endif // MACHINE_DET328
-  Serial.print("€ tx=");Serial.print(trSta);Serial.print(" rx=");Serial.print(rdSta);
+  Serial.print(F("€ tx="));Serial.print(trSta);Serial.print(F(" rx="));Serial.print(rdSta);
 #if  MACHINE_DET328
-  Serial.print(" message ");Serial.print((char*)message);
+  Serial.print(F(" message "));Serial.print((char*)message);
   delay(3);
-  Serial.print(" lastSta ");if(radio.lastSta<0x10){Serial.print("0");}Serial.print(radio.lastSta,HEX);
+  Serial.print(F(" lastSta "));if(radio.lastSta<0x10){Serial.print("0");}Serial.print(radio.lastSta,HEX);
   delay(2);
 #endif // MACHINE_DET328
   Serial.print(" ");Serial.print((char*)kk+(rdSta+6)*LMERR);Serial.print(" €");
@@ -1320,11 +1321,11 @@ void prt(const char* d)
 
 bool checkTemp()
 {
-  if( th>(prevTh+deltaTh) ){                                
+  if( th>(int16_t)(prevTh+deltaTh) ){                                
     //prt(">");
     prevTh=th-(deltaTh/2);
     return true;}
-  else if( th<(prevTh-deltaTh) ){
+  else if( th<(int16_t)(prevTh-deltaTh) ){
     //prt("<");
     prevTh=th+(deltaTh/2);
     return true;}
@@ -1421,7 +1422,7 @@ void ledblk(int dur,int bdelay,int bint,uint8_t bnb)
   if(blkdur>blkdelay){
     if(digitalRead(PLED)==LOW){
       digitalWrite(PLED,HIGH);
-      if(blkdur>(blkdelay+1000)){Serial.print("================== blink overrun ");Serial.println(blkdur);}
+      if(blkdur>(blkdelay+1000)){Serial.print(F("================== blink overrun "));Serial.println(blkdur);}
       blkdelay=dur;}
     else{digitalWrite(PLED,LOW);
       if(bcnt<bnb){blkdelay=bint;bcnt++;}

@@ -7,6 +7,7 @@
 
 #if MACHINE_DET328
 
+#include <avr/pgmspace.h>
 #include "lpavr_powerSleep.h"
 //#include "lpavr_util.h"
 
@@ -36,7 +37,7 @@ extern uint16_t volt;
 //extern float   temp;
 extern int16_t th;
 //extern float   deltaTemp;
-extern int16_t deltaTh;
+extern uint16_t deltaTh;
 extern bool    thSta;
 extern float   period;
 extern unsigned long absTime;
@@ -90,7 +91,7 @@ void messageBuild(char* message,uint8_t* messageLength)
     (*messageLength)+=4;                                            // anal2    - 4
     //if(diags){Serial.print(" adc2 ");Serial.println(adcVal,HEX);}
     message[*messageLength]='\0';
-    if(*messageLength>MAX_PAYLOAD_LENGTH){Serial.print("!!!! KO messageBuild");while(1){blink(2);delay(500);}}                                  //          - 1
+    if(*messageLength>MAX_PAYLOAD_LENGTH){Serial.print(F("!!!! KO messageBuild"));while(1){blink(2);delay(500);}}                                  //          - 1
 }
 
 /*
@@ -126,7 +127,7 @@ void importData(byte* data,uint8_t dataLength)
   int      sizeRead,srt=0;
 
   if(memcmp(VERSION,"1.c",3)<=0){                                                     // version <= 1.C
-    Serial.print("version<1.c");
+    Serial.print(F("version<1.c"));
     unsigned long perRefr=(long)convStrToNum((char*)(RADIO_ADDR_LENGTH+1),&sizeRead); // per refresh server
     aw_min=perRefr/period;
     srt=sizeRead;
@@ -139,7 +140,7 @@ void importData(byte* data,uint8_t dataLength)
     srt+=sizeRead;
     
     *(data+RADIO_ADDR_LENGTH+1+srt+8)='\0';
-    Serial.print(":::");Serial.print((char*)(data+RADIO_ADDR_LENGTH+1+srt));  
+    Serial.print(F(":::"));Serial.print((char*)(data+RADIO_ADDR_LENGTH+1+srt));  
     userData[0]=packGet((char*)(data+RADIO_ADDR_LENGTH+1+srt),4);                     // forme '_hhhhhhhh' //Serial.println(userData[0]);
     srt+=5;
     userData[1]=packGet((char*)(data+RADIO_ADDR_LENGTH+srt),4);
@@ -148,7 +149,7 @@ void importData(byte* data,uint8_t dataLength)
     Serial.print("/");Serial.print(userData[0]);Serial.print("-");Serial.print(userData[1]);Serial.print("/");Serial.print(analOutput);
     Serial.print('-');Serial.print(prevAnalOutput);
     if((RADIO_ADDR_LENGTH+srt+1+2)<=MAX_PAYLOAD_LENGTH){periCfg=(uint8_t)packGet((char*)(data+RADIO_ADDR_LENGTH+srt+1),2);} // forme '_hh'
-    else Serial.print(" decap MAX_PAYLOAD_LENGTH ");
+    else Serial.print(F(" decap MAX_PAYLOAD_LENGTH "));
     if(prevAnalOutput!=analOutput){radUpdate(analOutput);prevAnalOutput=analOutput;} 
   }
   /*
@@ -204,7 +205,7 @@ void importData(byte* data,uint8_t dataLength)
     //marker(MARKER);
 
     srt+=3;
-    uint16_t pitch=0;
+    //uint16_t pitch=0;
     conv_atob((char*)(data+RADIO_ADDR_LENGTH+srt),&deltaTh,3);                        // pitch mesure
     //deltaTemp=((float) pitch)/100;
     srt+=3;
@@ -223,15 +224,15 @@ void importData(byte* data,uint8_t dataLength)
     Serial.print("\n£ ");
     Serial.print(nbS);Serial.print("/");Serial.print(nbL);Serial.print(" | ");     // nbS com nb ; nbL loop nb
     for(uint8_t ii=0;ii<dataLength;ii++){Serial.print((char)data[ii]);delayMicroseconds(100);}Serial.print(" ");
-    Serial.print("per_s=");Serial.print(perRefr);Serial.print(" per_t=");Serial.print(perTemp);
-    Serial.print(" per=");Serial.print((int)(period*1000));                                                                                   
-    Serial.print(" aw_min=");Serial.print(aw_min);Serial.print(" aw_ok=");Serial.print(aw_ok);
-    Serial.print(" pth=");Serial.print(deltaTemp);
-    Serial.print(" usr=");Serial.print(userData[0]);Serial.print("/");Serial.print(userData[1]);
+    Serial.print(F("per_s="));Serial.print(perRefr);Serial.print(F(" per_t="));Serial.print(perTemp);
+    Serial.print(F(" per="));Serial.print((int)(period*1000));                                                                                   
+    Serial.print(F(" aw_min="));Serial.print(aw_min);Serial.print(F(" aw_ok="));Serial.print(aw_ok);
+    Serial.print(F(" pth="));Serial.print(deltaTh);
+    Serial.print(F(" usr="));Serial.print(userData[0]);Serial.print("/");Serial.print(userData[1]);
     delay(3);
-    Serial.print(" anOut=");Serial.print(analOutput);Serial.print("/");Serial.print(analOutput,HEX);
+    Serial.print(F(" anOut="));Serial.print(analOutput);Serial.print("/");Serial.print(analOutput,HEX);
     Serial.print('-');Serial.print(prevAnalOutput);
-    Serial.print(" cfg=");Serial.print(periCfg);Serial.print("/");Serial.print(periCfg,HEX);
+    Serial.print(F(" cfg="));Serial.print(periCfg);Serial.print("/");Serial.print(periCfg,HEX);
     Serial.println(" £");
     delay(2);                                                                                   
   }
@@ -250,7 +251,7 @@ void userHardPowerDown()
 }
 
 void radSetup(){
-  Serial.print("rad init : ");
+  Serial.print(F("rad init : "));
   analOutput=0;
   pinMode(RAD1,INPUT_PULLUP);
   pinMode(RAD2,INPUT_PULLUP);

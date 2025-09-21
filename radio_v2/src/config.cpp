@@ -189,6 +189,7 @@ void configCreate()       // forçage de valeurs pour initialisation carte
 
 
 #include "lpavr_powerSleep.h"
+#include <avr/pgmspace.h>
 
 extern byte message[];
 
@@ -247,7 +248,7 @@ void configInit()
 
   long configLength=(long)configEndOfRecord-(long)configBegOfRecord+1;  
   
-  Serial.print("CONFIGRECLEN=");Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configLength);
+  Serial.print(F("CONFIGRECLEN="));Serial.print(CONFIGRECLEN);Serial.print("/");Serial.print(configLength);
   delay(10);if(configLength>CONFIGRECLEN) {ledblink(BCODECONFIGRECLEN,PULSEBLINK);}
 
 /*
@@ -264,31 +265,31 @@ void configInit()
 void configPrint()
 {
     uint16_t configLen;memcpy(&configLen,configRec+EEPRLENGTH,2);
-    Serial.print("crc  ");dumpfield((char*)configRec,4);Serial.print(" len ");Serial.print(configLen);
+    Serial.print(F("crc  "));dumpfield((char*)configRec,4);Serial.print(F(" len "));Serial.print(configLen);
     Serial.print(" eepromVers ");Serial.print((char)*(configRec+EEPRVERS));Serial.println((char)*(configRec+EEPRVERS+1));
     char buf[7];memcpy(buf,concAddr,5);buf[5]='\0';
-    Serial.print("Peri ");dumpstr((char*)periRxAddr,6);Serial.print("Conc ");dumpstr((char*)concAddr,6);
+    Serial.print(F("Peri "));dumpstr((char*)periRxAddr,6);Serial.print(F("Conc "));dumpstr((char*)concAddr,6);
     if(memcmp(configVers,"01",2)!=0){
-      Serial.print("concNb ");Serial.print(*concNb);
-      Serial.print("  ch ");Serial.print(*concChannel);
+      Serial.print(F("concNb "));Serial.print(*concNb);
+      Serial.print(F("  ch "));Serial.print(*concChannel);
       if(memcmp(configVers,"2d",2)>0){
-      Serial.print("  pwl ");Serial.print(*powerLevel);
+      Serial.print(F("  pwl "));Serial.print(*powerLevel);
       }
-      Serial.print("  sp ");Serial.print(*concSpeed);
-      Serial.print("  sce(0 peri ; 1 serv) ");Serial.println(*concPeriParams);
+      Serial.print(F("  sp "));Serial.print(*concSpeed);
+      Serial.print(F("  sce(0 peri ; 1 serv) "));Serial.println(*concPeriParams);
     }
-    Serial.print("thFactor=0.");Serial.print(*thFactor*1000000);Serial.print("  thOffset=");Serial.print(*thOffset);   
-    Serial.print("   vFactor=0.00");Serial.print(*vFactor*100000000);Serial.print("   vOffset=");Serial.println(*vOffset);   
+    Serial.print(F("thFactor=0."));Serial.print(*thFactor*1000000);Serial.print(F("  thOffset="));Serial.print(*thOffset);   
+    Serial.print(F("   vFactor=0.00"));Serial.print(*vFactor*100000000);Serial.print(F("   vOffset="));Serial.println(*vOffset);   
     
     if(memcmp(configVers,"2d",2)==0){
-      Serial.print("   powerLevel=0x0");Serial.print(*powerLevel);Serial.print(',');
+      Serial.print(F("   powerLevel=0x0"));Serial.print(*powerLevel);Serial.print(',');
       uint8_t p=0;
       for(p=0;p<N_PWR_LEVEL;p++){
           if(*powerLevel==rf_power_v[p]){break;}}
       Serial.print(p);Serial.print(':');          
       Serial.print(rf_power[p]);Serial.println("db");
       
-      Serial.print("   perAdjust=");Serial.print(*perAdjust);Serial.println("ms");
+      Serial.print(F("   perAdjust="));Serial.print(*perAdjust);Serial.println("ms");
     }
   delay(10);
 }
@@ -352,18 +353,18 @@ void manualDetsConfig()
   uint16_t refMiniV=320;
   uint16_t refMaxiV=410;                      // référence tension étalonage volts
 
-  uint16_t th;
+  int16_t th;
   uint16_t vt;
 
-
-  Serial.println("\npatienter à chaque saisie ");
-  Serial.println("S skip  T calibration thermo  V calibration volts  P perif nb etc   E eprom");
+  Serial.println(F("\npatienter à chaque saisie "));
+  //const char PROGMEM t0[]="S skip  T calibration thermo  V calibration volts  P perif nb etc   E eprom";
+  Serial.println(F("S skip  T calibration thermo  V calibration volts  P perif nb etc   E eprom"));
   while(!Serial.available()){bitSet(PORT_LED,BIT_LED);delay(250);bitClear(PORT_LED,BIT_LED);delay(250);}
   char c=Serial.read();Serial.println(c);
 
   switch(c){
     
-    case 'S': Serial.println("\n faire reset");
+    case 'S': Serial.println(F("\n faire reset"));
     break;
 
     case 'T':
@@ -372,9 +373,9 @@ void manualDetsConfig()
       delay(1000);
 
       th=adcRead(TADMUXVAL,1,0,0,20);
-      Serial.print(" adcRead() Th ");Serial.println(th);
+      Serial.print(F(" adcRead() Th "));Serial.println(th);
       
-      Serial.print(" valeur référence (");
+      Serial.print(F(" valeur référence ("));
       uint8_t v=5;
       for(uint8_t k=0;k<(refMaxiT-refMiniT)/v;k++){
         Serial.print(k);Serial.print("=.");Serial.print((int)(refMiniT+k*v));if(k*v<(refMaxiT-refMiniT-1)){Serial.print(" ");}
@@ -384,8 +385,8 @@ void manualDetsConfig()
 
       th=adcRead(TADMUXVAL,1,0,0,20);
       *thFactor=(float)((float)(refMiniT+k*v)/th)/10;
-      Serial.print(" adcRead() Th ");Serial.print(th);Serial.print("  thFactor=");Serial.print(*thFactor*10000);
-      getVolts(*vFactor,*thFactor,&vt,&th);Serial.print(" temp=");Serial.println(th);
+      Serial.print(F(" adcRead() Th "));Serial.print(th);Serial.print(F("  thFactor="));Serial.print(*thFactor*10000);
+      getVolts(*vFactor,*thFactor,&vt,&th);Serial.print(F(" temp="));Serial.println(th);
       bitClear(PORT_VCHK,BIT_VCHK);
     }
     break;
@@ -396,14 +397,14 @@ void manualDetsConfig()
       delay(1000);
 
       vt=adcRead(VADMUXVAL,1,0,0,20);
-      Serial.print(" adcRead() volts ");Serial.println(vt);
+      Serial.print(F(" adcRead() volts "));Serial.println(vt);
 
       /*float intThSensor=adcRead(INADMUXVAL,1,0,0,20);     
       float intTh=intThSensor*1100/1024-242-45;                               // see datasheet page 247 
       Serial.print(" adcRead(internal th sensor) ");Serial.print(intThSensor);Serial.print(" internal temp =");Serial.println(intTh);
       */
 
-      Serial.print(" valeur référence (");
+      Serial.print(F(" valeur référence ("));
       uint8_t v=5;
       for(uint8_t k=0;k<(refMaxiV/10-refMiniV/10+1);k++){
         Serial.print(k);Serial.print("=");Serial.print((float)(refMiniV/10+k)/10);if(k*v<(refMaxiV/10-refMiniV/10)){Serial.print(" ");}
@@ -413,8 +414,8 @@ void manualDetsConfig()
 
       vt=adcRead(VADMUXVAL,1,0,0,20);
       *vFactor=(float)((float)(((refMiniV/10)+k)*10)/vt)/100;
-      Serial.print(" adcRead() vt ");Serial.print(vt);Serial.print("  vtFactor=0.00");Serial.print(*vFactor*100000000);
-      getVolts(*vFactor,*thFactor,&vt,&th);Serial.print(" volts=");Serial.println(vt);
+      Serial.print(F(" adcRead() vt "));Serial.print(vt);Serial.print(F("  vtFactor=0.00"));Serial.print(*vFactor*100000000);
+      getVolts(*vFactor,*thFactor,&vt,&th);Serial.print(F(" volts="));Serial.println(vt);
       bitClear(PORT_VCHK,BIT_VCHK);
     }
     break;
@@ -422,14 +423,14 @@ void manualDetsConfig()
     case 'P':
     {
       char cx=getCh();
-      Serial.print(" numéro perif ? ");
+      Serial.print(F(" numéro perif ? "));
       cx=getNumCh();
       Serial.print(' ');
       periRxAddr[4]=(byte)cx;periRxAddr[5]='\0';
       Serial.println((char*)periRxAddr);
 
       cx=getCh();
-      Serial.print(" numéro concentrateur (0-3)? ");
+      Serial.print(F(" numéro concentrateur (0-3)? "));
       cx=getNumCh('0','3');
       Serial.print(' ');
       *concNb=cx-48;
@@ -438,14 +439,14 @@ void manualDetsConfig()
 
       if(memcmp(configVers,"2d",2)<0){
         cx=getCh();
-        Serial.print(" change to v2d (O/N)? ");
+        Serial.print(F(" change to v2d (O/N)? "));
         cx=getCh();Serial.println(cx);
         if(cx=='O'){memcpy(configVers,"2d",2);}
       }
       
       if(memcmp(configVers,"2d",2)>=0){
         cx=getCh();
-        Serial.print(" powerLevel (");
+        Serial.print(F(" powerLevel ("));
         for(uint8_t i=0;i<N_PWR_LEVEL;i++){
           Serial.print(i);Serial.print("=");Serial.print(rf_power[i]);if(i<N_PWR_LEVEL-1){Serial.print(' ');}}
         Serial.print("db)? ");
@@ -453,10 +454,10 @@ void manualDetsConfig()
         Serial.print(' ');
         uint8_t p=cx-48;
         *powerLevel=rf_power_v[p];
-        Serial.print(rf_power[p]);Serial.print("db (0x0");Serial.print(*powerLevel);Serial.println(')');
+        Serial.print(rf_power[p]);Serial.print(F("db (0x0"));Serial.print(*powerLevel);Serial.println(')');
       
         cx=getCh();
-        Serial.print(" perAdjust (0=-1 1=0 2=+1)? ");
+        Serial.print(F(" perAdjust (0=-1 1=0 2=+1)? "));
         cx=getNumCh('0',2);
         Serial.print(' ');
         *perAdjust=cx-48-1;
@@ -467,12 +468,12 @@ void manualDetsConfig()
 
     case 'E':
       {
-      Serial.print("Eeprom ");configPrint();
+      Serial.print(F("Eeprom "));configPrint();
       char c1=menuDly("L oad  R ecord  S kip ","LRMS",0);
 
         switch(c1){
           case 'L':
-            if(!eeprom.load(configRec,CONFIGRECLEN)){Serial.println("****KO******");}
+            if(!eeprom.load(configRec,CONFIGRECLEN)){Serial.println(F("****KO******"));}
             configPrint();
             break;
 
@@ -505,15 +506,15 @@ bool configLoad()
 //    if(!eeprom.load((byte*)configRec,(uint16_t)CONFIGRECLEN)){
     if(!eeprom.load(configRec,CONFIGRECLEN)){
       dumpstr((char*)configRec,200);
-      Serial.println("**EEPROM KO**");ledblink(BCODESDCARDKO,PULSEBLINK);} // ledblink bloque
+      Serial.println(F("**EEPROM KO**"));ledblink(BCODESDCARDKO,PULSEBLINK);} // ledblink bloque
     //dumpstr((char*)configRec,200);
-    Serial.println(" eeprom OK");
+    Serial.println(F(" eeprom OK"));
     return 1;    
 }
 
 void configSave()
 {
-  Serial.println(" configSave mofifié");delay(100);
+  Serial.println(F(" configSave mofifié"));delay(100);
   dumpstr((char*)configRec,200);
     eeprom.store((byte*)configRec,CONFIGRECLEN);
   trigwd(0);    
@@ -521,7 +522,7 @@ void configSave()
   memset(configRec,0xff,CONFIGRECLEN);
   dumpstr((char*)configRec,200);
   trigwd(0);
-    if(eeprom.load(configRec,CONFIGRECLEN)){Serial.println("true");}
+    if(eeprom.load(configRec,CONFIGRECLEN)){Serial.println(F("true"));}
   dumpstr((char*)configRec,200);
   trigwd(0);
 }
@@ -539,7 +540,7 @@ bool syncServerConfig(char* message,char* syncMess,uint16_t* rcvl)
   *(message+*rcvl)=0x00;
   if(*rcvl>5){
     Serial.print(" ");Serial.println(message);
-    Serial.print("checkData");
+    Serial.print(F("checkData"));
     uint16_t ll=0;
     if(checkData(message,&ll)==MESSOK){Serial.println(" ok");return 1;}
   }
