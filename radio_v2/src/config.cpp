@@ -204,7 +204,7 @@ uint8_t*  concChannel;
 uint8_t*  concSpeed;
 uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
 uint8_t*  powerLevel;
-int8_t*   perAdjust;
+uint8_t*   perAdjust;
 
 uint8_t rf_power_v[N_PWR_LEVEL]={RF_POWER_0_VALUE,RF_POWER_6_VALUE,RF_POWER_12_VALUE,RF_POWER_18_VALUE};
 int8_t rf_power[N_PWR_LEVEL]={RF_POWER_L3,RF_POWER_L2,RF_POWER_L1,RF_POWER_L0};
@@ -239,8 +239,8 @@ void configInit()
   temp+=sizeof(uint8_t);
   powerLevel=(uint8_t*)temp;
   temp+=sizeof(uint8_t);
-  perAdjust=(int8_t*)temp;
-  temp+=sizeof(int8_t);
+  perAdjust=(uint8_t*)temp;
+  temp+=sizeof(uint8_t);
 
   temp+=29;                   // dispo
 
@@ -289,7 +289,7 @@ void configPrint()
       Serial.print(p);Serial.print(':');          
       Serial.print(rf_power[p]);Serial.println("db");
       
-      Serial.print(F("   perAdjust="));Serial.print(*perAdjust);Serial.println("ms");
+      Serial.print(F("   perAdjust="));Serial.print((float)*perAdjust/100);Serial.println("ms");
     }
   delay(10);
 }
@@ -346,6 +346,15 @@ uint16_t getServerConfig()
   #endif // NOCONFSER
 }
 
+int16_t getadc(uint8_t admux)
+{
+      bitSet(DDR_VCHK,BIT_VCHK);bitSet(PORT_VCHK,BIT_VCHK);
+      delay(1000);
+      int16_t th=adcRead(admux,1,0,0,20);
+      bitClear(PORT_VCHK,BIT_VCHK);
+      return th;
+}
+
 void manualDetsConfig()
 {
   uint16_t refMiniT=735; 
@@ -356,117 +365,105 @@ void manualDetsConfig()
   int16_t th;
   uint16_t vt;
 
-  Serial.println(F("\npatienter à chaque saisie "));
+  while(1){
+  //Serial.println(F("\npatienter à chaque saisie "));
   //const char PROGMEM t0[]="S skip  T calibration thermo  V calibration volts  P perif nb etc   E eprom";
-  Serial.println(F("S skip  T calibration thermo  V calibration volts  P perif nb etc   E eprom"));
+  
+  float intThSensor=adcRead(INADMUXVAL,1,0,0,20);     
+  float intTh=intThSensor*1100/1024-242-45;                               // see datasheet page 247 
+  Serial.print(F("\n adcRead(internal th sensor) "));Serial.print(intThSensor);
+  Serial.print(F(" internal temp ="));Serial.println(intTh);
+
+  Serial.println(F("reset pour Sortir  T calibration thermo  V calibration volts  P perif nb etc   E eprom"));
   while(!Serial.available()){bitSet(PORT_LED,BIT_LED);delay(250);bitClear(PORT_LED,BIT_LED);delay(250);}
   char c=Serial.read();Serial.println(c);
 
   switch(c){
-    
-    case 'S': Serial.println(F("\n faire reset"));
-    break;
 
     case 'T':
     {
-      bitSet(DDR_VCHK,BIT_VCHK);bitSet(PORT_VCHK,BIT_VCHK);
-      delay(1000);
-
-      th=adcRead(TADMUXVAL,1,0,0,20);
+      int16_t th=getadc(TADMUXVAL);
       Serial.print(F(" adcRead() Th "));Serial.println(th);
       
-      Serial.print(F(" valeur référence ("));
+      Serial.print(F(" tension thermo ("));
       uint8_t v=5;
       for(uint8_t k=0;k<(refMaxiT-refMiniT)/v;k++){
-        Serial.print(k);Serial.print("=.");Serial.print((int)(refMiniT+k*v));if(k*v<(refMaxiT-refMiniT-1)){Serial.print(" ");}
+        Serial.print(k);Serial.print("=.");Serial.print((int)(refMiniT+k*v));
+        if(k*v<(refMaxiT-refMiniT-1)){Serial.print(" ");}
       }
       Serial.print(")? ");
-      uint8_t k=getNumCh();Serial.println(k);
+      uint8_t k=getNumCh('0','9');Serial.println(k);
 
-      th=adcRead(TADMUXVAL,1,0,0,20);
+      th=getadc(TADMUXVAL);
       *thFactor=(float)((float)(refMiniT+k*v)/th)/10;
-      Serial.print(F(" adcRead() Th "));Serial.print(th);Serial.print(F("  thFactor="));Serial.print(*thFactor*10000);
-      getVolts(*vFactor,*thFactor,&vt,&th);Serial.print(F(" temp="));Serial.println(th);
-      bitClear(PORT_VCHK,BIT_VCHK);
+      Serial.print(F(" adcRead() Th "));Serial.print(th);delay(10);
+      Serial.print(F("  thFactor="));Serial.print(*thFactor*10000);delay(10);
+      getVT(*vFactor,*thFactor,&vt,&th);Serial.print(F(" temp="));Serial.println(th);
     }
     break;
 
     case 'V':
     {
-      bitSet(DDR_VCHK,BIT_VCHK);bitSet(PORT_VCHK,BIT_VCHK);
-      delay(1000);
-
-      vt=adcRead(VADMUXVAL,1,0,0,20);
+      vt=getadc(VADMUXVAL);
       Serial.print(F(" adcRead() volts "));Serial.println(vt);
 
-      /*float intThSensor=adcRead(INADMUXVAL,1,0,0,20);     
-      float intTh=intThSensor*1100/1024-242-45;                               // see datasheet page 247 
-      Serial.print(" adcRead(internal th sensor) ");Serial.print(intThSensor);Serial.print(" internal temp =");Serial.println(intTh);
-      */
-
       Serial.print(F(" valeur référence ("));
-      uint8_t v=5;
       for(uint8_t k=0;k<(refMaxiV/10-refMiniV/10+1);k++){
-        Serial.print(k);Serial.print("=");Serial.print((float)(refMiniV/10+k)/10);if(k*v<(refMaxiV/10-refMiniV/10)){Serial.print(" ");}
+        Serial.print(k);Serial.print("=");Serial.print((float)(refMiniV/10+k)/10);
+        if(k<(refMaxiV/10-refMiniV/10)){Serial.print(" ");}
       }
       Serial.print(")? ");
-      uint8_t k=getNumCh();Serial.println(k);
+      uint8_t k=getNumCh('0','9');Serial.println(k);
 
-      vt=adcRead(VADMUXVAL,1,0,0,20);
+      vt=getadc(VADMUXVAL);
       *vFactor=(float)((float)(((refMiniV/10)+k)*10)/vt)/100;
-      Serial.print(F(" adcRead() vt "));Serial.print(vt);Serial.print(F("  vtFactor=0.00"));Serial.print(*vFactor*100000000);
-      getVolts(*vFactor,*thFactor,&vt,&th);Serial.print(F(" volts="));Serial.println(vt);
+      Serial.print(F(" adcRead() vt "));Serial.print(vt);delay(10);
+      Serial.print(F("  vtFactor=0.00"));Serial.print(*vFactor*100000000);delay(10);
+      getVT(*vFactor,*thFactor,&vt,&th);Serial.print(F(" volts="));Serial.println(vt);
       bitClear(PORT_VCHK,BIT_VCHK);
     }
     break;
 
     case 'P':
     {
+      Serial.print(F(" numéro perif ? "));delay(5);
       char cx=getCh();
-      Serial.print(F(" numéro perif ? "));
-      cx=getNumCh();
-      Serial.print(' ');
       periRxAddr[4]=(byte)cx;periRxAddr[5]='\0';
       Serial.println((char*)periRxAddr);
 
-      cx=getCh();
       Serial.print(F(" numéro concentrateur (0-3)? "));
-      cx=getNumCh('0','3');
-      Serial.print(' ');
-      *concNb=cx-48;
+      *concNb=getNumCh('0','3');
+      
       Serial.println(*concNb);
       *concChannel=radio.channelTable[*concNb];
 
       if(memcmp(configVers,"2d",2)<0){
-        cx=getCh();
         Serial.print(F(" change to v2d (O/N)? "));
         cx=getCh();Serial.println(cx);
         if(cx=='O'){memcpy(configVers,"2d",2);}
       }
       
       if(memcmp(configVers,"2d",2)>=0){
-        cx=getCh();
         Serial.print(F(" powerLevel ("));
         for(uint8_t i=0;i<N_PWR_LEVEL;i++){
           Serial.print(i);Serial.print("=");Serial.print(rf_power[i]);if(i<N_PWR_LEVEL-1){Serial.print(' ');}}
         Serial.print("db)? ");
         cx=getNumCh('0',N_PWR_LEVEL+48);
-        Serial.print(' ');
-        uint8_t p=cx-48;
-        *powerLevel=rf_power_v[p];
-        Serial.print(rf_power[p]);Serial.print(F("db (0x0"));Serial.print(*powerLevel);Serial.println(')');
+        *powerLevel=rf_power_v[(uint8_t)cx];
+        Serial.print(rf_power[(uint8_t)cx]);Serial.print(F("db (0x0"));Serial.print(*powerLevel);Serial.println(')');
       
-        cx=getCh();
         uint8_t tableAdjust[10]={0,25,50,75,100,125,150,175,200,225};
         Serial.print(F(" perAdjust ("));
         for(uint8_t i=0;i<10;i++){
-          Serial.print(i);Serial.print(F("=0."));Serial.print(tableAdjust[i]);
+          Serial.print(i);Serial.print('=');
+          if(tableAdjust[i]<100){Serial.print(F("0."));Serial.print(tableAdjust[i]);}
+          else if(tableAdjust[i]<200){Serial.print(F("1."));Serial.print(tableAdjust[i]-100);}
+          else {Serial.print(F("2."));Serial.print(tableAdjust[i]-200);}
           if(i<9){Serial.print(' ');}
           else{Serial.print(F(")? "));}
         }
         cx=getNumCh('0','9');
-        Serial.print(' ');
-        *perAdjust=tableAdjust[cx-48];
+        *perAdjust=tableAdjust[(uint8_t)cx];
         Serial.print((float)*perAdjust/100);Serial.println("ms");
       }
     }
@@ -502,6 +499,7 @@ void manualDetsConfig()
       break;
 
     default:break;
+  }
   }
 }
 
