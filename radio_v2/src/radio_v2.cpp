@@ -186,7 +186,7 @@ extern uint8_t*  concChannel;
 extern uint8_t*  concSpeed;
 extern uint8_t*  concPeriParams;   // provenance des params de calibrage (0 périf ; 1 saisie serveur)
 extern uint8_t*  powerLevel;
-extern int8_t*   perAdjust;
+extern uint8_t*  perAdjust;
 extern bool wdIntFlag;
 
 /*** gestion sleep ***/
@@ -376,7 +376,7 @@ void setup() {
   pinMode(STOPREQ,INPUT_PULLUP);
   if(digitalRead(STOPREQ)==LOW){        // chargement config depuis serveur
       Serial.print(F("Server Config "));
-      getVolts(*vFactor,*thFactor,&volt,&th);spvt();
+      getVT(*vFactor,*thFactor,&volt,&th);spvt();
       blink(4);
       if(getServerConfig()>5){configSave();}
       configPrint();
@@ -384,16 +384,7 @@ void setup() {
   }
 #endif // NOCONFSER
 
- /* diags=diagSetup(t_on,4000," une touche pour diags \0");
-  if(diags){
-    Serial.println("+ every wake up ; ! mustSend true ; * force transmit (perRefr or retry)");
-    Serial.println("€ showerr ; £ importData (received to local) ; $ diags fin loop");delay(10);
-    serialHere=true;
-  }
-  if(!diags){serialHere=diagSetup(t_on,12000,"   série on ? \0");}
-  Serial.println();
-  */
- 
+
   char c=menuDly((const char*)"  diags/config/serial ?",(const char*)"dcs",12000);
 
   if(c=='d'){diags=true;}
@@ -407,7 +398,7 @@ void setup() {
   ADCSRA |= (1<<ADEN);                                // ADC enable to write ADMUX
   ADMUX = (1<<REFS1) | (1<<REFS0) ;delay(1000);       // adc ref sel init
 
-  getVolts(*vFactor,*thFactor,&volt,&th);                       // read voltage and temperature (1ère conversion ADC ko)
+  getVT(*vFactor,*thFactor,&volt,&th);                       // read voltage and temperature (1ère conversion ADC ko)
   lastvolt=volt;
 
   /* ------------------- */
@@ -570,7 +561,7 @@ void loop() {
 
   /* usefull awake or retry */
   digitalWrite(PLED,HIGH);
-  getVolts(*vFactor,*thFactor,&volt,&th);                        // include notDS18X20 thermo reading and low voltage check (not blocking)                                   
+  getVT(*vFactor,*thFactor,&volt,&th);                        // include notDS18X20 thermo reading and low voltage check (not blocking)                                   
   digitalWrite(PLED,LOW);
   readTemp();                                 // only for DS18X20
   awakeCnt=aw_ok;
