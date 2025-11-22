@@ -112,7 +112,7 @@ WiFiClient cli;                           // instance du serveur externe (utilis
 
 #ifdef  _SERVER_MODE
 WiFiClient cliext;                        // instance du serveur local
-WiFiServer* serverx=nullptr;
+WiFiServer* server=nullptr;
 bool serverStarted=false;
 
   #define LHTTPMESS 600
@@ -312,7 +312,9 @@ void setup()
 
 /* >>>>>> pins Init <<<<<< */
 
+#if !NO_MODE  
   checkVoltage();                   // power off au plus vite si tension insuffisante (no serial)
+#endif
 
 /*   stop modem
 #if POWER_MODE!=NO_MODE
@@ -514,11 +516,12 @@ initConstant();             // à supprimer en production
   #define FRDLY 5  // sec
 #if CARTE != THESP01
   pinMode(PINDTC,INPUT_PULLUP);
+  /*   à quoi ça sert ? ça plante si le pin est bas !
   if(digitalRead(PINDTC)==LOW){                     
     blink(4);delay(2000);
     yield();
     if(getServerConfig()>0){writeConstant();while(1){blink(1);delay(1000);}} // getServerConfig bloque si ko
-  }
+  }*/
 #endif // != THESP01
   Serial.print("cstRec.serverIp ");Serial.print(cstRec.serverIp);//Serial.print(" textFrontalIp ");Serial.println(textFrontalIp);
   Serial.print(" time=");Serial.println(millis()-debTime);
@@ -1229,7 +1232,7 @@ void showMD() // display hexa locmem, extDetec, swCde
       if(*(char*)(&locmem+3-i)<16){Serial.print('0');}Serial.print(*(char*)(&locmem+3-i),HEX);
       Serial.print(' ');
     }
-    dumpstr((char*)&locmem-4,8);
+    dumpstr((char*)(&locmem-4),8);
     Serial.print("   ");
     for(uint8_t i=0;i<8;i++){
       if(cstRec.extDetec[8-i-1]<16){Serial.print('0');}Serial.print(cstRec.extDetec[8-i-1],HEX);
