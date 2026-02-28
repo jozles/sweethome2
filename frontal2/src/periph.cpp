@@ -9,7 +9,7 @@
 #include "periph.h"
 #include "utilhtml.h"
 
-#include "nrf24l01s.h"
+//#include "nrf24l01s.h"
 
 
 /* ---------- config ---------- */
@@ -223,10 +223,10 @@ FsFile fmemos;      // fichier memos
 
 extern char   memosTable[LMEMO*NBMEMOS];
 
-uint8_t channelTable[]={CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal vs N° conc 
-const char  concMacTable[] = {CC_ADDRX};
-uint16_t portTable[MAXCONC] = {CC_UDP0,CC_UDP1,CC_UDP2,CC_UDP3};
-uint16_t speedTable[MAXCONC]= {CC_SPEED,CC_SPEED,CC_SPEED,CC_SPEED};
+uint8_t channelTable[]={120,110,100,90}; //CHANNEL0,CHANNEL1,CHANNEL2,CHANNEL3};   // canal vs N° conc 
+//const char  concMacTable[] = {CC_ADDRX};
+uint16_t portTable[MAXCONC] = {55556,55557,55558,55559};  //CC_UDP0,CC_UDP1,CC_UDP2,CC_UDP3};
+uint16_t speedTable[MAXCONC]= {0,0,0,0};  //CC_SPEED,CC_SPEED,CC_SPEED,CC_SPEED};
 
 #define DEFCONC 0
 
@@ -260,7 +260,7 @@ void factoryResetConfig()
   *maxCxWt=MAXCXWT;
   *maxCxWu=MAXCXWU;
 
-  memcpy(concMac,concMacTable,MACADDRLENGTH*MAXCONC);
+  //memcpy(concMac,concMacTable,MACADDRLENGTH*MAXCONC);
   memset(concIp,0x00,4*MAXCONC);
   for(uint8_t i=0;i<MAXCONC;i++){
     memcpy(concRx+i*RADIO_ADDR_LENGTH,CB_ADDR,RADIO_ADDR_LENGTH); //(MAXCONC-1)*(RADIO_ADDR_LENGTH-1));
@@ -651,7 +651,7 @@ void configPrint()
   Serial.print(" peri1=");Serial.print(*periMail1);Serial.print(" peri2=");Serial.println(*periMail2);
   Serial.print(" maxCxWt ");Serial.print(*maxCxWt);Serial.print(" maxCxWu ");Serial.println(*maxCxWu);
   subConcPrint();
-  Serial.println();
+  //Serial.println();
 }
 
 int configLoad()

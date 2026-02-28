@@ -34,8 +34,9 @@ void dateToStr(char* buff,int year,int month,int day,int hour,int minute,int sec
 void addTime(char* recep,const char* tim1,const char* tim2,bool onlyHours);
 void subTime(char* recep,const char* endtime,const char* time,bool onlyHours);
 
-void initDate();
+int initDate();
 char* alphaDate();
+int manualDate();
 //void initMess();
 bool ctlpass(char* data,char* model);
 int  searchusr(char* usrname);

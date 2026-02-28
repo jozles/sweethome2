@@ -717,10 +717,11 @@ int getUDPdate(uint32_t* hms,uint32_t* amj,byte* js)
   return returnStatus;
 }
 
-void initDate()
+int initDate()
 {
+  int8_t d=1;
   Serial.print("date ");
-  if(!getUDPdate(&hms,&amj,&js)){Serial.println("pb NTP");ledblink(BCODEPBNTP,PULSEBLINK);} // pas de service date externe 
+  if(!getUDPdate(&hms,&amj,&js)){Serial.println("pb NTP");ledblink(BCODEPBNTP,PULSEBLINK);d=0;} // pas de service date externe 
   else {
     Serial.print(js);Serial.print(" ");Serial.print(amj);Serial.print(" ");Serial.print(hms);Serial.println(" GMT");
     ds3231.getDate(&hms2,&amj2,&js2,strdate);               // read DS3231
@@ -728,11 +729,33 @@ void initDate()
       Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.print(hms2);Serial.print(" setup DS3231 ");
       ds3231.setTime((byte)(hms%100),(byte)((hms%10000)/100),(byte)(hms/10000),js,(byte)(amj%100),(byte)((amj%10000)/100),(byte)((amj/10000)-2000)); // SET GMT TIME      
       ds3231.getDate(&hms2,&amj2,&js2,strdate);
-      if(amj!=amj2 || hms!=hms2 || js!=js2){Serial.println("failed");}
+      if(amj!=amj2 || hms!=hms2 || js!=js2){Serial.println("failed");d=0;}
       else {Serial.println("ok");}
     }
   }
-}  
+  return d;
+}
+
+
+int manualDate(){
+  int8_t d=1;
+  char m[]={"correction date/heure yymmddhhmmssw "};
+  if(diagSetup(millis(),10000,m)){
+      for(uint8_t i=0;i<6;i++){amj*=10;amj+=getCh()-48;}
+      for(uint8_t i=0;i<6;i++){hms*=10;hms+=getCh()-48;}
+      js=getCh(false)-48;
+      ds3231.setTime((byte)(hms%100),(byte)((hms%10000)/100),(byte)(hms/10000),js,(byte)(amj%100),(byte)((amj%10000)/100),(byte)(amj/10000)); // SET GMT TIME 
+      ds3231.getDate(&hms2,&amj2,&js2,strdate);
+      Serial.print(js2);Serial.print(" ");Serial.print(amj2);Serial.print(" ");Serial.print(hms2);Serial.println(" GMT");
+
+      if(amj!=amj2-20000000 || hms!=hms2 || js!=js2){Serial.println("failed");d=0;}
+      else {Serial.println("ok");}
+      delay(5000);
+      ds3231.getDate(&hms,&amj,&js,strdate);
+      Serial.print(js);Serial.print(" ");Serial.print(amj);Serial.print(" ");Serial.print(hms);Serial.println(" GMT");
+  }
+  return d;
+}
 
 
 int searchusr(char* usrname)

@@ -516,7 +516,7 @@ pinMode(16,OUTPUT);pinMode(17,OUTPUT); // timing spi sd et w5100 voir spi.cpp
   Serial.begin (115200);
   
   delay(1000);
-  Serial.print("+");
+  Serial.print("\n+");
 
   pinMode(STOPREQ,INPUT_PULLUP);        // push button "HALT REQ"
 
@@ -602,8 +602,7 @@ pinMode(16,OUTPUT);pinMode(17,OUTPUT); // timing spi sd et w5100 voir spi.cpp
   remoteLoad();//remotePrint();//periSwSync();
   //timersConvert();                // chgt du nombre de timers
   timersLoad();
-  cyclicTimersInit();
-  //timersConvert();
+  cyclicTimersInit();//******************************rebrancher*********************************** */
   //thermosInit();thermosSave();    // si NBPERIF change
   thermosLoad();
   //memosInit();memosSave(-1);  
@@ -633,10 +632,10 @@ pinMode(16,OUTPUT);pinMode(17,OUTPUT); // timing spi sd et w5100 voir spi.cpp
   trigwd();
 
   if(Ethernet.begin(mac) == 0)
-    {
+  {
     Serial.print("\nFailed with DHCP... forcing Ip ");serialPrintIp(localIp);Serial.println();  // config record IP
     Ethernet.begin (mac, localIp); 
-    }
+  }
   Serial.print(" localIP=");
   for(i=0;i<4;i++){localIp[i]=Ethernet.localIP()[i];Serial.print(localIp[i]);if(i<3){Serial.print(".");}}Serial.println();
   configSave();
@@ -671,7 +670,9 @@ pinMode(16,OUTPUT);pinMode(17,OUTPUT); // timing spi sd et w5100 voir spi.cpp
 /* ethernet doit être branché pour l'udp */
 
   Serial.println();
-  initDate();
+  if(!initDate()){
+    manualDate();
+  }
   
 /*  while(1){
   int udpav=Udp.parsePacket();
@@ -698,6 +699,8 @@ pinMode(16,OUTPUT);pinMode(17,OUTPUT); // timing spi sd et w5100 voir spi.cpp
 
   ds3231.alphaNow(now);                                             
   unixNow=alphaDateToUnix(now,false);
+
+  trigrst();trigwd();  initLed(PINLED,LEDOFF,LEDON);
   
   Serial.println(">>>>>>>>> fin setup\n");
 }
@@ -997,6 +1000,7 @@ void cyclicTimersInit(uint8_t nt)     // recalage état et unixCyclicTimersCurDa
 
     //char* cTCD=cyclicTimersCurDate+16*nt;cTCD[14]='\0';
     //unixDateToStr(unixCurD,cTCD);                     // dh prochaine transition
+    delay(10);
   }
 }
 

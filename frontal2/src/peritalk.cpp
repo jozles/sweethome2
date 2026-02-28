@@ -253,7 +253,7 @@ int periReq0(EthernetClient* cli,const char* nfonct,const char* msg)   // foncti
 
   //periPrint(periCur);
 
-  Serial.print(*periCfg);Serial.print("_");Serial.println(*periPort);
+  Serial.print(*periCfg);Serial.print("_");Serial.print(*periPort);
 
   int ret=MESSCX; // pas de port pas de connexion
   if(((*periCfg)&PERI_SERV)!=0 && *periPort!=0){                        // perif serveur avec un port

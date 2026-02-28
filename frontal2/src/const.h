@@ -3,7 +3,7 @@
 
 #include <shconst2.h>
 
-#define NVERS ".8q"
+#define NVERS ".8r"
 #ifdef _MODE_DEVT
 #define PV "A"
 #endif 
@@ -188,6 +188,7 @@
         format IPAddress pour messToServer (voir comments dans shlib2.h)
    1.8q corrections testmail des périphériques, mail() ; ajout ip 109 pour autorisation UDP (frontal2)
         modif showline affichage couleurs dates/heures connexions
+   1.8r modif manuelle date/heure quand ntp ko
         
 
 
